@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.77.0] - 2026-10-18
+
+- Added P122 typed NeoError values, ordered typed catches, identity-preserving rethrow, and finally cleanup across synchronous and deferred execution. Runtime control failures remain noncatchable.
+- Generated functions and properties expose `NeoScriptException.Error` as the concrete generated error wrapper. Register closed generic wrappers with `GenericError<int>.RegisterErrorFactory(client)` before host inspection. Construction follows ordinary class storage rules, and uncaught row-backed payloads remain readable.
+- Unexpected native exceptions expose a fixed NeoHostError message to scripts and retain diagnostic details for the host.
+- Requires Unity export schema 45. Upgrade the CLI and SDK together, then run `neo pull` and `neo export`. Compiler revision remains 17.
+
 ## [0.76.0] - 2026-10-17
 
 - Added P121 closed class families and exhaustive switch expressions with type patterns, bindings, and ordered guards. Closed classes use `NeoClassModifierKind.Closed` and are implicitly abstract.

@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
                 string name = (string)test["name"]!;
                 if (test["expectedError"] is JToken error)
                 {
-                    var thrown = Assert.Throws<NSGetterRuntimeError>(() => Evaluate(test, context), name);
+                    var thrown = Assert.Catch<NSGetterRuntimeError>(() => Evaluate(test, context), name);
                     Assert.AreEqual((string)error, thrown!.Message, name);
                     continue;
                 }
@@ -109,7 +109,7 @@ namespace NeoCompose.Tests
         public void FractionalIntegerVectorOperandFailsPrecisely()
         {
             var pointer = JObject.Parse("{\"type\":\"function\",\"function\":{\"type\":\"vectorOp\",\"info\":{\"kind\":\"Vector2Int\",\"op\":\"negate\",\"argPointers\":[{\"type\":\"value\",\"value\":{\"typeInfo\":{\"type\":15,\"required\":true},\"value\":{\"x\":1.5,\"y\":2}}}]}}}").ToObject<Pointer>()!;
-            var error = Assert.Throws<NSGetterRuntimeError>(() => Evaluate(pointer, new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }));
+            var error = Assert.Catch<NSGetterRuntimeError>(() => Evaluate(pointer, new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true }));
             Assert.AreEqual("Vector2Int.negate argument 1 component 'x' must be an integer.", error!.Message);
         }
 

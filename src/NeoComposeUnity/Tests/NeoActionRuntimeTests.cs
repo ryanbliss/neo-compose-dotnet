@@ -413,7 +413,7 @@ namespace NeoCompose.Tests
             };
             using var node = new NeoMemberAction(client, member, null);
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() => node.Invoke());
+            var error = Assert.Catch<NSGetterRuntimeError>(() => node.Invoke());
 
             StringAssert.Contains("OnDamaged[default] listener 0", error!.Message);
             StringAssert.Contains("boom", error.Message);

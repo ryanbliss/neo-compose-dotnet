@@ -42,7 +42,7 @@ namespace NeoCompose.Runtime
         {
             if (exception == null)
                 throw new ArgumentNullException(nameof(exception));
-            state.Fail(exception);
+            state.Fail(exception is NeoScript.NeoScriptException error ? error.ForNativeReentry() : exception);
         }
 
         protected void CompleteUntyped(object? value)

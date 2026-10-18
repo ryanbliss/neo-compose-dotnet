@@ -1068,6 +1068,17 @@ namespace NeoCompose.Runtime.NeoScript
             internal object? immediateExpressionState;
             internal object? immediateExpressionOptions;
 
+            internal NeoScriptExecutor.ErrorHandlerFrame? errorHandler;
+            internal NSGetterRuntimeError? caughtError;
+
+            internal Context WithErrorHandler(NeoScriptExecutor.ErrorHandlerFrame? handler, NSGetterRuntimeError? caught = null)
+            {
+                Context child = Fork();
+                child.errorHandler = handler;
+                child.caughtError = caught;
+                return child;
+            }
+
             internal Context WithThis(object? value)
             {
                 Context child = Fork();
@@ -2456,7 +2467,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (v is null)
             {
                 throw new NSGetterRuntimeError(
-                    $"Unexpectedly found null while force-unwrapping a value (unwrapped pointer kind: {DescribePointer(fup.pointer)})");
+                    $"Unexpectedly found null while force-unwrapping a value (unwrapped pointer kind: {DescribePointer(fup.pointer)})", NeoErrorContract.NeoNullReferenceError);
             }
             return v;
         }
@@ -2590,8 +2601,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (delegateCall.optional == true)
                     return null;
-                throw new NSGetterRuntimeError(
-                    "Cannot invoke a null NeoDelegate value.");
+                throw new NSGetterRuntimeError("Cannot invoke a null NeoDelegate value.", NeoErrorContract.NeoNullReferenceError);
             }
             var args = new object?[delegateCall.args.Length];
             for (int i = 0; i < args.Length; i++)
@@ -3064,7 +3074,9 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < captures.Length; i++)
                 {
                     int parameterIndex = i + args.Length + 2;
-                    scope.SetParameter(parameterIndex,
+                    // Live captures are already evaluator values. Re-marshalling a
+                    // dictionary would copy it and lose writes visible to filters.
+                    scope.SetParameter(parameterIndex, value.hasLexicalEnvironment ? captures[i] :
                         NeoScriptValueMarshaller.Normalize(
                             ctx.client,
                             ctx.valueOwnership,
@@ -3189,7 +3201,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (frames.Count >= NeoDelegateFrameStack.MaxDepth)
             {
-                throw new NSGetterRuntimeError(
+                throw new NeoScriptControlError(
                     $"NeoDelegate call stack exceeded {NeoDelegateFrameStack.MaxDepth} frames: {DescribeDelegateCallStack(ctx, memberId, target.valueId)}.");
             }
 
@@ -3989,7 +4001,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             try
             {
-                EvalFunctionCall(pointer.call, scope, ctx);
+                EvalFunctionCall(pointer.call, scope, ctx.WithErrorHandler(null));
                 return pointer.mode == FunctionErrorCheckKind.DoesNotThrow;
             }
             catch (NeoDeferredFunctionRuntimeError)
@@ -4000,8 +4012,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw;
             }
-            catch
+            catch (Exception error)
             {
+                Exception failure = NormalizeError(error, ctx);
+                if (!NeoScriptErrorClassification.IsAuthoredCatchable(failure))
+                    throw failure;
                 return pointer.mode == FunctionErrorCheckKind.Throws;
             }
         }
@@ -4185,7 +4200,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (receiver is null)
             {
                 throw new NSGetterRuntimeError(
-                    $"Cannot read property '{key}' of null");
+                    $"Cannot read property '{key}' of null", NeoErrorContract.NeoNullReferenceError);
             }
 
             string k = key as string ?? key?.ToString() ?? "null";
@@ -4252,7 +4267,7 @@ namespace NeoCompose.Runtime.NeoScript
                         RowOwnership(recordRef, receiver),
                         CollectionEntryMember(recordRef, receiver, ctx));
                 }
-                throw new NSGetterRuntimeError($"Missing key '{k}' on object");
+                throw new NSGetterRuntimeError($"Missing key '{k}' on object", NeoErrorContract.NeoKeyNotFoundError);
             }
 
             throw new NSGetterRuntimeError(
@@ -4289,7 +4304,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 else
                 {
-                    throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+                    throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'", NeoErrorContract.NeoIndexOutOfRangeError);
                 }
             }
             // A primitive entry is its own value: only a value id
@@ -4559,7 +4574,7 @@ namespace NeoCompose.Runtime.NeoScript
             var key = EvalPointer(keyPointer, scope, ctx);
             string k = key as string ?? key?.ToString() ?? "null";
             if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
-                throw new NSGetterRuntimeError($"Missing key '{k}' on object");
+                throw new NSGetterRuntimeError($"Missing key '{k}' on object", NeoErrorContract.NeoKeyNotFoundError);
             return entryId;
         }
 
@@ -4586,17 +4601,17 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (TryAsDouble(key, out position))
                 return list[ListPosition(list.Count, position)];
-            throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+            throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'", NeoErrorContract.NeoIndexOutOfRangeError);
         }
 
         private static int ListPosition(int length, double position)
         {
             if (!NeoNumbers.IsWhole(position))
-                throw new NSGetterRuntimeError($"List index must be an integer; got '{position}'");
+                throw new NSGetterRuntimeError($"List index must be an integer; got '{position}'", NeoErrorContract.NeoIndexOutOfRangeError);
             if (position < 0 || position >= length)
             {
                 throw new NSGetterRuntimeError(
-                    $"List index out of bounds: {position}");
+                    $"List index out of bounds: {position}", NeoErrorContract.NeoIndexOutOfRangeError);
             }
             return (int)position;
         }
@@ -5372,13 +5387,13 @@ namespace NeoCompose.Runtime.NeoScript
                     return RoundArithmetic(left * right, numeric);
                 case '/':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Division by zero");
+                        throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
                     if (numeric == ArithmeticNumeric.Int)
                         return System.Math.Truncate(left / right);
                     return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Modulo by zero");
+                        throw new NSGetterRuntimeError("Modulo by zero", NeoErrorContract.NeoArithmeticError);
                     return RoundArithmetic(left % right, numeric);
                 default:
                     throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
@@ -5500,7 +5515,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (DecimalOverflowException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
             }
         }
 
@@ -5916,8 +5931,7 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver = EvalPointer(info.receiverPointer, scope, ctx);
             if (receiver is null)
             {
-                throw new NSGetterRuntimeError(
-                    "ToVariant receiver is null; narrow or force-unwrap the optional value first.");
+                throw new NSGetterRuntimeError("ToVariant receiver is null; narrow or force-unwrap the optional value first.", NeoErrorContract.NeoNullReferenceError);
             }
             if (FindRowReference(receiver, ctx) is not { } source)
             {
@@ -6412,8 +6426,7 @@ namespace NeoCompose.Runtime.NeoScript
             var receiver = EvalPointer(ccf.info.receiverPointer, scope, ctx);
             if (receiver is null)
             {
-                throw new NSGetterRuntimeError(
-                    "Class.Clone receiver is null; narrow or force-unwrap the optional value first.");
+                throw new NSGetterRuntimeError("Class.Clone receiver is null; narrow or force-unwrap the optional value first.", NeoErrorContract.NeoNullReferenceError);
             }
             if (FindRowReference(receiver, ctx) is not { } source)
             {
@@ -6569,8 +6582,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (target is not string ts)
                 {
-                    throw new NSGetterRuntimeError(
-                        "string.Contains argument must be a string");
+                    throw new NSGetterRuntimeError("string.Contains argument must be a string", NeoErrorContract.NeoArgumentError);
                 }
                 return Box(s.Contains(ts));
             }
@@ -7476,16 +7488,15 @@ namespace NeoCompose.Runtime.NeoScript
                 || double.IsNaN(sliceIndex)
                 || double.IsInfinity(sliceIndex))
             {
-                throw new NSGetterRuntimeError(
-                    $"Slice index must be numeric; got {ReceiverTypeName(rawSliceIndex)}.");
+                throw new NSGetterRuntimeError($"Slice index must be numeric; got {ReceiverTypeName(rawSliceIndex)}.", NeoErrorContract.NeoArgumentError);
             }
             if (!NeoNumbers.IsWhole(sliceIndex))
             {
-                throw new NSGetterRuntimeError("Slice index must be a whole number.");
+                throw new NSGetterRuntimeError("Slice index must be a whole number.", NeoErrorContract.NeoArgumentError);
             }
             if (sliceIndex < 0)
             {
-                throw new NSGetterRuntimeError("Slice index must be 0 or greater.");
+                throw new NSGetterRuntimeError("Slice index must be 0 or greater.", NeoErrorContract.NeoArgumentError);
             }
             return new Dictionary<string, object?>
             {
@@ -7511,7 +7522,7 @@ namespace NeoCompose.Runtime.NeoScript
             var receiverRaw = EvalPointer(info.receiverPointer, scope, ctx);
             if (receiverRaw is null)
             {
-                throw new NSGetterRuntimeError($"Decimal {info.op} receiver is null.");
+                throw new NSGetterRuntimeError($"Decimal {info.op} receiver is null.", NeoErrorContract.NeoNullReferenceError);
             }
             try
             {
@@ -7531,7 +7542,7 @@ namespace NeoCompose.Runtime.NeoScript
                             var divisorRaw = EvalPointer(info.argPointer, scope, ctx);
                             if (divisorRaw is null)
                             {
-                                throw new NSGetterRuntimeError("Decimal Divide divisor is null.");
+                                throw new NSGetterRuntimeError("Decimal Divide divisor is null.", NeoErrorContract.NeoArgumentError);
                             }
                             return NeoDecimalMath.Divide(
                                 CoerceDecimalOperand(receiverRaw, "Divide"),
@@ -7558,19 +7569,19 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (DecimalOverflowException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
             }
             catch (DecimalDivisionByZeroException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
             }
             catch (DecimalDigitsRangeException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArgumentError);
             }
             catch (DecimalNonFiniteException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
             }
         }
 
@@ -7593,8 +7604,7 @@ namespace NeoCompose.Runtime.NeoScript
             var value = EvalPointer(info.digitsPointer, scope, ctx);
             if (!TryAsDouble(value, out double number) || !NeoNumbers.IsWhole(number))
             {
-                throw new NSGetterRuntimeError(
-                    $"Decimal {info.op} digits argument must be an integer; got {ReceiverTypeName(value)}.");
+                throw new NSGetterRuntimeError($"Decimal {info.op} digits argument must be an integer; got {ReceiverTypeName(value)}.", NeoErrorContract.NeoArgumentError);
             }
             return (int)number;
         }
@@ -7635,17 +7645,17 @@ namespace NeoCompose.Runtime.NeoScript
                 case StringOpKind.Replace:
                     {
                         if (info.argPointer is null)
-                            throw new NSGetterRuntimeError("string.Replace requires a search argument.");
+                            throw new NSGetterRuntimeError("string.Replace requires a search argument.", NeoErrorContract.NeoArgumentError);
                         if (info.replacementPointer is null)
-                            throw new NSGetterRuntimeError("string.Replace requires a replacement argument.");
+                            throw new NSGetterRuntimeError("string.Replace requires a replacement argument.", NeoErrorContract.NeoArgumentError);
                         var search = EvalPointer(info.argPointer, scope, ctx);
                         var replacement = EvalPointer(info.replacementPointer, scope, ctx);
                         if (search is not string searchText)
-                            throw new NSGetterRuntimeError("string.Replace search must be a string.");
+                            throw new NSGetterRuntimeError("string.Replace search must be a string.", NeoErrorContract.NeoArgumentError);
                         if (replacement is not string replacementText)
-                            throw new NSGetterRuntimeError("string.Replace replacement must be a string.");
+                            throw new NSGetterRuntimeError("string.Replace replacement must be a string.", NeoErrorContract.NeoArgumentError);
                         if (searchText.Length == 0)
-                            throw new NSGetterRuntimeError("string.Replace search must not be empty.");
+                            throw new NSGetterRuntimeError("string.Replace search must not be empty.", NeoErrorContract.NeoArgumentError);
                         return receiverText.Replace(searchText, replacementText);
                     }
                 case StringOpKind.StartsWith:
@@ -7659,8 +7669,7 @@ namespace NeoCompose.Runtime.NeoScript
                         var arg = EvalPointer(info.argPointer, scope, ctx);
                         if (arg is not string argText)
                         {
-                            throw new NSGetterRuntimeError(
-                                $"string.{info.op} argument must be a string");
+                            throw new NSGetterRuntimeError($"string.{info.op} argument must be a string", NeoErrorContract.NeoArgumentError);
                         }
                         return info.op == StringOpKind.StartsWith
                             ? receiverText.StartsWith(argText, StringComparison.Ordinal)
@@ -7761,7 +7770,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 object? entry = snapshot.Resolve(i, ctx);
                 if (entry is not null && entry is not string)
-                    throw new NSGetterRuntimeError("string.Join entries must be strings.");
+                    throw new NSGetterRuntimeError("string.Join entries must be strings.", NeoErrorContract.NeoArgumentError);
                 entries[i] = (string?)entry;
             }
             return entries;
@@ -7777,7 +7786,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static string TextStringArgument(object?[] args, int index, string member)
         {
             if (TextArgument(args, index, member) is not string text)
-                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a string.");
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a string.", NeoErrorContract.NeoArgumentError);
             return text;
         }
 
@@ -7796,7 +7805,7 @@ namespace NeoCompose.Runtime.NeoScript
                 || number < int.MinValue
                 || number > int.MaxValue)
             {
-                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be an int.");
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be an int.", NeoErrorContract.NeoArgumentError);
             }
             return (int)number;
         }
@@ -7808,11 +7817,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (number == NeoText.Decimal)
             {
                 if (value is not string text)
-                    throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a decimal.");
+                    throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a decimal.", NeoErrorContract.NeoArgumentError);
                 return text;
             }
             if (!TryAsDouble(value, out double numeric))
-                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a {number}.");
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a {number}.", NeoErrorContract.NeoArgumentError);
             return numeric;
         }
 
@@ -7921,7 +7930,7 @@ namespace NeoCompose.Runtime.NeoScript
                 r2 = EvaluateValue(pointers[2], scope, ctx, out v2);
             // Evaluate all arguments before validating any of them.
             if (r0 is null || (arity > 1 && r1 is null) || (arity > 2 && r2 is null))
-                throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(info.op)} argument is null.");
+                throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(info.op)} argument is null.", NeoErrorContract.NeoArgumentError);
             if (info.isDecimal == true)
             {
                 var decimalArgs = new object?[arity];
@@ -7945,8 +7954,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static double FloatMathArgument(string wireOp, object? value, double number)
         {
             if (!ArithmeticValue.IsNumeric(value))
-                throw new NSGetterRuntimeError(
-                    $"Math.{MathOpFunctionName(wireOp)} argument is not numeric: {ReceiverTypeName(value)}.");
+                throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(wireOp)} argument is not numeric: {ReceiverTypeName(value)}.", NeoErrorContract.NeoArgumentError);
             return ArithmeticValue.NumberOf(value, number);
         }
 
@@ -7985,7 +7993,7 @@ namespace NeoCompose.Runtime.NeoScript
                         double max = c;
                         if (min > max)
                         {
-                            throw new NSGetterRuntimeError(MathClampBoundsMessage);
+                            throw new NSGetterRuntimeError(MathClampBoundsMessage, NeoErrorContract.NeoArgumentError);
                         }
                         if (value < min)
                             return min;
@@ -8020,7 +8028,7 @@ namespace NeoCompose.Runtime.NeoScript
                         double value = a;
                         if (double.IsNaN(value))
                         {
-                            throw new NSGetterRuntimeError("Math.Sign is undefined for NaN.");
+                            throw new NSGetterRuntimeError("Math.Sign is undefined for NaN.", NeoErrorContract.NeoArithmeticError);
                         }
                         if (value > 0)
                             return 1d;
@@ -8052,8 +8060,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (args[i] is not string && !TryAsDouble(args[i], out _))
                 {
-                    throw new NSGetterRuntimeError(
-                        $"Math.{name} argument is not numeric: {ReceiverTypeName(args[i])}.");
+                    throw new NSGetterRuntimeError($"Math.{name} argument is not numeric: {ReceiverTypeName(args[i])}.", NeoErrorContract.NeoArgumentError);
                 }
                 // The widening seam's own messages name the operation, and
                 // the web evaluator spells that context `Math.<Fn>`; these
@@ -8076,7 +8083,7 @@ namespace NeoCompose.Runtime.NeoScript
                             // decimal is never NaN, so nothing falls through.
                             if (NeoDecimalMath.Compare(values[1], values[2]) > 0)
                             {
-                                throw new NSGetterRuntimeError(MathClampBoundsMessage);
+                                throw new NSGetterRuntimeError(MathClampBoundsMessage, NeoErrorContract.NeoArgumentError);
                             }
                             if (NeoDecimalMath.Compare(values[0], values[1]) < 0)
                                 return values[1];
@@ -8107,7 +8114,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (DecimalOverflowException error)
             {
-                throw new NSGetterRuntimeError(error.Message);
+                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
             }
         }
 
@@ -8121,8 +8128,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (double.IsNaN(value) || double.IsInfinity(value))
             {
-                throw new NSGetterRuntimeError(
-                    $"Math.{MathOpFunctionName(wireOp)} requires a finite argument.");
+                throw new NSGetterRuntimeError($"Math.{MathOpFunctionName(wireOp)} requires a finite argument.", NeoErrorContract.NeoArgumentError);
             }
         }
 
@@ -8267,7 +8273,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return number;
             }
-            throw new NSGetterRuntimeError($"{name} must be an integer");
+            throw new NSGetterRuntimeError($"{name} must be an integer", NeoErrorContract.NeoArgumentError);
         }
 
         /// <summary>
@@ -8318,8 +8324,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (!NeoNumbers.IsWhole(value))
             {
-                throw new NSGetterRuntimeError(
-                    $"Vector component '{component}' must be an integer.");
+                throw new NSGetterRuntimeError($"Vector component '{component}' must be an integer.", NeoErrorContract.NeoArgumentError);
             }
         }
 
@@ -8961,7 +8966,22 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         if (value is not IDictionary<string, object?>)
                             return false;
-                        return RuntimeClassExtends(value, (checkType as ClassTypeInfo)?.classId ?? "", ctx);
+                        if (checkType is not ClassTypeInfo classType || !RuntimeClassExtends(value, classType.classId, ctx))
+                            return false;
+                        var closed = (ClassTypeInfo)ClosedCatchType(classType, ctx);
+                        if (closed.typeArguments is not { Count: > 0 })
+                            return true;
+                        var env = NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, value, ctx, "A Class type check");
+                        foreach (var pair in closed.typeArguments)
+                        {
+                            if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry entry) || !entry.IsBound)
+                                return false;
+                            TypeInfo actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(ctx.client,
+                                new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = entry.memberId }, env));
+                            if (!NeoClient.TypeInfoMatches(pair.Value, actual))
+                                return false;
+                        }
+                        return true;
                     }
                 case MemberKind.Interface:
                     {

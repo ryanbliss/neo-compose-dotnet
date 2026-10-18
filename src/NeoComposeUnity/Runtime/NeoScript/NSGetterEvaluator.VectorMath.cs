@@ -29,7 +29,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (info.optional == true)
                         return null;
-                    throw new NSGetterRuntimeError($"{info.kind}.{op} argument {index + 1} is null.");
+                    throw new NSGetterRuntimeError($"{info.kind}.{op} argument {index + 1} is null.", NeoErrorContract.NeoArgumentError);
                 }
                 bool scalarArgument = op == "scaleLeft" && index == 0
                     || (op is "multiply" or "divide") && index == 1
@@ -37,9 +37,9 @@ namespace NeoCompose.Runtime.NeoScript
                 if (scalarArgument)
                 {
                     if (!TryAsDouble(value, out double number))
-                        throw new NSGetterRuntimeError($"{info.kind}.{op} argument {index + 1} must be a number.");
+                        throw new NSGetterRuntimeError($"{info.kind}.{op} argument {index + 1} must be a number.", NeoErrorContract.NeoArgumentError);
                     if (integer && (!NeoNumbers.IsWhole(number) || double.IsInfinity(number)))
-                        throw new NSGetterRuntimeError($"{info.kind}.{op} scalar must be an integer.");
+                        throw new NSGetterRuntimeError($"{info.kind}.{op} scalar must be an integer.", NeoErrorContract.NeoArgumentError);
                     scalar = VectorRound(number, integer);
                 }
                 else
@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             if (op == "divide" && scalar == 0)
-                throw new NSGetterRuntimeError("Division by zero");
+                throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
             if (op == "lerp")
                 scalar = scalar < 0 ? 0 : scalar > 1 ? 1 : scalar;
             VectorComponents difference = default;
@@ -96,7 +96,7 @@ namespace NeoCompose.Runtime.NeoScript
                     "min" => EvalFloatMathOp(MathOp.Min, "min", x, y, 0),
                     "max" => EvalFloatMathOp(MathOp.Max, "max", x, y, 0),
                     "cross" => CrossComponent(left, right, i),
-                    _ => throw new NSGetterRuntimeError($"Unknown vector operation '{op}'."),
+                    _ => throw new NSGetterRuntimeError($"Unknown vector operation '{op}'.", NeoErrorContract.NeoArgumentError),
                 };
                 result.Set(i, component);
             }
@@ -119,7 +119,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static VectorComponents ReadVectorOperand(object? value, string kind, string op, int argumentIndex, bool integer, int count)
         {
             if (value is null)
-                throw new NSGetterRuntimeError($"vectorOp {kind} argument is null.");
+                throw new NSGetterRuntimeError($"vectorOp {kind} argument is null.", NeoErrorContract.NeoArgumentError);
             VectorComponents components = default;
             for (int i = 0; i < count; i++)
             {
@@ -127,15 +127,15 @@ namespace NeoCompose.Runtime.NeoScript
                 if (kind == "Color")
                 {
                     if (!TryReadColorComponent(value, i == 0 ? "r" : i == 1 ? "g" : i == 2 ? "b" : "a", out float channel))
-                        throw new NSGetterRuntimeError("vectorOp requires a Color argument.");
+                        throw new NSGetterRuntimeError("vectorOp requires a Color argument.", NeoErrorContract.NeoArgumentError);
                     component = channel;
                 }
                 else if (!TryReadVectorComponent(value, i == 0 ? "x" : i == 1 ? "y" : "z", out component))
                 {
-                    throw new NSGetterRuntimeError($"vectorOp requires a {kind} argument.");
+                    throw new NSGetterRuntimeError($"vectorOp requires a {kind} argument.", NeoErrorContract.NeoArgumentError);
                 }
                 if (integer && (!NeoNumbers.IsWhole(component) || double.IsInfinity(component)))
-                    throw new NSGetterRuntimeError($"{kind}.{op} argument {argumentIndex + 1} component '{(i == 0 ? "x" : i == 1 ? "y" : "z")}' must be an integer.");
+                    throw new NSGetterRuntimeError($"{kind}.{op} argument {argumentIndex + 1} component '{(i == 0 ? "x" : i == 1 ? "y" : "z")}' must be an integer.", NeoErrorContract.NeoArgumentError);
                 components.Set(i, VectorRound(component, integer));
             }
             return components;

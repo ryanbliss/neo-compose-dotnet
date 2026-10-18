@@ -389,14 +389,14 @@ namespace NeoCompose.Tests
             var replace = Assignment(PresetRead(CenterId), PatternType,
                 new VariablePointer { type = PointerKind.Variable, variableId = "p" },
                 new Variable { id = "p", typeInfo = PatternType });
-            var assigned = Assert.Throws<NSGetterRuntimeError>(() => NeoScriptExecutor.Execute(client, replace,
+            var assigned = Assert.Catch<NSGetterRuntimeError>(() => NeoScriptExecutor.Execute(client, replace,
                 new Dictionary<string, object?> { ["p"] = Construct(client, new Vector2Int(5, 5)) }, ctx));
             Assert.AreEqual("Static member 'Center' is Immutable and cannot be written at runtime.", assigned!.Message);
 
             // NeoCellPattern.Center._offsets[0].y = 7;
             var edit = Assignment(OffsetY(PresetRead(CenterId), 0), new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
                 Literal(7, MemberKind.Int));
-            var edited = Assert.Throws<NSGetterRuntimeError>(() =>
+            var edited = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoScriptExecutor.Execute(client, edit, new Dictionary<string, object?>(), ctx));
             Assert.AreEqual("Cannot write runtime-owned target because its value is Asset-owned.", edited!.Message);
 
@@ -752,7 +752,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = Client();
             var ctx = client.CreateGetterContext(NeoValueOwnership.Session);
-            var error = Assert.Throws<NSGetterRuntimeError>(() => NeoCellPatternOffsets.Read(3, ctx));
+            var error = Assert.Catch<NSGetterRuntimeError>(() => NeoCellPatternOffsets.Read(3, ctx));
             Assert.AreEqual("Cell pattern value must be a NeoCellPattern instance.", error!.Message);
         }
     }

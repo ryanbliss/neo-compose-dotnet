@@ -1,0 +1,6587 @@
+{
+  "classes": [
+    {
+      "id": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "projectId": "project-1",
+      "name": "NeoError",
+      "schema": {
+        "Message": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d"
+      },
+      "constructorIds": ["system_5749aebc-8464-5186-b995-7f5a69e702b4"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
+      "projectId": "project-1",
+      "name": "NeoNullReferenceError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_22c5afbb-36d1-59c9-9302-d65c437e25d9"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_0f2970bc-bd11-5173-847c-713e88b47a44",
+      "projectId": "project-1",
+      "name": "NeoIndexOutOfRangeError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_7e66b321-59ef-5d57-a126-15aee7505321"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
+      "projectId": "project-1",
+      "name": "NeoKeyNotFoundError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_0adaa530-dae1-5bc9-a498-de27d719b0c2"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
+      "projectId": "project-1",
+      "name": "NeoArgumentError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_072bd389-2311-50dc-9a64-80f43b2f1ee1"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
+      "projectId": "project-1",
+      "name": "NeoInvalidOperationError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_96788ed2-20ae-54fa-b6cb-2e7d558513a8"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab",
+      "projectId": "project-1",
+      "name": "NeoArithmeticError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_2f292163-652d-51be-a4d3-e0f908703890"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
+      "projectId": "project-1",
+      "name": "NeoHostError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["system_0fc09d80-5049-5e79-a41d-e09757f6f89a"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "p122-generic-error",
+      "projectId": "project-1",
+      "name": "GenericError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {},
+      "constructorIds": ["p122-generic-error-constructor"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "p122-error-type",
+          "name": "T"
+        }
+      ]
+    },
+    {
+      "id": "p122-authored-error",
+      "projectId": "project-1",
+      "name": "AuthoredError",
+      "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "schema": {
+        "Detail": "p122-error-detail"
+      },
+      "constructorIds": ["p122-authored-error-constructor"],
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1
+    }
+  ],
+  "members": [
+    {
+      "id": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+      "projectId": "project-1",
+      "name": "Message",
+      "kind": 3,
+      "requirement": 1,
+      "mutability": 1,
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1,
+      "format": 1
+    },
+    {
+      "name": "miningPower",
+      "kind": 2,
+      "requirement": 1,
+      "id": "p122-int-type",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "p122-error-detail",
+      "projectId": "project-1",
+      "name": "Detail",
+      "kind": 3,
+      "requirement": 0,
+      "mutability": 0,
+      "system": {
+        "kind": "scriptRuntime"
+      },
+      "createdAt": 1,
+      "updatedAt": 1,
+      "format": 1
+    }
+  ],
+  "constructors": [
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "this.Message = message;",
+      "id": "system_5749aebc-8464-5186-b995-7f5a69e702b4",
+      "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "assign",
+            "target": {
+              "pointer": {
+                "type": "keyOf",
+                "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                "keyOf": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "__this__"
+                  },
+                  "key": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "Message"
+                    }
+                  }
+                }
+              },
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "writability": "runtime"
+            },
+            "operator": "=",
+            "pointer": {
+              "type": "variable",
+              "variableId": "__arg_0__"
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+          ],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_22c5afbb-36d1-59c9-9302-d65c437e25d9",
+      "classId": "system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoNullReferenceError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoNullReferenceError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_7e66b321-59ef-5d57-a126-15aee7505321",
+      "classId": "system_0f2970bc-bd11-5173-847c-713e88b47a44",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoIndexOutOfRangeError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_0f2970bc-bd11-5173-847c-713e88b47a44"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_0f2970bc-bd11-5173-847c-713e88b47a44"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_0f2970bc-bd11-5173-847c-713e88b47a44"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoIndexOutOfRangeError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_0adaa530-dae1-5bc9-a498-de27d719b0c2",
+      "classId": "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoKeyNotFoundError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoKeyNotFoundError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_072bd389-2311-50dc-9a64-80f43b2f1ee1",
+      "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoArgumentError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoArgumentError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8",
+      "classId": "system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoInvalidOperationError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_bdca6d33-5224-5412-8e50-bef6fe0720bf"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_bdca6d33-5224-5412-8e50-bef6fe0720bf"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_bdca6d33-5224-5412-8e50-bef6fe0720bf"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoInvalidOperationError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_2f292163-652d-51be-a4d3-e0f908703890",
+      "classId": "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoArithmeticError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoArithmeticError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "system_0fc09d80-5049-5e79-a41d-e09757f6f89a",
+      "classId": "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoHostError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoHostError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "p122-authored-error-constructor",
+      "classId": "p122-authored-error",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoArgumentError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoArgumentError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    },
+    {
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ],
+      "code": "",
+      "baseArguments": [
+        {
+          "name": "message",
+          "code": "message"
+        }
+      ],
+      "id": "p122-generic-error-constructor",
+      "classId": "p122-generic-error",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "NeoArgumentError",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 3,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+          ],
+          "typeNames": []
+        }
+      },
+      "compiledBaseArguments": [
+        {
+          "compilerRevision": 17,
+          "source": {
+            "name": "NeoArgumentError base argument message",
+            "coordinateSpace": "body"
+          },
+          "parameters": [
+            {
+              "id": "__this__",
+              "typeInfo": {
+                "type": "Unknown",
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": "Unknown",
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__root__",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "__root__"
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "__root__"
+                  },
+                  "value": null
+                }
+              }
+            },
+            {
+              "id": "__arg_0__",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            }
+          ],
+          "instructions": [
+            {
+              "type": "return",
+              "pointer": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "source": {
+                "line": 1,
+                "column": 1
+              }
+            }
+          ],
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "dependencies": {
+            "recordIds": ["__root__"],
+            "typeNames": []
+          }
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "name": "typed catch",
+      "source": "try { throw new NeoArgumentError(message: \"bad\"); } catch (NeoArgumentError error) { return error.Message; } catch (NeoError error) { return \"wrong\"; }",
+      "expected": "bad",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                      },
+                      "constructorId": "system_072bd389-2311-50dc-9a64-80f43b2f1ee1",
+                      "args": [
+                        {
+                          "name": "message",
+                          "valuePointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "bad"
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 1,
+                    "column": 13
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "keyOf",
+                      "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__catch:0:error"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Message"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 86
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 135
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_072bd389-2311-50dc-9a64-80f43b2f1ee1",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+            "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+          ],
+          "typeNames": ["NeoArgumentError", "NeoError"]
+        }
+      }
+    },
+    {
+      "name": "empty message and identity through string rethrow",
+      "source": "var original = new NeoError(message: \"\"); try { try { throw original; } catch (string message) { throw; } } catch (NeoError caught) { return caught == original ? caught.Message + \"same\" : \"copied\"; }",
+      "expected": "same",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "original",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+              },
+              "pointer": {
+                "type": "function",
+                "function": {
+                  "type": "declaredConstructor",
+                  "info": {
+                    "schemaClassInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                    },
+                    "constructorId": "system_5749aebc-8464-5186-b995-7f5a69e702b4",
+                    "args": [
+                      {
+                        "name": "message",
+                        "valuePointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": ""
+                          }
+                        }
+                      }
+                    ],
+                    "fields": []
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 16
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "original"
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 55
+                    }
+                  }
+                ],
+                "catches": [
+                  {
+                    "binding": {
+                      "id": "__catch:0:message",
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "readonly": true
+                    },
+                    "instructions": [
+                      {
+                        "type": "rethrow",
+                        "source": {
+                          "line": 1,
+                          "column": 98
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 49
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:1:caught",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "conditional",
+                      "condition": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "boolean",
+                          "expression": {
+                            "condition": {
+                              "type": "equalTo",
+                              "operand1": {
+                                "type": "variable",
+                                "variableId": "__catch:1:caught"
+                              },
+                              "operand2": {
+                                "type": "variable",
+                                "variableId": "original"
+                              },
+                              "reference": true
+                            }
+                          }
+                        }
+                      },
+                      "whenTrue": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "+",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "variable",
+                                    "variableId": "__catch:1:caught"
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Message"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                  },
+                                  "value": "same"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "whenFalse": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "copied"
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 135
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 43
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_5749aebc-8464-5186-b995-7f5a69e702b4",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+          ],
+          "typeNames": ["NeoError"]
+        }
+      }
+    },
+    {
+      "name": "outer filters precede inner cleanup",
+      "source": "string trace = \"\"; try { try { throw \"error\"; } finally { trace += \"F\"; } } catch (string error) when (trace == \"\") { trace += \"C\"; } finally { trace += \"O\"; } return trace;",
+      "expected": "FCO",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "trace",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": ""
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "error"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 32
+                    }
+                  }
+                ],
+                "catches": [],
+                "finallyInstructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "trace"
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "variable",
+                              "variableId": "trace"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "F"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 59
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 26
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "variable",
+                      "variableId": "trace"
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "trace"
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "variable",
+                              "variableId": "trace"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "C"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 119
+                    }
+                  }
+                ]
+              }
+            ],
+            "finallyInstructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "trace"
+                  },
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "+=",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "arithmetic",
+                    "arithmetic": {
+                      "type": "+",
+                      "pointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "trace"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "O"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 145
+                }
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 20
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "trace"
+            },
+            "source": {
+              "line": 1,
+              "column": 161
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "filter search crosses calls before cleanup",
+      "source": "Dictionary<string, string> trace = { \"value\": \"\" }; NeoDelegate<string> call = () => { try { throw \"error\"; } finally { trace[\"value\"] += \"F\"; } }; try { string ignored = call(); } catch (string error) when (trace[\"value\"] == \"\") { trace[\"value\"] += \"C\"; } return trace[\"value\"];",
+      "expected": "FC",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "trace",
+              "typeInfo": {
+                "type": 5,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 3,
+                  "required": true
+                }
+              },
+              "pointer": {
+                "type": "dictLiteral",
+                "typeInfo": {
+                  "type": 5,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 3,
+                    "required": true
+                  }
+                },
+                "entries": [
+                  {
+                    "key": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "value"
+                      }
+                    },
+                    "value": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "call",
+              "typeInfo": {
+                "type": 25,
+                "required": true,
+                "returnTypeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "argumentTypes": []
+              },
+              "pointer": {
+                "type": "delegateClosure",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "argumentTypes": []
+                },
+                "action": {
+                  "compilerRevision": 17,
+                  "source": {
+                    "coordinateSpace": "body",
+                    "name": "getter <delegate>"
+                  },
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": "Unknown",
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": "Unknown",
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__capture_0_0__",
+                      "typeInfo": {
+                        "type": 5,
+                        "required": true,
+                        "entryTypeInfo": {
+                          "type": 3,
+                          "required": true
+                        }
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 5,
+                            "required": true,
+                            "entryTypeInfo": {
+                              "type": 3,
+                              "required": true
+                            }
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "try",
+                      "instructions": [
+                        {
+                          "type": "throw",
+                          "pointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "error"
+                            }
+                          },
+                          "source": {
+                            "line": 1,
+                            "column": 94
+                          }
+                        }
+                      ],
+                      "catches": [],
+                      "finallyInstructions": [
+                        {
+                          "type": "assign",
+                          "target": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__capture_0_0__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "value"
+                                  }
+                                }
+                              }
+                            },
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "writability": "local"
+                          },
+                          "operator": "+=",
+                          "pointer": {
+                            "type": "operation",
+                            "operation": {
+                              "type": "arithmetic",
+                              "arithmetic": {
+                                "type": "+",
+                                "pointers": [
+                                  {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__capture_0_0__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "value"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "F"
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "source": {
+                            "line": 1,
+                            "column": 121
+                          }
+                        }
+                      ],
+                      "source": {
+                        "line": 1,
+                        "column": 88
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  }
+                },
+                "captures": [
+                  {
+                    "type": "variable",
+                    "variableId": "trace"
+                  }
+                ],
+                "code": "() => { try { throw \"error\"; } finally { trace[\"value\"] += \"F\"; } }"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 53
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "ignored",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "callDelegate",
+                    "delegate": {
+                      "type": "variable",
+                      "variableId": "call"
+                    },
+                    "args": [],
+                    "callSiteId": "1:176:0",
+                    "source": {
+                      "line": 1,
+                      "column": 176
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 155
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "trace"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "value"
+                          }
+                        }
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "keyOf",
+                        "keyOf": {
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "trace"
+                          },
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "value"
+                            }
+                          }
+                        }
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "trace"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "value"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "C"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 233
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 149
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "keyOf",
+              "keyOf": {
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "trace"
+                },
+                "key": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "value"
+                  }
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 258
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "failed filter writes survive",
+      "source": "Dictionary<string, string> trace = { \"value\": \"\" }; NeoDelegate<bool> filter = () => { trace[\"value\"] += \"P\"; throw \"filter failed\"; }; try { try { throw \"original\"; } finally { trace[\"value\"] += \"F\"; } } catch (string error) when (filter()) { return \"wrong\"; } catch (string error) when (trace[\"value\"] == \"P\") { trace[\"value\"] += error; } return trace[\"value\"];",
+      "expected": "PForiginal",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "trace",
+              "typeInfo": {
+                "type": 5,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 3,
+                  "required": true
+                }
+              },
+              "pointer": {
+                "type": "dictLiteral",
+                "typeInfo": {
+                  "type": 5,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 3,
+                    "required": true
+                  }
+                },
+                "entries": [
+                  {
+                    "key": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "value"
+                      }
+                    },
+                    "value": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "filter",
+              "typeInfo": {
+                "type": 25,
+                "required": true,
+                "returnTypeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "argumentTypes": []
+              },
+              "pointer": {
+                "type": "delegateClosure",
+                "typeInfo": {
+                  "type": 25,
+                  "required": true,
+                  "returnTypeInfo": {
+                    "type": 1,
+                    "required": true
+                  },
+                  "argumentTypes": []
+                },
+                "action": {
+                  "compilerRevision": 17,
+                  "source": {
+                    "coordinateSpace": "body",
+                    "name": "getter <delegate>"
+                  },
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": "Unknown",
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": "Unknown",
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__capture_0_0__",
+                      "typeInfo": {
+                        "type": 5,
+                        "required": true,
+                        "entryTypeInfo": {
+                          "type": 3,
+                          "required": true
+                        }
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 5,
+                            "required": true,
+                            "entryTypeInfo": {
+                              "type": 3,
+                              "required": true
+                            }
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "variable",
+                              "variableId": "__capture_0_0__"
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "value"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "writability": "local"
+                      },
+                      "operator": "+=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "+",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "variable",
+                                    "variableId": "__capture_0_0__"
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "value"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                  },
+                                  "value": "P"
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "source": {
+                        "line": 1,
+                        "column": 88
+                      }
+                    },
+                    {
+                      "type": "throw",
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "filter failed"
+                        }
+                      },
+                      "source": {
+                        "line": 1,
+                        "column": 111
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 1,
+                    "required": true
+                  }
+                },
+                "captures": [
+                  {
+                    "type": "variable",
+                    "variableId": "trace"
+                  }
+                ],
+                "code": "() => { trace[\"value\"] += \"P\"; throw \"filter failed\"; }"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 53
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "original"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 149
+                    }
+                  }
+                ],
+                "catches": [],
+                "finallyInstructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "keyOf",
+                        "keyOf": {
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "trace"
+                          },
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "value"
+                            }
+                          }
+                        }
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "trace"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "value"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "F"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 179
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 143
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "callDelegate",
+                      "delegate": {
+                        "type": "variable",
+                        "variableId": "filter"
+                      },
+                      "args": [],
+                      "callSiteId": "1:239:0",
+                      "source": {
+                        "line": 1,
+                        "column": 239
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 245
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "trace"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "value"
+                          }
+                        }
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "P"
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "keyOf",
+                        "keyOf": {
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "trace"
+                          },
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "value"
+                            }
+                          }
+                        }
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "trace"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "value"
+                                  }
+                                }
+                              }
+                            },
+                            {
+                              "type": "variable",
+                              "variableId": "__catch:1:error"
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 315
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 137
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "keyOf",
+              "keyOf": {
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "trace"
+                },
+                "key": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "value"
+                  }
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 342
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "caught cleanup error preserves pending error",
+      "source": "try { try { throw \"original\"; } finally { try { throw \"inner\"; } catch (string error) {} } } catch (string error) { return error; }",
+      "expected": "original",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "original"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 13
+                    }
+                  }
+                ],
+                "catches": [],
+                "finallyInstructions": [
+                  {
+                    "type": "try",
+                    "instructions": [
+                      {
+                        "type": "throw",
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "inner"
+                          }
+                        },
+                        "source": {
+                          "line": 1,
+                          "column": 49
+                        }
+                      }
+                    ],
+                    "catches": [
+                      {
+                        "binding": {
+                          "id": "__catch:0:error",
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "readonly": true
+                        },
+                        "instructions": []
+                      }
+                    ],
+                    "source": {
+                      "line": 1,
+                      "column": 43
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__catch:1:error"
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 117
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "escaping cleanup error replaces pending error",
+      "source": "try { try { throw \"original\"; } finally { throw \"replacement\"; } } catch (string error) when (error == \"replacement\") { return error; } catch (string error) { return \"wrong\"; }",
+      "expected": "replacement",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "original"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 13
+                    }
+                  }
+                ],
+                "catches": [],
+                "finallyInstructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "replacement"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 43
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "variable",
+                      "variableId": "__catch:0:error"
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "replacement"
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__catch:0:error"
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 121
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 160
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "return is evaluated before cleanup",
+      "source": "string value = \"before\"; try { return value; } finally { value = \"after\"; }",
+      "expected": "before",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "value",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": "before"
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "value"
+                },
+                "source": {
+                  "line": 1,
+                  "column": 32
+                }
+              }
+            ],
+            "catches": [],
+            "finallyInstructions": [
+              {
+                "type": "assign",
+                "target": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "value"
+                  },
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "writability": "local"
+                },
+                "operator": "=",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "after"
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 58
+                }
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 26
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "cleanup on loop transfers",
+      "source": "string trace = \"\"; for (int i=0; i<3; i++) { try { if (i==1) continue; if(i==2) break; trace += \"B\"; } finally { trace += \"F\"; } } return trace;",
+      "expected": "BFFF",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "trace",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": ""
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "for",
+            "initializer": {
+              "id": "i",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            },
+            "condition": {
+              "condition": {
+                "type": "lessThan",
+                "operand1": {
+                  "type": "variable",
+                  "variableId": "i"
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 2,
+                      "required": true
+                    },
+                    "value": 3
+                  }
+                }
+              }
+            },
+            "iterator": {
+              "type": "assign",
+              "target": {
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "i"
+                },
+                "typeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "writability": "local"
+              },
+              "operator": "++",
+              "pointer": {
+                "type": "operation",
+                "operation": {
+                  "type": "arithmetic",
+                  "arithmetic": {
+                    "type": "+",
+                    "pointers": [
+                      {
+                        "type": "variable",
+                        "variableId": "i"
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 1
+                        }
+                      }
+                    ],
+                    "numeric": "int"
+                  }
+                }
+              }
+            },
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "if",
+                    "branches": [
+                      {
+                        "expression": {
+                          "condition": {
+                            "type": "equalTo",
+                            "operand1": {
+                              "type": "variable",
+                              "variableId": "i"
+                            },
+                            "operand2": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 2,
+                                  "required": true
+                                },
+                                "value": 1
+                              }
+                            }
+                          }
+                        },
+                        "instructions": [
+                          {
+                            "type": "continue",
+                            "source": {
+                              "line": 1,
+                              "column": 62
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    "else": null,
+                    "source": {
+                      "line": 1,
+                      "column": 52
+                    }
+                  },
+                  {
+                    "type": "if",
+                    "branches": [
+                      {
+                        "expression": {
+                          "condition": {
+                            "type": "equalTo",
+                            "operand1": {
+                              "type": "variable",
+                              "variableId": "i"
+                            },
+                            "operand2": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 2,
+                                  "required": true
+                                },
+                                "value": 2
+                              }
+                            }
+                          }
+                        },
+                        "instructions": [
+                          {
+                            "type": "break",
+                            "source": {
+                              "line": 1,
+                              "column": 81
+                            }
+                          }
+                        ]
+                      }
+                    ],
+                    "else": null,
+                    "source": {
+                      "line": 1,
+                      "column": 72
+                    }
+                  },
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "trace"
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "variable",
+                              "variableId": "trace"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "B"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 88
+                    }
+                  }
+                ],
+                "catches": [],
+                "finallyInstructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "trace"
+                      },
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "+=",
+                    "pointer": {
+                      "type": "operation",
+                      "operation": {
+                        "type": "arithmetic",
+                        "arithmetic": {
+                          "type": "+",
+                          "pointers": [
+                            {
+                              "type": "variable",
+                              "variableId": "trace"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "F"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 114
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 46
+                }
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 20
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "variable",
+              "variableId": "trace"
+            },
+            "source": {
+              "line": 1,
+              "column": 132
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "arithmetic taxonomy",
+      "source": "int zero = 0; try { int result = 1 / zero; } catch (NeoArithmeticError error) { return error.Message; } return \"wrong\";",
+      "expected": "Division by zero",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "zero",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 0
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "result",
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "operation",
+                    "operation": {
+                      "type": "arithmetic",
+                      "arithmetic": {
+                        "type": "/",
+                        "pointers": [
+                          {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 2,
+                                "required": true
+                              },
+                              "value": 1
+                            }
+                          },
+                          {
+                            "type": "variable",
+                            "variableId": "zero"
+                          }
+                        ],
+                        "numeric": "int"
+                      }
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 21
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "keyOf",
+                      "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__catch:0:error"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Message"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 81
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 15
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 105
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
+          ],
+          "typeNames": ["NeoArithmeticError"]
+        }
+      }
+    },
+    {
+      "name": "null taxonomy",
+      "source": "string? value = null; try { string text = value!; } catch (NeoNullReferenceError error) { return \"null\"; } return \"wrong\";",
+      "expected": "null",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "value",
+              "typeInfo": {
+                "type": 3,
+                "required": false
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": false
+                  },
+                  "value": null
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "text",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "forceUnwrap",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "value"
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 29
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "null"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 91
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 23
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 108
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
+          ],
+          "typeNames": ["NeoNullReferenceError"]
+        }
+      }
+    },
+    {
+      "name": "list bounds taxonomy",
+      "source": "List<int> values = []; try { int value = values[0]; } catch (NeoIndexOutOfRangeError error) { return \"bounds\"; } return \"wrong\";",
+      "expected": "bounds",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "values",
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                }
+              },
+              "pointer": {
+                "type": "listLiteral",
+                "typeInfo": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 2,
+                    "required": true
+                  }
+                },
+                "entries": []
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "value",
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "keyOf",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "values"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 0
+                        }
+                      }
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 30
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_0f2970bc-bd11-5173-847c-713e88b47a44"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "bounds"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 95
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 24
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 114
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_0f2970bc-bd11-5173-847c-713e88b47a44"
+          ],
+          "typeNames": ["NeoIndexOutOfRangeError"]
+        }
+      }
+    },
+    {
+      "name": "missing key taxonomy",
+      "source": "Dictionary<string, int> values = {}; try { int value = values[\"missing\"]; } catch (NeoKeyNotFoundError error) { return \"key\"; } return \"wrong\";",
+      "expected": "key",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "values",
+              "typeInfo": {
+                "type": 5,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                }
+              },
+              "pointer": {
+                "type": "dictLiteral",
+                "typeInfo": {
+                  "type": 5,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 2,
+                    "required": true
+                  }
+                },
+                "entries": []
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "value",
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "keyOf",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "values"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "missing"
+                        }
+                      }
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 44
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "key"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 113
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 38
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 129
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
+          ],
+          "typeNames": ["NeoKeyNotFoundError"]
+        }
+      }
+    },
+    {
+      "name": "argument taxonomy",
+      "source": "string text = \"abc\"; int index = -1; try { string value = text.Substring(index); } catch (NeoArgumentError error) { return \"argument\"; } return \"wrong\";",
+      "expected": "argument",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "text",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": "abc"
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "index",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "operation",
+                "operation": {
+                  "type": "arithmetic",
+                  "arithmetic": {
+                    "type": "*",
+                    "pointers": [
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": -1
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 1
+                        }
+                      }
+                    ],
+                    "numeric": "int"
+                  }
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 22
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "value",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "function",
+                    "function": {
+                      "type": "textOp",
+                      "info": {
+                        "op": "substring",
+                        "argPointers": [
+                          {
+                            "type": "variable",
+                            "variableId": "text"
+                          },
+                          {
+                            "type": "variable",
+                            "variableId": "index"
+                          }
+                        ]
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 73
+                    }
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 44
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "argument"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 117
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 38
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 138
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
+          ],
+          "typeNames": ["NeoArgumentError"]
+        }
+      }
+    },
+    {
+      "name": "catch failure filters precede cleanup",
+      "source": "bool cleaned = false; try { try { throw \"first\"; } catch (string error) { throw \"second\"; } finally { cleaned = true; } } catch (string error) when (!cleaned) { return error; } return \"wrong\";",
+      "expected": "second",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "cleaned",
+              "typeInfo": {
+                "type": 1,
+                "required": true
+              },
+              "pointer": {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 1,
+                    "required": true
+                  },
+                  "value": false
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "try",
+                "instructions": [
+                  {
+                    "type": "throw",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "first"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 35
+                    }
+                  }
+                ],
+                "catches": [
+                  {
+                    "binding": {
+                      "id": "__catch:0:error",
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "readonly": true
+                    },
+                    "instructions": [
+                      {
+                        "type": "throw",
+                        "pointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "second"
+                          }
+                        },
+                        "source": {
+                          "line": 1,
+                          "column": 75
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "finallyInstructions": [
+                  {
+                    "type": "assign",
+                    "target": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "cleaned"
+                      },
+                      "typeInfo": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "writability": "local"
+                    },
+                    "operator": "=",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 103
+                    }
+                  }
+                ],
+                "source": {
+                  "line": 1,
+                  "column": 29
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "variable",
+                      "variableId": "cleaned"
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": false
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__catch:1:error"
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 162
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 23
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "wrong"
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 178
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": ["__root__"],
+          "typeNames": []
+        }
+      }
+    },
+    {
+      "name": "closed generic catch distinguishes arguments",
+      "source": "try { throw new GenericError<int>(message: \"typed\"); } catch (GenericError<string> error) { return \"wrong\"; } catch (GenericError<int> error) { return error.Message; }",
+      "expected": "typed",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "p122-generic-error",
+                        "typeArguments": {
+                          "p122-error-type": {
+                            "type": 2,
+                            "required": true
+                          }
+                        }
+                      },
+                      "constructorId": "p122-generic-error-constructor",
+                      "args": [
+                        {
+                          "name": "message",
+                          "valuePointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "typed"
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 1,
+                    "column": 13
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "p122-generic-error",
+                    "typeArguments": {
+                      "p122-error-type": {
+                        "type": 3,
+                        "required": true
+                      }
+                    }
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 93
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "p122-generic-error",
+                    "typeArguments": {
+                      "p122-error-type": {
+                        "type": 2,
+                        "required": true
+                      }
+                    }
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "keyOf",
+                      "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__catch:1:error"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Message"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 145
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "p122-generic-error",
+            "p122-generic-error-constructor",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d"
+          ],
+          "typeNames": ["GenericError"]
+        }
+      }
+    },
+    {
+      "name": "generic catch base retains identity",
+      "source": "var error = new GenericError<int>(message: \"typed\"); try { throw error; } catch (NeoError caught) { return error == caught ? caught.Message : \"copied\"; }",
+      "expected": "typed",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "error",
+              "typeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "p122-generic-error",
+                "typeArguments": {
+                  "p122-error-type": {
+                    "type": 2,
+                    "required": true
+                  }
+                }
+              },
+              "pointer": {
+                "type": "function",
+                "function": {
+                  "type": "declaredConstructor",
+                  "info": {
+                    "schemaClassInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "p122-generic-error",
+                      "typeArguments": {
+                        "p122-error-type": {
+                          "type": 2,
+                          "required": true
+                        }
+                      }
+                    },
+                    "constructorId": "p122-generic-error-constructor",
+                    "args": [
+                      {
+                        "name": "message",
+                        "valuePointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "typed"
+                          }
+                        }
+                      }
+                    ],
+                    "fields": []
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 13
+                }
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          },
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "error"
+                },
+                "source": {
+                  "line": 1,
+                  "column": 60
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:caught",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "conditional",
+                      "condition": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "boolean",
+                          "expression": {
+                            "condition": {
+                              "type": "equalTo",
+                              "operand1": {
+                                "type": "variable",
+                                "variableId": "error"
+                              },
+                              "operand2": {
+                                "type": "variable",
+                                "variableId": "__catch:0:caught"
+                              },
+                              "reference": true
+                            }
+                          }
+                        }
+                      },
+                      "whenTrue": {
+                        "type": "keyOf",
+                        "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                        "keyOf": {
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__catch:0:caught"
+                          },
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "Message"
+                            }
+                          }
+                        }
+                      },
+                      "whenFalse": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "copied"
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 101
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 54
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "p122-generic-error",
+            "p122-generic-error-constructor",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+          ],
+          "typeNames": ["GenericError", "NeoError"]
+        }
+      }
+    },
+    {
+      "name": "authored subtype fields and patterns",
+      "source": "try { throw new AuthoredError(message: \"bad\") { Detail = \"E42\" }; } catch (NeoError error) { return error switch { AuthoredError detail => detail.Detail ?? \"missing\", _ => \"wrong\" }; }",
+      "expected": "E42",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "objectInitializer",
+                  "receiver": {
+                    "id": "$initialized_0",
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "p122-authored-error"
+                    },
+                    "pointer": {
+                      "type": "function",
+                      "function": {
+                        "type": "declaredConstructor",
+                        "info": {
+                          "schemaClassInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "p122-authored-error"
+                          },
+                          "constructorId": "p122-authored-error-constructor",
+                          "args": [
+                            {
+                              "name": "message",
+                              "valuePointer": {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                  },
+                                  "value": "bad"
+                                }
+                              }
+                            }
+                          ],
+                          "fields": []
+                        }
+                      },
+                      "source": {
+                        "line": 1,
+                        "column": 13
+                      }
+                    }
+                  },
+                  "assignments": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "memberId": "p122-error-detail",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "variable",
+                              "variableId": "$initialized_0"
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Detail"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 3,
+                          "required": false
+                        },
+                        "writability": "session"
+                      },
+                      "operator": "=",
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "E42"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "switchExpression",
+                      "selectorTypeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                      },
+                      "selector": {
+                        "type": "variable",
+                        "variableId": "__catch:0:error"
+                      },
+                      "selectorId": "__switch:0",
+                      "arms": [
+                        {
+                          "pattern": {
+                            "kind": "type",
+                            "checkType": {
+                              "type": 7,
+                              "required": true,
+                              "classId": "p122-authored-error"
+                            },
+                            "bindingId": "__switch:0_arm_0"
+                          },
+                          "value": {
+                            "type": "coalesce",
+                            "left": {
+                              "type": "keyOf",
+                              "memberId": "p122-error-detail",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__switch:0_arm_0"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Detail"
+                                  }
+                                }
+                              }
+                            },
+                            "right": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "missing"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "pattern": {
+                            "kind": "discard"
+                          },
+                          "value": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "wrong"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 94
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "p122-authored-error",
+            "p122-authored-error-constructor",
+            "p122-error-detail",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+          ],
+          "typeNames": ["AuthoredError", "NeoError"]
+        }
+      }
+    }
+  ]
+}

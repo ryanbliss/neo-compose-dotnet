@@ -257,7 +257,7 @@ namespace NeoCompose.Tests
             string before = client.SerializeSaveData();
             int publications = 0;
             client.OnWritableValuesChanged += _ => publications++;
-            Assert.Throws<NSGetterRuntimeError>(() => Execute(client,
+            Assert.Catch<NSGetterRuntimeError>(() => Execute(client,
                 new NSGetterEvaluator.Context(client, null, null), new(),
                 CollectionMutationKind.RemoveAt, new ValuePointer
                 {
@@ -292,7 +292,7 @@ namespace NeoCompose.Tests
             var context = new NSGetterEvaluator.Context(client, null, null);
             var scope = new Dictionary<string, object?>();
             string before = client.SerializeSaveData();
-            Assert.Throws<NSGetterRuntimeError>(() => ExecuteTarget(client, context, scope, pointer,
+            Assert.Catch<NSGetterRuntimeError>(() => ExecuteTarget(client, context, scope, pointer,
                 CollectionMutationKind.RemoveAt, new ValuePointer
                 {
                     type = PointerKind.Value,
@@ -337,7 +337,7 @@ namespace NeoCompose.Tests
             sort["keyType"] = "string";
             if (unordered)
             {
-                Assert.Throws<NSGetterRuntimeError>(() => Run(client, NullTypeJson, sort.ToString()));
+                Assert.Catch<NSGetterRuntimeError>(() => Run(client, NullTypeJson, sort.ToString()));
                 Assert.AreEqual(0, publications);
             }
             else

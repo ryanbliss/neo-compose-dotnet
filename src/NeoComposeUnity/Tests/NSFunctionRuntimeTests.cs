@@ -16,7 +16,7 @@ using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
-    public class NSFunctionRuntimeTests
+    public partial class NSFunctionRuntimeTests
     {
         [Test]
         public void PreparedSlotsPreserveShadowingExternalScopesAndLayoutChanges()
@@ -309,7 +309,7 @@ namespace NeoCompose.Tests
             }
             var failed = node.InvokeAsync("receiver-value", Array.Empty<object?>());
             pending[2].Fail(new NSGetterRuntimeError("deferred failure"));
-            var error = Assert.Throws<NSGetterRuntimeError>(() => failed.GetAwaiter().GetResult())!;
+            var error = Assert.Catch<NSGetterRuntimeError>(() => failed.GetAwaiter().GetResult())!;
             Assert.AreEqual(2, error.NeoScriptFrames!.Count);
             Assert.AreEqual("Trace.Inner", error.NeoScriptFrames[0].Name);
             Assert.AreEqual(12, error.NeoScriptFrames[0].Line);
@@ -551,7 +551,7 @@ namespace NeoCompose.Tests
             var sum = Add(Variable("wide"), Text("1"));
             ((ArithmeticOperation)sum.operation).arithmetic.isDecimal = true;
             scope["wide"] = 9007199254740993L;
-            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(sum, scope, context));
+            Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(sum, scope, context));
             scope["wide"] = 10L;
             Assert.That(NSGetterEvaluator.EvaluatePointer(sum, scope, context), Is.EqualTo("11"));
             int calls = 0;
@@ -563,7 +563,7 @@ namespace NeoCompose.Tests
             var divide = Add(Number(1), Number(0));
             ((ArithmeticOperation)divide.operation).arithmetic.type = ArithmeticOpKind.Division;
             ((ArithmeticOperation)divide.operation).arithmetic.pointers = new Pointer[] { Number(1), Number(0), Call("effect", "effect") };
-            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
+            Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.EvaluatePointer(divide, scope, context));
             Assert.That(calls, Is.EqualTo(1), "All operands execute before the arithmetic fold reports division by zero.");
         }
 
@@ -589,11 +589,11 @@ namespace NeoCompose.Tests
             var arg = Argument("amount", MemberKind.Int);
             var identity = Action(IntType(), new[] { arg }, Return(Variable("__arg_0__")));
             var broken = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Variable("missing")));
-            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(broken, context));
+            Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(broken, context));
             Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 17 }), Is.EqualTo(17));
             var closure = new NeoDelegateValue { action = identity };
             Assert.That(NSGetterEvaluator.InvokeDelegate(closure, new object?[] { 99 }, context), Is.EqualTo(99));
-            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { action = broken }, Array.Empty<object?>(), context));
+            Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { action = broken }, Array.Empty<object?>(), context));
             Assert.That(NSGetterEvaluator.Evaluate(identity, context, new object?[] { 31 }), Is.EqualTo(31));
             Assert.That(context.allocationTracker.ActiveExecutionCount, Is.Zero);
         }
@@ -1071,7 +1071,7 @@ namespace NeoCompose.Tests
             using NeoClient client = BuildClient(new JsonMember[] { function }, ReceiverClass());
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             Assert.AreEqual(17, NeoNSFunctionRuntime.InvokeImmediate(client, function.id, null, new object?[] { 17 }, ctx));
-            Assert.Throws<NSGetterRuntimeError>(() => NeoNSFunctionRuntime.InvokeImmediate(client, function.id, new object(), new object?[] { 17 }, ctx));
+            Assert.Catch<NSGetterRuntimeError>(() => NeoNSFunctionRuntime.InvokeImmediate(client, function.id, new object(), new object?[] { 17 }, ctx));
         }
 
         [TestCase(false)]
@@ -2253,7 +2253,7 @@ namespace NeoCompose.Tests
                 callSiteId = "generic-equals-invalid",
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.ValidateValueEqualitySignature(
                     call,
                     equals.id,
@@ -2334,7 +2334,7 @@ namespace NeoCompose.Tests
                 thisValue: null,
                 rootValue: new Dictionary<string, object?>());
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.InvokeDelegate(
                     new NeoDelegateValue
                     {
@@ -2633,12 +2633,12 @@ namespace NeoCompose.Tests
             object? result = node.Invoke("receiver-value", new object?[] { 9 });
 
             Assert.AreEqual(9, result);
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(
                 () => node.Invoke("receiver-value", Array.Empty<object?>()))!;
             StringAssert.Contains("expects 1 arguments", error.Message);
             StringAssert.Contains("stale/corrupt", error.Message);
 
-            error = Assert.Throws<NSGetterRuntimeError>(
+            error = Assert.Catch<NSGetterRuntimeError>(
                 () => node.Invoke("receiver-value", new object?[] { "nine" }))!;
             StringAssert.Contains("argument 0 'RequiredLevel'", error.Message);
             StringAssert.Contains("declared Int", error.Message);
@@ -2728,14 +2728,14 @@ namespace NeoCompose.Tests
 
             foreach (double value in nonFinite)
             {
-                Assert.Throws<NSGetterRuntimeError>(() =>
+                Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(
                         client,
                         floatArgumentFunction,
                         null).Invoke(
                             "receiver-value",
                             new object?[] { value }));
-                Assert.Throws<NSGetterRuntimeError>(() =>
+                Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(
                         client,
                         intArgumentFunction,
@@ -2745,14 +2745,14 @@ namespace NeoCompose.Tests
             }
             foreach (NSFunctionMember function in floatReturns)
             {
-                Assert.Throws<InvalidOperationException>(() =>
+                Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(client, function, null).Invoke(
                         "receiver-value",
                         Array.Empty<object?>()));
             }
             foreach (NSFunctionMember function in intReturns)
             {
-                Assert.Throws<InvalidOperationException>(() =>
+                Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(client, function, null).Invoke(
                         "receiver-value",
                         Array.Empty<object?>()));
@@ -2910,11 +2910,11 @@ namespace NeoCompose.Tests
                 new[] { "dialogue-1", "dialogue-2" },
                 (object?[])listResult!);
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, singleFunction, null).Invoke(
                     "receiver-value",
                     new object?[] { "dialogue-1" }));
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, singleFunction, null).Invoke(
                     "receiver-value",
                     new object?[]
@@ -3581,8 +3581,8 @@ namespace NeoCompose.Tests
                     (wrongList.name, wrongList.id)),
                 new[] { expectedClass });
 
-            InvalidOperationException classError =
-                Assert.Throws<InvalidOperationException>(() =>
+            NSGetterRuntimeError classError =
+                Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(
                         client,
                         wrongClass,
@@ -3590,7 +3590,7 @@ namespace NeoCompose.Tests
                             "receiver-value",
                             Array.Empty<object?>()))!;
             StringAssert.Contains("expected-return-class", classError.Message);
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(
                     client,
                     wrongList,
@@ -3874,7 +3874,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { cyclicBinding },
                 ReceiverClass());
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
                     client,
                     new GenericTypeInfo
@@ -4027,7 +4027,7 @@ namespace NeoCompose.Tests
                 ReceiverClass(("RecurseForever", recursive.id)));
             var node = new NeoMemberNSFunction(client, recursive, null);
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 node.Invoke("receiver-value", Array.Empty<object?>()))!;
 
             StringAssert.Contains("call depth exceeded 64", error.Message);
@@ -4643,7 +4643,7 @@ namespace NeoCompose.Tests
             if (fail)
             {
                 pending!.Fail(new NSGetterRuntimeError("initializer failed"));
-                Assert.Throws<NSGetterRuntimeError>(() => task.GetAwaiter().GetResult());
+                Assert.Catch<NSGetterRuntimeError>(() => task.GetAwaiter().GetResult());
                 Assert.AreEqual(2, immediateCalls);
                 Assert.AreEqual(2, deferredCalls, "A failed initializer must not evaluate the enclosing expression's next operand.");
                 return;
@@ -4878,7 +4878,7 @@ namespace NeoCompose.Tests
                 native.id,
                 receiver: null,
                 args: Array.Empty<object?>());
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 task.GetAwaiter().GetResult())!;
 
             StringAssert.Contains("Function 'ImmediateNative'", error.Message);
@@ -5146,7 +5146,7 @@ namespace NeoCompose.Tests
             client.SetWritableValue(NeoValueOwnership.Session, receiver);
             client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue { id = "owned-list", value = new[] { "owned-item" } });
             client.SetWritableValue(NeoValueOwnership.Session, ObjectValue("owned-item", "receiver-class"));
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null).Invoke("receiver-value", Array.Empty<object?>()))!;
             StringAssert.Contains("already owned", error.Message);
             Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, "owned-list", out ArrayMemberValue? list));
@@ -5759,7 +5759,7 @@ namespace NeoCompose.Tests
                     updatedAt = "x",
                 });
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()));
 
@@ -5922,7 +5922,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("LoopThrow", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -5964,7 +5964,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("ForEachReadOnly", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -6022,7 +6022,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("NestedForEachReadOnly", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -6066,7 +6066,7 @@ namespace NeoCompose.Tests
                 },
                 Return(Number(0)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 InvokeTryBody(body, IntType()))!;
 
             StringAssert.Contains("bodyOnly", error.Message);
@@ -6131,7 +6131,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_TryDoesNotCatchUnavailableInvokersOrHostExceptions()
+        public void Invoke_TrySkipsUnavailableInvokersAndSanitizesHostExceptions()
         {
             FunctionMember native = NativeFunction(
                 "fn-host-boundary",
@@ -6173,11 +6173,9 @@ namespace NeoCompose.Tests
                 {
                     [native.id] = (_, _, _, _) => throw hostError,
                 });
-            Assert.AreSame(
-                hostError,
-                Assert.Throws<InvalidOperationException>(() =>
-                    new NeoMemberNSFunction(client, function, null)
-                        .Invoke("receiver-value", Array.Empty<object?>())));
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception, new System.Text.RegularExpressions.Regex("host failure"));
+            Assert.AreEqual(1, Convert.ToInt32(new NeoMemberNSFunction(client, function, null)
+                .Invoke("receiver-value", Array.Empty<object?>())));
         }
 
         [Test]
@@ -6416,7 +6414,7 @@ namespace NeoCompose.Tests
                             Text("different")),
                         Return(Number(1)))),
                 Return(Number(0)));
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 InvokeTryBody(unmatched, IntType()))!;
             Assert.AreEqual("original", error.Message);
 
@@ -6456,10 +6454,10 @@ namespace NeoCompose.Tests
                         null,
                         AssignLocal("message", Text("changed"), StringType()),
                         Return(Number(0)))));
-            error = Assert.Throws<NSGetterRuntimeError>(() =>
+            error = Assert.Catch<NSGetterRuntimeError>(() =>
                 InvokeTryBody(readOnly, IntType()))!;
             Assert.AreEqual(
-                "Cannot assign to a read-only catch message binding.",
+                "Cannot assign to a read-only catch binding.",
                 error.Message);
 
             result = InvokeTryBody(
@@ -6777,7 +6775,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("SwitchScope", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -6844,7 +6842,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("SwitchForEachReadOnly", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -7109,11 +7107,9 @@ namespace NeoCompose.Tests
                     "receiver-value",
                     Array.Empty<object?>());
             var hostError = new InvalidOperationException("host failure");
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception, new System.Text.RegularExpressions.Regex("host failure"));
             pending!.Fail(hostError);
-            Assert.AreSame(
-                hostError,
-                Assert.Throws<InvalidOperationException>(() =>
-                    hostTask.GetAwaiter().GetResult()));
+            Assert.AreEqual(NeoErrorContract.HostMessage, hostTask.GetAwaiter().GetResult());
 
             FunctionMember filterFail = NativeFunction(
                 "fn-filter-fail",
@@ -7390,7 +7386,7 @@ namespace NeoCompose.Tests
                 new JsonMember[] { function },
                 ReceiverClass(("LeakedBreak", function.id)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()))!;
 
@@ -8673,7 +8669,7 @@ namespace NeoCompose.Tests
                 ? Assert.Throws<NeoScriptPreExecutionValidationError>(() =>
                     new NeoMemberNSFunction(client, function, null)
                         .Invoke("receiver-value", Array.Empty<object?>()))!
-                : Assert.Throws<NSGetterRuntimeError>(() =>
+                : Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(client, function, null)
                         .Invoke("receiver-value", Array.Empty<object?>()))!;
         }

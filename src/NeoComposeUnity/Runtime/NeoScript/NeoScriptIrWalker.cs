@@ -113,7 +113,7 @@ namespace NeoCompose.Runtime.NeoScript
                             || AnyPointer(clause.instructions, predicate))
                             return true;
                     }
-                    return false;
+                    return AnyPointer(guarded.finallyInstructions, predicate);
                 case ActionListenerInstruction listener:
                     return AnyPointer(listener.target.pointer, predicate)
                         || AnyPointer(listener.listener, predicate);

@@ -76,6 +76,7 @@ namespace NeoCompose.Runtime.Json
         public const string If = "if";
         public const string Return = "return";
         public const string Throw = "throw";
+        public const string Rethrow = "rethrow";
         public const string Assign = "assign";
         public const string CollectionCall = "collectionCall";
         public const string FunctionCall = "functionCall";

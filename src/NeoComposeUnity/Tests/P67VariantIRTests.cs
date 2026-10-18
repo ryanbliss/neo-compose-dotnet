@@ -253,7 +253,7 @@ namespace NeoCompose.Tests
             int changes = 0;
             client.OnWritableValueChanged += (_, __) => changes++;
 
-            Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(
+            Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(
                 Getter(Return(VariantApplyPointer(Reference(targetId),
                     VariantRef(WidgetClassId, "variant-up")))), Context(client)));
 
@@ -877,7 +877,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = LoadClient();
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     Getter(Return(VariantInitializePointer(
                         VariantRef(WidgetClassId, "variant-lookup"),
@@ -894,13 +894,13 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient();
             string targetId = NewSessionInstance(client);
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     Getter(Return(VariantInitializePointer(
                         VariantRef(WidgetClassId, variantId: null),
                         Reference("value-target")))),
                     Context(client)));
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     Getter(Return(VariantApplyPointer(
                         Reference(targetId),
@@ -1055,7 +1055,7 @@ namespace NeoCompose.Tests
             NeoClient client = LoadClient();
             NSGetterEvaluator.Context ctx = Context(client);
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     Getter(Return(VariantInitializePointer(
                         VariantRef(WidgetClassId, "variant-missing")))),

@@ -398,7 +398,8 @@ namespace NeoCompose.Runtime
             }
             catch (Exception exception)
             {
-                Debug.LogException(new NeoEffectException(
+                if (!NeoScript.NeoScriptErrorClassification.IsLoggedHostFailure(exception))
+                    Debug.LogException(new NeoEffectException(
                     ClassIdOfEffect(key), key.memberId, key.rowId,
                     $"Effect '{state.entry.member?.name}' on '{key.rowId}' failed: {exception.Message}",
                     exception));

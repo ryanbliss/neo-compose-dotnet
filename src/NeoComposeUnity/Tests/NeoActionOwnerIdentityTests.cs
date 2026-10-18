@@ -83,7 +83,7 @@ namespace NeoCompose.Tests
             NeoMemberActionWritable node = ActionNode(client);
 
             NSGetterRuntimeError error =
-                Assert.Throws<NSGetterRuntimeError>(() => node.Invoke())!;
+                Assert.Catch<NSGetterRuntimeError>(() => node.Invoke())!;
 
             StringAssert.Contains(
                 $"OnDamaged[{SaveRootValueId}] listener 0 threw:",

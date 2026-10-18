@@ -9716,11 +9716,7 @@ namespace NeoCompose.Runtime
         public static object? ReadNSProperty(NeoMemberNSProperty member)
         {
             var result = member.Compute();
-            if (!result.ok)
-            {
-                throw new InvalidOperationException(
-                    result.error ?? "NSProperty getter evaluation failed.");
-            }
+            result.ThrowIfFailed();
             return result.value;
         }
 

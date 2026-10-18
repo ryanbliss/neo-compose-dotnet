@@ -72,7 +72,7 @@ namespace NeoCompose.Tests
         public void InvalidOperandsAreRejected()
         {
             foreach (object? value in new object?[] { null, "1", true, 0.5d, double.NaN, double.PositiveInfinity, double.NegativeInfinity })
-                Assert.Throws<NSGetterRuntimeError>(() => Evaluate("or", Literal(value), Literal(0)));
+                Assert.Catch<NSGetterRuntimeError>(() => Evaluate("or", Literal(value), Literal(0)));
         }
 
         [TestCase("{\"type\":\"bitwiseOp\",\"info\":{\"op\":\"unknown\",\"argPointers\":[]}}")]

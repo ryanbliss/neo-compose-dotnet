@@ -115,7 +115,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     profile.Getter,
                     new NSGetterEvaluator.Context(

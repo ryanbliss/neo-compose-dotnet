@@ -108,7 +108,7 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient();
             NSGetterEvaluator.Context ctx = ContextFor(client);
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.InvokeAction(
                     ListenerSet(
                         Listener(BumpOneMemberId),
@@ -137,7 +137,7 @@ namespace NeoCompose.Tests
                 ActionMemberId,
                 out ActionMember? actionMember));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.InvokeAction(
                     actionMember!.defaultValue!.value,
                     Array.Empty<object?>(),
@@ -192,7 +192,7 @@ namespace NeoCompose.Tests
                 storedListeners: ListenerSet(
                     Listener(ElsewhereMemberId, valueId: null)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 RunBody(client, Body(OwnerCallActionInstruction())))!;
 
             // Receiver-less is the pre-P62 behavior: the listener runs with a
@@ -232,7 +232,7 @@ namespace NeoCompose.Tests
                 storedListeners: ListenerSet(
                     Listener(ElsewhereMemberId, valueId: null)));
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 RunBody(client, Body(CallActionInstruction())))!;
 
             StringAssert.Contains(
@@ -438,7 +438,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 RunBody(client, Body(instruction)))!;
 
             StringAssert.Contains("member-target listener", error.Message);

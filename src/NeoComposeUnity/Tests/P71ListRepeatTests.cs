@@ -98,7 +98,7 @@ namespace NeoCompose.Tests
             // value is itself a repeat with a negative count and the count is
             // a string. Value-first fails on the inner count; count-first
             // would fail on the outer count's type instead.
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(
                     ListRepeat(IntLiteral(7), IntLiteral(-1)),
                     StringLiteral("3")));
@@ -146,7 +146,7 @@ namespace NeoCompose.Tests
         [Test]
         public void RejectsANegativeCountWithThePinnedMessage()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(IntLiteral(7), IntLiteral(-2)));
             Assert.AreEqual(
                 "List.Repeat count must be non-negative; got -2.",
@@ -156,7 +156,7 @@ namespace NeoCompose.Tests
         [Test]
         public void RejectsANonIntegralCount()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(IntLiteral(7), FloatLiteral(2.5)));
             Assert.AreEqual("List.Repeat count must be an integer", error!.Message);
         }
@@ -166,7 +166,7 @@ namespace NeoCompose.Tests
         {
             // Unreachable from a compiled body — the resolver types `count` as
             // Int — so the wording is pinned here rather than in the fixture.
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(IntLiteral(7), StringLiteral("3")));
             Assert.AreEqual("List.Repeat count must be an integer", error!.Message);
         }

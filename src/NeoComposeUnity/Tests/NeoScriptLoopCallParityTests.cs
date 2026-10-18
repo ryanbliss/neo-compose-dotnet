@@ -109,7 +109,7 @@ namespace NeoCompose.Tests
             NeoClient client = NeoTestSaveStack.LoadClient(
                 File.ReadAllText(Path.Combine(PackageRoot, "synth-example.json")));
             var context = new NSGetterEvaluator.Context(client, null, null);
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.EvaluatePointer(pointer, new NeoScriptScope(), context))!;
             Assert.AreEqual(expected, error.Message);
         }

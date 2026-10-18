@@ -432,7 +432,7 @@ namespace NeoCompose.Tests
                 };
                 if (testCase["expectedError"] is JToken expectedError)
                 {
-                    var error = Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx), name);
+                    var error = Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx), name);
                     Assert.AreEqual(expectedError.Value<string>(), error.Message, name);
                     continue;
                 }

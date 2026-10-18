@@ -48,7 +48,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(ClassConstructorPointer(0)),
                     new NSGetterEvaluator.Context(client, null, null)))!;

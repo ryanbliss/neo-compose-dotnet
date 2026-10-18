@@ -178,7 +178,7 @@ namespace NeoCompose.Tests
             });
             var scope = new Dictionary<string, object?> { ["__root__"] = root };
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoScriptExecutor.Execute(client, action, scope, ctx));
 
             StringAssert.Contains("runtime-owned target", error!.Message);
@@ -638,13 +638,13 @@ namespace NeoCompose.Tests
                             .Fail(new InvalidOperationException("inline boom")),
                 });
             var node = new NeoMemberNSProperty(client, property, null);
-            LogAssert.Expect(LogType.Error, new Regex("inline boom"));
+            LogAssert.Expect(LogType.Exception, new Regex("inline boom"));
 
             NSSetterResult result = node.Set("value-receiver", 17);
 
             Assert.IsFalse(result.ok);
             Assert.IsFalse(result.pending);
-            StringAssert.Contains("inline boom", result.error);
+            Assert.AreEqual(NeoErrorContract.HostMessage, result.error);
         }
 
         [Test]
@@ -739,8 +739,8 @@ namespace NeoCompose.Tests
             NSSetterResult result = node.Set("value-receiver", 31);
             Assert.IsTrue(result.pending);
             LogAssert.Expect(
-                LogType.Error,
-                new Regex("NeoScript property setter 'Computed'.*deferred boom", RegexOptions.Singleline));
+                LogType.Exception,
+                new Regex("deferred boom", RegexOptions.Singleline));
 
             pending!.Fail(new InvalidOperationException("deferred boom"));
 
