@@ -333,6 +333,8 @@ namespace NeoCompose.Runtime.NeoScript
                 case ListRepeatFunction repeat:
                     return AnyPointer(repeat.info.valuePointer, predicate)
                         || AnyPointer(repeat.info.countPointer, predicate);
+                case TextOpFunction text:
+                    return AnyPointer(text.info.argPointers, predicate);
                 case ListIndexFunction index:
                     return AnyPointer(index.info.collectionPointer, predicate)
                         || (index.info.keyPointer is not null

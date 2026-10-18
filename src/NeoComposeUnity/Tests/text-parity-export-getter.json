@@ -1,0 +1,729 @@
+{
+  "$comment": "P116 push round trip. The stored getter of a member body pushed through the real commit path on a rig and written by `neo export`, copied verbatim. The web evaluates it to `expected` too.",
+  "code": "List<string> parts = \" 12, 3.50 ,x,,\".Trim().Split(\",\");\nint quantity = int.TryParse(parts[0]) ?? 0;\ndecimal price = decimal.Parse(parts[1]);\ndecimal total = decimal.Parse(\"1234.5\");\nfloat ratio = float.Parse(\"2.5\");\nstring padded = parts[2].Trim().PadLeft(3, \"*\");\nstring blank = string.IsNullOrWhiteSpace(parts[3]) ? \"blank\" : \"text\";\nreturn $\"{quantity.ToString(\"D3\")}|{price.ToString(\"N2\")}|{total.ToString(\"N2\")}|{ratio.ToString(\"F0\")}|{padded}|{string.Join(\"/\", parts)}|{parts.Count}|{blank}\";",
+  "expected": "012|3.50|1,234.50|2|**x|12/ 3.50 /x//|5|blank",
+  "getter": {
+    "compilerRevision": 17,
+    "source": {
+      "name": "ComputedText.textProbe",
+      "uri": "Classes/ComputedText.neo",
+      "coordinateSpace": "file"
+    },
+    "parameters": [
+      {
+        "id": "__this__",
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb"
+        },
+        "pointer": {
+          "type": "value",
+          "value": {
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb"
+            },
+            "value": null
+          }
+        }
+      },
+      {
+        "id": "__root__",
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "__root__"
+        },
+        "pointer": {
+          "type": "value",
+          "value": {
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "value": null
+          }
+        }
+      }
+    ],
+    "instructions": [
+      {
+        "type": "variable",
+        "variable": {
+          "id": "parts",
+          "typeInfo": {
+            "type": 6,
+            "required": true,
+            "entryTypeInfo": {
+              "type": 3,
+              "required": true
+            }
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "textOp",
+              "info": {
+                "op": "split",
+                "argPointers": [
+                  {
+                    "type": "function",
+                    "function": {
+                      "type": "stringOp",
+                      "info": {
+                        "op": "trim",
+                        "receiverPointer": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": " 12, 3.50 ,x,,"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 20,
+                      "column": 49
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": ","
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 20,
+              "column": 57
+            }
+          }
+        },
+        "source": {
+          "line": 20,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "quantity",
+          "typeInfo": {
+            "type": 2,
+            "required": true
+          },
+          "pointer": {
+            "type": "coalesce",
+            "left": {
+              "type": "function",
+              "function": {
+                "type": "textOp",
+                "info": {
+                  "op": "tryParse",
+                  "number": "int",
+                  "argPointers": [
+                    {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "parts"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 0
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "source": {
+                "line": 21,
+                "column": 34
+              }
+            },
+            "right": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "value": 0
+              }
+            }
+          }
+        },
+        "source": {
+          "line": 21,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "price",
+          "typeInfo": {
+            "type": 20,
+            "required": true
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "textOp",
+              "info": {
+                "op": "parse",
+                "number": "decimal",
+                "argPointers": [
+                  {
+                    "type": "keyOf",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "parts"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 1
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 22,
+              "column": 36
+            }
+          }
+        },
+        "source": {
+          "line": 22,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "total",
+          "typeInfo": {
+            "type": 20,
+            "required": true
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "textOp",
+              "info": {
+                "op": "parse",
+                "number": "decimal",
+                "argPointers": [
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "1234.5"
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 23,
+              "column": 36
+            }
+          }
+        },
+        "source": {
+          "line": 23,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "ratio",
+          "typeInfo": {
+            "type": 4,
+            "required": true
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "textOp",
+              "info": {
+                "op": "parse",
+                "number": "float",
+                "argPointers": [
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "2.5"
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 24,
+              "column": 32
+            }
+          }
+        },
+        "source": {
+          "line": 24,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "padded",
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "textOp",
+              "info": {
+                "op": "padLeft",
+                "argPointers": [
+                  {
+                    "type": "function",
+                    "function": {
+                      "type": "stringOp",
+                      "info": {
+                        "op": "trim",
+                        "receiverPointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "variable",
+                              "variableId": "parts"
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 2,
+                                  "required": true
+                                },
+                                "value": 2
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 25,
+                      "column": 36
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
+                      },
+                      "value": 3
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            "source": {
+              "line": 25,
+              "column": 46
+            }
+          }
+        },
+        "source": {
+          "line": 25,
+          "column": 7
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "blank",
+          "typeInfo": {
+            "type": 3,
+            "required": true
+          },
+          "pointer": {
+            "type": "conditional",
+            "condition": {
+              "type": "function",
+              "function": {
+                "type": "textOp",
+                "info": {
+                  "op": "isNullOrWhiteSpace",
+                  "argPointers": [
+                    {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "parts"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 3
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "source": {
+                "line": 26,
+                "column": 47
+              }
+            },
+            "whenTrue": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "blank"
+              }
+            },
+            "whenFalse": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": true
+                },
+                "value": "text"
+              }
+            }
+          }
+        },
+        "source": {
+          "line": 26,
+          "column": 7
+        }
+      },
+      {
+        "type": "return",
+        "pointer": {
+          "type": "operation",
+          "operation": {
+            "type": "arithmetic",
+            "arithmetic": {
+              "type": "+",
+              "pointers": [
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "format",
+                      "number": "int",
+                      "argPointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "quantity"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "D3"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 34
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "format",
+                      "number": "decimal",
+                      "argPointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "price"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "N2"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 57
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "format",
+                      "number": "decimal",
+                      "argPointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "total"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "N2"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 80
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "format",
+                      "number": "float",
+                      "argPointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "ratio"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "F0"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 103
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "variable",
+                  "variableId": "padded"
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "join",
+                      "argPointers": [
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "/"
+                          }
+                        },
+                        {
+                          "type": "variable",
+                          "variableId": "parts"
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 132
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "type": "count",
+                    "info": {
+                      "collectionPointer": {
+                        "type": "variable",
+                        "variableId": "parts"
+                      }
+                    }
+                  },
+                  "source": {
+                    "line": 27,
+                    "column": 152
+                  }
+                },
+                {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "|"
+                  }
+                },
+                {
+                  "type": "variable",
+                  "variableId": "blank"
+                }
+              ]
+            }
+          }
+        },
+        "source": {
+          "line": 27,
+          "column": 7
+        }
+      }
+    ],
+    "typeInfo": {
+      "type": 3,
+      "required": true
+    }
+  }
+}

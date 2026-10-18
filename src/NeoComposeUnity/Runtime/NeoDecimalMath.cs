@@ -52,7 +52,8 @@ namespace NeoCompose.Runtime
     /// a result past the C# decimal envelope throws
     /// <see cref="DecimalOverflowException"/>. Rounding happens only through
     /// the explicit <see cref="Round"/> / <see cref="Divide"/> /
-    /// <see cref="FromFloat"/> entry points, always round-half-even.</para>
+    /// <see cref="FromFloat"/> entry points, always round-half-even, and
+    /// number formatting, which picks its midpoint rule per receiver.</para>
     /// </summary>
     public static class NeoDecimalMath
     {
@@ -60,7 +61,7 @@ namespace NeoCompose.Runtime
         private const int MaxScale = NeoDecimalValues.MaxScale;
 
         /// <summary>A decimal as an exact scaled integer: coefficient * 10^-scale.</summary>
-        private readonly struct DecimalParts
+        internal readonly struct DecimalParts
         {
             public readonly BigInteger Coefficient;
             public readonly int Scale;
@@ -94,7 +95,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static DecimalParts ParseArg(string value, string argName)
+        internal static DecimalParts ParseArg(string value, string argName)
         {
             AssertCanonicalInput(value, argName);
             bool negative = value.StartsWith("-", StringComparison.Ordinal);
@@ -113,7 +114,7 @@ namespace NeoCompose.Runtime
         /// (coefficient 110, scale 2 → "1.10"). A zero coefficient never
         /// carries a sign ("-0" is representable as input but never produced).
         /// </summary>
-        private static string FormatParts(DecimalParts parts)
+        internal static string FormatParts(DecimalParts parts)
         {
             bool negative = parts.Coefficient.Sign < 0;
             string digits = BigInteger.Abs(parts.Coefficient).ToString(CultureInfo.InvariantCulture);
@@ -323,24 +324,24 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Round-half-even of coefficient * 10^-scale to <paramref name="digits"/>
-        /// fractional digits. When digits &gt;= scale the value is already exact
-        /// and returned unchanged (no zero-padding).
+        /// Rounds coefficient * 10^-scale to <paramref name="digits"/>
+        /// fractional digits, breaking ties by <paramref name="midpoint"/>.
+        /// When digits &gt;= scale the value is already exact and returned
+        /// unchanged (no zero-padding).
         /// </summary>
-        private static DecimalParts RoundParts(DecimalParts parts, int digits)
+        internal static DecimalParts RoundParts(DecimalParts parts, int digits, MidpointRounding midpoint)
         {
             if (digits >= parts.Scale)
             {
                 return parts;
             }
-            int drop = parts.Scale - digits;
-            BigInteger divisor = Pow10(drop);
+            BigInteger divisor = Pow10(parts.Scale - digits);
             bool negative = parts.Coefficient.Sign < 0;
             BigInteger magnitude = BigInteger.Abs(parts.Coefficient);
             BigInteger quotient = magnitude / divisor;
-            BigInteger remainder = magnitude % divisor;
-            BigInteger doubled = remainder * 2;
-            if (doubled > divisor || (doubled == divisor && !(quotient % 2).IsZero))
+            BigInteger doubled = magnitude % divisor * 2;
+            bool tieRoundsUp = midpoint == MidpointRounding.AwayFromZero || !(quotient % 2).IsZero;
+            if (doubled > divisor || (doubled == divisor && tieRoundsUp))
             {
                 quotient += 1;
             }
@@ -351,7 +352,7 @@ namespace NeoCompose.Runtime
         public static string Round(string value, int digits)
         {
             AssertDigitsInRange(digits, "round");
-            DecimalParts rounded = RoundParts(ParseArg(value, "value"), digits);
+            DecimalParts rounded = RoundParts(ParseArg(value, "value"), digits, MidpointRounding.ToEven);
             return FormatParts(AssertWithinEnvelope(rounded, "round"));
         }
 
@@ -396,18 +397,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Float64 → canonical decimal string via the double's EXACT binary
-        /// expansion (mantissa/exponent bits through
-        /// <see cref="BitConverter.DoubleToInt64Bits"/>), reduced to its
-        /// minimal exact scale, then rounded half-even to
-        /// <paramref name="digits"/>. Never consults
-        /// <c>double.ToString</c>, so the result is identical across runtimes
-        /// (Unity's Mono predates .NET Core's shortest-round-trip formatting).
-        /// Distinct errors for NaN and ±Infinity.
+        /// A finite double's EXACT binary expansion (mantissa/exponent bits
+        /// through <see cref="BitConverter.DoubleToInt64Bits"/>) as the
+        /// shortest exact parts (0.5 → coefficient 5, scale 1). No envelope
+        /// applies: the scale reaches 1074 for subnormals. ±0 is plain
+        /// (0, 0). Distinct errors for NaN and ±Infinity.
         /// </summary>
-        public static string FromFloat(double value, int digits)
+        internal static DecimalParts ExactPartsFromFloat(double value)
         {
-            AssertDigitsInRange(digits, "float conversion");
             if (double.IsNaN(value))
             {
                 throw new DecimalNonFiniteException("Cannot convert NaN to a decimal.");
@@ -437,10 +434,9 @@ namespace NeoCompose.Runtime
             }
             if (mantissa.IsZero)
             {
-                // ±0 short-circuits to plain "0" — carrying the subnormal
-                // scale (1074) through rounding would emit padding and a
-                // cross-runtime mismatch with the web mirror.
-                return "0";
+                // ±0 short-circuits to plain zero: carrying the subnormal
+                // scale (1074) would emit "0.00000…" padding.
+                return new DecimalParts(BigInteger.Zero, 0);
             }
             if (negative)
             {
@@ -457,15 +453,28 @@ namespace NeoCompose.Runtime
             {
                 parts = new DecimalParts(mantissa * BigInteger.Pow(5, -exponent), -exponent);
             }
-            // Reduce to the minimal exact expansion before rounding: the raw
-            // mantissa-times-5^k form carries trailing zeros for dyadic values
-            // (0.5 → coefficient 5×10^52, scale 53), and the cross-runtime
-            // contract is the SHORTEST exact form — "0.5", not "0.500".
+            // The raw mantissa-times-5^k form carries trailing zeros for
+            // dyadic values (0.5 → coefficient 5×10^52, scale 53); the
+            // cross-runtime contract is the SHORTEST exact form, "0.5", not
+            // "0.500".
             while (parts.Scale > 0 && (parts.Coefficient % 10).IsZero)
             {
                 parts = new DecimalParts(parts.Coefficient / 10, parts.Scale - 1);
             }
-            DecimalParts rounded = RoundParts(parts, digits);
+            return parts;
+        }
+
+        /// <summary>
+        /// Float64 → canonical decimal string via the double's exact binary
+        /// expansion, rounded half-even to <paramref name="digits"/>. Never
+        /// consults <c>double.ToString</c>, so the result is identical across
+        /// runtimes (Unity's Mono predates .NET Core's shortest-round-trip
+        /// formatting).
+        /// </summary>
+        public static string FromFloat(double value, int digits)
+        {
+            AssertDigitsInRange(digits, "float conversion");
+            DecimalParts rounded = RoundParts(ExactPartsFromFloat(value), digits, MidpointRounding.ToEven);
             return FormatParts(AssertWithinEnvelope(rounded, "float conversion"));
         }
 
