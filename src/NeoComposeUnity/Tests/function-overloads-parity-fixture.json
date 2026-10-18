@@ -71,6 +71,24 @@
     "    int seed = 7;",
     "    return Nest(1, (a) => Nest(2, (b) => Nest(3, (c) => seed + 1, \"s\"), \"s\"), \"s\");",
     "  }",
+    "  public static int Pair((int X, int Y) pair) { return pair.X * 10 + pair.Y; }",
+    "  public static int Pair((string X, int Y) pair) { return pair.X.Length * 10 + pair.Y; }",
+    "  public static int TupleOverloads() { return Pair((2, 3)) + Pair((\"abcd\", 5)); }",
+    "  public static int Context(((Item Item, int Count) Inner, int Tail) pair) { return pair.Inner.Count + pair.Tail; }",
+    "  public static int Context(string pair) { return 99; }",
+    "  public static int ContextualTuple() { return Context(((new(), 4), 5)); }",
+    "  public static int Named<T>(NeoDelegate<T, (int X, int Y)> select, T witness) { return 0; }",
+    "  public static int Named(NeoDelegate<int, (int Y, int X)> select, string witness) { return select((2, 9)); }",
+    "  public static int NamedTupleLambda() { return Named((pair) => pair.X, \"s\"); }",
+    "  public static int HandleError(NeoArgumentError error) { return 2; }",
+    "  public static int HandleError(NeoError error) { return 1; }",
+    "  public static int ErrorOverloads() {",
+    "    int result = 0;",
+    "    try { throw new NeoArgumentError(message: \"bad\"); }",
+    "    catch (NeoArgumentError error) { result = HandleError(error); }",
+    "    finally { result = result + 10; }",
+    "    return result;",
+    "  }",
     "}"
   ],
   "returns": {
@@ -82,6 +100,10 @@
     "StaticCalls": 7,
     "MethodGroup": 5,
     "Listeners": 101,
-    "Captured": 8
+    "Captured": 8,
+    "TupleOverloads": 68,
+    "ContextualTuple": 9,
+    "NamedTupleLambda": 9,
+    "ErrorOverloads": 12
   }
 }

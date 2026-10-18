@@ -29,6 +29,7 @@ namespace NeoCompose.Tests.OverloadParity
         private TestProjectUserNeo(NeoClient client)
             : base(client, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories)
         {
+            Client.RegisterGeneratedDetachedClassFactories(TestProjectNeo.NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(TestProjectNeo.NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(TestProjectNeo.DeferredNativeFunctionInvokers);
             Client.TypeArguments.Register(TestProjectNeo.NeoTypeArgumentClassIds, TestProjectNeo.NeoTypeArgumentEnumIds, TestProjectNeo.NeoTypeArgumentInterfaceIds);
