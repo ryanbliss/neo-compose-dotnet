@@ -477,6 +477,10 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
+            public NeoRandom Random
+            {
+                get; set;
+            }
             internal sealed class CallFrameStack : IReadOnlyList<string>
             {
                 private readonly IReadOnlyList<string> parent;
@@ -943,6 +947,7 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyList<string>? constructionStack = null)
             {
                 this.client = client;
+                Random = client.Random;
                 DebugSink = client.ScriptDebugSink;
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
@@ -6115,6 +6120,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalSelect(sf, scope, ctx);
                 case CollectionQueryFunction query:
                     return EvalCollectionQuery(query.info, scope, ctx);
+                case RandomOpFunction random:
+                    return EvalRandomOp(random.info, scope, ctx);
                 case MathOpFunction mof:
                     {
                         object? value = EvalMathOp(mof.info, scope, ctx, out double number);
@@ -7953,6 +7960,37 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="NSGetterRuntimeError"/>, so authored <c>try</c> can
         /// catch it like division by zero.
         /// </summary>
+        private static object? EvalRandomOp(FunctionRandomOpInfo info, NeoScriptScope scope, Context ctx)
+        {
+            int arity = info.op switch
+            {
+                "value" => 0,
+                "initState" => 1,
+                "rangeInt" => 2,
+                "rangeFloat" => 2,
+                _ => throw new NSGetterRuntimeError($"Unknown Random operation '{info.op}'.")
+            };
+            if (info.argPointers.Length != arity)
+                throw new NSGetterRuntimeError($"Random.{info.op} takes {arity} arguments; got {info.argPointers.Length}.");
+            if (info.op == "value")
+                return (double)ctx.Random.value;
+            double a = RandomNumberArg(EvalPointer(info.argPointers[0], scope, ctx), info.op == "initState" ? "InitState seed" : "Range min");
+            if (info.op == "initState")
+            {
+                ctx.Random.InitState(a);
+                return null;
+            }
+            double b = RandomNumberArg(EvalPointer(info.argPointers[1], scope, ctx), "Range max");
+            return info.op == "rangeInt" ? ctx.Random.RangeInt(a, b) : (double)ctx.Random.Range((float)a, (float)b);
+        }
+
+        private static double RandomNumberArg(object? value, string label)
+        {
+            if (!ArithmeticValue.IsNumeric(value))
+                throw new NSGetterRuntimeError($"Random.{label} must be numeric.", NeoErrorContract.NeoArgumentError);
+            return ArithmeticValue.NumberOf(value, 0);
+        }
+
         private static object? EvalMathAtSource(Pointer pointer, FunctionMathOpInfo info, NeoScriptScope scope, Context ctx, out double number)
         {
             try
@@ -8103,6 +8141,23 @@ namespace NeoCompose.Runtime.NeoScript
                 // 32-bit float Sqrt returns. NaN for a negative argument.
                 case MathOp.Sqrt:
                     return (double)(float)System.Math.Sqrt(a);
+                case MathOp.Pow:
+                case MathOp.Exp:
+                case MathOp.Log:
+                case MathOp.Log10:
+                case MathOp.Sin:
+                case MathOp.Cos:
+                case MathOp.Tan:
+                case MathOp.Asin:
+                case MathOp.Acos:
+                case MathOp.Atan:
+                case MathOp.Atan2:
+                case MathOp.Lerp:
+                case MathOp.InverseLerp:
+                case MathOp.MoveTowards:
+                case MathOp.Repeat:
+                case MathOp.PingPong:
+                    return NeoExtendedMath.Evaluate(op, (float)a, (float)b, (float)c);
                 default:
                     throw new NSGetterRuntimeError($"Unknown math op '{wireOp}'.");
             }
@@ -8225,6 +8280,39 @@ namespace NeoCompose.Runtime.NeoScript
                     return "Sign";
                 case MathOpKind.Sqrt:
                     return "Sqrt";
+                case MathOpKind.Pow:
+                    return "Pow";
+                case MathOpKind.Exp:
+                    return "Exp";
+                case MathOpKind.Log:
+                    return "Log";
+                case MathOpKind.Log10:
+                    return "Log10";
+                case MathOpKind.Sin:
+                    return "Sin";
+                case MathOpKind.Cos:
+                    return "Cos";
+                case MathOpKind.Tan:
+                    return "Tan";
+                case MathOpKind.Asin:
+                    return "Asin";
+                case MathOpKind.Acos:
+                    return "Acos";
+                case MathOpKind.Atan:
+                    return "Atan";
+                case MathOpKind.Atan2:
+                    return "Atan2";
+                case MathOpKind.Lerp:
+                    return "Lerp";
+                case MathOpKind.InverseLerp:
+                    return "InverseLerp";
+                case MathOpKind.MoveTowards:
+                    return "MoveTowards";
+                case MathOpKind.Repeat:
+                    return "Repeat";
+                case MathOpKind.PingPong:
+                    return "PingPong";
+
                 default:
                     return op;
             }
@@ -8240,9 +8328,16 @@ namespace NeoCompose.Runtime.NeoScript
             switch (op)
             {
                 case MathOp.Clamp:
+                case MathOp.Lerp:
+                case MathOp.InverseLerp:
+                case MathOp.MoveTowards:
                     return 3;
                 case MathOp.Min:
                 case MathOp.Max:
+                case MathOp.Pow:
+                case MathOp.Atan2:
+                case MathOp.Repeat:
+                case MathOp.PingPong:
                     return 2;
                 default:
                     return 1;
@@ -8267,6 +8362,23 @@ namespace NeoCompose.Runtime.NeoScript
                 MathOpKind.Abs => MathOp.Abs,
                 MathOpKind.Sign => MathOp.Sign,
                 MathOpKind.Sqrt => MathOp.Sqrt,
+                MathOpKind.Pow => MathOp.Pow,
+                MathOpKind.Exp => MathOp.Exp,
+                MathOpKind.Log => MathOp.Log,
+                MathOpKind.Log10 => MathOp.Log10,
+                MathOpKind.Sin => MathOp.Sin,
+                MathOpKind.Cos => MathOp.Cos,
+                MathOpKind.Tan => MathOp.Tan,
+                MathOpKind.Asin => MathOp.Asin,
+                MathOpKind.Acos => MathOp.Acos,
+                MathOpKind.Atan => MathOp.Atan,
+                MathOpKind.Atan2 => MathOp.Atan2,
+                MathOpKind.Lerp => MathOp.Lerp,
+                MathOpKind.InverseLerp => MathOp.InverseLerp,
+                MathOpKind.MoveTowards => MathOp.MoveTowards,
+                MathOpKind.Repeat => MathOp.Repeat,
+                MathOpKind.PingPong => MathOp.PingPong,
+
                 _ => MathOp.Unknown,
             };
         }

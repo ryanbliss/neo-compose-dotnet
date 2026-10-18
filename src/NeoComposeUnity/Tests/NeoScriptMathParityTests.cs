@@ -312,7 +312,7 @@ namespace NeoCompose.Tests
         /// <c>mathOp</c> arm reads its operands and no project state at all,
         /// which is the property this fixture is here to keep true.
         /// </summary>
-        private static NeoClient BuildClient()
+        internal static NeoClient BuildClient()
         {
             var rootClass = new NeoSchemaClass
             {

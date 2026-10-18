@@ -24,6 +24,7 @@ namespace NeoCompose.Runtime
     public partial class NeoClient : INeoClient
     {
         private static readonly HashSet<NeoClient> activeClients = new();
+        public NeoScript.NeoRandom Random { get; } = new();
 
         public delegate string BuildSaveName();
         /// <param name="args">

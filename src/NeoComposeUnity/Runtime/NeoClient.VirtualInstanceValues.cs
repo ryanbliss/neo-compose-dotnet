@@ -1335,6 +1335,7 @@ namespace NeoCompose.Runtime
 
         private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null)
         {
+            using var randomFrame = Random.EnterIdentity(instanceRoot.id);
 #if NEO_COMPOSE_PROFILING
             using var marker = ReplayRootMarker.Auto();
 #endif

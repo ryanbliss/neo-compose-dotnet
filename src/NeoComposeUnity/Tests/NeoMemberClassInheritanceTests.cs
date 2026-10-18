@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using NeoCompose.Runtime;
@@ -321,6 +322,16 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, chain.Count);
             Assert.AreEqual("class-derived", chain[0].id);
             Assert.AreEqual("class-base", chain[1].id);
+        }
+
+        [Test]
+        public void MergeSchemas_ExplicitOrderIncludesInheritedKeysAndDeduplicates()
+        {
+            var parent = new NeoSchemaClass { id = "base", schema = new Dictionary<string, string> { ["A"] = "a", ["B"] = "b" } };
+            var child = new NeoSchemaClass { id = "child", schema = new Dictionary<string, string> { ["C"] = "c", ["A"] = "override-a" }, schemaKeyOrder = new[] { "C", "B", "C", "stale" } };
+            var merged = NeoSchemaClassInheritance.MergeSchemas(new[] { child, parent });
+            CollectionAssert.AreEqual(new[] { "C", "B", "A" }, merged.Select(entry => entry.schemaKey));
+            Assert.AreEqual("override-a", merged[2].memberId);
         }
 
         [Test]

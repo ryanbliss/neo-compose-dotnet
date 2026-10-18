@@ -179,6 +179,7 @@ namespace NeoCompose.Runtime.Json
         /// a class.
         /// </summary>
         public const string MathOp = "mathOp";
+        public const string RandomOp = "randomOp";
         public const string BitwiseOp = "bitwiseOp";
         public const string VectorOp = "vectorOp";
         /// <summary>
@@ -261,6 +262,23 @@ namespace NeoCompose.Runtime.Json
         public const string Abs = "abs";
         public const string Sign = "sign";
         public const string Sqrt = "sqrt";
+        public const string Pow = "pow";
+        public const string Exp = "exp";
+        public const string Log = "log";
+        public const string Log10 = "log10";
+        public const string Sin = "sin";
+        public const string Cos = "cos";
+        public const string Tan = "tan";
+        public const string Asin = "asin";
+        public const string Acos = "acos";
+        public const string Atan = "atan";
+        public const string Atan2 = "atan2";
+        public const string Lerp = "lerp";
+        public const string InverseLerp = "inverselerp";
+        public const string MoveTowards = "movetowards";
+        public const string Repeat = "repeat";
+        public const string PingPong = "pingpong";
+
     }
 
     /// <summary>

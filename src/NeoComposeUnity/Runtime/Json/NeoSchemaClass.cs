@@ -20,6 +20,7 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string name = null!;
         public Dictionary<string, string> schema = null!;
+        public string[]? schemaKeyOrder;
         /// <summary>
         /// Optional inheritance — when set, names another class id
         /// whose schema is extended by this class. Mirrors the TS-side

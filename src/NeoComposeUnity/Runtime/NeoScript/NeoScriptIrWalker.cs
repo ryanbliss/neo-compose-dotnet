@@ -354,6 +354,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(bitwiseOp.info.argPointers, predicate);
                 case VectorOpFunction vectorOp:
                     return AnyPointer(vectorOp.info.argPointers, predicate);
+                case RandomOpFunction random:
+                    return AnyPointer(random.info.argPointers, predicate);
                 case MathOpFunction math:
                     return AnyPointer(math.info.argPointers, predicate);
                 case ListRepeatFunction repeat:

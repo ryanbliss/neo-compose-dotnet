@@ -1,0 +1,74 @@
+{
+  "e_pow.c": {
+    "url": "https://www.netlib.org/fdlibm/e_pow.c",
+    "sha256": "763b86baa63eb3518b43f7f3e44e5ed10992b62650f4a45c3a2ea6015e6d5122"
+  },
+  "e_exp.c": {
+    "url": "https://www.netlib.org/fdlibm/e_exp.c",
+    "sha256": "04c96195b7ced914d659b5fd204724c182f091af8631fe42016ad6e27cb302ef"
+  },
+  "e_log.c": {
+    "url": "https://www.netlib.org/fdlibm/e_log.c",
+    "sha256": "a2b1bd1b367026a35f36da53425cd618386c3bf69d23ac224a40791aa9855ac9"
+  },
+  "e_log10.c": {
+    "url": "https://www.netlib.org/fdlibm/e_log10.c",
+    "sha256": "0d636f23e0e70430344cfb003aebce3317260e28c716bbfb8c0839117e533efc"
+  },
+  "s_sin.c": {
+    "url": "https://www.netlib.org/fdlibm/s_sin.c",
+    "sha256": "4d5edb75368e4f8e0ac18682d3ae4b6944ba06801637cf0df6f378d6211f4c81"
+  },
+  "s_cos.c": {
+    "url": "https://www.netlib.org/fdlibm/s_cos.c",
+    "sha256": "bdcbea3c83b2d4aa521b9a5341f3e58b8cb9c8d326fcc4abb715f3704cf17799"
+  },
+  "s_tan.c": {
+    "url": "https://www.netlib.org/fdlibm/s_tan.c",
+    "sha256": "f86caed50cf19150e0be229469785ce937d8d9b37046541408bce146180ba685"
+  },
+  "e_asin.c": {
+    "url": "https://www.netlib.org/fdlibm/e_asin.c",
+    "sha256": "4ec96c4c7747df94911404b1577e404e13efc51e104f1934e72b536b61adc911"
+  },
+  "e_acos.c": {
+    "url": "https://www.netlib.org/fdlibm/e_acos.c",
+    "sha256": "bc9fbb24c214030604c0df4c811370f37d511e0c72580767d8c81bd68b0c3a5a"
+  },
+  "s_atan.c": {
+    "url": "https://www.netlib.org/fdlibm/s_atan.c",
+    "sha256": "8583c253aed6318dee2a48135e3f3b1328d838a390372a69414ac41eb5ce5ce1"
+  },
+  "e_atan2.c": {
+    "url": "https://www.netlib.org/fdlibm/e_atan2.c",
+    "sha256": "61dbf9edc927468280ccde872ecfb7cb1ea7cbaf6e1b28e7021c968abe5f7c6e"
+  },
+  "e_rem_pio2.c": {
+    "url": "https://www.netlib.org/fdlibm/e_rem_pio2.c",
+    "sha256": "3a08dd4a38f9f9fc9478a33ca05cb81a6566f1010ab14412e97cae091bede16b"
+  },
+  "k_rem_pio2.c": {
+    "url": "https://www.netlib.org/fdlibm/k_rem_pio2.c",
+    "sha256": "5796209ea3fe1af88e22badeaed0f6a6aa923914e097e227c410527cb5815740"
+  },
+  "k_sin.c": {
+    "url": "https://www.netlib.org/fdlibm/k_sin.c",
+    "sha256": "75d391f3c124806ce14893cd038ae5dd10663e40430ffa174d5fddcb33012167"
+  },
+  "k_cos.c": {
+    "url": "https://www.netlib.org/fdlibm/k_cos.c",
+    "sha256": "841086c75288f3f9fef03bae2a9dc24e99c3cdb2035e170c69452013a7b5befc"
+  },
+  "k_tan.c": {
+    "url": "https://www.netlib.org/fdlibm/k_tan.c",
+    "sha256": "9dfd4c84f7930da3184a6c425ce7901979c84088cf231c33a7edefc3e0f487c0"
+  },
+  "s_scalbn.c": {
+    "url": "https://www.netlib.org/fdlibm/s_scalbn.c",
+    "sha256": "9ad1bb374fc2951ec086474c82373b45bccfdecd34d631974dccf8633f40d99e"
+  },
+  "fdlibm.h": {
+    "url": "https://www.netlib.org/fdlibm/fdlibm.h",
+    "sha256": "64113c472c2676499288bc35a821b0867916552930bc52c7445d2c50dddf0e71"
+  }
+}
