@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 namespace NeoCompose.Runtime.NeoScript
 {
     /// <summary>
-    /// NeoScript's string library and number text (P116). The C# mirror of
+    /// NeoScript's string library and number text (P115). The C# mirror of
     /// the web's <c>packages/models/src/text/neo-text.ts</c> and
     /// <c>packages/neoscript-language/src/text-formats.ts</c>, locked together
     /// by <c>text-parity-fixture.json</c>. Every member is ordinal and

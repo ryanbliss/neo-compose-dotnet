@@ -7613,7 +7613,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         // ---------------------------------------------------------------
-        // String library and number text (P116 §4.3). Arguments are read
+        // String library and number text (P115 §4.3). Arguments are read
         // up front, receiver first, then handed to NeoText, the mirror of
         // the web's text core.
         // ---------------------------------------------------------------

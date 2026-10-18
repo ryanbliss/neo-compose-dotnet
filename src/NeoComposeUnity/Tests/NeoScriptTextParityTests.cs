@@ -17,7 +17,7 @@ using JsonMember = NeoCompose.Runtime.Json.Member;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// P116 §4.5. The .NET half of the string library and number text parity
+    /// P115 §4.5. The .NET half of the string library and number text parity
     /// gate. Mono and .NET disagree with the web by default on whitespace,
     /// midpoint rounding, and number formatting, so <see cref="NeoText"/>
     /// implements every member by hand and this fixture, shared verbatim with
@@ -126,7 +126,7 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// P116 push round trip: a body using <c>Split</c>,
+        /// P115 push round trip: a body using <c>Split</c>,
         /// <c>int.TryParse</c>, and <c>ToString("N2")</c>, as the real commit
         /// path stored it and <c>neo export</c> wrote it, evaluates to the text
         /// the web produced.

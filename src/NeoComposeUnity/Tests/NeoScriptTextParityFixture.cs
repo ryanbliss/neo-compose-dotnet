@@ -4,7 +4,7 @@
 // VENDORED — DO NOT HAND-EDIT.
 // Source of record:
 // neo-compose/src/models/neoscript/text-parity-fixture.json
-// P116 section 4.5. The string library and number text must agree byte for
+// P115 section 4.5. The string library and number text must agree byte for
 // byte on both runtimes, and the two hosts disagree by default on whitespace,
 // midpoint rounding, and number formatting. The expectations come from an
 // independent oracle, never from either runtime.
@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     public static class NeoScriptTextParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P116 \u00a74.5 cross-runtime string library and number text parity fixture. Hand-authored raw IR, never generated from either runtime: a fixture dumped from one runtime cannot catch a divergence in that runtime's own logic. Expectations come from an independent oracle (Python's str over UTF-16 code units, decimal quantize with ROUND_HALF_EVEN for float and ROUND_HALF_UP for decimal, and struct float32 round trips). Consumed by packages/models/src/neoscript/text-parity.test.ts (web) and NeoScriptTextParityTests (neo-compose-dotnet, vendored verbatim copy)."",
+  ""$comment"": ""P115 \u00a74.5 cross-runtime string library and number text parity fixture. Hand-authored raw IR, never generated from either runtime: a fixture dumped from one runtime cannot catch a divergence in that runtime's own logic. Expectations come from an independent oracle (Python's str over UTF-16 code units, decimal quantize with ROUND_HALF_EVEN for float and ROUND_HALF_UP for decimal, and struct float32 round trips). Consumed by packages/models/src/neoscript/text-parity.test.ts (web) and NeoScriptTextParityTests (neo-compose-dotnet, vendored verbatim copy)."",
   ""$evaluateComment"": ""Consumers wrap each case's `pointer` in a parameterless getter whose single `return` has the case's `typeInfo`. Exactly one expectation is present per case. `expected` is compared exactly: strings and bools as-is, int and float results numerically as doubles, decimal results as canonical strings, and `null` for a TryParse that refused its input. `expectedList` is a List<string> compared entry by entry. `expectedError` must match the thrown evaluator error byte for byte. Non-finite floats come from IEEE-exact arithmetic (`1e200 * 1e200`) because JSON has no literal for them."",
   ""evaluateCases"": [
     {

@@ -1,5 +1,5 @@
 {
-  "$comment": "P116 push round trip. The stored getter of a member body pushed through the real commit path on a rig and written by `neo export`, copied verbatim. The web evaluates it to `expected` too.",
+  "$comment": "P115 push round trip. The stored getter of a member body pushed through the real commit path on a rig and written by `neo export`, copied verbatim. The web evaluates it to `expected` too.",
   "code": "List<string> parts = \" 12, 3.50 ,x,,\".Trim().Split(\",\");\nint quantity = int.TryParse(parts[0]) ?? 0;\ndecimal price = decimal.Parse(parts[1]);\ndecimal total = decimal.Parse(\"1234.5\");\nfloat ratio = float.Parse(\"2.5\");\nstring padded = parts[2].Trim().PadLeft(3, \"*\");\nstring blank = string.IsNullOrWhiteSpace(parts[3]) ? \"blank\" : \"text\";\nreturn $\"{quantity.ToString(\"D3\")}|{price.ToString(\"N2\")}|{total.ToString(\"N2\")}|{ratio.ToString(\"F0\")}|{padded}|{string.Join(\"/\", parts)}|{parts.Count}|{blank}\";",
   "expected": "012|3.50|1,234.50|2|**x|12/ 3.50 /x//|5|blank",
   "getter": {

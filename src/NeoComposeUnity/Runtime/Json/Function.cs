@@ -374,7 +374,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Info shape for <c>textOp</c>: a P116 string or number-text builtin.
+    /// Info shape for <c>textOp</c>: a P115 string or number-text builtin.
     /// Mirrors TS-side <c>INSFunctionTextOpInfo</c>. Static-call shape like
     /// <see cref="FunctionMathOpInfo"/>.
     /// </summary>

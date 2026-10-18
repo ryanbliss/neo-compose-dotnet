@@ -2,7 +2,7 @@
 
 ## [0.75.0] - 2026-10-17
 
-NeoScript's string library and number text (P116). Exported bodies can call `Length`, `Substring`, `IndexOf`, `LastIndexOf`, `Split`, `PadLeft`, `PadRight`, `TrimStart`, `TrimEnd`, `string.Join`, `string.IsNullOrEmpty`, `string.IsNullOrWhiteSpace`, `int`/`float`/`decimal` `Parse` and `TryParse`, and `ToString(format)` with `D`, `F`, and `N` formats. Results match the web byte for byte: every member is ordinal and invariant, counts UTF-16 code units, and formats numbers from their exact value instead of the host's formatter. Requires CLI 0.85.0; run `neo pull` and `neo export` after upgrading.
+NeoScript's string library and number text (P115). Exported bodies can call `Length`, `Substring`, `IndexOf`, `LastIndexOf`, `Split`, `PadLeft`, `PadRight`, `TrimStart`, `TrimEnd`, `string.Join`, `string.IsNullOrEmpty`, `string.IsNullOrWhiteSpace`, `int`/`float`/`decimal` `Parse` and `TryParse`, and `ToString(format)` with `D`, `F`, and `N` formats. Results match the web byte for byte: every member is ordinal and invariant, counts UTF-16 code units, and formats numbers from their exact value instead of the host's formatter. Requires CLI 0.85.0; run `neo pull` and `neo export` after upgrading.
 
 ```neo
 List<string> parts = this.Text.Trim().Split(" ");

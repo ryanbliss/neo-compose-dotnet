@@ -182,7 +182,7 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public const string ListRepeat = "listRepeat";
         /// <summary>
-        /// P116 §4.1 — a string-library or number-text builtin: string
+        /// P115 §4.1 — a string-library or number-text builtin: string
         /// members, <c>string</c> statics, and number
         /// <c>Parse</c>/<c>TryParse</c>/<c>ToString(format)</c>.
         /// </summary>
@@ -259,7 +259,7 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Wire values of the TS-side <c>TNSTextStringOp</c> and
     /// <c>TNSTextNumberOp</c> unions — the ops a <c>textOp</c> function IR
-    /// node may carry (P116 §4.1).
+    /// node may carry (P115 §4.1).
     /// </summary>
     public static class TextOpKind
     {
