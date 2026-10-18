@@ -789,7 +789,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+        private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
         private ObjectMemberValue RequirePlacementClass(string valueId, string? kind)
         {

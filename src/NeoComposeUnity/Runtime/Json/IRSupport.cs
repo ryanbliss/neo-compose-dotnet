@@ -174,6 +174,7 @@ namespace NeoCompose.Runtime.Json
         /// a class.
         /// </summary>
         public const string MathOp = "mathOp";
+        public const string VectorOp = "vectorOp";
         /// <summary>
         /// P71 §4 — <c>List.Repeat(value, count)</c>. Like
         /// <see cref="MathOp"/> a compiler intrinsic with no schema record

@@ -623,7 +623,7 @@ namespace NeoCompose.Runtime
                                 var assign = (AssignInstruction)instruction;
                                 // A local write returns nothing, so it skips
                                 // the result a setter's write may carry.
-                                if (assign.target.pointer is VariablePointer local)
+                                if (assign.bindings is null && assign.target.pointer is VariablePointer local)
                                 {
                                     AssignLocal(assign, local, scope, actionCtx);
                                     break;
@@ -2409,6 +2409,16 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             NeoScriptExecutionOptions? options)
         {
+            if (instruction.bindings is not null)
+            {
+                foreach (Variable binding in instruction.bindings)
+                {
+                    object? value = NSGetterEvaluator.EvaluateValue(binding.pointer, scope, ctx, out double number);
+                    CoerceLocalNumeric(ref value, ref number, binding.typeInfo);
+                    value = NSGetterEvaluator.DeclaredRuntimeSet(value, binding.typeInfo, ctx);
+                    scope.SetEvaluationValue(binding, value, number);
+                }
+            }
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
                 AssignLocal(instruction, variablePointer, scope, ctx);
@@ -2504,6 +2514,19 @@ namespace NeoCompose.Runtime
                 return;
             }
             if (writeTarget.writability == WritabilityKind.Local
+                && receiver is object?[] array
+                && FindValueId(receiver, ctx) is null)
+            {
+                object? indexKey = Eval(keyOfPointer.keyOf.key, scope, ctx);
+                if (indexKey is string)
+                    throw new NSGetterRuntimeError(ListIdAssignmentError);
+                int index = ToInt(indexKey, "List assignment index");
+                if (index < 0 || index >= array.Length)
+                    throw new NSGetterRuntimeError($"List index out of bounds: {index}");
+                array[index] = assigned;
+                return;
+            }
+            if (writeTarget.writability == WritabilityKind.Local
                 && receiver is IDictionary<string, object?> dictionary
                 && FindValueId(receiver, ctx) is null)
             {
@@ -2565,8 +2588,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// <c>local.y++</c> on a local that holds a structured leaf no row backs
-        /// (e.g. <c>Vector2Int progress = new(0, 0)</c>). The leaf is a value
-        /// type, so the local rebinds to a copy with the field replaced.
+        /// (e.g. <c>Vector2Int progress = new(0, 0)</c>). Vector component
+        /// writes retain the local object's identity, including its aliases.
         /// </summary>
         private static void AssignLocalLeafField(
             WriteTarget writeTarget,
@@ -2587,9 +2610,17 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(readOnlyError!);
             }
             string field = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Structured leaf field name");
-            scope.Assign(
-                receiverVariable,
-                NeoStructuredLeafFieldWriteTarget.ComposeLocalField(receiver, field, writeTarget.typeInfo, assigned));
+            object composed = NeoStructuredLeafFieldWriteTarget.ComposeLocalField(receiver, field, writeTarget.typeInfo, assigned);
+            if (receiver is NeoVector2Value vector && composed is NeoVector2Value updated)
+            {
+                // Local aliases share component writes; replacing the whole vector still rebinds the local.
+                vector.x = updated.x;
+                vector.y = updated.y;
+                if (vector is NeoVector3Value vector3 && updated is NeoVector3Value updated3)
+                    vector3.z = updated3.z;
+                return;
+            }
+            scope.Assign(receiverVariable, composed);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -5648,7 +5679,7 @@ namespace NeoCompose.Runtime
                     case NeoVector3Value vector3:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Vector3);
-                            float component = RequireComponent(value);
+                            double component = RequireComponent(value);
                             return new NeoVector3Value
                             {
                                 x = field == "x" ? component : vector3.x,
@@ -5659,7 +5690,7 @@ namespace NeoCompose.Runtime
                     case NeoVector2Value vector2:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Vector2);
-                            float component = RequireComponent(value);
+                            double component = RequireComponent(value);
                             return new NeoVector2Value
                             {
                                 x = field == "x" ? component : vector2.x,
@@ -5729,7 +5760,7 @@ namespace NeoCompose.Runtime
             /// field as Int, which it does for exactly Vector2Int and
             /// Vector3Int — P42 §1.4's "no runtime coercion" rule.
             /// </summary>
-            private float RequireComponent(object? value)
+            private double RequireComponent(object? value)
             {
                 double numeric = ToDouble(value, $"Vector field '{field}'");
                 if (double.IsNaN(numeric) || double.IsInfinity(numeric))
@@ -5743,7 +5774,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Vector field '{field}' must be an integer on an integer vector; found {numeric}.");
                 }
-                return (float)numeric;
+                return fieldType.type == MemberKind.Int ? numeric : (float)numeric;
             }
 
             /// <summary>

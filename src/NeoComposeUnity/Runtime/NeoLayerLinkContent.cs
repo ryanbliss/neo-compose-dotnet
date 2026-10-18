@@ -508,8 +508,8 @@ namespace NeoCompose.Runtime
             }
 
             return new Vector2Int(
-                Mathf.RoundToInt(positionRow.value.x),
-                Mathf.RoundToInt(positionRow.value.y));
+                Mathf.RoundToInt((float)positionRow.value.x),
+                Mathf.RoundToInt((float)positionRow.value.y));
         }
 
         private static Vector3 ReadRowPosition(
@@ -540,8 +540,8 @@ namespace NeoCompose.Runtime
             }
 
             return new Vector2Int(
-                Mathf.RoundToInt(cellRow.value.x),
-                Mathf.RoundToInt(cellRow.value.y));
+                (int)System.Math.Round(cellRow.value.x),
+                (int)System.Math.Round(cellRow.value.y));
         }
 
         private static string? ReadDirectReference(

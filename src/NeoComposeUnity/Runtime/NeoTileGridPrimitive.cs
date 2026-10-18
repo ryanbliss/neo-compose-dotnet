@@ -2737,9 +2737,9 @@ namespace NeoCompose.Runtime
             switch (row)
             {
                 case Vector2MemberValue v2 when v2.value is not null:
-                    return new Vector2(v2.value.x, v2.value.y);
+                    return new Vector2((float)v2.value.x, (float)v2.value.y);
                 case Vector3MemberValue v3 when v3.value is not null:
-                    return new Vector2(v3.value.x, v3.value.y);
+                    return new Vector2((float)v3.value.x, (float)v3.value.y);
                 default:
                     return null;
             }

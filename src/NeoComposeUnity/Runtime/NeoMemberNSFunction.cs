@@ -2022,6 +2022,8 @@ namespace NeoCompose.Runtime
                         value = NeoGeneratedTypesSupport.Vector2Value(normalizedVector2);
                     break;
                 case MemberKind.Vector2Int:
+                    if (value is NeoVector2Value)
+                        break;
                     if (NeoGeneratedTypesSupport.ReadVector2IntValue(value) is Vector2Int normalizedVector2Int)
                         value = NeoGeneratedTypesSupport.Vector2IntValue(normalizedVector2Int);
                     break;
@@ -2030,6 +2032,8 @@ namespace NeoCompose.Runtime
                         value = NeoGeneratedTypesSupport.Vector3Value(normalizedVector3);
                     break;
                 case MemberKind.Vector3Int:
+                    if (value is NeoVector3Value)
+                        break;
                     if (NeoGeneratedTypesSupport.ReadVector3IntValue(value) is Vector3Int normalizedVector3Int)
                         value = NeoGeneratedTypesSupport.Vector3IntValue(normalizedVector3Int);
                     break;

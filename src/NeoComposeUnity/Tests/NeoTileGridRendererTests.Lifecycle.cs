@@ -553,9 +553,9 @@ namespace NeoCompose.Tests
                 // The recorder reads each argument as a NeoScript vector.
                 var hitNormal = (NeoVector2Value)normal!;
                 var hitVelocity = (NeoVector2Value)velocity!;
-                Assert.AreEqual(1, Mathf.Abs(hitNormal.x), 0.01);
+                Assert.AreEqual(1, Math.Abs(hitNormal.x), 0.01);
                 Assert.AreEqual(0, hitNormal.y, 0.01);
-                Assert.AreEqual(10, new Vector2(hitVelocity.x, hitVelocity.y).magnitude, 0.1);
+                Assert.AreEqual(10, new Vector2((float)hitVelocity.x, (float)hitVelocity.y).magnitude, 0.1);
             }
             finally
             {

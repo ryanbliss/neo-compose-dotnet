@@ -30,7 +30,7 @@ namespace NeoCompose.Tests
     /// the TS evaluator read it happily. These tests pin all three fixes and
     /// the read-modify-write semantics of §1.2 and §1.4.</para>
     /// </summary>
-    public class NeoStructuredLeafFieldNeoScriptTests
+    public partial class NeoStructuredLeafFieldNeoScriptTests
     {
         private const string LegFileId = "file-body-normal-walk-side-leg";
         private const string PantsFileId = "file-pants-long-walk-side-leg";
@@ -539,11 +539,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void LocalVectorFieldWrite_DoesNotReachACopy()
+        public void LocalVectorFieldWrite_ReachesAliases()
         {
             // `Vector2Int a = new(1, 2); Vector2Int b = a; b.y = 5;` — vectors
-            // are value types, so `a` keeps its own y.
-            Assert.AreEqual(2f, RunLocalVectorProgram("a", AssignLocalField("b", "y", NumberLiteral(5))).y);
+            // aliases share component writes.
+            Assert.AreEqual(5f, RunLocalVectorProgram("a", AssignLocalField("b", "y", NumberLiteral(5))).y);
             Assert.AreEqual(5f, RunLocalVectorProgram("b", AssignLocalField("b", "y", NumberLiteral(5))).y);
         }
 

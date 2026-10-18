@@ -533,6 +533,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionDecimalOpInfo info = null!;
     }
 
+    public sealed class VectorOpFunction : Function
+    {
+        public FunctionVectorOpInfo info = null!;
+    }
+
     public sealed class MathOpFunction : Function
     {
         public FunctionMathOpInfo info = null!;
@@ -555,6 +560,28 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            if (concrete != typeof(VectorOpFunction))
+                return;
+            if (obj["info"] is not JObject info || info["kind"]?.Type != JTokenType.String
+                || info["op"]?.Type != JTokenType.String || info["argPointers"] is not JArray)
+                throw new JsonSerializationException("vectorOp requires string kind/op and an argument pointer array.");
+            if (info.TryGetValue("optional", out JToken? optional)
+                && (optional.Type != JTokenType.Boolean || optional.Value<bool>() != true))
+                throw new JsonSerializationException("vectorOp optional must be true when present.");
+        }
+
+        protected override void OnPopulated(JObject obj, Function instance)
+        {
+            if (instance is VectorOpFunction vector)
+            {
+                string? error = vector.info is null ? "vectorOp requires info." : vector.info.ValidationError();
+                if (error is not null)
+                    throw new JsonSerializationException(error);
+            }
+        }
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             switch (discriminator.Value<string>())
@@ -597,6 +624,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp:
                     return typeof(DecimalOpFunction);
+                case FunctionKind.VectorOp:
+                    return typeof(VectorOpFunction);
                 case FunctionKind.MathOp:
                     return typeof(MathOpFunction);
                 case FunctionKind.ListRepeat:
