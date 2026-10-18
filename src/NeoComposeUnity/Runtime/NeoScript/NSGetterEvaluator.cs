@@ -2924,6 +2924,15 @@ namespace NeoCompose.Runtime.NeoScript
                 && FindRowOwnershipByReference(ownerReceiver, ctx) == NeoValueOwnership.User)
                 throw new NSGetterRuntimeError(NeoClient.UserDataWriteError);
             args ??= Array.Empty<object?>();
+            object? lexicalOwner = ownerReceiver;
+            foreach (NeoDelegateValue listener in actionValue.listeners)
+            {
+                if (listener?.valueId is null)
+                {
+                    lexicalOwner = InitializerActionOwner(value, ownerReceiver, ctx);
+                    break;
+                }
+            }
             for (int index = 0; index < actionValue.listeners.Count; index++)
             {
                 NeoDelegateValue listener = actionValue.listeners[index];
@@ -2938,7 +2947,7 @@ namespace NeoCompose.Runtime.NeoScript
                         listener,
                         args,
                         ctx,
-                        ownerReceiver);
+                        lexicalOwner);
                 }
                 catch (Exception error)
                     when (NeoScriptErrorClassification.IsRewrappable(error))
@@ -3245,10 +3254,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // otherwise the spec's `= [PlayHitFlash]` example would
                 // execute `this.FlashFrames = 4` against a null `this`.
                 //
-                // Bound only when the listener member really is on that row's
-                // class, so an action fanned out on one class can never
-                // smuggle a foreign row in as `this`; anything else stays
-                // receiver-less, the pre-P62 behavior.
+                // Nested initializers can name an enclosing owner's method.
+                // Only owned ancestors with the same canonical member supply it.
                 receiver = ListenerReceiverOnOwner(target, ownerReceiver, ctx);
             }
 
@@ -3481,22 +3488,36 @@ namespace NeoCompose.Runtime.NeoScript
                 : $"{name}[default]";
         }
 
-        /// <summary>
-        /// The receiver a null-<c>valueId</c> listener binds to, or null when
-        /// it must stay receiver-less.
-        ///
-        /// <paramref name="ownerReceiver"/> is the row the fanning-out action
-        /// was read from. It is only a valid <c>this</c> for the listener when
-        /// the listener member is reachable through that row's own runtime
-        /// class surface — the same merged-schema lookup
-        /// <see cref="DispatchSchemaMember"/> uses. A listener naming a member
-        /// of some other class is a target the owner row cannot supply, so it
-        /// runs with no receiver rather than with the wrong one.
-        ///
-        /// <para>The answer depends only on the owner's Class, so the
-        /// listener keeps it per Class while the schema resolution
-        /// holds.</para>
-        /// </summary>
+        private static object? InitializerActionOwner(object? action, object? fallback, Context ctx)
+        {
+            RowReference? actionRef = FindRowReference(action, ctx);
+            if (actionRef is null || !ctx.client.TryGetValue(actionRef.ownership, actionRef.valueId, out MemberValue? actionRow))
+                return fallback;
+            string? lexicalMember = NeoGeneratedTypesSupport.InitializerActionOwnerMember(ctx.client, actionRow);
+            if (lexicalMember is null || FindSchemaPlacementCached(lexicalMember, ctx) is not { } placement
+                || !ctx.client.TryGetMember(lexicalMember, out JsonMember? declaration))
+                return fallback;
+            RowReference? ownerRef = FindRowReference(fallback, ctx);
+            if (ownerRef is null)
+                return fallback;
+            string current = ownerRef.valueId;
+            NeoValueOwnership ownership = ownerRef.ownership;
+            string canonical = ctx.client.CanonicalListenerMemberId(declaration);
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (ctx.client.TryFindOwnedParent(ownership, current, out string? parentId, out ownership))
+            {
+                if (!visited.Add(parentId))
+                    break;
+                if (ctx.client.TryGetValue(ownership, parentId, out ObjectMemberValue? parent)
+                    && ctx.client.ResolveClassChildRow(parent, placement.schemaKey) is MemberValue child && child.id == current
+                    && ctx.client.TryResolveOwnedChildMember(parent, null, placement.schemaKey) is JsonMember member
+                    && SameId(ctx.client.CanonicalListenerMemberId(member), canonical))
+                    return UnwrapRow(parent, ctx, ownership);
+                current = parentId;
+            }
+            throw new NSGetterRuntimeError($"Listener initializer '{declaration.name}' has no owning instance.");
+        }
+
         private static object? ListenerReceiverOnOwner(
             NeoDelegateValue listener,
             object ownerReceiver,
@@ -3534,7 +3555,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
             bool binds = FindSchemaPlacementCached(listener.memberId!, ctx) is { } placement
                 && classNode.SurfaceMember(placement.schemaKey) is { } entry
-                && ctx.client.TryGetMember(entry.memberId, out JsonMember? _);
+                && ctx.client.TryGetMember(entry.memberId, out JsonMember? effective)
+                && ctx.client.TryGetMember(listener.memberId!, out JsonMember? declared)
+                && SameId(ctx.client.CanonicalListenerMemberId(effective), ctx.client.CanonicalListenerMemberId(declared));
             if ((targets?.count ?? 0) < CallSiteTarget.MaxTargets)
             {
                 listener.ownerTargets = new ListenerOwnerTarget(
@@ -9444,7 +9467,8 @@ namespace NeoCompose.Runtime.NeoScript
                 || unwrapped is object?[]
                 || unwrapped is NeoVector2Value
                 || unwrapped is NeoColorValue
-                || unwrapped is NeoDelegateValue)
+                || unwrapped is NeoDelegateValue
+                || unwrapped is NeoActionValue)
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.DeclaredClassId;
@@ -9456,7 +9480,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Records and arrays are built per unwrap; a vector, colour,
                 // or delegate is the row's own instance and may already be
                 // indexed.
-                if (unwrapped is NeoVector2Value or NeoColorValue or NeoDelegateValue)
+                if (unwrapped is NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue)
                     SetRowReference(ctx, unwrapped, reference);
                 else
                     AddFreshRowReference(ctx, unwrapped!, reference);
@@ -11373,7 +11397,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// detached objects never are, and skip the table's locked lookup.
         /// </summary>
         private static bool MayBeRowAlias(object? value) =>
-            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue;
+            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
 
         internal static RowReference? FindRowReference(object? value, Context ctx)
         {

@@ -1163,6 +1163,9 @@ namespace NeoCompose.Runtime
             // A pending collection's row is the one replaced, and preparing
             // the batch must not restage it over the replacement.
             MemberValue? previous = plan.HeldBy?.PendingRow(ownership, next.id) ?? plan.Resolve(ownership, next.id);
+            // Retained implicit listeners still capture the initializer's owner.
+            if (next is ActionMemberValue && previous is ActionMemberValue)
+                next.sourceValueId ??= previous.sourceValueId;
             plan.HeldBy?.Discard(ownership, next.id);
             plan.Set(ownership, next, changedField);
             plan.RecordReplacement(ownership, next.id);
