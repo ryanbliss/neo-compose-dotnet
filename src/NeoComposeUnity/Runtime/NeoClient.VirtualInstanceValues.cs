@@ -1904,6 +1904,7 @@ namespace NeoCompose.Runtime
             var scopes = listenerDefaults is { Count: > 0 } ? new Dictionary<string, NeoValueOwnership>() : null;
             var selectors = new List<DelegateMemberValue>();
             var selections = new List<ArrayMemberValue>();
+            var constructions = new List<(ObjectMemberValue row, ClassMember? member)>();
             var pending = new Stack<VirtualExpansionNode>();
             pending.Push(root);
             while (pending.Count > 0)
@@ -1916,6 +1917,8 @@ namespace NeoCompose.Runtime
                     scopes[node.row.id] = node.effectiveOwnership;
                 if (expansion.Values.TryGetValue(node.effectiveId, out MemberValue? row))
                 {
+                    if (row is ObjectMemberValue { constructorArgs: { Count: > 0 } } construction)
+                        constructions.Add((construction, node.member as ClassMember));
                     if (row is DelegateMemberValue selector)
                         selectors.Add(selector);
                     else if (node.member is LookupMember && row is ArrayMemberValue { value: not null } selection)
@@ -1945,6 +1948,29 @@ namespace NeoCompose.Runtime
                         ids[index] = effective;
                 }
                 selection.value = ids;
+            }
+            foreach (var (row, member) in constructions)
+            {
+                if (row.instanceConstructorId is not string constructorId
+                    || !data.constructors.TryGetValue(constructorId, out var constructor))
+                    continue;
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? environment = null;
+                for (int index = 0; index < constructor.argumentTypes.Length; index++)
+                {
+                    string parameterId = ConstructorParameterId(constructor, index);
+                    if (!row.constructorArgs!.TryGetValue(parameterId, out var argument)
+                        || argument?.Type != JTokenType.String)
+                        continue;
+                    if (!identities.TryGetValue(argument.Value<string>()!, out string? effective))
+                        continue;
+                    environment ??= NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
+                        NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings,
+                            SlotClassArguments(member, constructor.classId)));
+                    var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this,
+                        constructor.argumentTypes[index], environment);
+                    if (parameter.type == MemberKind.Reference)
+                        row.constructorArgs[parameterId] = effective;
+                }
             }
             if (scopes is null)
                 return;

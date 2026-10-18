@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.77.1] - 2026-10-18
+
+- Fixed reference constructor arguments retaining temporary row IDs when replaying nested constructed values. References now point to the effective rows, including after save and reload. External references and ordinary string arguments retain their values.
+- Unity export schema remains 45 and compiler revision remains 17.
+
 ## [0.77.0] - 2026-10-18
 
 - Added P122 typed NeoError values, ordered typed catches, identity-preserving rethrow, and finally cleanup across synchronous and deferred execution. Runtime control failures remain noncatchable.
