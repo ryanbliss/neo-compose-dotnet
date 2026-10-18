@@ -2,10 +2,9 @@
 
 ## [0.76.0] - 2026-10-17
 
-- Added P121 closed class families and exhaustive switch expressions with type patterns, bindings, and ordered guards. Closed classes use `ClassModifierKind.Closed` and are implicitly abstract.
+- Added P121 closed class families and exhaustive switch expressions with type patterns, bindings, and ordered guards. Closed classes use `NeoClassModifierKind.Closed` and are implicitly abstract.
 - Fixed local assignments to detached class objects creating session rows before updating their fields.
 - Added P120 parity coverage for inferred generic function calls, including forwarding, captured delegates, and once-only argument evaluation.
-
 - Added P119 integer bitwise operators `~`, `&`, `|`, `^`, `<<`, `>>`, and `>>>`, including compound assignments. Operands normalize to signed int32, shift counts use their low five bits, and results match the web runtime. `-1 >>> 0` returns -1.
 - Requires CLI 0.86.0 and Unity export schema 44. Run `neo pull` and `neo export` after upgrading both packages. Ordinary integer arithmetic is unchanged.
 

@@ -64,7 +64,7 @@ namespace NeoCompose.Tests
             var getter = JsonConvert.DeserializeObject<FunctionWithReturnType>(NeoScriptBitwiseCompoundFixture.Json)!;
             var calls = new List<string>();
             var ctx = new NSGetterEvaluator.Context(BuildClient(), null, null) { DebugSink = value => calls.Add(value.Message) };
-            Assert.AreEqual(26d, NSGetterEvaluator.Evaluate(getter, ctx));
+            Assert.AreEqual(14d, NSGetterEvaluator.Evaluate(getter, ctx));
             CollectionAssert.AreEqual(new[] { "index", "rhs" }, calls);
         }
 

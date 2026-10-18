@@ -1,6 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
-// Compiled from P119 capture-order and compound-assignment test.
+// VENDORED — DO NOT HAND-EDIT.
+// Source: neo-compose/src/models/neoscript/bitwise-compound-parity-fixture.json
 namespace NeoCompose.Tests
 {
     internal static class NeoScriptBitwiseCompoundFixture
@@ -89,7 +90,7 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 2,
+        ""line"": 1,
         ""column"": 1
       }
     },
@@ -185,8 +186,8 @@ namespace NeoCompose.Tests
                       ""required"": true
                     },
                     ""source"": {
-                      ""line"": 3,
-                      ""column"": 34
+                      ""line"": 2,
+                      ""column"": 38
                     }
                   },
                   {
@@ -202,8 +203,8 @@ namespace NeoCompose.Tests
                       }
                     },
                     ""source"": {
-                      ""line"": 3,
-                      ""column"": 54
+                      ""line"": 2,
+                      ""column"": 58
                     }
                   }
                 ],
@@ -217,8 +218,8 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 3,
-        ""column"": 1
+        ""line"": 2,
+        ""column"": 5
       }
     },
     {
@@ -335,8 +336,8 @@ namespace NeoCompose.Tests
                   ""required"": true
                 },
                 ""source"": {
-                  ""line"": 4,
-                  ""column"": 32
+                  ""line"": 3,
+                  ""column"": 36
                 }
               },
               {
@@ -379,8 +380,8 @@ namespace NeoCompose.Tests
                   }
                 },
                 ""source"": {
-                  ""line"": 4,
-                  ""column"": 50
+                  ""line"": 3,
+                  ""column"": 54
                 }
               },
               {
@@ -396,8 +397,8 @@ namespace NeoCompose.Tests
                   }
                 },
                 ""source"": {
-                  ""line"": 4,
-                  ""column"": 66
+                  ""line"": 3,
+                  ""column"": 70
                 }
               }
             ],
@@ -416,8 +417,8 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 4,
-        ""column"": 1
+        ""line"": 3,
+        ""column"": 5
       }
     },
     {
@@ -447,10 +448,10 @@ namespace NeoCompose.Tests
               ""variableId"": ""index""
             },
             ""args"": [],
-            ""callSiteId"": ""5:13:0"",
+            ""callSiteId"": ""4:17:0"",
             ""source"": {
-              ""line"": 5,
-              ""column"": 13
+              ""line"": 4,
+              ""column"": 17
             }
           }
         }
@@ -503,10 +504,10 @@ namespace NeoCompose.Tests
                   ""variableId"": ""rhs""
                 },
                 ""args"": [],
-                ""callSiteId"": ""5:23:1"",
+                ""callSiteId"": ""4:27:1"",
                 ""source"": {
-                  ""line"": 5,
-                  ""column"": 23
+                  ""line"": 4,
+                  ""column"": 27
                 }
               }
             ]
@@ -514,8 +515,8 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 5,
-        ""column"": 1
+        ""line"": 4,
+        ""column"": 5
       }
     },
     {
@@ -547,8 +548,8 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 6,
-        ""column"": 1
+        ""line"": 5,
+        ""column"": 5
       }
     },
     {
@@ -591,96 +592,8 @@ namespace NeoCompose.Tests
         }
       },
       ""source"": {
-        ""line"": 7,
-        ""column"": 1
-      }
-    },
-    {
-      ""type"": ""assign"",
-      ""target"": {
-        ""pointer"": {
-          ""type"": ""variable"",
-          ""variableId"": ""result""
-        },
-        ""typeInfo"": {
-          ""type"": 2,
-          ""required"": true
-        },
-        ""writability"": ""local""
-      },
-      ""operator"": ""="",
-      ""pointer"": {
-        ""type"": ""function"",
-        ""function"": {
-          ""type"": ""bitwiseOp"",
-          ""info"": {
-            ""op"": ""shiftRight"",
-            ""argPointers"": [
-              {
-                ""type"": ""variable"",
-                ""variableId"": ""result""
-              },
-              {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 2,
-                    ""required"": true
-                  },
-                  ""value"": 1
-                }
-              }
-            ]
-          }
-        }
-      },
-      ""source"": {
-        ""line"": 7,
-        ""column"": 15
-      }
-    },
-    {
-      ""type"": ""assign"",
-      ""target"": {
-        ""pointer"": {
-          ""type"": ""variable"",
-          ""variableId"": ""result""
-        },
-        ""typeInfo"": {
-          ""type"": 2,
-          ""required"": true
-        },
-        ""writability"": ""local""
-      },
-      ""operator"": ""="",
-      ""pointer"": {
-        ""type"": ""function"",
-        ""function"": {
-          ""type"": ""bitwiseOp"",
-          ""info"": {
-            ""op"": ""shiftRightUnsigned"",
-            ""argPointers"": [
-              {
-                ""type"": ""variable"",
-                ""variableId"": ""result""
-              },
-              {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 2,
-                    ""required"": true
-                  },
-                  ""value"": 1
-                }
-              }
-            ]
-          }
-        }
-      },
-      ""source"": {
-        ""line"": 7,
-        ""column"": 29
+        ""line"": 6,
+        ""column"": 5
       }
     },
     {
@@ -715,7 +628,7 @@ namespace NeoCompose.Tests
                     ""type"": 2,
                     ""required"": true
                   },
-                  ""value"": 3
+                  ""value"": 10
                 }
               }
             ]
@@ -724,7 +637,7 @@ namespace NeoCompose.Tests
       },
       ""source"": {
         ""line"": 7,
-        ""column"": 44
+        ""column"": 5
       }
     },
     {
@@ -759,176 +672,27 @@ namespace NeoCompose.Tests
                     ""type"": 2,
                     ""required"": true
                   },
-                  ""value"": 15
+                  ""value"": 31
                 }
               }
             ]
           }
-        }
-      },
-      ""source"": {
-        ""line"": 7,
-        ""column"": 57
-      }
-    },
-    {
-      ""type"": ""variable"",
-      ""variable"": {
-        ""id"": ""dict"",
-        ""typeInfo"": {
-          ""type"": 5,
-          ""required"": true,
-          ""entryTypeInfo"": {
-            ""type"": 2,
-            ""required"": true
-          }
-        },
-        ""pointer"": {
-          ""type"": ""dictLiteral"",
-          ""typeInfo"": {
-            ""type"": 5,
-            ""required"": true,
-            ""entryTypeInfo"": {
-              ""type"": 2,
-              ""required"": true
-            }
-          },
-          ""entries"": [
-            {
-              ""key"": {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 3,
-                    ""required"": true
-                  },
-                  ""value"": ""mask""
-                }
-              },
-              ""value"": {
-                ""type"": ""variable"",
-                ""variableId"": ""result""
-              }
-            }
-          ]
         }
       },
       ""source"": {
         ""line"": 8,
-        ""column"": 1
-      }
-    },
-    {
-      ""type"": ""assign"",
-      ""bindings"": [
-        {
-          ""id"": ""$assignment_2"",
-          ""typeInfo"": {
-            ""type"": ""Unknown"",
-            ""required"": true
-          },
-          ""pointer"": {
-            ""type"": ""variable"",
-            ""variableId"": ""dict""
-          }
-        }
-      ],
-      ""target"": {
-        ""pointer"": {
-          ""type"": ""keyOf"",
-          ""keyOf"": {
-            ""pointer"": {
-              ""type"": ""variable"",
-              ""variableId"": ""$assignment_2""
-            },
-            ""key"": {
-              ""type"": ""value"",
-              ""value"": {
-                ""typeInfo"": {
-                  ""type"": 3,
-                  ""required"": true
-                },
-                ""value"": ""mask""
-              }
-            }
-          }
-        },
-        ""typeInfo"": {
-          ""type"": 2,
-          ""required"": true
-        },
-        ""writability"": ""local""
-      },
-      ""operator"": ""="",
-      ""pointer"": {
-        ""type"": ""function"",
-        ""function"": {
-          ""type"": ""bitwiseOp"",
-          ""info"": {
-            ""op"": ""or"",
-            ""argPointers"": [
-              {
-                ""type"": ""keyOf"",
-                ""keyOf"": {
-                  ""pointer"": {
-                    ""type"": ""variable"",
-                    ""variableId"": ""$assignment_2""
-                  },
-                  ""key"": {
-                    ""type"": ""value"",
-                    ""value"": {
-                      ""typeInfo"": {
-                        ""type"": 3,
-                        ""required"": true
-                      },
-                      ""value"": ""mask""
-                    }
-                  }
-                }
-              },
-              {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 2,
-                    ""required"": true
-                  },
-                  ""value"": 16
-                }
-              }
-            ]
-          }
-        }
-      },
-      ""source"": {
-        ""line"": 9,
-        ""column"": 1
+        ""column"": 5
       }
     },
     {
       ""type"": ""return"",
       ""pointer"": {
-        ""type"": ""keyOf"",
-        ""keyOf"": {
-          ""pointer"": {
-            ""type"": ""variable"",
-            ""variableId"": ""dict""
-          },
-          ""key"": {
-            ""type"": ""value"",
-            ""value"": {
-              ""typeInfo"": {
-                ""type"": 3,
-                ""required"": true
-              },
-              ""value"": ""mask""
-            }
-          }
-        }
+        ""type"": ""variable"",
+        ""variableId"": ""result""
       },
       ""source"": {
-        ""line"": 10,
-        ""column"": 1
+        ""line"": 9,
+        ""column"": 5
       }
     }
   ],
@@ -937,13 +701,9 @@ namespace NeoCompose.Tests
     ""required"": true
   },
   ""dependencies"": {
-    ""recordIds"": [
-      ""__root__"",
-      ""id-46""
-    ],
+    ""recordIds"": [""__root__"", ""id-46""],
     ""typeNames"": []
   }
-}
-";
+}";
     }
 }

@@ -2174,7 +2174,7 @@ namespace NeoCompose.Runtime.NeoScript
                 SwitchExpressionPattern pattern = arm.pattern;
                 bool matches = pattern.kind == "discard";
                 if (pattern.kind == "constant")
-                    matches = JsEqual(selected, EvalPointer(new ValuePointer { type = PointerKind.Value, value = pattern.constant! }, scope, ctx));
+                    matches = JsEqual(selected, EvalPointer(pattern.constantPointer ??= new ValuePointer { type = PointerKind.Value, value = pattern.constant! }, scope, ctx));
                 if (pattern.kind == "type")
                     matches = selected is not null && RuntimeTypeCheck(selected, pattern.checkType!, ctx);
                 if (!matches)
