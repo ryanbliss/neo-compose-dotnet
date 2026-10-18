@@ -16,6 +16,7 @@ namespace NeoCompose.Runtime
         private sealed class ConstructorInitializerIndex
         {
             internal readonly Dictionary<InitializerBody, string> membersByInitializer = new();
+            internal readonly Dictionary<string, string> membersByActionValue = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<string>> declaringClasses = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, string> containerMembers = new(StringComparer.Ordinal);
         }
@@ -199,6 +200,27 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal static string? InitializerActionOwnerMember(NeoClient client, MemberValue row)
+        {
+            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(client);
+            ConstructorInitializerIndex index;
+            lock (cache.gate)
+                index = cache.initializerIndex ??= BuildConstructorInitializerIndex(client);
+            string? lexicalMember = null;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (visited.Add(row.id))
+            {
+                if (index.membersByActionValue.TryGetValue(row.id, out string? scope))
+                    lexicalMember = scope;
+                if (row.sourceValueId is not string source || !client.values.TryGetValue(source, out row))
+                    break;
+            }
+            if (lexicalMember is null || !client.TryGetMember(lexicalMember, out Member? member)
+                || member.Modifier == NeoMemberModifierKind.Static)
+                return null;
+            return lexicalMember;
+        }
+
         private static ConstructorInitializerIndex BuildConstructorInitializerIndex(NeoClient client)
         {
             var index = new ConstructorInitializerIndex();
@@ -226,7 +248,7 @@ namespace NeoCompose.Runtime
                 if (InitializerOf(member) is not null)
                     continue;
                 // Only owning aggregate defaults introduce lexical row scopes.
-                if (member is not ClassMember && member is not ListMember && member is not DictionaryMember)
+                if (member is not ClassMember && member is not ListMember && member is not DictionaryMember && member is not TupleMember)
                     continue;
                 var root = MemberValueFactory.CreateFromDefault(member, "initializer-index", default, default);
                 if (root is not null)
@@ -238,6 +260,8 @@ namespace NeoCompose.Runtime
             {
                 if (owner is null || !seen.Add(id) || !client.values.TryGetValue(id, out MemberValue? row))
                     return;
+                if (row is ActionMemberValue)
+                    index.membersByActionValue.TryAdd(id, lexicalMemberId);
                 if (row.init is not null)
                 {
                     index.membersByInitializer.TryAdd(row.init, lexicalMemberId);
@@ -250,6 +274,9 @@ namespace NeoCompose.Runtime
                 if (row is ObjectMemberValue obj && obj.value is not null && (owner is ClassMember || owner is DictionaryMember))
                     foreach (var pair in obj.value)
                         Visit(pair.Value, client.TryResolveOwnedChildMember(row, owner, pair.Key), lexicalMemberId);
+                else if (row is ArrayMemberValue tupleRow && tupleRow.value is not null && owner is TupleMember tuple)
+                    for (int position = 0; position < tupleRow.value.Length; position++)
+                        Visit(tupleRow.value[position], client.TryResolveTupleElementMember(tuple, row, position), lexicalMemberId);
                 else if (row is ArrayMemberValue array && array.value is not null && owner is ListMember list && client.TryGetMember(list.entryMemberId, out Member? entry))
                     foreach (string id in array.value)
                         Visit(id, entry, lexicalMemberId);

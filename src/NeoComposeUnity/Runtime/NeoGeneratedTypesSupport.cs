@@ -9286,6 +9286,7 @@ namespace NeoCompose.Runtime
                     return new ActionMemberValue
                     {
                         id = Guid.NewGuid().ToString(),
+                        sourceValueId = source.sourceValueId ?? source.id,
                         createdAt = nowIso,
                         updatedAt = nowIso,
                         value = sourceValue.value?.PersistedCopy(),
