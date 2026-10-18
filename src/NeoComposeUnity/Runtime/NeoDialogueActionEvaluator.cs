@@ -2546,6 +2546,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             if (writeTarget.writability == WritabilityKind.Local
+                && receiver is not NeoScriptObject
                 && receiver is IDictionary<string, object?> dictionary
                 && FindValueId(receiver, ctx) is null)
             {
