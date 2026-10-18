@@ -537,6 +537,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionDecimalOpInfo info = null!;
     }
 
+    public sealed class BitwiseOpFunction : Function
+    {
+        public FunctionBitwiseOpInfo info = null!;
+    }
+
     public sealed class VectorOpFunction : Function
     {
         public FunctionVectorOpInfo info = null!;
@@ -566,6 +571,16 @@ namespace NeoCompose.Runtime.Json
     {
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(BitwiseOpFunction))
+            {
+                if (obj["info"] is not JObject bitwiseInfo)
+                    throw new JsonSerializationException("bitwiseOp requires info.");
+                if (bitwiseInfo["op"]?.Type != JTokenType.String)
+                    throw new JsonSerializationException("bitwiseOp requires a string operation.");
+                if (bitwiseInfo["argPointers"] is not JArray)
+                    throw new JsonSerializationException("bitwiseOp requires an argument pointer array.");
+                return;
+            }
             if (concrete != typeof(VectorOpFunction))
                 return;
             if (obj["info"] is not JObject info || info["kind"]?.Type != JTokenType.String
@@ -578,6 +593,12 @@ namespace NeoCompose.Runtime.Json
 
         protected override void OnPopulated(JObject obj, Function instance)
         {
+            if (instance is BitwiseOpFunction bitwise)
+            {
+                string? error = bitwise.info is null ? "bitwiseOp requires info." : bitwise.info.ValidationError();
+                if (error is not null)
+                    throw new JsonSerializationException(error);
+            }
             if (instance is VectorOpFunction vector)
             {
                 string? error = vector.info is null ? "vectorOp requires info." : vector.info.ValidationError();
@@ -628,6 +649,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp:
                     return typeof(DecimalOpFunction);
+                case FunctionKind.BitwiseOp:
+                    return typeof(BitwiseOpFunction);
                 case FunctionKind.VectorOp:
                     return typeof(VectorOpFunction);
                 case FunctionKind.MathOp:

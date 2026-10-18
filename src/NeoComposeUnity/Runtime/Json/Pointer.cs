@@ -317,14 +317,11 @@ namespace NeoCompose.Runtime.Json
         public Pointer right = null!;
     }
 
-    /// <summary>
-    /// Lazy conditional pointer. Only the selected result pointer is
-    /// evaluated after the normalized boolean condition.
-    /// </summary>
     public sealed class SwitchExpressionPattern
     {
         public string kind = null!;
         public Value? constant;
+        [JsonIgnore] internal ValuePointer? constantPointer;
         public TypeInfo? checkType;
         public string? bindingId;
     }
@@ -336,6 +333,7 @@ namespace NeoCompose.Runtime.Json
         public Pointer value = null!;
     }
 
+    /// <summary>Mirror of <c>INSPointerSwitchExpression</c>.</summary>
     public sealed class SwitchExpressionPointer : Pointer
     {
         public TypeInfo selectorTypeInfo = null!;
@@ -344,6 +342,10 @@ namespace NeoCompose.Runtime.Json
         public SwitchExpressionArm[] arms = null!;
     }
 
+    /// <summary>
+    /// Lazy conditional pointer. Only the selected result pointer is
+    /// evaluated after the normalized boolean condition.
+    /// </summary>
     public sealed class ConditionalPointer : Pointer
     {
         public Pointer condition = null!;

@@ -160,6 +160,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void BitwiseGetterTracksStoredOperandsAndCompoundWritesNotify()
+        {
+            Pointer Bitwise(Pointer value) => new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new BitwiseOpFunction
+                {
+                    type = FunctionKind.BitwiseOp,
+                    info = new FunctionBitwiseOpInfo { op = "or", argPointers = new[] { value, Literal(2) } },
+                },
+            };
+            using Fixture fixture = Build(data =>
+            {
+                data.members["member-value"] = Getter("member-value", "Value", Bitwise(KeyOf(This(), "Left")));
+            });
+            fixture.Subscribe("member-value");
+            fixture.WriteLeft(8);
+            var target = KeyOf(new ReferencePointer { type = PointerKind.Reference, valueId = "value-watcher" }, "Left");
+            NeoScriptExecutor.Execute(fixture.client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                instructions = new Instruction[] { Assign(target, Bitwise(target)) },
+            }, new Dictionary<string, object?>(), new NSGetterEvaluator.Context(fixture.client, null, null));
+            // A write notifies even when the derived result stays the same.
+            CollectionAssert.AreEqual(new[] { ("member-heard", 10), ("member-heard", 10) }, fixture.heard);
+            fixture.WriteLeft(16);
+            CollectionAssert.AreEqual(new[] { ("member-heard", 10), ("member-heard", 10), ("member-heard", 18) }, fixture.heard);
+        }
+
+        [Test]
         public void SubscribingArmsAndAReadWriteCallsOnceWithTheNewResult()
         {
             using Fixture fixture = Build();

@@ -344,6 +344,8 @@ namespace NeoCompose.Runtime.NeoScript
                             && AnyPointer(number.info.argPointer, predicate))
                         || (number.info.digitsPointer is not null
                             && AnyPointer(number.info.digitsPointer, predicate));
+                case BitwiseOpFunction bitwiseOp:
+                    return AnyPointer(bitwiseOp.info.argPointers, predicate);
                 case VectorOpFunction vectorOp:
                     return AnyPointer(vectorOp.info.argPointers, predicate);
                 case MathOpFunction math:

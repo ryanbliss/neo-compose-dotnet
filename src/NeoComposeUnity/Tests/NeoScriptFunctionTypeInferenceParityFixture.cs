@@ -7,10 +7,10 @@ namespace NeoCompose.Tests
     public static class NeoScriptFunctionTypeInferenceParityFixture
     {
         public const string Json = @"{
-  ""source"": ""@id(\""12000000-0000-4000-8000-000000000001\"")\nclass Inference {\n @id(\""12000000-0000-4000-8000-000000000002\"")\n public static T Identity<T>(T value) => value;\n @id(\""12000000-0000-4000-8000-000000000003\"")\n public static R Map<T, R>(T value, NeoDelegate<R, T> project) => project(value);\n @id(\""12000000-0000-4000-8000-000000000004\"")\n public static T Forward<T>(T value) => Inference.Identity(value);\n @id(\""12000000-0000-4000-8000-000000000005\"")\n public int Nested { get { return Inference.Identity(Inference.Forward(7)); } }\n @id(\""12000000-0000-4000-8000-000000000006\"")\n public int Captured { get { int offset = 4; return Inference.Map(3, (value) => Inference.Identity(value + offset)); } }\n @id(\""12000000-0000-4000-8000-000000000007\"")\n public int Typed { get { NeoDelegate<int, int> project = (value) => value * 2; return Inference.Map(5, project); } }\n @id(\""12000000-0000-4000-8000-000000000008\"")\n public int Once { get { return Inference.Map(Inference.Identity(2), (value) => { Debug.Log(value); return value + 1; }); } }\n @id(\""12000000-0000-4000-8000-000000000009\"")\n public static T Pair<T>(T left, T right) => left;\n @id(\""12000000-0000-4000-8000-000000000010\"")\n public static int Mark(int value) { Debug.Log(value); return value; }\n @id(\""12000000-0000-4000-8000-000000000011\"")\n public int Order { get { return Inference.Pair(Inference.Mark(2), Inference.Mark(3)); } }\n}"",
+  ""source"": ""@id(\""12000000-0000-4000-8000-000000000001\"")\nclass Inference {\n @id(\""12000000-0000-4000-8000-000000000002\"")\n public static T Identity<T>(T value) => value;\n @id(\""12000000-0000-4000-8000-000000000003\"")\n public static R Map<T, R>(T value, NeoDelegate<R, T> project) => project(value);\n @id(\""12000000-0000-4000-8000-000000000004\"")\n public static T Forward<T>(T value) => Inference.Identity(value);\n @id(\""12000000-0000-4000-8000-000000000005\"")\n public int Nested { get { return Inference.Identity(Inference.Forward(7)); } }\n @id(\""12000000-0000-4000-8000-000000000006\"")\n public int Captured { get { int offset = 4; return Inference.Map(3, (value) => Inference.Identity(value + offset)); } }\n @id(\""12000000-0000-4000-8000-000000000007\"")\n public int Typed { get { NeoDelegate<int, int> project = (value) => value * 2; return Inference.Map(5, project); } }\n @id(\""12000000-0000-4000-8000-000000000008\"")\n public int Once { get { return Inference.Map(Inference.Identity(2), (value) => { Debug.Log(value); return value + 1; }); } }\n @id(\""12000000-0000-4000-8000-000000000009\"")\n public static T Pair<T>(T left, T right) => left;\n @id(\""12000000-0000-4000-8000-000000000010\"")\n public static int Mark(int value) { Debug.Log(value); return value; }\n @id(\""12000000-0000-4000-8000-000000000011\"")\n public int Order { get { return Inference.Pair(Inference.Mark(2), Inference.Mark(3)); } }\n @id(\""12000000-0000-4000-8000-000000000012\"")\n public int Combined { get { return Inference.Map(5, (value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }); } }\n}"",
   ""document"": {
     ""metadata"": {
-      ""schemaVersion"": 43,
+      ""schemaVersion"": 44,
       ""projectId"": ""project-id"",
       ""versionId"": ""p120"",
       ""semver"": {
@@ -1892,6 +1892,335 @@ namespace NeoCompose.Tests
           }
         }
       },
+      ""12000000-0000-4000-8000-000000000012"": {
+        ""id"": ""12000000-0000-4000-8000-000000000012"",
+        ""name"": ""Combined"",
+        ""kind"": 10,
+        ""requirement"": 1,
+        ""modifier"": 1,
+        ""returnTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""code"": ""return Inference.Map(5, (value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 });"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""getter"": {
+          ""compilerRevision"": 17,
+          ""source"": {
+            ""name"": ""Inference.Combined"",
+            ""uri"": ""Inference.neo"",
+            ""coordinateSpace"": ""file""
+          },
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""12000000-0000-4000-8000-000000000001""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""12000000-0000-4000-8000-000000000001""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""return"",
+              ""pointer"": {
+                ""type"": ""callFunction"",
+                ""memberId"": ""12000000-0000-4000-8000-000000000003"",
+                ""receiver"": {
+                  ""kind"": ""static"",
+                  ""memberId"": ""12000000-0000-4000-8000-000000000003""
+                },
+                ""args"": [
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""value"": 5
+                    }
+                  },
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 25,
+                        ""required"": true,
+                        ""returnTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        },
+                        ""argumentTypes"": [
+                          {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        ]
+                      },
+                      ""value"": {
+                        ""code"": ""(value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }"",
+                        ""action"": {
+                          ""compilerRevision"": 17,
+                          ""source"": {
+                            ""uri"": ""Inference.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Inference.Combined <delegate>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""__this__"",
+                              ""typeInfo"": {
+                                ""type"": 7,
+                                ""required"": true,
+                                ""classId"": ""12000000-0000-4000-8000-000000000001""
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 7,
+                                    ""required"": true,
+                                    ""classId"": ""12000000-0000-4000-8000-000000000001""
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            },
+                            {
+                              ""id"": ""__root__"",
+                              ""typeInfo"": {
+                                ""type"": 7,
+                                ""required"": true,
+                                ""classId"": ""__root__""
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 7,
+                                    ""required"": true,
+                                    ""classId"": ""__root__""
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            },
+                            {
+                              ""id"": ""__lambda_0_arg_0__"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""switchExpression"",
+                                ""selectorTypeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""selector"": {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""__lambda_0_arg_0__""
+                                },
+                                ""selectorId"": ""__switch:0"",
+                                ""arms"": [
+                                  {
+                                    ""pattern"": {
+                                      ""kind"": ""type"",
+                                      ""checkType"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""bindingId"": ""__switch:0_arm_0""
+                                    },
+                                    ""guard"": {
+                                      ""type"": ""operation"",
+                                      ""operation"": {
+                                        ""type"": ""boolean"",
+                                        ""expression"": {
+                                          ""condition"": {
+                                            ""type"": ""equalTo"",
+                                            ""operand1"": {
+                                              ""type"": ""function"",
+                                              ""function"": {
+                                                ""type"": ""bitwiseOp"",
+                                                ""info"": {
+                                                  ""op"": ""and"",
+                                                  ""argPointers"": [
+                                                    {
+                                                      ""type"": ""variable"",
+                                                      ""variableId"": ""__switch:0_arm_0""
+                                                    },
+                                                    {
+                                                      ""type"": ""value"",
+                                                      ""value"": {
+                                                        ""typeInfo"": {
+                                                          ""type"": 2,
+                                                          ""required"": true
+                                                        },
+                                                        ""value"": 1
+                                                      }
+                                                    }
+                                                  ]
+                                                }
+                                              },
+                                              ""source"": {
+                                                ""line"": 24,
+                                                ""column"": 94
+                                              }
+                                            },
+                                            ""operand2"": {
+                                              ""type"": ""value"",
+                                              ""value"": {
+                                                ""typeInfo"": {
+                                                  ""type"": 2,
+                                                  ""required"": true
+                                                },
+                                                ""value"": 1
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    },
+                                    ""value"": {
+                                      ""type"": ""function"",
+                                      ""function"": {
+                                        ""type"": ""bitwiseOp"",
+                                        ""info"": {
+                                          ""op"": ""shiftLeft"",
+                                          ""argPointers"": [
+                                            {
+                                              ""type"": ""variable"",
+                                              ""variableId"": ""__switch:0_arm_0""
+                                            },
+                                            {
+                                              ""type"": ""value"",
+                                              ""value"": {
+                                                ""typeInfo"": {
+                                                  ""type"": 2,
+                                                  ""required"": true
+                                                },
+                                                ""value"": 2
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      },
+                                      ""source"": {
+                                        ""line"": 24,
+                                        ""column"": 109
+                                      }
+                                    }
+                                  },
+                                  {
+                                    ""pattern"": {
+                                      ""kind"": ""discard""
+                                    },
+                                    ""value"": {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 0
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              ""source"": {
+                                ""line"": 24,
+                                ""column"": 65
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                ],
+                ""typeArguments"": [
+                  {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                ],
+                ""callSiteId"": ""1:21:0"",
+                ""source"": {
+                  ""line"": 24,
+                  ""column"": 50
+                }
+              },
+              ""source"": {
+                ""line"": 24,
+                ""column"": 30
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
       ""4ed69bfa-b85a-5778-8f83-ae7723e75bad"": {
         ""createdAt"": 0,
         ""updatedAt"": 0,
@@ -1964,6 +2293,7 @@ namespace NeoCompose.Tests
         ""name"": ""Inference"",
         ""schema"": {
           ""Captured"": ""12000000-0000-4000-8000-000000000006"",
+          ""Combined"": ""12000000-0000-4000-8000-000000000012"",
           ""Forward"": ""12000000-0000-4000-8000-000000000004"",
           ""Identity"": ""12000000-0000-4000-8000-000000000002"",
           ""Map"": ""12000000-0000-4000-8000-000000000003"",
@@ -1984,7 +2314,8 @@ namespace NeoCompose.Tests
           ""Once"",
           ""Pair"",
           ""Mark"",
-          ""Order""
+          ""Order"",
+          ""Combined""
         ],
         ""projectId"": ""project-id"",
         ""createdAt"": 1700000000000,
@@ -2094,9 +2425,12 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Order"",
       ""expected"": 2
+    },
+    {
+      ""name"": ""Combined"",
+      ""expected"": 20
     }
   ]
-}
-";
+}";
     }
 }
