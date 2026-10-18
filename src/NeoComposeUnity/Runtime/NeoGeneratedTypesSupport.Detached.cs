@@ -94,7 +94,7 @@ namespace NeoCompose.Runtime
             string classId)
         {
             if (!client.TryGetClass(classId, out NeoSchemaClass? schemaClass)
-                || schemaClass!.Modifier == NeoClassModifierKind.Abstract
+                || schemaClass!.IsAbstract
                 || client.TryResolveSchemaClassAllowedOwnership(classId, out NeoValueOwnership allowed)
                     && allowed == NeoValueOwnership.Asset)
             {

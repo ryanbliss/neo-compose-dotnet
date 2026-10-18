@@ -362,7 +362,7 @@ namespace NeoCompose.Unity.Editor
         {
             foreach (var type in projectData.classes.Values)
             {
-                if (type.Modifier == NeoClassModifierKind.Abstract
+                if (type.IsAbstract
                     || type.genericParams is { Count: > 0 })
                     continue;
                 if (NeoSchemaClassInheritance.ResolveChain(

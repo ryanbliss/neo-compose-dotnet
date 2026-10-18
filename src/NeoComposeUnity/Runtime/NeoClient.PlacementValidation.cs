@@ -641,7 +641,7 @@ namespace NeoCompose.Runtime
             if (ResolveValueRow(tileId) is not ObjectMemberValue tile || tile.IsRemoved)
                 return;
             if (!TryGetClass(tile.classId!, out NeoSchemaClass? type)
-                || type.Modifier == NeoClassModifierKind.Abstract)
+                || type.IsAbstract)
                 throw PlacementError("tile-class-abstract", $"Tile '{tileId}' must have a concrete class.");
             // Virtual rows include class defaults for reading. Only a physical
             // instance row stores overrides; defaults are not instance writes.
@@ -795,7 +795,7 @@ namespace NeoCompose.Runtime
         {
             if (ResolveValueRow(valueId) is not ObjectMemberValue { classId: not null } row
                 || !TryGetClass(row.classId, out NeoSchemaClass? type)
-                || type.Modifier == NeoClassModifierKind.Abstract
+                || type.IsAbstract
                 || (kind is not null && !HasWorldKind(row.classId, kind)))
                 throw PlacementError("placement-class-invalid", $"Placement '{valueId}' must be a concrete {kind ?? "world"} class row.");
             return row;

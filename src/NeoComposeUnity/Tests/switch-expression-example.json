@@ -1,0 +1,535 @@
+{
+  "classes": {
+    "0ae7eaa9-0283-40b7-a78e-666953efdf10": {
+      "name": "PatternFailure",
+      "schema": {
+        "Message": "291a014e-c430-4ad6-8166-627cfb9e639a"
+      },
+      "extendsClassId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+      "modifier": 2,
+      "genericParams": [
+        {
+          "id": "1b7d1aaa-9bcf-43b4-92cd-608b1bf44ca6",
+          "name": "T"
+        }
+      ],
+      "extendsGenericBindings": {
+        "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+          "genericParamId": "1b7d1aaa-9bcf-43b4-92cd-608b1bf44ca6"
+        }
+      },
+      "id": "0ae7eaa9-0283-40b7-a78e-666953efdf10"
+    },
+    "62b9f6ed-a169-45da-8a28-fe241572737d": {
+      "id": "62b9f6ed-a169-45da-8a28-fe241572737d",
+      "name": "PatternProbe",
+      "schema": {
+        "Describe": "9d0e8ac8-6f2c-4f14-bb5c-90588a902b68",
+        "Exercise": "aaf36c8a-b96b-481b-a4dd-feba945e1ef4"
+      },
+      "schemaKeyOrder": [
+        "Exercise",
+        "Describe"
+      ]
+    },
+    "79546ece-7af3-46e9-94e7-03ab4a1e1905": {
+      "name": "PatternResult",
+      "schema": {},
+      "modifier": 3,
+      "genericParams": [
+        {
+          "id": "d159dafd-09ac-4d0a-b014-747ccb4a2962",
+          "name": "T"
+        }
+      ],
+      "id": "79546ece-7af3-46e9-94e7-03ab4a1e1905"
+    },
+    "fb0a62b4-c892-482a-bd31-388d2ff27b2b": {
+      "name": "PatternSuccess",
+      "schema": {
+        "Value": "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6"
+      },
+      "extendsClassId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+      "modifier": 2,
+      "genericParams": [
+        {
+          "id": "fce966ae-bde7-43f4-8e86-7306f1a08010",
+          "name": "T"
+        }
+      ],
+      "extendsGenericBindings": {
+        "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+          "genericParamId": "fce966ae-bde7-43f4-8e86-7306f1a08010"
+        }
+      },
+      "id": "fb0a62b4-c892-482a-bd31-388d2ff27b2b"
+    }
+  },
+  "members": {
+    "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6": {
+      "name": "Value",
+      "kind": 21,
+      "modifier": 1,
+      "genericParamId": "fce966ae-bde7-43f4-8e86-7306f1a08010",
+      "id": "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6"
+    },
+    "291a014e-c430-4ad6-8166-627cfb9e639a": {
+      "name": "Message",
+      "kind": 3,
+      "requirement": 1,
+      "modifier": 1,
+      "id": "291a014e-c430-4ad6-8166-627cfb9e639a"
+    },
+    "9d0e8ac8-6f2c-4f14-bb5c-90588a902b68": {
+      "name": "Describe",
+      "kind": 23,
+      "modifier": 1,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "result",
+          "type": 7,
+          "required": true,
+          "classId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+          "typeArguments": {
+            "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+              "type": 2,
+              "required": true
+            }
+          }
+        }
+      ],
+      "code": "return result switch {\n  PatternSuccess<int> ok when ok.Value > 0 => $\"ok {ok.Value}\",\n  PatternSuccess<int> => \"zero\",\n  PatternFailure<int> error => error.Message,\n};",
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "PatternProbe.Describe",
+          "uri": "Classes/PatternProbe.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "62b9f6ed-a169-45da-8a28-fe241572737d"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "62b9f6ed-a169-45da-8a28-fe241572737d"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+              "typeArguments": {
+                "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+                  "type": 2,
+                  "required": true
+                }
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+                  "typeArguments": {
+                    "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+                      "type": 2,
+                      "required": true
+                    }
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "switchExpression",
+              "selectorTypeInfo": {
+                "type": 7,
+                "required": true,
+                "classId": "79546ece-7af3-46e9-94e7-03ab4a1e1905",
+                "typeArguments": {
+                  "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
+                    "type": 2,
+                    "required": true
+                  }
+                }
+              },
+              "selector": {
+                "type": "variable",
+                "variableId": "__arg_0__"
+              },
+              "selectorId": "__switch:0",
+              "arms": [
+                {
+                  "pattern": {
+                    "kind": "type",
+                    "checkType": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "fb0a62b4-c892-482a-bd31-388d2ff27b2b",
+                      "typeArguments": {
+                        "fce966ae-bde7-43f4-8e86-7306f1a08010": {
+                          "type": 2,
+                          "required": true
+                        }
+                      }
+                    },
+                    "bindingId": "__switch:0_arm_0"
+                  },
+                  "guard": {
+                    "type": "operation",
+                    "operation": {
+                      "type": "boolean",
+                      "expression": {
+                        "condition": {
+                          "type": "greaterThan",
+                          "operand1": {
+                            "type": "keyOf",
+                            "memberId": "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6",
+                            "keyOf": {
+                              "pointer": {
+                                "type": "variable",
+                                "variableId": "__switch:0_arm_0"
+                              },
+                              "key": {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                  },
+                                  "value": "Value"
+                                }
+                              }
+                            }
+                          },
+                          "operand2": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 2,
+                                "required": true
+                              },
+                              "value": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "value": {
+                    "type": "operation",
+                    "operation": {
+                      "type": "arithmetic",
+                      "arithmetic": {
+                        "type": "+",
+                        "pointers": [
+                          {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "ok "
+                            }
+                          },
+                          {
+                            "type": "keyOf",
+                            "memberId": "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6",
+                            "keyOf": {
+                              "pointer": {
+                                "type": "variable",
+                                "variableId": "__switch:0_arm_0"
+                              },
+                              "key": {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                  },
+                                  "value": "Value"
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                {
+                  "pattern": {
+                    "kind": "type",
+                    "checkType": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "fb0a62b4-c892-482a-bd31-388d2ff27b2b",
+                      "typeArguments": {
+                        "fce966ae-bde7-43f4-8e86-7306f1a08010": {
+                          "type": 2,
+                          "required": true
+                        }
+                      }
+                    }
+                  },
+                  "value": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "zero"
+                    }
+                  }
+                },
+                {
+                  "pattern": {
+                    "kind": "type",
+                    "checkType": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "0ae7eaa9-0283-40b7-a78e-666953efdf10",
+                      "typeArguments": {
+                        "1b7d1aaa-9bcf-43b4-92cd-608b1bf44ca6": {
+                          "type": 2,
+                          "required": true
+                        }
+                      }
+                    },
+                    "bindingId": "__switch:0_arm_2"
+                  },
+                  "value": {
+                    "type": "keyOf",
+                    "memberId": "291a014e-c430-4ad6-8166-627cfb9e639a",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "__switch:0_arm_2"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "Message"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "source": {
+              "line": 9,
+              "column": 56
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "id": "9d0e8ac8-6f2c-4f14-bb5c-90588a902b68"
+    },
+    "aaf36c8a-b96b-481b-a4dd-feba945e1ef4": {
+      "id": "aaf36c8a-b96b-481b-a4dd-feba945e1ef4",
+      "name": "Exercise",
+      "kind": 23,
+      "modifier": 1,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [],
+      "code": "return this.Describe(new PatternSuccess<int> { Value = 7 });",
+      "action": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "PatternProbe.Exercise",
+          "uri": "Classes/PatternProbe.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "62b9f6ed-a169-45da-8a28-fe241572737d"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "62b9f6ed-a169-45da-8a28-fe241572737d"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "callFunction",
+              "memberId": "9d0e8ac8-6f2c-4f14-bb5c-90588a902b68",
+              "receiver": {
+                "kind": "instance",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              },
+              "args": [
+                {
+                  "type": "objectInitializer",
+                  "receiver": {
+                    "id": "$initialized_0",
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "fb0a62b4-c892-482a-bd31-388d2ff27b2b",
+                      "typeArguments": {
+                        "fce966ae-bde7-43f4-8e86-7306f1a08010": {
+                          "type": 2,
+                          "required": true
+                        }
+                      }
+                    },
+                    "pointer": {
+                      "type": "function",
+                      "function": {
+                        "type": "classConstructor",
+                        "info": {
+                          "schemaClassInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "fb0a62b4-c892-482a-bd31-388d2ff27b2b",
+                            "typeArguments": {
+                              "fce966ae-bde7-43f4-8e86-7306f1a08010": {
+                                "type": 2,
+                                "required": true
+                              }
+                            }
+                          },
+                          "fields": [
+                            {
+                              "schemaKey": "Value",
+                              "memberId": "0a99ae63-31f2-4a9d-adb2-a91f2ff0a9b6",
+                              "valuePointer": {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 7
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "assignments": []
+                }
+              ],
+              "callSiteId": "1:21:0",
+              "source": {
+                "line": 15,
+                "column": 44
+              }
+            },
+            "source": {
+              "line": 15,
+              "column": 31
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
+    },
+    "ffd57483-dbc6-54c5-bf02-5c18dee337ad": {
+      "id": "ffd57483-dbc6-54c5-bf02-5c18dee337ad",
+      "name": "Type argument",
+      "kind": 2,
+      "requirement": 1
+    }
+  },
+  "constructors": {}
+}
