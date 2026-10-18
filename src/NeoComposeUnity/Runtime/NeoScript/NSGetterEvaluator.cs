@@ -6088,6 +6088,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalDialogueGroupRequest(dgf.info, scope, ctx);
                 case DialogueFunction df:
                     return EvalDialogueRequest(df.info, scope, ctx);
+                case BitwiseOpFunction bitwiseOp:
+                    return EvalBitwiseOp(bitwiseOp.info, scope, ctx);
                 case VectorOpFunction vectorOp:
                     return EvalVectorOp(vectorOp.info, scope, ctx);
                 case VectorConstructorFunction vcf:
