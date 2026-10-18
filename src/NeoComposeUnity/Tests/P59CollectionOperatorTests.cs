@@ -255,7 +255,7 @@ namespace NeoCompose.Tests
         {
             Pointer source = Collection(true, ("entry", "keep"));
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(IndexOf(source, Text("keep"))));
             Assert.AreEqual("IndexOf receiver must be a List value.", error!.Message);
         }
@@ -298,7 +298,7 @@ namespace NeoCompose.Tests
             bool dictionary,
             bool select)
         {
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 Evaluate(
                     BuildOperator(
                         Collection(dictionary, ("entry", "value")),

@@ -247,7 +247,7 @@ namespace NeoCompose.Tests
                 var context = new NSGetterEvaluator.Context(client, null, null);
                 void RejectOrdinaryCall()
                 {
-                    var error = Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(body, context));
+                    var error = Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(body, context));
                     StringAssert.Contains("Cannot construct immutable-only class 'Badge'", error!.Message);
                 }
                 RejectOrdinaryCall();

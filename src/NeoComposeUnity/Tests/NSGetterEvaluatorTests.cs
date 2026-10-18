@@ -335,7 +335,7 @@ namespace NeoCompose.Tests
             if (shortCircuits)
                 Assert.AreEqual(head, NSGetterEvaluator.Evaluate(function, context));
             else
-                Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(function, context));
+                Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(function, context));
         }
 
         [Test]
@@ -791,7 +791,7 @@ namespace NeoCompose.Tests
                 callSiteId = "bad-arity",
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(call, MemberKind.String),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -843,7 +843,7 @@ namespace NeoCompose.Tests
                 callSiteId = "bad-shape",
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(call, MemberKind.String),
                     new NSGetterEvaluator.Context(client, null, null)))!;

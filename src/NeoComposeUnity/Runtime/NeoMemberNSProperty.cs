@@ -245,6 +245,7 @@ namespace NeoCompose.Runtime
             object? value = null;
             object? hostValue = null;
             string? error = null;
+            System.Exception? failure = null;
             try
             {
                 ctx.BindThis(boundThis);
@@ -258,11 +259,13 @@ namespace NeoCompose.Runtime
             }
             catch (NSGetterRuntimeError ex)
             {
+                failure = ex;
                 error = NeoScriptDebug.FormatError(ex);
             }
             catch (System.Exception ex)
             {
-                error = $"Evaluator error: {NeoScriptDebug.FormatError(ex)}";
+                failure = NSGetterEvaluator.NormalizeError(ex, ctx);
+                error = NeoScriptDebug.FormatError(failure);
             }
             finally
             {
@@ -301,7 +304,7 @@ namespace NeoCompose.Runtime
             // Effects a replay inside this read queued run once it settles.
             client.DrainDeferredEffects();
             if (error is not null)
-                return NSGetterResult.Error(error);
+                return NSGetterResult.Error(error, failure!);
             client.ReturnDirectFunctionContext(ctx, hostValue);
             return NSGetterResult.Ok(hostValue);
         }
@@ -468,6 +471,9 @@ namespace NeoCompose.Runtime
             internal void Log(System.Exception exception)
             {
                 if (Interlocked.Exchange(ref logged, 1) != 0)
+                    return;
+                // Unexpected host faults already logged their original cause at ingress.
+                if (exception is NSGetterRuntimeError error && error.Payload.ClassId == NeoErrorContract.NeoHostError)
                     return;
                 Debug.LogError(
                     $"NeoScript property setter '{property.name}' ({property.id}) failed: " +

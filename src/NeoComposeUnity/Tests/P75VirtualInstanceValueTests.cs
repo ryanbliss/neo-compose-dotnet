@@ -739,7 +739,7 @@ namespace NeoCompose.Tests
             action.instructions = new Instruction[]
             {
                 subscribe,
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("123") },
             };
             var replay = typeof(NeoClient).GetMethod("ExpandVirtualInstanceRoot",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
@@ -824,7 +824,7 @@ namespace NeoCompose.Tests
             {
                 action.instructions = action.instructions.Concat(new Instruction[]
                 {
-                    new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+                    new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("123") },
                 }).ToArray();
                 Assert.Catch(() => plan.Commit());
                 Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
@@ -874,7 +874,7 @@ namespace NeoCompose.Tests
                 action.instructions = new Instruction[]
                 {
                     CountSubscription(),
-                    new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(321) },
+                    new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("321") },
                 };
                 Assert.Catch(() => NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, "thing-class", "count-ctor",
                     Array.Empty<NeoDeclaredConstructorArgument>()));
@@ -987,7 +987,7 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             initializer.instructions = new Instruction[]
             {
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(876) },
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("876") },
             };
             var replacement = (ObjectMemberValue)client.CloneRowForWrite(data.values["thing-instance"]);
             replacement.value!["Count"] = "new-count";
@@ -1020,7 +1020,7 @@ namespace NeoCompose.Tests
             var action = data.constructors["thing-ctor"].action!;
             action.instructions = new Instruction[]
             {
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("987") },
             };
             string clone = client.CloneValueReference("thing-instance", NeoValueOwnership.Save);
             Assert.That(client.TryGetValue(NeoValueOwnership.Session, clone, out ObjectMemberValue? root), Is.True);
@@ -1073,7 +1073,7 @@ namespace NeoCompose.Tests
             client.PublishConstructedSessionRows(new List<MemberValue> { defaulted });
             action.instructions = new Instruction[]
             {
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(987) },
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("987") },
             };
             var attached = (ObjectMemberValue)client.CloneRowForWrite(defaulted);
             attached.containerId = "runtime-container";
@@ -1150,7 +1150,7 @@ namespace NeoCompose.Tests
             Instruction[] original = action.instructions;
             action.instructions = new Instruction[]
             {
-                new ThrowInstruction { type = InstructionKind.Throw, pointer = IntLiteral(123) },
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("123") },
             };
             for (int attempt = 0; attempt < 3; attempt++)
             {
@@ -1888,7 +1888,7 @@ namespace NeoCompose.Tests
             // Partial objects preserve absent keys rather than inheriting defaults.
             if (partial && !storedOverride)
             {
-                Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx));
+                Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(getter, ctx));
                 return;
             }
             // Read through NeoScript before constructing a C# child wrapper.
@@ -1998,7 +1998,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(thing.ChildValueId("Locked"), "An inheriting null slot shares its parent's store and needs no id.");
             Assert.IsNull(EvaluateAssetThingMember(client, listEntry: false, "Locked"));
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 ExecuteSaveInstruction(client, AssignClass(locked, NewHistory(), "history-class", WritabilityKind.Save)));
             StringAssert.Contains("'Locked' is not Save-owned", error!.Message);
 

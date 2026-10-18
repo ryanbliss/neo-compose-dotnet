@@ -632,6 +632,60 @@ namespace NeoCompose.Runtime
             generatedReadOnlyClassFactories;
         private IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>?
             generatedWritableClassFactories;
+        private IReadOnlyDictionary<string, System.Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>>? generatedDetachedClassFactories;
+
+        public void RegisterGeneratedDetachedClassFactories(
+            IReadOnlyDictionary<string, System.Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>> factories)
+        {
+            generatedDetachedClassFactories = factories;
+        }
+
+        internal NeoGeneratedClassValue ResolveDetachedGeneratedClassValue(NeoScript.NeoScriptObject value)
+        {
+            if (!ReferenceEquals(value.client, this))
+                throw new System.ArgumentException("Structured error belongs to another NeoClient.");
+            if (value.view is { } view)
+                return view;
+            if (generatedDetachedClassFactories is null || !generatedDetachedClassFactories.TryGetValue(value.plan.classId, out var factory))
+                throw new System.InvalidOperationException($"No generated detached factory for class '{value.plan.classId}'. Regenerate the Unity SDK.");
+            return value.view = factory(this, value, true)
+                ?? throw new System.InvalidOperationException("Generated detached factory returned no view.");
+        }
+
+        private readonly Dictionary<string, List<(Json.ClassTypeInfo Type, NeoGeneratedTypesSupport.InterfaceResolver Factory)>> generatedErrorFactories = new();
+
+        /// <summary>Registers an explicit AOT-safe closed generic error construction.</summary>
+        public void RegisterGeneratedErrorFactory(Json.ClassTypeInfo type, NeoGeneratedTypesSupport.InterfaceResolver factory)
+        {
+            if (type.typeArguments is null || type.typeArguments.Count == 0)
+                throw new System.ArgumentException("An error factory requires complete closed type arguments.", nameof(type));
+            var env = NeoGenericResolution.ResolveInstanceEnv(this, type.classId, null);
+            var parameters = new HashSet<string>();
+            foreach (var binding in env.Values)
+                if (!binding.IsBound)
+                    parameters.Add(binding.unboundParamId!);
+            if (!parameters.SetEquals(type.typeArguments.Keys))
+                throw new System.ArgumentException("An error factory must bind every open class parameter exactly once.", nameof(type));
+            if (!generatedErrorFactories.TryGetValue(type.classId, out var factories))
+                generatedErrorFactories[type.classId] = factories = new();
+            for (int i = 0; i < factories.Count; i++)
+                if (TypeInfoMatches(factories[i].Type, type))
+                {
+                    factories[i] = (type, factory);
+                    return;
+                }
+            factories.Add((type, factory));
+        }
+
+        internal NeoGeneratedTypesSupport.InterfaceResolver? FindGeneratedErrorFactory(string classId, System.Func<Json.ClassTypeInfo, bool> matches)
+        {
+            if (generatedErrorFactories.TryGetValue(classId, out var factories))
+                foreach (var entry in factories)
+                    if (matches(entry.Type))
+                        return entry.Factory;
+            return null;
+        }
+
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
         // The user file's rows (P104 §4.3). Only a user client fills it.
@@ -7267,11 +7321,18 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NativeFunctionDelegateUnavailableError(
                     $"No native Function invoker is registered for member '{memberId}'.");
             }
-            if (InEffectCapture())
-                return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs, typeArguments);
-            return NormalizeNativeFunctionReturn(
-                member.returnTypeInfo,
-                invoker(this, receiver, preparedArgs, typeArguments));
+            try
+            {
+                if (InEffectCapture())
+                    return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs, typeArguments);
+                return NormalizeNativeFunctionReturn(
+                    member.returnTypeInfo,
+                    invoker(this, receiver, preparedArgs, typeArguments));
+            }
+            catch (NeoScript.NeoScriptException error)
+            {
+                throw error.ForNativeReentry();
+            }
         }
 
         // What native code reads is never an effect's dependency (P97 §2.2).
@@ -7474,6 +7535,8 @@ namespace NeoCompose.Runtime
             {
                 if (!captureInvokerException)
                 {
+                    if (exception is NeoScript.NeoScriptException scriptFailure)
+                        throw scriptFailure.ForNativeReentry();
                     throw;
                 }
                 if (deferred.Pending)

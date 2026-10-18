@@ -611,7 +611,7 @@ namespace NeoCompose.Tests
             // must NOT suppress it: §1.2 pins run-then-overwrite, and a
             // throwing initializer is exactly what makes the difference
             // observable.
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(BoomConstructorPointer(
                         new FunctionClassConstructorField
@@ -676,7 +676,7 @@ namespace NeoCompose.Tests
             // expressions only once the constructor has returned, and §6.1
             // step 4 pins the same order, so the body's message is the one that
             // must escape.
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(PartConstructorPointer(
                         "ctor-part-throw",
@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient();
             int before = client.sessionValues.Count;
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(PartConstructorPointer("ctor-part-throw")),
                     new NSGetterEvaluator.Context(client, null, null)));
@@ -746,7 +746,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(PartConstructorPointer(
                         null,
@@ -804,7 +804,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(pointer),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -821,7 +821,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(PartConstructorPointer("ctor-does-not-exist")),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -836,7 +836,7 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient();
 
             // Cycle's only member initializer constructs another Cycle.
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(CycleConstructorPointer()),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -1429,7 +1429,7 @@ namespace NeoCompose.Tests
             // `classConstructor` arm, reached when no constructor is named at
             // all. Settling a member is not the same as satisfying the
             // constructor.
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     new FunctionWithReturnType
                     {
@@ -2058,7 +2058,7 @@ namespace NeoCompose.Tests
                 };
             NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(PartConstructorPointer(null)),
                     new NSGetterEvaluator.Context(client, null, null)))!;

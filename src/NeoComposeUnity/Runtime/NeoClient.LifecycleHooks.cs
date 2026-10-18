@@ -255,6 +255,8 @@ namespace NeoCompose.Runtime
 
         internal static void LogLifecycleHookFailure(NeoClassNode node, NeoLifecycleHooks hook, string instanceId, Exception exception)
         {
+            if (NeoScript.NeoScriptErrorClassification.IsLoggedHostFailure(exception))
+                return;
             MergedSchemaEntry entry = node.HookMember(hook);
             Debug.LogException(new NeoLifecycleHookException(
                 node.Id, entry.memberId, instanceId,

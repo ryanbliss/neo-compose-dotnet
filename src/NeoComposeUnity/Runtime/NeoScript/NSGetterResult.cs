@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Runtime.CompilerServices;
 
 namespace NeoCompose.Runtime.NeoScript
@@ -34,11 +35,23 @@ namespace NeoCompose.Runtime.NeoScript
             get;
         }
 
-        private NSGetterResult(bool ok, object? value, string? error)
+        internal Exception? failure
+        {
+            get;
+        }
+
+        public void ThrowIfFailed()
+        {
+            if (!ok)
+                throw failure ?? new InvalidOperationException(error ?? "NSProperty getter evaluation failed.");
+        }
+
+        private NSGetterResult(bool ok, object? value, string? error, Exception? failure = null)
         {
             this.ok = ok;
             this.value = value;
             this.error = error;
+            this.failure = failure;
         }
 
         // Storing a constant null error skips that store's write barrier.
@@ -48,6 +61,7 @@ namespace NeoCompose.Runtime.NeoScript
             ok = true;
             this.value = value;
             error = null;
+            failure = null;
         }
 
         // Inlined, so a result returned through the getter's frames is built
@@ -55,6 +69,7 @@ namespace NeoCompose.Runtime.NeoScript
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static NSGetterResult Ok(object? value) => new(value);
         public static NSGetterResult Error(string message) => new(false, null, message);
+        internal static NSGetterResult Error(string message, Exception failure) => new(false, null, message, failure);
     }
 
     /// <summary>

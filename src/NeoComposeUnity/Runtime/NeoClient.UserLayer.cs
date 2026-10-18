@@ -89,10 +89,14 @@ namespace NeoCompose.Runtime
         /// Rejects a write to User data outside the user client (§3.1). Cheap
         /// enough for every store write.
         /// </summary>
+        private Exception ScriptOperationFailure(string message) => scriptWriteDepth == 0
+            ? new InvalidOperationException(message)
+            : new NeoScript.NSGetterRuntimeError(message, NeoScript.NeoErrorContract.NeoInvalidOperationError);
+
         internal void ThrowIfUserWrite(NeoValueOwnership ownership)
         {
             if (ownership == NeoValueOwnership.User && !IsUserClient)
-                throw new InvalidOperationException(UserDataWriteError);
+                throw ScriptOperationFailure(UserDataWriteError);
         }
 
         /// <summary>
@@ -111,7 +115,7 @@ namespace NeoCompose.Runtime
                 return;
             }
             if (!value.IsMemberTarget || !NamesUserMember(value))
-                throw new InvalidOperationException(UserDelegateProvenanceError);
+                throw ScriptOperationFailure(UserDelegateProvenanceError);
         }
 
         private bool NamesUserMember(NeoDelegateValue value)
@@ -137,7 +141,7 @@ namespace NeoCompose.Runtime
                 || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Asset))
                 return;
             if (ReferencesUserRow(value, 0))
-                throw new InvalidOperationException(SaveHoldsUserReferenceError);
+                throw ScriptOperationFailure(SaveHoldsUserReferenceError);
         }
 
         /// <summary><see cref="CheckDelegateReferences"/> over a staged delegate or action row.</summary>

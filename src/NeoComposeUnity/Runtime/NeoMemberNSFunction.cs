@@ -865,7 +865,7 @@ namespace NeoCompose.Runtime
                         : id);
                 }
                 names.Add(function.Member.name);
-                throw new NSGetterRuntimeError(
+                throw new NeoScriptControlError(
                     $"NeoScript Function call depth exceeded {MaxCallableDepth}: {string.Join(" -> ", names)}.");
             }
 
@@ -1067,14 +1067,22 @@ namespace NeoCompose.Runtime
                 object? returned = boundary
                     ? NSGetterEvaluator.ResolveHostCollection(execution.ReturnValue, ctx)
                     : execution.ReturnValue;
-                object? normalized = NeoScriptValueMarshaller.Normalize(
-                    client,
-                    ctx.valueOwnership,
-                    returned,
-                    effectiveReturnType,
-                    ctx,
-                    in function.Subjects[0],
-                    resolvedIdentity: boundary);
+                object? normalized;
+                try
+                {
+                    normalized = NeoScriptValueMarshaller.Normalize(
+                        client,
+                        ctx.valueOwnership,
+                        returned,
+                        effectiveReturnType,
+                        ctx,
+                        in function.Subjects[0],
+                        resolvedIdentity: boundary);
+                }
+                catch (InvalidOperationException error)
+                {
+                    throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArgumentError, error);
+                }
                 if (boundary)
                     normalized = NSGetterEvaluator.ResolveHostCollection(normalized, ctx);
                 // Marshalling usually returns the evaluator's own value;

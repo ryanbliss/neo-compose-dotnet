@@ -19,11 +19,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 object? value = UnwrapGeneratedValue(ResolveValueIfId(EvalPointer(info.argPointers[index], scope, ctx), ctx), ctx);
                 if (!TryAsDouble(value, out double number))
-                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be a number.");
+                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be a number.", NeoErrorContract.NeoArgumentError);
                 if (double.IsNaN(number) || double.IsInfinity(number))
-                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be finite.");
+                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be finite.", NeoErrorContract.NeoArgumentError);
                 if (!NeoNumbers.IsWhole(number))
-                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be an integer.");
+                    throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be an integer.", NeoErrorContract.NeoArgumentError);
                 double remainder = number % 4294967296d;
                 if (remainder < 0)
                     remainder += 4294967296d;
@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime.NeoScript
                 "shiftLeft" => left << (right & 31),
                 "shiftRight" => left >> (right & 31),
                 "shiftRightUnsigned" => unchecked((int)((uint)left >> (right & 31))),
-                _ => throw new NSGetterRuntimeError($"Unknown bitwise operation '{info.op}'."),
+                _ => throw new NSGetterRuntimeError($"Unknown bitwise operation '{info.op}'.", NeoErrorContract.NeoArgumentError),
             };
         }
     }

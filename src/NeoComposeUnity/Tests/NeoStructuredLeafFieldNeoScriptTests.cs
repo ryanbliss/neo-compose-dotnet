@@ -69,7 +69,7 @@ namespace NeoCompose.Tests
         public void ColorChannel_DoesNotAnswerVectorKeys()
         {
             // A colour is four named channels, not a four-component vector.
-            var error = Assert.Throws<NSGetterRuntimeError>(
+            var error = Assert.Catch<NSGetterRuntimeError>(
                 () => ReadLeafField("Tint", "z"));
             StringAssert.Contains("with key 'z'", error!.Message);
         }
@@ -419,7 +419,7 @@ namespace NeoCompose.Tests
             // coercion. The resolver types an integer vector's components as
             // Int, which is the signal a stored Vector2MemberValue cannot give.
             NeoClient client = BuildClient();
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 AssignLeafField(client, "Cell", "x", NumberLiteral(0.5), IntType()));
 
             StringAssert.Contains("must be an integer", error!.Message);
@@ -432,7 +432,7 @@ namespace NeoCompose.Tests
             // Decision D2. NeoColorValueConverter already refuses on
             // deserialize; a field write must not become the way around it.
             NeoClient client = BuildClient();
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 AssignLeafField(client, "Tint", "a", NumberLiteral(1.5), FloatType()));
 
             StringAssert.Contains("[0, 1]", error!.Message);
@@ -443,7 +443,7 @@ namespace NeoCompose.Tests
         public void SpriteSliceIndexAssignment_RejectsANegativeIndex()
         {
             NeoClient client = BuildClient();
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 AssignLeafField(client, "Sprite", "sliceIndex", NumberLiteral(-1), IntType()));
 
             StringAssert.Contains("0 or greater", error!.Message);
@@ -453,7 +453,7 @@ namespace NeoCompose.Tests
         public void UnknownField_IsRejectedByNameWithItsKindsLegalFields()
         {
             NeoClient client = BuildClient();
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 AssignLeafField(client, "Cell", "z", NumberLiteral(1), IntType()));
 
             StringAssert.Contains("'z' is not a field of a Vector2Int value", error!.Message);
@@ -470,7 +470,7 @@ namespace NeoCompose.Tests
             NeoClient client = BuildClient();
             var ctx = ContextWithRoot(client, out Dictionary<string, object?> scope);
 
-            var fieldError = Assert.Throws<NSGetterRuntimeError>(() =>
+            var fieldError = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoScriptExecutor.Execute(
                     client,
                     Action(AssignInstruction(
@@ -481,7 +481,7 @@ namespace NeoCompose.Tests
                         WritabilityKind.Immutable)),
                     scope,
                     ctx));
-            var wholeError = Assert.Throws<NSGetterRuntimeError>(() =>
+            var wholeError = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoScriptExecutor.Execute(
                     client,
                     Action(new AssignInstruction
@@ -515,7 +515,7 @@ namespace NeoCompose.Tests
             // itself evaluates to null, so this is rejected before any field
             // handling runs — the same way reading through a null leaf is.
             NeoClient client = BuildClient();
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 AssignLeafField(client, "Highlight", "a", NumberLiteral(0.5), FloatType()));
         }
 
@@ -553,7 +553,7 @@ namespace NeoCompose.Tests
             AssignInstruction write = AssignLocalField("a", "y", NumberLiteral(5));
             write.target.writability = WritabilityKind.ReadOnly;
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() => RunLocalVectorProgram("a", write));
+            var error = Assert.Catch<NSGetterRuntimeError>(() => RunLocalVectorProgram("a", write));
             StringAssert.Contains("read-only", error!.Message);
         }
 

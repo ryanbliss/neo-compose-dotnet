@@ -173,7 +173,7 @@ namespace NeoCompose.Runtime
                 return;
             if (departedReads == DepartedReads.Fallback && HoldsRow(id))
                 return;
-            throw new InvalidOperationException(
+            throw ScriptOperationFailure(
                 $"Value '{id}' left the data in this boundary, so a lifecycle hook cannot write it.");
         }
 

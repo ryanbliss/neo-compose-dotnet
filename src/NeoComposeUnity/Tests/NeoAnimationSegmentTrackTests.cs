@@ -548,7 +548,7 @@ namespace NeoCompose.Tests
             destination.Set((Delegate?)null);
 
             Assert.IsNull(destination.value?.value);
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(
                 () => destination.Bind<object?>(result => result))!;
             StringAssert.Contains("has no bound value", error.Message);
         }

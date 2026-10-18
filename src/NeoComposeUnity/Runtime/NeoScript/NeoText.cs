@@ -114,13 +114,13 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string Substring(string value, int startIndex, int? length)
         {
             if (startIndex < 0)
-                throw new NSGetterRuntimeError("string.Substring startIndex must not be negative.");
+                throw new NSGetterRuntimeError("string.Substring startIndex must not be negative.", NeoErrorContract.NeoArgumentError);
             if (startIndex > value.Length)
-                throw new NSGetterRuntimeError("string.Substring startIndex must not exceed the string length.");
+                throw new NSGetterRuntimeError("string.Substring startIndex must not exceed the string length.", NeoErrorContract.NeoArgumentError);
             if (length is not int count)
                 return value.Substring(startIndex);
             if (count < 0)
-                throw new NSGetterRuntimeError("string.Substring length must not be negative.");
+                throw new NSGetterRuntimeError("string.Substring length must not be negative.", NeoErrorContract.NeoArgumentError);
             if ((long)startIndex + count > value.Length)
             {
                 throw new NSGetterRuntimeError(
@@ -157,9 +157,9 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string Pad(string side, string value, int totalWidth, string paddingChar)
         {
             if (totalWidth < 0)
-                throw new NSGetterRuntimeError($"string.{side} totalWidth must not be negative.");
+                throw new NSGetterRuntimeError($"string.{side} totalWidth must not be negative.", NeoErrorContract.NeoArgumentError);
             if (paddingChar.Length != 1)
-                throw new NSGetterRuntimeError($"string.{side} paddingChar must be exactly one character.");
+                throw new NSGetterRuntimeError($"string.{side} paddingChar must be exactly one character.", NeoErrorContract.NeoArgumentError);
             return side == "PadLeft"
                 ? value.PadLeft(totalWidth, paddingChar[0])
                 : value.PadRight(totalWidth, paddingChar[0]);
@@ -186,7 +186,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static void ReadFormat(string number, string format, out char specifier, out int precision)
         {
             if (format.Length == 0)
-                throw new NSGetterRuntimeError($"{number}.ToString format must not be empty.");
+                throw new NSGetterRuntimeError($"{number}.ToString format must not be empty.", NeoErrorContract.NeoArgumentError);
             specifier = FormatSpecifier(format[0]);
             if (specifier == '\0' || (specifier == 'D' && number != Int))
             {
@@ -384,7 +384,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case Decimal:
                     return ParseDecimal(trimmed, out error);
                 default:
-                    throw new NSGetterRuntimeError($"Unknown text number '{number}'.");
+                    throw new NSGetterRuntimeError($"Unknown text number '{number}'.", NeoErrorContract.NeoArgumentError);
             }
         }
 

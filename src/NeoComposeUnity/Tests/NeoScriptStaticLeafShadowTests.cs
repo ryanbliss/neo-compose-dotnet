@@ -124,7 +124,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = BuildClient();
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() => Run(client,
+            var error = Assert.Catch<NSGetterRuntimeError>(() => Run(client,
                 Assign(Key(Child(This()), "Missing", "missing-member"), BoxType(required: false), NewBox(7))));
 
             StringAssert.Contains("Cannot bind missing member 'Missing'", error!.Message);
@@ -204,7 +204,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = BuildClient();
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() => Run(client,
+            var error = Assert.Catch<NSGetterRuntimeError>(() => Run(client,
                 Local("b", NewBox(4)),
                 BoxesCall("Add", Variable("b")),
                 AssignShape(Variable("b"))));

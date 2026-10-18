@@ -83,7 +83,7 @@ namespace NeoCompose.Tests
 
                     if (testCase["expectedError"] is JToken expectedError)
                     {
-                        var error = Assert.Throws<NSGetterRuntimeError>(
+                        var error = Assert.Catch<NSGetterRuntimeError>(
                             () => Evaluate(ctx, fileId, sliceIndex),
                             $"Case '{name}' was expected to throw.");
                         Assert.AreEqual(

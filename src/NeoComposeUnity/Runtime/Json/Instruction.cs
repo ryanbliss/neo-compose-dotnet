@@ -66,6 +66,7 @@ namespace NeoCompose.Runtime.Json
         If,
         Return,
         Throw,
+        Rethrow,
         Assign,
         CollectionCall,
         FunctionCall,
@@ -330,6 +331,11 @@ namespace NeoCompose.Runtime.Json
         public bool isReadonly;
     }
 
+    public sealed class RethrowInstruction : Instruction
+    {
+        public RethrowInstruction() : base(InstructionCode.Rethrow) { }
+    }
+
     /// <summary>One ordered catch clause in a P52 try instruction.</summary>
     public class CatchClause
     {
@@ -348,6 +354,8 @@ namespace NeoCompose.Runtime.Json
 
         public Instruction[] instructions = null!;
         public CatchClause[] catches = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Instruction[]? finallyInstructions;
     }
 
     /// <summary>
@@ -438,6 +446,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ReturnInstruction);
                 case InstructionKind.Throw:
                     return typeof(ThrowInstruction);
+                case InstructionKind.Rethrow:
+                    return typeof(RethrowInstruction);
                 case InstructionKind.Assign:
                     return typeof(AssignInstruction);
                 case InstructionKind.CollectionCall:
@@ -551,7 +561,7 @@ namespace NeoCompose.Runtime.Json
                 && !IsValidTryInstruction(obj))
             {
                 throw new JsonSerializationException(
-                    "TryInstruction must contain an instruction array and ordered catch clauses with unique read-only string bindings, valid optional filters, and at most one final unfiltered catch.");
+                    "TryInstruction must contain an instruction array and ordered catch clauses with unique read-only string or NeoError bindings, valid optional filters, and at most one final unfiltered catch.");
             }
             if (typeof(ActionListenerInstruction).IsAssignableFrom(concrete)
                 && !IsValidActionListenerInstruction(obj))
@@ -736,7 +746,8 @@ namespace NeoCompose.Runtime.Json
         {
             if (obj["instructions"]?.Type != JTokenType.Array
                 || obj["catches"] is not JArray catches
-                || catches.Count == 0)
+                || (catches.Count == 0 && obj["finallyInstructions"] is not JArray)
+                || (obj["finallyInstructions"] is { } cleanup && cleanup is not JArray))
             {
                 return false;
             }
@@ -755,7 +766,7 @@ namespace NeoCompose.Runtime.Json
                     || binding["typeInfo"] is not JObject bindingType
                     || bindingType["type"]?.Type != JTokenType.Integer
                     || (MemberKind)bindingType["type"]!.Value<int>()
-                        != MemberKind.String
+                        is not (MemberKind.String or MemberKind.Class or MemberKind.Generic)
                     || bindingType["required"]?.Type != JTokenType.Boolean
                     || bindingType["required"]!.Value<bool>() != true
                     || clause["instructions"]?.Type != JTokenType.Array)
@@ -767,7 +778,7 @@ namespace NeoCompose.Runtime.Json
                         "filter",
                         out JToken? filter)
                     || filter.Type == JTokenType.Null;
-                if (unfiltered)
+                if (unfiltered && (MemberKind)bindingType["type"]!.Value<int>() == MemberKind.String)
                 {
                     if (foundFallback || i != catches.Count - 1)
                     {
@@ -775,8 +786,8 @@ namespace NeoCompose.Runtime.Json
                     }
                     foundFallback = true;
                 }
-                else if (filter is not JObject expression
-                    || !IsValidBooleanExpression(expression))
+                else if (!unfiltered && (filter is not JObject expression
+                    || !IsValidBooleanExpression(expression)))
                 {
                     return false;
                 }

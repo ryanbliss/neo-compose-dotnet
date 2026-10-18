@@ -167,7 +167,7 @@ namespace NeoCompose.Tests
             NeoReference<int> fixedSlot = g.ReferenceTo(Parity.Gauge.Fields.Fixed);
 
             Assert.IsFalse(fixedSlot.TrySet(9));
-            Assert.Throws<NSGetterRuntimeError>(() => fixedSlot.Value = 9);
+            Assert.Catch<NSGetterRuntimeError>(() => fixedSlot.Value = 9);
             Assert.AreEqual(4, g.Fixed);
         }
 
@@ -179,7 +179,7 @@ namespace NeoCompose.Tests
             NeoReference<int> stock = ((Parity.Tally)Parity.Probe.Stock).ReferenceTo(Parity.Tally.Fields.N);
 
             Assert.IsFalse(stock.TrySet(stockN + 1));
-            Assert.Throws<NSGetterRuntimeError>(() => stock.Value = stockN + 1);
+            Assert.Catch<NSGetterRuntimeError>(() => stock.Value = stockN + 1);
             Assert.AreEqual(stockN, Parity.Probe.Stock.N);
         }
 
@@ -189,7 +189,7 @@ namespace NeoCompose.Tests
             using var app = new Parity.TestProjectNeo(Client(Data()));
             NeoReference<int> sessionSlot = new Parity.Tally().ReferenceTo(Parity.Tally.Fields.N);
 
-            Assert.Throws<NSGetterRuntimeError>(() => Parity.Probe.SavedPin = sessionSlot);
+            Assert.Catch<NSGetterRuntimeError>(() => Parity.Probe.SavedPin = sessionSlot);
         }
 
         [Test]

@@ -30,10 +30,27 @@ namespace NeoCompose.Runtime.NeoScript
         public System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>? NeoScriptFrames => Data["neoScriptFrames"] as System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>;
         public override string ToString() => base.ToString() + (NeoScriptFrames is { } frames ? "\nNeoScript:\n" + NeoScriptDebug.FormatFrames(frames) : "");
 
-        public NSGetterRuntimeError(string message) : base(message) { }
+        internal NeoScriptErrorPayload Payload
+        {
+            get;
+        }
+
+        public NSGetterRuntimeError(string message) : this(message, NeoErrorContract.NeoInvalidOperationError) { }
+
+        internal NSGetterRuntimeError(string message, string errorClassId) : base(message)
+        {
+            Payload = new NeoScriptErrorPayload(errorClassId, message);
+        }
+
+        internal NSGetterRuntimeError(string message, string errorClassId, System.Exception cause) : base(message, cause)
+        {
+            Payload = new NeoScriptErrorPayload(errorClassId, message);
+        }
 
         public NSGetterRuntimeError(string message, System.Exception innerException) : base(message, innerException)
         {
+            Payload = innerException is NSGetterRuntimeError runtime ? runtime.Payload
+                : new NeoScriptErrorPayload(NeoErrorContract.NeoInvalidOperationError, message);
             if (innerException.Data.Contains("neoScriptFrames"))
                 Data["neoScriptFrames"] = innerException.Data["neoScriptFrames"];
         }
@@ -74,13 +91,17 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     internal static class NeoScriptErrorClassification
     {
+        internal static bool IsLoggedHostFailure(System.Exception exception) =>
+            exception is NSGetterRuntimeError error && error.Payload.ClassId == NeoErrorContract.NeoHostError;
+
         /// <summary>
         /// True when an authored <c>try/catch</c> may intercept the error.
         /// </summary>
         internal static bool IsAuthoredCatchable(System.Exception exception) =>
             exception is NSGetterRuntimeError
             && exception is not NeoScriptPreExecutionValidationError
-            && exception is not NativeFunctionDelegateUnavailableError;
+            && exception is not NativeFunctionDelegateUnavailableError
+            && exception is not NeoScriptControlError;
 
         /// <summary>
         /// True when a framing helper may replace the error with a renamed

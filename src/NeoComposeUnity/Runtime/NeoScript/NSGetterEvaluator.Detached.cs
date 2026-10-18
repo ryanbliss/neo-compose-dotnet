@@ -288,11 +288,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (NSGetterRuntimeError ex)
             {
-                return NSGetterResult.Error(ex.Message);
+                return NSGetterResult.Error(ex.Message, NormalizeError(ex, ctx));
             }
             catch (Exception ex)
             {
-                return NSGetterResult.Error($"Evaluator error: {ex.Message}");
+                var failure = NormalizeError(ex, ctx);
+                return NSGetterResult.Error(failure.Message, failure);
             }
             finally
             {

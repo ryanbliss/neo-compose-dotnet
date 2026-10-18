@@ -1222,7 +1222,7 @@ namespace NeoCompose.Tests
             };
             int rowsBefore = client.sessionValues.Count;
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(constructor),
                     new NSGetterEvaluator.Context(client, null, null)));
@@ -1343,7 +1343,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(pointer),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -1384,7 +1384,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(pointer),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -1451,7 +1451,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(pointer),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -1468,7 +1468,7 @@ namespace NeoCompose.Tests
                 .allowedStorage = NeoMemberStorage.Immutable;
             int before = client.sessionValues.Count;
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(ConstructorPointer(
                         "Ada",
@@ -2208,7 +2208,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     new FunctionWithReturnType
                     {
@@ -2504,7 +2504,7 @@ namespace NeoCompose.Tests
                     pointer = StringPointer("stop"),
                 });
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(getter, ctx));
 
             Assert.AreEqual(
@@ -2541,7 +2541,7 @@ namespace NeoCompose.Tests
                 .schema![function.id] = function.id;
             int rowsBefore = client.sessionValues.Count;
 
-            Assert.Throws<InvalidOperationException>(() =>
+            Assert.Throws<NeoScriptException>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .InvokeStatic(Array.Empty<object?>()));
 
@@ -2619,7 +2619,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(pending);
             Assert.Greater(client.sessionValues.Count, rowsBefore);
             pending!.Complete("ready");
-            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            Assert.ThrowsAsync<NeoScriptException>(async () =>
                 await invocation);
             Assert.AreEqual(
                 rowsBefore,
@@ -2653,7 +2653,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            Assert.Throws<NSGetterRuntimeError>(() =>
+            Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoScriptExecutor.Execute(
                     client,
                     body,
@@ -2727,9 +2727,11 @@ namespace NeoCompose.Tests
                 _ => Assert.Fail("Expected deferred failure."),
                 exception => observed = exception);
 
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception, new System.Text.RegularExpressions.Regex("stop waiting"));
             pending!.Fail(new InvalidOperationException("stop waiting"));
 
-            Assert.IsInstanceOf<InvalidOperationException>(observed);
+            Assert.IsInstanceOf<NeoScriptException>(observed);
+            Assert.AreEqual(NeoErrorContract.HostMessage, observed!.Message);
             Assert.IsFalse(client.TryGetValue(
                 NeoValueOwnership.Session,
                 constructedId,

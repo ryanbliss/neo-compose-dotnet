@@ -127,13 +127,13 @@ namespace NeoCompose.Tests
             NeoClient client = BuildFunctionClient(out NSFunctionMember function);
             var node = new NeoMemberNSFunction(client, function, null);
 
-            NSGetterRuntimeError below = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError below = Assert.Catch<NSGetterRuntimeError>(() =>
                 node.Invoke("receiver-value", Array.Empty<object?>()))!;
             StringAssert.Contains(
                 "expects between 1 and 3 arguments but received 0",
                 below.Message);
 
-            NSGetterRuntimeError above = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError above = Assert.Catch<NSGetterRuntimeError>(() =>
                 node.Invoke(
                     "receiver-value",
                     new object?[] { "a", 9, "z", "extra" }))!;
@@ -215,7 +215,7 @@ namespace NeoCompose.Tests
         public void ParameterDefault_OmissionWithoutADefaultThrows()
         {
             var parameter = Argument("plain", MemberKind.String);
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NeoParameterDefaults.DefaultRuntimeValue(parameter, "test"))!;
             StringAssert.Contains(
                 "parameter 'plain' was omitted but declares no default",
@@ -311,7 +311,7 @@ namespace NeoCompose.Tests
                     ["fn-native-greet"] = (_, _, args, _) => $"{args[0]}{args[1]}",
                 });
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     NativeCallGetter(argumentCount: 0),
                     new NSGetterEvaluator.Context(client, null, null)))!;
@@ -372,7 +372,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildConstructorClient();
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(
                         WidgetType(),
@@ -396,7 +396,7 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildConstructorClient();
 
-            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
                 NSGetterEvaluator.Evaluate(
                     ReturnFunction(
                         WidgetType(),
@@ -486,9 +486,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentContractIsFortyFour()
+        public void ExportSchemaVersion_CurrentContractIsFortyFive()
         {
-            Assert.AreEqual(44, NeoProjectExportContract.CurrentSchemaVersion);
+            Assert.AreEqual(45, NeoProjectExportContract.CurrentSchemaVersion);
         }
 
         // -------------------------------------------------------------------

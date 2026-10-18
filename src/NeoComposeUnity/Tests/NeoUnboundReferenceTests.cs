@@ -140,7 +140,7 @@ namespace NeoCompose.Tests
             using var app = LoadApp();
             app.Save.FavoriteHero = AssetHero(app);
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() => RunAssignHealth(app, 11));
+            var error = Assert.Catch<NSGetterRuntimeError>(() => RunAssignHealth(app, 11));
 
             Assert.AreEqual(
                 "Cannot write runtime-owned target because its value is Asset-owned.",

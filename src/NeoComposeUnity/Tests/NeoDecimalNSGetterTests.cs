@@ -161,7 +161,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Arithmetic_OverflowSurfacesAsRuntimeError()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(
                     DecimalArithmetic(
                         ArithmeticOpKind.Addition,
@@ -201,7 +201,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Condition_OrderingAgainstNullThrows()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateCondition(
                     OperatorKind.GreaterThan,
                     DecimalLiteral("1"),
@@ -246,7 +246,7 @@ namespace NeoCompose.Tests
         [Test]
         public void DecimalOp_DivideByZero_SurfacesAsRuntimeError()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(DecimalOp(
                     DecimalOpKind.Divide,
                     DecimalLiteral("1"),
@@ -277,7 +277,7 @@ namespace NeoCompose.Tests
         [Test]
         public void DecimalOp_NullReceiverThrowsNamingTheOp()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(DecimalOp(
                     DecimalOpKind.Round, NullLiteral(), digits: 0)));
             StringAssert.Contains("round receiver is null", error!.Message);
@@ -364,7 +364,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Seam_NonIntegerNumberThrows()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(NumberLiteral(7.5)));
             StringAssert.Contains("ToDecimal(digits)", error!.Message);
         }
@@ -391,7 +391,7 @@ namespace NeoCompose.Tests
         [Test]
         public void StringOp_NullReceiverThrows()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(
                     StringOp(StringOpKind.Trim, NullLiteral()),
                     MemberKind.String));

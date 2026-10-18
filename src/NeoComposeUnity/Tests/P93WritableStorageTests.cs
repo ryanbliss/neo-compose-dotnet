@@ -157,7 +157,7 @@ namespace NeoCompose.Tests
         public void RuntimeWrite_ToAnInheritMemberOfAnAssetRowStillThrows()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(Build());
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 ExecuteRuntimeWrite(client, "Assets", "Thing", "Plain", 5));
             StringAssert.Contains("Asset-owned", error!.Message);
         }

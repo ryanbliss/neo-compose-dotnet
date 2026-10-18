@@ -342,7 +342,7 @@ namespace NeoCompose.Tests
         public void AGenericReceiverDeliversTheSubstitutedType()
         {
             using Fixture fixture = Build();
-            var error = Assert.Throws<NSGetterRuntimeError>(() => fixture.Subscribe("member-current", ownerId: "value-box",
+            var error = Assert.Catch<NSGetterRuntimeError>(() => fixture.Subscribe("member-current", ownerId: "value-box",
                 observedType: new PrimitiveTypeInfo { type = MemberKind.String, required = true }));
             StringAssert.Contains("no longer matches its compiled type", error!.Message);
             fixture.Subscribe("member-current", ownerId: "value-box");
@@ -455,6 +455,7 @@ namespace NeoCompose.Tests
             fixture.Subscribe("member-boom");
 
             fixture.explode = true;
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception, new System.Text.RegularExpressions.Regex("Boom"));
             Assert.That(() => fixture.WriteLeft(1), Throws.InstanceOf<Exception>());
             fixture.explode = false;
             fixture.WriteLeft(2);
@@ -486,9 +487,9 @@ namespace NeoCompose.Tests
             using Fixture fixture = Build();
             using (fixture.client.BeginConstructionListeners())
             {
-                var error = Assert.Throws<NSGetterRuntimeError>(() => fixture.Subscribe("member-value"));
+                var error = Assert.Catch<NSGetterRuntimeError>(() => fixture.Subscribe("member-value"));
                 StringAssert.Contains("so a constructor can't make one", error!.Message);
-                error = Assert.Throws<NSGetterRuntimeError>(() =>
+                error = Assert.Catch<NSGetterRuntimeError>(() =>
                     fixture.client.ClearMemberChangeListeners("value-watcher", NeoValueOwnership.Save, "member-value", IntType()));
                 StringAssert.Contains("so a constructor can't clear one", error!.Message);
             }

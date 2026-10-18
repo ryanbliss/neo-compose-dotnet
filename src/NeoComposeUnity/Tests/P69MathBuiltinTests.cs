@@ -78,7 +78,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Clamp_RejectsReversedBounds()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateFloat(MathOp(
                     MathOpKind.Clamp,
                     FloatLiteral(5.0),
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0d, EvaluateInt(MathOp(MathOpKind.Sign, FloatLiteral(-0.0))));
             Assert.AreEqual(1d, EvaluateInt(MathOp(MathOpKind.Sign, FloatLiteral(3.2))));
 
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateInt(MathOp(MathOpKind.Sign, FloatLiteral(double.NaN))));
             Assert.AreEqual("Math.Sign is undefined for NaN.", error!.Message);
         }
@@ -129,7 +129,7 @@ namespace NeoCompose.Tests
                 double.NaN,
             })
             {
-                var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                var error = Assert.Catch<NSGetterRuntimeError>(() =>
                     EvaluateInt(MathOp(op, FloatLiteral(nonFinite))));
                 Assert.AreEqual($"Math.{name} requires a finite argument.", error!.Message);
             }
@@ -156,7 +156,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NullArgument_ThrowsNamingTheFunction()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateFloat(MathOp(MathOpKind.Sqrt, NullLiteral())));
             Assert.AreEqual("Math.Sqrt argument is null.", error!.Message);
         }
@@ -164,7 +164,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NonNumericArgument_ThrowsNamingTheFunctionAndTheType()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateFloat(MathOp(
                     MathOpKind.Min,
                     FloatLiteral(1.0),
@@ -225,7 +225,7 @@ namespace NeoCompose.Tests
         [Test]
         public void DecimalClamp_RejectsReversedBounds()
         {
-            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateDecimal(DecimalMathOp(
                     MathOpKind.Clamp,
                     DecimalLiteral("5"),
