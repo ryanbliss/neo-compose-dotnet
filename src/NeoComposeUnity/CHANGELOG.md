@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## [0.78.0] - 2026-10-18
 
 - Added P123 portable Math powers, logarithms, trigonometry, and scalar helpers, plus session-owned Random.value, Range, and InitState. `NeoClient.Random` exposes the same stream to C#; separate clients remain independent. Stored content replays with isolated identity seeds.
+- Fixed inherited schema merging to honor exported `schemaKeyOrder`, so constructor defaults draw in the same order as TypeScript.
 - Requires the matching P123 CLI release for the new additive mathOp/randomOp IR. Upgrade CLI and SDK together. Export schema remains 45 and compiler revision remains 17.
 
 ## [0.77.1] - 2026-10-18
