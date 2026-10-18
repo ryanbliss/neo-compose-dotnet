@@ -2122,28 +2122,7 @@ namespace NeoCompose.Runtime.NeoScript
                         ? handlers.Initialize(initializer, scope, ctx)
                         : NeoScriptExecutor.EvaluateImmediateObjectInitializer(initializer, scope, ctx);
                 case SwitchExpressionPointer selection:
-                    {
-                        object? selected = EvalPointer(selection.selector, scope, ctx);
-                        foreach (SwitchExpressionArm arm in selection.arms)
-                        {
-                            SwitchExpressionPattern pattern = arm.pattern;
-                            bool matches = pattern.kind == "discard";
-                            if (pattern.kind == "constant")
-                                matches = JsEqual(selected, EvalPointer(new ValuePointer { type = PointerKind.Value, value = pattern.constant! }, scope, ctx));
-                            if (pattern.kind == "type")
-                                matches = selected is not null && RuntimeTypeCheck(selected, pattern.checkType!, ctx);
-                            if (!matches)
-                                continue;
-                            NeoScriptScope child = scope.CreateChild();
-                            child.SetLocal(selection.selectorId, selected);
-                            if (pattern.kind == "type" && pattern.bindingId is { } binding)
-                                child.SetLocal(binding, selected);
-                            if (arm.guard is not null && !Equals(EvalPointer(arm.guard, child, ctx), true))
-                                continue;
-                            return EvalPointer(arm.value, child, ctx);
-                        }
-                        throw new NSGetterRuntimeError("Switch expression is not exhaustive for the runtime value.");
-                    }
+                    return EvalSwitchExpression(selection, scope, ctx);
                 case ConditionalPointer conditional:
                     {
                         var condition = EvalPointer(conditional.condition, scope, ctx);
@@ -2182,6 +2161,33 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
             }
+        }
+
+        private static object? EvalSwitchExpression(
+            SwitchExpressionPointer selection,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            object? selected = EvalPointer(selection.selector, scope, ctx);
+            foreach (SwitchExpressionArm arm in selection.arms)
+            {
+                SwitchExpressionPattern pattern = arm.pattern;
+                bool matches = pattern.kind == "discard";
+                if (pattern.kind == "constant")
+                    matches = JsEqual(selected, EvalPointer(new ValuePointer { type = PointerKind.Value, value = pattern.constant! }, scope, ctx));
+                if (pattern.kind == "type")
+                    matches = selected is not null && RuntimeTypeCheck(selected, pattern.checkType!, ctx);
+                if (!matches)
+                    continue;
+                NeoScriptScope child = scope.CreateChild();
+                child.SetLocal(selection.selectorId, selected);
+                if (pattern.kind == "type" && pattern.bindingId is { } binding)
+                    child.SetLocal(binding, selected);
+                if (arm.guard is not null && !Equals(EvalPointer(arm.guard, child, ctx), true))
+                    continue;
+                return EvalPointer(arm.value, child, ctx);
+            }
+            throw new NSGetterRuntimeError("Switch expression is not exhaustive for the runtime value.");
         }
 
         /// <summary>A literal that isn't a converted primitive.</summary>
