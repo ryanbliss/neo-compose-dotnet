@@ -6068,6 +6068,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalStringOp(sof.info, scope, ctx);
                 case ListRepeatFunction lrf:
                     return EvalListRepeat(lrf.info, scope, ctx);
+                case TextOpFunction tof:
+                    return EvalTextOp(tof.info, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown function kind {fn.GetType().Name}");
@@ -7570,10 +7572,7 @@ namespace NeoCompose.Runtime.NeoScript
                         return result;
                     }
                 case StringOpKind.Trim:
-                    {
-                        string result = receiverText.Trim();
-                        return result;
-                    }
+                    return NeoText.Trim(receiverText);
                 case StringOpKind.Replace:
                     {
                         if (info.argPointer is null)
@@ -7610,6 +7609,191 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 default:
                     throw new NSGetterRuntimeError($"Unknown string op {info.op}");
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // String library and number text (P115 §4.3). Arguments are read
+        // up front, receiver first, then handed to NeoText, the mirror of
+        // the web's text core.
+        // ---------------------------------------------------------------
+
+        private static object? EvalTextOp(
+            FunctionTextOpInfo info,
+            NeoScriptScope scope,
+            Context ctx)
+        {
+            var args = new object?[info.argPointers.Length];
+            for (int i = 0; i < args.Length; i++)
+            {
+                args[i] = EvalPointer(info.argPointers[i], scope, ctx);
+            }
+            if (info.number is string number)
+            {
+                string member = $"{number}.{TextOpMemberName(info.op)}";
+                switch (info.op)
+                {
+                    case TextOpKind.Parse:
+                        return NeoText.Parse(number, TextStringArgument(args, 0, member));
+                    case TextOpKind.TryParse:
+                        return NeoText.TryParse(number, TextStringArgument(args, 0, member));
+                    case TextOpKind.Format:
+                        return NeoText.Format(
+                            number,
+                            TextNumberArgument(args, 0, member, number),
+                            TextStringArgument(args, 1, member));
+                    default:
+                        throw new NSGetterRuntimeError($"Unknown text op '{info.op}'.");
+                }
+            }
+            string stringMember = $"string.{TextOpMemberName(info.op)}";
+            switch (info.op)
+            {
+                case TextOpKind.Length:
+                    return Box(TextStringArgument(args, 0, stringMember).Length);
+                case TextOpKind.Substring:
+                    return NeoText.Substring(
+                        TextStringArgument(args, 0, stringMember),
+                        TextIntArgument(args, 1, stringMember),
+                        args.Length > 2 ? TextIntArgument(args, 2, stringMember) : null);
+                case TextOpKind.IndexOf:
+                    return Box(NeoText.IndexOf(
+                        TextStringArgument(args, 0, stringMember),
+                        TextStringArgument(args, 1, stringMember)));
+                case TextOpKind.LastIndexOf:
+                    return Box(NeoText.LastIndexOf(
+                        TextStringArgument(args, 0, stringMember),
+                        TextStringArgument(args, 1, stringMember)));
+                case TextOpKind.Split:
+                    return NeoText.Split(
+                        TextStringArgument(args, 0, stringMember),
+                        TextStringArgument(args, 1, stringMember));
+                case TextOpKind.PadLeft:
+                case TextOpKind.PadRight:
+                    return NeoText.Pad(
+                        info.op == TextOpKind.PadLeft ? "PadLeft" : "PadRight",
+                        TextStringArgument(args, 0, stringMember),
+                        TextIntArgument(args, 1, stringMember),
+                        args.Length > 2 ? TextStringArgument(args, 2, stringMember) : " ");
+                case TextOpKind.TrimStart:
+                    return NeoText.TrimStart(TextStringArgument(args, 0, stringMember));
+                case TextOpKind.TrimEnd:
+                    return NeoText.TrimEnd(TextStringArgument(args, 0, stringMember));
+                case TextOpKind.Join:
+                    return NeoText.Join(
+                        TextStringArgument(args, 0, stringMember),
+                        JoinEntries(TextArgument(args, 1, stringMember), ctx));
+                case TextOpKind.IsNullOrEmpty:
+                    return Box(TextNullableStringArgument(args, 0, stringMember) is not { Length: > 0 });
+                case TextOpKind.IsNullOrWhiteSpace:
+                    return Box(NeoText.IsNullOrWhiteSpace(TextNullableStringArgument(args, 0, stringMember)));
+                default:
+                    throw new NSGetterRuntimeError($"Unknown text op '{info.op}'.");
+            }
+        }
+
+        /// <summary><c>string.Join</c>'s entries in <c>foreach</c> order.</summary>
+        private static string?[] JoinEntries(object? collection, Context ctx)
+        {
+            var snapshot = new CollectionSnapshot();
+            snapshot.Take(collection, ctx);
+            var entries = new string?[snapshot.Count];
+            for (int i = 0; i < entries.Length; i++)
+            {
+                object? entry = snapshot.Resolve(i, ctx);
+                if (entry is not null && entry is not string)
+                    throw new NSGetterRuntimeError("string.Join entries must be strings.");
+                entries[i] = (string?)entry;
+            }
+            return entries;
+        }
+
+        private static object? TextArgument(object?[] args, int index, string member)
+        {
+            if (index >= args.Length)
+                throw new NSGetterRuntimeError($"{member} is missing argument {index + 1}.");
+            return args[index];
+        }
+
+        private static string TextStringArgument(object?[] args, int index, string member)
+        {
+            if (TextArgument(args, index, member) is not string text)
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a string.");
+            return text;
+        }
+
+        private static string? TextNullableStringArgument(object?[] args, int index, string member)
+        {
+            if (TextArgument(args, index, member) is null)
+                return null;
+            return TextStringArgument(args, index, member);
+        }
+
+        private static int TextIntArgument(object?[] args, int index, string member)
+        {
+            object? value = TextArgument(args, index, member);
+            if (!TryAsDouble(value, out double number)
+                || !NeoNumbers.IsWhole(number)
+                || number < int.MinValue
+                || number > int.MaxValue)
+            {
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be an int.");
+            }
+            return (int)number;
+        }
+
+        /// <summary>A <c>decimal</c> as its canonical string, an <c>int</c> or <c>float</c> as a double.</summary>
+        private static object TextNumberArgument(object?[] args, int index, string member, string number)
+        {
+            object? value = TextArgument(args, index, member);
+            if (number == NeoText.Decimal)
+            {
+                if (value is not string text)
+                    throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a decimal.");
+                return text;
+            }
+            if (!TryAsDouble(value, out double numeric))
+                throw new NSGetterRuntimeError($"{member} argument {index + 1} must be a {number}.");
+            return numeric;
+        }
+
+        /// <summary>A <see cref="TextOpKind"/> as authors write it, for runtime error text.</summary>
+        private static string TextOpMemberName(string op)
+        {
+            switch (op)
+            {
+                case TextOpKind.Length:
+                    return "Length";
+                case TextOpKind.Substring:
+                    return "Substring";
+                case TextOpKind.IndexOf:
+                    return "IndexOf";
+                case TextOpKind.LastIndexOf:
+                    return "LastIndexOf";
+                case TextOpKind.Split:
+                    return "Split";
+                case TextOpKind.PadLeft:
+                    return "PadLeft";
+                case TextOpKind.PadRight:
+                    return "PadRight";
+                case TextOpKind.TrimStart:
+                    return "TrimStart";
+                case TextOpKind.TrimEnd:
+                    return "TrimEnd";
+                case TextOpKind.Join:
+                    return "Join";
+                case TextOpKind.IsNullOrEmpty:
+                    return "IsNullOrEmpty";
+                case TextOpKind.IsNullOrWhiteSpace:
+                    return "IsNullOrWhiteSpace";
+                case TextOpKind.Parse:
+                    return "Parse";
+                case TextOpKind.TryParse:
+                    return "TryParse";
+                case TextOpKind.Format:
+                    return "ToString";
+                default:
+                    return op;
             }
         }
 

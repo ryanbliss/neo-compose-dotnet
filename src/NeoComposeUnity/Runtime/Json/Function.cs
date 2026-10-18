@@ -373,6 +373,27 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo entryTypeInfo = null!;
     }
 
+    /// <summary>
+    /// Info shape for <c>textOp</c>: a P115 string or number-text builtin.
+    /// Mirrors TS-side <c>INSFunctionTextOpInfo</c>. Static-call shape like
+    /// <see cref="FunctionMathOpInfo"/>.
+    /// </summary>
+    public class FunctionTextOpInfo
+    {
+        /// <summary>One of <see cref="TextOpKind"/>.</summary>
+        public string op = null!;
+        /// <summary>
+        /// The primitive a number op parses or formats (<c>int</c>,
+        /// <c>float</c>, or <c>decimal</c>); absent on string ops.
+        /// </summary>
+        public string? number;
+        /// <summary>
+        /// Receiver first for instance members, then arguments in declared
+        /// order. Omitted trailing optional arguments are absent.
+        /// </summary>
+        public Pointer[] argPointers = null!;
+    }
+
     // ---------- Per-function variants ----------
 
     public sealed class ClassCloneFunction : Function
@@ -522,6 +543,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionListRepeatInfo info = null!;
     }
 
+    public sealed class TextOpFunction : Function
+    {
+        public FunctionTextOpInfo info = null!;
+    }
+
     public sealed class ListIndexFunction : Function
     {
         public FunctionListIndexInfo info = null!;
@@ -575,6 +601,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(MathOpFunction);
                 case FunctionKind.ListRepeat:
                     return typeof(ListRepeatFunction);
+                case FunctionKind.TextOp:
+                    return typeof(TextOpFunction);
                 case FunctionKind.ListIndex:
                     return typeof(ListIndexFunction);
                 case FunctionKind.VariantInitialize:

@@ -181,6 +181,12 @@ namespace NeoCompose.Runtime.Json
         /// static factory.
         /// </summary>
         public const string ListRepeat = "listRepeat";
+        /// <summary>
+        /// P115 §4.1 — a string-library or number-text builtin: string
+        /// members, <c>string</c> statics, and number
+        /// <c>Parse</c>/<c>TryParse</c>/<c>ToString(format)</c>.
+        /// </summary>
+        public const string TextOp = "textOp";
         public const string ListIndex = "listIndex";
         /// <summary>
         /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,
@@ -248,6 +254,30 @@ namespace NeoCompose.Runtime.Json
         public const string Abs = "abs";
         public const string Sign = "sign";
         public const string Sqrt = "sqrt";
+    }
+
+    /// <summary>
+    /// Wire values of the TS-side <c>TNSTextStringOp</c> and
+    /// <c>TNSTextNumberOp</c> unions — the ops a <c>textOp</c> function IR
+    /// node may carry (P115 §4.1).
+    /// </summary>
+    public static class TextOpKind
+    {
+        public const string Length = "length";
+        public const string Substring = "substring";
+        public const string IndexOf = "indexOf";
+        public const string LastIndexOf = "lastIndexOf";
+        public const string Split = "split";
+        public const string PadLeft = "padLeft";
+        public const string PadRight = "padRight";
+        public const string TrimStart = "trimStart";
+        public const string TrimEnd = "trimEnd";
+        public const string Join = "join";
+        public const string IsNullOrEmpty = "isNullOrEmpty";
+        public const string IsNullOrWhiteSpace = "isNullOrWhiteSpace";
+        public const string Parse = "parse";
+        public const string TryParse = "tryParse";
+        public const string Format = "format";
     }
 
     public static class WritabilityKind
