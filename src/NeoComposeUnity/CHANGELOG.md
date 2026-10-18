@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.75.0] - 2026-10-17
+
+Three NeoScript language additions ship together: the string library and number text (P115), vector math (P116), and collection aggregation and ordering (P117). Requires CLI 0.85.0, which exports schema 43; run `neo pull` and `neo export` after upgrading. Older exports must be re-exported.
+
+NeoScript's string library and number text (P115). Exported bodies can call `Length`, `Substring`, `IndexOf`, `LastIndexOf`, `Split`, `PadLeft`, `PadRight`, `TrimStart`, `TrimEnd`, `string.Join`, `string.IsNullOrEmpty`, `string.IsNullOrWhiteSpace`, `int`/`float`/`decimal` `Parse` and `TryParse`, and `ToString(format)` with `D`, `F`, and `N` formats. Results match the web byte for byte: every member is ordinal and invariant, counts UTF-16 code units, and formats numbers from their exact value instead of the host's formatter.
+
+```neo
+List<string> parts = this.Text.Trim().Split(" ");
+int quantity = int.TryParse(parts[1]) ?? 0;
+return $"{slot.ToString("D3")} {price.ToString("N2")}";
+```
+
+- Fixed: `Trim` strips the same whitespace set on Mono, .NET, and the web.
+- Added: NeoScript vector arithmetic, magnitudes, normalized vectors, directional constants, vector math functions, and `Color.Lerp` from P116.
+- Changed: integer vector components retain NeoScript integer precision through construction, JSON, component writes, overlays, and arithmetic. `NeoVector2Value.x/y` and `NeoVector3Value.z` are now `double`, so C# code that assigns one to a `float` needs an explicit cast; Unity adapters convert explicitly to `float` or `int`.
+- Fixed: local vector aliases observe component writes, matching the TypeScript runtime. Replacing a vector with an arithmetic result leaves previous aliases unchanged.
+- Fixed: local list index assignments and vector compound targets evaluate their receiver and index once.
+- Fixed: scalar and vector Min/Max preserve signed-zero ordering on Unity Mono.
+- Added: collection reductions and ordering from P117. `Sum`, `Average`, `Min`, `Max`, `MinBy`, `MaxBy`, `Aggregate`, `GroupBy`, `ToDictionary`, `Distinct`, `Zip`, `ThenBy`/`ThenByDescending`, dictionary `Keys`/`Values`, and in-place `List.Sort` return the same results and failures as the web. A stored `Sort` keeps entry ids and publishes one reorder after every comparison succeeds, and blocks reentrant mutation through aliases.
+
+```neo
+public int TotalCurrency => this.CategorySales.Sum((income) => income.Currency);
+```
+
 ## [0.74.3] - 2026-10-17
 
 - Fixed: float bindings and collection searches apply float32 precision, and decimal collection searches, removal, and set membership compare numeric value without discarding display scale. Matches the numeric collection markers emitted by CLI 0.84.4.
