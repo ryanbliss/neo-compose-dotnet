@@ -3,6 +3,8 @@
 #nullable enable
 using System;
 using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -11,6 +13,61 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private uint x, y, z, w;
         private string? identity;
+        private double assignedSeed;
+        private readonly Action? onSeedWrite;
+        private InstanceStreams? instances;
+        internal bool HasStoredInstances => instances?.stored.Count > 0;
+        internal bool IsContentScope
+        {
+            get; private set;
+        }
+
+        private sealed class InstanceStreams
+        {
+            internal readonly ConditionalWeakTable<object, NeoRandom> transient = new();
+            internal readonly Dictionary<(NeoValueOwnership ownership, string id), NeoRandom> stored = new();
+        }
+
+        internal NeoRandom? FindInstance(object value, string? id, NeoValueOwnership ownership = NeoValueOwnership.Session)
+        {
+            if (instances is null)
+                return null;
+            if (id is not null && instances.stored.TryGetValue((ownership, id), out var stored))
+                return stored;
+            if (!instances.transient.TryGetValue(value, out var temporary))
+                return null;
+            if (id is not null)
+            {
+                instances.stored[(ownership, id)] = temporary;
+                instances.transient.Remove(value);
+            }
+            return temporary;
+        }
+
+        internal NeoRandom AddInstance(object value, string? id, double seed, NeoValueOwnership ownership = NeoValueOwnership.Session)
+        {
+            instances ??= new();
+            var stream = new NeoRandom(seed);
+            if (id is null)
+                instances.transient.Add(value, stream);
+            else
+                instances.stored.Add((ownership, id), stream);
+            return stream;
+        }
+
+        internal void PreserveInstanceOnMove(NeoWritePlan plan, NeoValueOwnership source, string sourceId, NeoValueOwnership target, string targetId)
+        {
+            if (instances is null || !instances.stored.TryGetValue((source, sourceId), out var stream))
+                return;
+            var scope = instances;
+            plan.AfterCommit(() =>
+            {
+                if (plan.Client.HasWritableValue(target, targetId))
+                    scope.stored[(target, targetId)] = stream;
+            });
+        }
+
+        internal bool ForgetInstance(string id, NeoValueOwnership ownership) => instances?.stored.Remove((ownership, id)) == true;
         internal long DrawCount
         {
             get; private set;
@@ -19,7 +76,12 @@ namespace NeoCompose.Runtime.NeoScript
         public NeoRandom() : this(EntropySeed()) { }
         public NeoRandom(double seed)
         {
-            InitState(seed);
+            Seed = seed;
+        }
+
+        internal NeoRandom(Action onSeedWrite) : this()
+        {
+            this.onSeedWrite = onSeedWrite;
         }
 
         private static uint EntropySeed()
@@ -30,17 +92,33 @@ namespace NeoCompose.Runtime.NeoScript
             return BitConverter.ToUInt32(bytes, 0);
         }
 
-        public void InitState(double seed)
+        internal static void ValidateSeed(double seed)
         {
             if (!IsSafeInteger(seed))
-                throw ArgumentError("Random.InitState requires a safe integer seed.");
-            identity = null;
-            unchecked
+                throw ArgumentError("NeoRandom seed must be a safe integer.");
+        }
+
+        public double Seed
+        {
+            get
             {
-                x = (uint)(long)seed;
-                y = 1812433253U * (x ^ (x >> 30)) + 1;
-                z = 1812433253U * (y ^ (y >> 30)) + 2;
-                w = 1812433253U * (z ^ (z >> 30)) + 3;
+                InitializeIdentity();
+                return assignedSeed;
+            }
+            set
+            {
+                ValidateSeed(value);
+                assignedSeed = value;
+                identity = null;
+                unchecked
+                {
+                    x = (uint)(long)value;
+                    y = 1812433253U * (x ^ (x >> 30)) + 1;
+                    z = 1812433253U * (y ^ (y >> 30)) + 2;
+                    w = 1812433253U * (z ^ (z >> 30)) + 3;
+                }
+                if (!IsContentScope)
+                    onSeedWrite?.Invoke();
             }
         }
 
@@ -50,6 +128,9 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly NeoRandom owner;
             private readonly uint x, y, z, w;
             private readonly string? identity;
+            private readonly double seed;
+            private readonly InstanceStreams? instances;
+            private readonly bool contentScope;
             internal IdentityFrame(NeoRandom owner, string nextIdentity)
             {
                 this.owner = owner;
@@ -58,6 +139,11 @@ namespace NeoCompose.Runtime.NeoScript
                 z = owner.z;
                 w = owner.w;
                 identity = owner.identity;
+                seed = owner.assignedSeed;
+                instances = owner.instances;
+                contentScope = owner.IsContentScope;
+                owner.instances = null;
+                owner.IsContentScope = true;
                 owner.identity = nextIdentity;
             }
             public void Dispose()
@@ -67,20 +153,28 @@ namespace NeoCompose.Runtime.NeoScript
                 owner.z = z;
                 owner.w = w;
                 owner.identity = identity;
+                owner.assignedSeed = seed;
+                owner.instances = instances;
+                owner.IsContentScope = contentScope;
             }
         }
 
         internal IdentityFrame EnterIdentity(string contentIdentity) => new(this, contentIdentity);
 
-        private uint NextWord()
+        private void InitializeIdentity()
         {
             if (identity is not null)
             {
                 uint seed = 2166136261;
                 foreach (char codeUnit in identity)
                     seed = unchecked((seed ^ codeUnit) * 16777619);
-                InitState(seed);
+                Seed = seed;
             }
+        }
+
+        private uint NextWord()
+        {
+            InitializeIdentity();
             uint t = x ^ (x << 11);
             x = y;
             y = z;
@@ -90,20 +184,20 @@ namespace NeoCompose.Runtime.NeoScript
             return w;
         }
 
-        public float value => (float)((NextWord() >> 8) / 16777215d);
+        public float Value() => (float)((NextWord() >> 8) / 16777215d);
 
         public int Range(int min, int max) => (int)RangeInt(min, max);
 
         internal double RangeInt(double min, double max)
         {
             if (!IsInteger(min))
-                throw ArgumentError("Random.Range int min must be an integer.");
+                throw ArgumentError("NeoRandom.Range int min must be an integer.");
             if (min < int.MinValue || min > int.MaxValue)
-                throw ArgumentError("Random.Range int min must fit int32.");
+                throw ArgumentError("NeoRandom.Range int min must fit int32.");
             if (!IsInteger(max))
-                throw ArgumentError("Random.Range int max must be an integer.");
+                throw ArgumentError("NeoRandom.Range int max must be an integer.");
             if (max < int.MinValue || max > int.MaxValue)
-                throw ArgumentError("Random.Range int max must fit int32.");
+                throw ArgumentError("NeoRandom.Range int max must fit int32.");
             if (min == max)
                 return min;
             long width = Math.Abs((long)max - (long)min);
@@ -120,9 +214,9 @@ namespace NeoCompose.Runtime.NeoScript
         public float Range(float min, float max)
         {
             if (!IsFinite(min))
-                throw ArgumentError("Random.Range float min must be finite.");
+                throw ArgumentError("NeoRandom.Range float min must be finite.");
             if (!IsFinite(max))
-                throw ArgumentError("Random.Range float max must be finite.");
+                throw ArgumentError("NeoRandom.Range float max must be finite.");
             if (min == max)
                 return min;
             if (min > max)
@@ -131,7 +225,7 @@ namespace NeoCompose.Runtime.NeoScript
                 min = max;
                 max = previous;
             }
-            double u = value;
+            double u = Value();
             if (u == 0)
                 return min;
             if (u == 1)

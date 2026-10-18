@@ -247,6 +247,7 @@ namespace NeoCompose.Runtime
         /// <summary>A loaded or unloaded authored row: its instance, and the effects that read it or its container.</summary>
         private void NoteEffectPartitionRow(MemberValue row)
         {
+            ForgetRandomInstance(row.id, NeoValueOwnership.Asset);
             if (!instancesTracked)
                 return;
             if (effectInstances.ContainsKey(row.id)

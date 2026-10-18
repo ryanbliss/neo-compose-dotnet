@@ -572,6 +572,9 @@ namespace NeoCompose.Runtime
             foreach (HashSet<string> ids in virtualValueIdsByRoot.Values)
                 outgoingVirtualIds.UnionWith(ids);
             InvalidateSharedEvaluationContext();
+            if (Random.HasStoredInstances)
+                foreach (var entry in virtualValueOwnership)
+                    ForgetRandomInstance(entry.Key, entry.Value);
             virtualValues.Clear();
             effectRescanPending |= instancesTracked;
             virtualValueOwnership.Clear();
@@ -2726,6 +2729,7 @@ namespace NeoCompose.Runtime
                 {
                     NoteDeparture(valueId, RowLayer.Virtual, null);
                     InvalidateListenerOwner(virtualValueOwnership.GetValueOrDefault(valueId), valueId);
+                    ForgetRandomInstance(valueId, virtualValueOwnership.GetValueOrDefault(valueId));
                     virtualValues.Remove(valueId);
                     NoteEffectRowChange(virtualValueOwnership.GetValueOrDefault(valueId), valueId, null);
                     EvictSharedEvaluationRow(valueId);

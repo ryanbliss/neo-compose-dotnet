@@ -179,7 +179,6 @@ namespace NeoCompose.Runtime.Json
         /// a class.
         /// </summary>
         public const string MathOp = "mathOp";
-        public const string RandomOp = "randomOp";
         public const string BitwiseOp = "bitwiseOp";
         public const string VectorOp = "vectorOp";
         /// <summary>

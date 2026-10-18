@@ -56,7 +56,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 object previousKey = attachedValueId ?? (object)this;
                 if (value is not null)
+                {
                     NSGetterEvaluator.AttachTupleHandle(client, this, value);
+                    client.Random.FindInstance(this, value);
+                }
                 attachedValueId = value;
                 setReferences?.Retarget(previousKey, value ?? (object)this);
             }

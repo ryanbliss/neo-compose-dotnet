@@ -598,17 +598,6 @@ namespace NeoCompose.Runtime.Json
         public FunctionVectorOpInfo info = null!;
     }
 
-    public sealed class RandomOpFunction : Function
-    {
-        public FunctionRandomOpInfo info = null!;
-    }
-
-    public sealed class FunctionRandomOpInfo
-    {
-        public string op = null!;
-        public Pointer[] argPointers = null!;
-    }
-
     public sealed class MathOpFunction : Function
     {
         public FunctionMathOpInfo info = null!;
@@ -763,8 +752,6 @@ namespace NeoCompose.Runtime.Json
                     return typeof(BitwiseOpFunction);
                 case FunctionKind.VectorOp:
                     return typeof(VectorOpFunction);
-                case FunctionKind.RandomOp:
-                    return typeof(RandomOpFunction);
                 case FunctionKind.MathOp:
                     return typeof(MathOpFunction);
                 case FunctionKind.ListRepeat:

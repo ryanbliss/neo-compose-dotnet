@@ -2678,14 +2678,17 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="site">The call, whose type arguments a generic native receives; null for a delegate call.</param>
         /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
-            object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false)
+            object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false,
+            string receiverKind = CallReceiverKind.Instance)
         {
             TypeInfo[]? typeArguments = function?.signature.genericParams is null
                 ? null
                 : NativeTypeArguments(function, site, ctx);
             if (function is null || function.intrinsic)
             {
-                if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
+                if (TryInvokeRandom(memberId, site?.receiver.kind ?? receiverKind, receiver, args, ctx, out object? result))
+                    return result;
+                if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
                     return result;
                 if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
                     return result;
@@ -3276,7 +3279,8 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx,
+                        receiverKind: native.Modifier == NeoMemberModifierKind.Static ? CallReceiverKind.Static : CallReceiverKind.Instance);
                 }
                 if (member is NSFunctionMember)
                 {
@@ -4031,7 +4035,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} call receiver '{receiver.memberId}' does not match target '{targetMemberId}'.");
             }
-            if (member is null || member.Modifier != NeoMemberModifierKind.Static)
+            if (member is null || (member.Modifier != NeoMemberModifierKind.Static && !NeoRandomContract.IsSharedNative(targetMemberId)))
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} target '{targetMemberId}' is missing or is not static.");
@@ -6120,8 +6124,6 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalSelect(sf, scope, ctx);
                 case CollectionQueryFunction query:
                     return EvalCollectionQuery(query.info, scope, ctx);
-                case RandomOpFunction random:
-                    return EvalRandomOp(random.info, scope, ctx);
                 case MathOpFunction mof:
                     {
                         object? value = EvalMathOp(mof.info, scope, ctx, out double number);
@@ -7960,37 +7962,6 @@ namespace NeoCompose.Runtime.NeoScript
         /// <see cref="NSGetterRuntimeError"/>, so authored <c>try</c> can
         /// catch it like division by zero.
         /// </summary>
-        private static object? EvalRandomOp(FunctionRandomOpInfo info, NeoScriptScope scope, Context ctx)
-        {
-            int arity = info.op switch
-            {
-                "value" => 0,
-                "initState" => 1,
-                "rangeInt" => 2,
-                "rangeFloat" => 2,
-                _ => throw new NSGetterRuntimeError($"Unknown Random operation '{info.op}'.")
-            };
-            if (info.argPointers.Length != arity)
-                throw new NSGetterRuntimeError($"Random.{info.op} takes {arity} arguments; got {info.argPointers.Length}.");
-            if (info.op == "value")
-                return (double)ctx.Random.value;
-            double a = RandomNumberArg(EvalPointer(info.argPointers[0], scope, ctx), info.op == "initState" ? "InitState seed" : "Range min");
-            if (info.op == "initState")
-            {
-                ctx.Random.InitState(a);
-                return null;
-            }
-            double b = RandomNumberArg(EvalPointer(info.argPointers[1], scope, ctx), "Range max");
-            return info.op == "rangeInt" ? ctx.Random.RangeInt(a, b) : (double)ctx.Random.Range((float)a, (float)b);
-        }
-
-        private static double RandomNumberArg(object? value, string label)
-        {
-            if (!ArithmeticValue.IsNumeric(value))
-                throw new NSGetterRuntimeError($"Random.{label} must be numeric.", NeoErrorContract.NeoArgumentError);
-            return ArithmeticValue.NumberOf(value, 0);
-        }
-
         private static object? EvalMathAtSource(Pointer pointer, FunctionMathOpInfo info, NeoScriptScope scope, Context ctx, out double number)
         {
             try

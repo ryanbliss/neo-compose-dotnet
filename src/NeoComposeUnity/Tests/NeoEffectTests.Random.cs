@@ -17,17 +17,18 @@ namespace NeoCompose.Tests
             var result = (ReturnInstruction)ir.instructions[^1];
             using Fixture fixture = Build(plants: 1, configure: data =>
             {
+                NeoScriptRandomIrFixture.Install(data);
                 var effect = ((NSFunctionMember)data.members["member-check"]).action!;
                 var instructions = new Instruction[ir.instructions.Length];
                 System.Array.Copy(ir.instructions, instructions, instructions.Length);
                 instructions[^1] = Assign(KeyOf(This(), "Runs"), result.pointer);
                 effect.instructions = instructions;
             });
-            fixture.client.Random.InitState(17);
+            fixture.client.Random.Seed = 17;
             var baseline = new NeoRandom(17);
             fixture.client.StartScriptRuntime();
             Assert.AreEqual(baseline.Range(int.MinValue, int.MaxValue), fixture.RunsOf("plant-0"));
-            Assert.AreEqual(baseline.value, fixture.client.Random.value);
+            Assert.AreEqual(baseline.Value(), fixture.client.Random.Value());
         }
     }
 }

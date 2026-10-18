@@ -1088,12 +1088,13 @@ namespace NeoCompose.Runtime
                             NeoScriptExecutionResult nestedSetter;
                             try
                             {
-                                nestedSetter = ExecuteAssign(
-                                    client,
-                                    state.Instruction.iterator,
-                                    scope,
-                                    expressionContext,
-                                    options);
+                                if (state.Instruction.iterator is AssignInstruction assignment)
+                                    nestedSetter = ExecuteAssign(client, assignment, scope, expressionContext, options);
+                                else
+                                {
+                                    Eval(((FunctionCallInstruction)state.Instruction.iterator).call, scope, expressionContext);
+                                    nestedSetter = default;
+                                }
                             }
                             catch (NeoFunctionCallSuspended suspended)
                             {
@@ -1445,17 +1446,23 @@ namespace NeoCompose.Runtime
                 || instruction.initializer.typeInfo is null
                 || instruction.initializer.pointer is null
                 || instruction.condition?.condition is null
-                || instruction.iterator?.target is null
-                || instruction.iterator.target.pointer is null
-                || instruction.iterator.target.typeInfo is null
-                || string.IsNullOrEmpty(instruction.iterator.operatorValue)
-                || instruction.iterator.pointer is null
+                || !ValidForIterator(instruction.iterator)
                 || instruction.instructions is null)
             {
                 throw new NeoScriptPreExecutionValidationError(
                     "NeoScript for loop contains malformed metadata; its compiled IR is stale or corrupt.");
             }
         }
+
+        private static bool ValidForIterator(Instruction? iterator) => iterator switch
+        {
+            AssignInstruction assign => assign.target?.pointer is not null
+                && assign.target.typeInfo is not null
+                && !string.IsNullOrEmpty(assign.operatorValue)
+                && assign.pointer is not null,
+            FunctionCallInstruction call => call.call is not null,
+            _ => false,
+        };
 
         private static void ValidateForEachInstructionMetadata(
             ForEachInstruction? instruction)

@@ -312,7 +312,7 @@ namespace NeoCompose.Tests
         /// <c>mathOp</c> arm reads its operands and no project state at all,
         /// which is the property this fixture is here to keep true.
         /// </summary>
-        internal static NeoClient BuildClient()
+        internal static NeoClient BuildClient(Action<ProjectData>? configure = null)
         {
             var rootClass = new NeoSchemaClass
             {
@@ -321,7 +321,7 @@ namespace NeoCompose.Tests
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            return NeoTestSaveStack.ClientFromSchema(new ProjectData
+            var data = new ProjectData
             {
                 project = new Project
                 {
@@ -349,7 +349,9 @@ namespace NeoCompose.Tests
                     [rootClass.id] = rootClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-            }.WithUserRoot());
+            }.WithUserRoot();
+            configure?.Invoke(data);
+            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         private static ClassMember RootMember(string id, string valueId, string classId)
