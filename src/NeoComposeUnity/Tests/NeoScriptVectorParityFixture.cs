@@ -1,9 +1,12 @@
-// Shared verbatim with neo-compose/src/models/neoscript/vector-parity-fixture.json.
+// Copyright (c) Ryan Bliss and contributors. All rights reserved.
+// Licensed under the MIT License.
+// VENDORED — DO NOT HAND-EDIT.
+// Source: neo-compose/src/models/neoscript/vector-parity-fixture.json
 namespace NeoCompose.Tests
 {
-    internal static class NeoScriptVectorParityFixture
+    public static class NeoScriptVectorParityFixture
     {
-        internal const string Json = @"{
+        public const string Json = @"{
   ""$comment"": ""P116 shared vector parity fixture. Expected results are independently authored from the specified formulas, with Python struct used solely to encode float32 literals. No runtime generates expected results. Nonfinite expected components use NaN/Infinity/-Infinity string tokens; nonfinite operands use arithmetic IR. The SDK vendors this file verbatim. Signed zero compares numerically in this JSON fixture and has a separate runtime test."",
   ""evaluateCases"": [
     {
