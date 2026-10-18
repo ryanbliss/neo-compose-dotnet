@@ -563,6 +563,16 @@ namespace NeoCompose.Runtime
             }
 
             /// <summary>Replaces the entry at <paramref name="index"/>, returning the id it held.</summary>
+            internal void Reorder(string[] order, NeoTimestamp now)
+            {
+                if (order.Length != Count)
+                    throw new NSGetterRuntimeError("Sort changed the list entry count.");
+                ids = order;
+                owned = true;
+                ordered = null;
+                Changes(now);
+            }
+
             internal string Set(int index, string id, NeoTimestamp now)
             {
                 Own();

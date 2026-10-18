@@ -31,6 +31,8 @@ namespace NeoCompose.Runtime.NeoScript
                 set.Add(key, enumEntries ? key : entry);
             }
             KeepDerived(set, CollectionEntryMember(source, ctx), false);
+            if (orderedResults.TryGetValue(source, out var ordering))
+                orderedResults.Add(set, ordering);
             if (cache)
                 sets.Add(source, set);
             return set;
@@ -107,6 +109,17 @@ namespace NeoCompose.Runtime.NeoScript
             return index.set.Contains(RuntimeSetKey(target, index.set, ctx));
         }
 
+        internal static void InvalidateCollectionOrdering(object? value)
+        {
+            if (value is null)
+                return;
+            orderedResults.Remove(value);
+            if (value is RuntimeSet set)
+                orderedResults.Remove(set.Source);
+            else if (value is object?[] array && runtimeSets.TryGetValue(array, out var paired))
+                orderedResults.Remove(paired);
+        }
+
         private static object? QueryEntry(object? entry, bool? enumEntries) => enumEntries == true && entry is string ? new object?[] { entry } : entry;
 
         private static object? EvalCollectionQuery(
@@ -116,6 +129,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? collection = EvalPointer(info.collectionPointer, scope, ctx);
             bool isList = CollectionIsList(collection);
+            if (info.op is "Aggregate" or "Zip")
+                return EvalPairQuery(info, collection, scope, ctx);
             double count = 0;
             if (info.op is "Skip" or "Take")
             {
@@ -136,8 +151,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (info.op == "Take" && count <= 0)
                 return Array.Empty<object?>();
-            bool projection = info.op is "SelectMany" or "OrderBy" or "OrderByDescending";
-            bool required = projection || info.op is "All" or "SkipWhile" or "TakeWhile";
+            bool projection = info.op is not ("Any" or "All" or "Last" or "LastOrDefault" or "Single" or "SingleOrDefault" or "SkipWhile" or "TakeWhile");
+            bool required = info.op is "SelectMany" or "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending" or "MinBy" or "MaxBy" or "GroupBy" or "ToDictionary" or "All" or "SkipWhile" or "TakeWhile";
             if (required && info.function is null)
                 throw new NSGetterRuntimeError($"{info.op} requires a callback.");
             PreparedCollectionCallback callback = default;
@@ -151,7 +166,11 @@ namespace NeoCompose.Runtime.NeoScript
             object? result = null;
             try
             {
-                if (info.op is "OrderBy" or "OrderByDescending")
+                if (info.op is "Sum" or "Average" or "Min" or "Max" or "MinBy" or "MaxBy")
+                    return result = ReduceCollection(info, collection, ref callback, ctx);
+                if (info.op is "GroupBy" or "ToDictionary")
+                    return result = DictionaryQuery(info, collection, ref callback, scope, ctx);
+                if (info.op is "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending")
                 {
                     object?[] ordered = OrderCollection(collection, info, ref callback, ctx);
                     // Each entry was resolved, so a string there is a value.
@@ -221,15 +240,22 @@ namespace NeoCompose.Runtime.NeoScript
                                 break;
                             AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
                             break;
+                        case "Keys":
+                            AppendResult(ref values, ref produced, cursor.Key);
+                            break;
+                        case "Values":
                         case "Reverse":
                         case "Concat":
                             AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
                             break;
+                        case "Distinct":
                         case "ToSet":
                             seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
                             object? setKey = info.reference && entry is not null
                                 ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
                                 : entry;
+                            if (info.decimalEntries && entry is not null)
+                                setKey = NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(entry, "Distinct entry"));
                             if (seenSetKeys.Add(setKey))
                                 AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
                             break;
@@ -336,57 +362,72 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private struct CollectionSortEntry
+        private sealed class OrderedResult
         {
-            internal object? Value;
-            internal object? Key;
+            internal object?[][] Keys = null!;
+            internal List<(string? type, bool descending)> Levels = null!;
         }
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OrderedResult> orderedResults = new();
 
-        private static object?[] OrderCollection(
-            object? collection,
-            FunctionCollectionQueryInfo info,
-            ref PreparedCollectionCallback callback,
-            Context ctx)
+        private static object?[] OrderCollection(object? collection, FunctionCollectionQueryInfo info, ref PreparedCollectionCallback callback, Context ctx)
         {
-            var entries = new CollectionSortEntry[CollectionEntryCount(collection)];
-            int count = 0;
+            bool secondary = info.op is "ThenBy" or "ThenByDescending";
+            OrderedResult? previous = null;
+            if (secondary && (collection is null || !orderedResults.TryGetValue(collection, out previous)))
+                throw new NSGetterRuntimeError($"{info.op} requires an ordered result.");
+            var levels = previous is null ? new List<(string? type, bool descending)>() : new(previous.Levels);
+            levels.Add((info.keyType, info.op.EndsWith("Descending", StringComparison.Ordinal)));
+            var entries = new List<(object? value, object?[] keys)>();
             var cursor = new CollectionCursor(collection, ctx);
             while (cursor.MoveNextUnresolved())
             {
                 object? entry = cursor.ResolveEntry(ctx);
-                object? key = callback.Project(in cursor, entry);
-                if (count == entries.Length)
-                    Array.Resize(ref entries, Math.Max(4, count * 2));
-                entries[count++] = new CollectionSortEntry { Value = entry, Key = key };
+                var keys = new object?[levels.Count];
+                if (previous is not null)
+                    Array.Copy(previous.Keys[cursor.Index], keys, levels.Count - 1);
+                keys[levels.Count - 1] = callback.Project(in cursor, entry);
+                entries.Add((QueryEntry(entry, info.enumEntries), keys));
             }
-            var scratch = new CollectionSortEntry[count];
-            for (int width = 1; width < count; width *= 2)
+            var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
             {
-                for (int start = 0; start < count; start += width * 2)
+                for (int level = 0; level < levels.Count; level++)
                 {
-                    int middle = Math.Min(start + width, count);
-                    int end = Math.Min(start + width * 2, count);
-                    int left = start;
-                    int right = middle;
+                    int order = CompareCollectionKeys(a.keys[level], b.keys[level], levels[level].type);
+                    if (order != 0)
+                        return levels[level].descending ? -order : order;
+                }
+                return 0;
+            });
+            var result = new object?[sorted.Length];
+            var resultKeys = new object?[sorted.Length][];
+            for (int index = 0; index < sorted.Length; index++)
+            {
+                result[index] = sorted[index].value;
+                resultKeys[index] = sorted[index].keys;
+            }
+            orderedResults.Add(result, new OrderedResult { Keys = resultKeys, Levels = levels });
+            return result;
+        }
+
+        private static T[] StableCollectionSort<T>(T[] entries, Comparison<T> compare)
+        {
+            var scratch = new T[entries.Length];
+            for (int width = 1; width < entries.Length; width *= 2)
+            {
+                for (int start = 0; start < entries.Length; start += width * 2)
+                {
+                    int middle = Math.Min(start + width, entries.Length);
+                    int end = Math.Min(start + width * 2, entries.Length);
+                    int left = start, right = middle;
                     for (int destination = start; destination < end; destination++)
                     {
-                        bool useLeft = right >= end;
-                        if (left < middle && right < end)
-                        {
-                            int order = CompareCollectionKeys(entries[left].Key, entries[right].Key, info.keyType);
-                            useLeft = info.op == "OrderBy" ? order <= 0 : order >= 0;
-                        }
-                        if (left >= middle)
-                            useLeft = false;
+                        bool useLeft = left < middle && (right >= end || compare(entries[left], entries[right]) <= 0);
                         scratch[destination] = useLeft ? entries[left++] : entries[right++];
                     }
                 }
                 (entries, scratch) = (scratch, entries);
             }
-            var result = new object?[count];
-            for (int index = 0; index < count; index++)
-                result[index] = QueryEntry(entries[index].Value, info.enumEntries);
-            return result;
+            return entries;
         }
 
         private static int CompareCollectionKeys(object? left, object? right, string? keyType)

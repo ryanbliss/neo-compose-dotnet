@@ -451,6 +451,10 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class FunctionCollectionQueryInfo
     {
+        public bool nullable;
+        public bool enumKey;
+        public Pointer? seedPointer;
+        public FunctionWithReturnType? valueFunction;
         public bool? enumEntries;
         public bool decimalEntries;
         public string op = "";

@@ -322,6 +322,34 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, publications);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SortPreservesStoredIdsAndPublishesOnce(bool unordered)
+        {
+            var schema = Schema(false);
+            ((ListMember)schema.members["names-member"]).ListKind = unordered ? NeoListKind.Unordered : NeoListKind.Ordered;
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            Run(client, NullTypeJson, Call(Names, NamesTypeJson, "save", "Add", Text("a")));
+            var original = unordered ? Array.Empty<string>() : ((ArrayMemberValue)client.saveValues["names"]).value!;
+            int publications = 0;
+            client.OnWritableValuesChanged += _ => publications++;
+            var sort = JObject.Parse(Call(Names, NamesTypeJson, "save", "Sort"));
+            sort["keyType"] = "string";
+            if (unordered)
+            {
+                Assert.Throws<NSGetterRuntimeError>(() => Run(client, NullTypeJson, sort.ToString()));
+                Assert.AreEqual(0, publications);
+            }
+            else
+            {
+                Run(client, NullTypeJson, sort.ToString());
+                CollectionAssert.AreEqual(new[] { "a", "zero" }, StoredNames(client));
+                CollectionAssert.AreEqual(new[] { original[1], original[0] }, ((ArrayMemberValue)client.saveValues["names"]).value);
+                Assert.AreEqual(1, publications);
+                CollectionAssert.AreEqual(new[] { "name-0", original[1] }, original);
+            }
+        }
+
         [Test]
         public void StoredListMutationsInOneExecutionCommitOnce()
         {
