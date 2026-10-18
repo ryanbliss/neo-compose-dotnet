@@ -123,6 +123,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>List / Set / Dictionary only — recursive entry signature.</summary>
         public NeoClassArgumentSignature? entry;
+        public NeoClassArgumentSignature[]? elements;
     }
 
     /// <summary>
@@ -484,6 +485,13 @@ namespace NeoCompose.Runtime
                         continue;
                     CollectReferencedGenericParams(client, argumentMember, seen, result);
                 }
+                return;
+            }
+            if (member is TupleMember tuple)
+            {
+                foreach (string id in tuple.elementMemberIds)
+                    if (client.TryGetMember(id, out Member? element))
+                        CollectReferencedGenericParams(client, element, seen, result);
                 return;
             }
             string? entryMemberId = member switch
@@ -974,6 +982,15 @@ namespace NeoCompose.Runtime
                 resolved.required &= argument.required;
                 return resolved;
             }
+            if (argument.type == MemberKind.Tuple)
+            {
+                TupleElementTypeInfo[] elements = TupleTypeInfo.MapElements(argument.elements!, type => SubstituteNestedTypeInfo(client, type, env));
+                if (ReferenceEquals(elements, argument.elements))
+                    return argument;
+                var substituted = (FunctionArgumentTypeInfo)argument.ShallowClone();
+                substituted.elements = elements;
+                return substituted;
+            }
             if (argument.type == MemberKind.List
                 || argument.type == MemberKind.Set
                 || argument.type == MemberKind.Dictionary
@@ -1079,6 +1096,15 @@ namespace NeoCompose.Runtime
                     return typeInfo;
                 resolved.required &= generic.required;
                 return resolved;
+            }
+            if (typeInfo is TupleTypeInfo tuple)
+            {
+                TupleElementTypeInfo[] elements = TupleTypeInfo.MapElements(tuple.elements, type => SubstituteNestedTypeInfo(client, type, env));
+                if (ReferenceEquals(elements, tuple.elements))
+                    return tuple;
+                var substituted = (TupleTypeInfo)tuple.ShallowClone();
+                substituted.elements = elements;
+                return substituted;
             }
             if (typeInfo is CollectionTypeInfo collection)
             {
@@ -1305,6 +1331,13 @@ namespace NeoCompose.Runtime
                     enumId = signature.enumId!,
                 };
             }
+            if (signature.type == MemberKind.Tuple)
+            {
+                var elements = new TupleElementTypeInfo[signature.elements!.Length];
+                for (int i = 0; i < elements.Length; i++)
+                    elements[i] = new TupleElementTypeInfo { typeInfo = TypeInfoFromArgumentSignature(signature.elements[i]) };
+                return new TupleTypeInfo { type = MemberKind.Tuple, required = signature.required, elements = elements };
+            }
             if (signature.type == MemberKind.List
                 || signature.type == MemberKind.Set
                 || signature.type == MemberKind.Dictionary)
@@ -1402,6 +1435,10 @@ namespace NeoCompose.Runtime
             {
                 argument.enumId = signature.enumId;
             }
+            else if (signature.type == MemberKind.Tuple)
+            {
+                argument.elements = ((TupleTypeInfo)TypeInfoFromArgumentSignature(signature)).elements;
+            }
             else if (signature.type == MemberKind.List
                 || signature.type == MemberKind.Set
                 || signature.type == MemberKind.Dictionary)
@@ -1479,104 +1516,119 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"SignatureOfMember revisited member '{member.id}' — constructed arguments form a reference cycle.");
             }
-            if (member is GenericMember generic)
+            try
             {
-                Member binding = ResolveTerminalBinding(
-                    client,
-                    generic.genericParamId,
-                    generic.name,
-                    env);
-                return SignatureOfMember(client, binding, env, seen);
-            }
-            bool required = member.Requirement == NeoMemberRequirementKind.Required;
-            if (member is EnumMember enumMember)
-            {
-                return new NeoClassArgumentSignature
+                if (member is GenericMember generic)
                 {
-                    type = MemberKind.Enum,
-                    required = required,
-                    enumId = enumMember.enumId,
-                    selection = enumMember.Selection,
-                };
-            }
-            if (member is ClassMember classMember)
-            {
-                var args = new Dictionary<string, NeoClassArgumentSignature>();
-                if (classMember.TypeArguments is not null)
+                    Member binding = ResolveTerminalBinding(
+                        client,
+                        generic.genericParamId,
+                        generic.name,
+                        env);
+                    return SignatureOfMember(client, binding, env, seen);
+                }
+                bool required = member.Requirement == NeoMemberRequirementKind.Required;
+                if (member is EnumMember enumMember)
                 {
-                    foreach (var pair in classMember.TypeArguments)
+                    return new NeoClassArgumentSignature
                     {
-                        args[pair.Key] = SignatureOfBinding(client, pair.Value, env, seen);
+                        type = MemberKind.Enum,
+                        required = required,
+                        enumId = enumMember.enumId,
+                        selection = enumMember.Selection,
+                    };
+                }
+                if (member is ClassMember classMember)
+                {
+                    var args = new Dictionary<string, NeoClassArgumentSignature>();
+                    if (classMember.TypeArguments is not null)
+                    {
+                        foreach (var pair in classMember.TypeArguments)
+                        {
+                            args[pair.Key] = SignatureOfBinding(client, pair.Value, env, seen);
+                        }
                     }
+                    return new NeoClassArgumentSignature
+                    {
+                        type = classMember.TypeKind,
+                        required = required,
+                        classId = classMember.DeclaredClassId,
+                        interfaceId = classMember.DeclaredInterfaceId,
+                        args = args,
+                    };
+                }
+                if (member is TupleMember tuple)
+                {
+                    var elements = new NeoClassArgumentSignature[tuple.elementMemberIds.Length];
+                    for (int i = 0; i < elements.Length; i++)
+                        elements[i] = EntrySignature(client, tuple.elementMemberIds[i], env, seen);
+                    return new NeoClassArgumentSignature { type = MemberKind.Tuple, required = required, elements = elements };
+                }
+                if (member is SetMember setMember)
+                {
+                    return new NeoClassArgumentSignature
+                    {
+                        type = MemberKind.Set,
+                        required = required,
+                        entry = EntrySignature(client, setMember.entryMemberId, env, seen),
+                    };
+                }
+                if (member is ListMember listMember)
+                {
+                    return new NeoClassArgumentSignature
+                    {
+                        type = MemberKind.List,
+                        required = required,
+                        listKind = listMember.ListKind,
+                        entry = EntrySignature(client, listMember.entryMemberId, env, seen),
+                    };
+                }
+                if (member is DictionaryMember dictionaryMember)
+                {
+                    return new NeoClassArgumentSignature
+                    {
+                        type = MemberKind.Dictionary,
+                        required = required,
+                        keyKind = dictionaryMember.KeyKind,
+                        keyEnumId = dictionaryMember.keyEnumId,
+                        entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
+                    };
+                }
+                if (member is LookupMember lookupMember)
+                {
+                    if (lookupMember.declaredTypeInfo is null)
+                    {
+                        throw new System.InvalidOperationException(
+                            $"SignatureOfMember: Lookup '{lookupMember.name}' has no declared type; a type argument can't be a Lookup bound to a collection.");
+                    }
+                    return new NeoClassArgumentSignature
+                    {
+                        type = MemberKind.Lookup,
+                        required = required,
+                        selection = lookupMember.Selection,
+                        target = SubstituteNestedTypeInfo(client, lookupMember.declaredTypeInfo, env),
+                    };
+                }
+                if (member is StringMember stringMember)
+                {
+                    return new NeoClassArgumentSignature
+                    {
+                        type = MemberKind.String,
+                        required = required,
+                        format = stringMember.Format,
+                    };
                 }
                 return new NeoClassArgumentSignature
                 {
-                    type = classMember.TypeKind,
+                    type = member.kind,
                     required = required,
-                    classId = classMember.DeclaredClassId,
-                    interfaceId = classMember.DeclaredInterfaceId,
-                    args = args,
                 };
             }
-            if (member is SetMember setMember)
+            finally
             {
-                return new NeoClassArgumentSignature
-                {
-                    type = MemberKind.Set,
-                    required = required,
-                    entry = EntrySignature(client, setMember.entryMemberId, env, seen),
-                };
+                if (!string.IsNullOrEmpty(member.id))
+                    seen.Remove(member.id);
             }
-            if (member is ListMember listMember)
-            {
-                return new NeoClassArgumentSignature
-                {
-                    type = MemberKind.List,
-                    required = required,
-                    listKind = listMember.ListKind,
-                    entry = EntrySignature(client, listMember.entryMemberId, env, seen),
-                };
-            }
-            if (member is DictionaryMember dictionaryMember)
-            {
-                return new NeoClassArgumentSignature
-                {
-                    type = MemberKind.Dictionary,
-                    required = required,
-                    keyKind = dictionaryMember.KeyKind,
-                    keyEnumId = dictionaryMember.keyEnumId,
-                    entry = EntrySignature(client, dictionaryMember.entryMemberId, env, seen),
-                };
-            }
-            if (member is LookupMember lookupMember)
-            {
-                if (lookupMember.declaredTypeInfo is null)
-                {
-                    throw new System.InvalidOperationException(
-                        $"SignatureOfMember: Lookup '{lookupMember.name}' has no declared type; a type argument can't be a Lookup bound to a collection.");
-                }
-                return new NeoClassArgumentSignature
-                {
-                    type = MemberKind.Lookup,
-                    required = required,
-                    selection = lookupMember.Selection,
-                    target = SubstituteNestedTypeInfo(client, lookupMember.declaredTypeInfo, env),
-                };
-            }
-            if (member is StringMember stringMember)
-            {
-                return new NeoClassArgumentSignature
-                {
-                    type = MemberKind.String,
-                    required = required,
-                    format = stringMember.Format,
-                };
-            }
-            return new NeoClassArgumentSignature
-            {
-                type = member.kind,
-                required = required,
-            };
         }
 
         private static NeoClassArgumentSignature EntrySignature(
@@ -1674,6 +1726,15 @@ namespace NeoCompose.Runtime
                     if (!SignaturesEqual(pair.Value, bArg))
                         return false;
                 }
+                return true;
+            }
+            if (a.type == MemberKind.Tuple)
+            {
+                if (a.elements!.Length != b.elements!.Length)
+                    return false;
+                for (int i = 0; i < a.elements.Length; i++)
+                    if (!SignaturesEqual(a.elements[i], b.elements[i]))
+                        return false;
                 return true;
             }
             if (a.type == MemberKind.List)

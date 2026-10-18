@@ -293,12 +293,12 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions options) =>
             ExpressionContextFor(client, ctx, ExpressionResumeState.Immediate, options);
 
-        private static NeoScriptExecutionResult ReturnResult(object? returnValue, TypeInfo returnTypeInfo) =>
+        private static NeoScriptExecutionResult ReturnResult(object? returnValue, TypeInfo returnTypeInfo, NSGetterEvaluator.Context ctx) =>
             NeoScriptExecutionResult.Completed(
                 returned: true,
-                CoerceReturnValue(returnValue, returnTypeInfo));
+                CoerceReturnValue(returnValue, returnTypeInfo, ctx));
 
-        internal static object? CoerceReturnValue(object? returnValue, TypeInfo returnTypeInfo)
+        internal static object? CoerceReturnValue(object? returnValue, TypeInfo returnTypeInfo, NSGetterEvaluator.Context ctx)
         {
             if (returnTypeInfo.type == MemberKind.Decimal
                 && returnValue is double or float or int or long or short)
@@ -307,7 +307,7 @@ namespace NeoCompose.Runtime
                     returnValue,
                     "return");
             }
-            return NSGetterEvaluator.CoerceNumericBinding(returnValue, returnTypeInfo, "return");
+            return NSGetterEvaluator.CoerceNumericBinding(returnValue, returnTypeInfo, "return", ctx);
         }
 
         /// <summary>
@@ -595,7 +595,7 @@ namespace NeoCompose.Runtime
                                     scope,
                                     actionCtx,
                                     out double number);
-                                CoerceLocalNumeric(ref value, ref number, variable.variable.typeInfo);
+                                CoerceLocalNumeric(ref value, ref number, variable.variable.typeInfo, actionCtx);
                                 value = NSGetterEvaluator.DeclaredRuntimeSet(value, variable.variable.typeInfo, actionCtx);
                                 scope.SetEvaluationValue(variable.variable, value, number);
                                 break;
@@ -634,7 +634,7 @@ namespace NeoCompose.Runtime
                                     returnInstruction.pointer is null
                                         ? null
                                         : Eval(returnInstruction.pointer, scope, actionCtx),
-                                    returnTypeInfo);
+                                    returnTypeInfo, actionCtx);
                             }
                         case InstructionCode.Throw:
                             throw NSGetterEvaluator.AuthoredError(Eval(((ThrowInstruction)instruction).pointer, scope, actionCtx), actionCtx);
@@ -1341,7 +1341,7 @@ namespace NeoCompose.Runtime
                     state.Instruction.binding,
                     CoerceSetterValue(
                         state.Snapshot.Resolve(state.Index, ctx),
-                        state.Instruction.binding.typeInfo));
+                        state.Instruction.binding.typeInfo, ctx));
                 NeoScriptScope bodyScope = state.EnsureBodyScope(
                     scope,
                     state.Instruction.instructions,
@@ -2216,7 +2216,7 @@ namespace NeoCompose.Runtime
                 foreach (Variable binding in instruction.bindings)
                 {
                     object? value = NSGetterEvaluator.EvaluateValue(binding.pointer, scope, ctx, out double number);
-                    CoerceLocalNumeric(ref value, ref number, binding.typeInfo);
+                    CoerceLocalNumeric(ref value, ref number, binding.typeInfo, ctx);
                     value = NSGetterEvaluator.DeclaredRuntimeSet(value, binding.typeInfo, ctx);
                     scope.SetEvaluationValue(binding, value, number);
                 }
@@ -2243,7 +2243,7 @@ namespace NeoCompose.Runtime
             // Existing storage/local IR carries the operator-applied value in
             // `pointer`; only Setter writability needs to re-read its getter
             // because the property has no storage row of its own.
-            object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo);
+            object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo, ctx);
             if (instruction.target.pointer is DerefPointer deref)
                 WriteThrough(client, instruction.target, Eval(deref.pointer, scope, ctx), assigned, scope, ctx);
             else
@@ -2374,7 +2374,7 @@ namespace NeoCompose.Runtime
             target.Write(client, assigned, ctx);
         }
 
-        private static void CoerceLocalNumeric(ref object? value, ref double number, TypeInfo type)
+        private static void CoerceLocalNumeric(ref object? value, ref double number, TypeInfo type, NSGetterEvaluator.Context ctx)
         {
             if (ReferenceEquals(value, NSGetterEvaluator.ArithmeticValue.BareNumber))
             {
@@ -2384,7 +2384,7 @@ namespace NeoCompose.Runtime
                     value = NSGetterEvaluator.CoerceDecimalOperand(number, "local binding");
                 return;
             }
-            value = NSGetterEvaluator.CoerceNumericBinding(value, type, "local binding");
+            value = NSGetterEvaluator.CoerceNumericBinding(value, type, "local binding", ctx);
         }
 
         private static void AssignLocal(
@@ -2406,7 +2406,7 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError(readOnlyError!);
             }
-            CoerceLocalNumeric(ref local, ref number, instruction.target.typeInfo);
+            CoerceLocalNumeric(ref local, ref number, instruction.target.typeInfo, ctx);
             scope.Assign(variablePointer, local, number);
         }
 
@@ -2664,7 +2664,7 @@ namespace NeoCompose.Runtime
                     _ => -1,
                 };
                 if (entryArgument >= 0)
-                    args[entryArgument] = NSGetterEvaluator.CoerceNumericBinding(args[entryArgument], EntryTypeInfo(instruction.target.typeInfo), "collection mutation entry");
+                    args[entryArgument] = NSGetterEvaluator.CoerceNumericBinding(args[entryArgument], EntryTypeInfo(instruction.target.typeInfo), "collection mutation entry", ctx);
                 mutate.Apply(client, instruction, scope, ctx, args);
             }
             finally
@@ -2738,20 +2738,25 @@ namespace NeoCompose.Runtime
                     case Kind.Local:
                         {
                             NSGetterEvaluator.InvalidateCollectionOrdering(subject);
-                            var variable = (VariablePointer)instruction.target.pointer;
+                            var variable = instruction.target.pointer as VariablePointer;
                             if (subject is object?[] list && IsLocalListAdd(instruction))
                             {
                                 // The list a read holds keeps growing in place.
-                                LocalList? held = scope.ReadLocalList(variable);
+                                LocalList? held = variable is null ? null : scope.ReadLocalList(variable);
                                 if (held is not null && held.IsSnapshot(list))
                                     held.Add(args[0]);
                                 else
                                     held = new LocalList(list, args[0], NSGetterEvaluator.CollectionEntryMember(list, ctx), NSGetterEvaluator.HoldsValues(list));
-                                StoreLocalList(scope, variable, held);
+                                NSGetterEvaluator.AdvanceRuntimeList(list, held);
+                                if (variable is not null)
+                                    StoreLocalList(scope, variable, held);
                                 return;
                             }
-                            scope.Assign(variable, MutateLocalCollection(
-                                subject, instruction.target.typeInfo, instruction.mutation, args, instruction.reference, ctx));
+                            object? mutated = MutateLocalCollection(
+                                subject, instruction.target.typeInfo, instruction.mutation, args, instruction.reference, ctx);
+                            NSGetterEvaluator.ReplaceRuntimeList(subject, mutated);
+                            if (variable is not null)
+                                scope.Assign(variable, mutated);
                             return;
                         }
                     case Kind.UnreadList:
@@ -2793,6 +2798,7 @@ namespace NeoCompose.Runtime
                     return CollectionMutation.Target(PendingTarget(client, aliasBatch, pendingAlias, instruction.target.typeInfo));
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
                     throw new NSGetterRuntimeError($"Variable '{variablePointer.variableId}' is not in scope");
+                local = NSGetterEvaluator.RuntimeCollection(local, ctx);
                 if (local is object?[] aliased
                     && NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(aliased, out var origin))
                 {
@@ -2849,6 +2855,14 @@ namespace NeoCompose.Runtime
                 return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
                     evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
                     targetEvaluated: true, keyOfReceiver: receiver));
+            }
+            if (instruction.target.pointer is FunctionPointer)
+            {
+                object? value = Eval(instruction.target.pointer, scope, ctx);
+                if (FindValueId(value, ctx) is null)
+                    return CollectionMutation.Local(value);
+                return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
+                    evaluatedTarget: value, targetEvaluated: true));
             }
             if (instruction.target.pointer is ReferencePointer or StaticMemberPointer
                 && client.PendingScriptWrites is { HasCollections: true } rootBatch
@@ -3183,7 +3197,8 @@ namespace NeoCompose.Runtime
                     object? fallback = NSGetterEvaluator.EvaluateMissingMemberFallback(
                         pointer,
                         receiver,
-                        args);
+                        args,
+                        ctx);
                     return fallback;
                 }
                 string memberId = target.memberId;
@@ -3291,7 +3306,7 @@ namespace NeoCompose.Runtime
             // includes the callGetter read). `operatorValue` is descriptive
             // metadata here, exactly as it is for storage-backed writes; do
             // not apply the operator a second time.
-            object? value = CoerceSetterValue(rhs, instruction.target.typeInfo);
+            object? value = CoerceSetterValue(rhs, instruction.target.typeInfo, ctx);
 
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
@@ -3356,14 +3371,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static object? CoerceSetterValue(object? value, TypeInfo typeInfo)
+        private static object? CoerceSetterValue(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx)
         {
             if (typeInfo.type == MemberKind.Decimal
                 && value is double or float or int or long or short or decimal)
             {
                 return NSGetterEvaluator.CoerceDecimalOperand(value, "setter value");
             }
-            return NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "setter value");
+            return NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "setter value", ctx);
         }
 
         /// <summary>
@@ -4344,7 +4359,8 @@ namespace NeoCompose.Runtime
         private sealed class LookupAdmissionEntries
         {
             internal readonly HashSet<string> Ids = new();
-            internal readonly Dictionary<object, string> Values = new(NSGetterEvaluator.JsValueComparer.Instance);
+            internal readonly Dictionary<object, string> Values;
+            internal LookupAdmissionEntries(NSGetterEvaluator.Context ctx) => Values = new(new NSGetterEvaluator.JsValueComparer(ctx));
             internal string? NullId;
         }
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<NeoScriptAllocationTracker, LookupAdmissionIndex> lookupAdmissions = new();
@@ -4360,7 +4376,7 @@ namespace NeoCompose.Runtime
             }
             if (cache.Collections.TryGetValue(collection.id, out var existing))
                 return existing;
-            var index = new LookupAdmissionEntries();
+            var index = new LookupAdmissionEntries(ctx);
             JsonMember? entryMember = client.TryResolveCollectionEntryMember(member, collection);
             foreach (string childId in NeoMemberLookup.ResolveCollectionEntryIds(client, member, collection))
             {
@@ -4459,7 +4475,8 @@ namespace NeoCompose.Runtime
                 }
                 var arrayList = new List<object?>(array);
                 MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
-                object?[] mutated = arrayList.ToArray();
+                var mutated = new object?[arrayList.Count];
+                arrayList.CopyTo(mutated);
                 return NSGetterEvaluator.KeepDerived(mutated, entryMember, values);
             }
             if (local is List<object?> list)
@@ -4519,7 +4536,7 @@ namespace NeoCompose.Runtime
                             object? entry = entryMember is null
                                 ? list[i]
                                 : NSGetterEvaluator.ResolveValueIfId(list[i], ctx, member: entryMember);
-                            if (!NSGetterEvaluator.CollectionValueEqual(entry, args[0], decimalEntries))
+                            if (!NSGetterEvaluator.CollectionValueEqual(entry, args[0], decimalEntries, ctx))
                                 continue;
                         }
                         list.RemoveAt(i);
@@ -5865,7 +5882,7 @@ namespace NeoCompose.Runtime
                                 ? StoresTarget(client, entryId, slotTarget)
                                 : entryId == removeId || (removeId is null && !reference
                                     && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                    && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0], list.EntryMember is DecimalMember)))
+                                    && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0], list.EntryMember is DecimalMember, ctx)))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -6017,7 +6034,7 @@ namespace NeoCompose.Runtime
                                     : list[i] == referenceId
                                         || !reference
                                             && client.TryGetValue(list[i], out MemberValue? child)
-                                            && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember);
+                                            && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember, ctx);
                                 if (!match)
                                     continue;
                                 batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
@@ -6052,7 +6069,7 @@ namespace NeoCompose.Runtime
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 if (member is not ClassMember)
-                    return list.FindSetEntry(NeoSetEntryKey.OfPayload(member, value), member, batch.Plan);
+                    return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx), member, batch.Plan);
                 referenceId ??= value is null ? null : FindValueId(value, ctx);
                 return referenceId is not null && list.Contains(referenceId) ? referenceId : null;
             }

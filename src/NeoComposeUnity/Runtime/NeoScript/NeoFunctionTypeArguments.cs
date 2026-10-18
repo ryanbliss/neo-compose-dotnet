@@ -76,6 +76,10 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (typeInfo)
             {
+                case TupleTypeInfo tuple:
+                    foreach (TupleElementTypeInfo element in tuple.elements)
+                        yield return element.typeInfo;
+                    break;
                 case CollectionTypeInfo collection:
                     yield return collection.entryTypeInfo;
                     break;
@@ -103,6 +107,9 @@ namespace NeoCompose.Runtime.NeoScript
                         yield return argument;
                     break;
                 case FunctionArgumentTypeInfo argument:
+                    if (argument.elements is not null)
+                        foreach (TupleElementTypeInfo element in argument.elements)
+                            yield return element.typeInfo;
                     if (argument.entryTypeInfo is not null)
                         yield return argument.entryTypeInfo;
                     if (argument.returnTypeInfo is not null)
@@ -136,6 +143,15 @@ namespace NeoCompose.Runtime.NeoScript
                 return Required(Lookup(table, generic.index), typeInfo.required);
             switch (typeInfo)
             {
+                case TupleTypeInfo tuple:
+                    {
+                        TupleElementTypeInfo[] elements = TupleTypeInfo.MapElements(tuple.elements, type => Bind(type, table));
+                        if (ReferenceEquals(elements, tuple.elements))
+                            return typeInfo;
+                        var bound = (TupleTypeInfo)tuple.ShallowClone();
+                        bound.elements = elements;
+                        return bound;
+                    }
                 case CollectionTypeInfo collection:
                     {
                         TypeInfo entry = Bind(collection.entryTypeInfo, table);
@@ -225,6 +241,7 @@ namespace NeoCompose.Runtime.NeoScript
                 bound.defaultValue = argument.defaultValue;
                 return bound;
             }
+            TupleElementTypeInfo[]? elements = argument.elements is null ? null : TupleTypeInfo.MapElements(argument.elements, type => Bind(type, table));
             TypeInfo? entry = argument.entryTypeInfo is null ? null : Bind(argument.entryTypeInfo, table);
             TypeInfo? returnTypeInfo = argument.returnTypeInfo is null ? null : Bind(argument.returnTypeInfo, table);
             TypeInfo[]? argumentTypes = argument.argumentTypes is null ? null : BindList(argument.argumentTypes, table);
@@ -232,7 +249,8 @@ namespace NeoCompose.Runtime.NeoScript
                 ? null
                 : BindMap(argument.typeArguments, table);
             TypeInfo? target = argument.targetTypeInfo is null ? null : Bind(argument.targetTypeInfo, table);
-            if (ReferenceEquals(entry, argument.entryTypeInfo)
+            if (ReferenceEquals(elements, argument.elements)
+                && ReferenceEquals(entry, argument.entryTypeInfo)
                 && ReferenceEquals(returnTypeInfo, argument.returnTypeInfo)
                 && ReferenceEquals(argumentTypes, argument.argumentTypes)
                 && ReferenceEquals(target, argument.targetTypeInfo)
@@ -241,6 +259,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return argument;
             }
             var clone = (FunctionArgumentTypeInfo)argument.ShallowClone();
+            clone.elements = elements;
             clone.entryTypeInfo = entry;
             clone.returnTypeInfo = returnTypeInfo;
             clone.argumentTypes = argumentTypes;
@@ -267,6 +286,9 @@ namespace NeoCompose.Runtime.NeoScript
             };
             switch (typeInfo)
             {
+                case TupleTypeInfo tuple:
+                    argument.elements = tuple.elements;
+                    break;
                 case ClassTypeInfo classType:
                     argument.classId = classType.classId;
                     argument.typeArguments = classType.typeArguments;

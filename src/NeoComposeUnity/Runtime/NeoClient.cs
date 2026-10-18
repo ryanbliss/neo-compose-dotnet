@@ -2365,6 +2365,9 @@ namespace NeoCompose.Runtime
             {
                 switch (candidate)
                 {
+                    case TupleMember tuple:
+                        entryTemplateIds.UnionWith(tuple.elementMemberIds);
+                        break;
                     case ListMember list:
                         entryTemplateIds.Add(list.entryMemberId);
                         break;
@@ -4677,6 +4680,18 @@ namespace NeoCompose.Runtime
                                 return false;
                             case EntriesStage:
                                 string[] entries = ((ArrayMemberValue)row).value!;
+                                if (sourceMember is TupleMember tuple)
+                                {
+                                    if (index >= entries.Length)
+                                    {
+                                        stage = DoneStage;
+                                        return false;
+                                    }
+                                    Member child = client.TryResolveTupleElementMember(tuple, row, index)
+                                        ?? throw new InvalidOperationException($"Tuple '{tuple.name}' element {index + 1} has no member descriptor.");
+                                    current = (entries[index++], child);
+                                    return true;
+                                }
                                 if (index == 0)
                                 {
                                     entryMember = sourceMember is LookupMember
@@ -4702,6 +4717,16 @@ namespace NeoCompose.Runtime
                 {
                 }
             }
+        }
+
+        internal Member? TryResolveTupleElementMember(TupleMember tuple, MemberValue? row, int index)
+        {
+            if ((uint)index >= (uint)tuple.elementMemberIds.Length)
+                return null;
+            if (!TryGetMember(tuple.elementMemberIds[index], out Member? member))
+                return null;
+            var env = NeoGenericResolution.CollectionEntryEnv(this, tuple, row, row is null);
+            return env is null ? member : NeoGenericResolution.SubstituteMember(this, member, env);
         }
 
         internal Member? TryResolveOwnedChildMember(
@@ -4960,7 +4985,7 @@ namespace NeoCompose.Runtime
             member = ResolveOwnedMemberType(parent, sourceMember, parent.classId!, parameter.member);
             childValueId = token.Value<string>();
             if (string.IsNullOrWhiteSpace(childValueId)
-                || member is not (ClassMember or ListMember or DictionaryMember))
+                || member is not (ClassMember or ListMember or DictionaryMember or TupleMember))
             {
                 childValueId = null;
                 member = null;
@@ -5218,6 +5243,13 @@ namespace NeoCompose.Runtime
                                 return true;
                             }
                         }
+                    }
+                    else if (parent.Value is ArrayMemberValue { value: not null } tupleRow
+                        && ParentMember() is TupleMember tuple
+                        && TryResolveTupleElementMember(tuple, tupleRow, System.Array.IndexOf(tupleRow.value, valueId)) is Member element)
+                    {
+                        member = element;
+                        return true;
                     }
                     else if (parent.Value is ArrayMemberValue
                         && TryResolveCollectionEntryMember(ParentMember(), parent.Value) is Member entry)
@@ -8880,6 +8912,17 @@ namespace NeoCompose.Runtime
                 return left is null && right is null;
             if (left.type != right.type || left.required != right.required)
                 return false;
+            if (left.type == MemberKind.Tuple)
+            {
+                var a = TupleTypeInfo.From(left)?.elements;
+                var b = TupleTypeInfo.From(right)?.elements;
+                if (a is null || b is null || a.Length != b.Length)
+                    return false;
+                for (int i = 0; i < a.Length; i++)
+                    if (!TypeInfoMatches(a[i].typeInfo, b[i].typeInfo))
+                        return false;
+                return true;
+            }
             return (left, right) switch
             {
                 (FunctionArgumentTypeInfo a, FunctionArgumentTypeInfo b) =>

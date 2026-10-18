@@ -529,7 +529,7 @@ namespace NeoCompose.Runtime
             {
                 if (!setPlan!.TryGet(Ownership, id, out MemberValue? entry))
                     throw new NSGetterRuntimeError($"Set '{Row.id}' entry '{id}' has no row.");
-                return NeoSetEntryKey.Of(setEntryMember!, entry!);
+                return NeoSetEntryKey.Of(setEntryMember!, entry!, setPlan.Client, id => setPlan.TryGet(Ownership, id, out MemberValue? child) ? child : null);
             }
 
             private void ForgetSetEntry(string id)

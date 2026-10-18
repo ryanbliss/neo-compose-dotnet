@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
 {
@@ -140,7 +141,7 @@ namespace NeoCompose.Runtime
             if (value is null
                 || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Asset))
                 return;
-            if (ReferencesUserRow(value, 0))
+            if (ReferencesUserRow(value))
                 throw ScriptOperationFailure(SaveHoldsUserReferenceError);
         }
 
@@ -156,18 +157,35 @@ namespace NeoCompose.Runtime
                     CheckDelegateReferences(ownership, listener);
         }
 
-        private bool ReferencesUserRow(NeoDelegateValue value, int depth)
+        private bool ReferencesUserRow(NeoDelegateValue value)
         {
-            if (value.valueId is string receiverId && IsUserRow(receiverId))
-                return true;
-            if (value.captures is null || depth > 64)
-                return false;
-            foreach (object? capture in value.captures)
+            var pending = new Stack<object>();
+            var seen = new HashSet<object>(NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+            pending.Push(value);
+            while (pending.Count > 0)
             {
-                if (capture is NeoDelegateValue nested && ReferencesUserRow(nested, depth + 1))
+                object current = pending.Pop();
+                if (!seen.Add(current))
+                    continue;
+                if (current is INeoValueReference { valueId: string id } && IsUserRow(id))
                     return true;
-                if (capture is INeoValueReference { valueId: string id } && IsUserRow(id))
+                if (current is NSSlotReference slot && IsUserRow(slot.TargetId))
                     return true;
+                IEnumerable<object?>? children = current switch
+                {
+                    NeoDelegateValue closure => closure.captures,
+                    RuntimeSet set => set.Snapshot(),
+                    IDictionary<string, object?> entries => entries.Values,
+                    IEnumerable<object?> entries => entries,
+                    _ => null,
+                };
+                if (current is NeoDelegateValue { valueId: string receiverId } && IsUserRow(receiverId))
+                    return true;
+                if (children is null)
+                    continue;
+                foreach (object? child in children)
+                    if (child is not null)
+                        pending.Push(child);
             }
             return false;
         }

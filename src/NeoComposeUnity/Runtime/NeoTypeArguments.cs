@@ -114,10 +114,27 @@ namespace NeoCompose.Runtime
                 return new InterfaceTypeInfo { type = MemberKind.Interface, interfaceId = interfaceId, required = true };
             if (PrimitiveKinds.TryGetValue(type, out MemberKind kind))
                 return new PrimitiveTypeInfo { type = kind, required = true };
+            if (Nullable.GetUnderlyingType(type) is { } underlying)
+            {
+                TypeInfo nullable = Of(underlying).ShallowClone();
+                nullable.required = false;
+                return nullable;
+            }
             if (type.IsGenericType)
             {
                 Type definition = type.GetGenericTypeDefinition();
                 Type[] arguments = type.GetGenericArguments();
+                if (typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(type) && type.IsValueType)
+                {
+                    var types = new List<TypeInfo>();
+                    AddTupleElements(type, types);
+                    if (types.Count < 2)
+                        throw new NeoTypeArgumentException("A NeoScript tuple requires at least two elements.");
+                    var elements = new TupleElementTypeInfo[types.Count];
+                    for (int i = 0; i < elements.Length; i++)
+                        elements[i] = new TupleElementTypeInfo { typeInfo = types[i] };
+                    return new TupleTypeInfo { type = MemberKind.Tuple, required = true, elements = elements };
+                }
                 if (interfaceIds.TryGetValue(definition, out string? genericInterfaceId))
                     return ConstructedInterface(type, genericInterfaceId, arguments);
                 if (definition == typeof(IReadOnlyList<>))

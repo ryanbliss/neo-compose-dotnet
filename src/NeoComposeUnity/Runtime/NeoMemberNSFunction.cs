@@ -1099,6 +1099,8 @@ namespace NeoCompose.Runtime
         /// <summary>Whether <paramref name="typeInfo"/> names a receiver class's generic parameter.</summary>
         internal static bool ContainsGeneric(TypeInfo typeInfo)
         {
+            if (TupleTypeInfo.From(typeInfo) is { } tuple)
+                return Array.Exists(tuple.elements, element => ContainsGeneric(element.typeInfo));
             // A function's own type parameter binds per call, not per receiver.
             if (typeInfo.type == MemberKind.Generic)
                 return !NeoFunctionTypeArguments.IsFunctionGeneric(typeInfo);
@@ -1143,6 +1145,7 @@ namespace NeoCompose.Runtime
             {
                 FunctionArgumentTypeInfo argument => argument.typeArguments,
                 ClassTypeInfo classType => classType.typeArguments,
+                InterfaceTypeInfo interfaceType => interfaceType.typeArguments,
                 _ => null,
             };
             if (typeArguments is null)
@@ -1245,6 +1248,17 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             HashSet<string> visitingMembers)
         {
+            if (TupleTypeInfo.From(typeInfo) is { } tuple)
+            {
+                TupleElementTypeInfo[] elements = TupleTypeInfo.MapElements(tuple.elements,
+                    element => ResolveInvocationTypeInfo(client, element, genericEnv, visitingMembers));
+                return ReferenceEquals(elements, tuple.elements) ? tuple : new TupleTypeInfo
+                {
+                    type = MemberKind.Tuple,
+                    required = tuple.required,
+                    elements = elements,
+                };
+            }
             if (typeInfo.type == MemberKind.Generic)
             {
                 string? genericParamId = typeInfo switch
@@ -1538,6 +1552,26 @@ namespace NeoCompose.Runtime
                             required = enumMember.Requirement == NeoMemberRequirementKind.Required,
                             enumId = enumMember.enumId,
                         };
+                    case TupleMember tuple:
+                        {
+                            var elements = new TupleElementTypeInfo[tuple.elementMemberIds.Length];
+                            for (int i = 0; i < elements.Length; i++)
+                            {
+                                if (!client.TryGetMember(tuple.elementMemberIds[i], out JsonMember? element))
+                                    throw new NSGetterRuntimeError($"Tuple binding member '{tuple.id}' references missing element '{tuple.elementMemberIds[i]}'.");
+                                elements[i] = new TupleElementTypeInfo
+                                {
+                                    name = element.name == $"Item{i + 1}" ? null : element.name,
+                                    typeInfo = TypeInfoFromBindingMember(client, element, genericEnv, visitingMembers),
+                                };
+                            }
+                            return new TupleTypeInfo
+                            {
+                                type = MemberKind.Tuple,
+                                required = tuple.Requirement == NeoMemberRequirementKind.Required,
+                                elements = elements,
+                            };
+                        }
                     case ListMember list:
                         return CollectionBindingTypeInfo(
                             client,
@@ -2019,6 +2053,9 @@ namespace NeoCompose.Runtime
 
             switch (typeInfo.type)
             {
+                case MemberKind.Tuple:
+                    value = NormalizeTuple(client, ownership, value, typeInfo, ctx, subject);
+                    break;
                 case MemberKind.Decimal:
                     if (value is decimal decimalValue)
                         value = NeoDecimalValues.Format(decimalValue);
@@ -2116,6 +2153,28 @@ namespace NeoCompose.Runtime
             return value;
         }
 
+        private static RuntimeTuple NormalizeTuple(
+            NeoClient client, NeoValueOwnership ownership, object value, TypeInfo typeInfo,
+            NSGetterEvaluator.Context ctx, ValueSubject subject)
+        {
+            TupleTypeInfo tupleType = TupleTypeInfo.From(typeInfo)
+                ?? throw new InvalidOperationException($"Tuple {subject} has no element type information.");
+            if (value is RuntimeTuple runtime)
+                return (RuntimeTuple)NSGetterEvaluator.CoerceNumericBinding(runtime, tupleType, subject.ToString(), ctx)!;
+            object?[]? captured = value is IDictionary<string, object?> record && record.TryGetValue("elements", out object? entries)
+                ? entries as object?[] : null;
+            var tuple = value as System.Runtime.CompilerServices.ITuple;
+            if (captured is null && (tuple is null || !value.GetType().IsValueType))
+                throw new InvalidOperationException($"Tuple {subject} requires a C# value tuple or serialized tuple capture.");
+            int count = captured?.Length ?? tuple!.Length;
+            if (count != tupleType.elements.Length)
+                throw new InvalidOperationException($"Tuple {subject} has {count} elements; expected {tupleType.elements.Length}.");
+            var elements = new object?[count];
+            for (int i = 0; i < elements.Length; i++)
+                elements[i] = Normalize(client, ownership, captured is null ? tuple![i] : captured[i], tupleType.elements[i].typeInfo, ctx, subject.Entry(i));
+            return new RuntimeTuple(elements, tupleType);
+        }
+
         internal static void ValidateRuntimeValue(
             object? value,
             TypeInfo typeInfo,
@@ -2134,6 +2193,7 @@ namespace NeoCompose.Runtime
             bool valid = typeInfo.type switch
             {
                 MemberKind.Null => false,
+                MemberKind.Tuple => value is RuntimeTuple,
                 MemberKind.Bool => value is bool,
                 MemberKind.Int => IsIntegralNumber(value),
                 MemberKind.Float => IsNumber(value),
@@ -2233,6 +2293,12 @@ namespace NeoCompose.Runtime
 
             switch (typeInfo.type)
             {
+                case MemberKind.Tuple:
+                    if (value is not RuntimeTuple tuple || TupleTypeInfo.From(typeInfo) is not { } tupleType)
+                        throw new InvalidOperationException($"Tuple {subject} is malformed.");
+                    for (int index = 0; index < tuple.Count; index++)
+                        ValidateResolvedIdentity(client, tuple[index], tupleType.elements[index].typeInfo, ctx, subject.Entry(index));
+                    return;
                 case MemberKind.Class:
                     {
                         string? expectedClassId = typeInfo switch

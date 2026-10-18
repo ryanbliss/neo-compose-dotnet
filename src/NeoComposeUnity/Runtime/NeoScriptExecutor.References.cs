@@ -670,6 +670,9 @@ namespace NeoCompose.Runtime
                     case NSSlotReference reference:
                         AssertReferenceLifetime(subject, holder, reference.TargetId, ctx);
                         break;
+                    case RuntimeTuple tuple:
+                        VisitCaptures(tuple, subject, holder, ctx);
+                        break;
                     case RuntimeSet set:
                         VisitCaptures(set.Snapshot(), subject, holder, ctx);
                         break;

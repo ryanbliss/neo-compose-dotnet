@@ -87,6 +87,7 @@ namespace NeoCompose.Runtime.Json
         /// normalizes to the handle's own type-info.
         /// </summary>
         Reference = 29,
+        Tuple = 30,
         Unknown = -1,
         Void = -2,
     }

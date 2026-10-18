@@ -327,6 +327,12 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(dialogue.info.dialogueIdPointer, predicate)
                         || (dialogue.info.onFinishPointer is not null
                             && AnyPointer(dialogue.info.onFinishPointer, predicate));
+                case TupleCreateFunction tuple:
+                    return AnyPointer(tuple.info.elementPointers, predicate);
+                case TupleElementFunction tuple:
+                    return AnyPointer(tuple.info.tuplePointer, predicate);
+                case TupleEqualFunction tuple:
+                    return AnyPointer(tuple.info.left, predicate) || AnyPointer(tuple.info.right, predicate);
                 case VectorConstructorFunction vector:
                     return AnyPointer(vector.info.componentPointers, predicate);
                 case ImageSliceFunction slice:

@@ -165,6 +165,9 @@ namespace NeoCompose.Runtime.Json
         public const string DialogueGroup = "dialogueGroup";
         /// <summary>P105 §2.5 — a request for a dialogue by id.</summary>
         public const string Dialogue = "dialogue";
+        public const string TupleCreate = "tupleCreate";
+        public const string TupleElement = "tupleElement";
+        public const string TupleEqual = "tupleEqual";
         public const string VectorConstructor = "vectorConstructor";
         /// <summary>P42 §2.3 — <c>Images.&lt;Name&gt;.Slice(n)</c>.</summary>
         public const string ImageSlice = "imageSlice";

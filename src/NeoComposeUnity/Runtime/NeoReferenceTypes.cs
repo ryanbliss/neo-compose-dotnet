@@ -50,6 +50,7 @@ namespace NeoCompose.Runtime
                 case MemberKind.Dictionary:
                 case MemberKind.Lookup:
                     return NeoReferenceCategory.Handle;
+                case MemberKind.Tuple:
                 case MemberKind.Bool:
                 case MemberKind.Int:
                 case MemberKind.String:
@@ -174,6 +175,23 @@ namespace NeoCompose.Runtime
                             required = required,
                             entryTypeInfo = Primitive(MemberKind.DialogueLookup, true),
                         };
+                    }
+                case TupleMember tuple:
+                    {
+                        var elements = new TupleElementTypeInfo[tuple.elementMemberIds.Length];
+                        for (int i = 0; i < elements.Length; i++)
+                        {
+                            string id = tuple.elementMemberIds[i];
+                            TypeInfo? element = NestedSlotTypeInfo(client, id, env, seen);
+                            if (element is null || !client.TryGetMember(id, out Member? descriptor))
+                                return null;
+                            elements[i] = new TupleElementTypeInfo
+                            {
+                                typeInfo = element,
+                                name = descriptor.name == $"Item{i + 1}" ? null : descriptor.name,
+                            };
+                        }
+                        return new TupleTypeInfo { type = MemberKind.Tuple, required = required, elements = elements };
                     }
                 case ListMember list:
                     {
@@ -357,6 +375,17 @@ namespace NeoCompose.Runtime
                 return false;
             switch (left.type)
             {
+                case MemberKind.Tuple:
+                    {
+                        TupleTypeInfo? a = TupleTypeInfo.From(left);
+                        TupleTypeInfo? b = TupleTypeInfo.From(right);
+                        if (a is null || b is null || a.elements.Length != b.elements.Length)
+                            return false;
+                        for (int i = 0; i < a.elements.Length; i++)
+                            if (!InvariantlyEqual(a.elements[i].typeInfo, b.elements[i].typeInfo))
+                                return false;
+                        return true;
+                    }
                 case MemberKind.Class:
                     {
                         if (ClassIdOf(left) != ClassIdOf(right))

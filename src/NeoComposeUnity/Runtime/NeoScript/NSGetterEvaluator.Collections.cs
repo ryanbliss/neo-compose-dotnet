@@ -13,8 +13,60 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], RuntimeSet> runtimeSets = new();
 
-        internal static object? RuntimeCollection(object? value, Context ctx) =>
-            value is object?[] array && runtimeSets.TryGetValue(array, out var set) ? set : value;
+        private sealed class RuntimeListIdentity
+        {
+            internal readonly object?[] origin;
+            internal object?[] current;
+            internal LocalList? growing;
+
+            internal RuntimeListIdentity(object?[] origin)
+            {
+                this.origin = origin;
+                current = origin;
+            }
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], RuntimeListIdentity> runtimeLists = new();
+
+        internal static object? RuntimeCollection(object? value, Context ctx)
+        {
+            if (value is not object?[] array)
+                return value;
+            if (runtimeSets.TryGetValue(array, out var set))
+                return set;
+            return runtimeLists.TryGetValue(array, out var list)
+                ? list.growing?.Snapshot() ?? list.current
+                : array;
+        }
+
+        internal static void CaptureRuntimeList(object?[] list) =>
+            runtimeLists.GetValue(list, array => new RuntimeListIdentity(array));
+
+        internal static void AdvanceRuntimeList(object?[] previous, LocalList growing)
+        {
+            if (!runtimeLists.TryGetValue(previous, out RuntimeListIdentity identity))
+                return;
+            identity.growing = growing;
+            growing.IdentityOrigin = identity.origin;
+        }
+
+        internal static void LinkRuntimeListSnapshot(object?[] origin, object?[] snapshot)
+        {
+            RuntimeListIdentity identity = runtimeLists.GetValue(origin, array => new RuntimeListIdentity(array));
+            identity.current = snapshot;
+            runtimeLists.AddOrUpdate(snapshot, identity);
+        }
+
+        internal static void ReplaceRuntimeList(object? previous, object? next)
+        {
+            if (previous is not object?[] before || next is not object?[] after)
+                return;
+            if (!runtimeLists.TryGetValue(before, out RuntimeListIdentity identity))
+                return;
+            identity.growing = null;
+            identity.current = after;
+            runtimeLists.AddOrUpdate(after, identity);
+        }
 
         internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false)
         {
@@ -22,7 +74,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (cache && sets.TryGetValue(source, out var existing))
                 return existing;
             var set = new RuntimeSet(source, reference, enumEntries, decimalEntries,
-                reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
+                reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
             var cursor = new CollectionCursor(source, ctx);
             while (cursor.MoveNextUnresolved())
             {
@@ -250,7 +302,7 @@ namespace NeoCompose.Runtime.NeoScript
                             break;
                         case "Distinct":
                         case "ToSet":
-                            seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : JsValueComparer.Instance);
+                            seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
                             object? setKey = info.reference && entry is not null
                                 ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
                                 : entry;
@@ -320,16 +372,19 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal sealed class JsValueComparer : IEqualityComparer<object?>
         {
-            internal static readonly JsValueComparer Instance = new();
+            private readonly Context context;
+            internal JsValueComparer(Context context) => this.context = context;
 
-            bool IEqualityComparer<object?>.Equals(object? x, object? y) => JsEqual(x, y);
+            bool IEqualityComparer<object?>.Equals(object? x, object? y) => JsEqual(x, y, context);
 
             int IEqualityComparer<object?>.GetHashCode(object? value) => Hash(value);
 
-            private static int Hash(object? value)
+            internal int Hash(object? value)
             {
                 switch (value)
                 {
+                    case RuntimeTuple tuple:
+                        return TupleHash(tuple, context, this);
                     case null:
                         return 0;
                     case string text:

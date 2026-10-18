@@ -946,6 +946,11 @@ namespace NeoCompose.Runtime.Json
     /// <c>object?</c>. Defaults belong to this declaration; nullability comes
     /// from the binding type.
     /// </summary>
+    public sealed class TupleMember : Member<string[]?>
+    {
+        public string[] elementMemberIds = null!;
+    }
+
     public sealed class GenericMember : Member<object?>
     {
         /// <summary>Id of a generic param in this member's placement scope.</summary>
@@ -1146,6 +1151,7 @@ namespace NeoCompose.Runtime.Json
         public string? interfaceId;
         public string? enumId;
         public TypeInfo? entryTypeInfo;
+        public TupleElementTypeInfo[]? elements;
         public string? collectionMemberId;
         public string? collectionValueId;
         public string? keyEnumId;
@@ -1199,6 +1205,9 @@ namespace NeoCompose.Runtime.Json
                     $"Type '{typeToken}' is not valid for a Function argument.");
             }
 
+            TupleElementTypeInfo[]? elements = json["elements"]?.ToObject<TupleElementTypeInfo[]>(serializer);
+            if (type == MemberKind.Tuple)
+                TupleTypeInfo.ValidateElements(elements);
             return new FunctionArgumentTypeInfo
             {
                 name = json.Value<string>("name") ?? throw new JsonSerializationException(
@@ -1210,6 +1219,7 @@ namespace NeoCompose.Runtime.Json
                 interfaceId = json.Value<string>("interfaceId"),
                 enumId = json.Value<string>("enumId"),
                 entryTypeInfo = json["entryTypeInfo"]?.ToObject<TypeInfo>(serializer),
+                elements = elements,
                 collectionMemberId = json.Value<string>("collectionMemberId"),
                 collectionValueId = json.Value<string>("collectionValueId"),
                 keyEnumId = json.Value<string>("keyEnumId"),
@@ -1683,6 +1693,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ListMember);
                 case MemberKind.Set:
                     return typeof(SetMember);
+                case MemberKind.Tuple:
+                    return typeof(TupleMember);
                 case MemberKind.Class:
                     return typeof(ClassMember);
                 case MemberKind.Enum:

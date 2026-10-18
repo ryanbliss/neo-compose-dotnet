@@ -14,6 +14,8 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NeoScriptPreExecutionValidationError("Structured error belongs to another NeoClient.");
                 return view.PendingValue ?? ResolveValueIfId(view.valueId, ctx)!;
             }
+            if (payload.Value is NeoObjectRecord row && !ReferenceEquals(row.referenceIndex, ctx.rowReverseIndex))
+                return ResolveValueIfId(row.valueId, ctx, row.valueOwnership)!;
             if (payload.Value is { } value)
                 return value;
             if (!ctx.client.TryGetClass(payload.ClassId, out NeoSchemaClass? schemaClass))
@@ -60,25 +62,15 @@ namespace NeoCompose.Runtime.NeoScript
             return failure;
         }
 
-        internal static TypeInfo ClosedCatchType(TypeInfo type, Context ctx)
-        {
-            if (ctx.functionTypeArguments is { } arguments)
-                type = NeoFunctionTypeArguments.Bind(type, arguments);
-            if (NamesClassTypeParameter(type) && ctx.thisValue is { } receiver)
-                type = NeoGenericResolution.SubstituteTypeInfo(ctx.client, type,
-                    NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, receiver, ctx, "A catch type"));
-            return type;
-        }
-
         internal static bool MatchesError(NSGetterRuntimeError error, TypeInfo type, Context ctx) =>
-            ClosedCatchType(type, ctx).type == MemberKind.String || RuntimeTypeCheck(ErrorValue(error.Payload, ctx), ClosedCatchType(type, ctx), ctx);
+            CloseContextType(type, ctx).type == MemberKind.String || RuntimeTypeCheck(ErrorValue(error.Payload, ctx), CloseContextType(type, ctx), ctx);
 
         internal static void ValidateCatchTypes(TryInstruction instruction, Context ctx)
         {
             var covered = new List<TypeInfo>();
             foreach (CatchClause clause in instruction.catches)
             {
-                TypeInfo type = ClosedCatchType(clause.binding.typeInfo, ctx);
+                TypeInfo type = CloseContextType(clause.binding.typeInfo, ctx);
                 if (type.type != MemberKind.String && (type is not ClassTypeInfo errorType ||
                     !ErrorClassExtends(errorType.classId, NeoErrorContract.NeoError, ctx)))
                     throw new NeoScriptPreExecutionValidationError("Catch type must derive from NeoError.");

@@ -264,7 +264,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>The P108 §3 key a value-kind entry built from <paramref name="payload"/> would hold.</summary>
         internal string SetEntryKeyOf(NeoValueWritePayload? payload) =>
-            NeoSetEntryKey.OfPayload(entryMember, payload?.value);
+            NeoSetEntryKey.OfPayload(entryMember, payload?.value, client);
 
         /// <summary>The P108 §3 key of one of this list's entries.</summary>
         internal string SetEntryKeyOfEntry(NeoMember child)
@@ -273,7 +273,7 @@ namespace NeoCompose.Runtime
                 return EntryValueId(child);
             MemberValue row = child.value ?? throw new InvalidOperationException(
                 $"Entry '{EntryValueId(child)}' of Set member '{member.id}' has no value row.");
-            return NeoSetEntryKey.Of(entryMember, row);
+            return NeoSetEntryKey.Of(entryMember, row, client);
         }
 
         private void EnsureSetKeyIndex()
@@ -286,7 +286,7 @@ namespace NeoCompose.Runtime
             {
                 if (child.value is null)
                     continue;
-                string key = NeoSetEntryKey.Of(entryMember, child.value);
+                string key = NeoSetEntryKey.Of(entryMember, child.value, client);
                 string id = EntryValueId(child);
                 byValueId[id] = key;
                 byKey.TryAdd(key, id);
@@ -308,7 +308,7 @@ namespace NeoCompose.Runtime
             EnsureIdentityIndex();
             if (!childrenByValueId!.TryGetValue(valueId, out NeoMember? child) || child.value is null)
                 return;
-            string key = NeoSetEntryKey.Of(entryMember, child.value);
+            string key = NeoSetEntryKey.Of(entryMember, child.value, client);
             setKeysByValueId![valueId] = key;
             valueIdsBySetKey!.TryAdd(key, valueId);
         }

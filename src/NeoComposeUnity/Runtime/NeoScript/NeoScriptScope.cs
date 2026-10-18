@@ -328,6 +328,7 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly Member? entryMember;
         private readonly bool values;
         private object?[]? snapshot;
+        internal object?[]? IdentityOrigin;
 
         /// <summary><paramref name="list"/> with <paramref name="entry"/> added.</summary>
         internal LocalList(object?[] list, object? entry, Member? entryMember, bool values)
@@ -369,6 +370,8 @@ namespace NeoCompose.Runtime.NeoScript
                 Array.Copy(entries, exact, count);
             }
             NSGetterEvaluator.KeepDerived(exact, entryMember, values);
+            if (IdentityOrigin is not null)
+                NSGetterEvaluator.LinkRuntimeListSnapshot(IdentityOrigin, exact);
             return snapshot = exact;
         }
     }

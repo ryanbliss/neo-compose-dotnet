@@ -5,6 +5,10 @@
 
 using System;
 using System.Globalization;
+using System.Collections.Generic;
+using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -23,7 +27,7 @@ namespace NeoCompose.Runtime
         /// the resolved entry member: a generic entry is substituted with its
         /// closed binding first.
         /// </summary>
-        internal static string Of(Member entryMember, MemberValue row)
+        internal static string Of(Member entryMember, MemberValue row, NeoClient? client = null, Func<string, MemberValue?>? readRow = null)
         {
             if (entryMember is null)
                 throw new ArgumentNullException(nameof(entryMember));
@@ -31,6 +35,8 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(row));
             switch (entryMember)
             {
+                case TupleMember tuple:
+                    return TupleFragment(tuple, row, client, readRow).ToString(Formatting.None);
                 case ClassMember:
                     return row.id;
                 case BoolMember:
@@ -99,14 +105,85 @@ namespace NeoCompose.Runtime
         /// would have. Class entries key by value id, so callers resolve them
         /// before reaching here.
         /// </summary>
-        internal static string OfPayload(Member entryMember, object? payload)
+        internal static string OfPayload(Member entryMember, object? payload, NeoClient? client = null, Func<string, MemberValue?>? readRow = null)
         {
             if (entryMember is ClassMember)
             {
                 throw new InvalidOperationException(
                     $"NeoSetEntryKey: Class entry '{entryMember.name}' keys by value id, not by payload.");
             }
-            return Of(entryMember, MemberValueFactory.Create(entryMember, payload, string.Empty, default, default));
+            if (payload is NeoValuePayload wrapped)
+            {
+                var rows = new Dictionary<string, MemberValue>(StringComparer.Ordinal);
+                foreach (MemberValue row in wrapped.valueRows)
+                    rows[row.id] = row;
+                Func<string, MemberValue?>? fallback = readRow;
+                readRow = id => rows.TryGetValue(id, out MemberValue row) ? row : fallback is null ? client?.ResolveValueRow(id) : fallback(id);
+                payload = wrapped.value;
+            }
+            return Of(entryMember, MemberValueFactory.Create(entryMember, payload, string.Empty, default, default), client, readRow);
+        }
+
+        private static bool IsHandle(Member member) => member is ClassMember or ListMember or DictionaryMember
+            || member is LookupMember { Selection: NeoMemberSelectionKind.Multi }
+            || member is DialogueLookupMember { Selection: NeoMemberSelectionKind.Multi }
+            || member is EnumMember { Selection: NeoMemberSelectionKind.Multi };
+
+        private static JToken TupleFragment(TupleMember tuple, MemberValue row, NeoClient? client, Func<string, MemberValue?>? readRow)
+        {
+            if (client is null)
+                throw new InvalidOperationException("Tuple set keys require a client graph.");
+            if (Require(row as ArrayMemberValue, tuple).value is not { } ids)
+                return JValue.CreateNull();
+            if (ids.Length != tuple.elementMemberIds.Length)
+                throw new InvalidOperationException($"Tuple '{tuple.name}' has the wrong arity.");
+            var parts = new JArray();
+            for (int index = 0; index < ids.Length; index++)
+            {
+                Member element = client.TryResolveTupleElementMember(tuple, row, index)
+                    ?? throw new InvalidOperationException($"Tuple '{tuple.name}' has no element {index + 1}.");
+                MemberValue child = (readRow is null ? client.ResolveValueRow(ids[index]) : readRow(ids[index]))
+                    ?? throw new InvalidOperationException($"Tuple '{tuple.name}' has no child '{ids[index]}'.");
+                JToken key = NeoGeneratedTypesSupport.IsNullStoredValue(child) ? JValue.CreateNull()
+                    : element is TupleMember nested ? TupleFragment(nested, child, client, readRow)
+                    : IsHandle(element) ? new JValue(child.id)
+                    : element is LookupMember or DialogueLookupMember ? JToken.FromObject(((ArrayMemberValue)child).value!)
+                    : new JValue(Of(element, child, client, readRow));
+                parts.Add(new JArray((int)element.kind, key));
+            }
+            return parts;
+        }
+
+        internal static string OfRuntimeTuple(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context)
+            => RuntimeTupleFragment(member, tuple, context).ToString(Formatting.None);
+
+        private static JArray RuntimeTupleFragment(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context)
+        {
+            if (tuple.Count != member.elementMemberIds.Length)
+                throw new InvalidOperationException($"Tuple '{member.name}' has the wrong arity.");
+            var parts = new JArray();
+            for (int index = 0; index < tuple.Count; index++)
+            {
+                Member element = context.client.TryResolveTupleElementMember(member, null, index)
+                    ?? throw new InvalidOperationException($"Tuple '{member.name}' has no element {index + 1}.");
+                object? value = tuple[index];
+                JToken key;
+                if (value is null)
+                    key = JValue.CreateNull();
+                else if (element is TupleMember nested && value is RuntimeTuple nestedValue)
+                    key = RuntimeTupleFragment(nested, nestedValue, context);
+                else if (IsHandle(element))
+                    key = new JValue(NSGetterEvaluator.ReferenceKeyOf(value, context) as string ?? "<unattached>");
+                else if (element is LookupMember or DialogueLookupMember)
+                {
+                    string? id = value is NSSlotReference slot ? slot.TargetId : NSGetterEvaluator.ReferenceKeyOf(value, context) as string;
+                    key = id is null ? new JArray() : new JArray(id);
+                }
+                else
+                    key = new JValue(OfPayload(element, value, context.client));
+                parts.Add(new JArray((int)element.kind, key));
+            }
+            return parts;
         }
 
         private static double RequireNumber(MemberValue row, Member entryMember) =>

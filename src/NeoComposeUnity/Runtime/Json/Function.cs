@@ -517,6 +517,41 @@ namespace NeoCompose.Runtime.Json
         public FunctionDialogueInfo info = null!;
     }
 
+    public sealed class FunctionTupleCreateInfo
+    {
+        public Pointer[] elementPointers = null!;
+        public TupleTypeInfo typeInfo = null!;
+    }
+
+    public sealed class FunctionTupleElementInfo
+    {
+        public Pointer tuplePointer = null!;
+        public int index;
+        public bool optional;
+    }
+
+    public sealed class FunctionTupleEqualInfo
+    {
+        public Pointer left = null!;
+        public Pointer right = null!;
+        public TupleTypeInfo typeInfo = null!;
+    }
+
+    public sealed class TupleCreateFunction : Function
+    {
+        public FunctionTupleCreateInfo info = null!;
+    }
+
+    public sealed class TupleElementFunction : Function
+    {
+        public FunctionTupleElementInfo info = null!;
+    }
+
+    public sealed class TupleEqualFunction : Function
+    {
+        public FunctionTupleEqualInfo info = null!;
+    }
+
     public sealed class VectorConstructorFunction : Function
     {
         public FunctionVectorConstructorInfo info = null!;
@@ -571,6 +606,20 @@ namespace NeoCompose.Runtime.Json
     {
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(TupleCreateFunction) || concrete == typeof(TupleElementFunction) || concrete == typeof(TupleEqualFunction))
+            {
+                if (obj["info"] is not JObject tupleInfo)
+                    throw new JsonSerializationException("Tuple operation requires info.");
+                if (concrete == typeof(TupleElementFunction))
+                {
+                    if (tupleInfo["index"]?.Type != JTokenType.Integer)
+                        throw new JsonSerializationException("tupleElement requires an integer index.");
+                    if (tupleInfo["optional"] is { } optionalTuple
+                        && (optionalTuple.Type != JTokenType.Boolean || !optionalTuple.Value<bool>()))
+                        throw new JsonSerializationException("tupleElement optional must be true when present.");
+                }
+                return;
+            }
             if (concrete == typeof(BitwiseOpFunction))
             {
                 if (obj["info"] is not JObject bitwiseInfo)
@@ -593,6 +642,34 @@ namespace NeoCompose.Runtime.Json
 
         protected override void OnPopulated(JObject obj, Function instance)
         {
+            if (instance is TupleCreateFunction create)
+            {
+                if (create.info?.typeInfo is null)
+                    throw new JsonSerializationException("tupleCreate requires typeInfo.");
+                if (create.info.elementPointers is null)
+                    throw new JsonSerializationException("tupleCreate requires elementPointers.");
+                if (create.info.elementPointers.Length != create.info.typeInfo.elements.Length)
+                    throw new JsonSerializationException("tupleCreate arity differs from its type.");
+                foreach (Pointer? pointer in create.info.elementPointers)
+                    if (pointer is null)
+                        throw new JsonSerializationException("tupleCreate element pointer is null.");
+            }
+            if (instance is TupleElementFunction element)
+            {
+                if (element.info?.tuplePointer is null)
+                    throw new JsonSerializationException("tupleElement requires tuplePointer.");
+                if (element.info.index < 0)
+                    throw new JsonSerializationException("tupleElement index cannot be negative.");
+            }
+            if (instance is TupleEqualFunction equal)
+            {
+                if (equal.info?.typeInfo is null)
+                    throw new JsonSerializationException("tupleEqual requires typeInfo.");
+                if (equal.info.left is null)
+                    throw new JsonSerializationException("tupleEqual requires left.");
+                if (equal.info.right is null)
+                    throw new JsonSerializationException("tupleEqual requires right.");
+            }
             if (instance is BitwiseOpFunction bitwise)
             {
                 string? error = bitwise.info is null ? "bitwiseOp requires info." : bitwise.info.ValidationError();
@@ -641,6 +718,12 @@ namespace NeoCompose.Runtime.Json
                     return typeof(DialogueGroupFunction);
                 case FunctionKind.Dialogue:
                     return typeof(DialogueFunction);
+                case FunctionKind.TupleCreate:
+                    return typeof(TupleCreateFunction);
+                case FunctionKind.TupleElement:
+                    return typeof(TupleElementFunction);
+                case FunctionKind.TupleEqual:
+                    return typeof(TupleEqualFunction);
                 case FunctionKind.VectorConstructor:
                     return typeof(VectorConstructorFunction);
                 case FunctionKind.ImageSlice:
