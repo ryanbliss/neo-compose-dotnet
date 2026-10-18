@@ -9,19 +9,19 @@
       "hash": "fd72cda850eed23939ae91ef8924684b05acc6ac6e460690e54f314724fa8350"
     },
     {
-      "id": "class:65611b82-a6a3-4eb4-88dd-759e2fc53780",
+      "id": "class:8b03bbb8-182d-459e-b156-510b8106d682",
       "path": "Generated/Classes/Chest.g.cs",
-      "hash": "9e9c7b95baf832f03693860f7a6477ff679e8547b9dc45d311fd3116ed43a9cc"
+      "hash": "65fd11c2e1f75af2f30b785ab1511254fd1b080f6b5f761316442b6e3917176a"
     },
     {
-      "id": "class:56e7da4d-98ca-431a-92e5-c1c2b31f36f7",
+      "id": "class:5b5a64e3-33f4-4ecb-a38c-bb5351a33a30",
       "path": "Generated/Classes/Inventory.g.cs",
-      "hash": "6c39298423e57e771aee1553862e5617cb932ac955432a3bf8eb0cff780fd06f"
+      "hash": "f881afa75d9232097da5fd9aaf856e2ad6fef7617272467938ddbaf4acd40ab9"
     },
     {
-      "id": "class:320af379-5c7b-4f85-b1ea-f92d9341388a",
+      "id": "class:e168cfb6-28a3-4a35-b476-1bd6255d75af",
       "path": "Generated/Classes/Item.g.cs",
-      "hash": "f3260a90998fc74a4c400e2761b694afa033d2fd9a02f20d630d742664419db4"
+      "hash": "dab8ceeea20d986c828cf2c4021871a52e4d2fc40664551411d33d24b5e94112"
     },
     {
       "id": "class:system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
@@ -79,9 +79,9 @@
       "hash": "1cdbbc8f45d52cd9293d0238970685ab2b086d13c997affe3d5add3b4e243692"
     },
     {
-      "id": "class:ae884f84-8991-49ac-880a-fccd6e438ef1",
+      "id": "class:2f3e8dee-4e1f-436d-b67e-3cd5dc83f525",
       "path": "Generated/Classes/Probe.g.cs",
-      "hash": "8c4ee36d0eae46ee2c8c88b7c9aa6d9268eec20bb0244693246224209e4adfb7"
+      "hash": "a5aba51fbb6216e201339ef32ce69cd314004ae06e24a9c9a848571d27d96f11"
     },
     {
       "id": "class:root-save-class-id",
@@ -134,14 +134,14 @@
       "hash": "a82620aa4f412c29cbe7f6a1c956cd3f596a90fa19aab3ab0dfb943e69ecdf24"
     },
     {
-      "id": "interface:6941d0ee-7dc3-4bb2-8826-aff298059512",
+      "id": "interface:61784484-a635-443c-bea1-9a9596ed1cdb",
       "path": "Generated/Interfaces/IStore.g.cs",
       "hash": "8296a7dd321bda59ccc9f79bd564f950e059a2472faf9a52a83998cdde06c9d6"
     },
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "d58769bceee1a44df01a8fb8744e5806a0495aefa2c533fb1bba4e4efd45eb92"
+      "hash": "6ed0e30888c832ec9a3da228639c56880ef855cc68eedb0fb67c978d2de4e814"
     },
     {
       "id": "project:functions",

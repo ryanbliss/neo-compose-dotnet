@@ -16,11 +16,11 @@ namespace NeoCompose.Tests.OverloadParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                ["320af379-5c7b-4f85-b1ea-f92d9341388a"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Item.Create(client, node),
-                ["56e7da4d-98ca-431a-92e5-c1c2b31f36f7"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Inventory.Create(client, node),
-                ["65611b82-a6a3-4eb4-88dd-759e2fc53780"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Chest.Create(client, node),
+                ["2f3e8dee-4e1f-436d-b67e-3cd5dc83f525"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Probe.Create(client, node),
+                ["5b5a64e3-33f4-4ecb-a38c-bb5351a33a30"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Inventory.Create(client, node),
+                ["8b03bbb8-182d-459e-b156-510b8106d682"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Chest.Create(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.OverloadParity.User.Create(client, node),
-                ["ae884f84-8991-49ac-880a-fccd6e438ef1"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Probe.Create(client, node),
+                ["e168cfb6-28a3-4a35-b476-1bd6255d75af"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Item.Create(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Assets.Create(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Save.Create(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Session.Create(client, node),
@@ -38,11 +38,11 @@ namespace NeoCompose.Tests.OverloadParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
-                ["320af379-5c7b-4f85-b1ea-f92d9341388a"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Item.CreateWritable(client, node),
-                ["56e7da4d-98ca-431a-92e5-c1c2b31f36f7"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Inventory.CreateWritable(client, node),
-                ["65611b82-a6a3-4eb4-88dd-759e2fc53780"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Chest.CreateWritable(client, node),
+                ["2f3e8dee-4e1f-436d-b67e-3cd5dc83f525"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Probe.CreateWritable(client, node),
+                ["5b5a64e3-33f4-4ecb-a38c-bb5351a33a30"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Inventory.CreateWritable(client, node),
+                ["8b03bbb8-182d-459e-b156-510b8106d682"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Chest.CreateWritable(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.OverloadParity.User.CreateWritable(client, node),
-                ["ae884f84-8991-49ac-880a-fccd6e438ef1"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Probe.CreateWritable(client, node),
+                ["e168cfb6-28a3-4a35-b476-1bd6255d75af"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Item.CreateWritable(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Assets.CreateWritable(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Save.CreateWritable(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.OverloadParity.Session.CreateWritable(client, node),
@@ -60,11 +60,11 @@ namespace NeoCompose.Tests.OverloadParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.OverloadParity.Item)] = "320af379-5c7b-4f85-b1ea-f92d9341388a",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Inventory)] = "56e7da4d-98ca-431a-92e5-c1c2b31f36f7",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Chest)] = "65611b82-a6a3-4eb4-88dd-759e2fc53780",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Probe)] = "2f3e8dee-4e1f-436d-b67e-3cd5dc83f525",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Inventory)] = "5b5a64e3-33f4-4ecb-a38c-bb5351a33a30",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Chest)] = "8b03bbb8-182d-459e-b156-510b8106d682",
                 [typeof(global::NeoCompose.Tests.OverloadParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Probe)] = "ae884f84-8991-49ac-880a-fccd6e438ef1",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Item)] = "e168cfb6-28a3-4a35-b476-1bd6255d75af",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Save)] = "root-save-class-id",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Session)] = "root-session-class-id",
@@ -79,16 +79,16 @@ namespace NeoCompose.Tests.OverloadParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentClassIds =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.OverloadParity.Item)] = "320af379-5c7b-4f85-b1ea-f92d9341388a",
-                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyItem)] = "320af379-5c7b-4f85-b1ea-f92d9341388a",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Inventory)] = "56e7da4d-98ca-431a-92e5-c1c2b31f36f7",
-                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyInventory)] = "56e7da4d-98ca-431a-92e5-c1c2b31f36f7",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Chest)] = "65611b82-a6a3-4eb4-88dd-759e2fc53780",
-                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyChest)] = "65611b82-a6a3-4eb4-88dd-759e2fc53780",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Probe)] = "2f3e8dee-4e1f-436d-b67e-3cd5dc83f525",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyProbe)] = "2f3e8dee-4e1f-436d-b67e-3cd5dc83f525",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Inventory)] = "5b5a64e3-33f4-4ecb-a38c-bb5351a33a30",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyInventory)] = "5b5a64e3-33f4-4ecb-a38c-bb5351a33a30",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Chest)] = "8b03bbb8-182d-459e-b156-510b8106d682",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyChest)] = "8b03bbb8-182d-459e-b156-510b8106d682",
                 [typeof(global::NeoCompose.Tests.OverloadParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyUser)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.OverloadParity.Probe)] = "ae884f84-8991-49ac-880a-fccd6e438ef1",
-                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyProbe)] = "ae884f84-8991-49ac-880a-fccd6e438ef1",
+                [typeof(global::NeoCompose.Tests.OverloadParity.Item)] = "e168cfb6-28a3-4a35-b476-1bd6255d75af",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyItem)] = "e168cfb6-28a3-4a35-b476-1bd6255d75af",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyAssets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Save)] = "root-save-class-id",
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests.OverloadParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentInterfaceIds =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.OverloadParity.IStore)] = "6941d0ee-7dc3-4bb2-8826-aff298059512",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IStore)] = "61784484-a635-443c-bea1-9a9596ed1cdb",
             };
     }
 }

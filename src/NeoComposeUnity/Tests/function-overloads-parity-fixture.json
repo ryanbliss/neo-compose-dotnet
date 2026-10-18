@@ -65,6 +65,12 @@
     "  public static int StaticCalls() { return Inventory.Make(4) + Inventory.Make(\"abc\"); }",
     "  public static int MethodGroup() { return Probe.Bag.Grouped(); }",
     "  public static int Listeners() { return Probe.Bag.Listen(); }",
+    "  public static int Nest<T, U>(U u, NeoDelegate<T, U> a, T c) { return 0; }",
+    "  public static int Nest(float u, NeoDelegate<int, float> a, string c) { return a(u); }",
+    "  public static int Captured() {",
+    "    int seed = 7;",
+    "    return Nest(1, (a) => Nest(2, (b) => Nest(3, (c) => seed + 1, \"s\"), \"s\"), \"s\");",
+    "  }",
     "}"
   ],
   "returns": {
@@ -75,6 +81,7 @@
     "DerivedOverload": "chest:lid",
     "StaticCalls": 7,
     "MethodGroup": 5,
-    "Listeners": 101
+    "Listeners": 101,
+    "Captured": 8
   }
 }
