@@ -685,13 +685,250 @@ namespace NeoCompose.Tests
       }
     },
     {
-      ""type"": ""return"",
+      ""type"": ""assign"",
+      ""target"": {
+        ""pointer"": {
+          ""type"": ""variable"",
+          ""variableId"": ""result""
+        },
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""writability"": ""local""
+      },
+      ""operator"": ""="",
       ""pointer"": {
-        ""type"": ""variable"",
-        ""variableId"": ""result""
+        ""type"": ""function"",
+        ""function"": {
+          ""type"": ""bitwiseOp"",
+          ""info"": {
+            ""op"": ""shiftRight"",
+            ""argPointers"": [
+              {
+                ""type"": ""variable"",
+                ""variableId"": ""result""
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              }
+            ]
+          }
+        }
       },
       ""source"": {
         ""line"": 9,
+        ""column"": 5
+      }
+    },
+    {
+      ""type"": ""assign"",
+      ""target"": {
+        ""pointer"": {
+          ""type"": ""variable"",
+          ""variableId"": ""result""
+        },
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""writability"": ""local""
+      },
+      ""operator"": ""="",
+      ""pointer"": {
+        ""type"": ""function"",
+        ""function"": {
+          ""type"": ""bitwiseOp"",
+          ""info"": {
+            ""op"": ""shiftRightUnsigned"",
+            ""argPointers"": [
+              {
+                ""type"": ""variable"",
+                ""variableId"": ""result""
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              }
+            ]
+          }
+        }
+      },
+      ""source"": {
+        ""line"": 10,
+        ""column"": 5
+      }
+    },
+    {
+      ""type"": ""variable"",
+      ""variable"": {
+        ""id"": ""dict"",
+        ""typeInfo"": {
+          ""type"": 5,
+          ""required"": true,
+          ""entryTypeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        },
+        ""pointer"": {
+          ""type"": ""dictLiteral"",
+          ""typeInfo"": {
+            ""type"": 5,
+            ""required"": true,
+            ""entryTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""entries"": [
+            {
+              ""key"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": ""mask""
+                }
+              },
+              ""value"": {
+                ""type"": ""variable"",
+                ""variableId"": ""result""
+              }
+            }
+          ]
+        }
+      },
+      ""source"": {
+        ""line"": 11,
+        ""column"": 5
+      }
+    },
+    {
+      ""type"": ""assign"",
+      ""bindings"": [
+        {
+          ""id"": ""$assignment_2"",
+          ""typeInfo"": {
+            ""type"": ""Unknown"",
+            ""required"": true
+          },
+          ""pointer"": {
+            ""type"": ""variable"",
+            ""variableId"": ""dict""
+          }
+        }
+      ],
+      ""target"": {
+        ""pointer"": {
+          ""type"": ""keyOf"",
+          ""keyOf"": {
+            ""pointer"": {
+              ""type"": ""variable"",
+              ""variableId"": ""$assignment_2""
+            },
+            ""key"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""value"": ""mask""
+              }
+            }
+          }
+        },
+        ""typeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""writability"": ""local""
+      },
+      ""operator"": ""="",
+      ""pointer"": {
+        ""type"": ""function"",
+        ""function"": {
+          ""type"": ""bitwiseOp"",
+          ""info"": {
+            ""op"": ""or"",
+            ""argPointers"": [
+              {
+                ""type"": ""keyOf"",
+                ""keyOf"": {
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""$assignment_2""
+                  },
+                  ""key"": {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 3,
+                        ""required"": true
+                      },
+                      ""value"": ""mask""
+                    }
+                  }
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 16
+                }
+              }
+            ]
+          }
+        }
+      },
+      ""source"": {
+        ""line"": 12,
+        ""column"": 5
+      }
+    },
+    {
+      ""type"": ""return"",
+      ""pointer"": {
+        ""type"": ""keyOf"",
+        ""keyOf"": {
+          ""pointer"": {
+            ""type"": ""variable"",
+            ""variableId"": ""dict""
+          },
+          ""key"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 3,
+                ""required"": true
+              },
+              ""value"": ""mask""
+            }
+          }
+        }
+      },
+      ""source"": {
+        ""line"": 13,
         ""column"": 5
       }
     }
