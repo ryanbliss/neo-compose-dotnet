@@ -13,7 +13,9 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
-        /// 43 admits the P116 vectorOp intrinsic. Requires the paired CLI and SDK.
+        /// 43 admits the P115 textOp and P116 vectorOp intrinsics and adds P117
+        /// collection aggregation, grouping, secondary ordering, and Sort.
+        /// Requires the paired CLI and SDK.
         /// 42 stores readonly fields per instance and omits Immutable members
         /// from runtime-constructed rows. An older SDK would reject the stored
         /// readonly keys and strand Immutable defaults in Session.

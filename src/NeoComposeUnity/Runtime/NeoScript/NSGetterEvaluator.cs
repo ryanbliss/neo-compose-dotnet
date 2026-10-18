@@ -7068,12 +7068,23 @@ namespace NeoCompose.Runtime.NeoScript
             /// A projection callback's value for one entry, or
             /// <see cref="NoProjection"/> when its body returned nothing.
             /// </summary>
-            internal object? Project(in CollectionCursor cursor, object? entry)
+            internal object? Project(in CollectionCursor cursor, object? entry) => ProjectCore(in cursor, entry, false, null);
+
+            internal object? ProjectPair(object? first, object? second) => ProjectCore(default, second, true, first);
+
+            private object? ProjectCore(in CollectionCursor cursor, object? entry, bool pair, object? first)
             {
                 ctx.trace.Push(body);
                 if (entryTypeCheck is not null)
                     return ctx.trace.Complete(Box(RuntimeTypeCheck(entry, entryTypeCheck, ctx)));
-                BindEntry(in cursor, entry);
+                if (pair)
+                {
+                    scope.ResetInvocationLocals(parameterCount);
+                    scope.SetParameter(0, first);
+                    scope.SetParameter(1, entry);
+                }
+                else
+                    BindEntry(in cursor, entry);
                 TypeInfo returnType = body.typeInfo!;
                 object? value;
                 if (expression is null)
@@ -7102,6 +7113,14 @@ namespace NeoCompose.Runtime.NeoScript
                     return ctx.trace.Complete(value);
                 if (returnType.type == MemberKind.Float && TryAsDouble(value, out double floatValue))
                     return ctx.trace.Complete(Box((double)(float)floatValue));
+                if (returnType.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup)
+                {
+                    // Script collections are already canonical. Validate the callback
+                    // result without copying it: projections preserve entry identity.
+                    NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(
+                        ctx.client, value, returnType, ctx, ProjectionSubject);
+                    return ctx.trace.Complete(value);
+                }
                 return ctx.trace.Complete(NeoScriptValueMarshaller.NormalizeResolved(
                     ctx.client,
                     ctx.valueOwnership,

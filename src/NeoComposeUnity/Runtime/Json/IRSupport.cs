@@ -296,6 +296,7 @@ namespace NeoCompose.Runtime.Json
 
     public static class CollectionMutationKind
     {
+        public const string Sort = "Sort";
         public const string Add = "Add";
         public const string Insert = "Insert";
         public const string Remove = "Remove";

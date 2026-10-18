@@ -189,6 +189,8 @@ namespace NeoCompose.Runtime.Json
         /// <summary>One of <see cref="CollectionMutationKind"/>.</summary>
         public string mutation = null!;
         public Pointer[] args = null!;
+        public FunctionWithReturnType? comparison;
+        public string? keyType;
         /// <summary>
         /// Set on <c>Add</c>/<c>Remove</c> of Class, interface, or collection
         /// entries: entries compare by identity (see <see cref="Condition.reference"/>).

@@ -2457,6 +2457,12 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
+            if (NSGetterEvaluator.HasActiveSort(ctx))
+            {
+                NSGetterEvaluator.AssertNotSorting(Eval(writeTarget.pointer, scope, ctx), ctx);
+                if (writeTarget.pointer is KeyOfPointer guardedKey)
+                    NSGetterEvaluator.AssertNotSorting(Eval(guardedKey.keyOf.pointer, scope, ctx), ctx);
+            }
             if (writeTarget.pointer is KeyOfPointer keyOfPointer)
             {
                 object? receiver;
@@ -2506,6 +2512,19 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string? unboundChildId = null)
         {
+            NSGetterEvaluator.InvalidateCollectionOrdering(receiver);
+            if (receiver is object?[] local && FindValueId(receiver, ctx) is null)
+            {
+                if (writeTarget.writability is WritabilityKind.ReadOnly or WritabilityKind.Immutable)
+                    throw new NSGetterRuntimeError("Cannot assign an entry of a read-only collection.");
+                int index = ToInt(Eval(keyOfPointer.keyOf.key, scope, ctx), "List assignment index");
+                if (index < 0)
+                    throw new NSGetterRuntimeError($"List assignment index {index} must be non-negative.");
+                if (index >= local.Length)
+                    throw new NSGetterRuntimeError($"List assignment index {index} exceeds list length {local.Length}.");
+                local[index] = assigned;
+                return;
+            }
             if (keyOfPointer.keyOf.pointer is VariablePointer receiverVariable
                 && NeoStructuredLeafFieldWriteTarget.IsStructuredLeafValue(receiver)
                 && FindValueId(receiver, ctx) == null)
@@ -2571,6 +2590,8 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
+            if (NSGetterEvaluator.HasActiveSort(ctx))
+                NSGetterEvaluator.AssertNotSorting(Eval(variablePointer, scope, ctx), ctx);
             // A number stays unboxed into the local, as a declaration's does.
             object? local = NSGetterEvaluator.EvaluateValue(instruction.pointer, scope, ctx, out double number);
             if (IsReadOnly(instruction.target))
@@ -2790,6 +2811,24 @@ namespace NeoCompose.Runtime
             ExpressionResumeState expressionState,
             int instructionIndex)
         {
+            if (instruction.mutation == CollectionMutationKind.Sort)
+            {
+                object? receiver = instruction.target.pointer is KeyOfPointer key ? Eval(key.keyOf.pointer, scope, ctx) : null;
+                object? value = instruction.target.pointer is KeyOfPointer keyOf ? NSGetterEvaluator.EvaluateKeyOf(keyOf, receiver, scope, ctx) : Eval(instruction.target.pointer, scope, ctx);
+                NSGetterEvaluator.AssertNotSorting(value, ctx);
+                if (instruction.target.typeInfo.type != MemberKind.List)
+                    throw new NSGetterRuntimeError("Sort requires a list target.");
+                var sorted = NSGetterEvaluator.SortCollection(value, instruction, scope, ctx);
+                NSGetterEvaluator.InvalidateCollectionOrdering(value);
+                if (value is object?[] local && FindValueId(value, ctx) is null)
+                    Array.Copy(sorted, local, sorted.Length);
+                else
+                    ResolveCollectionTarget(client, instruction.target, scope, ctx, evaluatedTarget: value, targetEvaluated: true, keyOfReceiver: receiver)
+                        .Mutate(client, CollectionMutationKind.Sort, sorted, false, ctx);
+                return;
+            }
+            if (NSGetterEvaluator.HasActiveSort(ctx))
+                NSGetterEvaluator.AssertNotSorting(Eval(instruction.target.pointer, scope, ctx), ctx);
             CollectionMutation mutate;
             if (!expressionState.Recording)
             {
@@ -2895,6 +2934,7 @@ namespace NeoCompose.Runtime
                         }
                     case Kind.Local:
                         {
+                            NSGetterEvaluator.InvalidateCollectionOrdering(subject);
                             var variable = (VariablePointer)instruction.target.pointer;
                             if (subject is object?[] list && IsLocalListAdd(instruction))
                             {
@@ -6103,6 +6143,12 @@ namespace NeoCompose.Runtime
                     NeoTimestamp now = NeoTimestamp.Now();
                     switch (mutation)
                     {
+                        case CollectionMutationKind.Sort:
+                            var order = new string[args.Length];
+                            for (int index = 0; index < order.Length; index++)
+                                order[index] = args[index] as string ?? throw new NSGetterRuntimeError("Sort stored entry must retain its value id.");
+                            list.Reorder(order, now);
+                            return;
                         case CollectionMutationKind.Insert:
                         case CollectionMutationKind.Add:
                             {

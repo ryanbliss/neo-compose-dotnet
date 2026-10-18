@@ -78,7 +78,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case CollectionCallInstruction collectionCall:
                     if (AnyPointer(collectionCall.target.pointer, predicate))
                         return true;
-                    return AnyPointer(collectionCall.args, predicate);
+                    return AnyPointer(collectionCall.args, predicate) || (collectionCall.comparison is not null && AnyPointer(collectionCall.comparison.instructions, predicate));
                 case FunctionCallInstruction functionCall:
                     return AnyPointer(functionCall.call, predicate);
                 case WhileInstruction loop:
@@ -279,6 +279,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(query.info.collectionPointer, predicate)
                         || (query.info.countPointer is not null && AnyPointer(query.info.countPointer, predicate))
                         || (query.info.otherPointer is not null && AnyPointer(query.info.otherPointer, predicate))
+                        || (query.info.seedPointer is not null && AnyPointer(query.info.seedPointer, predicate))
+                        || (query.info.valueFunction is not null && AnyPointer(query.info.valueFunction.instructions, predicate))
                         || (query.info.function is not null && AnyPointer(query.info.function.instructions, predicate));
                 case WhereFunction where:
                     return AnyPointer(where.info.collectionPointer, predicate)
