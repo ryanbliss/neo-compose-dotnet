@@ -1835,6 +1835,16 @@ namespace NeoCompose.Runtime
                     node.classChildren[entry.schemaKey].schemaKey = entry.schemaKey;
                 }
             }
+            else if (member is TupleMember tuple && row is ArrayMemberValue tupleRow && tupleRow.value is not null)
+            {
+                for (int index = 0; index < tupleRow.value.Length; index++)
+                {
+                    Member element = TryResolveTupleElementMember(tuple, row, index)
+                        ?? throw new InvalidOperationException($"Missing tuple element declaration at {index}.");
+                    node.listChildren.Add(Child(tupleRow.value[index], element, AppendVirtualPath(path, "list", "index",
+                        index.ToString(System.Globalization.CultureInfo.InvariantCulture), numericValue: true)));
+                }
+            }
             else if (member is ListMember list && row is ArrayMemberValue array)
             {
                 if (TryResolveCollectionEntryMember(list, row) is not Member entry)
@@ -2009,7 +2019,7 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 case ArrayMemberValue array when array.value is not null:
-                    if (node.member is ListMember list && !IsUnorderedList(list))
+                    if (node.member is TupleMember || node.member is ListMember list && !IsUnorderedList(list))
                     {
                         array.value = node.listChildren
                             .Select(child => child.virtualId)
@@ -2207,7 +2217,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (node.member is ListMember list && !IsUnorderedList(list))
+            if (node.member is TupleMember || node.member is ListMember list && !IsUnorderedList(list))
             {
                 string[]? stored = (materialized as ArrayMemberValue)?.value;
                 for (int index = 0; index < node.listChildren.Count; index++)

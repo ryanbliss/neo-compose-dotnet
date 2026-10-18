@@ -2328,6 +2328,18 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
             InterfaceResolver? interfaceResolver)
         {
+            if (value is NeoScript.RuntimeTuple tuple
+                && type.IsValueType
+                && typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(type))
+            {
+                int index = 0;
+                object projected = ProjectTuple(type, tuple, ref index, client, readOnlyFactories, savedFactories);
+                if (index != tuple.Count)
+                    throw new NeoTypeArgumentException($"Tuple has {tuple.Count} elements; {type.Name} consumes {index}.");
+                return projected;
+            }
+            if (type.IsInstanceOfType(value))
+                return value;
             if (type.IsEnum)
                 return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
             if (type == typeof(NeoDialogueReference))
@@ -2364,6 +2376,169 @@ namespace NeoCompose.Runtime
             return readOnlyFactories is null
                 ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
                 : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);
+        }
+
+        /// <summary>Projects an evaluator tuple once through a generated, statically typed converter.</summary>
+        public static T ReadTuple<T>(object? value, int arity, Func<object, T> project)
+        {
+            if (value is not NeoScript.RuntimeTuple tuple)
+                throw new NeoScript.NSGetterRuntimeError("Expected a tuple value.");
+            if (tuple.Count != arity)
+                throw new NeoScript.NSGetterRuntimeError($"Tuple has {tuple.Count} elements; expected {arity}.");
+            return project(tuple);
+        }
+
+        /// <summary>Reads a fixed tuple position for a generated converter.</summary>
+        public static object? TupleElement(object tuple, int index) => ((NeoScript.RuntimeTuple)tuple)[index];
+
+        private interface ITupleProjector
+        {
+            object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, ITupleProjector> tupleProjectors = new();
+
+        private static ITupleProjector TupleProjectorFor(Type type) => tupleProjectors.GetOrAdd(type, tupleType =>
+        {
+            Type[] arguments = tupleType.GetGenericArguments();
+            Type definition = arguments.Length switch
+            {
+                1 => typeof(TupleProjector<>),
+                2 => typeof(TupleProjector<,>),
+                3 => typeof(TupleProjector<,,>),
+                4 => typeof(TupleProjector<,,,>),
+                5 => typeof(TupleProjector<,,,,>),
+                6 => typeof(TupleProjector<,,,,,>),
+                7 => typeof(TupleProjector<,,,,,,>),
+                8 => typeof(TupleProjector<,,,,,,,>),
+                _ => throw new NeoTypeArgumentException($"Unsupported value tuple type '{tupleType}'."),
+            };
+            return (ITupleProjector)Activator.CreateInstance(definition.MakeGenericType(arguments))!;
+        });
+
+        private static object ProjectTuple(
+            Type type, NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+            TupleProjectorFor(type).Read(tuple, ref index, client, readOnlyFactories, savedFactories);
+
+        private static T ProjectTupleElement<T>(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+        {
+            if (index >= tuple.Count)
+                throw new NeoTypeArgumentException("Tuple has too few elements.");
+            object? value = tuple[index++];
+            if (value is null)
+            {
+                if (default(T) is not null)
+                    throw new NeoTypeArgumentException($"Tuple element {index} is null for {typeof(T).Name}.");
+                return default!;
+            }
+            object? converted = ConvertTypeArgument(client, value, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), readOnlyFactories, savedFactories, null);
+            return converted is T result ? result : throw new NeoTypeArgumentException($"Tuple element {index} cannot convert to {typeof(T).Name}.");
+        }
+
+        private sealed class TupleProjector<T1> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3, T4> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3, T4>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T4>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3, T4, T5> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3, T4, T5>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T4>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T5>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3, T4, T5, T6> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3, T4, T5, T6>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T4>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T5>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T6>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3, T4, T5, T6, T7> : ITupleProjector
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3, T4, T5, T6, T7>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T4>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T5>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T6>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T7>(tuple, ref index, client, readOnlyFactories, savedFactories));
+        }
+
+        private sealed class TupleProjector<T1, T2, T3, T4, T5, T6, T7, T8> : ITupleProjector where T8 : struct
+        {
+            public object Read(NeoScript.RuntimeTuple tuple, ref int index, NeoClient client,
+                IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+                IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+                new ValueTuple<T1, T2, T3, T4, T5, T6, T7, T8>(
+                    ProjectTupleElement<T1>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T2>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T3>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T4>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T5>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T6>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    ProjectTupleElement<T7>(tuple, ref index, client, readOnlyFactories, savedFactories),
+                    (T8)TupleProjectorFor(typeof(T8)).Read(tuple, ref index, client, readOnlyFactories, savedFactories));
         }
 
         /// <summary>A nested reference's value (§3.1): the reference its slot stores, as <paramref name="type"/>.</summary>
@@ -4082,7 +4257,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static bool IsNullStoredValue(MemberValue row)
+        internal static bool IsNullStoredValue(MemberValue row)
         {
             return row switch
             {
@@ -6219,13 +6394,35 @@ namespace NeoCompose.Runtime
         /// target, so they are imported here — otherwise the entry row would be
         /// referenced by a second owner without ever being adopted.</para>
         /// </summary>
+        public static object? ReadTupleValue(NeoMemberTuple node) => node.ReadTuple();
+
+        public static NeoValueWritePayload TupleValue(NeoClient client, NeoMember node, object? value)
+        {
+            Member member = node.member is TupleMember ? node.member
+                : client.TryResolveCollectionEntryMember(node.member, node.value)
+                    ?? throw new InvalidOperationException("Tuple serialization requires a tuple slot.");
+            if (member is not TupleMember)
+                throw new InvalidOperationException("Tuple serialization received a non-tuple slot.");
+            var rows = new List<MemberValue>();
+            var env = NeoGenericResolution.CollectionEntryEnv(client, node.member, node.value, node.value is null)
+                ?? new Dictionary<string, NeoGenericEnvEntry>();
+            var context = client.RentDirectFunctionContext(node.ownership);
+            try
+            {
+                object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows, NeoTimestamp.Now(),
+                    item => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, context), env, member.name, scope: null);
+                return NeoValueWritePayload.FromValue(CallSiteWritePayload(payload, rows));
+            }
+            finally { client.ReturnDirectFunctionContext(context, null); }
+        }
+
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
             NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
-                || member is not (ListMember or DictionaryMember))
+                || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
             var rows = new List<MemberValue>();
             var env = ctx.thisValue is null
@@ -6870,6 +7067,9 @@ namespace NeoCompose.Runtime
             {
                 return false;
             }
+            if (member is TupleMember)
+                return NeoClient.TypeInfoMatches(typeInfo, NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    client, member, NeoGenericResolution.EmptyEnv, new HashSet<string>()));
             if (typeInfo is ClassTypeInfo classType
                 && member is ClassMember classMember)
             {
@@ -7122,6 +7322,23 @@ namespace NeoCompose.Runtime
                         // A key outside the schema is stale; its row is unknown.
                         return owned != children.Count;
                     }
+                case TupleMember tupleMember:
+                    {
+                        string[]? entries = body switch
+                        {
+                            ArrayMemberValueBase declared => declared.value,
+                            ArrayMemberValue row => row.value,
+                            _ => null
+                        };
+                        if (entries is null)
+                            return false;
+                        if (entries.Length != tupleMember.elementMemberIds.Length)
+                            return true;
+                        for (int index = 0; index < entries.Length; index++)
+                            if (EntriesVary(client, tupleMember.elementMemberIds[index], new[] { entries[index] }, scope, walk))
+                                return true;
+                        return false;
+                    }
                 case ListMember listMember:
                     {
                         string[]? entries = body switch
@@ -7242,6 +7459,11 @@ namespace NeoCompose.Runtime
                         if (ClassHoldsWritable(client, classId, fixedness, walk))
                             return true;
                     }
+                    return false;
+                case TupleMember tupleMember:
+                    foreach (string id in tupleMember.elementMemberIds)
+                        if (EntryTypeHoldsWritable(client, id, fixedness, walk))
+                            return true;
                     return false;
                 case ListMember listMember:
                     return EntryTypeHoldsWritable(client, listMember.entryMemberId, fixedness, walk);
@@ -7390,6 +7612,7 @@ namespace NeoCompose.Runtime
                 StringMember member => member.defaultValue is not null,
                 DictionaryMember member => member.defaultValue is not null,
                 ListMember member => member.defaultValue is not null,
+                TupleMember member => member.defaultValue is not null,
                 ClassMember member => member.defaultValue is not null,
                 GenericMember member => member.defaultValue is not null,
                 EnumMember member => member.defaultValue is not null,
@@ -7636,6 +7859,31 @@ namespace NeoCompose.Runtime
                 // rows for enum, lookup, nested list, and nested dictionary
                 // entries) so list positions and dictionary keys are stable.
                 payload = null;
+            }
+            else if (member is TupleMember tupleMember)
+            {
+                int count = suppliedValue switch
+                {
+                    NeoScript.RuntimeTuple tuple => tuple.Count,
+                    System.Runtime.CompilerServices.ITuple tuple => tuple.Length,
+                    _ => throw new InvalidOperationException($"Tuple field '{path}' requires a tuple value."),
+                };
+                if (count != tupleMember.elementMemberIds.Length)
+                    throw new InvalidOperationException($"Tuple field '{path}' requires {tupleMember.elementMemberIds.Length} elements, received {count}.");
+                var ids = new string[count];
+                for (int index = 0; index < count; index++)
+                {
+                    string memberId = tupleMember.elementMemberIds[index];
+                    if (!client.TryGetMember(memberId, out Member? element))
+                        throw new InvalidOperationException($"Tuple field '{path}' references missing element '{memberId}'.");
+                    element = NeoGenericResolution.SubstituteMember(client, element, genericEnv);
+                    object? item = suppliedValue is NeoScript.RuntimeTuple runtimeTuple
+                        ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
+                    ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
+                        $"{path}.Item{index + 1}", scope, preserveOptionalNull: true)
+                        ?? throw new InvalidOperationException($"Tuple field '{path}' did not materialize element {index + 1}.");
+                }
+                payload = ids;
             }
             else if (member is ListMember listMember)
             {
@@ -8570,6 +8818,16 @@ namespace NeoCompose.Runtime
                         nowIso,
                         scope,
                         path);
+                case TupleMember member:
+                    if (member.defaultValue is null)
+                    {
+                        if (member.Requirement == NeoMemberRequirementKind.Required)
+                            throw new InvalidOperationException($"Required tuple '{path}' needs an initializer or constructor argument.");
+                        return null;
+                    }
+                    return CloneTupleValueRow(client, member,
+                        (ArrayMemberValue)MemberValueFactory.Create(member, member.defaultValue.value, Guid.NewGuid().ToString(), nowIso, nowIso),
+                        rows, nowIso, scope, env, path, new Dictionary<string, string>());
                 case DictionaryMember member:
                     return CreateDefaultDictionaryValueRow(
                         client,
@@ -9107,6 +9365,8 @@ namespace NeoCompose.Runtime
                             clonedIdsBySourceId);
                         return clone;
                     }
+                case TupleMember tupleMember when source is ArrayMemberValue sourceValue:
+                    return CloneTupleValueRow(client, tupleMember, sourceValue, rows, nowIso, scope, env, path, clonedIdsBySourceId);
                 case DictionaryMember dictionaryMember
                     when source is ObjectMemberValue sourceValue:
                     return CloneDictionaryValueRow(
@@ -9298,6 +9558,49 @@ namespace NeoCompose.Runtime
                 genericBindings = source.genericBindings is null
                     ? null
                     : new Dictionary<string, string>(source.genericBindings),
+            };
+            NeoGenericResolution.StampGenericBindings(client, member, row, env);
+            return row;
+        }
+
+        private static ArrayMemberValue CloneTupleValueRow(
+            NeoClient client, TupleMember member, ArrayMemberValue source, List<MemberValue> rows,
+            NeoTimestamp nowIso, NeoConstructionScope scope, IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            string path, Dictionary<string, string> clonedIdsBySourceId)
+        {
+            var elementEnv = source.genericBindings is null ? env : NeoGenericResolution.EnvFromStamp(source.genericBindings);
+            string[]? ids = source.value is null ? null : new string[member.elementMemberIds.Length];
+            if (source.value is not null)
+            {
+                if (source.value.Length != member.elementMemberIds.Length)
+                    throw new InvalidOperationException($"Tuple default '{path}' has the wrong arity.");
+                for (int index = 0; index < ids!.Length; index++)
+                {
+                    if (!client.TryGetMember(member.elementMemberIds[index], out Member? element))
+                        throw new InvalidOperationException($"Tuple default '{path}' is missing element {index + 1}.");
+                    element = NeoGenericResolution.SubstituteMember(client, element, elementEnv);
+                    if (!client.TryGetValue(source.value[index], out MemberValue? original))
+                        throw new InvalidOperationException($"Tuple default '{path}' is missing value '{source.value[index]}'.");
+                    string elementPath = $"{path}.Item{index + 1}";
+                    if (original.init is not null)
+                    {
+                        ids[index] = MaterializeInitializedValue(client, element, original, rows, nowIso, scope, elementEnv, elementPath)
+                            ?? throw new InvalidOperationException($"Tuple default '{elementPath}' produced no value.");
+                        continue;
+                    }
+                    MemberValue clone = CloneStoredValueForMember(client, element, original, rows, nowIso, scope, elementEnv, elementPath, clonedIdsBySourceId);
+                    rows.Add(clone);
+                    ids[index] = clone.id;
+                    clonedIdsBySourceId[original.id] = clone.id;
+                }
+            }
+            var row = new ArrayMemberValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = ids,
+                genericBindings = source.genericBindings is null ? null : new Dictionary<string, string>(source.genericBindings)
             };
             NeoGenericResolution.StampGenericBindings(client, member, row, env);
             return row;

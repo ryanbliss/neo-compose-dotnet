@@ -156,6 +156,63 @@ namespace NeoCompose.Runtime.Json
         public string? collectionValueId;
     }
 
+    public sealed class TupleElementTypeInfo
+    {
+        public TypeInfo typeInfo = null!;
+        public string? name;
+    }
+
+    public sealed class TupleTypeInfo : TypeInfo
+    {
+        public TupleElementTypeInfo[] elements = null!;
+
+        internal static void ValidateElements(TupleElementTypeInfo[]? elements)
+        {
+            if (elements is null)
+                throw new JsonSerializationException("Tuple type requires elements.");
+            if (elements.Length < 2)
+                throw new JsonSerializationException("Tuple type requires at least two elements.");
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (TupleElementTypeInfo? element in elements)
+            {
+                if (element?.typeInfo is null)
+                    throw new JsonSerializationException("Tuple element requires typeInfo.");
+                if (element.name is not { } name)
+                    continue;
+                if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[A-Za-z_][A-Za-z0-9_]*$"))
+                    throw new JsonSerializationException($"Tuple label '{name}' is not an identifier.");
+                if (name is "Rest" or "ToString" or "Equals" or "GetHashCode"
+                    || System.Text.RegularExpressions.Regex.IsMatch(name, @"^Item[1-9]\d*$"))
+                    throw new JsonSerializationException($"Tuple label '{name}' is reserved.");
+                if (!names.Add(name))
+                    throw new JsonSerializationException($"Tuple label '{name}' is repeated.");
+            }
+        }
+
+        internal static TupleTypeInfo? From(TypeInfo? typeInfo) => typeInfo switch
+        {
+            TupleTypeInfo tuple => tuple,
+            FunctionArgumentTypeInfo { type: MemberKind.Tuple, elements: { } elements } argument =>
+                new TupleTypeInfo { type = MemberKind.Tuple, required = argument.required, elements = elements },
+            _ => null,
+        };
+
+        internal static TupleElementTypeInfo[] MapElements(
+            TupleElementTypeInfo[] elements, Func<TypeInfo, TypeInfo> map)
+        {
+            TupleElementTypeInfo[]? mapped = null;
+            for (int i = 0; i < elements.Length; i++)
+            {
+                TypeInfo typeInfo = map(elements[i].typeInfo);
+                if (ReferenceEquals(typeInfo, elements[i].typeInfo))
+                    continue;
+                mapped ??= (TupleElementTypeInfo[])elements.Clone();
+                mapped[i] = new TupleElementTypeInfo { name = elements[i].name, typeInfo = typeInfo };
+            }
+            return mapped ?? elements;
+        }
+    }
+
     /// <summary>
     /// <c>Reference&lt;T&gt;</c> type info (P112 §5.2). Mirrors the TS-side
     /// <c>INSTypeInfoReference</c>: a slot-kind or open generic target, or a
@@ -188,6 +245,12 @@ namespace NeoCompose.Runtime.Json
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override void OnPopulated(JObject obj, TypeInfo instance)
+        {
+            if (instance is TupleTypeInfo tuple)
+                TupleTypeInfo.ValidateElements(tuple.elements);
+        }
+
         protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
             FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
 
@@ -247,6 +310,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ActionTypeInfo);
                 case MemberKind.Reference:
                     return typeof(ReferenceTypeInfo);
+                case MemberKind.Tuple:
+                    return typeof(TupleTypeInfo);
                 default:
                     return null;
             }
@@ -255,6 +320,12 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionReturnTypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override void OnPopulated(JObject obj, TypeInfo instance)
+        {
+            if (instance is TupleTypeInfo tuple)
+                TupleTypeInfo.ValidateElements(tuple.elements);
+        }
+
         protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
             TypeInfoConverter.FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
 
@@ -310,6 +381,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(DelegateTypeInfo);
                 case MemberKind.Reference:
                     return typeof(ReferenceTypeInfo);
+                case MemberKind.Tuple:
+                    return typeof(TupleTypeInfo);
                 // MemberKind.NSAction is deliberately absent: an action is
                 // statement-only and can never be a return type (P62 §3.1),
                 // so an NSAction discriminator in return position is invalid

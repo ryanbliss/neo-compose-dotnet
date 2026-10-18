@@ -13,6 +13,8 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 45 adds tuple descriptors, tuple type information, and typed tuple IR.
+        /// Older SDKs reject the export before reading tuples.
         /// 43 admits the P115 textOp and P116 vectorOp intrinsics and adds P117
         /// collection aggregation, grouping, secondary ordering, and Sort.
         /// Requires the paired CLI and SDK.

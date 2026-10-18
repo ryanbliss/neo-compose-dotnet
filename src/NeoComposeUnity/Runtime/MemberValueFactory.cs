@@ -151,7 +151,7 @@ namespace NeoCompose.Runtime
                     value = Cast<NeoActionValue?>(rawPayload, member)
                         ?? new NeoActionValue(),
                 },
-                ListMember or EnumMember or LookupMember or DialogueLookupMember => new ArrayMemberValue
+                TupleMember or ListMember or EnumMember or LookupMember or DialogueLookupMember => new ArrayMemberValue
                 {
                     id = id,
                     createdAt = createdAt,
@@ -268,6 +268,7 @@ namespace NeoCompose.Runtime
                 StringMember member => member.defaultValue,
                 DictionaryMember member => member.defaultValue,
                 ListMember member => member.defaultValue,
+                TupleMember member => member.defaultValue,
                 ClassMember member => member.defaultValue,
                 GenericMember member => member.defaultValue,
                 EnumMember member => member.defaultValue,
@@ -393,6 +394,16 @@ namespace NeoCompose.Runtime
                     createdAt = createdAt,
                     updatedAt = updatedAt,
                     value = CloneDictionary(member.defaultValue.value),
+                    classId = member.defaultValue.classId,
+                    changeListeners = member.defaultValue.changeListeners?.Copy(),
+                    changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
+                },
+                TupleMember member => member.defaultValue is null ? null : new ArrayMemberValue
+                {
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                    value = CloneArray(member.defaultValue.value),
                     classId = member.defaultValue.classId,
                     changeListeners = member.defaultValue.changeListeners?.Copy(),
                     changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),

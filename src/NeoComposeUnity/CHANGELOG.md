@@ -6,6 +6,13 @@
 - Generated functions and properties expose `NeoScriptException.Error` as the concrete generated error wrapper. Register closed generic wrappers with `GenericError<int>.RegisterErrorFactory(client)` before host inspection. Construction follows ordinary class storage rules, and uncaught row-backed payloads remain readable.
 - Unexpected native exceptions expose a fixed NeoHostError message to scripts and retain diagnostic details for the host.
 - Requires Unity export schema 45. Upgrade the CLI and SDK together, then run `neo pull` and `neo export`. Compiler revision remains 17.
+- Added P223 tuples, named and positional element access, nested destructuring, tuple lambda parameters, and dictionary iteration destructuring. Tuple positions are immutable; replace the whole value to change it.
+- Generated C# APIs use native value tuples, including nested tuples and arities above seven. Stored tuple values, collection membership, callbacks, generic calls, and captured delegates share the NeoScript tuple contract.
+
+```csharp
+(int Row, int Col) position = actor.Position;
+actor.Position = (position.Row + 1, position.Col);
+```
 
 ## [0.76.0] - 2026-10-17
 

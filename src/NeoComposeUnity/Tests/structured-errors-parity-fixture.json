@@ -7,7 +7,9 @@
       "schema": {
         "Message": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d"
       },
-      "constructorIds": ["system_5749aebc-8464-5186-b995-7f5a69e702b4"],
+      "constructorIds": [
+        "system_5749aebc-8464-5186-b995-7f5a69e702b4"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -20,7 +22,9 @@
       "name": "NeoNullReferenceError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_22c5afbb-36d1-59c9-9302-d65c437e25d9"],
+      "constructorIds": [
+        "system_22c5afbb-36d1-59c9-9302-d65c437e25d9"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -33,7 +37,9 @@
       "name": "NeoIndexOutOfRangeError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_7e66b321-59ef-5d57-a126-15aee7505321"],
+      "constructorIds": [
+        "system_7e66b321-59ef-5d57-a126-15aee7505321"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -46,7 +52,9 @@
       "name": "NeoKeyNotFoundError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_0adaa530-dae1-5bc9-a498-de27d719b0c2"],
+      "constructorIds": [
+        "system_0adaa530-dae1-5bc9-a498-de27d719b0c2"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -59,7 +67,9 @@
       "name": "NeoArgumentError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_072bd389-2311-50dc-9a64-80f43b2f1ee1"],
+      "constructorIds": [
+        "system_072bd389-2311-50dc-9a64-80f43b2f1ee1"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -72,7 +82,9 @@
       "name": "NeoInvalidOperationError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_96788ed2-20ae-54fa-b6cb-2e7d558513a8"],
+      "constructorIds": [
+        "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -85,7 +97,9 @@
       "name": "NeoArithmeticError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_2f292163-652d-51be-a4d3-e0f908703890"],
+      "constructorIds": [
+        "system_2f292163-652d-51be-a4d3-e0f908703890"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -98,7 +112,9 @@
       "name": "NeoHostError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["system_0fc09d80-5049-5e79-a41d-e09757f6f89a"],
+      "constructorIds": [
+        "system_0fc09d80-5049-5e79-a41d-e09757f6f89a"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -111,7 +127,9 @@
       "name": "GenericError",
       "extendsClassId": "system_791c90d0-8414-5971-8c1c-680f933ab42c",
       "schema": {},
-      "constructorIds": ["p122-generic-error-constructor"],
+      "constructorIds": [
+        "p122-generic-error-constructor"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -132,7 +150,9 @@
       "schema": {
         "Detail": "p122-error-detail"
       },
-      "constructorIds": ["p122-authored-error-constructor"],
+      "constructorIds": [
+        "p122-authored-error-constructor"
+      ],
       "system": {
         "kind": "scriptRuntime"
       },
@@ -156,13 +176,57 @@
       "format": 1
     },
     {
-      "name": "miningPower",
+      "name": "Item1",
       "kind": 2,
       "requirement": 1,
       "id": "p122-int-type",
       "projectId": "project-1",
       "createdAt": 1,
       "updatedAt": 1
+    },
+    {
+      "name": "Item2",
+      "kind": 3,
+      "requirement": 1,
+      "id": "p223-error-string-type",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "name": "Item2",
+      "kind": 2,
+      "requirement": 1,
+      "id": "p223-error-second-int-type",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "name": "ErrorTuple",
+      "kind": 30,
+      "requirement": 1,
+      "id": "p223-error-tuple-type",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "elementMemberIds": [
+        "p122-int-type",
+        "p223-error-string-type"
+      ]
+    },
+    {
+      "name": "ErrorIntTuple",
+      "kind": 30,
+      "requirement": 1,
+      "id": "p223-error-int-tuple-type",
+      "projectId": "project-1",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "elementMemberIds": [
+        "p122-int-type",
+        "p223-error-second-int-type"
+      ]
     },
     {
       "id": "p122-error-detail",
@@ -488,7 +552,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -670,7 +736,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -852,7 +920,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1034,7 +1104,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1216,7 +1288,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1398,7 +1472,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1580,7 +1656,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1762,7 +1840,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -1944,7 +2024,9 @@
             "required": true
           },
           "dependencies": {
-            "recordIds": ["__root__"],
+            "recordIds": [
+              "__root__"
+            ],
             "typeNames": []
           }
         }
@@ -2136,7 +2218,10 @@
             "system_791c90d0-8414-5971-8c1c-680f933ab42c",
             "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
           ],
-          "typeNames": ["NeoArgumentError", "NeoError"]
+          "typeNames": [
+            "NeoArgumentError",
+            "NeoError"
+          ]
         }
       }
     },
@@ -2396,7 +2481,9 @@
             "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
             "system_791c90d0-8414-5971-8c1c-680f933ab42c"
           ],
-          "typeNames": ["NeoError"]
+          "typeNames": [
+            "NeoError"
+          ]
         }
       }
     },
@@ -2695,7 +2782,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -3209,7 +3298,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -3838,7 +3929,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -4000,7 +4093,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -4188,7 +4283,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -4324,7 +4421,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -4685,7 +4784,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -4882,7 +4983,9 @@
             "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
             "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"
           ],
-          "typeNames": ["NeoArithmeticError"]
+          "typeNames": [
+            "NeoArithmeticError"
+          ]
         }
       }
     },
@@ -5048,7 +5151,9 @@
             "__root__",
             "system_15d87ce2-551e-5c05-adde-f9d84ad376fb"
           ],
-          "typeNames": ["NeoNullReferenceError"]
+          "typeNames": [
+            "NeoNullReferenceError"
+          ]
         }
       }
     },
@@ -5232,7 +5337,9 @@
             "__root__",
             "system_0f2970bc-bd11-5173-847c-713e88b47a44"
           ],
-          "typeNames": ["NeoIndexOutOfRangeError"]
+          "typeNames": [
+            "NeoIndexOutOfRangeError"
+          ]
         }
       }
     },
@@ -5416,7 +5523,9 @@
             "__root__",
             "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"
           ],
-          "typeNames": ["NeoKeyNotFoundError"]
+          "typeNames": [
+            "NeoKeyNotFoundError"
+          ]
         }
       }
     },
@@ -5644,7 +5753,9 @@
             "__root__",
             "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
           ],
-          "typeNames": ["NeoArgumentError"]
+          "typeNames": [
+            "NeoArgumentError"
+          ]
         }
       }
     },
@@ -5885,7 +5996,9 @@
           "required": true
         },
         "dependencies": {
-          "recordIds": ["__root__"],
+          "recordIds": [
+            "__root__"
+          ],
           "typeNames": []
         }
       }
@@ -6091,7 +6204,516 @@
             "p122-generic-error-constructor",
             "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d"
           ],
-          "typeNames": ["GenericError"]
+          "typeNames": [
+            "GenericError"
+          ]
+        }
+      }
+    },
+    {
+      "name": "tuple generic catch distinguishes arguments and ignores labels",
+      "source": "try { throw new GenericError<(int,string)>(message: \"tuple\"); } catch (GenericError<(int,int)> error) { return \"wrong\"; } catch (GenericError<(int Number,string Text)> error) { return error.Message; }",
+      "expected": "tuple",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "p122-generic-error",
+                        "typeArguments": {
+                          "p122-error-type": {
+                            "type": 30,
+                            "required": true,
+                            "elements": [
+                              {
+                                "typeInfo": {
+                                  "type": 2,
+                                  "required": true
+                                }
+                              },
+                              {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "constructorId": "p122-generic-error-constructor",
+                      "args": [
+                        {
+                          "name": "message",
+                          "valuePointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "tuple"
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 1,
+                    "column": 13
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "p122-generic-error",
+                    "typeArguments": {
+                      "p122-error-type": {
+                        "type": 30,
+                        "required": true,
+                        "elements": [
+                          {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            }
+                          },
+                          {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 105
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "p122-generic-error",
+                    "typeArguments": {
+                      "p122-error-type": {
+                        "type": 30,
+                        "required": true,
+                        "elements": [
+                          {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "name": "Number"
+                          },
+                          {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "name": "Text"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "keyOf",
+                      "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__catch:1:error"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Message"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 178
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "p122-generic-error",
+            "p122-generic-error-constructor",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d"
+          ],
+          "typeNames": [
+            "GenericError"
+          ]
+        }
+      }
+    },
+    {
+      "name": "filtered tuple generic catch does not match different arguments",
+      "source": "try { throw new GenericError<(int,string)>(message: \"tuple\"); } catch (GenericError<(int,int)> error) when (true) { return \"wrong\"; } catch (NeoError error) { return error.Message; }",
+      "expected": "tuple",
+      "getter": {
+        "compilerRevision": 17,
+        "source": {
+          "name": "getter",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "p122-generic-error",
+                        "typeArguments": {
+                          "p122-error-type": {
+                            "type": 30,
+                            "required": true,
+                            "elements": [
+                              {
+                                "typeInfo": {
+                                  "type": 2,
+                                  "required": true
+                                }
+                              },
+                              {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "constructorId": "p122-generic-error-constructor",
+                      "args": [
+                        {
+                          "name": "message",
+                          "valuePointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 3,
+                                "required": true
+                              },
+                              "value": "tuple"
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 1,
+                    "column": 13
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 7
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "p122-generic-error",
+                    "typeArguments": {
+                      "p122-error-type": {
+                        "type": 30,
+                        "required": true,
+                        "elements": [
+                          {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            }
+                          },
+                          {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "readonly": true
+                },
+                "filter": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "wrong"
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 117
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:error",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "keyOf",
+                      "memberId": "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__catch:1:error"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Message"
+                          }
+                        }
+                      }
+                    },
+                    "source": {
+                      "line": 1,
+                      "column": 160
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 1,
+              "column": 1
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "p122-generic-error",
+            "p122-generic-error-constructor",
+            "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
+            "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+          ],
+          "typeNames": [
+            "GenericError",
+            "NeoError"
+          ]
         }
       }
     },
@@ -6313,7 +6935,10 @@
             "system_691a0a22-9c6b-5046-a617-a0176c2f6f5d",
             "system_791c90d0-8414-5971-8c1c-680f933ab42c"
           ],
-          "typeNames": ["GenericError", "NeoError"]
+          "typeNames": [
+            "GenericError",
+            "NeoError"
+          ]
         }
       }
     },
@@ -6579,7 +7204,10 @@
             "p122-error-detail",
             "system_791c90d0-8414-5971-8c1c-680f933ab42c"
           ],
-          "typeNames": ["AuthoredError", "NeoError"]
+          "typeNames": [
+            "AuthoredError",
+            "NeoError"
+          ]
         }
       }
     }
