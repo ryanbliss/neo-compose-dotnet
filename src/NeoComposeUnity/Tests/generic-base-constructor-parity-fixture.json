@@ -1,0 +1,20 @@
+{
+  "source": [
+    "class BoxBase {}",
+    "class Box<T> : BoxBase {}",
+    "class Base(BoxBase item) { public int Marker = 7; }",
+    "class Forward<T>(Box<T> item) : Base(item) {}",
+    "class Child(Box<int> item) : Forward<int>(item) {}",
+    "class Caller<T> {",
+    " public int Forwarded() { return new Child(new Box<int>()).Marker; }",
+    "}",
+    "class Probe {",
+    " public static int ForwardReceiverless() => new Child(new Box<int>()).Marker;",
+    " public static int ForwardUnrelatedReceiver() => new Caller<string>().Forwarded();",
+    "}"
+  ],
+  "returns": {
+    "ForwardReceiverless": 7,
+    "ForwardUnrelatedReceiver": 7
+  }
+}
