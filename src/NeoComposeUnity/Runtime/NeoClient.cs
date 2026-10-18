@@ -2430,7 +2430,7 @@ namespace NeoCompose.Runtime
             {
                 IList<MergedSchemaEntry> surface =
                     ResolveInstanceSurfaceSchema(schemaClass.id);
-                if (schemaClass.Modifier != NeoClassModifierKind.Abstract)
+                if (!schemaClass.IsAbstract)
                 {
                     foreach (MergedSchemaEntry entry in surface)
                     {

@@ -339,6 +339,66 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SwitchExpression_RoundTripsAndSkipsUnselectedResults()
+        {
+            var pointer = JsonConvert.DeserializeObject<Pointer>(
+                @"{
+                    'type':'switchExpression', 'selectorId':'switch', 'selectorTypeInfo':{'type':1,'required':true},
+                    'selector':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':true}},
+                    'arms':[
+                      {'pattern':{'kind':'constant','constant':{'typeInfo':{'type':1,'required':true},'value':true}},
+                       'value':{'type':'value','value':{'typeInfo':{'type':3,'required':true},'value':'chosen'}}},
+                      {'pattern':{'kind':'discard'},
+                       'value':{'type':'forceUnwrap','pointer':{'type':'value','value':{'typeInfo':{'type':3,'required':false},'value':null}}}}
+                    ]
+                }");
+            Assert.IsInstanceOf<SwitchExpressionPointer>(pointer);
+            FunctionWithReturnType getter = ReturnFunction(pointer!, MemberKind.String);
+            getter.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
+            Assert.AreEqual("chosen", NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(LoadClient(), thisValue: null, rootValue: null)));
+        }
+
+        [Test]
+        public void SwitchExpression_BindsEachArmAndSkipsFalseGuards()
+        {
+            var number = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, value = 7L } };
+            var selection = new SwitchExpressionPointer
+            {
+                type = PointerKind.SwitchExpression,
+                selectorId = "selector",
+                selectorTypeInfo = number.value.typeInfo,
+                selector = number,
+                arms = new[]
+                {
+                    new SwitchExpressionArm
+                    {
+                        pattern = new SwitchExpressionPattern { kind = "type", checkType = number.value.typeInfo, bindingId = "first" },
+                        guard = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Bool, required = true }, value = false } },
+                        value = new VariablePointer { type = PointerKind.Variable, variableId = "missing" }
+                    },
+                    new SwitchExpressionArm
+                    {
+                        pattern = new SwitchExpressionPattern { kind = "type", checkType = number.value.typeInfo, bindingId = "second" },
+                        value = new VariablePointer { type = PointerKind.Variable, variableId = "second" }
+                    }
+                }
+            };
+            using var client = LoadClient();
+            var getter = ReturnFunction(selection, MemberKind.Int);
+            getter.compilerRevision = FunctionWithReturnType.CurrentCompilerRevision;
+            Assert.AreEqual(7, NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(client, null, null)));
+        }
+
+        [TestCase("{'kind':'unknown'}")]
+        [TestCase("{'kind':'type','checkType':{'type':1,'required':false}}")]
+        [TestCase("{'kind':'constant','constant':{'typeInfo':{'type':1,'required':true},'value':'true'}}")]
+        public void SwitchExpression_RejectsMalformedPatterns(string pattern)
+        {
+            var json = "{'type':'switchExpression','selectorId':'s','selectorTypeInfo':{'type':1,'required':true},'selector':{'type':'value','value':{'typeInfo':{'type':1,'required':true},'value':true}},'arms':[{'pattern':" + pattern + ",'value':{'type':'variable','variableId':'s'}}]}";
+            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<Pointer>(json));
+        }
+
+        [Test]
         public void ConditionalPointer_RoundTripsAndDoesNotEvaluateTheUnselectedBranch()
         {
             var pointer = JsonConvert.DeserializeObject<Pointer>(

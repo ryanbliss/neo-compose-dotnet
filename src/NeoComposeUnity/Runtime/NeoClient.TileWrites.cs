@@ -56,7 +56,7 @@ namespace NeoCompose.Runtime
                 throw new ArgumentException($"Tile conversion target class '{targetClassId}' does not exist.", nameof(targetClassId));
             if (!IsTileClass(targetClassId))
                 throw new ArgumentException($"Tile conversion target '{target.name}' is not a NeoTile class.", nameof(targetClassId));
-            if (target.Modifier == NeoClassModifierKind.Abstract)
+            if (target.IsAbstract)
                 throw new ArgumentException($"Tile conversion target '{target.name}' is abstract.", nameof(targetClassId));
             if (target.genericParams is { Count: > 0 })
                 throw new ArgumentException($"Tile conversion target '{target.name}' has unbound generic parameters.", nameof(targetClassId));

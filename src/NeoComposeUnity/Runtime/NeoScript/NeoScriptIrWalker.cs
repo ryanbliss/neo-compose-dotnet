@@ -198,6 +198,17 @@ namespace NeoCompose.Runtime.NeoScript
                 case ObjectInitializerPointer initializer:
                     return AnyPointer(initializer.receiver.pointer, predicate)
                         || AnyPointer(initializer.assignments, predicate);
+                case SwitchExpressionPointer selection:
+                    if (AnyPointer(selection.selector, predicate))
+                        return true;
+                    foreach (SwitchExpressionArm arm in selection.arms)
+                    {
+                        if (arm.guard is not null && AnyPointer(arm.guard, predicate))
+                            return true;
+                        if (AnyPointer(arm.value, predicate))
+                            return true;
+                    }
+                    return false;
                 case ConditionalPointer conditional:
                     return AnyPointer(conditional.condition, predicate)
                         || AnyPointer(conditional.whenTrue, predicate)

@@ -303,7 +303,7 @@ namespace NeoCompose.Runtime
             var byInterface = new Dictionary<string, List<string>>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
-                if (schemaClass.Modifier == NeoClassModifierKind.Abstract)
+                if (schemaClass.IsAbstract)
                     continue;
                 foreach (string interfaceId in Constructions(schemaClass.id).Keys)
                 {

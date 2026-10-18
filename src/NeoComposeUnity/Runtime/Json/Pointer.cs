@@ -321,6 +321,29 @@ namespace NeoCompose.Runtime.Json
     /// Lazy conditional pointer. Only the selected result pointer is
     /// evaluated after the normalized boolean condition.
     /// </summary>
+    public sealed class SwitchExpressionPattern
+    {
+        public string kind = null!;
+        public Value? constant;
+        public TypeInfo? checkType;
+        public string? bindingId;
+    }
+
+    public sealed class SwitchExpressionArm
+    {
+        public SwitchExpressionPattern pattern = null!;
+        public Pointer? guard;
+        public Pointer value = null!;
+    }
+
+    public sealed class SwitchExpressionPointer : Pointer
+    {
+        public TypeInfo selectorTypeInfo = null!;
+        public Pointer selector = null!;
+        public string selectorId = null!;
+        public SwitchExpressionArm[] arms = null!;
+    }
+
     public sealed class ConditionalPointer : Pointer
     {
         public Pointer condition = null!;
@@ -516,6 +539,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(MemberTargetPointer);
                 case PointerKind.Coalesce:
                     return typeof(CoalescePointer);
+                case PointerKind.SwitchExpression:
+                    return typeof(SwitchExpressionPointer);
                 case PointerKind.Conditional:
                     return typeof(ConditionalPointer);
                 case PointerKind.ObjectInitializer:
@@ -593,6 +618,46 @@ namespace NeoCompose.Runtime.Json
                     if (assignment is not JObject instruction
                         || instruction["type"]?.Value<string>() != InstructionKind.Assign)
                         throw new JsonSerializationException("ObjectInitializerPointer entries must be assignment instructions.");
+                return;
+            }
+            if (concrete == typeof(SwitchExpressionPointer))
+            {
+                if (obj["selectorTypeInfo"] is not JObject selectorType)
+                    throw new JsonSerializationException("SwitchExpressionPointer requires selectorTypeInfo.");
+                if (obj["selector"] is not JObject)
+                    throw new JsonSerializationException("SwitchExpressionPointer requires a selector pointer.");
+                if (string.IsNullOrEmpty(obj["selectorId"]?.Value<string>()))
+                    throw new JsonSerializationException("SwitchExpressionPointer requires a selectorId.");
+                if (obj["arms"] is not JArray arms || arms.Count == 0)
+                    throw new JsonSerializationException("SwitchExpressionPointer requires nonempty arms.");
+                foreach (JToken token in arms)
+                {
+                    if (token is not JObject arm || arm["value"] is not JObject)
+                        throw new JsonSerializationException("Switch expression arm requires a result pointer.");
+                    if (arm["guard"] != null && arm["guard"] is not JObject)
+                        throw new JsonSerializationException("Switch expression guard must be a pointer.");
+                    if (arm["pattern"] is not JObject pattern)
+                        throw new JsonSerializationException("Switch expression arm requires a pattern.");
+                    string? kind = pattern["kind"]?.Value<string>();
+                    if (kind == "discard")
+                        continue;
+                    if (kind == "constant")
+                    {
+                        if (pattern["constant"] is not JObject constant)
+                            throw new JsonSerializationException("Switch constant pattern requires a typed constant.");
+                        if (!InstructionConverter.TryNormalizeSwitchLabel(constant, (MemberKind)selectorType["type"]!.Value<int>(), selectorType["required"]!.Value<bool>(), selectorType["enumId"]?.Value<string>(), out _))
+                            throw new JsonSerializationException("Switch constant pattern is invalid for its selector type.");
+                        continue;
+                    }
+                    if (kind != "type")
+                        throw new JsonSerializationException("Unknown switch expression pattern kind.");
+                    if (pattern["checkType"] is not JObject checkType)
+                        throw new JsonSerializationException("Switch type pattern requires checkType.");
+                    if (checkType["required"]?.Value<bool>() != true)
+                        throw new JsonSerializationException("Switch type pattern must be non-nullable.");
+                    if (pattern["bindingId"] != null && string.IsNullOrEmpty(pattern["bindingId"]?.Value<string>()))
+                        throw new JsonSerializationException("Switch pattern bindingId must be nonempty.");
+                }
                 return;
             }
             if (concrete == typeof(ConditionalPointer))

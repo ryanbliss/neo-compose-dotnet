@@ -3228,7 +3228,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot construct missing Class '{classId}'.");
             }
-            if (schemaClass!.Modifier == NeoClassModifierKind.Abstract)
+            if (schemaClass!.IsAbstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot construct abstract Class '{schemaClass.name}'.");
@@ -6568,7 +6568,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"NeoScript construction references missing class '{classTypeInfo.classId}'.");
             }
-            if (schemaClass!.Modifier == NeoClassModifierKind.Abstract)
+            if (schemaClass!.IsAbstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot construct abstract class '{schemaClass.name}'.");
@@ -8251,7 +8251,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot create default class value for missing class '{classId}'.");
             }
-            if (schemaClass.Modifier == NeoClassModifierKind.Abstract)
+            if (schemaClass.IsAbstract)
             {
                 throw new InvalidOperationException(
                     $"Cannot create default class value for abstract class '{schemaClass.name}'.");

@@ -50,6 +50,9 @@ namespace NeoCompose.Runtime.Json
         }
 
         [Newtonsoft.Json.JsonIgnore]
+        public bool IsAbstract => Modifier == NeoClassModifierKind.Abstract || Modifier == NeoClassModifierKind.Closed;
+
+        [Newtonsoft.Json.JsonIgnore]
         public NeoClassModifierKind Modifier
         {
             get => modifier ?? NeoClassModifierKind.Open;

@@ -815,7 +815,7 @@ namespace NeoCompose.Runtime.Json
             return true;
         }
 
-        private static bool TryNormalizeSwitchLabel(
+        internal static bool TryNormalizeSwitchLabel(
             JObject label,
             MemberKind selectorKind,
             bool selectorRequired,

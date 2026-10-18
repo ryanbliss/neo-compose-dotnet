@@ -15,7 +15,7 @@ namespace NeoCompose.Runtime.Json
     // omitted by exporters.
     public enum NeoClassModifierKind
     {
-        Open = 0, Abstract = 1, Sealed = 2
+        Open = 0, Abstract = 1, Sealed = 2, Closed = 3
     }
     public enum NeoClassVisibilityKind
     {
