@@ -35,7 +35,14 @@ namespace NeoCompose.Tests
             using NeoClient client = NeoTestSaveStack.LoadClient(document.ToString());
             var logs = new List<string>();
             var events = new List<NeoScriptDebugEvent>();
-            var ctx = new NSGetterEvaluator.Context(client, null, null) { DebugSink = value => { logs.Add(value.Message); events.Add(value); } };
+            var ctx = new NSGetterEvaluator.Context(client, null, null)
+            {
+                DebugSink = value =>
+                {
+                    logs.Add(value.Message);
+                    events.Add(value);
+                }
+            };
             if (test["expectedError"] is JToken error && error.Type != JTokenType.Null)
             {
                 Exception actual = Assert.Catch<Exception>(() => NSGetterEvaluator.Evaluate(getter, ctx))!;
