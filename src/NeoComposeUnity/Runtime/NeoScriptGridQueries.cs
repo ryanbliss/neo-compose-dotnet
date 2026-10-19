@@ -38,6 +38,29 @@ namespace NeoCompose.Runtime
         }
 
         private readonly Dictionary<string, PlacementBinding> placements = new();
+        private readonly Dictionary<string, PlacementBinding> departedPlacements = new();
+
+        internal void CaptureDeparture(string receiverId)
+        {
+            using var liveRows = client.ReadLiveRows();
+            if (TryResolve(receiverId) is not { } binding)
+                return;
+            // Keep the immutable placement record, not the mutable live binding.
+            departedPlacements[receiverId] = new PlacementBinding(binding.grid, binding.layer, binding.instance)
+            {
+                content = binding.content,
+                record = binding.record,
+            };
+        }
+
+        internal void ReleaseDepartures()
+        {
+            foreach (string id in departedPlacements.Keys)
+                placements.Remove(id);
+            departedPlacements.Clear();
+            lastReceiverId = null;
+            lastBinding = null;
+        }
         // The last receiver's binding: a NeoScript caller usually queries
         // around one receiver several times in a row. Any write to
         // placements clears it.
@@ -95,6 +118,14 @@ namespace NeoCompose.Runtime
         /// <summary>The receiver's binding, holding its current content and placement.</summary>
         private PlacementBinding Resolve(string receiverId)
         {
+            if (client.ReadsDepartedRows(receiverId) && departedPlacements.TryGetValue(receiverId, out var departed))
+                return departed;
+            return TryResolve(receiverId)
+                ?? throw new NSGetterRuntimeError("Grid queries require an actual placed NeoObject in an owning grid.");
+        }
+
+        private PlacementBinding? TryResolve(string receiverId)
+        {
             INeoTileGridContent? content;
             PlacementBinding? binding = ReferenceEquals(lastReceiverId, receiverId) ? lastBinding : null;
             if (binding is not null || placements.TryGetValue(receiverId, out binding))
@@ -139,7 +170,7 @@ namespace NeoCompose.Runtime
                     break;
                 current = parent;
             }
-            throw new NSGetterRuntimeError("Grid queries require an actual placed NeoObject in an owning grid.");
+            return null;
         }
 
         // Compared first: rewriting the same references pays their write barriers.
@@ -272,14 +303,32 @@ namespace NeoCompose.Runtime
             PlacementBinding binding = Resolve(receiverId);
             INeoTileGridContent content = binding.content!;
             NeoObjectPlacementRecord placement = binding.record!;
-            ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
             if (getCell)
             {
+                ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
                 result = NeoVectorValues.FromVector2Int(placement.Cell);
                 return true;
             }
             Vector2Int[] pattern = NeoCellPatternOffsets.Read(args[0], ctx);
             string? filterClassId = FilterClassId(typeArguments);
+            // Only the origin is historical. Index rebuilds and target values must
+            // read the surviving rows, even inside a departure hook.
+            using var liveRows = client.ReadLiveRows();
+            if (departedPlacements.TryGetValue(receiverId, out var departed)
+                && ReferenceEquals(binding, departed)
+                && (client.IsDeparted(binding.grid) || client.IsWorldPartitionUnloaded(binding.grid)))
+            {
+                // Accessing the primitive here could reload an unloaded partition
+                // or resolve a replacement grid with the same id.
+                if (!getTile)
+                {
+                    object?[] empty = NSGetterEvaluator.TemporaryLists.Rent(0);
+                    NSGetterEvaluator.TemporaryLists.MarkExclusive(empty);
+                    result = empty;
+                }
+                return true;
+            }
+            ctx.client.NoteGridRead(content, placement.InstanceId, null, false);
             // Bodies compiled before the offset existed pass only the pattern.
             Vector2Int origin = Shifted(placement.Cell, args.Length > 1 ? args[1] : null);
             bool tiles = getTile || getTiles;

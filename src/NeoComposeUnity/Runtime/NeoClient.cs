@@ -6177,6 +6177,16 @@ namespace NeoCompose.Runtime
         /// <summary>True when the export ships a partition under <paramref name="mapKey"/>.</summary>
         internal bool HasValuePartition(string mapKey) => data.valuePartitions.Contains(mapKey);
 
+        /// <summary>True when a grid or its authored placement partition is absent, without loading it.</summary>
+        internal bool IsWorldPartitionUnloaded(string gridValueId)
+        {
+            string? classId = ResolveValueRow(gridValueId)?.classId;
+            if (classId is null)
+                return true;
+            string key = MakeWorldPartitionKey(classId);
+            return HasValuePartition(key) && !IsValuePartitionLoaded(key);
+        }
+
         /// <summary>
         /// Auto-load hook for the tile grid resolution path: loads the grid's
         /// <c>world:&lt;gridClassId&gt;</c> placement partition when the export
@@ -6348,6 +6358,9 @@ namespace NeoCompose.Runtime
             }
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
             ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
+            // Capture origins before any parent, position, or placement row leaves.
+            foreach (string rowId in rowIds)
+                NoteDeparture(rowId, RowLayer.Asset, null);
             IReadOnlyCollection<string> virtualRowIds =
                 ClearVirtualInstanceValuesForAuthoredRows(rowIds);
             DisposeWrappersTouchingRows(rowIds.Concat(virtualRowIds));
@@ -6363,7 +6376,6 @@ namespace NeoCompose.Runtime
                     }
                     authoredContainerByRow.Remove(rowId);
                 }
-                NoteDeparture(rowId, RowLayer.Asset, null);
                 data.values.Remove(rowId);
                 if (authoredListenerRoots.Remove(rowId))
                 {
