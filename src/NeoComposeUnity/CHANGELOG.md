@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.78.0] - 2026-10-18
+
+- Added P123 portable Math powers, logarithms, trigonometry, and scalar helpers, plus shared and independent NeoRandom streams with Value(), Range overloads, and a writable Seed property. `NeoClient.Random` exposes the shared stream to C#; separate clients remain independent. Stored content replays with isolated identity seeds.
+- Fixed inherited schema merging to honor exported `schemaKeyOrder`, so constructor defaults draw in the same order as TypeScript.
+- Requires the matching P123 CLI release for the additive math operations and the NeoRandom system class. Upgrade CLI and SDK together, and apply system-schema-3d8f9818 before using NeoRandom. Export schema remains 45 and compiler revision remains 17.
+
 ## [0.77.1] - 2026-10-18
 
 - Fixed reference constructor arguments retaining temporary row IDs when replaying nested constructed values. References now point to the effective rows, including after save and reload. External references and ordinary string arguments retain their values.

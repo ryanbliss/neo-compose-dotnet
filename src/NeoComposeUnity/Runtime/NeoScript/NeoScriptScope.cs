@@ -200,8 +200,9 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                     case ForInstruction loop:
                         Add(loop.initializer.id);
-                        foreach (Variable binding in loop.iterator.bindings ?? Array.Empty<Variable>())
-                            Add(binding.id);
+                        if (loop.iterator is AssignInstruction iterator)
+                            foreach (Variable binding in iterator.bindings ?? Array.Empty<Variable>())
+                                Add(binding.id);
                         AddRunInPlaceDeclarations(loop.instructions);
                         break;
                     case WhileInstruction loop:

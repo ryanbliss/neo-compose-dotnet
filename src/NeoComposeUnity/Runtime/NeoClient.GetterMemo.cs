@@ -525,7 +525,7 @@ namespace NeoCompose.Runtime
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return candidateReplay is null
+                return !Random.IsContentScope && candidateReplay is null
                     && candidateReadPlan is null
                     && replayAllocationScope is null
                     && !isReplayingVirtualInstance
@@ -1120,10 +1120,19 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(HashSet<(NeoValueOwnership ownership, string valueId)> changed)
         {
-            if (!HasReadDependents)
+            if (!HasReadDependents && !Random.HasStoredInstances)
                 return;
-            foreach (var (_, valueId) in changed)
+            foreach (var (ownership, valueId) in changed)
+            {
+                ForgetRandomInstance(valueId, ownership);
                 InvalidateGetterMemoForRow(valueId);
+            }
+        }
+
+        private void ForgetRandomInstance(string id, NeoValueOwnership ownership)
+        {
+            if (Random.ForgetInstance(id, ownership))
+                InvalidateGetterMemoForRow($"{NeoScript.NeoRandomContract.Seed}:{ownership}:{id}");
         }
 
         /// <summary>Drops every memoized getter that read one row.</summary>

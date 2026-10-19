@@ -2389,7 +2389,7 @@ namespace NeoCompose.Tests
             var parsedExplicitNullFor = (ForInstruction)
                 JsonConvert.DeserializeObject<Instruction>(
                     explicitNullFor.ToString())!;
-            Assert.IsNull(parsedExplicitNullFor.iterator.target.writability);
+            Assert.IsNull(((AssignInstruction)parsedExplicitNullFor.iterator).target.writability);
 
             JObject malformed = (JObject)validFor.DeepClone();
             malformed["initializer"]!["id"] = "";

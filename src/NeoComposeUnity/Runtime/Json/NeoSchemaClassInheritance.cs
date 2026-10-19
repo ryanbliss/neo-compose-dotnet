@@ -139,38 +139,46 @@ namespace NeoCompose.Runtime.Json
         /// Merge a child-first chain (as returned by
         /// <see cref="ResolveChain"/>) into a base-first ordered list of
         /// <see cref="MergedSchemaEntry"/>. Later entries (more derived)
-        /// replace earlier entries at the same key but do not reorder
-        /// the key — so root-ancestor keys come first, then each
-        /// descendant's new keys in insertion order.
+        /// replace earlier entries at the same key. Explicit schemaKeyOrder
+        /// takes precedence, matching TypeScript construction order.
         /// </summary>
         public static IList<MergedSchemaEntry> MergeSchemas(IList<NeoSchemaClass> chain)
         {
-            // Walk base-first so child overrides naturally win.
-            List<NeoSchemaClass> baseFirst = new(chain);
-            baseFirst.Reverse();
-
             Dictionary<string, MergedSchemaEntry> map = new();
             List<string> order = new();
-            foreach (var schemaClass in baseFirst)
+            HashSet<string> ordered = new(StringComparer.Ordinal);
+            for (int i = chain.Count - 1; i >= 0; i--)
             {
+                NeoSchemaClass schemaClass = chain[i];
                 if (schemaClass.schema is null)
                     continue;
+                if (schemaClass.schemaKeyOrder is not null)
+                {
+                    var localKeys = new List<string>();
+                    var localSet = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (string key in schemaClass.schemaKeyOrder)
+                        if (!string.IsNullOrEmpty(key) && localSet.Add(key))
+                            localKeys.Add(key);
+                    foreach (string key in schemaClass.schema.Keys)
+                        if (localSet.Add(key))
+                            localKeys.Add(key);
+                    foreach (string key in order)
+                        if (!localSet.Contains(key))
+                            localKeys.Add(key);
+                    order = localKeys;
+                    ordered.UnionWith(localSet);
+                }
                 foreach (var kvp in schemaClass.schema)
                 {
-                    if (!map.ContainsKey(kvp.Key))
+                    if (ordered.Add(kvp.Key))
                         order.Add(kvp.Key);
-                    map[kvp.Key] = new MergedSchemaEntry(
-                        schemaKey: kvp.Key,
-                        memberId: kvp.Value,
-                        ownerClassId: schemaClass.id);
+                    map[kvp.Key] = new MergedSchemaEntry(kvp.Key, kvp.Value, schemaClass.id);
                 }
             }
-
             List<MergedSchemaEntry> result = new(order.Count);
-            foreach (var key in order)
-            {
-                result.Add(map[key]);
-            }
+            foreach (string key in order)
+                if (map.TryGetValue(key, out MergedSchemaEntry entry))
+                    result.Add(entry);
             return result;
         }
 

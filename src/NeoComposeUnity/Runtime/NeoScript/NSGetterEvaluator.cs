@@ -477,6 +477,10 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
+            public NeoRandom Random
+            {
+                get; set;
+            }
             internal sealed class CallFrameStack : IReadOnlyList<string>
             {
                 private readonly IReadOnlyList<string> parent;
@@ -943,6 +947,7 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyList<string>? constructionStack = null)
             {
                 this.client = client;
+                Random = client.Random;
                 DebugSink = client.ScriptDebugSink;
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
@@ -2673,14 +2678,17 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="site">The call, whose type arguments a generic native receives; null for a delegate call.</param>
         /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
-            object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false)
+            object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false,
+            string receiverKind = CallReceiverKind.Instance)
         {
             TypeInfo[]? typeArguments = function?.signature.genericParams is null
                 ? null
                 : NativeTypeArguments(function, site, ctx);
             if (function is null || function.intrinsic)
             {
-                if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out object? result))
+                if (TryInvokeRandom(memberId, site?.receiver.kind ?? receiverKind, receiver, args, ctx, out object? result))
+                    return result;
+                if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
                     return result;
                 if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
                     return result;
@@ -3271,7 +3279,8 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NeoDeferredFunctionRuntimeError(
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
-                    return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx);
+                    return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx,
+                        receiverKind: native.Modifier == NeoMemberModifierKind.Static ? CallReceiverKind.Static : CallReceiverKind.Instance);
                 }
                 if (member is NSFunctionMember)
                 {
@@ -4026,7 +4035,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} call receiver '{receiver.memberId}' does not match target '{targetMemberId}'.");
             }
-            if (member is null || member.Modifier != NeoMemberModifierKind.Static)
+            if (member is null || (member.Modifier != NeoMemberModifierKind.Static && !NeoRandomContract.IsSharedNative(targetMemberId)))
             {
                 throw new NSGetterRuntimeError(
                     $"Static {callableKind} target '{targetMemberId}' is missing or is not static.");
@@ -8103,6 +8112,23 @@ namespace NeoCompose.Runtime.NeoScript
                 // 32-bit float Sqrt returns. NaN for a negative argument.
                 case MathOp.Sqrt:
                     return (double)(float)System.Math.Sqrt(a);
+                case MathOp.Pow:
+                case MathOp.Exp:
+                case MathOp.Log:
+                case MathOp.Log10:
+                case MathOp.Sin:
+                case MathOp.Cos:
+                case MathOp.Tan:
+                case MathOp.Asin:
+                case MathOp.Acos:
+                case MathOp.Atan:
+                case MathOp.Atan2:
+                case MathOp.Lerp:
+                case MathOp.InverseLerp:
+                case MathOp.MoveTowards:
+                case MathOp.Repeat:
+                case MathOp.PingPong:
+                    return NeoExtendedMath.Evaluate(op, (float)a, (float)b, (float)c);
                 default:
                     throw new NSGetterRuntimeError($"Unknown math op '{wireOp}'.");
             }
@@ -8225,6 +8251,39 @@ namespace NeoCompose.Runtime.NeoScript
                     return "Sign";
                 case MathOpKind.Sqrt:
                     return "Sqrt";
+                case MathOpKind.Pow:
+                    return "Pow";
+                case MathOpKind.Exp:
+                    return "Exp";
+                case MathOpKind.Log:
+                    return "Log";
+                case MathOpKind.Log10:
+                    return "Log10";
+                case MathOpKind.Sin:
+                    return "Sin";
+                case MathOpKind.Cos:
+                    return "Cos";
+                case MathOpKind.Tan:
+                    return "Tan";
+                case MathOpKind.Asin:
+                    return "Asin";
+                case MathOpKind.Acos:
+                    return "Acos";
+                case MathOpKind.Atan:
+                    return "Atan";
+                case MathOpKind.Atan2:
+                    return "Atan2";
+                case MathOpKind.Lerp:
+                    return "Lerp";
+                case MathOpKind.InverseLerp:
+                    return "InverseLerp";
+                case MathOpKind.MoveTowards:
+                    return "MoveTowards";
+                case MathOpKind.Repeat:
+                    return "Repeat";
+                case MathOpKind.PingPong:
+                    return "PingPong";
+
                 default:
                     return op;
             }
@@ -8240,9 +8299,16 @@ namespace NeoCompose.Runtime.NeoScript
             switch (op)
             {
                 case MathOp.Clamp:
+                case MathOp.Lerp:
+                case MathOp.InverseLerp:
+                case MathOp.MoveTowards:
                     return 3;
                 case MathOp.Min:
                 case MathOp.Max:
+                case MathOp.Pow:
+                case MathOp.Atan2:
+                case MathOp.Repeat:
+                case MathOp.PingPong:
                     return 2;
                 default:
                     return 1;
@@ -8267,6 +8333,23 @@ namespace NeoCompose.Runtime.NeoScript
                 MathOpKind.Abs => MathOp.Abs,
                 MathOpKind.Sign => MathOp.Sign,
                 MathOpKind.Sqrt => MathOp.Sqrt,
+                MathOpKind.Pow => MathOp.Pow,
+                MathOpKind.Exp => MathOp.Exp,
+                MathOpKind.Log => MathOp.Log,
+                MathOpKind.Log10 => MathOp.Log10,
+                MathOpKind.Sin => MathOp.Sin,
+                MathOpKind.Cos => MathOp.Cos,
+                MathOpKind.Tan => MathOp.Tan,
+                MathOpKind.Asin => MathOp.Asin,
+                MathOpKind.Acos => MathOp.Acos,
+                MathOpKind.Atan => MathOp.Atan,
+                MathOpKind.Atan2 => MathOp.Atan2,
+                MathOpKind.Lerp => MathOp.Lerp,
+                MathOpKind.InverseLerp => MathOp.InverseLerp,
+                MathOpKind.MoveTowards => MathOp.MoveTowards,
+                MathOpKind.Repeat => MathOp.Repeat,
+                MathOpKind.PingPong => MathOp.PingPong,
+
                 _ => MathOp.Unknown,
             };
         }

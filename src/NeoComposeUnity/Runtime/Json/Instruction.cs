@@ -247,7 +247,7 @@ namespace NeoCompose.Runtime.Json
 
         public Variable initializer = null!;
         public BooleanExpression condition = null!;
-        public AssignInstruction iterator = null!;
+        public Instruction iterator = null!;
         public Instruction[] instructions = null!;
         /// <summary>The body's local slots, built when a body with locals first runs.</summary>
         [Newtonsoft.Json.JsonIgnore]
@@ -543,7 +543,7 @@ namespace NeoCompose.Runtime.Json
                 && !IsValidForInstruction(obj))
             {
                 throw new JsonSerializationException(
-                    "ForInstruction must contain a valid initializer, condition, assign iterator, and instructions array.");
+                    "ForInstruction must contain a valid initializer, condition, assignment iterator, and instructions array.");
             }
             if (concrete == typeof(ForEachInstruction)
                 && !IsValidForEachInstruction(obj))
@@ -594,8 +594,19 @@ namespace NeoCompose.Runtime.Json
             {
                 return false;
             }
-            if (obj["iterator"] is not JObject iterator
-                || iterator["type"]?.Value<string>() != InstructionKind.Assign
+            if (obj["iterator"] is not JObject iterator)
+                return false;
+            if (iterator["type"]?.Value<string>() == InstructionKind.FunctionCall)
+            {
+                if (iterator["call"] is not JObject call || call["type"]?.Value<string>() != PointerKind.CallFunction)
+                    return false;
+                try
+                {
+                    call.ToObject<CallFunctionPointer>();
+                }
+                catch (JsonException) { return false; }
+            }
+            else if (iterator["type"]?.Value<string>() != InstructionKind.Assign
                 || iterator["target"] is not JObject target
                 || !IsPointerObject(target["pointer"])
                 || target["typeInfo"]?.Type != JTokenType.Object

@@ -24,6 +24,10 @@ namespace NeoCompose.Runtime
     public partial class NeoClient : INeoClient
     {
         private static readonly HashSet<NeoClient> activeClients = new();
+        public NeoScript.NeoRandom Random
+        {
+            get;
+        }
 
         public delegate string BuildSaveName();
         /// <param name="args">
@@ -781,6 +785,7 @@ namespace NeoCompose.Runtime
             NeoSaveOptions? saveOptions, bool deferReplay,
             NeoValueOwnership persisted = NeoValueOwnership.Save)
         {
+            Random = new NeoScript.NeoRandom(() => InvalidateGetterMemoForRow(NeoScript.NeoRandomContract.Seed));
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
             PersistedOwnership = persisted;
@@ -3467,6 +3472,7 @@ namespace NeoCompose.Runtime
             Member member,
             out HashSet<string>? movedValueIds)
         {
+            bool hasSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
             string importedValueId = ImportValueReference(
                 plan,
                 ownership,
@@ -3487,6 +3493,8 @@ namespace NeoCompose.Runtime
             shadow.containerId = existing.containerId;
             shadow.genericBindings = existing.genericBindings;
             shadow.createdAt = existing.createdAt;
+            if (hasSourceOwnership && (movedValueIds is not null || importedValueId == sourceValueId))
+                Random.PreserveInstanceOnMove(plan, sourceOwnership, sourceValueId, ownership, existing.id);
             CaptureShadowListenerRename(plan, ownership, importedValueId, shadow);
             plan.Remove(ownership, importedValueId);
             StageInPlaceReplacement(plan, ownership, shadow, member);
@@ -4373,6 +4381,7 @@ namespace NeoCompose.Runtime
             // made before promotion still participates in the notification batch.
             bool unchanged = !TryGetCommittedValue(sourceOwnership, valueId, out MemberValue? committed)
                 || NeoSemanticJson.MemberRowsEqual(committed, row, ignoreChangeListeners: true);
+            Random.PreserveInstanceOnMove(plan, sourceOwnership, valueId, targetOwnership, valueId);
             plan.Set(targetOwnership, CloneValueRow(row), silent: unchanged);
             foreach (var child in EnumerateOwnedChildLinks(row, sourceMember))
             {

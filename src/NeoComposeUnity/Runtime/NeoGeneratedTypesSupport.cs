@@ -6173,6 +6173,7 @@ namespace NeoCompose.Runtime
             ClassMember placementMember,
             ObjectMemberValue storedRoot)
         {
+            using var randomFrame = client.Random.EnterIdentity(storedRoot.id);
             RuntimeConstructedClassValue constructed = MaterializeStoredClassMemberDefault(client, placementMember, storedRoot);
             return new NeoMemberClassWritable(client, constructed.member, constructed.value.id, NeoValueOwnership.Session);
         }
@@ -7714,6 +7715,7 @@ namespace NeoCompose.Runtime
             Member member,
             List<MemberValue> rows)
         {
+            using var randomFrame = client.Random.EnterIdentity(member.id);
             var scope = new NeoConstructionScope(client, null);
             NeoTimestamp nowIso = NeoTimestamp.Now();
             string path = $"$.{member.name}";
