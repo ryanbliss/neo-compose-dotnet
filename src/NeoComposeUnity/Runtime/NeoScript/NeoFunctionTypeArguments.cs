@@ -50,6 +50,7 @@ namespace NeoCompose.Runtime.NeoScript
             FunctionGenericParam[]? parameters = owner switch
             {
                 NSFunctionMember script => script.genericParams,
+                NSPropertyMember property => property.genericParams,
                 FunctionMember native => native.genericParams,
                 _ => null,
             };
@@ -390,6 +391,8 @@ namespace NeoCompose.Runtime.NeoScript
             string calleeName,
             TypeInfo[]? callerTable)
         {
+            if ((written?.Length ?? 0) > (parameters?.Length ?? 0))
+                throw new NSGetterRuntimeError($"Call to '{calleeName}' supplies too many type arguments.");
             if (parameters is null)
                 return null;
             if (written is not null

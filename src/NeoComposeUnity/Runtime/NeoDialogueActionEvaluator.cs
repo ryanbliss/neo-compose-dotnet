@@ -3349,16 +3349,24 @@ namespace NeoCompose.Runtime
                 callGetter.receiver,
                 scope,
                 ctx);
-            if (!isStatic && receiver is null)
-            {
-                throw new NSGetterRuntimeError("Cannot invoke setter on a null receiver.", NeoErrorContract.NeoNullReferenceError);
-            }
-
             string effectiveMemberId = NSGetterEvaluator.ResolveSetterMember(
                 callGetter,
                 isStatic ? null : receiver,
                 ctx,
                 out JsonMember? effectiveMember);
+            TypeInfo[]? extensionTypeArguments = null;
+            if (effectiveMember is NSPropertyMember { extension: not null } extension)
+            {
+                if (isStatic != (extension.Modifier == NeoMemberModifierKind.Static))
+                    throw new NSGetterRuntimeError($"Extension setter '{extension.name}' has the wrong receiver mode.");
+                if (!isStatic && receiver is null && extension.extension.receiverType.required)
+                    throw new NSGetterRuntimeError("Cannot invoke an extension setter on a null receiver.", NeoErrorContract.NeoNullReferenceError);
+                extensionTypeArguments = NeoExtensionRuntime.BindProperty(extension, callGetter.typeArguments, receiver, ctx);
+            }
+            else if (!isStatic && receiver is null)
+            {
+                throw new NSGetterRuntimeError("Cannot invoke setter on a null receiver.", NeoErrorContract.NeoNullReferenceError);
+            }
             if (isStatic
                 && (effectiveMember is null
                     || effectiveMember.Modifier != NeoMemberModifierKind.Static
@@ -3390,6 +3398,8 @@ namespace NeoCompose.Runtime
 
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
+            if (extensionTypeArguments is not null)
+                nestedCtx.BindFunctionTypeArguments(extensionTypeArguments);
             var nestedOptions = options is null || ctx.constructorBody
                 ? NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId)
                 : options.ForProperty(effectiveMemberId);

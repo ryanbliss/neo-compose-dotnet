@@ -631,6 +631,7 @@ namespace NeoCompose.Runtime.Json
 
         internal static void ValidateMemberRecord(JObject member)
         {
+            ValidateExtensionMember(member);
             RejectRemoved(member, "locked", "Member");
             Reject(member, "required", "requirement", "Member");
             Reject(member, "isReadOnly", "mutability", "Member");
@@ -730,6 +731,44 @@ namespace NeoCompose.Runtime.Json
                 binding,
                 "kind",
                 "Generic binding");
+        }
+
+        private static void ValidateExtensionMember(JObject member)
+        {
+            if (member.Property("extension") is null)
+                return;
+            string name = member.Value<string>("name") ?? "<unnamed>";
+            if (member["extension"] is not JObject extension)
+                throw new JsonSerializationException($"Extension '{name}' requires a descriptor object.");
+            MemberKind? kind = member["kind"]?.Type == JTokenType.Integer ? (MemberKind?)member.Value<int>("kind") : null;
+            if (kind != MemberKind.NSFunction && kind != MemberKind.NSProperty)
+                throw new JsonSerializationException($"Extension '{name}' must be a script function or computed property.");
+            if (extension["receiverType"] is not JObject)
+                throw new JsonSerializationException($"Extension '{name}' requires a receiver type.");
+            if (extension["genericParameterCount"]?.Type != JTokenType.Integer)
+                throw new JsonSerializationException($"Extension '{name}' requires an integer genericParameterCount.");
+            int count = extension.Value<int>("genericParameterCount");
+            int parameters = (member["genericParams"] as JArray)?.Count ?? 0;
+            if (count < 0)
+                throw new JsonSerializationException($"Extension '{name}' receiver generic count must be non-negative.");
+            if (count > parameters)
+                throw new JsonSerializationException($"Extension '{name}' receiver generic count exceeds its signature.");
+            if (kind == MemberKind.NSProperty && count != parameters)
+                throw new JsonSerializationException($"Extension property '{name}' may only declare receiver type parameters.");
+            int? modifier = member.Value<int?>("modifier");
+            if (modifier != (int)NeoMemberModifierKind.Sealed && modifier != (int)NeoMemberModifierKind.Static)
+                throw new JsonSerializationException($"Extension '{name}' requires an explicit sealed or static modifier.");
+            foreach (string field in new[] { "extendsMemberId", "defaultValue", "valueId", "storage", "storageKey", "effect" })
+            {
+                if (member.Property(field) is not null)
+                    throw new JsonSerializationException($"Extension '{name}' cannot declare '{field}'.");
+            }
+            if (member["bodyMode"]?.Value<int>() == (int)NeoFunctionBodyKind.UI)
+                throw new JsonSerializationException($"Extension '{name}' requires authored source code.");
+            if (member["code"]?.Type != JTokenType.String)
+                throw new JsonSerializationException($"Extension '{name}' requires authored code.");
+            if (member.Value<int?>("access") is { } access && access != (int)NeoMemberAccessKind.Public)
+                throw new JsonSerializationException($"Extension '{name}' must be public.");
         }
 
         private static void ValidateMembers(JToken? token)

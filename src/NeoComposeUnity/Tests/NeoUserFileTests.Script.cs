@@ -47,6 +47,40 @@ namespace NeoCompose.Tests
 
         private static string ScriptCorpus => ScriptCorpusSource.Value;
 
+        [TestCase("class-user", true, null, true)]
+        [TestCase("class-save", true, null, false)]
+        [TestCase("class-user", false, "v-root-user", true)]
+        [TestCase("class-save", false, "v-root-user", false)]
+        [TestCase("class-user", false, null, false)]
+        [TestCase("ifoo", false, "v-root-user", false)]
+        public async Task ExtensionDelegateRequiresUserCodeAndABoundInstance(string classId, bool isStatic, string? valueId, bool accepted)
+        {
+            JObject corpus = JObject.Parse(ScriptCorpus);
+            JObject extension = (JObject)corpus["members"]!["member-read"]!.DeepClone();
+            foreach (string field in new[] { "extendsMemberId", "defaultValue", "valueId", "storage", "storageKey", "effect" })
+                extension.Remove(field);
+            extension["code"] = "return 5;";
+            extension["id"] = "extension-read";
+            extension["modifier"] = (int)(isStatic ? NeoMemberModifierKind.Static : NeoMemberModifierKind.Sealed);
+            extension["extension"] = JObject.FromObject(new ExtensionMemberDescriptor
+            {
+                receiverType = classId == "ifoo"
+                    ? new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = classId }
+                    : new ClassTypeInfo { type = MemberKind.Class, required = true, classId = classId },
+            });
+            corpus["interfaces"] = new JObject { ["ifoo"] = new JObject { ["id"] = "ifoo", ["name"] = "IFoo", ["projectId"] = "project-1", ["members"] = new JObject() } };
+            corpus["classes"]!["class-user"]!["implementsInterfaceIds"] = new JArray("ifoo");
+            corpus["classes"]!["class-user"]!["allowedStorage"] = (int)NeoMemberStorage.User;
+            corpus["members"]!["extension-read"] = extension;
+            using var store = await LoadStoreAsync(new NeoInMemoryLocalSaveStore(), corpus: corpus.ToString());
+            var listeners = UserRoot(store.LoadedUserClient!).Get<NeoMemberActionWritable>("OnChange");
+            var target = new NeoDelegateValue { memberId = "extension-read", valueId = valueId };
+            if (accepted)
+                Assert.DoesNotThrow(() => listeners.AddListener(target));
+            else
+                Assert.That(Assert.Catch(() => listeners.AddListener(target))!.Message, Does.Contain(NeoClient.UserDelegateProvenanceError));
+        }
+
         [Test]
         public async Task UserAction_TakesOnlyUserListeners()
         {

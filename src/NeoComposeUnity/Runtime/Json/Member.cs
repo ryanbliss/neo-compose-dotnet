@@ -1107,6 +1107,12 @@ namespace NeoCompose.Runtime.Json
         public string? dialogueGroupId;
     }
 
+    public sealed class ExtensionMemberDescriptor
+    {
+        public TypeInfo receiverType = null!;
+        public int genericParameterCount;
+    }
+
     /// <summary>
     /// Mirror of TS-side <c>TMemberNSProperty</c>. The stored value is
     /// always null (the runtime computes it via <c>getter</c>), so
@@ -1117,6 +1123,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NSPropertyMember : Member<object?>
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ExtensionMemberDescriptor? extension;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public FunctionGenericParam[]? genericParams;
         public string code = null!;
         public TypeInfo returnTypeInfo = null!;
         public FunctionWithReturnType getter = null!;
@@ -1395,6 +1405,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NSFunctionMember : Member<object?>
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ExtensionMemberDescriptor? extension;
         public string code = null!;
 
         /// <summary>

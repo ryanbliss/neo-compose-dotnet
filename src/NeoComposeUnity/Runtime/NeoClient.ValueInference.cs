@@ -206,7 +206,7 @@ namespace NeoCompose.Runtime
                 // by the ordinary inference path, including ambiguous references.
                 foreach (Member member in data.members.Values)
                 {
-                    if (member.Modifier == NeoMemberModifierKind.Static)
+                    if (member.Modifier == NeoMemberModifierKind.Static && NeoExtensionRuntime.Descriptor(member) is null)
                         StaticMembers.Add(member);
                     if (member.valueId != null)
                     {

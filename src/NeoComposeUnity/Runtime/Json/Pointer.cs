@@ -281,6 +281,8 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
     public sealed class CallGetterPointer : Pointer, ISchemaResolutionSite
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo[]? typeArguments;
         public string memberId = null!;
         public CallReceiver receiver = null!;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
