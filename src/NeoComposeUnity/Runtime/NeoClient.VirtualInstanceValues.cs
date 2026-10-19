@@ -2098,8 +2098,9 @@ namespace NeoCompose.Runtime
         {
             string rootId = expansion.Root.id;
             foreach (var pair in expansion.Values)
-            {
                 NoteDeparture(pair.Key, RowLayer.Virtual, pair.Value);
+            foreach (var pair in expansion.Values)
+            {
                 virtualValues[pair.Key] = pair.Value;
                 InvalidateListenerOwner(expansion.Ownership[pair.Key], pair.Key);
                 NoteEffectRowChange(expansion.Ownership[pair.Key], pair.Key, pair.Value);
@@ -2726,8 +2727,9 @@ namespace NeoCompose.Runtime
             if (virtualValueIdsByRoot.TryGetValue(rootId, out HashSet<string>? valueIds))
             {
                 foreach (string valueId in valueIds)
-                {
                     NoteDeparture(valueId, RowLayer.Virtual, null);
+                foreach (string valueId in valueIds)
+                {
                     InvalidateListenerOwner(virtualValueOwnership.GetValueOrDefault(valueId), valueId);
                     ForgetRandomInstance(valueId, virtualValueOwnership.GetValueOrDefault(valueId));
                     virtualValues.Remove(valueId);

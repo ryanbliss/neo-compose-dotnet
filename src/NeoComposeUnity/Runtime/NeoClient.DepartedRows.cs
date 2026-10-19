@@ -126,6 +126,8 @@ namespace NeoCompose.Runtime
                 && (previous is not ObjectMemberValue old
                     || after is ObjectMemberValue { classId: var classId } && classId == old.classId))
                 return;
+            if (previous is ObjectMemberValue && HasWorldKind(previous.classId, "object"))
+                scriptGridQueries?.CaptureDeparture(id);
             departedNodes.Add(id, NeoValueNode.Departed(id, session, save, user, asset, virtualRow, virtualOwnership));
             // Holders resolve the id again, and meet the departed rows or the
             // replacement.
@@ -157,6 +159,26 @@ namespace NeoCompose.Runtime
             return departedReads == DepartedReads.Prefer ? departed : node;
         }
 
+        internal bool ReadsDepartedRows(string id) => departedReads != DepartedReads.None
+            && IsDeparted(id) && (departedReads == DepartedReads.Prefer || !HoldsRow(id));
+
+        internal LiveRowsScope ReadLiveRows() => new(this);
+
+        internal readonly struct LiveRowsScope : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly DepartedReads previous;
+
+            internal LiveRowsScope(NeoClient client)
+            {
+                this.client = client;
+                previous = client.departedReads;
+                client.departedReads = DepartedReads.None;
+            }
+
+            public void Dispose() => client.departedReads = previous;
+        }
+
         internal bool IsDeparted(string id) => departedNodes.Count != 0 && departedNodes.ContainsKey(id);
 
         /// <summary>A lifecycle hook may not write a row that left the data (P98 §2.4).</summary>
@@ -179,6 +201,7 @@ namespace NeoCompose.Runtime
 
         private void ReleaseDepartedRows()
         {
+            scriptGridQueries?.ReleaseDepartures();
             departedNodes.Clear();
             foreach (NeoValueNode node in heldReplacements)
                 if (valueNodes.TryGetValue(node.id, out NeoValueNode? held) && ReferenceEquals(held, node))
