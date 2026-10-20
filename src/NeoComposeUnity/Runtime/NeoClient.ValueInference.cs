@@ -114,8 +114,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// A row's owner, as grid queries climb to their grid. A collection
-        /// move the script batch holds pending answers first, and a collection
+        /// A row's owner, used by grid queries and candidate replay ordering.
+        /// A collection move the script batch holds pending answers first, and a collection
         /// that released the row leaves it no owner. <paramref name="stamped"/>
         /// says the owner is an unordered list holding the row by its stamp.
         /// </summary>
