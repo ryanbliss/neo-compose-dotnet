@@ -546,6 +546,214 @@ namespace NeoCompose.Tests.SequenceGenerated
 
 namespace NeoCompose.Tests.SequenceGenerated
 {
+    public interface IReadOnlyMutableSequence : INeoValueReference, IMutableSequence<IReadOnlySequenceItem>
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlyMutableSequence Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out MutableSequence writable);
+
+        new global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator();
+
+        new IReadOnlySequenceItem Value { get; }
+    }
+
+    public partial class MutableSequence : NeoGeneratedClassValue, IReadOnlyMutableSequence
+    {
+        internal MutableSequence(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "12500000-0000-4000-8000-000000000073", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal MutableSequence(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public MutableSequence(SequenceItem? Value = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(SequenceItem? Value = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "12500000-0000-4000-8000-000000000073",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "12500000-0000-4000-8000-000000000074", Value)
+            );
+        }
+
+        internal static MutableSequence Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<MutableSequence>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new MutableSequence(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static MutableSequence CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<MutableSequence>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new MutableSequence(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal static MutableSequence? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new MutableSequence(client, value, !saved);
+        }
+
+        public MutableSequence Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyMutableSequence IReadOnlyMutableSequence.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out MutableSequence writable)
+        {
+            return TryWritable<MutableSequence>(out writable);
+        }
+
+
+        public SequenceItem Value
+        {
+            get
+            {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Value");
+                    return global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Value");
+                    return global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("MutableSequence.Value");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Value", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlySequenceItem IReadOnlyMutableSequence.Value
+        {
+            get
+            {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                return global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(client, node.Get<NeoMemberClass>("Value"));
+            }
+        }
+
+        public global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator()
+        {
+            var result = InvokeFunction("GetEnumerator");
+            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, true, null, static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>)this).GetEnumerator();
+
+
+        IReadOnlySequenceItem IMutableSequence<IReadOnlySequenceItem>.Value
+        {
+            get
+            {
+                if (TryReadDetached("Value", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                return global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(client, node.Get<NeoMemberClass>("Value"));
+            }
+            set
+            {
+                ThrowIfReadOnly("MutableSequence.Value");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Value", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<SequenceItem> Value = new("Value");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Value] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Value] = () => Value,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+}
+
+namespace NeoCompose.Tests.SequenceGenerated
+{
     public interface IReadOnlyNumberCursor : INeoValueReference, global::System.Collections.Generic.IEnumerator<int>
     {
         bool IsReadOnly { get; }
@@ -1115,6 +1323,22 @@ namespace NeoCompose.Tests.SequenceGenerated
             return NeoSequences.ReadEnumerator<int>(client, result, NeoSequences.ElementType<int>(client, true), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
+        public static T EchoConstrained<T>(T value) where T : class
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000067");
+            var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
+        }
+
+        public static T? EchoNullable<T>(T? value) where T : class
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000068");
+            var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
+        }
+
         public static global::System.Collections.Generic.IEnumerable<T> Empty<T>()
         {
             var client = TestProjectNeo.RequireInstance().Client;
@@ -1203,7 +1427,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             return Convert.ToInt32(result);
         }
 
-        public static int SumConstrained<T>(T values) where T : class, global::System.Collections.Generic.IEnumerable<int>
+        public static int SumConstrained<T>(T values) where T : class
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000048");
@@ -1351,7 +1575,7 @@ namespace NeoCompose.Tests.SequenceGenerated
 
 namespace NeoCompose.Tests.SequenceGenerated
 {
-    public interface IReadOnlySequenceConstrained<T> : INeoValueReference where T : global::System.Collections.Generic.IEnumerable<int>
+    public interface IReadOnlySequenceConstrained<T> : INeoValueReference
     {
         bool IsReadOnly { get; }
 
@@ -1362,13 +1586,8 @@ namespace NeoCompose.Tests.SequenceGenerated
         int Sum(T values);
     }
 
-    public partial class SequenceConstrained<T> : NeoGeneratedClassValue, IReadOnlySequenceConstrained<T> where T : global::System.Collections.Generic.IEnumerable<int>
+    public partial class SequenceConstrained<T> : NeoGeneratedClassValue, IReadOnlySequenceConstrained<T>
     {
-        static SequenceConstrained()
-        {
-            NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<int>>.Register(TestProjectNeo.NeoResolveIEnumerable<int>);
-        }
-
         internal SequenceConstrained(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "12500000-0000-4000-8000-000000000050", isReadOnly, inheritedStorageOwnership)
         {
@@ -1453,6 +1672,164 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+}
+
+namespace NeoCompose.Tests.SequenceGenerated
+{
+    public interface IReadOnlySequenceItem : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        IReadOnlySequenceItem Clone();
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out SequenceItem writable);
+
+        int Number { get; }
+    }
+
+    public partial class SequenceItem : NeoGeneratedClassValue, IReadOnlySequenceItem
+    {
+        internal SequenceItem(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "12500000-0000-4000-8000-000000000069", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal SequenceItem(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public SequenceItem(int? Number = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Number), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoMemberClassWritable CreateFactoryNode(int? Number = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "12500000-0000-4000-8000-000000000069",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Number", "12500000-0000-4000-8000-000000000070", Number)
+            );
+        }
+
+        internal static SequenceItem Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SequenceItem>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new SequenceItem(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static SequenceItem CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SequenceItem>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new SequenceItem(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal static SequenceItem? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new SequenceItem(client, value, !saved);
+        }
+
+        public SequenceItem Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlySequenceItem IReadOnlySequenceItem.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out SequenceItem writable)
+        {
+            return TryWritable<SequenceItem>(out writable);
+        }
+
+        public int Number
+        {
+            get
+            {
+                if (TryReadDetached("Number", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Number")) ?? throw new InvalidOperationException("Required int 'Number' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("SequenceItem.Number");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Number", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> Number = new("Number");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Number] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Number] = () => Number,
             };
         }
 
@@ -1966,6 +2343,14 @@ namespace NeoCompose.Tests.SequenceGenerated
 
 namespace NeoCompose.Tests.SequenceGenerated
 {
+    public interface IMutableSequence<T> : global::System.Collections.Generic.IEnumerable<T>
+    {
+        T Value { get; set; }
+    }
+}
+
+namespace NeoCompose.Tests.SequenceGenerated
+{
     public sealed partial class TestProjectNeo
     {
         internal static readonly IReadOnlyDictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>> NeoDetachedValueFactories =
@@ -1975,6 +2360,8 @@ namespace NeoCompose.Tests.SequenceGenerated
                 ["12500000-0000-4000-8000-000000000006"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.NumberStream.CreateDetached(client, value, saved),
                 ["12500000-0000-4000-8000-000000000008"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.SequenceApi.CreateDetached(client, value, saved),
                 ["12500000-0000-4000-8000-000000000030"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.SequenceStorage.CreateDetached(client, value, saved),
+                ["12500000-0000-4000-8000-000000000069"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(client, value, saved),
+                ["12500000-0000-4000-8000-000000000073"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.MutableSequence.CreateDetached(client, value, saved),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.User.CreateDetached(client, value, saved),
                 ["root-assets-class-id"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.Assets.CreateDetached(client, value, saved),
                 ["root-save-class-id"] = (client, value, saved) => global::NeoCompose.Tests.SequenceGenerated.Save.CreateDetached(client, value, saved),
@@ -1989,6 +2376,8 @@ namespace NeoCompose.Tests.SequenceGenerated
                 ["12500000-0000-4000-8000-000000000008"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceApi.Create(client, node),
                 ["12500000-0000-4000-8000-000000000030"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceStorage.Create(client, node),
                 ["12500000-0000-4000-8000-000000000040"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.IntBox.Create(client, node),
+                ["12500000-0000-4000-8000-000000000069"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(client, node),
+                ["12500000-0000-4000-8000-000000000073"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.MutableSequence.Create(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.User.Create(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.Assets.Create(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.Save.Create(client, node),
@@ -2006,6 +2395,8 @@ namespace NeoCompose.Tests.SequenceGenerated
                 ["12500000-0000-4000-8000-000000000008"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceApi.CreateWritable(client, node),
                 ["12500000-0000-4000-8000-000000000030"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceStorage.CreateWritable(client, node),
                 ["12500000-0000-4000-8000-000000000040"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.IntBox.CreateWritable(client, node),
+                ["12500000-0000-4000-8000-000000000069"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(client, node),
+                ["12500000-0000-4000-8000-000000000073"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.MutableSequence.CreateWritable(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.User.CreateWritable(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.Assets.CreateWritable(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.SequenceGenerated.Save.CreateWritable(client, node),
@@ -2023,6 +2414,8 @@ namespace NeoCompose.Tests.SequenceGenerated
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceApi)] = "12500000-0000-4000-8000-000000000008",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceStorage)] = "12500000-0000-4000-8000-000000000030",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IntBox)] = "12500000-0000-4000-8000-000000000040",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceItem)] = "12500000-0000-4000-8000-000000000069",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.MutableSequence)] = "12500000-0000-4000-8000-000000000073",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.Save)] = "root-save-class-id",
@@ -2042,6 +2435,10 @@ namespace NeoCompose.Tests.SequenceGenerated
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceStorage)] = "12500000-0000-4000-8000-000000000030",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IntBox)] = "12500000-0000-4000-8000-000000000040",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyIntBox)] = "12500000-0000-4000-8000-000000000040",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceItem)] = "12500000-0000-4000-8000-000000000069",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceItem)] = "12500000-0000-4000-8000-000000000069",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.MutableSequence)] = "12500000-0000-4000-8000-000000000073",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyMutableSequence)] = "12500000-0000-4000-8000-000000000073",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyUser)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.Assets)] = "root-assets-class-id",
@@ -2061,6 +2458,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             new Dictionary<Type, string>
             {
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IInts)] = "12500000-0000-4000-8000-000000000052",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IMutableSequence<>)] = "12500000-0000-4000-8000-000000000071",
                 [typeof(global::System.Collections.Generic.IEnumerator<>)] = "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
                 [typeof(global::System.Collections.Generic.IEnumerable<>)] = "system_d1413390-a2a6-4137-a8f8-e931da847345",
             };
