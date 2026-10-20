@@ -1129,6 +1129,8 @@ namespace NeoCompose.Runtime
         {
             if (value is null)
                 return null;
+            if (member is ClassMember { DeclaredInterfaceId: not null })
+                return NeoGeneratedTypesSupport.InterfaceValueReference(value, member.name);
             if (value is INeoValueReference reference)
             {
                 return NeoGeneratedTypesSupport.ValueReference(reference);

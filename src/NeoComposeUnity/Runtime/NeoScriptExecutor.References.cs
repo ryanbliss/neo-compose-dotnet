@@ -667,6 +667,8 @@ namespace NeoCompose.Runtime
             {
                 switch (captured)
                 {
+                    case NSGetterEvaluator.ScriptSequence or NSGetterEvaluator.ScriptCursor:
+                        throw new NSGetterRuntimeError($"{subject} cannot store a runtime sequence or cursor. Store a List explicitly.");
                     case NSSlotReference reference:
                         AssertReferenceLifetime(subject, holder, reference.TargetId, ctx);
                         break;

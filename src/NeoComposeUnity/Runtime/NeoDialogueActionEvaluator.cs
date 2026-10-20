@@ -82,11 +82,15 @@ namespace NeoCompose.Runtime
             NeoScriptExecutionOptions? options = null,
             NeoScriptTerminalNormalizer? normalizeTerminal = null)
         {
-            ValidateBodyForExecution(body);
+            ValidateBodyForExecution(body, ctx.client);
+            if (body.generator is not null)
+                return NeoScriptExecutionResult.Completed(true, NSGetterEvaluator.CreateGenerator(body, scope, ctx));
             ctx.allocationTracker.EnterExecution();
             client.EnterScriptWrites();
             bool exited = false;
             ctx.trace.Push(body);
+            NSGetterEvaluator.Context? previousContext = client.ActiveScriptContext;
+            client.ActiveScriptContext = ctx;
             try
             {
                 NeoScriptExecutionResult result = ExecuteInstructions(
@@ -121,6 +125,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 ctx.trace.Pop();
+                client.ActiveScriptContext = previousContext;
                 client.ExitScriptWrites();
             }
         }
@@ -234,7 +239,7 @@ namespace NeoCompose.Runtime
             FunctionWithReturnType body,
             NSGetterEvaluator.Context ctx)
         {
-            ValidateBodyForExecution(body);
+            ValidateBodyForExecution(body, ctx.client);
             ctx.allocationTracker.EnterExecution();
         }
 
@@ -318,7 +323,7 @@ namespace NeoCompose.Runtime
         /// the IR contract rather than that an old-but-valid body is running.
         /// </summary>
         private static void ValidateBodyForExecution(
-            FunctionWithReturnType body)
+            FunctionWithReturnType body, NeoClient client)
         {
             if (body.compilerRevision is null)
             {
@@ -331,8 +336,11 @@ namespace NeoCompose.Runtime
                 throw new NeoScriptPreExecutionValidationError(
                     $"NeoScript body is stamped compiler revision {body.compilerRevision.Value}; this SDK executes only revision {FunctionWithReturnType.CurrentCompilerRevision}. Run `neo pull` and `neo export` against a deployment at revision {FunctionWithReturnType.CurrentCompilerRevision}, or install the SDK release that matches the export.");
             }
-            if (body.validatedForExecution)
+            if (body.validatedForExecution
+                && (body.generator is null || ReferenceEquals(body.validatedSequenceSchema, client.SchemaResolution)))
                 return;
+            ValidateSequenceMetadata(body, client);
+            body.validatedSequenceSchema = client.SchemaResolution;
             ValidateControlFlowInstructionMetadata(body.instructions);
             body.validatedForExecution = true;
         }
@@ -489,7 +497,8 @@ namespace NeoCompose.Runtime
             int startIndex,
             ExpressionResumeState? resumeState,
             NeoScriptExecutionOptions? options,
-            NSGetterEvaluator.Context? immediateContext = null)
+            NSGetterEvaluator.Context? immediateContext = null,
+            int endIndex = int.MaxValue)
         {
             // Immediate frames record nothing, so every block of one frame can
             // share a single expression context and resume state.
@@ -549,7 +558,7 @@ namespace NeoCompose.Runtime
             int i = startIndex;
             try
             {
-                for (; i < instructions.Length; i++)
+                for (; i < instructions.Length && i < endIndex; i++)
                 {
                     var instruction = instructions[i];
                     if (pendingFrame && instruction.MayCall)
@@ -960,6 +969,16 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private static void ValidateRangeLoop(ForInstruction instruction, NeoScriptScope scope)
+        {
+            if (instruction.rangeEndId is null)
+                return;
+            scope.TryGetValue(instruction.initializer.id, out object? start);
+            scope.TryGetValue(instruction.rangeEndId, out object? end);
+            NSGetterEvaluator.RangeBound(start, "start");
+            NSGetterEvaluator.RangeBound(end, "end");
+        }
+
         private static NeoScriptExecutionResult RunForCore(
             NeoClient client,
             TypeInfo returnTypeInfo,
@@ -1000,6 +1019,7 @@ namespace NeoCompose.Runtime
                                     state,
                                     suspended);
                             }
+                            ValidateRangeLoop(state.Instruction, scope);
                             state.MoveTo(ForPhase.Condition);
                             continue;
                         }
@@ -1239,23 +1259,58 @@ namespace NeoCompose.Runtime
                 state.Begin(scope, options);
             }
             state.ImmediateContext = immediateContext;
-            NeoScriptExecutionResult result = RunForEach(
-                client,
-                returnTypeInfo,
-                scope,
-                ctx,
-                options,
-                state);
-            if (!result.IsPaused)
+            try
             {
+                NeoScriptExecutionResult result = RunForEach(client, returnTypeInfo, scope, ctx, options, state);
+                if (result.IsPaused)
+                {
+                    state.DetachBodyScope();
+                    return FinishDeferredForEach(result, state, scope, ctx);
+                }
+                CloseForEach(state, scope, ctx, true);
                 state.Park();
                 instruction.idleState = state;
+                return result;
             }
-            else
+            catch (Exception error)
             {
-                state.DetachBodyScope();
+                CloseForEach(state, scope, ctx, NeoScriptErrorClassification.IsAuthoredCatchable(error));
+                state.Park();
+                throw;
             }
-            return result;
+        }
+
+        private static NeoScriptExecutionResult FinishDeferredForEach(NeoScriptExecutionResult result,
+            ForEachExecutionState state, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+            ThenWhenCompleted(result, completed =>
+            {
+                CloseForEach(state, scope, ctx, true);
+                state.Park();
+                return completed;
+            }).ObserveFailure(error =>
+            {
+                CloseForEach(state, scope, ctx, NeoScriptErrorClassification.IsAuthoredCatchable(error));
+                state.Park();
+            });
+
+        private static void CloseForEach(ForEachExecutionState state, NeoScriptScope scope, NSGetterEvaluator.Context ctx, bool cleanup)
+        {
+            try
+            {
+                if (state.CursorAcquired)
+                {
+                    state.CursorAcquired = false;
+                    if (cleanup)
+                        NSGetterEvaluator.DisposeSequenceCursor(state.Cursor, ctx);
+                    else if (state.Cursor is NSGetterEvaluator.ScriptCursor cursor)
+                        cursor.Abandon();
+                }
+            }
+            finally
+            {
+                state.Cursor = null;
+                state.RestoreBinding(scope);
+            }
         }
 
         private static NeoScriptExecutionResult RunForEach(
@@ -1296,7 +1351,7 @@ namespace NeoCompose.Runtime
         {
             while (true)
             {
-                if (state.Snapshot.Count < 0)
+                if (state.Snapshot.Count < 0 && !state.CursorAcquired)
                 {
                     NSGetterEvaluator.Context expressionContext =
                         state.ImmediateContext
@@ -1325,12 +1380,18 @@ namespace NeoCompose.Runtime
                             state,
                             suspended);
                     }
-                    state.Snapshot.Take(collection, ctx);
-                    if (state.Instruction.collectionPointer is CallGetterPointer getterCall)
+                    if (state.Instruction.collectionTypeInfo is InterfaceTypeInfo or ClassTypeInfo)
+                    {
+                        state.Cursor = NSGetterEvaluator.AcquireSequenceCursor(collection, state.Instruction.binding.typeInfo, ctx);
+                        state.CursorAcquired = true;
+                    }
+                    else
+                        state.Snapshot.Take(collection, ctx);
+                    if (!state.CursorAcquired && state.Instruction.collectionPointer is CallGetterPointer getterCall)
                         NSGetterEvaluator.RecycleMemoizedList(collection, getterCall.memberId);
                 }
 
-                if (state.Index >= state.Snapshot.Count)
+                if (state.CursorAcquired ? !NSGetterEvaluator.AdvanceSequenceCursor(state.Cursor, ctx) : state.Index >= state.Snapshot.Count)
                 {
                     state.RestoreBinding(scope);
                     return NeoScriptExecutionResult.Completed(
@@ -1341,7 +1402,7 @@ namespace NeoCompose.Runtime
                 scope.SetLocal(
                     state.Instruction.binding,
                     CoerceSetterValue(
-                        state.Snapshot.Resolve(state.Index, ctx),
+                        state.CursorAcquired ? NSGetterEvaluator.ReadSequenceCurrent(state.Cursor, ctx) : state.Snapshot.Resolve(state.Index, ctx),
                         state.Instruction.binding.typeInfo, ctx));
                 NeoScriptScope bodyScope = state.EnsureBodyScope(
                     scope,
@@ -1475,6 +1536,8 @@ namespace NeoCompose.Runtime
                     && (collection.type == MemberKind.List
                         || collection.type == MemberKind.Set
                         || collection.type == MemberKind.Dictionary),
+                InterfaceTypeInfo iterable => iterable.required,
+                ClassTypeInfo iterable => iterable.required,
                 LookupTypeInfo lookup =>
                     lookup.required
                     && lookup.entryTypeInfo is not null
@@ -2322,6 +2385,7 @@ namespace NeoCompose.Runtime
             string? unboundChildId = null)
         {
             NSGetterEvaluator.InvalidateCollectionOrdering(receiver);
+            ctx.allocationTracker.ActiveGeneratorRetention?.Mutation(receiver, assigned);
             if (receiver is object?[] local && FindValueId(receiver, ctx) is null)
             {
                 if (writeTarget.writability is WritabilityKind.ReadOnly or WritabilityKind.Immutable)
@@ -2354,7 +2418,7 @@ namespace NeoCompose.Runtime
                 array[index] = assigned;
                 return;
             }
-            if (writeTarget.writability == WritabilityKind.Local
+            if (writeTarget.writability is WritabilityKind.Local or WritabilityKind.Runtime
                 && receiver is not NeoScriptObject
                 && receiver is IDictionary<string, object?> dictionary
                 && FindValueId(receiver, ctx) is null)
@@ -2730,6 +2794,10 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx,
                 object?[] args)
             {
+                if (kind is Kind.Local or Kind.UnreadList or Kind.DetachedList
+                    && instruction.mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert)
+                    ctx.allocationTracker.ActiveGeneratorRetention?.Mutation(subject,
+                        args[instruction.target.typeInfo.type == MemberKind.Dictionary || instruction.mutation == CollectionMutationKind.Insert ? 1 : 0]);
                 switch (kind)
                 {
                     case Kind.DetachedList:
@@ -2751,7 +2819,10 @@ namespace NeoCompose.Runtime
                                 // The list a read holds keeps growing in place.
                                 LocalList? held = variable is null ? null : scope.ReadLocalList(variable);
                                 if (held is not null && held.IsSnapshot(list))
+                                {
+                                    ctx.allocationTracker.ActiveGeneratorRetention?.Mutation(held, args[0]);
                                     held.Add(args[0]);
+                                }
                                 else
                                     held = new LocalList(list, args[0], NSGetterEvaluator.CollectionEntryMember(list, ctx), NSGetterEvaluator.HoldsValues(list));
                                 NSGetterEvaluator.AdvanceRuntimeList(list, held);
@@ -3151,6 +3222,8 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
+            if (NSGetterEvaluator.TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
+                return sequenceResult;
             // The target depends only on the receiver, so an NSFunction's
             // arguments can evaluate straight into its parameter slots.
             NSGetterEvaluator.CallSiteTarget? target = NSGetterEvaluator.ResolveCallTarget(
@@ -3889,6 +3962,38 @@ namespace NeoCompose.Runtime
                 ? slot.TargetId
                 : null;
 
+        private static bool ContainsStoredInterface(TypeInfo type) => type switch
+        {
+            CollectionTypeInfo collection => ContainsStoredInterface(collection.entryTypeInfo),
+            TupleTypeInfo tuple => Array.Exists(tuple.elements, entry => ContainsStoredInterface(entry.typeInfo)),
+            _ => type.type == MemberKind.Interface,
+        };
+
+        internal static void RequireStoredInterfaceValue(TypeInfo type, object? value, NSGetterEvaluator.Context ctx, string label)
+        {
+            if (value is null || !ContainsStoredInterface(type))
+                return;
+            if (type is CollectionTypeInfo collection)
+            {
+                var entries = new NSGetterEvaluator.CollectionSnapshot();
+                entries.Take(value, ctx);
+                for (int index = 0; index < entries.Count; index++)
+                    RequireStoredInterfaceValue(collection.entryTypeInfo, entries.Resolve(index, ctx), ctx, label);
+                return;
+            }
+            if (type is TupleTypeInfo tuple && value is RuntimeTuple values)
+            {
+                for (int index = 0; index < values.Count; index++)
+                    RequireStoredInterfaceValue(tuple.elements[index].typeInfo, values[index], ctx, label);
+                return;
+            }
+            if (type.type != MemberKind.Interface)
+                return;
+            if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
+                return;
+            throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
+        }
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -3896,6 +4001,7 @@ namespace NeoCompose.Runtime
             out string? valueId)
         {
             valueId = null;
+            RequireStoredInterfaceValue(typeInfo, value, ctx, "collection entry");
             if (typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             return TryGetValueReferenceId(value, ctx, out valueId);
@@ -4160,6 +4266,8 @@ namespace NeoCompose.Runtime
             NeoTimestamp updatedAt,
             NSGetterEvaluator.Context ctx)
         {
+            if (member is ClassMember { DeclaredInterfaceId: not null })
+                RequireStoredInterfaceValue(MemberKindInfo(member), value, ctx, member.name);
             if (member is LookupMember lookup && value is not null)
                 value = NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup);
             // P67 §6. A script variant value stores as its pair.
@@ -5943,6 +6051,9 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
+                if (inserts)
+                    RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
+                        args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);
                 string? referenceId = null;
                 if (reference && mutation == CollectionMutationKind.Remove)
                 {
@@ -6443,7 +6554,7 @@ namespace NeoCompose.Runtime
 
         private sealed class WhileExecutionState : LoopExecutionState
         {
-            private readonly NeoScriptExecutionOptions? options;
+            private NeoScriptExecutionOptions? options;
 
             internal WhileExecutionState(
                 WhileInstruction instruction,
@@ -6454,6 +6565,14 @@ namespace NeoCompose.Runtime
                 Instruction = instruction;
                 this.options = options;
                 CheckCondition = instruction is not DoWhileInstruction;
+                ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
+            }
+
+            internal void Begin(NeoScriptScope scope, NeoScriptExecutionOptions? options)
+            {
+                Begin(null, scope);
+                this.options = options;
+                CheckCondition = Instruction is not DoWhileInstruction;
                 ExpressionState = ExpressionResumeState.ForInstruction(Instruction, options);
             }
 
@@ -6571,6 +6690,8 @@ namespace NeoCompose.Runtime
                 Index = 0;
             }
 
+            internal object? Cursor;
+            internal bool CursorAcquired;
             // A reused state keeps its snapshot buffers.
             internal readonly NSGetterEvaluator.CollectionSnapshot Snapshot = new();
 
@@ -6891,6 +7012,9 @@ namespace NeoCompose.Runtime
         private static readonly Marker ReturnNullState = new();
         private static readonly Marker BreakState = new();
         private static readonly Marker ContinueState = new();
+        private static readonly Marker YieldedState = new();
+        internal bool IsYielded => ReferenceEquals(state, YieldedState);
+        internal static NeoScriptExecutionResult Yielded() => FromState(YieldedState);
 
         private sealed class FailedState : Marker
         {

@@ -163,9 +163,11 @@ namespace NeoCompose.Runtime
             // is the one `this.X` would use, so a getter read every frame (the
             // equipped item, the clock) re-evaluates only after a row or grid
             // cell it read changes. Ad-hoc receivers are never memoized.
-            bool memoize = thisValue is null && thisRow is not null && client.CanMemoizeGetters;
+            bool sequence = client.IsSequenceType(getter.typeInfo);
+            bool memoize = thisValue is null && thisRow is not null
+                && (sequence ? client.WatchesGetters(thisRow.id) : client.CanMemoizeGetters);
             bool holdsValuelessReads = false;
-            if (memoize)
+            if (memoize && !sequence)
             {
                 // The entry this node last read answers a repeat read of the
                 // same row until the memo forgets it, without building and
@@ -255,7 +257,7 @@ namespace NeoCompose.Runtime
                 value = NSGetterEvaluator.Evaluate(getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
                 // Inside the capture, so a watch hears a change to a stored
                 // collection's entries as well as to the collection.
-                hostValue = NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                hostValue = sequence ? value : NSGetterEvaluator.ResolveHostCollection(value, ctx);
             }
             catch (NSGetterRuntimeError ex)
             {
@@ -276,7 +278,9 @@ namespace NeoCompose.Runtime
             {
                 NeoClient.GetterMemoKey memoKey = MemoKey(thisRow!);
                 memoEntry = null;
-                if (!client.CanMemoizeGetters)
+                if (sequence)
+                    NSGetterEvaluator.AttachSequenceOwner(value, client.MemoizeSequenceReads(memoKey, capture));
+                else if (!client.CanMemoizeGetters)
                     client.RecycleGetterCapture(capture);
                 // A failed read keeps only what it read, so a watch hears the
                 // change that lets it succeed.

@@ -108,6 +108,10 @@ namespace NeoCompose.Runtime
             // read failed, still keeps its reads, so a change reaches its
             // watchers. It never hits.
             public bool valueless;
+            internal SequenceGeneration? sequenceGeneration;
+            internal HashSet<string>? sequenceRows;
+            internal HashSet<GridRead>? sequenceGridReads;
+            internal HashSet<string>? sequenceGrids;
 
             // An entry that read a grid answers only while no grid change is
             // pending: a write can move the grid's indexes before the change
@@ -411,6 +415,7 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteValueRead(string id)
         {
+            NoteSequenceRow(id);
             if (capturedValueReads is not null || getterValueReadCapture is not null || scriptWriteBatch?.Touches(id) == true)
                 RecordValueRead(id);
         }
@@ -429,6 +434,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void NotePendingRead(string id)
         {
+            NoteSequenceRow(id);
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
             if (getterReadCapture is { } reads)
@@ -437,6 +443,9 @@ namespace NeoCompose.Runtime
 
         internal void NoteValueReads(IEnumerable<string> ids)
         {
+            if (ActiveSequenceOwners is not null)
+                foreach (string id in ids)
+                    NoteSequenceRow(id);
             capturedValueReads?.UnionWith(ids);
             getterValueReadCapture?.AddRange(ids);
         }
@@ -444,6 +453,7 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteRowRead(string rowId)
         {
+            NoteSequenceRow(rowId);
             if (scriptWriteBatch?.Touches(rowId) == true)
                 ObserveScriptWrites(rowId);
             if (getterReadCapture is { } reads)
@@ -457,6 +467,7 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void NoteRowRead(string rowId, ref long capturedIn)
         {
+            NoteSequenceRow(rowId);
             if (scriptWriteBatch?.Touches(rowId) == true)
                 ObserveScriptWrites(rowId);
             if (getterReadCapture is { } reads && capturedIn != getterCaptureId)
@@ -478,8 +489,10 @@ namespace NeoCompose.Runtime
 
         internal void NoteGridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
         {
+            var read = new GridRead(content, placementId, cell, tile);
+            NoteSequenceGrid(read);
             if (getterReadCapture is not null)
-                OpenGridReadCapture().Add(new GridRead(content, placementId, cell, tile));
+                OpenGridReadCapture().Add(read);
         }
 
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
@@ -487,6 +500,15 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReplayGetterReads(GetterMemoEntry entry)
         {
+            if (ActiveSequenceOwners is not null)
+            {
+                if (entry.reads is { } sequenceReads)
+                    for (int i = 0; i < sequenceReads.Count; i++)
+                        NoteSequenceRow(sequenceReads.items[i]);
+                if (entry.gridReads is { } sequenceGrid)
+                    for (int i = 0; i < sequenceGrid.Count; i++)
+                        NoteSequenceGrid(sequenceGrid[i]);
+            }
             if (getterReadCapture is not null
                 || capturedValueReads is not null
                 || getterValueReadCapture is not null)
@@ -1037,6 +1059,11 @@ namespace NeoCompose.Runtime
         // however many rows and cells the getter read.
         private bool ForgetMemoEntry(GetterMemoEntry entry)
         {
+            if (entry.sequenceGeneration is { Live: true } group)
+            {
+                RetireSequenceGeneration(group);
+                return true;
+            }
             if (entry.forgotten)
                 return false;
             entry.ForgetResult();
@@ -1342,6 +1369,7 @@ namespace NeoCompose.Runtime
                 watching.Remove(node);
                 if (watching.Count == 0)
                     getterWatchersByRow.Remove(rowId);
+                RetireUnwatchedSequenceRow(rowId);
             });
         }
 

@@ -1462,6 +1462,102 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static ProjectData BuildSequenceGridGetterProjectData()
+        {
+            ProjectData data = BuildGridGetterProjectData();
+            var property = (NSPropertyMember)data.members["object-here-getter"];
+            TypeInfo element = property.returnTypeInfo;
+            Pointer query = ((ReturnInstruction)property.getter!.instructions[0]).pointer!;
+            property.returnTypeInfo = new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                required = true,
+                interfaceId = NeoSequenceContract.Enumerable,
+                typeArguments = new() { [NeoSequenceContract.EnumerableElement] = element }
+            };
+            property.getter.typeInfo = property.returnTypeInfo;
+            property.getter.generator = new GeneratorBody { kind = "enumerable", elementType = element };
+            property.getter.instructions = new Instruction[]
+            {
+                new YieldReturnInstruction { type = InstructionKind.YieldReturn, yields = true, pointer = query },
+                new YieldReturnInstruction { type = InstructionKind.YieldReturn, yields = true, pointer = query },
+            };
+            return data;
+        }
+
+        [TestCase("cell")]
+        [TestCase("placement")]
+        [TestCase("index")]
+        [TestCase("all")]
+        public void SequenceGridReadsInvalidateOnlyAfterConsumptionAndNeverRevive(string change)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSequenceGridGetterProjectData());
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            int changes = 0;
+            IDisposable watch = view.OnSequenceChanged((_, _) => changes++);
+            var context = client.CreateGetterContext(NeoValueOwnership.Asset);
+            var cursor = ((NSGetterEvaluator.ScriptSequence)view.Sequence!).GetEnumerator(context);
+            void Invalidate()
+            {
+                if (change == "index")
+                    client.InvalidateGetterMemoForGrid("town-grid");
+                else if (change == "all")
+                    client.InvalidateGetterMemo();
+                else
+                    client.ScriptGridQueries.NotifyChanged(new NeoTileGridChangedArgs("town-grid",
+                    objectLayers: new[] { new NeoObjectLayerChangedArgs(ObjectsLayerClassId,
+                        Array.Empty<NeoObjectInstanceId>(),
+                        change == "placement" ? new NeoObjectInstanceId[] { "shop-1" } : Array.Empty<NeoObjectInstanceId>(),
+                        change == "cell" ? new[] { new Vector2Int(10, 20) } : Array.Empty<Vector2Int>(),
+                        NeoTileGridChangeSourceKind.Direct, null) }));
+            }
+            if (change != "all")
+            {
+                Invalidate();
+                Assert.That(changes, Is.Zero, "Creating a factory does not query the grid.");
+            }
+            Assert.That(cursor.MoveNext(context), Is.True);
+            Invalidate();
+            Assert.That(changes, Is.EqualTo(1));
+            watch.Dispose();
+            watch = view.OnSequenceChanged((_, _) => changes++);
+            _ = view.Sequence;
+            Assert.That(cursor.MoveNext(context), Is.True);
+            if (change != "all")
+            {
+                Invalidate();
+                Assert.That(changes, Is.EqualTo(1), "Resubscribing cannot revive the old cursor.");
+            }
+            watch.Dispose();
+        }
+
+        [Test]
+        public void SequenceCreatedDuringPendingGridChangesCannotKeepAnOwner()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSequenceGridGetterProjectData());
+            RegisterGridGetterContent(client);
+            var view = TestGridGetterView.Resolve(client, "shop-1");
+            int changes = 0;
+            using var watch = view.OnSequenceChanged((_, _) => changes++);
+            client.BeginGridChange();
+            NSGetterEvaluator.ScriptSequence sequence;
+            try
+            {
+                sequence = (NSGetterEvaluator.ScriptSequence)view.Sequence!;
+            }
+            finally
+            {
+                client.EndGridChange();
+            }
+            var context = client.CreateGetterContext(NeoValueOwnership.Asset);
+            var cursor = sequence.GetEnumerator(context);
+            Assert.That(cursor.MoveNext(context), Is.True);
+            Assert.That(changes, Is.EqualTo(1), "The next evaluation flushes the queued retirement notification.");
+            client.InvalidateGetterMemoForGrid("town-grid");
+            Assert.That(changes, Is.EqualTo(1), "The ownerless cursor cannot attach grid dependencies.");
+        }
+
         private static void RegisterGridGetterContent(NeoClient client)
         {
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
@@ -1493,6 +1589,10 @@ namespace NeoCompose.Tests
                     new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
 
             internal object? Floor => Compute("Floor");
+            internal object? Sequence => Compute("Here");
+            internal IDisposable OnSequenceChanged(Action<object?, NeoChangeSource> handler) =>
+                WatchField(new NeoField<object?>("Here"), handler, () => Sequence);
+
 
             internal IDisposable OnHereChanged(Action<int, NeoChangeSource> handler) =>
                 WatchField(Here, handler, () => ((object?[])Compute("Here")!).Length);
@@ -4970,7 +5070,10 @@ namespace NeoCompose.Tests
                             options: new NeoTileGridRenderOptions { MaxTilesPerFrame = 1, LiveSync = false });
                     }
                     catch (Exception exception) { error = exception; }
-                    finally { complete = true; }
+                    finally
+                    {
+                        complete = true;
+                    }
                 }
             }
             finally
@@ -5248,7 +5351,10 @@ namespace NeoCompose.Tests
                     }));
                 }
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]
@@ -6706,7 +6812,11 @@ namespace NeoCompose.Tests
                 UnityEngine.Object.DestroyImmediate(go);
                 Assert.DoesNotThrow(() => WriteSortPoint(grouped, Vector2.one));
             }
-            finally { if (go != null) UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                if (go != null)
+                    UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [TestCase(false)]
@@ -6747,7 +6857,10 @@ namespace NeoCompose.Tests
                 Assert.AreSame(placed, after);
                 Assert.AreSame(drawn, go.GetComponentInChildren<SpriteRenderer>());
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [TestCase(false)]
@@ -6786,7 +6899,10 @@ namespace NeoCompose.Tests
                 AssertSamePosition(new Vector3(-1, 4, 0), -content.localPosition);
                 AssertSamePosition(artWorld + (owner.position - ownerWorld), drawn.transform.position);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [TestCase(false)]
@@ -6823,7 +6939,10 @@ namespace NeoCompose.Tests
                 AssertSamePosition(new Vector3(-1, 4, 0), -content.localPosition);
                 AssertSamePosition(corner, owner.localPosition + content.localPosition);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         /// <summary>
@@ -6949,7 +7068,10 @@ namespace NeoCompose.Tests
                 AssertSamePosition(artA, rootA.GetComponentInChildren<SpriteRenderer>().transform.position);
                 AssertSamePosition(artB, rootB.GetComponentInChildren<SpriteRenderer>().transform.position);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]
@@ -7453,7 +7575,10 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(new Vector3(0, -1, 0), collider.transform.localPosition);
                 Assert.IsTrue(collider.isTrigger);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]
@@ -7735,7 +7860,10 @@ namespace NeoCompose.Tests
                 if (destroyComponent)
                     Assert.AreEqual(beforeDestroy, target.localPosition);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [UnityTest]
@@ -9569,7 +9697,10 @@ namespace NeoCompose.Tests
                 Assert.IsFalse(sprites[0].TryGetComponent<BoxCollider2D>(out var collider)
                     && collider.enabled);
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [TestCase(false)]
@@ -9618,7 +9749,10 @@ namespace NeoCompose.Tests
                     Assert.That(go.GetComponentInChildren<SpriteRenderer>(), Is.SameAs(drawn));
                 }
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]
@@ -9701,7 +9835,10 @@ namespace NeoCompose.Tests
                         "A nested part redraws when a row its computed SortingOrder read changes.");
                 }
             }
-            finally { UnityEngine.Object.DestroyImmediate(go); }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
         }
 
         [Test]

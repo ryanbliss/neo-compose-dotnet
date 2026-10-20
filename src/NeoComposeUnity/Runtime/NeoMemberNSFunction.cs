@@ -1011,13 +1011,18 @@ namespace NeoCompose.Runtime
                 {
                     if (i >= argumentCount)
                         value = NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
-                    scope.SetParameter(i + argumentParameterOffset, NeoScriptValueMarshaller.Normalize(
+                    object? normalized = NeoScriptValueMarshaller.Normalize(
                         client,
                         ctx.valueOwnership,
                         value,
                         argumentTypes[i],
                         ctx,
-                        in subjects[i + 1]));
+                        in subjects[i + 1]);
+                    // The effective signature already closed receiver and function
+                    // parameters. Preserve only the collection erased by a bare T.
+                    if (argument.type == MemberKind.Generic && normalized is not null)
+                        normalized = NSGetterEvaluator.TagSequenceCollection(normalized, argumentTypes[i], ctx);
+                    scope.SetParameter(i + argumentParameterOffset, normalized);
                 }
                 catch (Exception exception)
                 {
@@ -1840,6 +1845,8 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class NeoScriptValueMarshaller
     {
+        internal static bool IsContextRoot(object? value) => value is RuntimeRoot;
+
         internal static object? ResolveRoot(
             NeoClient client,
             NSGetterEvaluator.Context ctx)
@@ -1956,6 +1963,32 @@ namespace NeoCompose.Runtime
             in ValueSubject subject,
             bool resolvedIdentity = false)
         {
+            if (value is NeoValueWritePayload payload)
+            {
+                value = payload.isValueReference
+                    ? payload.valueReference ?? (object?)payload.valueId
+                    : payload.value;
+            }
+            NeoClient? owner = value switch
+            {
+                NeoNode node => node.Client,
+                INeoCollectionView collection => collection.CollectionClient,
+                NSGetterEvaluator.ScriptSequence sequence => sequence.Owner,
+                NSGetterEvaluator.ScriptCursor cursor => cursor.Owner,
+                _ => null,
+            };
+            if (owner is not null && !ReferenceEquals(client, owner))
+                throw new InvalidOperationException("An SDK value belongs to a different project client.");
+            if (owner?.IsDisposed == true)
+                throw new ObjectDisposedException(nameof(NeoClient));
+            if (typeInfo.type == MemberKind.Interface
+                && !NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx)
+                && !NSGetterEvaluator.IsRowRecord(value, ctx))
+            {
+                if (value is not null && client.SequenceCollectionElements.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out _))
+                    throw new InvalidOperationException($"{subject} has a collection element type incompatible with its declared interface.");
+                value = NeoSequences.WriteBoxed(client, value, typeInfo);
+            }
             // Primitives, value references and enum ids match none of the
             // rewrites in NormalizeRewritten, so they skip its chain.
             switch (typeInfo.type)
@@ -1973,6 +2006,8 @@ namespace NeoCompose.Runtime
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
                     break;
+                case MemberKind.Interface when NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx):
+                    return value;
                 // The usual Class value: a record this context unwrapped from
                 // a row, which is canonical and passes the shape check.
                 case MemberKind.Class or MemberKind.Interface
@@ -2004,12 +2039,6 @@ namespace NeoCompose.Runtime
             ValueSubject subject,
             bool resolvedIdentity)
         {
-            if (value is NeoValueWritePayload payload)
-            {
-                value = payload.isValueReference
-                    ? payload.valueReference ?? (object?)payload.valueId
-                    : payload.value;
-            }
             if (value is null)
             {
                 if (typeInfo.required && typeInfo.type != MemberKind.Null)
@@ -2323,6 +2352,8 @@ namespace NeoCompose.Runtime
                     }
                 case MemberKind.Interface:
                     {
+                        if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
+                            return;
                         string? interfaceId = typeInfo switch
                         {
                             InterfaceTypeInfo interfaceType => interfaceType.interfaceId,

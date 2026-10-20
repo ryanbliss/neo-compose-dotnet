@@ -110,6 +110,7 @@ namespace NeoCompose.Runtime
                 // The arming read waits for the outermost execution, so it
                 // reads committed state and hears every later commit.
                 QueueGetterSubscription(subscription);
+                RetireSequenceGetter(owner.id, canonical);
             }
             subscription.Targets.Add(listener);
             FlushGetterChanges();
@@ -141,6 +142,8 @@ namespace NeoCompose.Runtime
             subscriptions.Remove(subscription.GetterId);
             if (subscriptions.Count == 0)
                 getterSubscriptionsByRow.Remove(subscription.RowId);
+            RetireSequenceGetter(subscription.RowId, subscription.GetterId);
+            RetireUnwatchedSequenceRow(subscription.RowId);
         }
 
         private void DispatchGetterSubscriptions()
@@ -168,6 +171,7 @@ namespace NeoCompose.Runtime
 
         private void DispatchGetterSubscription(GetterSubscription subscription)
         {
+            RetireSequenceGetter(subscription.RowId, subscription.GetterId);
             subscription.Queued = false;
             bool notify = !subscription.Arming;
             subscription.Arming = false;

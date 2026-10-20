@@ -27,6 +27,10 @@ namespace NeoCompose.Runtime
     internal interface INeoCollectionView
     {
         /// <summary>The collection's node, or null for a pending Set that has none.</summary>
+        NeoClient? CollectionClient
+        {
+            get;
+        }
         NeoMember? CollectionNode
         {
             get;
@@ -221,6 +225,7 @@ namespace NeoCompose.Runtime
 
         public int Count => DetachedEntries() is { } entries ? entries.Length : node.Count;
 
+        NeoClient INeoCollectionView.CollectionClient => client;
         NeoMember? INeoCollectionView.CollectionNode => node;
 
         /// <summary>
@@ -494,6 +499,7 @@ namespace NeoCompose.Runtime
 
         public int Count => node.Count;
 
+        NeoClient INeoCollectionView.CollectionClient => client;
         NeoMember? INeoCollectionView.CollectionNode => node;
 
         /// <summary>
@@ -779,6 +785,7 @@ namespace NeoCompose.Runtime
 
         public int Count => entries.Count;
 
+        NeoClient? INeoCollectionView.CollectionClient => ((INeoCollectionView)entries).CollectionClient;
         NeoMember? INeoCollectionView.CollectionNode => ((INeoCollectionView)entries).CollectionNode;
 
         /// <summary>
@@ -1001,6 +1008,7 @@ namespace NeoCompose.Runtime
 
         public int Count => node.Selected().Length;
 
+        NeoClient INeoCollectionView.CollectionClient => client;
         NeoMember? INeoCollectionView.CollectionNode => node;
 
         /// <summary>
@@ -1209,6 +1217,7 @@ namespace NeoCompose.Runtime
 
         public int Count => node.Selected().Length;
 
+        NeoClient INeoCollectionView.CollectionClient => client;
         NeoMember? INeoCollectionView.CollectionNode => node;
 
         /// <summary>

@@ -33,6 +33,8 @@ namespace NeoCompose.Runtime.Json
         public const string Coalesce = "coalesce";
         /// <summary>Lazy <c>condition ? whenTrue : whenFalse</c> (revision 12).</summary>
         public const string Conditional = "conditional";
+        public const string Range = "range";
+        public const string SequenceConversion = "sequenceConversion";
         public const string SwitchExpression = "switchExpression";
         public const string ObjectInitializer = "objectInitializer";
         /// <summary>Creates a NeoDelegate with explicit by-value captures.</summary>
@@ -84,6 +86,8 @@ namespace NeoCompose.Runtime.Json
         public const string DoWhile = "doWhile";
         public const string For = "for";
         public const string ForEach = "forEach";
+        public const string YieldReturn = "yieldReturn";
+        public const string YieldBreak = "yieldBreak";
         public const string Break = "break";
         public const string Continue = "continue";
         public const string Switch = "switch";
@@ -538,12 +542,22 @@ namespace NeoCompose.Runtime.Json
     /// functions (Where/Select/etc.). Mirrors TS-side
     /// <c>INSFunctionWithReturnType</c>.
     /// </summary>
+    public sealed class GeneratorBody
+    {
+        public string kind = null!;
+        public TypeInfo elementType = null!;
+    }
+
     public class FunctionWithReturnType
     {
         public NeoScriptSourceInfo? source;
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public GeneratorBody? generator;
         /// <summary>Set once the runtime has validated this body's instruction metadata; instructions are immutable after load. The compiler revision stamp is still checked on every execution.</summary>
         [Newtonsoft.Json.JsonIgnore]
         internal bool validatedForExecution;
+        [Newtonsoft.Json.JsonIgnore]
+        internal object? validatedSequenceSchema;
 
         /// <summary>This body's parameter and local slots, built on its first pooled-scope execution.</summary>
         [Newtonsoft.Json.JsonIgnore]

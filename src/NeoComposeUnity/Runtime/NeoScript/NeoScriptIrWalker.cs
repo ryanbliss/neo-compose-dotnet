@@ -34,6 +34,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             try
             {
+                if (instruction is ForEachInstruction { collectionTypeInfo: { type: MemberKind.Interface or MemberKind.Class } })
+                    return true;
                 return AnyPointer(instruction, IsCall);
             }
             catch (NotSupportedException)
@@ -43,7 +45,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static readonly Func<Pointer, bool> IsCall =
-            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer;
+            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
 
         private static bool AnyPointer(
             Instruction instruction,
@@ -64,6 +66,10 @@ namespace NeoCompose.Runtime.NeoScript
                             return true;
                     }
                     return AnyPointer(conditional.elseInstructions, predicate);
+                case YieldReturnInstruction yielded:
+                    return AnyPointer(yielded.pointer, predicate);
+                case YieldBreakInstruction:
+                    return false;
                 case ReturnInstruction result:
                     return result.pointer is not null
                         && AnyPointer(result.pointer, predicate);
@@ -124,6 +130,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(clear.target.owner, predicate);
                 case BreakInstruction:
                 case ContinueInstruction:
+                case RethrowInstruction:
                     return false;
                 default:
                     throw new NotSupportedException(
@@ -209,6 +216,10 @@ namespace NeoCompose.Runtime.NeoScript
                             return true;
                     }
                     return false;
+                case RangePointer range:
+                    return AnyPointer(range.start, predicate) || AnyPointer(range.end, predicate);
+                case SequenceConversionPointer conversion:
+                    return AnyPointer(conversion.pointer, predicate);
                 case ConditionalPointer conditional:
                     return AnyPointer(conditional.condition, predicate)
                         || AnyPointer(conditional.whenTrue, predicate)

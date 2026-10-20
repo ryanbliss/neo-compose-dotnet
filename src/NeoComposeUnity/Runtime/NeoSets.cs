@@ -496,6 +496,7 @@ namespace NeoCompose.Runtime
 
         public int Count => OptionIds.Length;
 
+        NeoClient? INeoCollectionView.CollectionClient => client;
         NeoMember? INeoCollectionView.CollectionNode => node;
 
         /// <summary>
