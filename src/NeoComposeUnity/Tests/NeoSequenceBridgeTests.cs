@@ -42,6 +42,37 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SequenceConstrainedGenericResultsPreserveClrValuesAndNullability()
+        {
+            IEnumerable<int> foreign = new[] { 2, 3 };
+            Assert.That(SequenceApi.EchoConstrained(foreign), Is.SameAs(foreign));
+            Assert.That(SequenceApi.EchoNullable(foreign), Is.SameAs(foreign));
+            Assert.That(SequenceApi.EchoNullable<IEnumerable<int>>(null), Is.Null);
+            IEnumerable<int> generated = SequenceApi.Range(3);
+            Assert.That(SequenceApi.EchoConstrained(generated).ToArray(), Is.EqualTo(new[] { 0, 1, 2 }));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SequencePropertyAdaptersPreserveWritesAndReadOnlyGuards(bool inherited)
+        {
+            NeoGeneratedClassValue sequence = inherited ? new InheritedMutableSequence(new SequenceItem()) : new MutableSequence();
+            var writable = (IMutableSequence<IReadOnlySequenceItem>)sequence;
+            var item = new SequenceItem { Number = 42 };
+            writable.Value = item;
+            Assert.That(writable.Value.Number, Is.EqualTo(42));
+            Assert.That(writable.Single().Number, Is.EqualTo(42));
+            var node = new NeoMemberClass(project.Client, sequence.BackingMember, sequence.valueId, sequence.ValueOwnership);
+            using NeoGeneratedClassValue view = inherited
+                ? new InheritedMutableSequence(project.Client, node, true)
+                : new MutableSequence(project.Client, node, true);
+            Assert.That(view.IsReadOnly, Is.True);
+            var readOnly = (IMutableSequence<IReadOnlySequenceItem>)view;
+            Assert.That(() => readOnly.Value = new SequenceItem(), Throws.InvalidOperationException);
+            Assert.That(writable.Value.Number, Is.EqualTo(42));
+        }
+
+        [Test]
         public void GenericAuthoredClassImplementsTheClosedClrProtocol()
         {
             IReadOnlyBox<int> box = SequenceApi.MakeBox();

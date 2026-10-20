@@ -202,7 +202,7 @@ namespace NeoCompose.Runtime
                     args,
                     ctx,
                     NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true, typeArguments: typeArguments);
-                return AwaitExecution(result);
+                return AwaitExecution(client, result);
             }
             catch (Exception exception)
             {
@@ -340,7 +340,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"NSFunction '{function.Member.name}' is immediate; use InvokeStatic.");
                 }
-                return AwaitExecution(NeoNSFunctionRuntime.ExecuteResolved(
+                return AwaitExecution(client, NeoNSFunctionRuntime.ExecuteResolved(
                     client,
                     function,
                     receiver: null,
@@ -365,7 +365,7 @@ namespace NeoCompose.Runtime
             return function;
         }
 
-        private Task<object?> AwaitExecution(NeoScriptExecutionResult initial)
+        internal static Task<object?> AwaitExecution(NeoClient client, NeoScriptExecutionResult initial)
         {
             if (!initial.IsPaused)
                 return Task.FromResult(initial.ReturnValue);
@@ -715,6 +715,7 @@ namespace NeoCompose.Runtime
             NeoBoundNSFunctionSignature? bound = function.GenericParams is null
                 ? null
                 : BindTypeArguments(function, typeArguments, site, ctx);
+            NeoExtensionRuntime.ValidateReceiver(function.Member, receiver, bound?.TypeArguments, ctx);
             TypeInfo effectiveReturnType = bound?.ReturnTypeInfo ?? function.ReturnTypeInfo;
             TypeInfo[] effectiveArgumentTypes = bound?.ArgumentTypes ?? function.ArgumentTypes;
             if (function.HasGenericSignature)
@@ -832,7 +833,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             bool isStatic = function.IsStatic;
-            if (receiver is null && !isStatic)
+            if (receiver is null && !isStatic && NeoExtensionRuntime.Descriptor(function.Member)?.receiverType.required != false)
             {
                 throw new NSGetterRuntimeError(
                     $"Cannot invoke NSFunction '{function.Member.name}' on a null receiver.");
@@ -1969,14 +1970,7 @@ namespace NeoCompose.Runtime
                     ? payload.valueReference ?? (object?)payload.valueId
                     : payload.value;
             }
-            NeoClient? owner = value switch
-            {
-                NeoNode node => node.Client,
-                INeoCollectionView collection => collection.CollectionClient,
-                NSGetterEvaluator.ScriptSequence sequence => sequence.Owner,
-                NSGetterEvaluator.ScriptCursor cursor => cursor.Owner,
-                _ => null,
-            };
+            NeoClient? owner = NeoExtensionRuntime.ClientOf(value);
             if (owner is not null && !ReferenceEquals(client, owner))
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
             if (owner?.IsDisposed == true)
@@ -2291,6 +2285,8 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             ValueSubject subject)
         {
+            if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
+                return;
             ValidateRuntimeValue(value, typeInfo, subject);
             ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
         }

@@ -2666,13 +2666,50 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(2, objects.Single(record => record.InstanceId == "additional-object").Order);
         }
 
-        [Test]
-        public void ObjectPlacementAdoptsConstructedValuesInSaveAndSession()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ObjectPlacementAdoptsConstructedValuesInSaveAndSession(bool unusedExtension)
         {
             foreach (bool useSession in new[] { false, true })
             {
-                var client = NeoTestSaveStack.ClientFromSchema(
-                    BuildClassBackedTileGridProjectData());
+                var data = BuildClassBackedTileGridProjectData();
+                if (unusedExtension)
+                    data.members["unused-extension"] = new NSFunctionMember
+                    {
+                        id = "unused-extension",
+                        name = "Unused",
+                        kind = MemberKind.NSFunction,
+                        Modifier = NeoMemberModifierKind.Static,
+                        code = "return;",
+                        returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                        action = new FunctionWithReturnType
+                        {
+                            compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                            typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                            parameters = new[]
+                            {
+                                new Variable
+                                {
+                                    id = "__this__",
+                                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = false },
+                                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" },
+                                },
+                                new Variable
+                                {
+                                    id = "__root__",
+                                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = false },
+                                    pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__root__" },
+                                },
+                            },
+                            instructions = Array.Empty<Instruction>(),
+                        },
+                        argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                        extension = new ExtensionMemberDescriptor { receiverType = new PrimitiveTypeInfo { type = MemberKind.Int, required = true } },
+                    };
+                using var client = NeoTestSaveStack.ClientFromSchema(data);
+                client.SetWritableValue(NeoValueOwnership.Save, new NumberMemberValue { id = "extension-orphan", value = 1 });
+                client.RemoveSaveValueAndDescendantsIfUnlinked("extension-orphan");
+                Assert.IsFalse(client.TryGetValue(NeoValueOwnership.Save, "extension-orphan", out NumberMemberValue? orphan));
                 var primitive = useSession
                     ? NeoTileGridPrimitive.ResolveForSession(
                         client,

@@ -2497,6 +2497,19 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A getter call, dispatched on the receiver's runtime Class.</summary>
         private static object? EvalCallGetter(CallGetterPointer cgp, NeoScriptScope scope, Context ctx)
         {
+            if (ResolveGetterMember(cgp, ctx) is NSPropertyMember { extension: not null } extension)
+            {
+                object? receiver = EvalCallReceiver(cgp.receiver, scope, ctx);
+                if (!cgp.receiver.IsStatic && cgp.optional == true && receiver is null)
+                    return null;
+                if (cgp.receiver.IsStatic != (extension.Modifier == NeoMemberModifierKind.Static))
+                    throw new NSGetterRuntimeError($"Extension getter '{extension.name}' has the wrong receiver mode.");
+                if (!cgp.receiver.IsStatic && receiver is null && extension.extension.receiverType.required)
+                    throw new NSGetterRuntimeError("Cannot invoke an extension getter on a null receiver.", NeoErrorContract.NeoNullReferenceError);
+                TypeInfo[]? table = NeoExtensionRuntime.BindProperty(extension, cgp.typeArguments, receiver, ctx);
+                return DispatchNSGetterById(cgp.memberId, receiver, ctx, extension.getter, typeArguments: table,
+                    receiverGeneric: extension.extension.genericParameterCount > 0);
+            }
             // Most sites dispatch virtually: a null check skips the compare.
             bool baseDispatch = cgp.dispatch is not null && cgp.dispatch == "base";
             bool isStatic = cgp.receiver.IsStatic;
@@ -2565,6 +2578,9 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             out JsonMember? member)
         {
+            member = ResolveGetterMember(site, ctx);
+            if (NeoExtensionRuntime.Descriptor(member) is not null)
+                return site.memberId;
             if (receiver is not null
                 && FindSchemaPlacementCached(site, ctx) is { } placement
                 && FindRowClassIdByReference(receiver, ctx) is { Length: > 0 } classId)
@@ -3241,6 +3257,9 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     break;
             }
+            if (NeoExtensionRuntime.Descriptor(member) is not null
+                && member.Modifier != NeoMemberModifierKind.Static && target.valueId is null)
+                throw new NSGetterRuntimeError("Extension delegate has no bound receiver.");
             // The cycle key is the bare target frame. A listener position is
             // reported in the fan-out's message, never folded into the key:
             // the same (member, row) re-entered at a different listener index
@@ -3852,6 +3871,13 @@ namespace NeoCompose.Runtime.NeoScript
         {
             dispatchClassId = null;
             cacheable = true;
+            if (pointer.memberId is not null && ctx.client.TryGetMember(pointer.memberId, out JsonMember? selected)
+                && NeoExtensionRuntime.Descriptor(selected) is not null)
+            {
+                if (pointer.receiver.IsStatic != (selected.Modifier == NeoMemberModifierKind.Static))
+                    throw new NSGetterRuntimeError($"Extension function '{selected.name}' has the wrong receiver mode.");
+                return pointer.memberId;
+            }
             if (pointer.dispatch == "base")
             {
                 if (pointer.receiver.IsStatic)
@@ -5014,12 +5040,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         /// <param name="getter">The member's compiled getter when the caller already resolved it.</param>
         /// <param name="receiverRef">The receiver's row reference when the caller already found it.</param>
-        private static object? DispatchNSGetterById(
+        internal static object? DispatchNSGetterById(
             string memberId,
             object? receiver,
             Context ctx,
             FunctionWithReturnType? getter = null,
-            RowReference? receiverRef = null)
+            RowReference? receiverRef = null,
+            TypeInfo[]? typeArguments = null,
+            bool receiverGeneric = false)
         {
             if (ContainsFrame(ctx.getterCallStack, memberId))
             {
@@ -5037,8 +5065,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             NeoClient client = ctx.client;
             if (client.IsSequenceType(getter.typeInfo))
-                return DispatchSequenceGetter(memberId, receiver, getter, receiverRef, ctx);
-            bool memoize = client.CanMemoizeGetters
+                return DispatchSequenceGetter(memberId, receiver, getter, receiverRef, ctx, typeArguments, receiverGeneric);
+            bool memoize = !receiverGeneric && client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
                 && (receiverRef ??= FindRowReference(receiver, ctx)) is not null;
             bool holdsValuelessReads = false;
@@ -5084,6 +5112,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (holdsValuelessReads)
                 memoize = false;
             int frame = ctx.EnterGetter(memberId, receiver);
+            if (typeArguments is not null)
+                ctx.BindFunctionTypeArguments(typeArguments);
             if (!memoize)
             {
                 try

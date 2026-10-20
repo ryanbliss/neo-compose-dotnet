@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "4eae63e39962f0ceb684c43fe8932b031b420c82ad6319670c46608bd9cd1470",
+  "codegenRevision": "136fd795a7932e6c807abb016618de6ec075fbcab57269b117f33339fdc490c5",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",

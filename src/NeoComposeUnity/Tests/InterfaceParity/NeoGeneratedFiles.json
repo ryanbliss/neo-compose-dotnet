@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "project-id",
-  "codegenRevision": "f748ddae5544d547b4d1139dcdbc86b86b01ab0aae4a9a24656ad8858258b460",
+  "codegenRevision": "136fd795a7932e6c807abb016618de6ec075fbcab57269b117f33339fdc490c5",
   "files": [
     {
       "id": "class:root-assets-class-id",

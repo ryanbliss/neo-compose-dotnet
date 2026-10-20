@@ -1855,6 +1855,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoValueOwnership ResolveStaticOwnership(Member member)
         {
+            if (NeoExtensionRuntime.Descriptor(member) is not null)
+                throw new System.InvalidOperationException($"Extension '{member.name}' cannot own a stored value.");
             if (member.Modifier != NeoMemberModifierKind.Static)
             {
                 throw new System.InvalidOperationException(

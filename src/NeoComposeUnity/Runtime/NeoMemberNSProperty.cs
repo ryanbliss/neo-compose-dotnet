@@ -368,18 +368,28 @@ namespace NeoCompose.Runtime
                 return SetterError($"Setter value conversion failed: {ex.Message}");
             }
 
-            NSPropertyMember effectiveProperty = resolvedProperty ?? member;
+            return ExecutePreparedSetter(client, resolvedProperty ?? member, setter, boundThis, normalizedValue, ctx);
+        }
+
+        internal static NSSetterResult ExecutePreparedSetter(
+            NeoClient client,
+            NSPropertyMember property,
+            FunctionWithReturnType setter,
+            object? receiver,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
             SetterTerminalLogger? terminalLogger = null;
             try
             {
                 // The rented context is this call's own, so the setter enters it in place.
-                ctx.PushSetter(effectiveMemberId, boundThis);
+                ctx.PushSetter(property.id, receiver);
                 var execution = NeoScriptExecutor.ExecuteSetter(
                     client,
                     setter,
-                    normalizedValue,
+                    value,
                     ctx,
-                    NeoScriptExecutionOptions.ForUnityProperty(client, effectiveMemberId));
+                    NeoScriptExecutionOptions.ForUnityProperty(client, property.id));
                 if (!execution.IsPaused)
                 {
                     // A suspended setter's continuation keeps the context.
@@ -387,13 +397,13 @@ namespace NeoCompose.Runtime
                     return NSSetterResult.Ok();
                 }
 
-                terminalLogger = new SetterTerminalLogger(effectiveProperty);
+                terminalLogger = new SetterTerminalLogger(property);
                 ObservePendingExecution(execution, terminalLogger);
                 return NSSetterResult.Pending();
             }
             catch (System.Exception ex)
             {
-                (terminalLogger ??= new SetterTerminalLogger(effectiveProperty)).Log(ex);
+                (terminalLogger ??= new SetterTerminalLogger(property)).Log(ex);
                 return NSSetterResult.Error(ex.Message);
             }
         }

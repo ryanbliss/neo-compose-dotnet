@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.79.0] - 2026-10-19
+
+- Added `IEnumerable<T>` and `IEnumerator<T>` bridges, lazy NeoScript generators, and upper-exclusive integer ranges. Collections provide independent cursors. Typed boundaries can acquire a cursor or collect its remaining values into a list; cursor interfaces cannot be stored.
+- Added extension functions and computed properties, including generic and interface receivers. Generated C# 9 supports eligible function wrappers; C# 14 adds extension properties and interface/generic receivers. Both targets execute the same NeoScript bodies.
+- Extensions on `IEnumerable<T>` apply to built-in collections with matching element types. Generator properties and enumerable-constrained extensions share the runtime sequence contract.
+- Requires Unity export schema 46 and the matching CLI release. Upgrade CLI and SDK together, apply system-schema-22f5c828, and regenerate exports. Compiler revision remains 17.
+
 ## [0.78.0] - 2026-10-18
 
 - Added P123 portable Math powers, logarithms, trigonometry, and scalar helpers, plus shared and independent NeoRandom streams with Value(), Range overloads, and a writable Seed property. `NeoClient.Random` exposes the shared stream to C#; separate clients remain independent. Stored content replays with isolated identity seeds.

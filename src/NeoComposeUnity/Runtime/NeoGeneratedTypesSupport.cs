@@ -3766,7 +3766,8 @@ namespace NeoCompose.Runtime
             {
                 if (row is not DelegateMemberValue { value: { IsMemberTarget: true, valueId: null } target }
                     || !client.TryGetMember(target.memberId!, out Member? method)
-                    || method.Modifier == NeoMemberModifierKind.Static)
+                    || method.Modifier == NeoMemberModifierKind.Static
+                    || NeoExtensionRuntime.Descriptor(method) is not null)
                     continue;
 
                 // Declaration defaults contain unbound method groups. The validated

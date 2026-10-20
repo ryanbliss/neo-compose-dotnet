@@ -121,6 +121,17 @@ namespace NeoCompose.Runtime
 
         private bool NamesUserMember(NeoDelegateValue value)
         {
+            if (TryGetMember(value.memberId!, out Member? extensionMember)
+                && NeoExtensionRuntime.Descriptor(extensionMember) is not null)
+            {
+                if (extensionMember.Modifier != NeoMemberModifierKind.Static && value.valueId is null)
+                    return false;
+                if (NeoExtensionRuntime.ReceiverClassId(extensionMember) is not { } classId
+                    || !TryResolveSchemaClassAllowedOwnership(classId, out NeoValueOwnership allowed)
+                    || allowed != NeoValueOwnership.User)
+                    return false;
+                return value.valueId is null || (TryGetValueOwnership(value.valueId, out NeoValueOwnership bound) && bound == NeoValueOwnership.User);
+            }
             if (value.valueId is string receiverId)
                 return TryGetValueOwnership(receiverId, out NeoValueOwnership receiver)
                     && receiver == NeoValueOwnership.User;
