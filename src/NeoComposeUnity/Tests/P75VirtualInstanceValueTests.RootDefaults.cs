@@ -62,23 +62,7 @@ namespace NeoCompose.Tests
                 foreach (string memberId in new[] { "world-time", "world-climate" })
                 {
                     var member = (ClassMember)data.members[memberId];
-                    var initializer = RootReadInitializer(new FunctionPointer
-                    {
-                        type = PointerKind.Function,
-                        function = new DeclaredConstructorFunction
-                        {
-                            type = FunctionKind.DeclaredConstructor,
-                            info = new DeclaredConstructorInfo
-                            {
-                                constructorId = null,
-                                schemaClassInfo = ClassType(member.DeclaredClassId!),
-                                args = Array.Empty<DeclaredConstructorArgument>(),
-                                fields = Array.Empty<FunctionClassConstructorField>(),
-                            },
-                        },
-                    });
-                    initializer.compiled!.typeInfo = ClassType(member.DeclaredClassId!);
-                    member.defaultValue = new ObjectMemberValueBase { init = initializer };
+                    member.defaultValue = ConstructedClassDefault(member.DeclaredClassId!);
                 }
             }
             if (suppliedSeason)
@@ -197,11 +181,31 @@ namespace NeoCompose.Tests
             }
         }
 
-        [TestCase(false, false)]
-        [TestCase(false, true)]
-        [TestCase(true, false)]
-        [TestCase(true, true)]
-        public async Task NestedReplayTracksAnEnclosingDefaultAfterWritesAndReload(bool storedBase, bool nestedSibling)
+        private static ObjectMemberValueBase ConstructedClassDefault(string classId)
+        {
+            var initializer = RootReadInitializer(new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new DeclaredConstructorFunction
+                {
+                    type = FunctionKind.DeclaredConstructor,
+                    info = new DeclaredConstructorInfo
+                    {
+                        constructorId = null,
+                        schemaClassInfo = ClassType(classId),
+                        args = Array.Empty<DeclaredConstructorArgument>(),
+                        fields = Array.Empty<FunctionClassConstructorField>(),
+                    },
+                },
+            });
+            initializer.compiled!.typeInfo = ClassType(classId);
+            return new ObjectMemberValueBase { init = initializer };
+        }
+
+        [Test]
+        public async Task CrossRootDefaultsSupportInterleavedWritesAndReload(
+            [Values] bool storedBase, [Values] bool nestedSibling,
+            [Values] bool storedClimate, [Values] bool scoreFirst, [Values] bool constructedDefaults)
         {
             ProjectData data = BuildProjectData();
             data.classes["thing-class"].schema = new Dictionary<string, string>
@@ -252,14 +256,23 @@ namespace NeoCompose.Tests
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
             };
+            if (constructedDefaults)
+                foreach (string memberId in new[] { "world-time", "world-climate" })
+                {
+                    var member = (ClassMember)data.members[memberId];
+                    member.defaultValue = ConstructedClassDefault(member.DeclaredClassId!);
+                }
             var climate = ObjectValue("stored-climate", "climate-class");
             climate.instanceConstructorId = null;
             climate.constructorArgs = new Dictionary<string, JToken?>();
-            data.values[climate.id] = climate;
-            ((ObjectMemberValue)data.values["thing-instance"]).value!["Climate"] = climate.id;
+            if (storedClimate)
+            {
+                data.values[climate.id] = climate;
+                ((ObjectMemberValue)data.values["thing-instance"]).value!["Climate"] = climate.id;
+            }
             if (!nestedSibling)
             {
-                // Without another nested root, Climate is scheduled before its parent.
+                // The previous row-id ordering scheduled Climate before its parent here.
                 data.classes["thing-class"].schema = new Dictionary<string, string>
                 {
                     ["Count"] = "thing-count",
@@ -281,14 +294,56 @@ namespace NeoCompose.Tests
             using NeoClient client = await NeoClient.CreateAsync(new RootDefaultLoader(data), content,
                 null, NeoLocalization.CreateEmpty(null), null, default);
             AssertValues(client, storedBase ? 40 : 3);
+            string climateId = Climate(client).value!.id;
+            if (scoreFirst)
+            {
+                Climate(client).Get<NeoMemberIntWritable>("Score").Set(11);
+                AssertValues(client, storedBase ? 40 : 3);
+            }
             for (int value = 50; value <= 51; value++)
             {
                 client.save.Get<NeoMemberIntWritable>("Base").Set(value);
                 AssertValues(client, value);
+                Climate(client).Get<NeoMemberIntWritable>("Score").Set(value + 10);
+                AssertValues(client, value);
+                Assert.AreEqual(climateId, Climate(client).value!.id);
             }
             using NeoClient again = await NeoClient.CreateAsync(new RootDefaultLoader(data), client.SerializeSaveData(),
                 null, NeoLocalization.CreateEmpty(null), null, default);
             AssertValues(again, 51);
+            Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
+            Assert.AreEqual(climateId, Climate(again).value!.id);
+            again.save.Get<NeoMemberIntWritable>("Base").Set(52);
+            AssertValues(again, 52);
+            Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
+
+            // A failure after this dependency graph was installed must not
+            // publish candidate defaults or prevent the next valid write.
+            var forecast = ((IntMember)data.members["Forecast"]).defaultValue!.init!.compiled!;
+            Instruction[] instructions = forecast.instructions;
+            string before = again.SerializeSaveData();
+            forecast.instructions = new Instruction[]
+            {
+                new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("Rejected cross-root candidate") },
+            };
+            try
+            {
+                var error = Assert.Throws<InvalidOperationException>(() => again.save.Get<NeoMemberIntWritable>("Base").Set(53));
+                StringAssert.Contains("Rejected cross-root candidate", error!.Message);
+            }
+            finally
+            {
+                forecast.instructions = instructions;
+            }
+            Assert.AreEqual(before, again.SerializeSaveData());
+            AssertValues(again, 52);
+            Assert.AreEqual(climateId, Climate(again).value!.id);
+            Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
+            again.save.Get<NeoMemberIntWritable>("Base").Set(54);
+            AssertValues(again, 54);
+
+            NeoMemberClassWritable Climate(NeoClient current) =>
+                current.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Climate");
 
             void AddDefault(string classId, string name, Pointer pointer)
             {

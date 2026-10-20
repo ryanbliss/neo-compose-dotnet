@@ -359,10 +359,17 @@ namespace NeoCompose.Runtime
             // ordinary post-construction reads never trigger replay here.
             if (isReplayingVirtualInstance && !TryResolveVirtualClassChildren(parentValueId, out _))
                 EnsureVirtualReplayArgumentReady(parentValueId);
-            return TryResolveVirtualClassChildren(
+            bool found = TryResolveVirtualClassChildren(
                     parentValueId,
                     out Dictionary<string, string>? children)
                 && children.TryGetValue(schemaKey, out childValueId);
+            // An unchanged parent can still point to a nested constructor
+            // whose defaults this candidate is rebuilding. Prepare that root
+            // before the caller resolves its otherwise hidden logical id.
+            if (found && candidateReplay?.AffectedRoots.Contains(childValueId!) == true
+                && !replayingVirtualRootIds.Contains(childValueId!))
+                EnsureVirtualReplayArgumentReady(childValueId!);
+            return found;
         }
 
         /// <summary>

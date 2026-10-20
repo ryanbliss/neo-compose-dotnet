@@ -591,6 +591,12 @@ namespace NeoCompose.Runtime
                 }
                 return null;
             }
+            // Read parent links before hiding the previous virtual graph. A
+            // containing replay exposes its completed defaults to nested roots.
+            // Preparing ancestors first avoids false cycles caused by row-id order.
+            List<string> replayOrder;
+            using (ReadCandidate(plan))
+                replayOrder = OrderCandidateRoots(candidate.AffectedRoots);
             candidateReplay = candidate;
             try
             {
@@ -600,7 +606,7 @@ namespace NeoCompose.Runtime
                     using (ExpandReplayMarker.Auto())
 #endif
                     {
-                        foreach (string id in candidate.AffectedRoots.OrderBy(id => id).ToArray())
+                        foreach (string id in replayOrder)
                             PrepareCandidateRoot(id);
                     }
                     ValidateWritePlan(plan);
@@ -615,6 +621,40 @@ namespace NeoCompose.Runtime
                 candidate.Dispose();
                 candidateReplay = null;
             }
+        }
+
+        private List<string> OrderCandidateRoots(HashSet<string> roots)
+        {
+            if (roots.Count < 2)
+                return new List<string>(roots);
+            var ordered = new List<string>(roots.Count);
+            var path = new Stack<string>();
+            HashSet<string> visited = RentIdSet();
+            try
+            {
+                foreach (string root in roots.OrderBy(id => id, StringComparer.Ordinal))
+                {
+                    string current = root;
+                    while (visited.Add(current))
+                    {
+                        path.Push(current);
+                        if (!TryGetGridQueryParent(current, out string? parent, out _))
+                            break;
+                        current = parent;
+                    }
+                    while (path.Count != 0)
+                    {
+                        string id = path.Pop();
+                        if (roots.Contains(id))
+                            ordered.Add(id);
+                    }
+                }
+            }
+            finally
+            {
+                ReturnIdSet(visited);
+            }
+            return ordered;
         }
 
         private void InstallCandidateExpansions(CandidateReplay? candidate,
