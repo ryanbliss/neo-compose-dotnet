@@ -52,19 +52,22 @@ namespace NeoCompose.Tests
             Assert.That(SequenceApi.EchoConstrained(generated).ToArray(), Is.EqualTo(new[] { 0, 1, 2 }));
         }
 
-        [Test]
-        public void SequencePropertyAdaptersPreserveWritesAndReadOnlyGuards()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SequencePropertyAdaptersPreserveWritesAndReadOnlyGuards(bool inherited)
         {
-            var sequence = new MutableSequence();
-            IMutableSequence<IReadOnlySequenceItem> writable = sequence;
+            NeoGeneratedClassValue sequence = inherited ? new InheritedMutableSequence(new SequenceItem()) : new MutableSequence();
+            var writable = (IMutableSequence<IReadOnlySequenceItem>)sequence;
             var item = new SequenceItem { Number = 42 };
             writable.Value = item;
             Assert.That(writable.Value.Number, Is.EqualTo(42));
             Assert.That(writable.Single().Number, Is.EqualTo(42));
-            using var view = new MutableSequence(project.Client,
-                new NeoMemberClass(project.Client, sequence.BackingMember, sequence.valueId, sequence.ValueOwnership), true);
+            var node = new NeoMemberClass(project.Client, sequence.BackingMember, sequence.valueId, sequence.ValueOwnership);
+            using NeoGeneratedClassValue view = inherited
+                ? new InheritedMutableSequence(project.Client, node, true)
+                : new MutableSequence(project.Client, node, true);
             Assert.That(view.IsReadOnly, Is.True);
-            IMutableSequence<IReadOnlySequenceItem> readOnly = view;
+            var readOnly = (IMutableSequence<IReadOnlySequenceItem>)view;
             Assert.That(() => readOnly.Value = new SequenceItem(), Throws.InvalidOperationException);
             Assert.That(writable.Value.Number, Is.EqualTo(42));
         }

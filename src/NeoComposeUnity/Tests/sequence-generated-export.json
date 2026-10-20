@@ -2162,7 +2162,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 },
                 "pointer": {
                   "type": "value",
@@ -2171,7 +2171,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                     },
                     "value": null
                   }
@@ -2195,12 +2195,12 @@
               "type": 21,
               "required": false,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             }
           }
         }
       },
-      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676",
+      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -2219,7 +2219,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         }
       },
@@ -2236,7 +2236,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         },
         "source": {
@@ -2323,7 +2323,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             }
           }
         }
@@ -2339,7 +2339,7 @@
         "required": true,
         "classId": "12500000-0000-4000-8000-000000000020",
         "typeArguments": {
-          "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+          "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
             "type": 2,
             "required": true
           }
@@ -2408,7 +2408,7 @@
                     "required": true,
                     "classId": "12500000-0000-4000-8000-000000000020",
                     "typeArguments": {
-                      "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+                      "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
                         "type": 2,
                         "required": true
                       }
@@ -2449,7 +2449,7 @@
           "required": true,
           "classId": "12500000-0000-4000-8000-000000000020",
           "typeArguments": {
-            "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+            "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
               "type": 2,
               "required": true
             }
@@ -3446,7 +3446,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+          "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
         }
       ],
       "code": "return candidate is IEnumerable<int>;",
@@ -3505,7 +3505,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             },
             "pointer": {
               "type": "value",
@@ -3514,7 +3514,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 },
                 "value": null
               }
@@ -3537,7 +3537,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               },
               "checkType": {
@@ -3633,7 +3633,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+                  "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
                     "type": 6,
                     "required": true,
                     "entryTypeInfo": {
@@ -3653,7 +3653,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+                        "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
                           "type": 6,
                           "required": true,
                           "entryTypeInfo": {
@@ -4136,7 +4136,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               },
               "checkType": {
@@ -4889,7 +4889,7 @@
                                             "required": true,
                                             "classId": "12500000-0000-4000-8000-000000000050",
                                             "typeArguments": {
-                                              "b59ad058-1281-4293-85d8-387d941a0b7a": {
+                                              "b4f9cd54-5654-463e-87ca-29b171437150": {
                                                 "type": 6,
                                                 "required": true,
                                                 "entryTypeInfo": {
@@ -4996,7 +4996,7 @@
                                     "required": true,
                                     "classId": "12500000-0000-4000-8000-000000000050",
                                     "typeArguments": {
-                                      "b59ad058-1281-4293-85d8-387d941a0b7a": {
+                                      "b4f9cd54-5654-463e-87ca-29b171437150": {
                                         "type": 7,
                                         "required": true,
                                         "classId": "12500000-0000-4000-8000-000000000006"
@@ -5081,7 +5081,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000050",
-          "genericParamId": "b59ad058-1281-4293-85d8-387d941a0b7a"
+          "genericParamId": "b4f9cd54-5654-463e-87ca-29b171437150"
         }
       ],
       "code": "int sum = 0; foreach (var item in values) sum += item; return sum;",
@@ -5140,7 +5140,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000050",
-              "genericParamId": "b59ad058-1281-4293-85d8-387d941a0b7a"
+              "genericParamId": "b4f9cd54-5654-463e-87ca-29b171437150"
             },
             "pointer": {
               "type": "value",
@@ -5149,7 +5149,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000050",
-                  "genericParamId": "b59ad058-1281-4293-85d8-387d941a0b7a"
+                  "genericParamId": "b4f9cd54-5654-463e-87ca-29b171437150"
                 },
                 "value": null
               }
@@ -5600,7 +5600,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                     },
                     "listMemberId": "12500000-0000-4000-8000-000000000054"
                   }
@@ -5611,7 +5611,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               ],
               "callSiteId": "1:32:0",
@@ -5650,7 +5650,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         }
       ],
@@ -5713,7 +5713,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
               }
             },
             "pointer": {
@@ -5726,7 +5726,7 @@
                     "type": 21,
                     "required": true,
                     "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                    "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                    "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                   }
                 },
                 "value": null
@@ -5759,7 +5759,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                     }
                   }
                 }
@@ -5769,7 +5769,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               ],
               "callSiteId": "1:32:0",
@@ -5885,7 +5885,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               ],
               "callSiteId": "1:32:1",
@@ -5920,7 +5920,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         }
       },
@@ -5937,7 +5937,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         },
         "source": {
@@ -5994,7 +5994,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
               },
               "readonly": true,
               "writability": "runtime"
@@ -6026,7 +6026,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
               },
               "listMemberId": "12500000-0000-4000-8000-000000000054"
             },
@@ -6060,7 +6060,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             }
           }
         }
@@ -6087,7 +6087,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             }
           }
         }
@@ -6154,7 +6154,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               }
             },
@@ -6171,7 +6171,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                     }
                   }
                 },
@@ -6216,7 +6216,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               },
               "readonly": true,
@@ -6236,7 +6236,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 }
               }
             },
@@ -6254,7 +6254,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                        "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                       }
                     }
                   },
@@ -6272,7 +6272,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                        "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                       }
                     }
                   }
@@ -6321,7 +6321,7 @@
                               "type": 21,
                               "required": true,
                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                             }
                           ],
                           "callSiteId": "1:88:0",
@@ -6390,7 +6390,7 @@
                                           "type": 21,
                                           "required": true,
                                           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                          "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                          "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                                         }
                                       },
                                       "pointer": {
@@ -6403,7 +6403,7 @@
                                               "type": 21,
                                               "required": true,
                                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                                             }
                                           },
                                           "value": null
@@ -6425,7 +6425,7 @@
                                               "type": 21,
                                               "required": true,
                                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                                             }
                                           }
                                         },
@@ -6443,7 +6443,7 @@
                                               "type": 21,
                                               "required": true,
                                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                                             }
                                           }
                                         }
@@ -6469,7 +6469,7 @@
                                             "type": 21,
                                             "required": true,
                                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                                           }
                                         ],
                                         "callSiteId": "2:78:1",
@@ -6828,7 +6828,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+                  "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
                     "type": 2,
                     "required": true
                   }
@@ -6844,7 +6844,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+                        "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
                           "type": 2,
                           "required": true
                         }
@@ -8141,7 +8141,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 },
                 "pointer": {
                   "type": "value",
@@ -8150,7 +8150,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                     },
                     "value": null
                   }
@@ -8182,7 +8182,7 @@
                                 "type": 21,
                                 "required": true,
                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                                "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                               }
                             },
                             "entries": []
@@ -8193,7 +8193,7 @@
                             "type": 21,
                             "required": true,
                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                           }
                         ],
                         "callSiteId": "2:17:0",
@@ -9213,6 +9213,148 @@
         }
       }
     },
+    "12500000-0000-4000-8000-000000000077": {
+      "id": "12500000-0000-4000-8000-000000000077",
+      "name": "Value",
+      "kind": 21,
+      "modifier": 1,
+      "genericParamId": "cba0d460-4344-4f5f-8807-6d967f2dd61c",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000079": {
+      "id": "12500000-0000-4000-8000-000000000079",
+      "name": "GetEnumerator",
+      "kind": 23,
+      "modifier": 1,
+      "returnTypeInfo": {
+        "type": 22,
+        "required": true,
+        "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+        "typeArguments": {
+          "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+            "type": 7,
+            "required": true,
+            "classId": "12500000-0000-4000-8000-000000000069"
+          }
+        }
+      },
+      "argumentTypes": [],
+      "code": "yield return this.Value;",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 17,
+        "generator": {
+          "kind": "enumerator",
+          "elementType": {
+            "type": 7,
+            "required": true,
+            "classId": "12500000-0000-4000-8000-000000000069"
+          }
+        },
+        "source": {
+          "name": "InheritedMutableSequence.GetEnumerator",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000078"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "12500000-0000-4000-8000-000000000078"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "yieldReturn",
+            "pointer": {
+              "type": "keyOf",
+              "memberId": "12500000-0000-4000-8000-000000000077",
+              "keyOf": {
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                },
+                "key": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "Value"
+                  }
+                }
+              }
+            },
+            "yields": true,
+            "source": {
+              "line": 101,
+              "column": 97
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 22,
+          "required": true,
+          "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+          "typeArguments": {
+            "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000069"
+            }
+          }
+        }
+      }
+    },
+    "1bfed345-0727-5a00-8f5b-f91117bfbbfe": {
+      "id": "1bfed345-0727-5a00-8f5b-f91117bfbbfe",
+      "name": "T",
+      "kind": 7,
+      "requirement": 1,
+      "modifier": 1,
+      "classId": "12500000-0000-4000-8000-000000000069",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
     "4ed69bfa-b85a-5778-8f83-ae7723e75bad": {
       "createdAt": 0,
       "updatedAt": 0,
@@ -9278,6 +9420,17 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
     },
+    "9657b591-cbcf-5d2d-aaf6-49780d793b37": {
+      "id": "9657b591-cbcf-5d2d-aaf6-49780d793b37",
+      "name": "T",
+      "kind": 7,
+      "requirement": 1,
+      "modifier": 1,
+      "classId": "12500000-0000-4000-8000-000000000069",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
     "aaf61471-e678-5ffc-ba1c-a97ff55388ec": {
       "id": "aaf61471-e678-5ffc-ba1c-a97ff55388ec",
       "name": "Item",
@@ -9300,7 +9453,7 @@
       "name": "Item",
       "kind": 21,
       "modifier": 1,
-      "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676",
+      "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9442,14 +9595,14 @@
             "type": 21,
             "required": true,
             "ownerInterfaceId": "12500000-0000-4000-8000-000000000071",
-            "genericParamId": "9406334b-cabe-4142-8141-bdae53b39d64"
+            "genericParamId": "bf082742-7a92-43bb-9366-1ca8b8313682"
           },
           "accessors": 1
         }
       },
       "genericParams": [
         {
-          "id": "9406334b-cabe-4142-8141-bdae53b39d64",
+          "id": "bf082742-7a92-43bb-9366-1ca8b8313682",
           "name": "T"
         }
       ],
@@ -9459,7 +9612,7 @@
       "extendsInterfaceArguments": {
         "system_d1413390-a2a6-4137-a8f8-e931da847345": {
           "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-            "genericParamId": "9406334b-cabe-4142-8141-bdae53b39d64"
+            "genericParamId": "bf082742-7a92-43bb-9366-1ca8b8313682"
           }
         }
       },
@@ -9698,13 +9851,13 @@
       "implementsInterfaceArguments": {
         "system_d1413390-a2a6-4137-a8f8-e931da847345": {
           "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-            "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+            "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
           }
         }
       },
       "genericParams": [
         {
-          "id": "70e4ccc2-05ca-4d20-9f9e-167c66773676",
+          "id": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234",
           "name": "T"
         }
       ],
@@ -9738,7 +9891,7 @@
       "schema": {},
       "extendsClassId": "12500000-0000-4000-8000-000000000020",
       "extendsGenericBindings": {
-        "70e4ccc2-05ca-4d20-9f9e-167c66773676": {
+        "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234": {
           "kind": 1,
           "memberId": "e061dac1-cb6d-5790-bef4-a0d6e475147e"
         }
@@ -9756,7 +9909,7 @@
       },
       "genericParams": [
         {
-          "id": "b59ad058-1281-4293-85d8-387d941a0b7a",
+          "id": "b4f9cd54-5654-463e-87ca-29b171437150",
           "name": "T",
           "constraint": {
             "kind": 2,
@@ -9800,10 +9953,54 @@
       ],
       "implementsInterfaceArguments": {
         "12500000-0000-4000-8000-000000000071": {
-          "9406334b-cabe-4142-8141-bdae53b39d64": {
+          "bf082742-7a92-43bb-9366-1ca8b8313682": {
             "kind": 1,
             "memberId": "c4bdd1a6-571f-57c3-9c00-4a824b36f5ee"
           }
+        }
+      },
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000076": {
+      "id": "12500000-0000-4000-8000-000000000076",
+      "name": "GenericSequenceValue",
+      "schema": {
+        "Value": "12500000-0000-4000-8000-000000000077"
+      },
+      "genericParams": [
+        {
+          "id": "cba0d460-4344-4f5f-8807-6d967f2dd61c",
+          "name": "T"
+        }
+      ],
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000078": {
+      "id": "12500000-0000-4000-8000-000000000078",
+      "name": "InheritedMutableSequence",
+      "schema": {
+        "GetEnumerator": "12500000-0000-4000-8000-000000000079"
+      },
+      "extendsClassId": "12500000-0000-4000-8000-000000000076",
+      "implementsInterfaceIds": [
+        "12500000-0000-4000-8000-000000000071"
+      ],
+      "implementsInterfaceArguments": {
+        "12500000-0000-4000-8000-000000000071": {
+          "bf082742-7a92-43bb-9366-1ca8b8313682": {
+            "kind": 1,
+            "memberId": "9657b591-cbcf-5d2d-aaf6-49780d793b37"
+          }
+        }
+      },
+      "extendsGenericBindings": {
+        "cba0d460-4344-4f5f-8807-6d967f2dd61c": {
+          "kind": 1,
+          "memberId": "1bfed345-0727-5a00-8f5b-f91117bfbbfe"
         }
       },
       "projectId": "project-id",
@@ -9995,7 +10192,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+          "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
         }
       ],
       "code": null,
@@ -10053,7 +10250,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+              "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
             },
             "pointer": {
               "type": "value",
@@ -10062,7 +10259,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "70e4ccc2-05ca-4d20-9f9e-167c66773676"
+                  "genericParamId": "65a2e8d0-279a-4fc8-a2c6-f5079b3ed234"
                 },
                 "value": null
               }
