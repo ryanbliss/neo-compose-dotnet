@@ -385,6 +385,12 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     case RuntimeTuple tuple:
                         return TupleHash(tuple, context, this);
+                    case NeoVector3Value vector:
+                        return HashCode.Combine(vector.x, vector.y, vector.z);
+                    case NeoVector2Value vector:
+                        return HashCode.Combine(vector.x, vector.y);
+                    case NeoColorValue color:
+                        return HashCode.Combine(color.r, color.g, color.b, color.a);
                     case null:
                         return 0;
                     case string text:
