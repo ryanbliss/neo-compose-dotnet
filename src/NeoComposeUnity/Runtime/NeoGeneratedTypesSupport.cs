@@ -791,6 +791,7 @@ namespace NeoCompose.Runtime
             private Func<object?, NeoConstructorValueReference?>? valueReference;
             private static readonly IReadOnlyDictionary<string, NeoValueOwnership> NoReferenceOwnership =
                 new Dictionary<string, NeoValueOwnership>();
+            internal bool ReplayDefaultRoot;
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
 
@@ -3210,11 +3211,17 @@ namespace NeoCompose.Runtime
                 ? timestampContext.allocationTracker.ConstructionTimestamp
                 : NeoTimestamp.Now();
             var rows = new List<MemberValue>(valueRows);
+            var rootFields = new Dictionary<string, string>(value);
+            if (scope.ReplayDefaultRoot)
+            {
+                scope.ReplayDefaultRoot = false;
+                client.BindReplayDefaultRoot(rootFields);
+            }
             var parentRow = CreateWritableClassValueRow(
                 client,
                 classId,
                 // The row owns its payload; the caller keeps its dictionary.
-                new Dictionary<string, string>(value),
+                rootFields,
                 rows,
                 nowIso,
                 scope,
@@ -5271,10 +5278,11 @@ namespace NeoCompose.Runtime
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
             Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null,
-            bool bindsOnRead = false)
+            bool bindsOnRead = false,
+            bool replayDefaultRoot = false)
         {
             RuntimeConstructedClassValue constructed = ConstructDeclaredClassValueData(
-                resolved, argumentValues, fields, ctx, evaluateFieldValues);
+                resolved, argumentValues, fields, ctx, evaluateFieldValues, replayDefaultRoot);
             try
             {
                 using var wrapperReads = resolved.client.SuppressValueReads();
@@ -5296,7 +5304,8 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
-            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null)
+            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null,
+            bool replayDefaultRoot = false)
         {
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
@@ -5313,7 +5322,10 @@ namespace NeoCompose.Runtime
                     client,
                     ctx,
                     initializerArguments,
-                    resolved.classTypeInfo.classId);
+                    resolved.classTypeInfo.classId)
+                {
+                    ReplayDefaultRoot = replayDefaultRoot,
+                };
 
                 // Step 1 — member initializers. No fields are supplied here: an
                 // overridden member's initializer still RUNS and is then overwritten
@@ -6222,6 +6234,7 @@ namespace NeoCompose.Runtime
                 classId,
                 classArguments,
                 clonedIds);
+            scope.ReplayDefaultRoot = true;
             RuntimeConstructedClassValue constructed =
                 CreateWritableClassValueDataCore(
                     client,
@@ -6378,7 +6391,8 @@ namespace NeoCompose.Runtime
                 ctx,
                 // Stored fields are applied after replay. Eager child wrappers
                 // would traverse incomplete declaration defaults before then.
-                bindsOnRead: replayStoredInstance);
+                bindsOnRead: replayStoredInstance,
+                replayDefaultRoot: replayStoredInstance);
         }
 
         /// <summary>
@@ -8368,6 +8382,15 @@ namespace NeoCompose.Runtime
             {
                 // The row takes the caller's fresh dictionary as its own.
                 Dictionary<string, string> value = providedValue ?? new Dictionary<string, string>();
+                var row = new ObjectMemberValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = value,
+                    classId = classId,
+                };
+                client.BindReplayDefaultClass(row, rows);
 
                 RuntimeClassPlan? resolvedClassPlan = classPlan
                     ?? (classArguments is null
@@ -8420,6 +8443,8 @@ namespace NeoCompose.Runtime
                     if (env.Count == 0 && IsConstantMember(client, member))
                         continue;
 
+                    using var replayMember = client.BeginReplayDefaultMember(value, entry.schemaKey, member, rows);
+
                     // P43 §1 / §8 — an init-backed default is EVALUATED here
                     // rather than read, so a runtime-constructed instance gets
                     // what the initializer produces now instead of a value
@@ -8469,14 +8494,7 @@ namespace NeoCompose.Runtime
                     }
                 }
 
-                return new ObjectMemberValue
-                {
-                    id = Guid.NewGuid().ToString(),
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = value,
-                    classId = classId,
-                };
+                return row;
             }
             finally
             {

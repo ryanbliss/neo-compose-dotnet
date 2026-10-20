@@ -429,6 +429,10 @@ namespace NeoCompose.Runtime
             {
                 if (!replayingVirtualRootIds.Contains(slot.rootId))
                     PrepareCandidateRoot(slot.rootId);
+                // The placing root can read this child and prepare it recursively.
+                // Replaying it twice would treat its candidate defaults as stored rows.
+                if (candidate.Expansions.ContainsKey(rootId) || candidate.RetainedRoots.Contains(rootId))
+                    return;
                 if (candidate.Expansions.TryGetValue(slot.rootId, out var placing)
                     ? placing.Footprint.Contains(rootId)
                     : virtualRootByFootprintId.TryGetValue(rootId, out string? spineOwner) && spineOwner == slot.rootId)
@@ -693,6 +697,10 @@ namespace NeoCompose.Runtime
 
         private bool TryResolveVirtualValue(string id, out MemberValue value)
         {
+            for (var graph = replayDefaultGraph; graph is not null; graph = graph.Parent)
+                if (graph.TryGetVirtualRow(id, out value))
+                    return true;
+
             if (candidateReplay is not null)
             {
                 if (candidateReplay.Values.TryGetValue(id, out value))
@@ -709,6 +717,10 @@ namespace NeoCompose.Runtime
 
         private bool TryResolveVirtualOwnership(string id, out NeoValueOwnership ownership)
         {
+            for (var graph = replayDefaultGraph; graph is not null; graph = graph.Parent)
+                if (graph.TryGetOwnership(id, out ownership))
+                    return true;
+
             if (candidateReplay is not null)
             {
                 if (candidateReplay.Ownership.TryGetValue(id, out ownership))
