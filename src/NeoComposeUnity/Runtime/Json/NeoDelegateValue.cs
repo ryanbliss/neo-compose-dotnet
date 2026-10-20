@@ -99,6 +99,8 @@ namespace NeoCompose.Runtime.Json
             JObject obj = NeoJsonObjectReader.Read(reader);
             bool target = IsNonEmptyString(obj["memberId"]);
             bool closure = obj["action"]?.Type == JTokenType.Object;
+            if (obj["action"]?["generator"] is { Type: not JTokenType.Null })
+                throw new JsonSerializationException("A delegate closure cannot be a generator.");
             if (target == closure)
             {
                 throw new JsonSerializationException(

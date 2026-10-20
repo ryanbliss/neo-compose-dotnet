@@ -973,7 +973,10 @@ namespace NeoCompose.Runtime
                 }
                 // The body binds its handlers in the construction frame
                 // instead of forking for them.
-                return NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame);
+                TypeInfo resultType = NeoScript.NSGetterEvaluator.CloseContextType(init.compiled.typeInfo, initializerContext);
+                object? result = NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame);
+                NeoScriptExecutor.RequireStoredInterfaceValue(resultType, result, initializerContext, member.name);
+                return result;
             }
             finally
             {
@@ -2306,6 +2309,8 @@ namespace NeoCompose.Runtime
             out T converted)
         {
             converted = default!;
+            if (NeoSequences.TryReadBoxed(client, value, out converted))
+                return true;
             if (value is T typed)
             {
                 converted = typed;
@@ -7774,7 +7779,16 @@ namespace NeoCompose.Runtime
                 if (source is null || string.IsNullOrEmpty(source.Value.valueId))
                 {
                     throw new InvalidOperationException(
-                        $"Class constructor field '{member.name}' is not backed by a Neo value.");
+                        member is ClassMember { DeclaredInterfaceId: not null }
+                            ? $"Stored interface field '{member.name}' requires an authored class value; store a List explicitly."
+                            : $"Class constructor field '{member.name}' is not backed by a Neo value.");
+                }
+                if (member is ClassMember { DeclaredInterfaceId: not null }
+                    && (!client.TryGetValue(source.Value.ownership ?? NeoValueOwnership.Session, source.Value.valueId, out MemberValue? sourceRow)
+                        || string.IsNullOrEmpty(sourceRow.classId)))
+                {
+                    throw new InvalidOperationException(
+                        $"Stored interface field '{member.name}' requires an authored class value; store a List explicitly.");
                 }
                 // Ownership import is deliberately deferred until the entire
                 // staged constructor graph has passed schema/shape validation.

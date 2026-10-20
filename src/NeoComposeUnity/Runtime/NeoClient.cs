@@ -801,6 +801,7 @@ namespace NeoCompose.Runtime
                 NeoMemberShapeResolution.ResolveAll(data.members);
                 NormalizeClassSchemas();
                 ValidateReadOnlyMembers();
+                ValidateStoredSequenceMembers();
                 ValidateInternalRecordRelations(data);
             }
             InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
@@ -7360,7 +7361,9 @@ namespace NeoCompose.Runtime
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
                 function,
+                receiver,
                 args,
+                typeArguments,
                 expectedDeferred: false,
                 inPlace: ownsArguments);
             ValidateNativeFunctionReceiver(member, receiver);
@@ -7559,7 +7562,9 @@ namespace NeoCompose.Runtime
             FunctionMember member = function.signature;
             object?[] preparedArgs = PrepareNativeFunctionInvocation(
                 function,
+                receiver,
                 args,
+                typeArguments,
                 expectedDeferred: true,
                 inPlace: false);
             ValidateNativeFunctionReceiver(member, receiver);
@@ -7709,7 +7714,9 @@ namespace NeoCompose.Runtime
         /// <summary>The prepared arguments: <paramref name="args"/> itself when <paramref name="inPlace"/>.</summary>
         private object?[] PrepareNativeFunctionInvocation(
             ResolvedNativeFunction function,
+            object? receiver,
             object?[]? args,
+            Json.TypeInfo[]? typeArguments,
             bool expectedDeferred,
             bool inPlace)
         {
@@ -7762,6 +7769,15 @@ namespace NeoCompose.Runtime
                 var subject = NeoScriptValueMarshaller.ValueSubject.NativeArgument(function, i);
                 try
                 {
+                    if (argument.type == MemberKind.Interface)
+                    {
+                        var context = CreateGetterContext(NeoValueOwnership.Session);
+                        context.BindThis(receiver);
+                        context.BindFunctionTypeArguments(typeArguments ?? function.defaultTypeArguments);
+                        preparedArgs[i] = NeoScriptValueMarshaller.NormalizeResolved(this, context.valueOwnership,
+                            source, NeoScript.NSGetterEvaluator.CloseContextType(argument, context), context, subject);
+                        continue;
+                    }
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
                         source,
                         argument,
@@ -8808,7 +8824,8 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' must export its local code and compiled action together.");
             }
-            if (hasLocalCodeField && string.IsNullOrWhiteSpace(member.code))
+            if (hasLocalCodeField && string.IsNullOrWhiteSpace(member.code)
+                && member.action?.typeInfo?.type != MemberKind.Null)
             {
                 throw new System.InvalidOperationException(
                     $"NSFunction member '{member.id}' local code must not be empty.");

@@ -168,6 +168,11 @@ namespace NeoCompose.Tests
             var parent = new NeoScriptScope();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
+            // Start paired windows with the same heap state. Otherwise a GC
+            // caused by the preceding window is charged to the next strategy.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             for (int index = 0; index < EntryCount; index++)
@@ -197,6 +202,11 @@ namespace NeoCompose.Tests
             NeoScriptScope scope = parent.CreateChild();
             NeoScriptExecutionOptions options =
                 NeoScriptExecutionOptions.ForImmediate(client);
+            // Start paired windows with the same heap state. Otherwise a GC
+            // caused by the preceding window is charged to the next strategy.
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
             long beforeBytes = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
             NeoScriptExecutor.EnterCallback(callback, ctx);

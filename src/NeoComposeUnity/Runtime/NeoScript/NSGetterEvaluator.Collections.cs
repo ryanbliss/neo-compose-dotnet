@@ -202,7 +202,7 @@ namespace NeoCompose.Runtime.NeoScript
                 CollectionIsList(other);
             }
             if (info.op == "Take" && count <= 0)
-                return Array.Empty<object?>();
+                return new object?[0];
             bool projection = info.op is not ("Any" or "All" or "Last" or "LastOrDefault" or "Single" or "SingleOrDefault" or "SkipWhile" or "TakeWhile");
             bool required = info.op is "SelectMany" or "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending" or "MinBy" or "MaxBy" or "GroupBy" or "ToDictionary" or "All" or "SkipWhile" or "TakeWhile";
             if (required && info.function is null)

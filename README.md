@@ -141,3 +141,26 @@ regressions remain enabled.
 ## License
 
 MIT. See [LICENSE](./LICENSE).
+
+### NeoScript sequences
+
+Generated `IEnumerable<T>` and `IEnumerator<T>` signatures use
+`System.Collections.Generic`. Runtime generators stay lazy across the C#
+boundary. Each enumeration has its own cursor; `Dispose()` runs entered
+NeoScript `finally` blocks and `Reset()` throws `NotSupportedException`.
+
+```csharp
+foreach (var neighbor in world.Neighbors(cell))
+{
+    if (CanVisit(neighbor)) break;
+}
+```
+
+Passing a C# enumerable to a generated sequence parameter does not materialize
+it. SDK collection wrappers retain their existing C# behavior; their NeoScript
+sequence views snapshot membership and enumerate dictionary values. Keep a
+cursor within its owning project client's lifetime. Store lists explicitly;
+cursor interface members cannot have a storage target.
+
+This version accepts Unity export schema 46. Regenerate exports with the matching
+Neo Compose CLI before upgrading the SDK.

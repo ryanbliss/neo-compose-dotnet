@@ -482,6 +482,232 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SequenceWatchTracksOnlyConsumedReadsAndRetiresOldCursors()
+        {
+            using Fixture fixture = Build(ConfigureSequenceGetter);
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            var property = watcher.Get<NeoMemberNSProperty>("Echo");
+            int changes = 0;
+            watcher.OnChanged += _ => changes++;
+            IDisposable watch = fixture.client.WatchGetters("value-watcher", watcher);
+            var context = fixture.client.CreateGetterContext(NeoValueOwnership.Save);
+            var first = (NSGetterEvaluator.ScriptSequence)property.Compute("value-watcher").value!;
+            var second = (NSGetterEvaluator.ScriptSequence)property.Compute("value-watcher").value!;
+            Assert.That(second, Is.Not.SameAs(first));
+            var old = first.GetEnumerator(context);
+            fixture.Write("value-other", "member-other", 1);
+            Assert.That(changes, Is.Zero, "Creating a cursor reads no generator body.");
+            Assert.That(old.MoveNext(context), Is.True);
+            Assert.That(old.Current(context), Is.EqualTo(1d));
+            fixture.Write("value-other", "member-other", 2);
+            Assert.That(changes, Is.EqualTo(1));
+            property.Compute("value-watcher");
+            Assert.That(old.MoveNext(context), Is.True);
+            fixture.Write("value-other", "member-other", 3);
+            Assert.That(changes, Is.EqualTo(1), "A cursor from the invalidated generation cannot append.");
+            var live = ((NSGetterEvaluator.ScriptSequence)property.Compute("value-watcher").value!).GetEnumerator(context);
+            Assert.That(live.MoveNext(context), Is.True);
+            watch.Dispose();
+            watch = fixture.client.WatchGetters("value-watcher", watcher);
+            property.Compute("value-watcher");
+            Assert.That(live.MoveNext(context), Is.True);
+            fixture.Write("value-other", "member-other", 4);
+            Assert.That(changes, Is.EqualTo(1), "A future watch cannot revive a dropped generation.");
+            watch.Dispose();
+        }
+
+        [Test]
+        public void RetainedGeneratorRootsUseTheConsumingContextAfterCacheReplacement()
+        {
+            using Fixture fixture = Build(ConfigureSequenceGetter);
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            var property = watcher.Get<NeoMemberNSProperty>("Echo");
+            var sequence = (NSGetterEvaluator.ScriptSequence)property.Compute("value-watcher").value!;
+            fixture.client.InvalidateSchemaResolutionCaches();
+            fixture.Write("value-other", "member-other", 3);
+            var consumer = fixture.client.CreateGetterContext(NeoValueOwnership.Save);
+            var cursor = sequence.GetEnumerator(consumer);
+            Assert.That(cursor.MoveNext(consumer), Is.True);
+            Assert.That(cursor.Current(consumer), Is.EqualTo(3d));
+            fixture.client.InvalidateSchemaResolutionCaches();
+            fixture.Write("value-other", "member-other", 4);
+            consumer = fixture.client.CreateGetterContext(NeoValueOwnership.Save);
+            Assert.That(cursor.MoveNext(consumer), Is.True);
+            Assert.That(cursor.Current(consumer), Is.EqualTo(4d));
+            cursor.Dispose(consumer);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SequenceOnChangedDoesNotEnumerateAndReceivesFreshValues(bool cursorResult)
+        {
+            TypeInfo? observed = null;
+            using Fixture fixture = Build(data =>
+            {
+                ConfigureSequenceGetter(data);
+                var property = (NSPropertyMember)data.members["member-echo"];
+                if (cursorResult)
+                {
+                    observed = new InterfaceTypeInfo
+                    {
+                        type = MemberKind.Interface,
+                        required = true,
+                        interfaceId = NeoSequenceContract.Enumerator,
+                        typeArguments = new() { [NeoSequenceContract.EnumeratorElement] = IntType() }
+                    };
+                    property.returnTypeInfo = observed;
+                    property.getter!.typeInfo = observed;
+                    property.getter.generator!.kind = "enumerator";
+                }
+                else
+                    observed = property.returnTypeInfo;
+                var protocol = (InterfaceTypeInfo)observed!;
+                ((FunctionMember)data.members["member-heard"]).argumentTypes[0] = new FunctionArgumentTypeInfo
+                {
+                    name = "next",
+                    type = MemberKind.Interface,
+                    required = true,
+                    interfaceId = protocol.interfaceId,
+                    typeArguments = protocol.typeArguments,
+                };
+            });
+            var received = new List<object?>();
+            fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["member-heard"] = (_, _, args, _) =>
+                {
+                    received.Add(args[0]);
+                    return null;
+                },
+            });
+            fixture.Subscribe("member-echo", observedType: observed);
+            fixture.Write("value-other", "member-other", 1);
+            Assert.That(received, Is.Empty);
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            var property = watcher.Get<NeoMemberNSProperty>("Echo");
+            var context = fixture.client.CreateGetterContext(NeoValueOwnership.Save);
+            object value = property.Compute("value-watcher").value!;
+            var cursor = cursorResult ? (NSGetterEvaluator.ScriptCursor)value : ((NSGetterEvaluator.ScriptSequence)value).GetEnumerator(context);
+            Assert.That(cursor.MoveNext(context), Is.True);
+            fixture.Write("value-other", "member-other", 2);
+            Assert.That(received, Has.Count.EqualTo(1));
+            Assert.That(received[0], Is.Not.SameAs(value));
+            if (cursorResult)
+                Assert.That(() => ((NSGetterEvaluator.ScriptCursor)received[0]!).Current(context), Throws.Exception);
+            Assert.That(cursor.MoveNext(context), Is.True);
+            fixture.Write("value-other", "member-other", 3);
+            Assert.That(received, Has.Count.EqualTo(1), "A retired cursor cannot restore the listener's dependencies.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NativeSequenceArgumentsPreserveCollectionIdentityAndValidateElementTypes(bool generic)
+        {
+            using Fixture fixture = Build(data =>
+            {
+                var function = (FunctionMember)data.members["member-heard"];
+                if (generic)
+                    function.genericParams = new[] { new FunctionGenericParam { name = "T" } };
+                function.argumentTypes[0] = new FunctionArgumentTypeInfo
+                {
+                    name = "next",
+                    type = MemberKind.Interface,
+                    required = true,
+                    interfaceId = NeoSequenceContract.Enumerable,
+                    typeArguments = new() { [NeoSequenceContract.EnumerableElement] = generic ? new FunctionGenericTypeInfo { type = MemberKind.Generic, required = true, ownerMemberId = "member-heard", index = 0 } : IntType() },
+                };
+            });
+            object? received = null;
+            fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["member-heard"] = (_, _, args, _) =>
+                {
+                    received = args[0];
+                    return null;
+                },
+            });
+            var context = fixture.client.CreateGetterContext(NeoValueOwnership.Save);
+            var list = NSGetterEvaluator.TagSequenceCollection(new object[] { 1d, 2d },
+                new CollectionTypeInfo { type = MemberKind.List, entryTypeInfo = IntType(), required = true }, context);
+            fixture.client.InvokeNativeFunction(fixture.client.ResolveNativeFunction("member-heard"), new object(), new object[] { list }, generic ? new TypeInfo[] { IntType() } : null);
+            Assert.That(received, Is.SameAs(list));
+            var wrong = NSGetterEvaluator.TagSequenceCollection(new object[] { "value" },
+                new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+                    required = true
+                }, context);
+            Assert.That(() => fixture.client.InvokeNativeFunction(fixture.client.ResolveNativeFunction("member-heard"), new object(), new object[] { wrong }, generic ? new TypeInfo[] { IntType() } : null), Throws.Exception);
+        }
+
+        [Test]
+        public void SequenceClassificationIncludesNullableAndDerivedInterfaces()
+        {
+            using Fixture fixture = Build(data => data.interfaces["derived-sequence"] = new Interface
+            {
+                id = "derived-sequence",
+                name = "DerivedSequence",
+                extendsInterfaceIds = new List<string> { NeoSequenceContract.Enumerable },
+            });
+            Assert.That(fixture.client.IsSequenceType(new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                interfaceId = "derived-sequence",
+                required = false
+            }), Is.True);
+            Assert.That(fixture.client.IsSequenceType(new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                interfaceId = NeoSequenceContract.Enumerator,
+                required = false
+            }), Is.True);
+            Assert.That(fixture.client.IsSequenceType(IntType()), Is.False);
+        }
+
+        [Test]
+        public void OneSequenceGenerationRetiresAcrossReadOwnershipContexts()
+        {
+            using Fixture fixture = Build(ConfigureSequenceGetter);
+            var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var watch = fixture.client.WatchGetters("value-watcher", watcher);
+            NeoClient.SequenceGeneration Capture(NeoValueOwnership readOwnership)
+            {
+                var enclosing = fixture.client.BeginGetterReadCapture();
+                return fixture.client.MemoizeSequenceReads(new NeoClient.GetterMemoKey(NeoValueOwnership.Save,
+                    "value-watcher", "member-echo", readOwnership), fixture.client.EndGetterReadCapture(enclosing))!;
+            }
+            var first = Capture(NeoValueOwnership.Save);
+            var second = Capture(NeoValueOwnership.Session);
+            Assert.That(second, Is.SameAs(first));
+            Assert.That(first.Entries, Has.Count.EqualTo(2));
+            fixture.client.InvalidateGetterMemo();
+            Assert.That(first.Live, Is.False);
+            Assert.That(Capture(NeoValueOwnership.Save), Is.Not.SameAs(first));
+        }
+
+        private static void ConfigureSequenceGetter(ProjectData data)
+        {
+            var property = (NSPropertyMember)data.members["member-echo"];
+            var sequenceType = new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                required = true,
+                interfaceId = NeoSequenceContract.Enumerable,
+                typeArguments = new() { [NeoSequenceContract.EnumerableElement] = IntType() },
+            };
+            Pointer read = ((ReturnInstruction)property.getter!.instructions[0]).pointer!;
+            property.returnTypeInfo = sequenceType;
+            property.getter.typeInfo = sequenceType;
+            property.getter.generator = new GeneratorBody { kind = "enumerable", elementType = IntType() };
+            property.getter.instructions = new Instruction[]
+            {
+                    new YieldReturnInstruction { type = InstructionKind.YieldReturn, yields = true, pointer = read },
+                    new YieldReturnInstruction { type = InstructionKind.YieldReturn, yields = true, pointer = read },
+            };
+        }
+
+        [Test]
         public void ConstructionCodeCantSubscribe()
         {
             using Fixture fixture = Build();

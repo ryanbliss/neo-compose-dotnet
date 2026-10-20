@@ -346,6 +346,21 @@ namespace NeoCompose.Runtime.Json
     /// Lazy conditional pointer. Only the selected result pointer is
     /// evaluated after the normalized boolean condition.
     /// </summary>
+    public sealed class RangePointer : Pointer
+    {
+        public Pointer start = null!;
+        public Pointer end = null!;
+    }
+
+    public sealed class SequenceConversionPointer : Pointer
+    {
+        public Pointer pointer = null!;
+        public string operation = null!;
+        public TypeInfo? collectionType;
+        public TypeInfo elementType = null!;
+        public bool optional;
+    }
+
     public sealed class ConditionalPointer : Pointer
     {
         public Pointer condition = null!;
@@ -543,6 +558,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CoalescePointer);
                 case PointerKind.SwitchExpression:
                     return typeof(SwitchExpressionPointer);
+                case PointerKind.Range:
+                    return typeof(RangePointer);
+                case PointerKind.SequenceConversion:
+                    return typeof(SequenceConversionPointer);
                 case PointerKind.Conditional:
                     return typeof(ConditionalPointer);
                 case PointerKind.ObjectInitializer:
@@ -676,6 +695,8 @@ namespace NeoCompose.Runtime.Json
             }
             if (concrete == typeof(DelegateClosurePointer))
             {
+                if (obj["action"]?["generator"] is { Type: not JTokenType.Null })
+                    throw new JsonSerializationException("A delegate closure cannot be a generator.");
                 if (obj["typeInfo"]?.Type != JTokenType.Object)
                 {
                     throw new JsonSerializationException(

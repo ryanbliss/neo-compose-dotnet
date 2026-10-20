@@ -25,6 +25,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>One of <see cref="InstructionKind"/>.</summary>
         public string type = null!;
         public NeoScriptSourcePosition? source;
+        public bool yields;
 
         /// <summary>
         /// The interpreter's dispatch key: a jump table, where a switch on
@@ -65,6 +66,8 @@ namespace NeoCompose.Runtime.Json
         Variable,
         If,
         Return,
+        YieldReturn,
+        YieldBreak,
         Throw,
         Rethrow,
         Assign,
@@ -147,6 +150,17 @@ namespace NeoCompose.Runtime.Json
     /// <c>pointer</c> is the message to surface as the cell's error
     /// string at runtime — required, never null.
     /// </summary>
+    public sealed class YieldReturnInstruction : Instruction
+    {
+        public YieldReturnInstruction() : base(InstructionCode.YieldReturn) { }
+        public Pointer pointer = null!;
+    }
+
+    public sealed class YieldBreakInstruction : Instruction
+    {
+        public YieldBreakInstruction() : base(InstructionCode.YieldBreak) { }
+    }
+
     public sealed class ThrowInstruction : Instruction
     {
         public ThrowInstruction()
@@ -245,6 +259,8 @@ namespace NeoCompose.Runtime.Json
         {
         }
 
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string? rangeEndId;
         public Variable initializer = null!;
         public BooleanExpression condition = null!;
         public Instruction iterator = null!;
@@ -442,6 +458,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(VariableInstruction);
                 case InstructionKind.If:
                     return typeof(IfInstruction);
+                case InstructionKind.YieldReturn:
+                    return typeof(YieldReturnInstruction);
+                case InstructionKind.YieldBreak:
+                    return typeof(YieldBreakInstruction);
                 case InstructionKind.Return:
                     return typeof(ReturnInstruction);
                 case InstructionKind.Throw:
@@ -674,16 +694,19 @@ namespace NeoCompose.Runtime.Json
                 || obj["collectionTypeInfo"] is not JObject collectionType
                 || collectionType["required"]?.Type != JTokenType.Boolean
                 || collectionType["required"]!.Value<bool>() != true
-                || collectionType["entryTypeInfo"]?.Type != JTokenType.Object
                 || collectionType["type"]?.Type != JTokenType.Integer)
             {
                 return false;
             }
 
             MemberKind kind = (MemberKind)collectionType["type"]!.Value<int>();
-            if (kind != MemberKind.List
-                && kind != MemberKind.Dictionary
-                && kind != MemberKind.Lookup)
+            if (kind == MemberKind.Interface)
+                return IsNonEmptyString(collectionType["interfaceId"]) && obj["instructions"]?.Type == JTokenType.Array;
+            if (kind == MemberKind.Class)
+                return IsNonEmptyString(collectionType["classId"]) && obj["instructions"]?.Type == JTokenType.Array;
+            if (collectionType["entryTypeInfo"]?.Type != JTokenType.Object
+                || (kind != MemberKind.List && kind != MemberKind.Set
+                    && kind != MemberKind.Dictionary && kind != MemberKind.Lookup))
             {
                 return false;
             }

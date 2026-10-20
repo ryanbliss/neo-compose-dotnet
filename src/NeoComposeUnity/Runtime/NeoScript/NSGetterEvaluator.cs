@@ -94,6 +94,7 @@ namespace NeoCompose.Runtime.NeoScript
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
+        internal NeoScriptExecutor.GeneratorRetention? ActiveGeneratorRetention;
         /// <summary>
         /// Counts outermost executions, so a detached temporary created by an
         /// earlier one is never registered with a later one's cleanup.
@@ -206,18 +207,27 @@ namespace NeoCompose.Runtime.NeoScript
             MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal));
         }
 
-        private void MarkEscaped(
+        internal void MarkEscaped(
             object? value,
             NSGetterEvaluator.Context ctx,
-            HashSet<object> visited,
-            Dictionary<string, HashSet<string>?> ownedChildren)
+            HashSet<object>? visited,
+            Dictionary<string, HashSet<string>?> ownedChildren,
+            NeoScriptExecutor.GeneratorRetention? retention = null)
         {
             if (value is null || value is string || value.GetType().IsValueType)
             {
                 return;
             }
-            if (!visited.Add(value))
+            string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
+            if (valueId is not null && (_allocatedRootIds is null || _allocatedRootIds.Count == 0))
                 return;
+            if (!(retention is null ? visited!.Add(value) : retention.Visit(value)))
+                return;
+            if (value is LocalList list)
+            {
+                list.MarkRetained(ctx, visited, ownedChildren, retention);
+                return;
+            }
             if (value is NeoScriptObject detached)
             {
                 // A detached graph holds no rows yet; an attached one escapes
@@ -227,7 +237,6 @@ namespace NeoCompose.Runtime.NeoScript
                 return;
             }
 
-            string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
             if (valueId is not null)
             {
                 MarkAllocationGroupEscaped(valueId, ctx, ownedChildren);
@@ -237,8 +246,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (System.Collections.DictionaryEntry entry in dictionary)
                 {
-                    MarkEscaped(entry.Key, ctx, visited, ownedChildren);
-                    MarkEscaped(entry.Value, ctx, visited, ownedChildren);
+                    MarkEscaped(entry.Key, ctx, visited, ownedChildren, retention);
+                    MarkEscaped(entry.Value, ctx, visited, ownedChildren, retention);
                 }
                 return;
             }
@@ -246,7 +255,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (object? entry in enumerable)
                 {
-                    MarkEscaped(entry, ctx, visited, ownedChildren);
+                    MarkEscaped(entry, ctx, visited, ownedChildren, retention);
                 }
             }
         }
@@ -256,6 +265,8 @@ namespace NeoCompose.Runtime.NeoScript
             NSGetterEvaluator.Context ctx,
             Dictionary<string, HashSet<string>?> ownedChildren)
         {
+            if (_allocatedRootIds is null || _allocatedRootIds.Count == 0)
+                return;
             // A NeoScript return may expose any object-shaped row in a
             // constructor graph (for example a nested Class, List, or
             // Dictionary), rather than the constructor's root object itself.
@@ -2102,6 +2113,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalRowOf(rowOf, scope, ctx);
                 case DerefPointer deref:
                     return ReadThroughReference(EvalPointer(deref.pointer, scope, ctx), ctx);
+                case RangePointer range:
+                    return EvalRange(range, scope, ctx);
+                case SequenceConversionPointer conversion:
+                    return EvalSequenceConversion(conversion, scope, ctx);
                 case ListLiteralPointer llp:
                     return EvalListLiteral(llp, scope, ctx);
                 case DictLiteralPointer dlp:
@@ -2504,6 +2519,8 @@ namespace NeoCompose.Runtime.NeoScript
             var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
             if (cgp.optional == true && innerThis is null)
                 return null;
+            if (cgp.memberId == NeoSequenceContract.Current)
+                return ReadSequenceCurrent(innerThis, ctx);
             if (baseDispatch)
                 return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
             // Try runtime dispatch via the receiver's classId merged
@@ -2734,6 +2751,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!pointer.receiver.IsStatic)
                     return null;
             }
+            if (TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
+                return sequenceResult;
             CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
             if (target?.function is { } resolved)
             {
@@ -5017,6 +5036,8 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Getter '{name}' has no compiled `getter` — save its code to compile it");
             }
             NeoClient client = ctx.client;
+            if (client.IsSequenceType(getter.typeInfo))
+                return DispatchSequenceGetter(memberId, receiver, getter, receiverRef, ctx);
             bool memoize = client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
                 && (receiverRef ??= FindRowReference(receiver, ctx)) is not null;
@@ -6562,6 +6583,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? CoerceNumericBinding(object? value, TypeInfo? type, string context, Context? ctx = null)
         {
+            if (ctx is not null && value is not null && type?.type == MemberKind.Generic
+                && NeoFunctionTypeArguments.IsFunctionGeneric(type))
+            {
+                type = NeoFunctionTypeArguments.FrameArgument(type, ctx.functionTypeArguments, ctx.client);
+                if (type is CollectionTypeInfo or LookupTypeInfo)
+                    value = TagSequenceCollection(value, type, ctx);
+            }
             if (TupleTypeInfo.From(type) is { } tupleType && value is not null)
             {
                 if (ctx is not null)
@@ -6936,6 +6964,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object?[] TrimResult(object?[] results, int count)
         {
+            if (count == 0 && ReferenceEquals(results, Array.Empty<object?>()))
+                return new object?[0];
             if (count != results.Length)
                 Array.Resize(ref results, count);
             return results;
@@ -9144,6 +9174,8 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case MemberKind.Interface:
                     {
+                        if (IsIntrinsicSequence(value, checkType, ctx))
+                            return true;
                         if (value is not IDictionary<string, object?>)
                             return false;
                         string? runtimeClassId = FindRowClassIdByReference(value, ctx);
@@ -10910,6 +10942,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static string FormatDebugValue(object? value, TypeInfo type, Context ctx)
         {
+            if (value is not null && ctx.client.IsSequenceType(type))
+                return FormatForInterp(value, type, ctx);
             if (value is not null && type is InterfaceTypeInfo interfaceType)
                 return NeoScriptDebug.FormatValue($"(Interface<{interfaceType.interfaceId}>, Value<{FindRowIdByReference(value, ctx) ?? "<unknown>"}>)", MemberKind.String);
             if (type is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
@@ -10945,6 +10979,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null)
                 return "";
+            if (ctx.client.IsSequenceType(sourceType))
+                return $"<{SequenceTypeLabel(sourceType, ctx)} unenumerated>";
             if (sourceType is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
             {
                 sourceType = enumType;

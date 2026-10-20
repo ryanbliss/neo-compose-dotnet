@@ -360,6 +360,12 @@ namespace NeoCompose.Runtime.NeoScript
             snapshot = null;
         }
 
+        internal void MarkRetained(NSGetterEvaluator.Context ctx, HashSet<object>? visited, Dictionary<string, HashSet<string>?> children, NeoScriptExecutor.GeneratorRetention? retention)
+        {
+            for (int index = 0; index < count; index++)
+                ctx.allocationTracker.MarkEscaped(entries[index], ctx, visited, children, retention);
+        }
+
         internal object?[] Snapshot()
         {
             if (snapshot is not null)
@@ -384,6 +390,7 @@ namespace NeoCompose.Runtime.NeoScript
     internal sealed class NeoScriptScope
     {
         private readonly Dictionary<string, EvaluationValue>? bindings;
+        private NeoScriptExecutor.GeneratorRetention? retention;
         // Set by every dynamic binding and cleared only when the layout pools
         // the scope, which checks the dictionary's growth first. A frame that
         // binds only slots skips the dictionary's Clear and capacity calls.
@@ -454,6 +461,7 @@ namespace NeoCompose.Runtime.NeoScript
         private NeoScriptScope(NeoScriptScope parent, int capacity, bool block = false)
         {
             parentScope = parent ?? throw new ArgumentNullException(nameof(parent));
+            retention = parent.retention;
             bindings = new Dictionary<string, EvaluationValue>(capacity, StringComparer.Ordinal);
             this.block = block;
         }
@@ -471,6 +479,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal void BindParent(NeoScriptScope? parent)
         {
             parentScope = parent;
+            retention = parent?.retention;
             block = false;
         }
 
@@ -479,6 +488,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal void ReleaseParent()
         {
             parentScope = null;
+            retention = null;
             block = false;
         }
 
@@ -486,6 +496,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal void BindBlock(NeoScriptScope parent)
         {
             parentScope = parent;
+            retention = parent.retention;
             block = true;
         }
         internal int LocalBindingCount => externalBindings?.Count ?? bindings!.Count + occupiedCount;
@@ -537,6 +548,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal void SetLocal(string bindingId, object? value)
         {
+            if (retention is not null && bindingId != "__root__" && bindingId != "__context__")
+                retention.Track(value);
             if (externalBindings is not null)
                 externalBindings[bindingId] = value;
             else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot))
@@ -551,6 +564,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="value">An <see cref="NSGetterEvaluator.EvaluateValue"/> result.</param>
         internal void SetEvaluationValue(string bindingId, object? value, double number)
         {
+            retention?.Track(value);
             if (externalBindings is not null)
                 externalBindings[bindingId] = EvaluationValue.Box(value, number);
             else if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot))
@@ -594,6 +608,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private void SetSlotValue(int slot, object? value)
         {
+            if (retention is not null && slot != layout?.rootSlot && slot != layout?.contextSlot)
+                retention.Track(value);
             if (slotKinds[slot] == EmptySlot)
                 occupiedCount++;
             slotKinds[slot] = ValueSlot;
@@ -1008,6 +1024,20 @@ namespace NeoCompose.Runtime.NeoScript
             }
             error = null;
             return false;
+        }
+
+        internal void RetainBindings(NeoScriptExecutor.GeneratorRetention owner)
+        {
+            retention = owner;
+            if (externalBindings is not null)
+                foreach (var value in externalBindings.Values)
+                    owner.Track(value);
+            else
+                foreach (var binding in bindings!.Values)
+                    owner.Track(binding.Box());
+            for (int slot = 0; slot < slotKinds.Length; slot++)
+                if (slotKinds[slot] != EmptySlot)
+                    owner.Track(SlotValue(slot));
         }
 
         internal Dictionary<string, object?> Materialize()
