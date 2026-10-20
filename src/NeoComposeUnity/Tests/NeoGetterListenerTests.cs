@@ -36,6 +36,35 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-getter-listeners";
         private const string BoxParam = "box-t";
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void HandlerWritesNotifyBeforeTheNextHandlerWithACSharpGetterWatcher(bool csharpGetterWatch)
+        {
+            using Fixture fixture = Build();
+            using var watcher = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            Assert.AreEqual(0, Convert.ToInt32(watcher.Get<NeoMemberNSProperty>("Echo").Compute("value-watcher").value));
+            using IDisposable? watch = csharpGetterWatch ? fixture.client.WatchGetters("value-watcher", watcher) : null;
+            int storedHeard = 0;
+            watcher.OnChanged += changed =>
+            {
+                if (changed is not NeoMemberNSProperty)
+                    storedHeard++;
+            };
+            fixture.Subscribe("member-echo");
+            fixture.Subscribe("member-echo", "member-also");
+            int storedHeardWhenAlsoRan = -1;
+            fixture.onHeard = handler =>
+            {
+                if (handler == "member-heard")
+                    fixture.Write("watcher-right", "member-right", 7);
+                else
+                    storedHeardWhenAlsoRan = storedHeard;
+            };
+            fixture.Write("value-other", "member-other", 3);
+            Assert.AreEqual(1, storedHeard);
+            Assert.AreEqual(1, storedHeardWhenAlsoRan, "Heard's own write must finish its notification batch before Also runs.");
+        }
+
         private sealed class Fixture : IDisposable
         {
             internal NeoClient client = null!;

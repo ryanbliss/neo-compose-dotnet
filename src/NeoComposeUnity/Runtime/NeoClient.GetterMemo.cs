@@ -1458,7 +1458,7 @@ namespace NeoCompose.Runtime
             // An idle boundary has nothing to drain or raise.
             if (getterChangeHolds > 1
                 || (pendingGetterChanges.Count == 0 && pendingGetterSubscriptions.Count == 0
-                    && !EffectsPending && !userChangesPending && !dialogueTurnPending))
+                    && !EffectsPending && !userChangesPending && !dialogueTurnPending && pendingFieldChanges is null))
                 getterChangeHolds--;
             else
                 ReleaseOutermostGetterChanges();
@@ -1475,8 +1475,24 @@ namespace NeoCompose.Runtime
             {
                 if (--getterChangeHolds == 0)
                 {
+                    // Prepare every invalidated getter's reference subscriptions
+                    // before user callbacks, even when only a selection control changed.
+                    bool batchFields = changeBatchDepth == 0
+                        && (pendingFieldChanges is not null || pendingGetterChanges.Count != 0);
+                    if (batchFields)
+                        BeginChangeBatch();
                     try
                     {
+                        try
+                        {
+                            if (pendingGetterChanges.Count != 0)
+                                RaiseGetterChanges();
+                        }
+                        finally
+                        {
+                            if (batchFields)
+                                EndChangeBatch();
+                        }
                         FlushGetterChanges();
                     }
                     finally

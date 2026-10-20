@@ -660,6 +660,8 @@ namespace NeoCompose.Runtime
         {
             if (handler is null)
                 throw new ArgumentNullException(nameof(handler));
+            if (typeof(NeoReference).IsAssignableFrom(typeof(T)))
+                return WatchReferenceField(field, handler, readValue);
             void Handle(NeoMember changed)
             {
                 if (!CanReadChange())
@@ -685,6 +687,79 @@ namespace NeoCompose.Runtime
                 node.OnChanged -= Handle;
                 getters?.Dispose();
             }));
+        }
+
+        private IDisposable WatchReferenceField<T>(
+            NeoField<T> field, Action<T, NeoChangeSource> handler, Func<object?> readValue)
+        {
+            bool disposed = false;
+            string? targetId = null;
+            IDisposable? target = null;
+            IDisposable? getters = null;
+            Action deliver = null!;
+            deliver = Deliver;
+
+            T ReadAndFollowTarget()
+            {
+                object? value = readValue();
+                string? nextId = (value as NeoReference)?.TargetId;
+                if (nextId != targetId)
+                {
+                    target?.Dispose();
+                    targetId = nextId;
+                    target = nextId is null ? null : client.SubscribeWritableValue(nextId, TargetChanged);
+                }
+                return (T)value!;
+            }
+
+            void Deliver()
+            {
+                if (!disposed && CanReadChange())
+                    handler(ReadAndFollowTarget(), client.CurrentChangeSource);
+            }
+
+            void TargetChanged(NeoValueOwnership ownership, string id)
+            {
+                if (!disposed && id == targetId)
+                    client.QueueFieldChange(deliver);
+            }
+
+            void Handle(NeoMember changed)
+            {
+                if (disposed || !CanReadChange())
+                    return;
+                bool fieldChanged = node.HoldsChildAt(field.Key, changed);
+                if (!fieldChanged && !ReferenceEquals(node, changed))
+                    return;
+                // A new binding publishes the owner row before its specific
+                // child notification. Maintain the target during that first phase.
+                ReadAndFollowTarget();
+                if (fieldChanged)
+                    client.QueueFieldChange(deliver);
+            }
+
+            void Unsubscribe()
+            {
+                disposed = true;
+                node.PrepareChanged -= Handle;
+                target?.Dispose();
+                getters?.Dispose();
+            }
+
+            node.PrepareChanged += Handle;
+            try
+            {
+                getters = WatchGetters();
+                if (getters is not null)
+                    ReadGetter(field.Key);
+                ReadAndFollowTarget();
+                return TrackSubscription(new NeoDisposableSubscription(Unsubscribe));
+            }
+            catch
+            {
+                Unsubscribe();
+                throw;
+            }
         }
 
         protected IDisposable WatchChanges<TFields>(

@@ -5,17 +5,42 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        // A value id's listeners: almost always one, a node's own, else a
-        // list. A multicast delegate would copy its whole invocation array on
-        // every subscribe and unsubscribe, which an animation with sixty
-        // tracks sharing one dependency turns into an O(n²) churn on every
-        // re-resolution.
+        // A value id's listeners: almost always one, a node's own, else an
+        // ordered set. Shared-target rebinding must remove each subscription
+        // in O(1), without changing callback order.
         private readonly Dictionary<string, object> writableValueSubscriptions = new(StringComparer.Ordinal);
+
+        private sealed class WritableValueListeners
+        {
+            private readonly LinkedList<INeoWritableValueListener> ordered = new();
+            private readonly Dictionary<INeoWritableValueListener, LinkedListNode<INeoWritableValueListener>> byListener =
+                new(NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+
+            internal int Count => ordered.Count;
+
+            internal void Add(INeoWritableValueListener listener)
+            {
+                var node = new LinkedListNode<INeoWritableValueListener>(listener);
+                byListener.Add(listener, node);
+                ordered.AddLast(node);
+            }
+
+            internal bool Remove(INeoWritableValueListener listener)
+            {
+                if (!byListener.Remove(listener, out var node))
+                    return false;
+                ordered.Remove(node);
+                return true;
+            }
+
+            internal void CopyTo(INeoWritableValueListener?[] snapshot) => ordered.CopyTo(snapshot!, 0);
+        }
 
         internal IDisposable SubscribeWritableValue(string valueId, Action<NeoValueOwnership, string> handler)
         {
@@ -36,14 +61,17 @@ namespace NeoCompose.Runtime
             {
                 next = listener;
             }
-            else if (listeners is List<INeoWritableValueListener> list)
+            else if (listeners is WritableValueListeners list)
             {
                 list.Add(listener);
                 return;
             }
             else
             {
-                next = new List<INeoWritableValueListener>(2) { (INeoWritableValueListener)listeners, listener };
+                var shared = new WritableValueListeners();
+                shared.Add((INeoWritableValueListener)listeners);
+                shared.Add(listener);
+                next = shared;
             }
             writableValueSubscriptions[valueId] = next;
             if (ExistingValueNode(valueId) is { } node)
@@ -54,7 +82,7 @@ namespace NeoCompose.Runtime
         {
             if (!writableValueSubscriptions.TryGetValue(valueId, out object? listeners))
                 return;
-            if (listeners is List<INeoWritableValueListener> list)
+            if (listeners is WritableValueListeners list)
             {
                 if (!list.Remove(listener) || list.Count != 0)
                     return;
@@ -85,6 +113,35 @@ namespace NeoCompose.Runtime
         // so a commit of n entry changes merges in O(n).
         private readonly Dictionary<NeoListChangedArgs, (List<string> list, HashSet<string> set)> mergedListIds = new();
 
+        // Reference field watchers hear both a selection change and a target
+        // write. Coalesce those into one callback after the transaction's node
+        // changes, without raising any change on the reference's owner.
+        private FieldChanges? pendingFieldChanges;
+        private FieldChanges? deliveringFieldChanges;
+        private bool deliveringNodeChanges;
+
+        private sealed class FieldChanges
+        {
+            internal readonly List<Action> Callbacks = new();
+            private readonly HashSet<Action> seen = new();
+
+            internal void Add(Action callback)
+            {
+                if (seen.Add(callback))
+                    Callbacks.Add(callback);
+            }
+        }
+
+        internal void QueueFieldChange(Action callback)
+        {
+            if (changeBatchDepth != 0 || getterChangeHolds != 0)
+                (pendingFieldChanges ??= new()).Add(callback);
+            else if (deliveringNodeChanges)
+                (deliveringFieldChanges ??= new()).Add(callback);
+            else
+                callback();
+        }
+
         /// <summary>
         /// Raises <paramref name="node"/>'s OnChanged. A commit publishes one
         /// change row by row, and a node can hear several of them (its own
@@ -96,7 +153,27 @@ namespace NeoCompose.Runtime
         {
             if (changeBatchDepth == 0)
             {
-                node.InvokeChanged(changed, null);
+                // Even a direct node change prepares all reference watchers
+                // before invoking any of their user callbacks.
+                FieldChanges? outerFieldChanges = deliveringFieldChanges;
+                bool outerDelivery = deliveringNodeChanges;
+                deliveringFieldChanges = null;
+                deliveringNodeChanges = true;
+                FieldChanges? fields;
+                try
+                {
+                    node.PrepareChange(changed);
+                    node.InvokeChanged(changed, null);
+                    fields = deliveringFieldChanges;
+                }
+                finally
+                {
+                    deliveringFieldChanges = outerFieldChanges;
+                    deliveringNodeChanges = outerDelivery;
+                }
+                if (fields is not null)
+                    foreach (Action callback in fields.Callbacks)
+                        callback();
                 return;
             }
             NeoListChangedArgs? listChange = node.PendingListChange;
@@ -150,7 +227,7 @@ namespace NeoCompose.Runtime
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EndChangeBatch()
         {
-            if (--changeBatchDepth <= 0 && (pendingChanges.Count != 0 || !pendingListenerChanges.IsEmpty))
+            if (--changeBatchDepth <= 0 && (pendingChanges.Count != 0 || !pendingListenerChanges.IsEmpty || pendingFieldChanges is not null))
                 RaisePendingChanges();
         }
 
@@ -170,19 +247,31 @@ namespace NeoCompose.Runtime
             spareChanges = null;
             pendingChangeIndex.Clear();
             mergedListIds.Clear();
+            FieldChanges? outerFieldChanges = deliveringFieldChanges;
+            bool outerDelivery = deliveringNodeChanges;
+            deliveringFieldChanges = pendingFieldChanges;
+            pendingFieldChanges = null;
+            deliveringNodeChanges = true;
+            FieldChanges? fields;
             try
             {
                 if (listeners is not null)
                     ResolvePendingListenerChanges(listeners);
+                foreach (var (node, changed, _) in draining)
+                    if (!node.isDisposed)
+                        node.PrepareChange(changed);
                 foreach (var (node, changed, listChange) in draining)
                     if (!node.isDisposed)
                         node.InvokeChanged(changed, listChange);
                 if (listeners is not null)
                     foreach (var (ownership, ownerId, memberId) in listeners.Changes)
                         DispatchMemberChange(ownership, ownerId, memberId);
+                fields = deliveringFieldChanges;
             }
             finally
             {
+                deliveringFieldChanges = outerFieldChanges;
+                deliveringNodeChanges = outerDelivery;
                 draining.Clear();
                 if (listeners is not null)
                 {
@@ -191,6 +280,11 @@ namespace NeoCompose.Runtime
                 }
                 spareChanges = draining;
             }
+            // Restore the outer delivery scope first: a callback may write,
+            // dispose another watcher, or start a nested transaction.
+            if (fields is not null)
+                foreach (Action callback in fields.Callbacks)
+                    callback();
         }
 
         private NeoListChangedArgs? MergeListChanges(NeoListChangedArgs? first, NeoListChangedArgs? next)
@@ -315,8 +409,8 @@ namespace NeoCompose.Runtime
             string valueId)
         {
             // A lone listener is read out before it runs, which is already a
-            // snapshot; a list is copied first.
-            if (listeners is List<INeoWritableValueListener> list)
+            // snapshot; shared listeners are copied first.
+            if (listeners is WritableValueListeners list)
                 InvokeSnapshot(list, ownership, valueId);
             else
                 ((INeoWritableValueListener)listeners).OnWritableValueChanged(ownership, valueId);
@@ -328,7 +422,7 @@ namespace NeoCompose.Runtime
         private int listenerSnapshotDepth;
 
         private void InvokeSnapshot(
-            List<INeoWritableValueListener> listeners,
+            WritableValueListeners listeners,
             NeoValueOwnership ownership,
             string valueId)
         {
@@ -339,7 +433,7 @@ namespace NeoCompose.Runtime
             INeoWritableValueListener?[]? snapshot = listenerSnapshots[depth];
             if (snapshot is null || snapshot.Length < count)
                 listenerSnapshots[depth] = snapshot = new INeoWritableValueListener?[Math.Max(count, 2 * (snapshot?.Length ?? 0))];
-            listeners.CopyTo(snapshot!, 0);
+            listeners.CopyTo(snapshot);
             listenerSnapshotDepth = depth + 1;
             int i = 0;
             try

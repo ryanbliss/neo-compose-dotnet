@@ -165,6 +165,22 @@ namespace NeoCompose.Runtime
             remove => onChanged -= value;
         }
 
+        private System.Action<NeoMember>? prepareChanged;
+
+        // Internal subscription maintenance runs before user notifications.
+        // A user callback may throw, but cannot leave a reference on its old target.
+        internal event System.Action<NeoMember> PrepareChanged
+        {
+            add
+            {
+                prepareChanged += value;
+                OnWatched();
+            }
+            remove => prepareChanged -= value;
+        }
+
+        internal void PrepareChange(NeoMember changed) => prepareChanged?.Invoke(changed);
+
         public event System.Action<NeoMember>? OnDisposed;
 
         /// <summary>
@@ -304,7 +320,7 @@ namespace NeoCompose.Runtime
                 soleHolder.HandleChildChanged(changed);
             else if (holders is { Count: > 0 })
                 NotifyHolders(changed);
-            if (onChanged is not null)
+            if (onChanged is not null || prepareChanged is not null)
                 client.RaiseChanged(this, changed);
         }
 
