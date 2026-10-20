@@ -26,7 +26,7 @@ namespace NeoCompose.Tests
     /// that need a bound selection add it to <c>Probe.G</c>'s row, because
     /// entry ids derive from member ids that change on every export.
     /// </summary>
-    public class NeoReferenceTests
+    public partial class NeoReferenceTests
     {
         private const string PackageRoot = "Packages/com.ryanbliss.neocompose/Tests";
 
