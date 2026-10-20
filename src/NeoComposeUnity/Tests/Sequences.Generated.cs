@@ -643,22 +643,22 @@ namespace NeoCompose.Tests.SequenceGenerated
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>)this).GetEnumerator();
 
 
-        private NeoGenericBinding<IReadOnlySequenceItem>? _valueIMutableSequenceBinding;
+        private NeoGenericBinding<IReadOnlySequenceItem>? _valueISequenceValueBinding;
 
-        IReadOnlySequenceItem IMutableSequence<IReadOnlySequenceItem>.Value
+        IReadOnlySequenceItem ISequenceValue<IReadOnlySequenceItem>.Value
         {
             get
             {
                 var child = node.Get<NeoMember>("Value");
-                _valueIMutableSequenceBinding ??= NeoGenericBindings.Resolve<IReadOnlySequenceItem>(client, child);
-                return _valueIMutableSequenceBinding.Read(child);
+                _valueISequenceValueBinding ??= NeoGenericBindings.Resolve<IReadOnlySequenceItem>(client, child);
+                return _valueISequenceValueBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("InheritedMutableSequence.Value");
                 var child = writableNode.Get<NeoMember>("Value");
-                _valueIMutableSequenceBinding ??= NeoGenericBindings.Resolve<IReadOnlySequenceItem>(client, child);
-                _valueIMutableSequenceBinding.Write(child, value);
+                _valueISequenceValueBinding ??= NeoGenericBindings.Resolve<IReadOnlySequenceItem>(client, child);
+                _valueISequenceValueBinding.Write(child, value);
             }
         }
 
@@ -995,7 +995,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>)this).GetEnumerator();
 
 
-        IReadOnlySequenceItem IMutableSequence<IReadOnlySequenceItem>.Value
+        IReadOnlySequenceItem ISequenceValue<IReadOnlySequenceItem>.Value
         {
             get
             {
@@ -2653,7 +2653,14 @@ namespace NeoCompose.Tests.SequenceGenerated
 
 namespace NeoCompose.Tests.SequenceGenerated
 {
-    public interface IMutableSequence<T> : global::System.Collections.Generic.IEnumerable<T>
+    public interface IMutableSequence<T> : ISequenceValue<T>, global::System.Collections.Generic.IEnumerable<T>
+    {
+    }
+}
+
+namespace NeoCompose.Tests.SequenceGenerated
+{
+    public interface ISequenceValue<T>
     {
         T Value { get; set; }
     }
@@ -2774,6 +2781,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IInts)] = "12500000-0000-4000-8000-000000000052",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IMutableSequence<>)] = "12500000-0000-4000-8000-000000000071",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.ISequenceValue<>)] = "12500000-0000-4000-8000-000000000080",
                 [typeof(global::System.Collections.Generic.IEnumerator<>)] = "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
                 [typeof(global::System.Collections.Generic.IEnumerable<>)] = "system_d1413390-a2a6-4137-a8f8-e931da847345",
             };
