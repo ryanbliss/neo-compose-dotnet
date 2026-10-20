@@ -6702,7 +6702,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 // An entry with the target's id matches without being read;
                 // only a miss compares entries, which reads them all.
-                if ((target as string ?? ValueIdOf(target, ctx)) is { } sought
+                if (ValueIdOf(target, ctx) is { } sought
                     && ((NeoWriteBatch.PendingList)pending).Contains(sought))
                 {
                     ctx.client.NotePendingRead(pending.Row.id);
@@ -6727,8 +6727,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return Box(SetHoldsKey(c, target, setEntryMember, ctx));
             if (cnf.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
-            string? targetReferenceId = target as string
-                ?? ValueIdOf(target, ctx);
+            string? targetReferenceId = ValueIdOf(target, ctx);
             if (c is object?[] entries)
             {
                 // An entry whose stored id is the target's matches without
@@ -6900,8 +6899,7 @@ namespace NeoCompose.Runtime.NeoScript
             var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), iof.info);
             if (iof.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx));
-            string? targetReferenceId = target as string
-                ?? ValueIdOf(target, ctx);
+            string? targetReferenceId = ValueIdOf(target, ctx);
             var cursor = new CollectionCursor(c, ctx);
             while (cursor.MoveNextUnresolved())
             {
