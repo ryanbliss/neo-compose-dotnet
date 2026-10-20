@@ -351,6 +351,9 @@ namespace NeoCompose.Runtime
             out string? childValueId)
         {
             childValueId = null;
+            for (var graph = replayDefaultGraph; graph is not null; graph = graph.Parent)
+                if (graph.TryGetChild(parentValueId, schemaKey, out childValueId))
+                    return true;
             // Constructor bodies can read sparse shared catalog values that are
             // not constructor arguments. Resolve only the value actually read;
             // ordinary post-construction reads never trigger replay here.
@@ -1400,6 +1403,8 @@ namespace NeoCompose.Runtime
             if (!wasReplaying)
                 replayingVirtualInstanceAllocatedSessionValueIds = allocations.Ids;
             var captureReads = CaptureValueReads(dependencyIds);
+            var replayDefaults = new ReplayDefaultGraph(this, instanceRoot,
+                replayBoundary?.NamespaceRoot ?? instanceRoot, replayBoundary?.Path ?? "$", ownership);
             try
             {
 #if NEO_COMPOSE_PROFILING
@@ -1428,6 +1433,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                replayDefaults.Dispose();
                 captureReads.Dispose();
                 isReplayingVirtualInstance = wasReplaying;
                 replayingVirtualInstanceRootId = previousReplayingRootId;
@@ -1481,6 +1487,9 @@ namespace NeoCompose.Runtime
                     || sessionData.values.ContainsKey(dependency)
                     || data.values.ContainsKey(dependency) || saveData.values.ContainsKey(dependency)
                     || userSource.userData.values.ContainsKey(dependency)
+                    // A first-load projected leaf is just as live a dependency
+                    // as an already-installed virtual or saved leaf.
+                    || replayDefaults.ProjectsInScope(dependency)
                     || virtualValues.ContainsKey(dependency)
                     || candidateReplay?.Values.ContainsKey(dependency) == true)
                     expansion.Dependencies.Add(dependency);
@@ -2159,7 +2168,7 @@ namespace NeoCompose.Runtime
                 return;
             MemberValue? materialized = null;
             if (materializedId is not null)
-                TryGetOverlaidValue(ownership, materializedId, out materialized);
+                TryGetReplayOverlay(ownership, materializedId, out materialized);
             // Sparse class spines are stored at their deterministic virtual
             // ids without requiring every ancestor body to point at them.
             // Probe that stable id before treating the whole subtree as
@@ -2171,7 +2180,7 @@ namespace NeoCompose.Runtime
                 if (TryGetWritableValue(ownership, node.virtualId, out MemberValue? fallbackRow)
                     && fallbackRow.IsRemoved)
                     return;
-                TryGetOverlaidValue(ownership, node.virtualId, out materialized);
+                TryGetReplayOverlay(ownership, node.virtualId, out materialized);
             }
             if (materialized is null)
             {
@@ -2300,7 +2309,7 @@ namespace NeoCompose.Runtime
                     // this root claims a second copy of a stored row.
                     if (childMaterializedId is null
                         && IsNestedInstanceNode(child)
-                        && TryGetOverlaidValue(ownership, child.virtualId, out MemberValue? _))
+                        && TryGetReplayOverlay(ownership, child.virtualId, out _))
                     {
                         childMaterializedId = child.virtualId;
                     }

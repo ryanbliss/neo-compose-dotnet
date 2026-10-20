@@ -843,6 +843,7 @@ namespace NeoCompose.Runtime
 #if NEO_COMPOSE_PROFILING
             using var marker = CommitWriteMarker.Auto();
 #endif
+            ValidateReplayDefaultWrites(plan);
             if (nestedConstructedRows is not null)
                 foreach (var key in plan.Rows.Keys)
                     if (nestedConstructedRows.TryGetValue(key.id, out var producer)

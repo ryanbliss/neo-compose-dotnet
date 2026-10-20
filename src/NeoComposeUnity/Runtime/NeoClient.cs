@@ -1370,6 +1370,12 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
+            if (TryGetReplayDefaultRow(id, out MemberValue? staged))
+            {
+                value = staged as TValue;
+                return value is not null;
+            }
+
             if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
             {
                 value = allocated as TValue;
@@ -1392,6 +1398,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal MemberValue? ReadValue(string id, ref NeoValueNode? node)
         {
+            if (TryGetReplayDefaultRow(id, out MemberValue? staged))
+                return staged;
             if (candidateReplay is not null || candidateReadPlan is not null)
             {
                 TryGetValue(id, out MemberValue? overlaid);
@@ -1400,7 +1408,7 @@ namespace NeoCompose.Runtime
             NoteValueRead(id);
             if (node is not { live: true })
                 node = ValueNode(id);
-            return node?.session ?? node?.save ?? node?.user ?? node?.Asset(data) ?? node?.virtualRow;
+            return node?.session ?? node?.save ?? node?.user ?? node?.Asset(data) ?? CommittedVirtualRow(id, node);
         }
 
         internal bool TryGetCommittedValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
@@ -1440,6 +1448,8 @@ namespace NeoCompose.Runtime
         // overlays them.
         private MemberValue? CommittedVirtualRow(string id, NeoValueNode? node)
         {
+            if (TryGetReplayDefaultVirtualRow(id, out MemberValue projected))
+                return projected;
             if (candidateReplay is null)
                 return node?.virtualRow;
             return TryResolveVirtualValue(id, out MemberValue row) ? row : null;
@@ -1461,6 +1471,9 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, string id,
             [NotNullWhen(true)] out MemberValue? value)
         {
+            if (TryGetReplayDefaultRow(id, out value))
+                return true;
+
             if (candidateReplay?.Allocations.TryGetValue(id, out MemberValue? allocated) == true)
             {
                 value = allocated;
@@ -1483,6 +1496,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal MemberValue? ReadValue(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
         {
+            if (TryGetReplayDefaultRow(id, out MemberValue? staged))
+                return staged;
             if (candidateReplay is not null || candidateReadPlan is not null)
             {
                 TryGetValue(ownership, id, out MemberValue? overlaid);
@@ -1559,7 +1574,7 @@ namespace NeoCompose.Runtime
             if (CommittedVirtualRow(id, node) is { } virtualRow)
             {
                 NeoValueOwnership virtualOwnership = node?.virtualOwnership ?? default;
-                if (candidateReplay is not null
+                if ((replayDefaultGraph is not null || candidateReplay is not null)
                     && !TryResolveVirtualOwnership(id, out virtualOwnership))
                     return null;
                 if (virtualOwnership == ownership
@@ -2652,6 +2667,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool TryGetValueOwnership(string id, ref NeoValueNode? node, out NeoValueOwnership ownership)
         {
+            if (TryGetReplayDefaultRow(id, out _))
+            {
+                ownership = NeoValueOwnership.Session;
+                return true;
+            }
+
             if (candidateReadPlan is not null)
                 return candidateReadPlan.TryGetOwnership(id, out ownership);
             return TryGetCommittedOwnership(id, ref node, out ownership);
@@ -2781,6 +2802,8 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, string id,
             [NotNullWhen(true)] out MemberValue? value)
         {
+            if (TryGetReplayDefaultRow(id, out value))
+                return true;
             if (ReplayAllocation(id) is MemberValue allocated)
             {
                 value = allocated;
@@ -2821,6 +2844,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal MemberValue? ReadOverlaidValue(NeoValueOwnership ownership, string id, ref NeoValueNode? node)
         {
+            if (TryGetReplayDefaultRow(id, out MemberValue? staged))
+                return staged;
             if (candidateReplay is not null || candidateReadPlan is not null)
             {
                 TryGetOverlaidValue(ownership, id, out MemberValue? overlaid);
@@ -6620,6 +6645,9 @@ namespace NeoCompose.Runtime
         /// can distinguish "explicitly removed" from "absent".</summary>
         internal MemberValue? ResolveValueRow(string valueId)
         {
+            if (TryGetReplayDefaultRow(valueId, out MemberValue? staged))
+                return staged;
+
             if (candidateReplay?.Allocations.TryGetValue(valueId, out MemberValue? allocated) == true)
                 return allocated;
 
@@ -6640,6 +6668,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal MemberValue? ResolveValueRow(string valueId, ref NeoValueNode? node)
         {
+            if (TryGetReplayDefaultRow(valueId, out MemberValue? staged))
+                return staged;
             if (candidateReplay is not null || candidateReadPlan is not null)
                 return ResolveValueRow(valueId);
             NoteValueRead(valueId);
@@ -6649,7 +6679,7 @@ namespace NeoCompose.Runtime
                 ?? node?.save
                 ?? node?.user
                 ?? node?.Asset(data)
-                ?? node?.virtualRow;
+                ?? CommittedVirtualRow(valueId, node);
         }
 
         /// <summary>Moves whenever any partition loads or unloads.</summary>
