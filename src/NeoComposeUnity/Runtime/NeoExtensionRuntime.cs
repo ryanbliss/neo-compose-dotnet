@@ -16,9 +16,12 @@ namespace NeoCompose.Runtime
         /// <summary>The receiver's owning client, or null for an unattached CLR value.</summary>
         public static NeoClient? ClientOf(object? receiver) => receiver switch
         {
-            NeoNode node => node.RuntimeClient,
+            NeoNode node => node.Client,
             INeoCollectionView collection => collection.CollectionClient,
             NeoScriptObject value => value.client,
+            NSGetterEvaluator.ScriptSequence sequence => sequence.Owner,
+            NSGetterEvaluator.ScriptCursor cursor => cursor.Owner,
+            NeoSequences.IScriptSequenceView view => view.Owner,
             _ => null,
         };
 
@@ -210,6 +213,16 @@ namespace NeoCompose.Runtime
             }
             if (constraint is not InterfaceTypeInfo expectedInterface)
                 return false;
+            TypeInfo? collectionElement = argument switch
+            {
+                CollectionTypeInfo collection => collection.entryTypeInfo,
+                LookupTypeInfo lookup => lookup.entryTypeInfo,
+                _ => null,
+            };
+            if (expectedInterface.interfaceId == NeoSequenceContract.Enumerable && collectionElement is not null)
+                return expectedInterface.typeArguments is { Count: 1 }
+                    && expectedInterface.typeArguments.TryGetValue(NeoSequenceContract.EnumerableElement, out TypeInfo expectedElement)
+                    && NeoClient.TypeInfoMatches(collectionElement, expectedElement);
             IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> constructions;
             IReadOnlyDictionary<string, TypeInfo>? arguments;
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env = NeoGenericResolution.EmptyEnv;

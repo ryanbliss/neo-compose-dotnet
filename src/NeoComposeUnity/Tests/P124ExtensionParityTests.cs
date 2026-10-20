@@ -59,6 +59,27 @@ namespace NeoCompose.Tests
                 Assert.That(JToken.DeepEquals(expected, actual), Is.True, $"{name}: {actual}");
         }
         [Test]
+        public void SequenceExtensionsAcceptClrReceiversWithoutConsumingDuringValidation()
+        {
+            using NeoClient client = Client();
+            string total = client.members.Values.Single(member => member.name == "SequenceTotal").id;
+            string count = client.members.Values.Single(member => member.name == "SequenceCount").id;
+            string remaining = client.members.Values.Single(member => member.name == "RemainingValues").id;
+            var integer = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            var values = new List<int> { 2, 3, 4 };
+            Assert.That(NeoExtensionRuntime.Invoke(client, total, values, Array.Empty<object?>()), Is.EqualTo(9));
+            Assert.That(NeoExtensionRuntime.Get(client, count, values, new[] { integer }), Is.EqualTo(3));
+            using IEnumerator<int> cursor = values.GetEnumerator();
+            Assert.That(cursor.MoveNext(), Is.True);
+            object? result = NeoExtensionRuntime.Invoke(client, remaining, cursor, Array.Empty<object?>(), new[] { integer });
+            Assert.That(result, Is.EquivalentTo(new object[] { 3, 4 }));
+            Assert.That(cursor.MoveNext(), Is.False);
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception,
+                new System.Text.RegularExpressions.Regex("InvalidOperationException: Sequence element has runtime type 'String', expected Int\\."));
+            Assert.That(() => NeoExtensionRuntime.Invoke(client, total, new List<string> { "bad" }, Array.Empty<object?>()), Throws.Exception);
+        }
+
+        [Test]
         public void ExtensionReceiverUsesItsOwningClient()
         {
             using NeoClient first = Client();
@@ -73,6 +94,33 @@ namespace NeoCompose.Tests
             Assert.That(NeoExtensionRuntime.Get(first, property, firstReceiver), Is.EqualTo("Ada Lovelace"));
             Assert.That(NeoExtensionRuntime.Get(second, property, secondReceiver), Is.EqualTo("Ada Lovelace"));
             StringAssert.Contains("different client", Assert.Throws<NSGetterRuntimeError>(() => NeoExtensionRuntime.Get(second, property, firstReceiver))!.Message);
+        }
+
+        [Test]
+        public void SequenceExtensionWrappersRetainTheirOwningClient()
+        {
+            using NeoClient first = Client();
+            using NeoClient second = Client();
+            string relayed = first.members.Values.Single(member => member.name == "Relayed").id;
+            string total = first.members.Values.Single(member => member.name == "SequenceTotal").id;
+            string remaining = first.members.Values.Single(member => member.name == "RemainingValues").id;
+            var integer = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            foreach (NeoClient owner in new[] { first, second })
+            {
+                object? sequence = NeoExtensionRuntime.Get(owner, relayed, new List<int> { 2, 3, 4 }, new[] { integer });
+                Assert.That(NeoExtensionRuntime.ClientOf(sequence), Is.SameAs(owner));
+                IEnumerable<int> view = NeoSequences.ReadEnumerable(owner, sequence, integer, value => Convert.ToInt32(value))!;
+                Assert.That(NeoExtensionRuntime.ClientOf(view), Is.SameAs(owner));
+                Assert.That(NeoExtensionRuntime.Invoke(NeoExtensionRuntime.ClientOf(view)!, total, view, Array.Empty<object?>()), Is.EqualTo(9));
+                using IEnumerator<int> cursor = view.GetEnumerator();
+                Assert.That(NeoExtensionRuntime.ClientOf(cursor), Is.SameAs(owner));
+                Assert.That(cursor.MoveNext(), Is.True);
+                Assert.That(NeoExtensionRuntime.Invoke(owner, remaining, cursor, Array.Empty<object?>(), new[] { integer }),
+                    Is.EquivalentTo(new object[] { 3, 4 }));
+                NeoClient other = ReferenceEquals(owner, first) ? second : first;
+                StringAssert.Contains("different client",
+                    Assert.Throws<NSGetterRuntimeError>(() => NeoExtensionRuntime.Invoke(other, total, view, Array.Empty<object?>()))!.Message);
+            }
         }
 
         private sealed class ReceiverView : NeoGeneratedClassValue

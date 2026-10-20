@@ -1970,14 +1970,7 @@ namespace NeoCompose.Runtime
                     ? payload.valueReference ?? (object?)payload.valueId
                     : payload.value;
             }
-            NeoClient? owner = value switch
-            {
-                NeoNode node => node.Client,
-                INeoCollectionView collection => collection.CollectionClient,
-                NSGetterEvaluator.ScriptSequence sequence => sequence.Owner,
-                NSGetterEvaluator.ScriptCursor cursor => cursor.Owner,
-                _ => null,
-            };
+            NeoClient? owner = NeoExtensionRuntime.ClientOf(value);
             if (owner is not null && !ReferenceEquals(client, owner))
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
             if (owner?.IsDisposed == true)
@@ -2292,6 +2285,8 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             ValueSubject subject)
         {
+            if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
+                return;
             ValidateRuntimeValue(value, typeInfo, subject);
             ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
         }

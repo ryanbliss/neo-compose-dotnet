@@ -14,7 +14,7 @@ namespace NeoCompose.Runtime
     /// <summary>Typed, lazy bridges used by generated sequence signatures.</summary>
     public static class NeoSequences
     {
-        private interface IScriptSequenceView
+        internal interface IScriptSequenceView
         {
             NeoClient Owner
             {
