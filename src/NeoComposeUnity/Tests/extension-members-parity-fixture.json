@@ -1,6 +1,11 @@
 {
   "$comment": "P124 shared extension evaluator cases. Vendor this file verbatim into the Unity tests.",
   "source": [
+    "extension<T> IEnumerable<T> { int SequenceCount { get { int count = 0; foreach (var value in this) count++; return count; } } }",
+    "extension<T> List<T> { IEnumerable<T> Relay() { foreach (var value in this) yield return value; } IEnumerable<T> Relayed { get { foreach (var value in this) yield return value; } } }",
+    "extension IEnumerable<int> { int SequenceTotal() { int sum = 0; foreach (var value in this) sum += value; return sum; } }",
+    "extension<T> IEnumerator<T> { List<T> RemainingValues() => this; }",
+    "extension int { int SelectSequence(List<int> values) => 1; int SelectSequence(IEnumerable<int> values) => 2; }",
     "class Palette { public Color Tint = new(1, 1, 1, 0.5); }",
     "interface IFoo { string Text { get; set; } }",
     "class Person : IFoo { public string Text = \"\"; public string FirstName = \"Ada\"; public string LastName = \"Lovelace\"; public string Bound() { NeoDelegate<string> fn = this.EchoText; return fn(); } }",
@@ -102,6 +107,13 @@
     "  public static int DelegateApplicability() => new CallableDeclared().Read(\"hello\");",
     "  public static bool NullExtensionGetter() { Person? p = null; try { var text = p!.Alias; } catch (NeoNullReferenceError error) { return true; } return false; }",
     "  public static bool NullExtensionSetter() { Person? p = null; try { p!.Alias = \"changed\"; } catch (NeoNullReferenceError error) { return true; } return false; }",
+    "  public static int ExtensionGeneratorFunction() { List<int> values = [2, 3, 4]; return values.Relay().SequenceTotal(); }",
+    "  public static int ExtensionGeneratorProperty() { List<int> values = [2, 3, 4]; return values.Relayed.SequenceTotal(); }",
+    "  public static string GenericSequenceProperty() { List<string> values = [\"first\", \"second\"]; List<string> collected = values.Relayed; return collected[1]; }",
+    "  public static int ExtensionRemainingCursor() { List<int> values = [2, 3, 4]; var cursor = values.GetEnumerator(); cursor.MoveNext(); return cursor.RemainingValues().Sum(); }",
+    "  public static int ExtensionSequenceOverload(bool first = true) => 0.SelectSequence(first ? [1] : [2]);",
+    "  public static int ExtensionCollectionReceiver() { List<int> values = [2, 3, 4]; return values.SequenceTotal(); }",
+    "public static int ExtensionSequenceProperties() { List<int> values = [2, 3, 4]; Dictionary<string, int> named = {\"a\": 5, \"b\": 6}; return values.SequenceCount + named.SequenceCount + named.SequenceTotal(); }",
     "}"
   ],
   "returns": {
@@ -143,7 +155,14 @@
     "DelegateSpecificity": 4,
     "DelegateApplicability": 5,
     "NullExtensionGetter": true,
-    "NullExtensionSetter": true
+    "NullExtensionSetter": true,
+    "ExtensionGeneratorFunction": 9,
+    "ExtensionGeneratorProperty": 9,
+    "GenericSequenceProperty": "second",
+    "ExtensionRemainingCursor": 7,
+    "ExtensionSequenceOverload": 1,
+    "ExtensionCollectionReceiver": 9,
+    "ExtensionSequenceProperties": 16
   },
   "refuses": {
     "ExtensionError": "extension failure",
