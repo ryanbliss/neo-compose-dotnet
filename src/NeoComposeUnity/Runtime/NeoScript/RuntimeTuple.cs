@@ -23,8 +23,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Tuple value and type arities differ.");
             this.elements = (object?[])elements.Clone();
             TypeInfo = typeInfo;
-            // A list captured by a tuple needs shared identity. Ordinary
-            // local list reads retain their existing snapshot semantics.
+            // Tuple slots retain the shared identity of captured lists.
             for (int i = 0; i < elements.Length; i++)
                 if (typeInfo.elements[i].typeInfo.type == MemberKind.List && elements[i] is object?[] list)
                     NSGetterEvaluator.CaptureRuntimeList(list);

@@ -218,7 +218,10 @@ namespace NeoCompose.Runtime.NeoScript
                     var values = new List<object?>();
                     while (cursor.MoveNextUnresolved() && right.MoveNextUnresolved())
                         values.Add(callback.ProjectPair(cursor.ResolveEntry(ctx), right.ResolveEntry(ctx)));
-                    result = KeepDerived(values.ToArray(), null, true);
+                    // Empty lists need distinct identities, too.
+                    var entries = new object?[values.Count];
+                    values.CopyTo(entries);
+                    result = KeepDerived(entries, null, true);
                 }
                 return result;
             }

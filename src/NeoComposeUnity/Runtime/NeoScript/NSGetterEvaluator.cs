@@ -6627,6 +6627,11 @@ namespace NeoCompose.Runtime.NeoScript
                 if (type is CollectionTypeInfo or LookupTypeInfo)
                     value = TagSequenceCollection(value, type, ctx);
             }
+            // Typed aliases share membership changes. Stored lists already have
+            // row identity and keep their existing read/write paths.
+            if (type?.type == MemberKind.List && value is object?[] list
+                && ctx is not null && FindRowReference(list, ctx) is null)
+                CaptureRuntimeList(list);
             if (TupleTypeInfo.From(type) is { } tupleType && value is not null)
             {
                 if (ctx is not null)
