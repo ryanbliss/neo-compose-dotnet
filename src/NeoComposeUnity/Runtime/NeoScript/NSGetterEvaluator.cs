@@ -4885,10 +4885,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return ResolveValueIfId(declaredValueId, ctx, receiverOwnership, member, ref declaredNode);
             }
             // A row the sparse index does not cover can omit a null class
-            // default. Match the generated accessor's default without hiding
+            // or reference default. Match the generated accessor without hiding
             // missing required fields or evaluating an initializer out of
             // context.
-            if (MemberValueFactory.IsLiteralNullClassDefault(member))
+            if (MemberValueFactory.IsLiteralNullClassDefault(member)
+                || member is LookupMember
+                {
+                    Requirement: NeoMemberRequirementKind.Optional,
+                    Selection: NeoMemberSelectionKind.Single,
+                    valueId: null,
+                    defaultValue: null or { init: null, value: null or { Length: 0 } },
+                })
             {
                 return null;
             }
@@ -9295,6 +9302,12 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             NeoValueNode? lookupNode = null)
         {
+            if (ids.Length == 0
+                && lookup.Selection == NeoMemberSelectionKind.Single
+                && lookup.Requirement == NeoMemberRequirementKind.Optional)
+            {
+                return null;
+            }
             if (lookup.Selection != NeoMemberSelectionKind.Multi
                 && LookupSlotTarget(lookup, ctx) is { } slotTarget)
             {
