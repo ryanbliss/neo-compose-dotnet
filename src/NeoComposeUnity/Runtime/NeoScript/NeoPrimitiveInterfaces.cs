@@ -353,6 +353,7 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoPrimitive expected = arguments[i] == "S" ? primitive : PrimitiveByName[arguments[i]];
                     matches = typeArguments is not null
                         && typeArguments.TryGetValue(parameterIds[i], out TypeInfo? actual)
+                        && actual.required
                         && TryOfKind(actual.type, out NeoPrimitive actualPrimitive)
                         && actualPrimitive == expected;
                 }

@@ -6188,7 +6188,7 @@ namespace NeoCompose.Runtime
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
                 if (isSet && mutation == CollectionMutationKind.Add)
-                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], ctx);
+                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], entryMember, ctx);
                 if (inserts)
                     RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);

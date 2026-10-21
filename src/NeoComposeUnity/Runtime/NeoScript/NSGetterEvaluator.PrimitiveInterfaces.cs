@@ -1145,17 +1145,23 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>
         /// P127 §7. A stored Set keys class entries by row, so it refuses a
-        /// row, or a tuple element row, of an equatable class.
+        /// row, or a tuple element row, of an equatable class. A
+        /// <c>Reference&lt;T&gt;</c> element is a stored Lookup and keys by identity.
         /// </summary>
-        internal static void AssertStoredSetEntryNotEquatable(object? value, Context ctx)
+        internal static void AssertStoredSetEntryNotEquatable(object? value, Member? member, Context ctx)
         {
             NeoPrimitiveInterfaceSchema schema = ctx.client.PrimitiveInterfaceSchema;
-            if (!schema.AnyEquatable)
+            if (!schema.AnyEquatable || member is LookupMember)
                 return;
             if (value is RuntimeTuple tuple)
             {
-                foreach (object? element in tuple)
-                    AssertStoredSetEntryNotEquatable(element, ctx);
+                for (int i = 0; i < tuple.Count; i++)
+                {
+                    Member? element = null;
+                    if (member is TupleMember tupleMember && !ctx.client.TryGetMember(tupleMember.elementMemberIds[i], out element))
+                        throw new NSGetterRuntimeError($"Tuple '{tupleMember.name}' element {i + 1} has no member descriptor.");
+                    AssertStoredSetEntryNotEquatable(tuple[i], element, ctx);
+                }
                 return;
             }
             if (ClassRowOf(ResolveHandle(value, ctx), ctx) is not { } classId || schema.Equatable(classId) is null)
