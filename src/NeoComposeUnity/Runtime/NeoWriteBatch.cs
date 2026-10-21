@@ -443,7 +443,7 @@ namespace NeoCompose.Runtime
             private NeoScript.OrderedMap<string, string>? ordered;
             private HashSet<string>? members;
             // A value Set's entry ids by P108 key, built on the first lookup.
-            private Dictionary<string, string>? setEntries;
+            private NeoSetEntryIndex? setEntries;
             private Member? setEntryMember;
             private NeoWritePlan? setPlan;
 
@@ -476,7 +476,7 @@ namespace NeoCompose.Runtime
                     return;
                 Count++;
                 members?.Add(id);
-                setEntries?.TryAdd(SetEntryKey(id), id);
+                setEntries?.Add(SetEntryKey(id), id);
                 Changes(now);
             }
 
@@ -516,9 +516,9 @@ namespace NeoCompose.Runtime
                 {
                     setEntryMember = entryMember;
                     setPlan = plan;
-                    setEntries = new Dictionary<string, string>(Count, StringComparer.Ordinal);
+                    setEntries = new NeoSetEntryIndex(Count);
                     for (int index = 0; index < Count; index++)
-                        setEntries.TryAdd(SetEntryKey(this[index]), this[index]);
+                        setEntries.Add(SetEntryKey(this[index]), this[index]);
                 }
                 return setEntries.TryGetValue(key, out string? id) ? id : null;
             }
@@ -537,8 +537,7 @@ namespace NeoCompose.Runtime
                 if (setEntries is null)
                     return;
                 string key = SetEntryKey(id);
-                if (setEntries.TryGetValue(key, out string? holder) && holder == id)
-                    setEntries.Remove(key);
+                setEntries.Remove(key, id);
             }
 
             internal void Insert(int index, string id, NeoTimestamp now)
@@ -558,7 +557,7 @@ namespace NeoCompose.Runtime
                 ids[index] = id;
                 Count++;
                 members?.Add(id);
-                setEntries?.TryAdd(SetEntryKey(id), id);
+                setEntries?.Add(SetEntryKey(id), id);
                 Changes(now);
             }
 
@@ -579,7 +578,7 @@ namespace NeoCompose.Runtime
                 string previous = ids[index];
                 ForgetSetEntry(previous);
                 ids[index] = id;
-                setEntries?.TryAdd(SetEntryKey(id), id);
+                setEntries?.Add(SetEntryKey(id), id);
                 if (members is not null)
                 {
                     members.Remove(previous);
