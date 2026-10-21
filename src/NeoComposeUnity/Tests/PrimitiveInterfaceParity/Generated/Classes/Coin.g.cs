@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Coin : NeoGeneratedClassValue, IReadOnlyCoin
     {
         internal Coin(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f329958b-78b3-43d5-8cae-7273d2ec2ecd", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "aae9fef9-75e1-4c19-958a-256a5476926d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Coin(int cents, int? Cents = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "f329958b-78b3-43d5-8cae-7273d2ec2ecd", "4c1bd13f-4c64-5123-9b2b-63eed7e6300c", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "73c0f0cd-e6fd-4813-8357-b6da02d4a387", Cents) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "aae9fef9-75e1-4c19-958a-256a5476926d", "12974de7-c0ee-5b39-818b-01f78bdc48b5", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "d36e4c4e-e066-4ea8-b45c-ca81915fd288", Cents) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -104,7 +104,6 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             }
             set
             {
-                ThrowIfReadOnly("Coin.Cents");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Cents", NeoGeneratedTypesSupport.Value(value));
             }
         }

@@ -812,8 +812,11 @@ namespace NeoCompose.Runtime.NeoScript
                 return TupleCompareTo(nested, b, ctx);
             if (ClassRowOf(a, ctx) is not null)
                 return CompareTo(a, b, null, ctx);
-            return PrimitiveCompareTo(TupleElementPrimitive(type, CompareToName, ctx), a, b);
+            return PrimitiveCompareResult(CallPrimitiveMember(TupleElementPrimitive(type, CompareToName, ctx), CompareToName, a, new[] { b }));
         }
+
+        /// <summary>A primitive <c>CompareTo</c> result, which is always a boxed whole number.</summary>
+        private static int PrimitiveCompareResult(object? order) => Convert.ToInt32(order, System.Globalization.CultureInfo.InvariantCulture);
 
         /// <summary>P127 §5. <c>h = ToInt32(h * 31 + elementHash)</c> from 17; null hashes as 0.</summary>
         private static int TupleHashCode(RuntimeTuple tuple, Context ctx)
@@ -882,7 +885,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (left is RuntimeTuple tuple)
                 return TupleCompareTo(tuple, right, ctx);
             if (SourcePrimitive(evidence, left, ctx) is { } primitive)
-                return PrimitiveCompareTo(primitive, left, right);
+                return PrimitiveCompareResult(CallPrimitiveMember(primitive, CompareToName, left, new[] { right }));
             object? order = NeoNSFunctionRuntime.InvokeImmediate(
                 ctx.client,
                 RowMember(left, CompareToName, ctx),
@@ -1024,6 +1027,9 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 foreach (var representative in bucket)
                 {
+                    // One row keeps one representative, even when its Equals rejects itself.
+                    if (SameRow(representative.value, value, ctx))
+                        return representative.key;
                     if (RowEquality(representative.value, representative.classId, value, classId, ctx))
                         return representative.key;
                 }
@@ -1084,7 +1090,7 @@ namespace NeoCompose.Runtime.NeoScript
             && NeoPrimitiveInterfaces.OfTypeInfo(CloseContextType(type, ctx)) == NeoPrimitive.Decimal;
 
         /// <summary>The search value's class when that class is equatable.</summary>
-        private static string? EquatableSearchClass(object? target, Context ctx)
+        internal static string? EquatableSearchClass(object? target, Context ctx)
         {
             if (target is null || !ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
                 return null;

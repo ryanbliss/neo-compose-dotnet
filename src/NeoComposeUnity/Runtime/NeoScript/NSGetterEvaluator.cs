@@ -5734,11 +5734,9 @@ namespace NeoCompose.Runtime.NeoScript
             object? right = EvaluateComparand(condition.operand2, scope, ctx, out double rightNumber);
             if (condition.isDecimal != true && ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
             {
-                // Keep the existing subtraction-based ordering, including
-                // its NaN/infinity behavior, without boxing either operand.
+                // IEEE order without boxing either operand.
                 leftNumber = ArithmeticValue.NumberOf(left, leftNumber);
                 rightNumber = ArithmeticValue.NumberOf(right, rightNumber);
-                double difference = leftNumber - rightNumber;
                 switch (op)
                 {
                     case ComparisonOp.EqualTo:
@@ -5746,13 +5744,13 @@ namespace NeoCompose.Runtime.NeoScript
                     case ComparisonOp.DoesNotEqual:
                         return leftNumber != rightNumber;
                     case ComparisonOp.GreaterThan:
-                        return difference > 0;
+                        return leftNumber > rightNumber;
                     case ComparisonOp.GreaterThanOrEqualTo:
-                        return difference >= 0;
+                        return leftNumber >= rightNumber;
                     case ComparisonOp.LessThan:
-                        return difference < 0;
+                        return leftNumber < rightNumber;
                     case ComparisonOp.LessThanOrEqualTo:
-                        return difference <= 0;
+                        return leftNumber <= rightNumber;
                 }
             }
             var a = ArithmeticValue.Box(left, leftNumber);
@@ -9232,7 +9230,7 @@ namespace NeoCompose.Runtime.NeoScript
             return condition.reference ? ReferenceEqual(a, b, ctx) : JsEqual(a, b, ctx);
         }
 
-        /// <summary>Relational order: numbers by IEEE subtraction, strings ordinally (P127 §8).</summary>
+        /// <summary>Relational order: numbers in IEEE order, NaN when unordered; strings ordinally (P127 §8).</summary>
         private static double RelationalCompare(object? a, object? b)
         {
             if (a is string left && b is string right)
@@ -9242,7 +9240,13 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Comparison requires numeric or string operands; got {ReceiverTypeName(a)} and {ReceiverTypeName(b)}");
             }
-            return da - db;
+            if (da < db)
+                return -1;
+            if (da > db)
+                return 1;
+            if (da == db)
+                return 0;
+            return double.NaN;
         }
 
         /// <summary>

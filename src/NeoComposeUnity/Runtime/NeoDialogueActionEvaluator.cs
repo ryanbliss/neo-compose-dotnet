@@ -6244,11 +6244,17 @@ namespace NeoCompose.Runtime
                                 return;
                             }
                             string? slotTarget = SlotTargetOf(args[0], EntryMember(client, list.Row, entryTypeInfo), ctx);
+                            // P127 §7. An equatable target's Equals decides, whatever the entry type.
+                            bool equatable = NSGetterEvaluator.EquatableSearchClass(args[0], ctx) is not null;
                             for (int i = 0; i < list.Count; i++)
                             {
-                                bool match = slotTarget is not null
-                                    ? StoresTarget(client, list[i], slotTarget)
-                                    : list[i] == referenceId
+                                bool match;
+                                if (slotTarget is not null)
+                                    match = StoresTarget(client, list[i], slotTarget);
+                                else if (equatable)
+                                    match = NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx);
+                                else
+                                    match = list[i] == referenceId
                                         || !reference
                                             && client.TryGetValue(list[i], out MemberValue? child)
                                             && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember, ctx);

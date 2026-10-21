@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Reading : NeoGeneratedClassValue, IReadOnlyReading
     {
         internal Reading(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "fba8c07e-d3c8-47f0-80b8-0c56f7ee3da1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a3016bfe-275d-4fcd-b236-28e7385036aa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Reading(float n, float? N = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "fba8c07e-d3c8-47f0-80b8-0c56f7ee3da1", "1828dd91-5274-527f-a55c-7771a8fc0587", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "99b3609c-9f60-4c65-89c2-a825b63554e1", N) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "a3016bfe-275d-4fcd-b236-28e7385036aa", "99b33b41-ad97-57e1-81c5-2958b69b7ea8", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "913f15ff-431a-49f5-88d3-49ddf4fd7d6f", N) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -103,6 +103,11 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                     return Convert.ToSingle(detachedValue);
                 }
                 return (float)(node.Get<NeoMemberFloat>("N").value?.value ?? throw new InvalidOperationException("Required float 'N' has no value."));
+            }
+            set
+            {
+                ThrowIfReadOnly("Reading.N");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "N", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
