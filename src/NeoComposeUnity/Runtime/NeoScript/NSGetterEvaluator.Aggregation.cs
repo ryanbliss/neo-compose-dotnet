@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null || !activeSorts.TryGetValue(ctx.allocationTracker, out var active) || active.Count == 0)
                 return;
-            if (active.Contains(value))
+            if (active.Contains(SequenceCollectionIdentity(value)))
                 throw new NSGetterRuntimeError("Cannot change a list while its Sort comparison is running.");
             if (FindRowReference(value, ctx) is { } row && active.Contains(row.valueId))
                 throw new NSGetterRuntimeError("Cannot change a stored list while its Sort comparison is running.");
@@ -40,7 +40,9 @@ namespace NeoCompose.Runtime.NeoScript
                 callback = new PreparedCollectionCallback(instruction.comparison, scope, ctx, false, CollectionCallbackReturnContract.Projection);
             var active = activeSorts.GetOrCreateValue(ctx.allocationTracker);
             string? id = FindRowReference(collection, ctx)?.valueId;
-            active.Add(collection);
+            // Parameter normalization can copy an array without changing its list identity.
+            object identity = SequenceCollectionIdentity(collection);
+            active.Add(identity);
             if (id is not null)
                 active.Add(id);
             object?[]? result = null;
@@ -62,7 +64,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             finally
             {
-                active.Remove(collection);
+                active.Remove(identity);
                 if (id is not null)
                     active.Remove(id);
                 if (instruction.comparison is not null)
