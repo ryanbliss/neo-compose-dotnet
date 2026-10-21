@@ -26,6 +26,13 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoScriptTextParityTests
     {
+        private const string ErrorFixtureFile = "text-error-source-parity.json";
+
+        public static IEnumerable<string> ErrorCases() => NeoSourceParityFixture.Cases(ErrorFixtureFile);
+
+        [TestCaseSource(nameof(ErrorCases))]
+        public void AuthoredCatchMatchesCliErrorClass(string name) => NeoSourceParityFixture.AssertTrueCase(ErrorFixtureFile, name);
+
         [Test]
         public void EveryEvaluateCaseProducesTheSharedResult()
         {
@@ -49,6 +56,10 @@ namespace NeoCompose.Tests
                     {
                         failures.Add(
                             $"[{name}] threw '{error.Message}', expected {Describe(testCase)}");
+                    }
+                    if (error.Payload.ClassId != NeoErrorContract.NeoArgumentError)
+                    {
+                        failures.Add($"[{name}] threw error class '{error.Payload.ClassId}', expected NeoArgumentError");
                     }
                     continue;
                 }
