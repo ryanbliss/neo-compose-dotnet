@@ -7799,7 +7799,10 @@ namespace NeoCompose.Runtime
                             ? $"Stored interface field '{member.name}' requires an authored class value; store a List explicitly."
                             : $"Class constructor field '{member.name}' is not backed by a Neo value.");
                 }
+                // Detached children are authored classes whose rows are staged
+                // by valueReference and published with the completed graph.
                 if (member is ClassMember { DeclaredInterfaceId: not null }
+                    && runtimeValue is not NeoScript.NeoScriptObject
                     && (!client.TryGetValue(source.Value.ownership ?? NeoValueOwnership.Session, source.Value.valueId, out MemberValue? sourceRow)
                         || string.IsNullOrEmpty(sourceRow.classId)))
                 {
