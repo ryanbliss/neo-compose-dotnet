@@ -25,6 +25,39 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoScriptStaticLeafShadowTests
     {
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void ReplacingAuthoredRecordsClassLeafPreservesOldLocal(bool save, bool mutate)
+        {
+            using NeoClient client = BuildClient();
+            JObject leaf = save ? Key(Child(This()), "Kept", "kept-member") : ShapeOf(This());
+            string storage = save ? "save" : "session";
+            var body = new List<JObject>
+            {
+                Assign(leaf, BoxType(required: false), NewBox(7), storage),
+                Local("retained", leaf),
+                Assign(leaf, BoxType(required: false), leaf, storage),
+                Local("incoming", NewBox(9)),
+                Assign(leaf, BoxType(required: false), Variable("incoming"), storage),
+            };
+            if (mutate)
+            {
+                body.Add(Assign(Key(Variable("retained"), "Width", "width-member"), IntType(), Int(11)));
+                body.Add(Assign(Key(Variable("incoming"), "Width", "width-member"), IntType(), Int(13), storage));
+            }
+            body.Add(new JObject
+            {
+                ["type"] = "return",
+                ["pointer"] = Key(Variable("retained"), "Width", "width-member"),
+            });
+            Assert.AreEqual(mutate ? 11d : 7d, Convert.ToDouble(Execute(client, null, null, IntType(), body.ToArray())));
+            Assert.AreEqual(mutate ? 13 : 9, WidthOf(client,
+                save ? NeoValueOwnership.Save : NeoValueOwnership.Session, save ? "kept-leaf" : "shape-leaf"));
+            AssertRecordUntouched(client);
+        }
+
         // this.Child.Shape = new ShapeBox { Width = 7 };
         [Test]
         public void AssignedValueShadowsTheLeafWithoutCloningTheRecord()
@@ -321,7 +354,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void LocalSetMergesAttachedAliasesAtTheirFirstInsertion(bool sourceFirst)
+        public void LocalSetKeepsTheReplacedInstanceDistinctFromTheIncomingValue(bool sourceFirst)
         {
             using NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -334,8 +367,9 @@ namespace NeoCompose.Tests
 
             Run(client, ctx, Locals(("s", box)), AssignShape(Variable("s")));
 
-            Assert.AreEqual(2, set.Count);
-            CollectionAssert.AreEqual(new[] { initial[0], middle }, set.Snapshot());
+            Assert.AreEqual(3, set.Count, "Replacing a field does not merge its old instance with the incoming value.");
+            CollectionAssert.AreEqual(initial, set.Snapshot());
+            Assert.IsTrue(set.Contains(NSGetterEvaluator.RuntimeSetKey(stored, set, ctx)));
             Assert.IsTrue(set.Contains(NSGetterEvaluator.RuntimeSetKey(box, set, ctx)));
         }
 

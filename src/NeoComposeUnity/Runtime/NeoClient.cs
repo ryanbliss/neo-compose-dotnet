@@ -3498,7 +3498,8 @@ namespace NeoCompose.Runtime
             string sourceValueId,
             MemberValue existing,
             Member member,
-            out HashSet<string>? movedValueIds)
+            out HashSet<string>? movedValueIds,
+            System.Action? beforeReplacement = null)
         {
             bool hasSourceOwnership = plan.TryGetOwnership(sourceValueId, out NeoValueOwnership sourceOwnership);
             string importedValueId = ImportValueReference(
@@ -3514,6 +3515,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Imported Class value '{importedValueId}' has no {ownership} row to shadow '{existing.id}' with.");
             }
+            beforeReplacement?.Invoke();
             MemberValue shadow = CloneValueRow(imported);
             shadow.id = existing.id;
             shadow.sourceValueId = existing.sourceValueId;
@@ -3601,13 +3603,23 @@ namespace NeoCompose.Runtime
             return result;
         }
 
+        internal string StageClassRetention(
+            NeoWritePlan plan, NeoValueOwnership sourceOwnership, string sourceValueId,
+            ClassMember member, Dictionary<(NeoValueOwnership scope, string id), string> retainedRows)
+        {
+            EnsureVirtualReplayArgumentReady(sourceValueId);
+            return PrepareFreshClone(plan, NeoValueOwnership.Session, sourceOwnership, sourceValueId,
+                member, ListenerCopyIntent.ConstructionProjection, retainedRows: retainedRows);
+        }
+
         private string PrepareFreshClone(
             NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
             Member? sourceMember, ListenerCopyIntent intent = ListenerCopyIntent.IndependentCopy,
-            Dictionary<string, string>? clonedValueIds = null)
+            Dictionary<string, string>? clonedValueIds = null,
+            Dictionary<(NeoValueOwnership scope, string id), string>? retainedRows = null)
         {
             var copies = new ClonedValueOccurrence(null);
             List<ClonedValueOccurrence>? repeatedCopies = null;
@@ -3629,6 +3641,9 @@ namespace NeoCompose.Runtime
             if (clonedValueIds is not null)
                 foreach (var copy in copies.Values)
                     clonedValueIds[copy.Key.id] = copy.Value.id;
+            if (retainedRows is not null)
+                foreach (var copy in copies.Values)
+                    retainedRows[copy.Key] = copy.Value.id;
             if (sourceMember is ClassMember { DeclaredClassId: { } declaredClassId })
                 NameCopiedRootClass(plan, targetOwnership, clonedId, declaredClassId);
             return clonedId;

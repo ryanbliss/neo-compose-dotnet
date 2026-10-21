@@ -10004,6 +10004,52 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        internal static bool HasClassAliases(Context ctx, NeoValueOwnership ownership, string valueId)
+        {
+            foreach (object alias in ctx.rowAliases.Get(ownership, valueId))
+                if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference reference)
+                    && reference.ownership == ownership && reference.valueId == valueId)
+                    return true;
+            return false;
+        }
+
+        // Replacement must retire the old rows, including explicit Reference<T>
+        // targets. Move evaluator aliases to a Session copy, reclaimed unless it escapes.
+        internal static void RetainClassAliases(
+            NeoWritePlan plan,
+            Context ctx,
+            NeoValueOwnership ownership,
+            string valueId,
+            JsonMember? member)
+        {
+            if (member is not ClassMember classMember
+                || plan.Resolve(ownership, valueId) is not ObjectMemberValue { value: not null }
+                || !HasClassAliases(ctx, ownership, valueId))
+                return;
+            var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
+            string rootId = ctx.client.StageClassRetention(plan, ownership, valueId, classMember, remapped);
+            foreach (var pair in remapped)
+                ctx.client.Random.PreserveInstanceOnMove(plan, pair.Key.scope, pair.Key.id, NeoValueOwnership.Session, pair.Value);
+            void Retarget()
+            {
+                ctx.allocationTracker.RegisterSessionRoot(rootId);
+                var aliases = new List<object>();
+                foreach (var pair in remapped)
+                {
+                    RetargetCachedRowAfterShadow(ctx, null, pair.Key.scope, pair.Key.id,
+                        NeoValueOwnership.Session, pair.Value, aliases);
+                    if (plan.Resolve(NeoValueOwnership.Session, pair.Value) is { } row)
+                        RefreshCachedRowAfterWrite(row, ctx, NeoValueOwnership.Session);
+                }
+            }
+            // Held collection writes are already visible to this invocation.
+            // Its aliases and allocation tracker must follow the same boundary.
+            if (plan.HeldBy is { } batch)
+                batch.AfterCommit(Retarget);
+            else
+                plan.AfterCommit(Retarget);
+        }
+
         /// <summary>
         /// Retargets the cached CLR aliases of <paramref name="movedRowIds"/>,
         /// which were atomically moved from one writable store to another.
@@ -10041,12 +10087,9 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Retargets the cached CLR aliases of row <paramref name="sourceId"/>,
-        /// whose root a shadow import moved onto the leaf at
-        /// <paramref name="targetId"/>, and the detached object that attached
-        /// to it. A local that held the assigned value then reads and writes
-        /// the leaf, as the C# reference does, in this execution and every
-        /// later one.
+        /// Retargets cached CLR aliases when retention or a shadow import
+        /// moves their instance to another row. Locals keep naming that
+        /// instance after its original slot is replaced.
         /// </summary>
         /// <param name="assigned">The value the write assigned.</param>
         /// <returns>The detached object that now names the leaf, or null.</returns>
@@ -10056,7 +10099,8 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership sourceOwnership,
             string sourceId,
             NeoValueOwnership targetOwnership,
-            string targetId)
+            string targetId,
+            List<object>? aliasScratch = null)
         {
             NeoScriptObject? moved = assigned switch
             {
@@ -10070,11 +10114,13 @@ namespace NeoCompose.Runtime.NeoScript
                 moved.attachedId = targetId;
             else
                 moved = null;
-            var aliases = new List<object>();
+            List<object> aliases = aliasScratch ?? new List<object>();
+            aliases.Clear();
             ctx.rowAliases.GetInto(sourceOwnership, sourceId, aliases);
             foreach (object alias in aliases)
             {
-                if (!ctx.rowReverseIndex.TryGetValue(alias, out RowReference row) || row.ownership != sourceOwnership)
+                if (!ctx.rowReverseIndex.TryGetValue(alias, out RowReference row)
+                    || row.ownership != sourceOwnership || row.valueId != sourceId)
                     continue;
                 SetRowReference(ctx, alias, new RowReference(targetId, targetOwnership, row.classId, row.member));
                 // A record names its row by id, which a shadow changes.

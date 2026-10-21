@@ -19,19 +19,26 @@ namespace NeoCompose.Tests
 
         internal static IEnumerable<string> Cases(string fixtureFile) => Read(fixtureFile)["cases"]!.Values<string>()!;
 
-        internal static void AssertTrueCase(string fixtureFile, string name, Action<NeoClient>? before = null, Action<NeoClient>? after = null)
+        internal static NeoClient CreateClient(string fixtureFile) => CreateClient(Read(fixtureFile));
+
+        private static NeoClient CreateClient(JObject fixture)
         {
             // The base export supplies system sequence declarations. Each fixture
             // supplies its authored types and any runtime error dependencies.
             JObject project = Read("sequence-generated-export.json");
-            JObject fixture = Read(fixtureFile);
             foreach (string field in new[] { "members", "classes", "constructors", "values", "interfaces", "enums" })
             {
                 if (fixture[field] is JObject records)
                     ((JObject)project[field]!).Merge(records);
             }
             var data = NeoTestExport.Read(project.ToString());
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+            return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+        }
+
+        internal static void AssertTrueCase(string fixtureFile, string name, Action<NeoClient>? before = null, Action<NeoClient>? after = null)
+        {
+            JObject fixture = Read(fixtureFile);
+            using NeoClient client = CreateClient(fixture);
             string id = ((JObject)fixture["members"]!).Properties().Single(property => (string?)property.Value["name"] == name).Name;
             before?.Invoke(client);
             object? result = NeoMemberNSFunction.GetOrCreateStatic(client, id).InvokeStatic(Array.Empty<object?>());
