@@ -21,15 +21,19 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
 
         void Add(T amount);
 
+        bool AtZero();
+
         T Count { get; }
 
         void Increment();
+
+        string Show();
     }
 
     public partial class Counter<T> : NeoGeneratedClassValue, IReadOnlyCounter<T>
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "abd5a171-fd1a-4343-b5e0-4bbb9adc39b4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e23dc959-0545-47eb-b066-6a99df2b540e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -40,7 +44,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "abd5a171-fd1a-4343-b5e0-4bbb9adc39b4" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e23dc959-0545-47eb-b066-6a99df2b540e" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -53,7 +57,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "abd5a171-fd1a-4343-b5e0-4bbb9adc39b4" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e23dc959-0545-47eb-b066-6a99df2b540e" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -80,6 +84,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
 
+
         private NeoGenericBinding<T>? _countGenericBinding;
 
         public T Count
@@ -100,16 +105,29 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
 
-        [NeoMemberMethod("3f7ef4c8-a004-4a86-ad5f-ab8ae0554538")]
+
+        [NeoMemberMethod("e5d28d7b-1671-4f21-8008-1ac27a4d32b6")]
         public void Add(T amount)
         {
             InvokeFunction("Add", (object?)(amount));
         }
 
-        [NeoMemberMethod("4ead633c-22e1-405c-a30e-481641de765a")]
+        public bool AtZero()
+        {
+            var result = InvokeFunction("AtZero");
+            return (bool)result!;
+        }
+
+        [NeoMemberMethod("8265c0d5-10e3-4e5d-a962-88ab43d07d4d")]
         public void Increment()
         {
             InvokeFunction("Increment");
+        }
+
+        public string Show()
+        {
+            var result = InvokeFunction("Show");
+            return (string)result!;
         }
 
         public sealed class Fields

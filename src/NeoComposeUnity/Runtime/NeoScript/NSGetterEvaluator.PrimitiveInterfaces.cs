@@ -908,7 +908,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>
         /// P127 §7 step 4. <c>a.Equals(b)</c> when <c>a</c>'s IEquatable admits
         /// <c>b</c>, else <c>b.Equals(a)</c> when <c>b</c>'s admits <c>a</c>.
-        /// Null when either row's class is not equatable.
+        /// Null, for identity, when either row's class is not equatable or
+        /// neither admits the other.
         /// </summary>
         private static bool? EquatableRowsEqual(object a, string leftClassId, object b, string rightClassId, Context ctx)
         {
@@ -921,7 +922,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return InvokeEquals(left, a, b, ctx);
             if (EquatableAdmits(b, right, a, ctx))
                 return InvokeEquals(right, b, a, ctx);
-            return false;
+            return null;
         }
 
         private static bool EquatableAdmits(object row, NeoEquatableClass equatable, object other, Context ctx)
@@ -947,15 +948,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>
         /// P127 §7 steps 2, 4 and 5 for operands of which at least one is a
-        /// class row: identity unless both rows are equatable.
+        /// class row: the rows' Equals when both are equatable, else identity.
         /// </summary>
         private static bool RowEquality(object? a, string? leftClassId, object? b, string? rightClassId, Context ctx)
         {
             if (leftClassId is null || rightClassId is null)
                 return false;
-            if (SameRow(a!, b!, ctx))
-                return true;
-            return EquatableRowsEqual(a!, leftClassId, b!, rightClassId, ctx) ?? false;
+            return EquatableRowsEqual(a!, leftClassId, b!, rightClassId, ctx) ?? SameRow(a!, b!, ctx);
         }
 
         /// <summary>

@@ -70,7 +70,11 @@ namespace NeoCompose.Runtime.NeoScript
             return value[info.index];
         }
 
-        private static bool TupleEqual(object? left, object? right, TupleTypeInfo type, Context ctx)
+        /// <summary>
+        /// Elementwise tuple <c>==</c>; with <paramref name="setKey"/>, the
+        /// set-key equality whose floats are NaN-reflexive (P127 §7).
+        /// </summary>
+        private static bool TupleEqual(object? left, object? right, TupleTypeInfo type, Context ctx, bool setKey = false)
         {
             if (left is null || right is null)
                 return left is null && right is null;
@@ -91,7 +95,8 @@ namespace NeoCompose.Runtime.NeoScript
                 TypeInfo element = type.elements[i].typeInfo;
                 bool equal = element switch
                 {
-                    TupleTypeInfo nested => TupleEqual(x, y, nested, ctx),
+                    TupleTypeInfo nested => TupleEqual(x, y, nested, ctx, setKey),
+                    _ when setKey && TryAsDouble(x, out double xNumber) && TryAsDouble(y, out double yNumber) => xNumber.Equals(yNumber),
                     _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
                     { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
                     ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => ReferenceEqual(x, y, ctx),

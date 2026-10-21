@@ -6714,15 +6714,21 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         internal static bool CollectionValueEqual(object? left, object? right, bool decimalEntries, Context ctx) =>
-            decimalEntries && left is string a && right is string b
-                ? NeoSetEntryKey.DecimalKey(a) == NeoSetEntryKey.DecimalKey(b)
+            decimalEntries
+                ? JsEqual(DecimalEntryKey(left, "collection entry"), DecimalEntryKey(right, "collection search"), ctx)
                 : JsEqual(left, right, ctx);
+
+        /// <summary>A decimal's scale-free key; a class row that is an <c>IEquatable&lt;decimal&gt;</c> stays itself.</summary>
+        internal static object? DecimalEntryKey(object? value, string context) =>
+            value is string || TryAsDouble(value, out _)
+                ? NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, context))
+                : value;
 
         private static object? CollectionSearchTarget(object? target, NeoPrimitive? search)
         {
             if (search == NeoPrimitive.Float && TryAsDouble(target, out double number))
                 return Box((double)(float)number);
-            return search == NeoPrimitive.Decimal && target is not null ? CoerceDecimalOperand(target, "collection search") : target;
+            return search == NeoPrimitive.Decimal ? DecimalEntryKey(target, "collection search") : target;
         }
 
         private static object? EvalContains(
@@ -8991,8 +8997,13 @@ namespace NeoCompose.Runtime.NeoScript
             // Numeric-tolerant equality (int vs double both come through as numbers).
             if (TryAsDouble(a, out double da) && TryAsDouble(b, out double db))
                 return da == db;
+            // P127 §7 step 4. An equatable row's Equals decides, even against itself.
             if (ReferenceEquals(a, b))
-                return true;
+            {
+                return !ctx.client.PrimitiveInterfaceSchema.AnyEquatable
+                    || ClassRowOf(a, ctx) is not { } classId
+                    || RowEquality(a, classId, b, classId, ctx);
+            }
             // P112 §3.3: references compare by the row they name.
             if (a is NSSlotReference || b is NSSlotReference)
                 return a is NSSlotReference left && b is NSSlotReference right && left.TargetId == right.TargetId;
@@ -9086,21 +9097,23 @@ namespace NeoCompose.Runtime.NeoScript
                 return JsEqual(ReadThroughReference(a, ctx), ReadThroughReference(b, ctx), ctx);
             if (a is null || b is null)
                 return a is null && b is null;
-            if (ReferenceEquals(a, b))
-                return true;
-            object? key = ReferenceKeyOf(a, ctx);
-            if (key is not null && key.Equals(ReferenceKeyOf(b, ctx)))
-                return true;
+            bool same = ReferenceEquals(a, b);
+            if (!same)
+            {
+                object? key = ReferenceKeyOf(a, ctx);
+                same = key is not null && key.Equals(ReferenceKeyOf(b, ctx));
+            }
             if (!ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
-                return false;
-            // P127 §7 step 4. A handle resolves to its row only here.
+                return same;
+            // P127 §7 step 4. An equatable row's Equals decides, even against
+            // itself. A handle resolves to its row only here.
             object? left = ResolveHandle(a, ctx);
             object? right = ResolveHandle(b, ctx);
             if (left is null || ClassRowOf(left, ctx) is not { } leftClass)
-                return false;
+                return same;
             if (right is null || ClassRowOf(right, ctx) is not { } rightClass)
-                return false;
-            return EquatableRowsEqual(left, leftClass, right, rightClass, ctx) ?? false;
+                return same;
+            return EquatableRowsEqual(left, leftClass, right, rightClass, ctx) ?? same;
         }
 
         /// <summary>
@@ -9139,8 +9152,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 for (int i = 0; i < entries.Length; i++)
                 {
-                    if (IsSameReference(entries[i], target, targetKey, ctx)
-                        || IsEquatableMatch(entries[i], equatableTarget, equatableClass, ctx))
+                    if (IsSearchMatch(entries[i], target, targetKey, equatableTarget, equatableClass, ctx))
                         return i;
                 }
                 return -1;
@@ -9148,8 +9160,7 @@ namespace NeoCompose.Runtime.NeoScript
             var cursor = new CollectionCursor(collection, ctx);
             while (cursor.MoveNextUnresolved())
             {
-                if (IsSameReference(cursor.Raw, target, targetKey, ctx)
-                    || IsEquatableMatch(cursor.Raw, equatableTarget, equatableClass, ctx))
+                if (IsSearchMatch(cursor.Raw, target, targetKey, equatableTarget, equatableClass, ctx))
                     return cursor.Index;
             }
             return -1;
@@ -9163,14 +9174,22 @@ namespace NeoCompose.Runtime.NeoScript
                 || (targetKey is not null && targetKey.Equals(ReferenceKeyOf(entry, ctx)));
         }
 
-        private static bool IsEquatableMatch(object? raw, object? target, string? targetClass, Context ctx)
+        // P127 §7 step 4. An equatable row's Equals decides, even against itself.
+        private static bool IsSearchMatch(
+            object? raw,
+            object? target,
+            object? targetKey,
+            object? equatableTarget,
+            string? equatableClass,
+            Context ctx)
         {
-            if (targetClass is null || raw is null)
-                return false;
+            bool same = IsSameReference(raw, target, targetKey, ctx);
+            if (equatableClass is null || raw is null)
+                return same;
             object? entry = ResolveHandle(raw, ctx);
             if (entry is null || ClassRowOf(entry, ctx) is not { } entryClass)
-                return false;
-            return EquatableRowsEqual(entry, entryClass, target!, targetClass, ctx) == true;
+                return same;
+            return EquatableRowsEqual(entry, entryClass, equatableTarget!, equatableClass, ctx) ?? same;
         }
 
         private static bool SameEntry(KeyValuePair<string, object?> entry, IDictionary<string, object?> other, Context ctx) =>
@@ -11186,12 +11205,15 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null)
                 return "";
-            if ((sourceType.type == MemberKind.Generic || NeoPrimitiveInterfaces.AdmitsPrimitives(sourceType))
-                && ClassRowOf(value, ctx) is null
-                && NeoPrimitiveInterfaces.OfTypeInfo(CloseContextType(sourceType, ctx)) is { } primitive)
+            if (sourceType.type == MemberKind.Generic || NeoPrimitiveInterfaces.AdmitsPrimitives(sourceType))
             {
-                // P127 §6. A primitive behind T or an interface formats as itself.
-                return FormatForInterp(value, NeoPrimitiveInterfaces.TypeInfoOf(primitive), ctx);
+                // P127 §6. A row behind T formats as its class; a primitive
+                // behind T or an interface formats as itself.
+                string? classId = ClassRowOf(value, ctx);
+                if (classId is not null && sourceType.type == MemberKind.Generic)
+                    return FormatClassForInterp(value, classId, ctx);
+                if (classId is null && NeoPrimitiveInterfaces.OfTypeInfo(CloseContextType(sourceType, ctx)) is { } primitive)
+                    return FormatForInterp(value, NeoPrimitiveInterfaces.TypeInfoOf(primitive), ctx);
             }
             if (ctx.client.IsSequenceType(sourceType))
                 return $"<{SequenceTypeLabel(sourceType, ctx)} unenumerated>";
@@ -11234,13 +11256,15 @@ namespace NeoCompose.Runtime.NeoScript
                         return string.Join(", ", labels);
                     }
                 case MemberKind.Class:
+                    return FormatClassForInterp(value, (sourceType as ClassTypeInfo)?.classId ?? "", ctx);
+                case MemberKind.Interface:
                     {
-                        string classId = (sourceType as ClassTypeInfo)?.classId ?? "";
-                        string typeName = ctx.client.TryGetClass(classId, out NeoSchemaClass? ct)
-                            ? ct.name
-                            : classId;
+                        string interfaceId = ((InterfaceTypeInfo)sourceType).interfaceId;
+                        string typeName = ctx.client.TryGetInterface(interfaceId, out Interface? declaration)
+                            ? declaration.name
+                            : interfaceId;
                         string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
-                        return $"(Class<{typeName}>, Value<{rowId}>)";
+                        return $"(Interface<{typeName}>, Value<{rowId}>)";
                     }
                 case MemberKind.List:
                 case MemberKind.Set:
@@ -11267,6 +11291,15 @@ namespace NeoCompose.Runtime.NeoScript
                 default:
                     return value.ToString() ?? "";
             }
+        }
+
+        private static string FormatClassForInterp(object value, string classId, Context ctx)
+        {
+            string typeName = ctx.client.TryGetClass(classId, out NeoSchemaClass? ct)
+                ? ct.name
+                : classId;
+            string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
+            return $"(Class<{typeName}>, Value<{rowId}>)";
         }
 
         private static string DescribeRuntimeType(TypeInfo t, Context ctx)

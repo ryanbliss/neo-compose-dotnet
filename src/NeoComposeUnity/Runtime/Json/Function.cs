@@ -511,6 +511,12 @@ namespace NeoCompose.Runtime.Json
         public Pointer? add;
         /// <summary>ToSet only: entries dedupe by identity (see <see cref="Condition.reference"/>).</summary>
         public bool reference;
+        /// <summary>
+        /// P127 §6. ToSet and Distinct: the entry type when it is a type
+        /// parameter or interface, whose resolved primitive may select decimal keys.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? evidence;
     }
 
     public sealed class FirstFunction : Function

@@ -47,6 +47,39 @@ namespace NeoCompose.Tests
                 Assert.That(JToken.DeepEquals(expected, actual), Is.True, $"{probe}: {actual}");
         }
 
+        public static IEnumerable<string> Refuses()
+        {
+            foreach (JProperty testCase in Fixture()["refuses"]!.Children<JProperty>())
+                yield return testCase.Name;
+        }
+
+        [TestCaseSource(nameof(Refuses))]
+        public void ProbeRefuses(string probe)
+        {
+            using NeoClient client = Client();
+
+            Exception error = Assert.Catch(() => Invoke(client, probe))!;
+
+            StringAssert.Contains(Fixture()["refuses"]![probe]!.Value<string>(), error.ToString());
+        }
+
+        [Test]
+        public void StoredSetRefusesARowOfAClassMadeEquatableLater()
+        {
+            // The compiler refuses a stored Set of an equatable class, so the
+            // runtime guard covers a class that becomes equatable afterwards.
+            JObject export = JObject.Parse(File.ReadAllText(ExportPath));
+            JObject coin = ExportedClass(export, "Coin");
+            JObject token = ExportedClass(export, "Token");
+            token["implementsInterfaceIds"] = coin["implementsInterfaceIds"]!.DeepClone();
+            token["implementsInterfaceArguments"] = coin["implementsInterfaceArguments"]!.DeepClone();
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(export.ToString()), assumeCurrentSchema: false);
+
+            Exception error = Assert.Catch(() => Invoke(client, "ShelveToken"))!;
+
+            StringAssert.Contains("`Set` elements can't hold `IEquatable` class 'Token', since a stored Set keys entries by row.", error.ToString());
+        }
+
         [Test]
         public void ConformanceTableMatchesTheCompilerPin()
         {
@@ -72,6 +105,10 @@ namespace NeoCompose.Tests
             Assert.That(five.GetHashCode(), Is.EqualTo(1));
             Assert.That(new HashSet<Parity.Coin> { five, otherFive, seven }, Has.Count.EqualTo(2));
             Assert.That(new HashSet<Parity.IReadOnlyCoin> { five, otherFive }, Has.Count.EqualTo(1));
+
+            // Authored Equals decides even against itself: NaN readings differ.
+            var reading = new Parity.Reading(-1);
+            Assert.That(reading.Equals((object)reading), Is.False);
         }
 
         [Test]
@@ -126,11 +163,34 @@ namespace NeoCompose.Tests
             Assert.That(integer, Is.EqualTo(3));
         }
 
-        private static NeoClient Client()
+        [Test]
+        public void StoredGenericRowsRunAfterASaveLoad()
         {
-            ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "primitive-interfaces-parity-export.json")));
-            return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+            const string afterBump = "3|false|true|true|true|false|true";
+            string saved;
+            using (NeoClient client = Client())
+            {
+                Assert.That(Invoke(client, "SavedBank"), Is.EqualTo(afterBump));
+                saved = client.SerializeSaveData();
+            }
+
+            using NeoClient reloaded = Client(saved);
+
+            Assert.That(Invoke(reloaded, "ReadSavedBank"), Is.EqualTo(afterBump));
         }
+
+        private static string ExportPath => Path.Combine(PackageRoot, "primitive-interfaces-parity-export.json");
+
+        private static NeoClient Client(string? save = null)
+        {
+            ProjectData data = NeoTestExport.Read(File.ReadAllText(ExportPath));
+            return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false, loadedSaveContent: save);
+        }
+
+        private static JObject ExportedClass(JObject export, string name) =>
+            export["classes"]!.Children<JProperty>()
+                .Select(property => (JObject)property.Value)
+                .Single(record => record.Value<string>("name") == name);
 
         private static JObject Fixture() =>
             JObject.Parse(File.ReadAllText(Path.Combine(PackageRoot, "primitive-interfaces-parity-fixture.json")));

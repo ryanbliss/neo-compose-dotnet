@@ -2198,8 +2198,6 @@ namespace NeoCompose.Runtime
         /// </summary>
         public static bool ValueEquals(NeoGeneratedClassValue self, object? obj)
         {
-            if (ReferenceEquals(self, obj))
-                return true;
             if (obj is not NeoGeneratedClassValue other)
                 return false;
             if (!ReferenceEquals(self.Client, other.Client))
