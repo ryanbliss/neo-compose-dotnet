@@ -63,6 +63,34 @@ namespace NeoCompose.Tests
             b.Add(2d, 2d);
             Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(true));
         }
+
+        [TestCase("Vector2")]
+        [TestCase("Vector3")]
+        [TestCase("Color")]
+        public void ComponentSetEqualityIncludesSignedZero(string kind)
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object Value(double zero, double last) => kind switch
+            {
+                "Vector2" => new NeoVector2Value { x = zero, y = last },
+                "Vector3" => new NeoVector3Value { x = zero, y = 1, z = last },
+                "Color" => new NeoColorValue { r = (float)zero, g = 0.25f, b = 0.5f, a = (float)last },
+                _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+            };
+            double negativeZero = BitConverter.Int64BitsToDouble(long.MinValue);
+            var set = NSGetterEvaluator.MakeRuntimeSet(new[] { Value(0, 0.5), Value(negativeZero, 0.5), Value(0, 0.75) }, false, false, context);
+            Assert.That(set.Count, Is.EqualTo(2));
+            Assert.That(set.Contains(Value(negativeZero, 0.5)), Is.True);
+            Assert.That(set.Contains(Value(0, 0.75)), Is.True);
+            Assert.That(set.Contains(Value(0, 1)), Is.False);
+        }
+
+        [TestCase("VectorSet")]
+        [TestCase("VectorContains")]
+        [TestCase("VectorDistinct")]
+        [TestCase("Vector3Set")]
+        [TestCase("TupleVectorSet")]
         [TestCase("decimalSetMutation")]
         [TestCase("decimalListRemove")]
         [TestCase("decimalIntMutation")]
