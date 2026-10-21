@@ -351,6 +351,15 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal bool IsSnapshot(object?[] list) => ReferenceEquals(snapshot, list);
 
+        // An in-place Sort rewrote this snapshot. Adopt its contents; the full
+        // buffer makes the next Add allocate instead of changing the shared array.
+        internal void AcceptSnapshot(object?[] list)
+        {
+            entries = list;
+            count = list.Length;
+            snapshot = list;
+        }
+
         internal void Add(object? entry)
         {
             // A full array may be a read's snapshot: grow into a new one.

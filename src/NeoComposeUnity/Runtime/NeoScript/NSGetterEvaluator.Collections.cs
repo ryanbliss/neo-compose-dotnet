@@ -57,6 +57,23 @@ namespace NeoCompose.Runtime.NeoScript
             runtimeLists.AddOrUpdate(snapshot, identity);
         }
 
+        internal static bool TryGrowRuntimeList(object? value, object? entry, Context ctx)
+        {
+            if (value is not object?[] array
+                || !runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)
+                || identity.growing is not { } growing)
+                return false;
+            ctx.allocationTracker.ActiveGeneratorRetention?.Mutation(growing, entry);
+            growing.Add(entry);
+            return true;
+        }
+
+        internal static void CommitRuntimeListSnapshot(object?[] snapshot)
+        {
+            if (runtimeLists.TryGetValue(snapshot, out RuntimeListIdentity identity))
+                identity.growing?.AcceptSnapshot(snapshot);
+        }
+
         internal static void ReplaceRuntimeList(object? previous, object? next)
         {
             if (previous is not object?[] before || next is not object?[] after)

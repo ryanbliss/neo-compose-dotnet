@@ -2689,16 +2689,22 @@ namespace NeoCompose.Runtime
             {
                 object? receiver = instruction.target.pointer is KeyOfPointer key ? Eval(key.keyOf.pointer, scope, ctx) : null;
                 object? value = instruction.target.pointer is KeyOfPointer keyOf ? NSGetterEvaluator.EvaluateKeyOf(keyOf, receiver, scope, ctx) : Eval(instruction.target.pointer, scope, ctx);
+                value = NSGetterEvaluator.RuntimeCollection(value, ctx);
                 NSGetterEvaluator.AssertNotSorting(value, ctx);
                 if (instruction.target.typeInfo.type != MemberKind.List)
                     throw new NSGetterRuntimeError("Sort requires a list target.");
                 var sorted = NSGetterEvaluator.SortCollection(value, instruction, scope, ctx);
                 NSGetterEvaluator.InvalidateCollectionOrdering(value);
                 if (value is object?[] local && FindValueId(value, ctx) is null)
+                {
                     Array.Copy(sorted, local, sorted.Length);
+                    NSGetterEvaluator.CommitRuntimeListSnapshot(local);
+                    if (CollectionVariable(instruction.target.pointer) is { } variable)
+                        scope.Assign(variable, local);
+                }
                 else
-                    ResolveCollectionTarget(client, instruction.target, scope, ctx, evaluatedTarget: value, targetEvaluated: true, keyOfReceiver: receiver)
-                        .Mutate(client, CollectionMutationKind.Sort, sorted, false, ctx);
+                    ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver)
+                        .Apply(client, instruction, scope, ctx, sorted);
                 return;
             }
             if (NSGetterEvaluator.HasActiveSort(ctx))
@@ -2812,9 +2818,15 @@ namespace NeoCompose.Runtime
                         }
                     case Kind.Local:
                         {
+                            var variable = CollectionVariable(instruction.target.pointer);
                             NSGetterEvaluator.InvalidateCollectionOrdering(subject);
-                            var variable = instruction.target.pointer as VariablePointer;
-                            if (subject is object?[] list && IsLocalListAdd(instruction))
+                            if (variable is null && IsLocalListAdd(instruction)
+                                && NSGetterEvaluator.TryGrowRuntimeList(subject, args[0], ctx))
+                                return;
+                            // Arguments may mutate this same list after receiver resolution.
+                            object? local = NSGetterEvaluator.RuntimeCollection(subject, ctx);
+                            NSGetterEvaluator.InvalidateCollectionOrdering(local);
+                            if (local is object?[] list && IsLocalListAdd(instruction))
                             {
                                 // The list a read holds keeps growing in place.
                                 LocalList? held = variable is null ? null : scope.ReadLocalList(variable);
@@ -2831,8 +2843,8 @@ namespace NeoCompose.Runtime
                                 return;
                             }
                             object? mutated = MutateLocalCollection(
-                                subject, instruction.target.typeInfo, instruction.mutation, args, instruction.reference, ctx);
-                            NSGetterEvaluator.ReplaceRuntimeList(subject, mutated);
+                                local, instruction.target.typeInfo, instruction.mutation, args, instruction.reference, ctx);
+                            NSGetterEvaluator.ReplaceRuntimeList(local, mutated);
                             if (variable is not null)
                                 scope.Assign(variable, mutated);
                             return;
@@ -2841,7 +2853,7 @@ namespace NeoCompose.Runtime
                         {
                             var list = (LocalList)subject!;
                             list.Add(args[0]);
-                            StoreLocalList(scope, (VariablePointer)instruction.target.pointer, list);
+                            StoreLocalList(scope, CollectionVariable(instruction.target.pointer)!, list);
                             return;
                         }
                     case Kind.Target:
@@ -2863,7 +2875,7 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            if (instruction.target.pointer is VariablePointer variablePointer)
+            if (CollectionVariable(instruction.target.pointer) is { } variablePointer)
             {
                 // Nothing else can hold a list no read has taken, so its Add
                 // skips the snapshot the checks below would copy.
@@ -2876,6 +2888,8 @@ namespace NeoCompose.Runtime
                     return CollectionMutation.Target(PendingTarget(client, aliasBatch, pendingAlias, instruction.target.typeInfo));
                 if (!scope.TryGetValue(variablePointer.variableId, out var local))
                     throw new NSGetterRuntimeError($"Variable '{variablePointer.variableId}' is not in scope");
+                if (local is null && instruction.target.pointer is ForceUnwrapPointer)
+                    Eval(instruction.target.pointer, scope, ctx); // Preserve the typed null error before arguments.
                 local = NSGetterEvaluator.RuntimeCollection(local, ctx);
                 if (local is object?[] aliased
                     && NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(aliased, out var origin))
@@ -2898,7 +2912,7 @@ namespace NeoCompose.Runtime
                 }, scope, ctx));
             }
             if (instruction.target.pointer is KeyOfPointer keyOfTarget
-                && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary)
+                && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Lookup or MemberKind.Dictionary)
             {
                 object? receiver;
                 if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
@@ -2930,18 +2944,15 @@ namespace NeoCompose.Runtime
                         return CollectionMutation.DetachedList(detached, slotIndex);
                     receiver = NSGetterEvaluator.ForwardDetached(detached, ctx);
                 }
-                return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
-                    evaluatedTarget: NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx),
-                    targetEvaluated: true, keyOfReceiver: receiver));
+                if (instruction.target.typeInfo is LookupTypeInfo && FindValueId(receiver, ctx) is not null)
+                    return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
+                        keyOfReceiver: receiver));
+                object? value = NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx);
+                return ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver);
             }
-            if (instruction.target.pointer is FunctionPointer)
-            {
-                object? value = Eval(instruction.target.pointer, scope, ctx);
-                if (FindValueId(value, ctx) is null)
-                    return CollectionMutation.Local(value);
-                return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
-                    evaluatedTarget: value, targetEvaluated: true));
-            }
+            if (instruction.target.pointer is FunctionPointer or ForceUnwrapPointer)
+                return ResolveCollectionValueMutation(client, instruction, scope, ctx,
+                    Eval(instruction.target.pointer, scope, ctx));
             if (instruction.target.pointer is ReferencePointer or StaticMemberPointer
                 && client.PendingScriptWrites is { HasCollections: true } rootBatch
                 && NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out _) is { } root)
@@ -2951,6 +2962,44 @@ namespace NeoCompose.Runtime
                     TargetOwnership(client, instruction.target, scope, ctx)).ValueId is null)
                 return CollectionMutation.UnboundStatic();
             return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx));
+        }
+
+        private static CollectionMutation ResolveCollectionValueMutation(
+            NeoClient client,
+            CollectionCallInstruction instruction,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            object? value,
+            object? receiver = null)
+        {
+            if (value is object?[] array
+                && NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(array, out var origin))
+            {
+                NeoScriptObject owner = origin!.owner;
+                if (owner.attachedId is null
+                    && instruction.mutation == CollectionMutationKind.Add
+                    && WritesSessionTarget(instruction.target.writability))
+                    return CollectionMutation.DetachedList(owner, origin.index);
+                return CollectionMutation.Target(ResolveDetachedListTarget(
+                    client, owner, origin.index, instruction.target.typeInfo, ctx));
+            }
+            if (FindValueId(receiver, ctx) is null)
+            {
+                if (FindValueId(value, ctx) is not string valueId)
+                    return CollectionMutation.Local(value);
+                // A local container can hold a stored collection. Its selected
+                // row owns the mutation; the container has no storage owner.
+                return CollectionMutation.Target(ResolveCollectionTarget(client, new WriteTarget
+                {
+                    pointer = new ReferencePointer { type = PointerKind.Reference, valueId = valueId },
+                    typeInfo = instruction.target.typeInfo,
+                    writability = null,
+                }, scope, ctx, evaluatedTarget: value, targetEvaluated: true));
+            }
+            // Sparse fields resolve through their receiver even before their
+            // collection payload has acquired a reverse row mapping.
+            return CollectionMutation.Target(ResolveCollectionTarget(client, instruction.target, scope, ctx,
+                evaluatedTarget: value, targetEvaluated: true, keyOfReceiver: receiver));
         }
 
         private const string ListIdAssignmentError =
@@ -3574,7 +3623,7 @@ namespace NeoCompose.Runtime
                 // the author wrote a perfectly legal save mutation. Lookup
                 // mutations target the save-side ref list: read the
                 // receiver's raw member id instead of evaluating the lookup.
-                object? receiver = Eval(lookupKeyOf.keyOf.pointer, scope, ctx);
+                object? receiver = keyOfReceiver ?? Eval(lookupKeyOf.keyOf.pointer, scope, ctx);
                 string? receiverRowId = FindValueId(receiver, ctx);
                 object? key = Eval(lookupKeyOf.keyOf.key, scope, ctx);
                 rowId = null;
@@ -4529,6 +4578,13 @@ namespace NeoCompose.Runtime
             if (a is int ia && b is double db2)
                 return ia == db2;
             return Equals(a, b);
+        }
+
+        private static VariablePointer? CollectionVariable(Pointer pointer)
+        {
+            while (pointer is ForceUnwrapPointer unwrap)
+                pointer = unwrap.pointer;
+            return pointer as VariablePointer;
         }
 
         // A local list's Add, which grows a LocalList rather than copying.

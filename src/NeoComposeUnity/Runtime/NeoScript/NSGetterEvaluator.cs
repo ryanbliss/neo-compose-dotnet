@@ -4350,7 +4350,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // A primitive is its own value: only a value id
                     // resolves through the record's row.
                     if (at is not string)
-                        return at;
+                        return ReadNestedCollectionAlias(at, ctx);
                     RowReference? recordRef = FindRowReference(receiver, ctx);
                     if (recordRef is null && HoldsValues(receiver))
                         return at;
@@ -4404,11 +4404,31 @@ namespace NeoCompose.Runtime.NeoScript
             // resolves through the list's row.
             object? entry = list[idx];
             if (entry is not string)
-                return entry;
+                return ReadNestedCollectionAlias(entry, ctx);
             RowReference? listRef = FindRowReference(list, ctx);
             if (listRef is null && HoldsValues(list))
                 return entry;
             return ResolveValueIfId(entry, ctx, listRef?.ownership, CollectionEntryMember(listRef, list, ctx));
+        }
+
+        // A collection held in a local container follows its owner just as
+        // a variable alias does, even when a write replaces the owner's array.
+        private static object? ReadNestedCollectionAlias(object? value, Context ctx)
+        {
+            if (value is object?[] array)
+            {
+                if (ctx.CollectionRowReference(array) is { member: ListMember or LookupMember } row
+                    && ctx.client.ReadValue(row.ownership, row.valueId, ref row.node) is ArrayMemberValue { value: not null } current)
+                    return UnwrapCached(current, ctx, row.ownership, row.member, row.node);
+                return ctx.ArrayDetachedOrigin(array) is { } origin
+                    ? ReadDetachedArrayAlias(origin, ctx)
+                    : array;
+            }
+            if (value is IDictionary<string, object?> and not NeoScriptObject
+                && FindRowReference(value, ctx) is { member: DictionaryMember } dictionary
+                && ctx.client.ReadValue(dictionary.ownership, dictionary.valueId, ref dictionary.node) is ObjectMemberValue { value: not null } record)
+                return UnwrapCached(record, ctx, dictionary.ownership, dictionary.member, dictionary.node);
+            return value;
         }
 
         /// <summary>What a read of a pending collection asks, which decides the collections it can answer.</summary>

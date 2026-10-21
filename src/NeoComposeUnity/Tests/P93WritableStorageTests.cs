@@ -28,6 +28,58 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-p93";
 
         [Test]
+        public void ForceUnwrappedWritableListOfAssetRowMutatesSession()
+        {
+            ProjectData data = Build();
+            data.classes["part-class"].schema["Items"] = "items-member";
+            data.members["items-member"] = new ListMember
+            {
+                id = "items-member",
+                projectId = ProjectId,
+                name = "Items",
+                kind = MemberKind.List,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Storage = NeoMemberStorage.Writable,
+                entryMemberId = "items-entry",
+            };
+            data.members["items-entry"] = IntField("items-entry", "Entry", NeoMemberStorage.Inherit);
+            ((ObjectMemberValue)data.values["a-thing"]).value!["Items"] = "a-items";
+            data.values["a-items"] = new ArrayMemberValue { id = "a-items", value = Array.Empty<string>() };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = new Dictionary<string, object?>
+            {
+                ["Assets"] = NSGetterEvaluator.UnwrapRow((ObjectMemberValue)client.assets.value!, ctx, NeoValueOwnership.Asset),
+            };
+            ctx = ctx.WithRoot(root);
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                instructions = new Instruction[] { new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall, mutation = CollectionMutationKind.Add,
+                    target = new WriteTarget
+                    {
+                        pointer = new ForceUnwrapPointer
+                        {
+                            type = PointerKind.ForceUnwrap,
+                            pointer = KeyOf(KeyOf(KeyOf(new VariablePointer { type = PointerKind.Variable, variableId = "__root__" }, "Assets"), "Thing"), "Items"),
+                        },
+                        typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = IntType() },
+                        writability = WritabilityKind.Session,
+                    },
+                    args = new Pointer[] { Number(5) },
+                } },
+            }, new Dictionary<string, object?> { ["__root__"] = root }, ctx);
+            Assert.IsTrue(client.TryGetValueOwnership("a-items", out NeoValueOwnership ownership));
+            Assert.AreEqual(NeoValueOwnership.Session, ownership);
+            Assert.AreEqual(1, client.AssetsRoot.Get<NeoMemberClass>("Thing").Get<NeoMemberListWritable>("Items").Count);
+            StringAssert.DoesNotContain("a-items", client.SerializeSaveData());
+        }
+
+        [Test]
         public void AuthoredOwnership_FollowsTheChildStorageRuleUnderEachRoot()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(Build());
