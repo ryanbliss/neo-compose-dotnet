@@ -1533,6 +1533,9 @@ namespace NeoCompose.Runtime.NeoScript
                 if (entry.epoch != current || !ReferenceEquals(entry.collection, collection))
                 {
                     index.TryGetValue(collection, out RowReference? row);
+                    if (row is null && collection is object?[] array
+                        && runtimeLists.TryGetValue(array, out var identity))
+                        row = ReferenceEquals(identity.referenceIndex, index) ? identity.reference : null;
                     entry.collection = collection;
                     entry.row = row;
                     entry.detached = null;
@@ -1614,6 +1617,26 @@ namespace NeoCompose.Runtime.NeoScript
                     rows.Remove(key);
             }
 
+            internal void DetachRuntimeList(Context ctx, NeoValueOwnership ownership, string id, RuntimeListIdentity identity)
+            {
+                RowKey key = RowCacheRowKey(ownership, id);
+                if (!rows.TryGetValue(key, out var aliases))
+                    return;
+                aliases.RemoveAll(weak =>
+                {
+                    if (!weak.TryGetTarget(out object alias))
+                        return true;
+                    if (!ReferenceEquals(alias, identity)
+                        && !(alias is object?[] array && runtimeLists.TryGetValue(array, out var held)
+                            && ReferenceEquals(held, identity)))
+                        return false;
+                    RemoveRowReference(ctx, alias);
+                    return true;
+                });
+                if (aliases.Count == 0)
+                    rows.Remove(key);
+            }
+
             internal void Remove(NeoValueOwnership ownership, string id) => rows.Remove(RowCacheRowKey(ownership, id));
 
             internal bool Contains(RowKey key) => rows.ContainsKey(key);
@@ -1641,6 +1664,11 @@ namespace NeoCompose.Runtime.NeoScript
             if (alias is object?[] or IDictionary<string, object?>)
                 NoteCollectionAlias();
             aliases?.Add(alias, row);
+            if (alias is RuntimeListIdentity list)
+            {
+                list.reference = row;
+                list.referenceIndex = ctx.rowReverseIndex;
+            }
             if (alias is NeoObjectRecord record)
             {
                 record.reference = row;
@@ -1665,6 +1693,11 @@ namespace NeoCompose.Runtime.NeoScript
         private static void RemoveRowReference(Context ctx, object alias)
         {
             ctx.rowReverseIndex.Remove(alias);
+            if (alias is RuntimeListIdentity list && ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex))
+            {
+                list.reference = null;
+                list.referenceIndex = null;
+            }
             if (alias is object?[] or IDictionary<string, object?>)
                 NoteCollectionAlias();
             if (alias is NeoObjectRecord record && ReferenceEquals(record.referenceIndex, ctx.rowReverseIndex))
@@ -2334,12 +2367,12 @@ namespace NeoCompose.Runtime.NeoScript
                     scope.RememberListAlias(vrp, entries, ctx.rowReverseIndex, epoch, listRef);
                 }
                 if (listRef is not null
-                    && ctx.client.ReadValue(listRef.ownership, listRef.valueId, ref listRef.node) is ArrayMemberValue listRow)
+                    && ctx.client.ReadValue(listRef.ownership, listRef.valueId, ref listRef.node) is ArrayMemberValue { value: not null } listRow)
                 {
                     return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member, listRef.node);
                 }
                 if (ctx.ArrayDetachedOrigin(entries) is { } detachedArray)
-                    return ReadDetachedArrayAlias(detachedArray, ctx);
+                    return ReadDetachedArrayAlias(detachedArray, ctx) ?? v;
                 if (listRef is null)
                     scope.RememberListAlias(vrp, entries, ctx.rowReverseIndex, epoch, null);
             }
@@ -6638,7 +6671,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        internal static object? CoerceNumericBinding(object? value, TypeInfo? type, string context, Context? ctx = null)
+        internal static object? CoerceNumericBinding(object? value, TypeInfo? type, string context, Context? ctx = null, bool captureList = true)
         {
             if (ctx is not null && value is not null && type?.type == MemberKind.Generic
                 && NeoFunctionTypeArguments.IsFunctionGeneric(type))
@@ -6649,7 +6682,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // Typed aliases share membership changes. Stored lists already have
             // row identity and keep their existing read/write paths.
-            if (type?.type == MemberKind.List && value is object?[] list
+            if (captureList && type?.type == MemberKind.List && value is object?[] list
                 && ctx is not null && FindRowReference(list, ctx) is null)
                 CaptureRuntimeList(list);
             if (TupleTypeInfo.From(type) is { } tupleType && value is not null)
@@ -9856,7 +9889,9 @@ namespace NeoCompose.Runtime.NeoScript
                         SetRowReference(ctx, alias, new RowReference(
                             row.id, ownership, row.classId, reference.member));
                     }
-                    if (!patchedObjects.Contains(alias))
+                    if (alias is RuntimeListIdentity list && row is ArrayMemberValue { value: not null } arrayRow)
+                        ReadAssignedList(list, arrayRow, reference, ctx);
+                    else if (!patchedObjects.Contains(alias))
                         PatchCachedShape(row, alias);
                 }
             }

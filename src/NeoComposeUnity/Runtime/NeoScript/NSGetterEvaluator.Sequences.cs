@@ -550,8 +550,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             if (value is object?[] { Length: 0 } empty && ReferenceEquals(empty, Array.Empty<object?>()))
                 value = (T)(object)new object?[0];
+            // Type metadata needs stable identity even for a fresh literal.
+            // Only bindings/captures mark it shared with another holder.
             if (value is object?[] list)
-                CaptureRuntimeList(list);
+                runtimeLists.GetValue(list, array => new RuntimeListIdentity(array));
             if (NeoNSFunctionRuntime.ContainsGeneric(element)
                 && ctx.functionTypeArguments is null
                 && (ctx.thisValue is null || NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, ctx.thisValue, ctx, "Collection element").Count == 0))

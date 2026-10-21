@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
 
         internal static IEnumerable<string> Cases(string fixtureFile) => Read(fixtureFile)["cases"]!.Values<string>()!;
 
-        internal static void AssertTrueCase(string fixtureFile, string name)
+        internal static void AssertTrueCase(string fixtureFile, string name, Action<NeoClient>? before = null, Action<NeoClient>? after = null)
         {
             // The base export supplies system sequence declarations. Each fixture
             // supplies its authored types and any runtime error dependencies.
@@ -33,8 +33,10 @@ namespace NeoCompose.Tests
             var data = NeoTestExport.Read(project.ToString());
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
             string id = ((JObject)fixture["members"]!).Properties().Single(property => (string?)property.Value["name"] == name).Name;
+            before?.Invoke(client);
             object? result = NeoMemberNSFunction.GetOrCreateStatic(client, id).InvokeStatic(Array.Empty<object?>());
             Assert.That(result, Is.EqualTo(true), name);
+            after?.Invoke(client);
         }
     }
 }

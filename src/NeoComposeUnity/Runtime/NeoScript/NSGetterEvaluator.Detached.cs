@@ -483,6 +483,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             KeyOf site) =>
             TryFindDetachedSlot(value.plan, key, site, ctx, out int index)
+            && (value.constructing || !NeoGeneratedTypesSupport.AssignedLocalList(value.plan.slots[index], assigned, ctx))
             && NeoGeneratedTypesSupport.TryStoreDetachedSlot(value, index, assigned, ctx);
     }
 }
