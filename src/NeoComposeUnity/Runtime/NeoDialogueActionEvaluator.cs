@@ -6109,6 +6109,9 @@ namespace NeoCompose.Runtime
                                     INeoValuePayloadProvider provider => provider.ToNeoValuePayload(),
                                     _ => args[0],
                                 };
+                                value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
+                                    client, list.EntryMember, value, ownership, ctx, plan,
+                                    NeoGenericResolution.EnvFromStamp(list.value?.genericBindings));
                                 payload = NeoValueWritePayload.FromValue(value);
                             }
                             string addedId = list.PrepareAddSerialized(plan, payload);
