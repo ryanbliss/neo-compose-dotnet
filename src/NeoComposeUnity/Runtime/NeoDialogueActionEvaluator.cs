@@ -4876,7 +4876,9 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, MemberValue next, JsonMember? member, NSGetterEvaluator.Context ctx)
         {
             NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, next.id, member);
-            client.StageInPlaceReplacement(plan, ownership, next, member);
+            client.StageInPlaceReplacement(plan, ownership, next, member,
+                beforeRemovals: member is ClassMember ? null
+                    : removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, ownership, removed));
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(next, ctx, ownership));
         }
 

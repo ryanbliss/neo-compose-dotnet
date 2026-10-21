@@ -10030,6 +10030,24 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        internal static void RetainRemovedClassAliases(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership, IReadOnlyList<string> removed)
+        {
+            var retained = new HashSet<string>();
+            // Removal visits descendants first. Retain parents first so one
+            // copy preserves their aliases and all aliased children together.
+            for (int i = removed.Count - 1; i >= 0; i--)
+            {
+                string id = removed[i];
+                if (retained.Contains(id) || !HasClassAliases(ctx, ownership, id)
+                    || plan.Resolve(ownership, id) is not ObjectMemberValue { value: not null } row
+                    || NeoGeneratedTypesSupport.ResolveClassValueClassId(ctx.client, id, row) is not { } classId)
+                    continue;
+                RetainClassAliases(plan, ctx, ownership, id,
+                    NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row), retained);
+            }
+        }
+
         // Replacement must retire the old rows, including explicit Reference<T>
         // targets. Move evaluator aliases to a Session copy, reclaimed unless it escapes.
         internal static void RetainClassAliases(
@@ -10037,7 +10055,8 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             NeoValueOwnership ownership,
             string valueId,
-            JsonMember? member)
+            JsonMember? member,
+            HashSet<string>? retained = null)
         {
             if (member is not ClassMember classMember
                 || plan.Resolve(ownership, valueId) is not ObjectMemberValue { value: not null }
@@ -10046,7 +10065,11 @@ namespace NeoCompose.Runtime.NeoScript
             var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
             string rootId = ctx.client.StageClassRetention(plan, ownership, valueId, classMember, remapped);
             foreach (var pair in remapped)
+            {
+                if (pair.Key.scope == ownership)
+                    retained?.Add(pair.Key.id);
                 ctx.client.Random.PreserveInstanceOnMove(plan, pair.Key.scope, pair.Key.id, NeoValueOwnership.Session, pair.Value);
+            }
             void Retarget()
             {
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
