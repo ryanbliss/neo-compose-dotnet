@@ -6515,12 +6515,13 @@ namespace NeoCompose.Runtime
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
-            if (value is NeoScript.RuntimeTuple)
-                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
-            var rows = new List<MemberValue>();
             var env = targetEnv ?? (ctx.thisValue is null
                 ? NeoGenericResolution.EmptyEnv
                 : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment"));
+            NeoScript.NSGetterEvaluator.AssertAssignedSetsNotEquatable(member, value, env, ctx);
+            if (value is NeoScript.RuntimeTuple)
+                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+            var rows = new List<MemberValue>();
             object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
                 NeoTimestamp.Now(), item =>
                 {

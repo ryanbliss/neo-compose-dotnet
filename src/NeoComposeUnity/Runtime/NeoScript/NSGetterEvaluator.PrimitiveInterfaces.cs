@@ -1170,6 +1170,48 @@ namespace NeoCompose.Runtime.NeoScript
                 $"Set Add: `Set` elements can't hold `IEquatable` class '{schema.ClassName(classId)}', since a stored Set keys entries by row. Use a `List`.");
         }
 
+        /// <summary>
+        /// P127 §7. A set assigned into a member, directly or nested in a
+        /// list, dictionary or tuple, becomes a stored Set, so its entries
+        /// pass the stored-set guard.
+        /// </summary>
+        internal static void AssertAssignedSetsNotEquatable(
+            JsonMember member,
+            object? value,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            Context ctx)
+        {
+            if (value is null or string || !ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
+                return;
+            switch (member)
+            {
+                case TupleMember tupleMember when value is RuntimeTuple tuple:
+                    for (int i = 0; i < tuple.Count; i++)
+                        AssertAssignedSetsNotEquatable(ClosedMember(tupleMember.elementMemberIds[i], env, ctx), tuple[i], env, ctx);
+                    break;
+                case ListMember listMember when value is System.Collections.IEnumerable entries:
+                    JsonMember entryMember = ClosedMember(listMember.entryMemberId, env, ctx);
+                    foreach (object? entry in entries)
+                    {
+                        if (listMember is SetMember)
+                            AssertStoredSetEntryNotEquatable(entry, entryMember, ctx);
+                        else
+                            AssertAssignedSetsNotEquatable(entryMember, entry, env, ctx);
+                    }
+                    break;
+                case DictionaryMember dictionaryMember when value is IDictionary<string, object?> dictionary:
+                    JsonMember valueMember = ClosedMember(dictionaryMember.entryMemberId, env, ctx);
+                    foreach (object? entry in dictionary.Values)
+                        AssertAssignedSetsNotEquatable(valueMember, entry, env, ctx);
+                    break;
+            }
+        }
+
+        private static JsonMember ClosedMember(string memberId, IReadOnlyDictionary<string, NeoGenericEnvEntry> env, Context ctx) =>
+            ctx.client.TryGetMember(memberId, out JsonMember? member)
+                ? NeoGenericResolution.SubstituteMember(ctx.client, member!, env)
+                : throw new NSGetterRuntimeError($"Missing member '{memberId}'.");
+
         /// <summary>P127 §7. A tuple handle element's hash when its row's class is equatable.</summary>
         private static int? EquatableHandleHash(object value, Context ctx)
         {

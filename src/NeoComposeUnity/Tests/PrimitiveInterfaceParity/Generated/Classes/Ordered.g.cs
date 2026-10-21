@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Ordered<T> : NeoGeneratedClassValue, IReadOnlyOrdered<T>
     {
         internal Ordered(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8345ccec-6c1e-462a-8665-7d12debf218a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "afe66b1c-bcfb-4592-9006-68bb58d0a47a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8345ccec-6c1e-462a-8665-7d12debf218a" => new Ordered<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "afe66b1c-bcfb-4592-9006-68bb58d0a47a" => new Ordered<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Ordered' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8345ccec-6c1e-462a-8665-7d12debf218a" => new Ordered<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "afe66b1c-bcfb-4592-9006-68bb58d0a47a" => new Ordered<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Ordered' without a concrete client type id."),
                 };
             });

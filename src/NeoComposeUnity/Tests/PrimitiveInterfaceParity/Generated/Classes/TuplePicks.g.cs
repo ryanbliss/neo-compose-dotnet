@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class TuplePicks : NeoGeneratedClassValue, IReadOnlyTuplePicks
     {
         internal TuplePicks(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8e7df7c6-da95-4797-9959-4bce620b3fee", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b7e4665e-4f47-406b-bbc6-264ab2c2ccc5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8e7df7c6-da95-4797-9959-4bce620b3fee",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "68853715-7830-4387-aad9-a6ade8d20333", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Picked", "6fadafbe-7966-4ad4-8a0f-ef129bf4ecd9", Picked)
+                "b7e4665e-4f47-406b-bbc6-264ab2c2ccc5",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "08eb1298-941c-4515-a4ee-a9858976062e", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Picked", "75a0d6bb-21b3-4d03-94bc-7c2752dbb004", Picked)
             );
         }
 

@@ -18,6 +18,7 @@
 - Generated equatable classes override `Equals(object)` and `GetHashCode()` with the NeoScript contract, so `HashSet` and `Dictionary` follow NeoScript equality. Comparable classes implement `System.IComparable<T>` and `System.IComparable`. Primitives cross `IEquatable<T>` and `IComparable<T>` parameters and results as their CLR values.
 - Two changes affect existing scripts. `==` through an unconstrained `T` on class rows without `IEquatable` now compares identity, as `==` on the class type already did, so distinct rows with equal fields are no longer equal. Relational operators now follow IEEE order, so `+∞ >= +∞` and `+∞ <= +∞` are true.
 - `Set`, `ToSet` and `Distinct` compare vector and `Color` components with float `Equals`, so vectors with the same NaN components are one entry and `-0` components hash as `0`.
+- A stored `Set` keys entries by row, so it refuses rows of an equatable class, other than `Reference<T>` entries, whether they are added or arrive in a set assigned into the member, directly or nested in a list, dictionary or tuple.
 - Requires Unity export schema 47 and compiler revision 18. Upgrade CLI and SDK together and regenerate exports.
 - Fixed generic collection field assignments losing their closed type bindings. (#375)
 - Fixed null membership and removal in stored nullable class lists. (#381)

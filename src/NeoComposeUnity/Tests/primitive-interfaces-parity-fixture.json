@@ -154,6 +154,15 @@
     "  public CmpBox<((int, int)?, int)> Nested = new(((1, 2), 3));",
     "}",
     "",
+    "class KeyedSetGroups {",
+    "  public List<Coin> Items = [new Coin(1), new Coin(1)];",
+    "  public List<Set<(Reference<Coin>, int)>> Groups = [];",
+    "  public Dictionary<string, Set<(Reference<Coin>, int)>> Keyed = {};",
+    "}",
+    "class SetBag<T> {",
+    "  public Set<T> Items = [];",
+    "}",
+    "",
     "class Plain(int n) {",
     "  public int N = n;",
     "}",
@@ -195,6 +204,12 @@
     "}",
     "",
     "class Probe {",
+    "  @storage(allowed: .Session) public static KeyedSetGroups StaticIndexedGroups = new();",
+    "  @storage(allowed: .Session) public static KeyedSetGroups AddedGroups = new();",
+    "  @storage(allowed: .Session) public static KeyedSetGroups InsertedGroups = new();",
+    "  @storage(allowed: .Session) public static KeyedSetGroups IndexedGroups = new();",
+    "  @storage(allowed: .Session) public static KeyedSetGroups KeyedGroups = new();",
+    "  @storage(allowed: .Session) public static KeyedSetGroups KeyedAddGroups = new();",
     "  @storage(allowed: .Session) public static NullableElementBoxes NullableElements = new();",
     "  @storage(allowed: .Session) public static CoinPicks LookupAssignPicks = new();",
     "  @storage(allowed: .Session) public static CoinPicks LookupContainsPicks = new();",
@@ -567,6 +582,15 @@
     "  public static string NestedAssignedSetIdentity() { List<(Coin, int)> one = [(AssignedGroups.Items[0], 1)]; AssignedGroups.Groups = [one.ToSet()]; Set<(Coin, int)> s = AssignedGroups.Groups[0]; bool has = s.Contains((AssignedGroups.Items[1], 1)); s.Add((AssignedGroups.Items[1], 1)); return $\"{has}|{s.Count}|{AssignedGroups.Groups[0].Count}\"; }",
     "  public static string NullableElementConstraintBoxes() { return $\"{NullableElements.CoinPair.Value.Item1 == new Coin(2)}|{NullableElements.Nested.Value.Item2}\"; }",
     "  public static string NanVectorSetKeys() { float nan = Math.Sqrt(-1.0); Vector3 a = new Vector3(1, 0, 0) * nan; Vector3 b = new Vector3(1, 0, 0) * nan; List<Vector3> vs = [a, b]; List<(Vector3, int)> ts = [(a, 1), (b, 1)]; IEquatable<Vector3> x = a; IEquatable<Vector3> y = b; List<(IEquatable<Vector3>, int)> xs = [(x, 1), (y, 1)]; List<Vector3> one = [a]; Set<Vector3> local = one.ToSet(); bool has = local.Contains(b); local.Add(b); List<Vector2> zs = [new Vector2(0, 1), new Vector2(0, 1) * -1.0 * -1.0, new Vector2(-0.0, 1)]; return $\"{vs.ToSet().Count}|{vs.Distinct().Count}|{ts.ToSet().Count}|{ts.Distinct().Count}|{xs.ToSet().Count}|{xs.Distinct().Count}|{has}|{local.Count}|{zs.ToSet().Count}|{a == b}|{a.Equals(b)}\"; }",
+    "  public static string ListAddSetIdentity() { KeyedSetGroups g = AddedGroups; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Groups.Add(one.ToSet()); Set<(Coin, int)> s = g.Groups[0]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Groups[0].Count}\"; }",
+    "  public static string ListInsertSetIdentity() { KeyedSetGroups g = InsertedGroups; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Groups.Insert(0, one.ToSet()); Set<(Coin, int)> s = g.Groups[0]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Groups[0].Count}\"; }",
+    "  public static string ListIndexSetIdentity() { KeyedSetGroups g = IndexedGroups; List<(Coin, int)> e = []; g.Groups = [e.ToSet()]; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Groups[0] = one.ToSet(); Set<(Coin, int)> s = g.Groups[0]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Groups[0].Count}\"; }",
+    "  public static string DictionaryIndexSetIdentity() { KeyedSetGroups g = KeyedGroups; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Keyed[\"k\"] = one.ToSet(); Set<(Coin, int)> s = g.Keyed[\"k\"]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Keyed[\"k\"].Count}\"; }",
+    "  public static string DictionaryAddSetIdentity() { KeyedSetGroups g = KeyedAddGroups; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Keyed.Add(\"k\", one.ToSet()); Set<(Coin, int)> s = g.Keyed[\"k\"]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Keyed[\"k\"].Count}\"; }",
+    "  public static int AssignedSetMemberGuard() { SetBag<Coin> b = new(); List<Coin> l = [new Coin(1)]; b.Items = l.ToSet(); return b.Items.Count; }",
+    "  public static int AssignedSetMemberAddGuard() { SetBag<Coin> b = new(); List<Coin> l = []; b.Items = l.ToSet(); b.Items.Add(new Coin(1)); return b.Items.Count; }",
+    "  public static int SetMemberAddGuard() { SetBag<Coin> b = new(); b.Items.Add(new Coin(1)); return b.Items.Count; }",
+    "  public static string StaticListIndexSetIdentity() { List<(Coin, int)> e = []; StaticIndexedGroups.Groups = [e.ToSet()]; List<(Coin, int)> one = [(StaticIndexedGroups.Items[0], 1)]; StaticIndexedGroups.Groups[0] = one.ToSet(); Set<(Coin, int)> s = StaticIndexedGroups.Groups[0]; bool has = s.Contains((StaticIndexedGroups.Items[1], 1)); s.Add((StaticIndexedGroups.Items[1], 1)); return $\"{has}|{s.Count}|{StaticIndexedGroups.Groups[0].Count}\"; }",
     "}"
   ],
   "returns": {
@@ -776,11 +800,20 @@
     "InterfaceNaNTupleEquality": "false|false|true",
     "NestedAssignedSetIdentity": "false|2|2",
     "NullableElementConstraintBoxes": "true|3",
-    "NanVectorSetKeys": "1|1|1|1|1|1|true|1|1|false|false"
+    "NanVectorSetKeys": "1|1|1|1|1|1|true|1|1|false|false",
+    "ListAddSetIdentity": "false|2|2",
+    "ListInsertSetIdentity": "false|2|2",
+    "ListIndexSetIdentity": "false|2|2",
+    "DictionaryIndexSetIdentity": "false|2|2",
+    "DictionaryAddSetIdentity": "false|2|2",
+    "StaticListIndexSetIdentity": "false|2|2"
   },
   "refuses": {
     "GenericDivideByZero": "Division by zero",
     "GenericParseBool": "bool.Parse input is not 'true' or 'false'.",
-    "GenericParseInt": "int.Parse input is not an integer."
+    "GenericParseInt": "int.Parse input is not an integer.",
+    "AssignedSetMemberGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
+    "AssignedSetMemberAddGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
+    "SetMemberAddGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`."
   }
 }
