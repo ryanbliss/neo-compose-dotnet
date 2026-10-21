@@ -13,11 +13,14 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], RuntimeSet> runtimeSets = new();
 
-        private sealed class RuntimeListIdentity
+        internal sealed class RuntimeListIdentity
         {
             internal readonly object?[] origin;
             internal object?[] current;
             internal LocalList? growing;
+            internal bool captured;
+            internal RowReference? reference;
+            internal object? referenceIndex;
 
             internal RuntimeListIdentity(object?[] origin)
             {
@@ -34,13 +37,83 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             if (runtimeSets.TryGetValue(array, out var set))
                 return set;
-            return runtimeLists.TryGetValue(array, out var list)
-                ? list.growing?.Snapshot() ?? list.current
-                : array;
+            if (!runtimeLists.TryGetValue(array, out var list))
+                return array;
+            if (ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex) && list.reference is { } reference
+                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue { value: not null } row)
+                return ReadAssignedList(list, row, reference, ctx);
+            return list.growing?.Snapshot() ?? list.current;
+        }
+
+        private static object? ReadAssignedList(RuntimeListIdentity identity, ArrayMemberValue row, RowReference reference, Context ctx)
+        {
+            object? current = UnwrapCached(row, ctx, reference.ownership, reference.member, reference.node);
+            if (current is object?[] array && !ReferenceEquals(identity.current, array))
+            {
+                identity.current = array;
+                runtimeLists.AddOrUpdate(array, identity);
+            }
+            return current;
+        }
+
+        // Field handles copy into another field. Only an unowned local list
+        // can bind its identity to the destination. Composite entries need
+        // their own retention policy when their owning list is replaced.
+        internal static RuntimeListIdentity? AssignedListIdentity(object? value, ListMember member, Context ctx)
+        {
+            if (!ctx.client.TryGetMember(member.entryMemberId, out Member? entry)
+                || entry is ClassMember or ListMember or DictionaryMember or TupleMember or GenericMember
+                || value is not object?[] array
+                || FindRowReference(array, ctx) is not null
+                || ctx.ArrayDetachedOrigin(array) is not null)
+                return null;
+            return runtimeLists.TryGetValue(array, out var identity) && identity.captured ? identity : null;
+        }
+
+        // An assigned local list follows its destination until that field is
+        // reassigned. Register its identity, not its value-shaped CLR arrays,
+        // so row cache refreshes cannot replace their entries with storage ids.
+        internal static void PrepareAssignedListAlias(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership,
+            string valueId, ListMember member, object? assigned)
+        {
+            RuntimeListIdentity? incoming = AssignedListIdentity(assigned, member, ctx);
+            foreach (object alias in ctx.rowAliases.Get(ownership, valueId))
+            {
+                if (alias is not RuntimeListIdentity previous || ReferenceEquals(previous, incoming))
+                    continue;
+                var reference = new RowReference(valueId, ownership, null, member);
+                if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is not ArrayMemberValue { value: not null } row)
+                    continue;
+                object? snapshot = CopiedCollectionContents(UnwrapCached(row, ctx, ownership, member, reference.node), ctx);
+                plan.AfterCommit(() =>
+                {
+                    ctx.rowAliases.DetachRuntimeList(ctx, ownership, valueId, previous);
+                    InvalidateCachedCollection(valueId, ownership, ctx);
+                    ReplaceRuntimeList(previous.origin, snapshot);
+                    NoteCollectionAlias();
+                });
+            }
+            if (incoming is not null)
+            {
+                plan.AfterCommit(() =>
+                {
+                    var reference = new RowReference(valueId, ownership, null, member);
+                    if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is ArrayMemberValue row)
+                    {
+                        reference = new RowReference(valueId, ownership, row.classId, member);
+                        incoming.growing = null;
+                        SetRowReference(ctx, incoming, reference);
+                        InvalidateCachedCollection(valueId, ownership, ctx);
+                        ReadAssignedList(incoming, row, reference, ctx);
+                        NoteCollectionAlias();
+                    }
+                });
+            }
         }
 
         internal static void CaptureRuntimeList(object?[] list) =>
-            runtimeLists.GetValue(list, array => new RuntimeListIdentity(array));
+            runtimeLists.GetValue(list, array => new RuntimeListIdentity(array)).captured = true;
 
         internal static void AdvanceRuntimeList(object?[] previous, LocalList growing)
         {

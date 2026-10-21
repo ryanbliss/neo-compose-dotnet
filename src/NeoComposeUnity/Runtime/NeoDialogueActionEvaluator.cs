@@ -2313,7 +2313,9 @@ namespace NeoCompose.Runtime
             // Existing storage/local IR carries the operator-applied value in
             // `pointer`; only Setter writability needs to re-read its getter
             // because the property has no storage row of its own.
-            object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo, ctx);
+            // A field write does not itself retain another local alias.
+            // Entry targets below capture lists when a local container keeps them.
+            object? assigned = CoerceSetterValue(rhs, instruction.target.typeInfo, ctx, captureList: false);
             if (instruction.target.pointer is DerefPointer deref)
                 WriteThrough(client, instruction.target, Eval(deref.pointer, scope, ctx), assigned, scope, ctx);
             else
@@ -2395,6 +2397,8 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"List assignment index {index} must be non-negative.");
                 if (index >= local.Length)
                     throw new NSGetterRuntimeError($"List assignment index {index} exceeds list length {local.Length}.");
+                if (writeTarget.typeInfo.type == MemberKind.List && assigned is object?[] list)
+                    NSGetterEvaluator.CaptureRuntimeList(list);
                 local[index] = assigned;
                 return;
             }
@@ -2424,6 +2428,8 @@ namespace NeoCompose.Runtime
                 && FindValueId(receiver, ctx) is null)
             {
                 string dictionaryKey = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Dictionary assignment key");
+                if (writeTarget.typeInfo.type == MemberKind.List && assigned is object?[] list)
+                    NSGetterEvaluator.CaptureRuntimeList(list);
                 dictionary[dictionaryKey] = assigned;
                 return;
             }
@@ -3510,14 +3516,14 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static object? CoerceSetterValue(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx)
+        private static object? CoerceSetterValue(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx, bool captureList = true)
         {
             if (typeInfo.type == MemberKind.Decimal
                 && value is double or float or int or long or short or decimal)
             {
                 return NSGetterEvaluator.CoerceDecimalOperand(value, "setter value");
             }
-            return NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "setter value", ctx);
+            return NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "setter value", ctx, captureList);
         }
 
         /// <summary>
@@ -5060,6 +5066,26 @@ namespace NeoCompose.Runtime
                                 movedIds);
                         }
                     }
+                    else if (client.members[binding.MemberId] is ListMember listMember
+                        && (value is not null || binding.ValueId is not null))
+                    {
+                        PrepareWrite(client, plan =>
+                        {
+                            string valueId = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
+                            if (TryGetValueReferenceId(value, ctx, out string? sourceId) && sourceId == valueId)
+                                return;
+                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, binding.Ownership, valueId, listMember, value);
+                            object? payload = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
+                                client, listMember, value, binding.Ownership, ctx, plan);
+                            string updatedId = binding.PreparePayload(plan, payload);
+                            plan.AfterCommit(() =>
+                            {
+                                if (client.TryGetOverlaidValue(binding.Ownership, updatedId, out MemberValue? updatedRow))
+                                    NSGetterEvaluator.RefreshCachedRowAfterWrite(updatedRow, ctx, binding.Ownership);
+                            });
+                        });
+                        return;
+                    }
                     else
                     {
                         object? payload = value is INeoValuePayloadProvider provider
@@ -5379,6 +5405,12 @@ namespace NeoCompose.Runtime
                             out MemberValue? existing,
                             out _)
                         && existing is not null;
+                    if (bound && member is ListMember
+                        && TryGetValueReferenceId(value, ctx, out string? sameListId) && sameListId == existingId)
+                        return;
+                    object? assignedCollection = value;
+                    if (bound && member is ListMember assignedList)
+                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection);
                     // P112 §4.1. A collection slot that holds a row keeps it,
                     // so references to it survive; another row's contents are copied in.
                     if (bound
@@ -5461,6 +5493,8 @@ namespace NeoCompose.Runtime
                     else
                     {
                         var childId = unboundChildId ?? Guid.NewGuid().ToString();
+                        if (member is ListMember assignedListMember)
+                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection);
                         var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
