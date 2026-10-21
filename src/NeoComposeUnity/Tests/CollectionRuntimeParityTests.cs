@@ -64,6 +64,21 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(true));
         }
 
+        [Test]
+        public void NumericSetKeysMatchAcrossNaNPayloadsAndBoxedTypes()
+        {
+            using var client = NeoTestSaveStack.LoadClient(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            double otherNaN = BitConverter.Int64BitsToDouble(0x7ff8000000000001L);
+            var set = NSGetterEvaluator.MakeRuntimeSet(new object?[] { double.NaN, otherNaN, float.NaN, 1, 1d, 0d, -0d }, false, false, context);
+            Assert.That(set.Count, Is.EqualTo(3));
+            Assert.That(set.Contains(otherNaN), Is.True);
+            Assert.That(set.Contains(float.NaN), Is.True);
+            set.Remove(otherNaN);
+            Assert.That(set.Count, Is.EqualTo(2));
+            Assert.That(set.Contains(double.NaN), Is.False);
+        }
+
         [TestCase("Vector2")]
         [TestCase("Vector3")]
         [TestCase("Color")]
@@ -86,6 +101,16 @@ namespace NeoCompose.Tests
             Assert.That(set.Contains(Value(0, 1)), Is.False);
         }
 
+        [TestCase("InfinitySet")]
+        [TestCase("SignedZeroSet")]
+        [TestCase("NaNContains")]
+        [TestCase("OrdinarySet")]
+        [TestCase("NaNDistinct")]
+        [TestCase("NaNExpression")]
+        [TestCase("NaNRemove")]
+        [TestCase("NaNListContains")]
+        [TestCase("NaNSet")]
+        [TestCase("NaNAdd")]
         [TestCase("VectorSet")]
         [TestCase("VectorContains")]
         [TestCase("VectorDistinct")]

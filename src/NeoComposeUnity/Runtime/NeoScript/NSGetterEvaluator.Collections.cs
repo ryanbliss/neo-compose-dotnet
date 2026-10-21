@@ -367,15 +367,18 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// <see cref="JsEqual"/> as a hash comparer, so ToSet dedupes value
-        /// entries in one pass.
+        /// Set-key equality, including NaN, so ToSet dedupes value entries
+        /// in one pass without changing expression or list-search equality.
         /// </summary>
         internal sealed class JsValueComparer : IEqualityComparer<object?>
         {
             private readonly Context context;
             internal JsValueComparer(Context context) => this.context = context;
 
-            bool IEqualityComparer<object?>.Equals(object? x, object? y) => JsEqual(x, y, context);
+            bool IEqualityComparer<object?>.Equals(object? x, object? y) =>
+                TryAsDouble(x, out double left) && TryAsDouble(y, out double right)
+                    ? left.Equals(right)
+                    : JsEqual(x, y, context);
 
             int IEqualityComparer<object?>.GetHashCode(object? value) => Hash(value);
 
