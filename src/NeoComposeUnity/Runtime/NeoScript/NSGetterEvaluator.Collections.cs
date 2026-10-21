@@ -59,10 +59,14 @@ namespace NeoCompose.Runtime.NeoScript
         // Field handles copy into another field. Only an unowned local list
         // can bind its identity to the destination. Composite entries need
         // their own retention policy when their owning list is replaced.
-        internal static RuntimeListIdentity? AssignedListIdentity(object? value, ListMember member, Context ctx)
+        internal static RuntimeListIdentity? AssignedListIdentity(object? value, ListMember member, Context ctx,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
-            if (!ctx.client.TryGetMember(member.entryMemberId, out Member? entry)
-                || entry is ClassMember or ListMember or DictionaryMember or TupleMember or GenericMember
+            if (!ctx.client.TryGetMember(member.entryMemberId, out Member? entry))
+                return null;
+            if (entry is GenericMember && targetEnv is not null)
+                entry = NeoGenericResolution.SubstituteMember(ctx.client, entry, targetEnv);
+            if (entry is ClassMember or ListMember or DictionaryMember or TupleMember or GenericMember
                 || value is not object?[] array
                 || FindRowReference(array, ctx) is not null
                 || ctx.ArrayDetachedOrigin(array) is not null)
@@ -75,9 +79,10 @@ namespace NeoCompose.Runtime.NeoScript
         // so row cache refreshes cannot replace their entries with storage ids.
         internal static void PrepareAssignedListAlias(
             NeoWritePlan plan, Context ctx, NeoValueOwnership ownership,
-            string valueId, ListMember member, object? assigned)
+            string valueId, ListMember member, object? assigned,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
-            RuntimeListIdentity? incoming = AssignedListIdentity(assigned, member, ctx);
+            RuntimeListIdentity? incoming = AssignedListIdentity(assigned, member, ctx, targetEnv);
             foreach (object alias in ctx.rowAliases.Get(ownership, valueId))
             {
                 if (alias is not RuntimeListIdentity previous || ReferenceEquals(previous, incoming))

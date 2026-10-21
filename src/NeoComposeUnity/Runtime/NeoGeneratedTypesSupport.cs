@@ -6439,16 +6439,17 @@ namespace NeoCompose.Runtime
 
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
-            NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null)
+            NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
             var rows = new List<MemberValue>();
-            var env = ctx.thisValue is null
-                ? new Dictionary<string, NeoGenericEnvEntry>()
-                : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment");
+            var env = targetEnv ?? (ctx.thisValue is null
+                ? NeoGenericResolution.EmptyEnv
+                : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment"));
             object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
                 NeoTimestamp.Now(), item =>
                 {

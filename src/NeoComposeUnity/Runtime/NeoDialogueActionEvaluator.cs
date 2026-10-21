@@ -3813,12 +3813,15 @@ namespace NeoCompose.Runtime
                     && NSGetterEvaluator.TryResolveSurfaceMember(
                         keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember, out MergedSchemaEntry? entry))
                 {
+                    // Collection entries close through the assignment receiver,
+                    // which can differ from the calling function's this value.
+                    var targetEnv = memberMember is GenericMember or ListMember or DictionaryMember or TupleMember
+                        ? NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
+                            client, receiver!, ctx, $"Member '{memberMember.name}'")
+                        : null;
                     if (memberMember is GenericMember)
                     {
-                        memberMember = NeoGenericResolution.SubstituteMember(
-                            client, memberMember,
-                            NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
-                                client, receiver!, ctx, $"Member '{memberMember.name}'"));
+                        memberMember = NeoGenericResolution.SubstituteMember(client, memberMember, targetEnv!);
                     }
                     NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
@@ -3833,7 +3836,8 @@ namespace NeoCompose.Runtime
                             ownership,
                             receiverOwnership,
                             receiverNode,
-                            childNode);
+                            childNode,
+                            targetEnv);
                     }
                     return new NeoClassMemberWriteTarget(
                         receiverRowId,
@@ -3842,7 +3846,8 @@ namespace NeoCompose.Runtime
                         ownership,
                         receiverOwnership,
                         receiverNode,
-                        childNode);
+                        childNode,
+                        targetEnv);
                 }
                 EnsureWritableRow(client, receiverRowId, ownership);
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
@@ -4329,7 +4334,8 @@ namespace NeoCompose.Runtime
             string id,
             NeoTimestamp createdAt,
             NeoTimestamp updatedAt,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
             if (member is ClassMember { DeclaredInterfaceId: not null })
                 RequireStoredInterfaceValue(MemberKindInfo(member), value, ctx, member.name);
@@ -4345,17 +4351,20 @@ namespace NeoCompose.Runtime
                     rowValueId = variant.rowValueId,
                 };
             }
-            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
+            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
             client.StageWritablePayloadRows(plan, ownership, payload);
-            return MemberValueFactory.Create(
+            MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
                 id,
                 createdAt,
                 updatedAt);
+            if (targetEnv is { Count: > 0 })
+                NeoGenericResolution.StampGenericBindings(client, member, row, targetEnv);
+            return row;
         }
 
         /// <summary>
@@ -5131,6 +5140,7 @@ namespace NeoCompose.Runtime
             private JsonMember member;
             private NeoValueOwnership ownership;
             private NeoValueOwnership parentOwnership;
+            private IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv;
             // The parent row's node, so the leaf write reads it without an id lookup.
             private NeoValueNode? parentNode;
             // The node of the child the last bound-child read found, handed
@@ -5147,8 +5157,10 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 NeoValueOwnership? parentOwnership = null,
                 NeoValueNode? parentNode = null,
-                NeoValueNode? childNode = null)
+                NeoValueNode? childNode = null,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
             {
+                this.targetEnv = targetEnv;
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.member = member;
@@ -5166,13 +5178,14 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 NeoValueOwnership parentOwnership,
                 NeoValueNode? parentNode,
-                NeoValueNode? childNode)
+                NeoValueNode? childNode,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv)
             {
                 NeoClassMemberWriteTarget? target = pooled;
                 if (target is null || target.inUse)
                 {
                     target = new NeoClassMemberWriteTarget(
-                        parentRowId, key, member, ownership, parentOwnership, parentNode, childNode);
+                        parentRowId, key, member, ownership, parentOwnership, parentNode, childNode, targetEnv);
                     pooled ??= target;
                 }
                 else
@@ -5188,6 +5201,7 @@ namespace NeoCompose.Runtime
                         target.member = member;
                     target.ownership = ownership;
                     target.parentOwnership = parentOwnership;
+                    target.targetEnv = targetEnv;
                     if (parentNode is not null)
                         target.parentNode = parentNode;
                     if (childNode is not null)
@@ -5209,6 +5223,7 @@ namespace NeoCompose.Runtime
                 parentNode = null;
                 childNode = null;
                 unboundChildId = null;
+                targetEnv = null;
                 inUse = false;
             }
 
@@ -5412,7 +5427,7 @@ namespace NeoCompose.Runtime
                         return;
                     object? assignedCollection = value;
                     if (bound && member is ListMember assignedList)
-                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection);
+                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection, targetEnv);
                     // P112 §4.1. A collection slot that holds a row keeps it,
                     // so references to it survive; another row's contents are copied in.
                     if (bound
@@ -5423,7 +5438,7 @@ namespace NeoCompose.Runtime
                     {
                         value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
                     }
-                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
+                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv);
                     if (bound)
                     {
                         if (TryGetClassValueReferenceId(
@@ -5472,7 +5487,7 @@ namespace NeoCompose.Runtime
                             plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
                             return;
                         }
-                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx);
+                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx, targetEnv);
                         replaced.classId = existing.classId;
                         StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
@@ -5500,8 +5515,8 @@ namespace NeoCompose.Runtime
                     {
                         var childId = unboundChildId ?? Guid.NewGuid().ToString();
                         if (member is ListMember assignedListMember)
-                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection);
-                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
+                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection, targetEnv);
+                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx, targetEnv);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
                     }
