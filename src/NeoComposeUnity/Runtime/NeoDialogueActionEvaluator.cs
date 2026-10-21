@@ -4853,6 +4853,7 @@ namespace NeoCompose.Runtime
         private static void StoreReplacedRow(NeoWritePlan plan, NeoClient client,
             NeoValueOwnership ownership, MemberValue next, JsonMember? member, NSGetterEvaluator.Context ctx)
         {
+            NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, next.id, member);
             client.StageInPlaceReplacement(plan, ownership, next, member);
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(next, ctx, ownership));
         }
@@ -4914,7 +4915,8 @@ namespace NeoCompose.Runtime
             HashSet<string>? movedIds;
             try
             {
-                shadowed = client.StageShadowImport(plan, ownership, sourceValueId, existing, member, out movedIds);
+                shadowed = client.StageShadowImport(plan, ownership, sourceValueId, existing, member, out movedIds,
+                    () => NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, existing.id, member));
             }
             catch (InvalidOperationException ex)
             {
@@ -5451,7 +5453,11 @@ namespace NeoCompose.Runtime
                                 parentRowId));
                             rebound.updatedAt = now;
                             StoreWritableRow(plan, parentOwnership, rebound, ctx);
-                            client.StageUnlinkedRemovals(plan, ownership, existingId, member);
+                            // Constructor inputs and other roots may still keep
+                            // the old graph alive. Retain aliases only if unlinking
+                            // actually releases rows.
+                            client.StageUnlinkedRemovals(plan, ownership, existingId, member,
+                                () => NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, existingId, member));
                             return;
                         }
                         if (member is ListMember listMember && client.IsUnorderedList(listMember))

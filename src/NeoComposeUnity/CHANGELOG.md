@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+- Fixed stored string collection `Contains` and `IndexOf` comparing text with storage row IDs instead of string values. Localized text searches retain their read dependencies. (#356)
+- Fixed vector and color hashing in sets and `Distinct`, including tuple keys containing these values. Equal components now produce equal hashes. (#358)
+- Fixed local list aliases, parameters, and returned lists observing stale membership after mutation. Independent collection results keep distinct identities. (#361)
+- Fixed local numeric sets retaining duplicate NaN values or failing to find and remove them. Ordinary expression equality and list searches retain their existing NaN behavior. (#362)
+- Fixed mutations through indexed and force-unwrapped local collection receivers, including nested lists, dictionaries, and sets. (#363)
+- Fixed appending to a grown local list after sorting restoring its old order. Aliases and helper calls now keep the sorted contents. (#369)
+- Fixed sort comparators bypassing mutation and nested-sort guards by passing the same list through a helper or alias. (#364)
+- Fixed local leaf-valued list assignment to instance and static fields losing shared identity. Replacing the field preserves the old local list; stored-source assignments retain their copy semantics. (#365)
+- Fixed static collection assignment failing to materialize lists and sets, including class and nested entries. (#373)
+- Fixed invalid substring ranges, numeric parse inputs, and number formats throwing `NeoInvalidOperationError` instead of `NeoArgumentError`, so typed catches match the TypeScript runtime. (#367)
+- Fixed clearing or replacing owned class fields invalidating retained local instances. Retained instances remain readable and writable, saved rows are released, and explicit `Reference<T>` targets still expire. Temporary retained copies are reclaimed after evaluation unless returned. (#370)
+- Class retention uses a fresh Session graph copy, including when earlier reads left cached aliases. In a 200-child stress case, clearing took about 10.4–10.6 ms versus 3.9–4.0 ms before the fix. Cost scales linearly with the retained graph.
+
 ## [0.79.0] - 2026-10-19
 
 - Added `IEnumerable<T>` and `IEnumerator<T>` bridges, lazy NeoScript generators, and upper-exclusive integer ranges. Collections provide independent cursors. Typed boundaries can acquire a cursor or collect its remaining values into a list; cursor interfaces cannot be stored.

@@ -1113,15 +1113,18 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The one-row form above, which most removals are.</summary>
+        /// <param name="beforeRemoval">Runs once before the first unreachable
+        /// row is removed. Graphs retained by other roots do not invoke it.</param>
         internal void StageUnlinkedRemovals(
-            NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member)
+            NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member? member,
+            Action? beforeRemoval = null)
         {
             List<string> removals = RentIdList();
             HashSet<string> visited = RentIdSet();
             try
             {
                 StageOwnedRemoval(plan, ownership, valueId, member, false, visited, null, removals);
-                RemoveUnreachable(plan, ownership, removals);
+                RemoveUnreachable(plan, ownership, removals, beforeRemoval);
             }
             finally
             {
@@ -1130,7 +1133,8 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void RemoveUnreachable(NeoWritePlan plan, NeoValueOwnership ownership, List<string> removals)
+        private void RemoveUnreachable(NeoWritePlan plan, NeoValueOwnership ownership, List<string> removals,
+            Action? beforeRemoval = null)
         {
             if (removals.Count == 0)
                 return;
@@ -1139,6 +1143,7 @@ namespace NeoCompose.Runtime
             {
                 if (CanProveUnreachable(ownership, removals))
                 {
+                    beforeRemoval?.Invoke();
                     foreach (string id in removals)
                         RemoveOwnedRow(plan, ownership, id);
                     return;
@@ -1147,7 +1152,11 @@ namespace NeoCompose.Runtime
             }
             foreach (string id in removals)
                 if (!reachable.Contains(id))
+                {
+                    beforeRemoval?.Invoke();
+                    beforeRemoval = null;
                     RemoveOwnedRow(plan, ownership, id);
+                }
         }
 
         /// <summary>
