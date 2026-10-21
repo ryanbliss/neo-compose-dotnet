@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime.NeoScript
             if ((long)startIndex + count > value.Length)
             {
                 throw new NSGetterRuntimeError(
-                    "string.Substring startIndex plus length must not exceed the string length.");
+                    "string.Substring startIndex plus length must not exceed the string length.", NeoErrorContract.NeoArgumentError);
             }
             return value.Substring(startIndex, count);
         }
@@ -192,14 +192,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw new NSGetterRuntimeError(number == Int
                     ? "int.ToString format must start with D, F, or N."
-                    : $"{number}.ToString format must start with F or N.");
+                    : $"{number}.ToString format must start with F or N.", NeoErrorContract.NeoArgumentError);
             }
             for (int index = 1; index < format.Length; index++)
             {
                 if (format[index] < '0' || format[index] > '9')
                 {
                     throw new NSGetterRuntimeError(
-                        $"{number}.ToString format precision must contain only digits.");
+                        $"{number}.ToString format precision must contain only digits.", NeoErrorContract.NeoArgumentError);
                 }
             }
             if (format.Length == 1)
@@ -213,7 +213,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (precision > MaxFormatPrecision)
             {
                 throw new NSGetterRuntimeError(
-                    $"{number}.ToString format precision must be 0 to {MaxFormatPrecision}.");
+                    $"{number}.ToString format precision must be 0 to {MaxFormatPrecision}.", NeoErrorContract.NeoArgumentError);
             }
         }
 
@@ -393,7 +393,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? value = ParseText(number, text, out string? error);
             if (error is not null)
-                throw new NSGetterRuntimeError(error);
+                throw new NSGetterRuntimeError(error, NeoErrorContract.NeoArgumentError);
             return value!;
         }
 
