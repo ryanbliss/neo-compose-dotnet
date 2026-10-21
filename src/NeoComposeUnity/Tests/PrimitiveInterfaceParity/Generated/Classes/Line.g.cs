@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Line : NeoGeneratedClassValue, IReadOnlyLine
     {
         internal Line(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "94b12d2d-0a31-4c72-8a82-92cc22015450", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9d21ad86-3cc5-4467-b50e-ccb56e8ce505", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Line(int n, IReadOnlyVer? v, IReadOnlyCash? price, int? Num = null, Ver? V = null, Cash? Price = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "94b12d2d-0a31-4c72-8a82-92cc22015450", "4287a1fd-458f-5841-88f5-550051da61cf", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("price", price) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Num", "4894d5b2-685a-4779-a165-3160d892b07f", Num), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "fb2799c0-0400-44bf-8f6e-a095c9e390ce", V), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Price", "6b3dd65d-91d8-44bf-a22e-bd375249b9b9", Price) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "9d21ad86-3cc5-4467-b50e-ccb56e8ce505", "13dd090e-ff68-5105-84a4-6fc8fbf9e8bc", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("price", price) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Num", "e1df4b78-8a9f-4eba-8650-e834fb4eeb13", Num), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "1911bb58-7efb-4df3-bbb4-d3723147b865", V), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Price", "415f2ee4-7e23-4adb-8411-fe8235c524b0", Price) }), false, NeoValueOwnership.Session)
         {
         }
 

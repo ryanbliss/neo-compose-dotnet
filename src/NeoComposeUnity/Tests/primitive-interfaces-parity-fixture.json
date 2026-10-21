@@ -489,6 +489,7 @@
     "  public static string TupleSetCountsRowUses() { List<(Coin, int)> e = []; Set<(Coin, int)> s = e.ToSet(); Coin a = new(1); s.Add((a, 1)); s.Add((a, 2)); s.Remove((new Coin(1), 1)); bool kept = s.Contains((new Coin(1), 2)); s.Remove((new Coin(1), 2)); a.Cents = 3; s.Add((new Coin(1), 5)); return $\"{kept}|{s.Contains((new Coin(1), 5))}|{s.Contains((new Coin(3), 5))}|{s.Count}\"; }",
     "  public static int SetMissesRunNoEquals() { List<Counted> e = []; Set<Counted> s = e.ToSet(); int before = Probe.Calls.N; int hits = 0; for (int i = 0; i < 16; i++) { if (s.Contains(new Counted(i))) hits += 1; } return Probe.Calls.N - before + hits; }",
     "  public static string TupleTypeTestsCheckElements() { (float, string) f = (2.0, \"a\"); (int, Coin?) n = (1, null); return $\"{EqPlainTup((1, new Plain(1)))}|{CmpPlainTup((1, new Plain(1)))}|{EqIntStrTup(f)}|{EqIntStrTup((1, \"a\"))}|{EqCoinTup((1, new Coin(1)))}|{CmpCoinTup((1, new Coin(1)))}|{EqCoinNTup(n)}|{EqCoinTup(n)}\"; }",
+    "  public static string TupleSetDropsDepartedRow() { List<(Coin, int)> e = []; Set<(Coin, int)> s = e.ToSet(); Coin a = new(1); Coin b = new(1); s.Add((a, 1)); s.Add((b, 2)); s.Remove((new Coin(1), 1)); a.Cents = 3; return $\"{s.Contains((new Coin(1), 2))}|{s.Contains((new Coin(3), 2))}|{s.Count}\"; }",
     "}"
   ],
   "returns": {
@@ -673,7 +674,8 @@
     "SetClearDropsRows": "true|false|1",
     "TupleSetCountsRowUses": "true|true|false|1",
     "SetMissesRunNoEquals": 0,
-    "TupleTypeTestsCheckElements": "false|false|false|true|true|false|true|false"
+    "TupleTypeTestsCheckElements": "false|false|false|true|true|false|true|false",
+    "TupleSetDropsDepartedRow": "true|false|1"
   },
   "refuses": {
     "GenericDivideByZero": "Division by zero",

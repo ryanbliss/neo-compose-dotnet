@@ -16,6 +16,7 @@
 - Class retention uses a fresh Session graph copy, including when earlier reads left cached aliases. In a 200-child stress case, clearing took about 10.4–10.6 ms versus 3.9–4.0 ms before the fix. Cost scales linearly with the retained graph.
 - Added P127 primitive interfaces and generic math. `int`, `float`, `decimal`, `string`, `bool`, vectors, `Color` and tuples implement `IEquatable<T>`, `IComparable<T>`, `IFormattable`, `IParsable<T>` and the generic math interfaces, so `class Counter<T extends INumber<T>>` can use `Count++`, `T.Zero` and `Sum()`. Classes that implement `IEquatable<T>` take part in `==`, sets and `Distinct` through their `Equals` and `GetHashCode`; `IComparable<T>` classes order `<`, `OrderBy`, `Sort`, `Min` and `Max`.
 - Generated equatable classes override `Equals(object)` and `GetHashCode()` with the NeoScript contract, so `HashSet` and `Dictionary` follow NeoScript equality. Comparable classes implement `System.IComparable<T>` and `System.IComparable`. Primitives cross `IEquatable<T>` and `IComparable<T>` parameters and results as their CLR values.
+- Two changes affect existing scripts. `==` through an unconstrained `T` on class rows without `IEquatable` now compares identity, as `==` on the class type already did, so distinct rows with equal fields are no longer equal. Relational operators now follow IEEE order, so `+∞ >= +∞` and `+∞ <= +∞` are true.
 - Requires Unity export schema 47 and compiler revision 18. Upgrade CLI and SDK together and regenerate exports.
 
 ## [0.79.0] - 2026-10-19
