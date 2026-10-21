@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static readonly Func<Pointer, bool> IsCall =
-            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
+            pointer => pointer is CallFunctionPointer or TypeParameterStaticPointer or ObjectInitializerPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
 
         private static bool AnyPointer(
             Instruction instruction,
@@ -245,6 +245,8 @@ namespace NeoCompose.Runtime.NeoScript
                         || AnyPointer(call.args, predicate);
                 case FunctionErrorCheckPointer errorCheck:
                     return AnyPointer(errorCheck.call, predicate);
+                case TypeParameterStaticPointer typeParameterStatic:
+                    return AnyPointer(typeParameterStatic.args, predicate);
                 case ReferencePointer:
                 case VariablePointer:
                 case ValuePointer:
@@ -303,7 +305,9 @@ namespace NeoCompose.Runtime.NeoScript
                         || (query.info.otherPointer is not null && AnyPointer(query.info.otherPointer, predicate))
                         || (query.info.seedPointer is not null && AnyPointer(query.info.seedPointer, predicate))
                         || (query.info.valueFunction is not null && AnyPointer(query.info.valueFunction.instructions, predicate))
-                        || (query.info.function is not null && AnyPointer(query.info.function.instructions, predicate));
+                        || (query.info.function is not null && AnyPointer(query.info.function.instructions, predicate))
+                        || (query.info.zero is not null && AnyPointer(query.info.zero, predicate))
+                        || (query.info.add is not null && AnyPointer(query.info.add, predicate));
                 case WhereFunction where:
                     return AnyPointer(where.info.collectionPointer, predicate)
                         || AnyPointer(where.info.function.instructions, predicate);
@@ -372,6 +376,8 @@ namespace NeoCompose.Runtime.NeoScript
                         || AnyPointer(repeat.info.countPointer, predicate);
                 case TextOpFunction text:
                     return AnyPointer(text.info.argPointers, predicate);
+                case PrimitiveOpFunction primitive:
+                    return AnyPointer(primitive.info.argPointers, predicate);
                 case ListIndexFunction index:
                     return AnyPointer(index.info.collectionPointer, predicate)
                         || (index.info.keyPointer is not null

@@ -161,6 +161,12 @@ namespace NeoCompose.Runtime.Json
         public Pointer valuePointer = null!;
         /// <summary>Entries compare by identity (see <see cref="Condition.reference"/>).</summary>
         public bool reference;
+        /// <summary>
+        /// P127 §6. The entry type when it is a type parameter or interface,
+        /// whose resolved primitive selects the float or decimal handling.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? evidence;
     }
 
     /// <summary>
@@ -400,13 +406,28 @@ namespace NeoCompose.Runtime.Json
         public string op = null!;
         /// <summary>
         /// The primitive a number op parses or formats (<c>int</c>,
-        /// <c>float</c>, or <c>decimal</c>); absent on string ops.
+        /// <c>float</c>, or <c>decimal</c>, and <c>bool</c> for a parse);
+        /// absent on string ops.
         /// </summary>
         public string? number;
         /// <summary>
         /// Receiver first for instance members, then arguments in declared
         /// order. Omitted trailing optional arguments are absent.
         /// </summary>
+        public Pointer[] argPointers = null!;
+    }
+
+    /// <summary>
+    /// P127 §5. Info shape for <c>primitiveOp</c>. Mirrors TS-side
+    /// <c>INSFunctionPrimitiveOpInfo</c>.
+    /// </summary>
+    public class FunctionPrimitiveOpInfo
+    {
+        /// <summary>One of <see cref="PrimitiveOpKind"/>.</summary>
+        public string op = null!;
+        /// <summary>The receiver's primitive, or <c>tuple</c>.</summary>
+        public string primitive = null!;
+        /// <summary>The receiver, then the arguments in declared order.</summary>
         public Pointer[] argPointers = null!;
     }
 
@@ -479,6 +500,15 @@ namespace NeoCompose.Runtime.Json
         public Pointer? countPointer;
         public Pointer? otherPointer;
         public string? keyType;
+        /// <summary>P127 §8. A <c>comparable</c> key's type when a primitive can stand behind it.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? keyEvidence;
+        /// <summary>P127 §8. A <c>numberBase</c> Sum's seed: the key's <c>Zero</c>.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? zero;
+        /// <summary>P127 §8. A <c>numberBase</c> Sum's fold, reading <c>$sum</c> and <c>$entry</c>.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? add;
         /// <summary>ToSet only: entries dedupe by identity (see <see cref="Condition.reference"/>).</summary>
         public bool reference;
     }
@@ -611,6 +641,11 @@ namespace NeoCompose.Runtime.Json
     public sealed class TextOpFunction : Function
     {
         public FunctionTextOpInfo info = null!;
+    }
+
+    public sealed class PrimitiveOpFunction : Function
+    {
+        public FunctionPrimitiveOpInfo info = null!;
     }
 
     public sealed class ListIndexFunction : Function
@@ -758,6 +793,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ListRepeatFunction);
                 case FunctionKind.TextOp:
                     return typeof(TextOpFunction);
+                case FunctionKind.PrimitiveOp:
+                    return typeof(PrimitiveOpFunction);
                 case FunctionKind.ListIndex:
                     return typeof(ListIndexFunction);
                 case FunctionKind.VariantInitialize:

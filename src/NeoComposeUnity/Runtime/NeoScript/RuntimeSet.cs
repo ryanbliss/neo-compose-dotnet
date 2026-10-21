@@ -17,6 +17,8 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly bool EnumEntries;
         internal readonly bool DecimalEntries;
         internal readonly object?[] Source;
+        /// <summary>P127 §7. Equal equatable rows' shared keys; set while any class is IEquatable.</summary>
+        internal NSGetterEvaluator.EquatableSetKeys? EquatableKeys;
 
         internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer)
         {

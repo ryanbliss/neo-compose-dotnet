@@ -92,6 +92,7 @@ namespace NeoCompose.Runtime.NeoScript
                 bool equal = element switch
                 {
                     TupleTypeInfo nested => TupleEqual(x, y, nested, ctx),
+                    _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
                     { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
                     ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => ReferenceEqual(x, y, ctx),
                     { type: MemberKind.Reference } => x is NSSlotReference rx && y is NSSlotReference ry && rx.TargetId == ry.TargetId,
@@ -117,13 +118,20 @@ namespace NeoCompose.Runtime.NeoScript
                 int elementHash;
                 if (value is null)
                     elementHash = 0;
-                else if (type.type == MemberKind.Decimal)
+                else if (type.type == MemberKind.Decimal || IsDecimalEvidence(value, type, ctx))
                     elementHash = StringComparer.Ordinal.GetHashCode(NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, "tuple key")));
+                else if (NeoPrimitiveInterfaces.AdmitsPrimitives(type) && ClassRowOf(value, ctx) is null)
+                    elementHash = values.Hash(value);
                 else if (TupleHandle(type.type) || type is ReferenceTypeInfo reference && NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle)
                 {
                     object? identity = ReferenceKeyOf(value, ctx);
-                    elementHash = identity is NeoVariantReference variant ? variant.GetHashCode()
-                        : StringComparer.Ordinal.GetHashCode(TupleHandleKey(value, ctx));
+                    if (EquatableHandleHash(value, ctx) is { } equatableHash)
+                        elementHash = equatableHash;
+                    else
+                    {
+                        elementHash = identity is NeoVariantReference variant ? variant.GetHashCode()
+                            : StringComparer.Ordinal.GetHashCode(TupleHandleKey(value, ctx));
+                    }
                 }
                 else
                     elementHash = values.Hash(value);

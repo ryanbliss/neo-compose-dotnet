@@ -57,7 +57,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NeoCellPattern",
           "coordinateSpace": "body"
@@ -173,7 +173,7 @@
                     "variableId": "__arg_0__"
                   },
                   "function": {
-                    "compilerRevision": 17,
+                    "compilerRevision": 18,
                     "source": {
                       "coordinateSpace": "body",
                       "name": "NeoCellPattern <callback>"
@@ -329,7 +329,7 @@
       },
       "code": "return this._offsets.Count;",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NeoCellPattern.Count.getter",
           "coordinateSpace": "body"
@@ -541,7 +541,7 @@
       ],
       "code": "int y = radiusY ?? radiusX;\nif (radiusX < 0 || y < 0) {\n  throw $\"Box radii must be non-negative; got {radiusX}, {y}.\";\n}\nreturn NeoCellPattern.Shells(-radiusX, radiusX, -y, y, excluding == NeoCellPatternExcluding.Center ? 1 : 0);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box",
           "coordinateSpace": "body"
@@ -992,7 +992,7 @@
       ],
       "code": "int y = radiusY ?? radiusX;\nif (radiusX < 0 || y < 0) {\n  throw $\"Cross radii must be non-negative; got {radiusX}, {y}.\";\n}\nList<Vector2Int> cells = [];\nif (excluding == NeoCellPatternExcluding.None) {\n  cells.Add(new(0, 0));\n}\nfor (int distance = 1; distance <= Math.Max(radiusX, y); distance++) {\n  if (distance <= radiusX) {\n    cells.Add(new(-distance, 0));\n    cells.Add(new(distance, 0));\n  }\n  if (distance <= y) {\n    cells.Add(new(0, -distance));\n    cells.Add(new(0, distance));\n  }\n}\nreturn new NeoCellPattern(offsets: cells);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Cross",
           "coordinateSpace": "body"
@@ -1867,7 +1867,7 @@
       ],
       "code": "if (radius < 0) {\n  throw $\"Ring radius must be non-negative; got {radius}.\";\n}\nreturn NeoCellPattern.Shells(-radius, radius, -radius, radius, radius);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Ring",
           "coordinateSpace": "body"
@@ -2134,7 +2134,7 @@
       ],
       "code": "if (size.x < 1 || size.y < 1) {\n  throw $\"Rect size must be positive; got {size.x}, {size.y}.\";\n}\nreturn NeoCellPattern.Shells(0, size.x - 1, 0, size.y - 1, 0);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Rect",
           "coordinateSpace": "body"
@@ -2580,7 +2580,7 @@
       ],
       "code": "if (direction.x == 0 && direction.y == 0) {\n  throw \"Line direction must be non-zero.\";\n}\nif (length < 0) {\n  throw $\"Line length must be non-negative; got {length}.\";\n}\nList<Vector2Int> cells = [];\nif (excluding == NeoCellPatternExcluding.None) {\n  cells.Add(new(0, 0));\n}\nfor (int step = 1; step <= length; step++) {\n  cells.Add(new(direction.x * step, direction.y * step));\n}\nreturn new NeoCellPattern(offsets: cells);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Line",
           "coordinateSpace": "body"
@@ -3435,7 +3435,7 @@
       ],
       "code": "List<Vector2Int> cells = [];\nint radius = Math.Max(Math.Max(-minX, maxX), Math.Max(-minY, maxY));\nfor (int shell = firstShell; shell <= radius; shell++) {\n  int firstY = Math.Max(minY, -shell);\n  int lastY = Math.Min(maxY, shell);\n  if (shell == 0) {\n    if (minX <= 0 && maxX >= 0 && firstY <= lastY) {\n      cells.Add(new(0, 0));\n    }\n  } else if (firstY <= lastY) {\n    if (-shell >= minX && -shell <= maxX) {\n      for (int y = firstY; y <= lastY; y++) {\n        cells.Add(new(-shell, y));\n      }\n    }\n    bool bottom = -shell >= minY && -shell <= maxY;\n    bool top = shell >= minY && shell <= maxY;\n    if (bottom || top) {\n      for (int x = Math.Max(minX, -shell + 1); x <= Math.Min(maxX, shell - 1); x++) {\n        if (bottom) {\n          cells.Add(new(x, -shell));\n        }\n        if (top) {\n          cells.Add(new(x, shell));\n        }\n      }\n    }\n    if (shell >= minX && shell <= maxX) {\n      for (int y = firstY; y <= lastY; y++) {\n        cells.Add(new(shell, y));\n      }\n    }\n  }\n}\nreturn new NeoCellPattern(offsets: cells);",
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Shells",
           "coordinateSpace": "body"

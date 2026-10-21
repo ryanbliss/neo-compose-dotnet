@@ -13,6 +13,9 @@ namespace NeoCompose.Runtime.Json
     public static class NeoProjectExportContract
     {
         /// <summary>
+        /// 47 admits the P127 <c>typeParameterStatic</c> pointer, the
+        /// <c>primitiveOp</c> function, primitive evidence, comparable and
+        /// <c>numberBase</c> ordering keys, and static interface members.
         /// 45 adds tuple descriptors, tuple type information, and typed tuple IR.
         /// Older SDKs reject the export before reading tuples.
         /// 43 admits the P115 textOp and P116 vectorOp intrinsics and adds P117
@@ -130,7 +133,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 46;
+        public const int CurrentSchemaVersion = 47;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s
@@ -715,6 +718,11 @@ namespace NeoCompose.Runtime.Json
                 member, "accessors", "Interface property");
             StrictRecordShapeEnums.ValidateOptional<NeoFunctionDispatchKind>(
                 member, "dispatch", "Interface function");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberModifierKind>(
+                member, "modifier", "Interface member");
+            if (member["modifier"] is { Type: not JTokenType.Null } modifier
+                && modifier.Value<int>() != (int)NeoMemberModifierKind.Static)
+                throw new JsonSerializationException("Interface member modifier must be Static.");
         }
 
         internal static void ValidateGenericParamConstraint(JObject constraint)

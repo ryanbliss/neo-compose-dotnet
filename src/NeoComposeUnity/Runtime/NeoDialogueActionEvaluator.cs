@@ -3277,6 +3277,8 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
+            if (NSGetterEvaluator.TryPrimitiveReceiverCall(pointer, receiver, scope, ctx, out object? primitiveResult))
+                return primitiveResult;
             if (NSGetterEvaluator.TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
             // The target depends only on the receiver, so an NSFunction's
@@ -4056,7 +4058,9 @@ namespace NeoCompose.Runtime
                 return;
             if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
                 return;
-            throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
+            if (value is NSGetterEvaluator.ScriptSequence or RuntimeSet or object?[])
+                throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
+            throw new NSGetterRuntimeError($"Stored interface member '{label}': {NeoPrimitiveInterfaces.StorageMessage}");
         }
 
         private static bool TryGetClassValueReferenceId(
@@ -4573,19 +4577,6 @@ namespace NeoCompose.Runtime
             return index;
         }
 
-        private static bool JsEqual(object? a, object? b)
-        {
-            if (a == null || b == null)
-                return a == null && b == null;
-            if (a is double da && b is double db)
-                return da == db;
-            if (a is double da2 && b is int ib)
-                return da2 == ib;
-            if (a is int ia && b is double db2)
-                return ia == db2;
-            return Equals(a, b);
-        }
-
         private static VariablePointer? CollectionVariable(Pointer pointer)
         {
             while (pointer is ForceUnwrapPointer unwrap)
@@ -4622,7 +4613,7 @@ namespace NeoCompose.Runtime
             local = NSGetterEvaluator.RuntimeCollection(local, ctx);
             if (local is object?[] setSource && collectionType is LookupTypeInfo setType)
                 local = NSGetterEvaluator.MakeRuntimeSet(setSource, reference,
-                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: setType.entryTypeInfo.type == MemberKind.Decimal);
+                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: NSGetterEvaluator.HoldsDecimal(setType.entryTypeInfo, ctx));
             if (local is RuntimeSet set)
             {
                 switch (mutation)
@@ -4661,14 +4652,14 @@ namespace NeoCompose.Runtime
                     return NSGetterEvaluator.KeepDerived(added, entryMember, values);
                 }
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, NSGetterEvaluator.HoldsDecimal(EntryTypeInfo(collectionType), ctx), ctx);
                 var mutated = new object?[arrayList.Count];
                 arrayList.CopyTo(mutated);
                 return NSGetterEvaluator.KeepDerived(mutated, entryMember, values);
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, NSGetterEvaluator.HoldsDecimal(EntryTypeInfo(collectionType), ctx), ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -4704,7 +4695,7 @@ namespace NeoCompose.Runtime
                         {
                             if (reference
                                     ? NSGetterEvaluator.ReferenceEqual(entry, args[0], ctx)
-                                    : JsEqual(entry, args[0]))
+                                    : NSGetterEvaluator.CollectionValueEqual(entry, args[0], decimalEntries, ctx))
                                 return;
                         }
                     }
@@ -6157,6 +6148,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
+                if (isSet && mutation == CollectionMutationKind.Add)
+                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], ctx);
                 if (inserts)
                     RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);

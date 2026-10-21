@@ -9,7 +9,7 @@ namespace NeoCompose.Tests
   ""source"": ""interface ICapability { int Count { get; } }\nclass Probe {\n public bool CapabilityGuard<T>(List<T> values) => values[0] is ICapability;\n public IEnumerable<int> Powers(int count) { int value = 1; foreach (var i in 0..count) { yield return value; value *= 2; } }\n public int Sum(IEnumerable<int> values) { int sum = 0; foreach (var value in values) sum += value; return sum; }\n public IEnumerator<int> Cleanup() { try { yield return 1; yield return 2; } finally { throw \""cleanup\""; } }\n public int Unstarted(IEnumerator<int> cursor) { cursor.Dispose(); cursor.Dispose(); return 7; }\n public int Started(IEnumerator<int> cursor) { cursor.MoveNext(); cursor.Dispose(); return 0; }\n public List<int> Collect(IEnumerable<int> values) => values;\n public List<int> Remaining(IEnumerator<int> values) => values;\n public IEnumerator<int> Cursor(IEnumerable<int> values) => values;\n public IEnumerable<int> Range(int start, int end) => start..end;\n public IEnumerable<int> Flow() { int i = 0; while (i < 5) { i++; if (i == 2) continue; switch (i) { case 3: yield return 30; break; default: yield return i; break; } if (i == 4) break; } yield break; }\n public int DirectRange(int start, int end) { int sum = 0; foreach (var value in start..end) sum += value; return sum; }\n \n public IEnumerable<int> CleanupOrder(Dictionary<string, int> log) { try { try { yield return 1; yield return 2; } finally { log[\""value\""] = log[\""value\""] * 10 + 2; } } finally { log[\""value\""] = log[\""value\""] * 10 + 3; } }\n public int First(IEnumerable<int> values) { foreach (var value in values) return value; return -1; }\n public int Break(IEnumerable<int> values) { foreach (var value in values) break; return 0; }\n public IEnumerable<int> Nested(IEnumerable<int> values) { foreach (var value in values) foreach (var offset in 0..2) yield return value * 10 + offset; }\n public IEnumerable<T> One<T>(T value) { yield return value; }\n public int Boundaries(IEnumerable<int> source) { List<int> local = source; local = source; List<List<int>> lists = [source]; lists.Add(source); Dictionary<string, List<int>> dict = {\""a\"": source}; dict[\""b\""] = source; (List<int> Values, int Tag) pair = (source, 1); return local.Count() + lists[0].Count() + lists[1].Count() + dict[\""a\""].Count() + dict[\""b\""].Count() + pair.Values.Count(); }\n public IEnumerable<int> Coalesce(IEnumerable<int>? left, IEnumerable<int> right) { var value = left ?? right; return value; }\n public List<int> CoalesceList(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n public IEnumerator<int> CoalesceCursor(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n \n public IEnumerable<int> InterfaceDefault() => 0..2;\n public List<IEnumerable<int>> ListDefault() => [0..2];\n public Dictionary<string, IEnumerable<int>> DictionaryDefault() => {\""a\"": 0..2};\n \n public IEnumerable<int> Graph(int count) { List<int> values = List.Repeat(1, count); foreach (var value in values) yield return value; }\n public IEnumerable<int> Growing(int count) { List<List<int>> graph = []; foreach (var i in 0..count) { graph.Add([i]); yield return i; } yield return graph.Last().First(); }\n  public bool Inspect(List<int> values) { IEnumerable<int> alias = values; return values is IEnumerable<int> && alias is IEnumerable<int>; }\n public bool InspectGeneric<T>(T values) => values is IEnumerable<int>;\n public int InspectNested(List<List<int>> values) => values.Where((v) => v is IEnumerable<int>).Count();\n public IEnumerable<T> Relay<T>(List<T> values) { foreach (var value in values) yield return value; }\n public bool EmptyAliases() { List<int> first = [1].Take(0); List<int> second = [1].Skip(1); List<int> third = 0..0; IEnumerable<int> a = first; IEnumerable<int> b = second; IEnumerable<int> c = third; return first == a && second == b && third == c; }\n\n public bool InspectInner<T>(List<T> values) => values[0] is IEnumerable<int>;\n public bool InspectTuple<T>(List<T> values) { (T Value, int Tag) pair = (values[0], 0); return pair.Value is IEnumerable<int>; }\n public bool InspectSwitch<T>(List<T> values) => values[0] switch { IEnumerable<int> sequence => true, _ => false };\n\n public bool WidenedMerges(bool chooseLeft, int key) {\n   IEnumerable<int>? absent = null;\n   IEnumerable<int> present = 4..6;\n   List<int> values = [1, 2];\n   var coalesced = absent ?? values;\n   var conditional = chooseLeft ? present : values;\n   var switched = key switch { 1 => present, _ => values };\n   IEnumerable<int> assigned = absent ?? [3];\n   return coalesced is IEnumerable<int> && conditional is IEnumerable<int> && switched is IEnumerable<int> && assigned is IEnumerable<int>;\n }\n public IEnumerable<int> WidenedReturn(IEnumerable<int>? absent, List<int> values) => absent ?? values;\n public bool WidenedAlias() {\n   List<int> values = [1]; IEnumerable<int> alias = values;\n   values.Add(2); values.Add(3);\n   if (!(alias is IEnumerable<int>)) throw \""List alias lost collection type\"";\n   List<int> collected = alias;\n   return collected.Count() == 3;\n }\n public bool WidenedTuple() {\n   List<int> values = [1];\n   var source = (A: 1, B: (Values: values, Tag: 2));\n   (int A, (IEnumerable<int> Values, int Tag) B) destination = source;\n   values.Add(2);\n   List<int> alias = destination.B.Values;\n   if (!(destination.B.Values is IEnumerable<int>)) throw \""Widened tuple lost collection type\""; if (alias.Count() != 2) throw \""Widened tuple lost list mutation\""; return true;\n }\n public bool LocalSequenceSlots() {\n   List<int> values = [1];\n   List<IEnumerable<int>> lists = [values]; lists[0] = values;\n   Dictionary<string, IEnumerable<int>> map = {}; map[\""a\""] = values;\n   return lists[0] is IEnumerable<int> && map[\""a\""] is IEnumerable<int>;\n }\n\n public bool TypedBindings() {\n   List<List<int>> nested = [[1], [2]];\n   int count = 0;\n   foreach (IEnumerable<int> item in nested) { if (!(item is IEnumerable<int>)) return false; count++; }\n   Dictionary<string, List<int>> map = {\""a\"": [3]};\n   foreach (IEnumerable<int> item in map.Values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   foreach ((string key, IEnumerable<int> item) in map) { if (!(item is IEnumerable<int>)) return false; count++; }\n   List<(int A, List<int> B)> tuples = [(1, [4])];\n   foreach ((int A, IEnumerable<int> B) pair in tuples) { if (!(pair.B is IEnumerable<int>)) return false; count++; }\n   return count == 5 && nested.Where((IEnumerable<int> item) => item is IEnumerable<int>).Count() == 2\n     && nested.Select((IEnumerable<int> item) => item is IEnumerable<int>).All((item) => item)\n     && tuples.Where(((int A, IEnumerable<int> B) pair) => pair.B is IEnumerable<int>).Count() == 1;\n }\n public IEnumerable<List<int>> ListGenerator() { yield return [1]; yield return [2]; }\n public IEnumerable<int> TypedYield(IEnumerable<List<int>> values) { foreach (IEnumerable<int> item in values) yield return item is IEnumerable<int> ? 1 : 0; }\n public bool TypedSequenceLoop(IEnumerable<List<int>> values) {\n   int count = 0;\n   foreach (IEnumerable<int> item in values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   return count == 2;\n }\n public int ConstraintSum<T extends IEnumerable<int>>(T values) { int sum = 0; foreach (var item in values) sum += item; return sum; }\n}\n"",
   ""bodies"": {
     ""CapabilityGuard"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.CapabilityGuard"",
         ""uri"": ""Probe.neo"",
@@ -136,7 +136,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Powers"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -446,7 +446,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Sum"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Sum"",
         ""uri"": ""Probe.neo"",
@@ -646,7 +646,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Cleanup"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerator"",
         ""elementType"": {
@@ -788,7 +788,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Unstarted"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Unstarted"",
         ""uri"": ""Probe.neo"",
@@ -947,7 +947,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Started"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Started"",
         ""uri"": ""Probe.neo"",
@@ -1107,7 +1107,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Collect"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Collect"",
         ""uri"": ""Probe.neo"",
@@ -1223,7 +1223,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Remaining"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Remaining"",
         ""uri"": ""Probe.neo"",
@@ -1339,7 +1339,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Cursor"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Cursor"",
         ""uri"": ""Probe.neo"",
@@ -1459,7 +1459,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Range"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Range"",
         ""uri"": ""Probe.neo"",
@@ -1580,7 +1580,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Flow"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -1919,7 +1919,7 @@ namespace NeoCompose.Tests
       }
     },
     ""DirectRange"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.DirectRange"",
         ""uri"": ""Probe.neo"",
@@ -2217,7 +2217,7 @@ namespace NeoCompose.Tests
       }
     },
     ""CleanupOrder"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -2574,7 +2574,7 @@ namespace NeoCompose.Tests
       }
     },
     ""First"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.First"",
         ""uri"": ""Probe.neo"",
@@ -2750,7 +2750,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Break"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Break"",
         ""uri"": ""Probe.neo"",
@@ -2900,7 +2900,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Nested"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -3233,7 +3233,7 @@ namespace NeoCompose.Tests
       }
     },
     ""One"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -3346,7 +3346,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Boundaries"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Boundaries"",
         ""uri"": ""Probe.neo"",
@@ -4040,7 +4040,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Coalesce"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Coalesce"",
         ""uri"": ""Probe.neo"",
@@ -4214,7 +4214,7 @@ namespace NeoCompose.Tests
       }
     },
     ""CoalesceList"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.CoalesceList"",
         ""uri"": ""Probe.neo"",
@@ -4368,7 +4368,7 @@ namespace NeoCompose.Tests
       }
     },
     ""CoalesceCursor"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.CoalesceCursor"",
         ""uri"": ""Probe.neo"",
@@ -4526,7 +4526,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InterfaceDefault"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InterfaceDefault"",
         ""uri"": ""Probe.neo"",
@@ -4625,7 +4625,7 @@ namespace NeoCompose.Tests
       }
     },
     ""ListDefault"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.ListDefault"",
         ""uri"": ""Probe.neo"",
@@ -4748,7 +4748,7 @@ namespace NeoCompose.Tests
       }
     },
     ""DictionaryDefault"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.DictionaryDefault"",
         ""uri"": ""Probe.neo"",
@@ -4883,7 +4883,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Graph"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -5067,7 +5067,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Growing"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -5430,7 +5430,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Inspect"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.Inspect"",
         ""uri"": ""Probe.neo"",
@@ -5650,7 +5650,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InspectGeneric"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InspectGeneric"",
         ""uri"": ""Probe.neo"",
@@ -5770,7 +5770,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InspectNested"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InspectNested"",
         ""uri"": ""Probe.neo"",
@@ -5867,7 +5867,7 @@ namespace NeoCompose.Tests
                         ""variableId"": ""__arg_0__""
                       },
                       ""function"": {
-                        ""compilerRevision"": 17,
+                        ""compilerRevision"": 18,
                         ""source"": {
                           ""uri"": ""Probe.neo"",
                           ""coordinateSpace"": ""file"",
@@ -5980,7 +5980,7 @@ namespace NeoCompose.Tests
       }
     },
     ""Relay"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -6136,7 +6136,7 @@ namespace NeoCompose.Tests
       }
     },
     ""EmptyAliases"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.EmptyAliases"",
         ""uri"": ""Probe.neo"",
@@ -6591,7 +6591,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InspectInner"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InspectInner"",
         ""uri"": ""Probe.neo"",
@@ -6734,7 +6734,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InspectTuple"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InspectTuple"",
         ""uri"": ""Probe.neo"",
@@ -6973,7 +6973,7 @@ namespace NeoCompose.Tests
       }
     },
     ""InspectSwitch"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.InspectSwitch"",
         ""uri"": ""Probe.neo"",
@@ -7156,7 +7156,7 @@ namespace NeoCompose.Tests
       }
     },
     ""WidenedMerges"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.WidenedMerges"",
         ""uri"": ""Probe.neo"",
@@ -7810,7 +7810,7 @@ namespace NeoCompose.Tests
       }
     },
     ""WidenedReturn"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.WidenedReturn"",
         ""uri"": ""Probe.neo"",
@@ -7965,7 +7965,7 @@ namespace NeoCompose.Tests
       }
     },
     ""WidenedAlias"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.WidenedAlias"",
         ""uri"": ""Probe.neo"",
@@ -8315,7 +8315,7 @@ namespace NeoCompose.Tests
       }
     },
     ""WidenedTuple"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.WidenedTuple"",
         ""uri"": ""Probe.neo"",
@@ -8947,7 +8947,7 @@ namespace NeoCompose.Tests
       }
     },
     ""LocalSequenceSlots"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.LocalSequenceSlots"",
         ""uri"": ""Probe.neo"",
@@ -9383,7 +9383,7 @@ namespace NeoCompose.Tests
       }
     },
     ""TypedBindings"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.TypedBindings"",
         ""uri"": ""Probe.neo"",
@@ -10034,7 +10034,7 @@ namespace NeoCompose.Tests
                   ""variableId"": ""#foreach117#collection""
                 },
                 ""function"": {
-                  ""compilerRevision"": 17,
+                  ""compilerRevision"": 18,
                   ""source"": {
                     ""name"": ""Probe.TypedBindings"",
                     ""uri"": ""Probe.neo"",
@@ -10870,7 +10870,7 @@ namespace NeoCompose.Tests
                                                     ""variableId"": ""nested""
                                                   },
                                                   ""function"": {
-                                                    ""compilerRevision"": 17,
+                                                    ""compilerRevision"": 18,
                                                     ""source"": {
                                                       ""uri"": ""Probe.neo"",
                                                       ""coordinateSpace"": ""file"",
@@ -11029,7 +11029,7 @@ namespace NeoCompose.Tests
                                             ""variableId"": ""nested""
                                           },
                                           ""function"": {
-                                            ""compilerRevision"": 17,
+                                            ""compilerRevision"": 18,
                                             ""source"": {
                                               ""uri"": ""Probe.neo"",
                                               ""coordinateSpace"": ""file"",
@@ -11136,7 +11136,7 @@ namespace NeoCompose.Tests
                                     },
                                     ""op"": ""All"",
                                     ""function"": {
-                                      ""compilerRevision"": 17,
+                                      ""compilerRevision"": 18,
                                       ""source"": {
                                         ""uri"": ""Probe.neo"",
                                         ""coordinateSpace"": ""file"",
@@ -11233,7 +11233,7 @@ namespace NeoCompose.Tests
                                     ""variableId"": ""tuples""
                                   },
                                   ""function"": {
-                                    ""compilerRevision"": 17,
+                                    ""compilerRevision"": 18,
                                     ""source"": {
                                       ""uri"": ""Probe.neo"",
                                       ""coordinateSpace"": ""file"",
@@ -11460,7 +11460,7 @@ namespace NeoCompose.Tests
       }
     },
     ""ListGenerator"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -11606,7 +11606,7 @@ namespace NeoCompose.Tests
       }
     },
     ""TypedYield"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""generator"": {
         ""kind"": ""enumerable"",
         ""elementType"": {
@@ -11847,7 +11847,7 @@ namespace NeoCompose.Tests
       }
     },
     ""TypedSequenceLoop"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.TypedSequenceLoop"",
         ""uri"": ""Probe.neo"",
@@ -12189,7 +12189,7 @@ namespace NeoCompose.Tests
       }
     },
     ""ConstraintSum"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""source"": {
         ""name"": ""Probe.ConstraintSum"",
         ""uri"": ""Probe.neo"",

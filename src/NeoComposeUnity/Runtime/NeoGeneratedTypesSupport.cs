@@ -2174,8 +2174,79 @@ namespace NeoCompose.Runtime
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
+            else if (HeldInterfaceValue(client, value, typeof(T), readOnlyFactories, savedFactories) is T held)
+            {
+                return held;
+            }
             throw new NeoScript.NSGetterRuntimeError(
                 $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
+        }
+
+        /// <summary>P127 §12. ToInt32 of an authored <c>GetHashCode()</c> result, as a CLR override returns it.</summary>
+        public static int HashCode(object? result)
+        {
+            if (!NeoScript.NSGetterEvaluator.TryAsDouble(result, out double number))
+                throw new NeoScript.NSGetterRuntimeError("GetHashCode must return an int.");
+            return NeoScript.NSGetterEvaluator.ToInt32(number);
+        }
+
+        /// <summary>
+        /// P127 §12. CLR <c>Equals(object)</c> for a generated equatable class:
+        /// NeoScript row equality (§7), so <c>HashSet</c> and <c>Dictionary</c>
+        /// follow the NeoScript contract, including identity for a
+        /// non-equatable argument.
+        /// </summary>
+        public static bool ValueEquals(NeoGeneratedClassValue self, object? obj)
+        {
+            if (ReferenceEquals(self, obj))
+                return true;
+            if (obj is not NeoGeneratedClassValue other)
+                return false;
+            if (!ReferenceEquals(self.Client, other.Client))
+                return false;
+            if (EqualityOperand(self) is not { } left)
+                return false;
+            if (EqualityOperand(other) is not { } right)
+                return false;
+            NeoClient client = self.Client;
+            var ctx = client.RentDirectFunctionContext(self.StorageOwnership);
+            try
+            {
+                return NeoScript.NSGetterEvaluator.GeneratedValueEquality(left, right, ctx);
+            }
+            finally
+            {
+                client.ReturnDirectFunctionContext(ctx, null);
+            }
+        }
+
+        // A pending temporary compares as its detached object, without attaching rows.
+        private static object? EqualityOperand(NeoGeneratedClassValue value) =>
+            value.PendingValue is NeoScript.NeoScriptObject { attachedId: null } pending ? pending : value.valueId;
+
+        /// <summary>
+        /// P127 §12. A non-row value of a mapped <c>IEquatable&lt;X&gt;</c> or
+        /// <c>IComparable&lt;X&gt;</c>, converted to the CLR <c>X</c> it holds
+        /// (a primitive, Unity vector, <c>Color</c> or <c>ValueTuple</c>).
+        /// </summary>
+        private static object? HeldInterfaceValue(
+            NeoClient client,
+            object value,
+            Type type,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+        {
+            if (!type.IsInterface || !type.IsGenericType)
+                return null;
+            Type[] arguments = type.GetGenericArguments();
+            if (arguments.Length != 1)
+                return null;
+            Type held = arguments[0];
+            if (!held.IsValueType && held != typeof(string))
+                return null;
+            return type.IsAssignableFrom(held)
+                ? ConvertTypeArgument(client, value, held, readOnlyFactories, savedFactories, null)
+                : null;
         }
 
         /// <summary>
@@ -2361,7 +2432,7 @@ namespace NeoCompose.Runtime
             if (type == typeof(float))
                 return Convert.ToSingle(value, System.Globalization.CultureInfo.InvariantCulture);
             if (type == typeof(decimal))
-                return value is string text ? NeoDecimalValues.Parse(text) : null;
+                return value is string or double ? NeoDecimalValues.Parse(NeoScript.NSGetterEvaluator.CoerceDecimalOperand(value, "conversion")) : null;
             if (type == typeof(Vector2))
                 return ReadVector2Value(value);
             if (type == typeof(Vector2Int))
@@ -2378,7 +2449,7 @@ namespace NeoCompose.Runtime
                 return ReadAudioClip(client, value);
             string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
-                return null;
+                return HeldInterfaceValue(client, value, type, readOnlyFactories, savedFactories);
             return readOnlyFactories is null
                 ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
                 : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);

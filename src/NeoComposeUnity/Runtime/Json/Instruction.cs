@@ -206,6 +206,9 @@ namespace NeoCompose.Runtime.Json
         public Pointer[] args = null!;
         public FunctionWithReturnType? comparison;
         public string? keyType;
+        /// <summary>P127 §8. A <c>comparable</c> key's type when a primitive can stand behind it.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? keyEvidence;
         /// <summary>
         /// Set on <c>Add</c>/<c>Remove</c> of Class, interface, or collection
         /// entries: entries compare by identity (see <see cref="Condition.reference"/>).

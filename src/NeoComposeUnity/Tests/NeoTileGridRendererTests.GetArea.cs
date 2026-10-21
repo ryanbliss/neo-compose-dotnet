@@ -179,7 +179,9 @@ namespace NeoCompose.Tests
                 // NeoTile.TryConvert compiles to tileConvert.
                 if (pair.Key == "system_54ecc5a7-874d-54ed-92f4-38100a4b7465")
                     continue;
-                if (!NeoCellPatternRuntime.Handles(pair.Key) && !NeoScriptGridQueries.Handles(pair.Key))
+                if (!NeoCellPatternRuntime.Handles(pair.Key)
+                    && !NeoScriptGridQueries.Handles(pair.Key)
+                    && !NeoRandomContract.Handles(pair.Key))
                     unhandled.Add($"{pair.Value!["name"]} ({pair.Key})");
             }
             Assert.Greater(natives, 0, "The sample export has no system natives; the kind filter is wrong.");
