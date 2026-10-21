@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Bank : NeoGeneratedClassValue, IReadOnlyBank
     {
         internal Bank(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e795bc5a-afcc-4f6f-a79c-d17dbbbbed04", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c2d5ef59-e71c-4bc9-8f2b-8f14d6027ebe", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e795bc5a-afcc-4f6f-a79c-d17dbbbbed04",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "ca2e9208-dd47-4e6f-bcb1-135bb83461f0", Hits),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Wrapped", "701ec238-2b5e-4ade-9d16-887eff7e7c09", Wrapped),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Weight", "c28adf96-98db-49c5-8be1-f097af8fe0be", Weight),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "b218ba18-f989-4bf2-a722-61aa64bac8cf", Money)
+                "c2d5ef59-e71c-4bc9-8f2b-8f14d6027ebe",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "1f639c23-d658-43eb-a076-6558ed5517b2", Hits),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Wrapped", "0628da11-f108-42bf-a3ea-472c5d5c43a6", Wrapped),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Weight", "58a779d6-6835-40f8-a28f-5ff33df08a3c", Weight),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "882a571d-2ead-433f-9b43-91ee833c69d5", Money)
             );
         }
 

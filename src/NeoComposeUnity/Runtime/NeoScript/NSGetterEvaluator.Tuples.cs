@@ -97,6 +97,8 @@ namespace NeoCompose.Runtime.NeoScript
                 bool equal = element switch
                 {
                     TupleTypeInfo nested => TupleEqual(x, y, nested, ctx, setKey),
+                    // A tuple behind an interface or `T` compares as its own tuple.
+                    _ when x is RuntimeTuple held && y is RuntimeTuple => TupleEqual(x, y, held.TypeInfo, ctx, setKey),
                     _ when setKey && TryAsDouble(x, out double xNumber) && TryAsDouble(y, out double yNumber) => xNumber.Equals(yNumber),
                     _ when setKey && SameRow(x, y, ctx) => true,
                     _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
@@ -125,6 +127,8 @@ namespace NeoCompose.Runtime.NeoScript
                 int elementHash;
                 if (value is null)
                     elementHash = 0;
+                else if (value is RuntimeTuple nested)
+                    elementHash = TupleHash(nested, ctx, values);
                 else if (type.type == MemberKind.Decimal || IsDecimalEvidence(value, type, ctx))
                     elementHash = StringComparer.Ordinal.GetHashCode(NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, "tuple key")));
                 else if (NeoPrimitiveInterfaces.AdmitsPrimitives(type) && ClassRowOf(value, ctx) is null)
