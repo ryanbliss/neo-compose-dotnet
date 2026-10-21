@@ -14,6 +14,16 @@
 - Fixed invalid substring ranges, numeric parse inputs, and number formats throwing `NeoInvalidOperationError` instead of `NeoArgumentError`, so typed catches match the TypeScript runtime. (#367)
 - Fixed clearing or replacing owned class fields invalidating retained local instances. Retained instances remain readable and writable, saved rows are released, and explicit `Reference<T>` targets still expire. Temporary retained copies are reclaimed after evaluation unless returned. (#370)
 - Class retention uses a fresh Session graph copy, including when earlier reads left cached aliases. In a 200-child stress case, clearing took about 10.4–10.6 ms versus 3.9–4.0 ms before the fix. Cost scales linearly with the retained graph.
+- Fixed generic collection field assignments losing their closed type bindings. (#375)
+- Fixed null membership and removal in stored nullable class lists. (#381)
+- Fixed mutation of stored tuple collections by resolving the entry schema, including nested tuple elements. (#382)
+- Fixed writes to generic collection entries losing destination type bindings. (#389)
+- Fixed unordered-list insertion of composite entries by materializing their stored payloads. (#392)
+- Fixed interface materialization rejecting newly constructed classes before they were stored. (#384)
+- Fixed tuple string keys in sets, including localized text and translation collisions. (#388)
+- Fixed generic tuple set keys losing their closed element bindings. (#397)
+- Fixed captured tuple collection reads, equality, write-back, and C# returns observing stale contents. Appending through a captured tuple list stays linear. (#394)
+- Fixed replacing tuples or collections deleting class instances still held by NeoScript variables. Retained instances stay usable, obsolete owned rows are released, and temporary copies are reclaimed unless they escape. (#390)
 
 ## [0.79.0] - 2026-10-19
 
