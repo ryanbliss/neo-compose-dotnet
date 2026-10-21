@@ -6741,12 +6741,11 @@ namespace NeoCompose.Runtime.NeoScript
                     target = selection[0];
                 return Box(target is string selected && ((NeoWriteBatch.PendingList)pending).Contains(selected));
             }
-            if (pending is not null && cnf.info.reference)
+            if (pending is not null && cnf.info.reference && target is not null)
             {
                 // Pending entries are value ids, so identity needs none read.
                 ctx.client.NotePendingRead(pending.Row.id);
-                return Box(target is not null
-                    && ReferenceKeyOf(target, ctx) is string referenceId
+                return Box(ReferenceKeyOf(target, ctx) is string referenceId
                     && ((NeoWriteBatch.PendingList)pending).Contains(referenceId));
             }
             if (pending?.CollectionMember is LookupMember lookup && lookup.collectionMemberId is { } collectionId
@@ -6783,7 +6782,8 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? setEntryMember = pending is null ? StoredSetEntryMember(c, ctx) : null;
             if (setEntryMember is not null)
                 return Box(SetHoldsKey(c, target, setEntryMember, ctx));
-            if (cnf.info.reference)
+            // A null class entry still has a row id, so null compares values.
+            if (cnf.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
             string? targetReferenceId = ValueIdOf(target, ctx);
             if (c is object?[] entries)
@@ -6955,7 +6955,7 @@ namespace NeoCompose.Runtime.NeoScript
                     "IndexOf receiver must be a List value.");
             }
             var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), iof.info);
-            if (iof.info.reference)
+            if (iof.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx));
             string? targetReferenceId = ValueIdOf(target, ctx);
             var cursor = new CollectionCursor(c, ctx);

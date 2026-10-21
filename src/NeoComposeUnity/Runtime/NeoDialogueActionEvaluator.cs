@@ -4722,7 +4722,7 @@ namespace NeoCompose.Runtime
                 case CollectionMutationKind.Remove:
                     for (int i = 0; i < list.Count; i++)
                     {
-                        if (reference)
+                        if (reference && args[0] is not null)
                         {
                             if (!NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx))
                                 continue;
@@ -6116,7 +6116,7 @@ namespace NeoCompose.Runtime
                         {
                             if (slotTarget is not null
                                 ? StoresTarget(client, entryId, slotTarget)
-                                : entryId == removeId || (removeId is null && !reference
+                                : entryId == removeId || (removeId is null && (!reference || args[0] is null)
                                     && client.TryGetValue(ownership, entryId, out MemberValue? entry)
                                     && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0], list.EntryMember is DecimalMember, ctx)))
                             {
@@ -6271,7 +6271,7 @@ namespace NeoCompose.Runtime
                                 bool match = slotTarget is not null
                                     ? StoresTarget(client, list[i], slotTarget)
                                     : list[i] == referenceId
-                                        || !reference
+                                        || (!reference || args[0] is null)
                                             && client.TryGetValue(list[i], out MemberValue? child)
                                             && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember, ctx);
                                 if (!match)
