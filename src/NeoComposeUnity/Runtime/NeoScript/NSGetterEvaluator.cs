@@ -6835,18 +6835,23 @@ namespace NeoCompose.Runtime.NeoScript
         /// is <paramref name="value"/>'s: its value id for Class entries, so
         /// those compare ids without reading a row.
         /// </summary>
-        internal static string StoredSetProbeKey(JsonMember member, object? value, Context ctx) =>
+        internal static string StoredSetProbeKey(JsonMember member, object? value, Context ctx, MemberValue? collectionRow = null) =>
             member is TupleMember tupleMember && value is RuntimeTuple tuple
-                ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx)
+                ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx, collectionRow)
                 : NeoSetEntryKey.OfPayload(member, value, ctx.client);
 
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (value is null)
                 return false;
+            // An unstored tuple probe resolves its generic slots from the
+            // destination set, not the invoking function's environment.
+            MemberValue? collectionRow = null;
+            if (entryMember is TupleMember && FindRowReference(set, ctx) is { } setRef)
+                ctx.client.TryGetValue(setRef.ownership, setRef.valueId, out collectionRow);
             string? key = entryMember is ClassMember
                 ? ReferenceKeyOf(value, ctx) as string
-                : StoredSetProbeKey(entryMember, value, ctx);
+                : StoredSetProbeKey(entryMember, value, ctx, collectionRow);
             return key is not null && StoredSetKeysOf(set, entryMember, ctx).Contains(key);
         }
 
@@ -6940,7 +6945,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (entryMember is ClassMember)
                 return ReferenceKeyOf(value, ctx) is string referenceId && set.Contains(referenceId);
             NeoWritePlan plan = ctx.client.PendingScriptWrites!.Plan;
-            return set.FindSetEntry(StoredSetProbeKey(entryMember, value, ctx), entryMember, plan) is not null;
+            return set.FindSetEntry(StoredSetProbeKey(entryMember, value, ctx, set.Row), entryMember, plan) is not null;
         }
 
         private static object? EvalIndexOf(

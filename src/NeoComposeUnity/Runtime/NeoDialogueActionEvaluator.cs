@@ -6323,7 +6323,7 @@ namespace NeoCompose.Runtime
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 if (member is not ClassMember)
-                    return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx), member, batch.Plan);
+                    return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx, list.Row), member, batch.Plan);
                 referenceId ??= value is null ? null : FindValueId(value, ctx);
                 return referenceId is not null && list.Contains(referenceId) ? referenceId : null;
             }

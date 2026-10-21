@@ -545,7 +545,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Creation-side convenience: computes and assigns the stamp on a
-        /// freshly-minted List/Dictionary <paramref name="row"/>. No-op for
+        /// freshly-minted List/Dictionary/Tuple <paramref name="row"/>. No-op for
         /// non-collection members, for entry subtrees that reference no
         /// params, and for rows that already carry a stamp (the stamp is
         /// immutable — a clone-on-write shadow keeps the original).
@@ -557,7 +557,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             if (collectionMember is not ListMember
-                && collectionMember is not DictionaryMember)
+                && collectionMember is not DictionaryMember
+                && collectionMember is not TupleMember)
             {
                 return;
             }
