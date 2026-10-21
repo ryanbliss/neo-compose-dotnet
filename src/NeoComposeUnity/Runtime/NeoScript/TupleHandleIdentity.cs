@@ -52,8 +52,21 @@ namespace NeoCompose.Runtime.NeoScript
         private static string TupleHandleKey(object value, Context context)
         {
             object identity = TupleIdentityObject(value);
-            string? rowId = ReferenceKeyOf(value, context) as string;
+            string? rowId = TupleReferenceKey(value, context) as string;
             return tupleIdentities.GetValue(context.client, _ => new TupleIdentityRegistry()).Key(value is string ? null : identity, rowId);
+        }
+
+        // A captured row-backed array can outlive its current membership snapshot.
+        private static object? TupleReferenceKey(object value, Context context) =>
+            value is object?[] array && context.CollectionRowReference(array) is { } row
+                ? row.valueId : ReferenceKeyOf(value, context);
+
+        private static bool TupleHandleEqual(object left, object right, Context context)
+        {
+            if (left is not object?[] || right is not object?[])
+                return ReferenceEqual(left, right, context);
+            return ReferenceEquals(left, right)
+                || TupleReferenceKey(left, context) is { } key && key.Equals(TupleReferenceKey(right, context));
         }
 
         internal static void AttachTupleHandle(NeoClient client, object value, string rowId)

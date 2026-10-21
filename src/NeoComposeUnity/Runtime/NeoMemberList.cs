@@ -37,8 +37,9 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoRawListIndex> derivedIndexes = new();
         // P108 value-kind Set entries by key, and back. Class entries key by
         // value id, so they use the identity index instead.
-        private Dictionary<string, string>? valueIdsBySetKey;
+        private NeoSetEntryIndex? valueIdsBySetKey;
         private Dictionary<string, string>? setKeysByValueId;
+        private long setKeyLocalizationRevision;
 
         /// <summary>
         /// Operation counters used by tests and development diagnostics to
@@ -278,9 +279,10 @@ namespace NeoCompose.Runtime
 
         private void EnsureSetKeyIndex()
         {
-            if (valueIdsBySetKey is not null)
+            if (valueIdsBySetKey is not null
+                && (entryMember is not TupleMember || setKeyLocalizationRevision == client.Localization.Revision))
                 return;
-            var byKey = new Dictionary<string, string>(childMembers.Count, StringComparer.Ordinal);
+            var byKey = new NeoSetEntryIndex(childMembers.Count);
             var byValueId = new Dictionary<string, string>(childMembers.Count, StringComparer.Ordinal);
             foreach (NeoMember child in childMembers)
             {
@@ -289,18 +291,18 @@ namespace NeoCompose.Runtime
                 string key = NeoSetEntryKey.Of(entryMember, child.value, client);
                 string id = EntryValueId(child);
                 byValueId[id] = key;
-                byKey.TryAdd(key, id);
+                byKey.Add(key, id);
             }
             valueIdsBySetKey = byKey;
             setKeysByValueId = byValueId;
+            setKeyLocalizationRevision = client.Localization.Revision;
         }
 
         private void ForgetSetKey(string valueId)
         {
             if (!setKeysByValueId!.Remove(valueId, out string? key))
                 return;
-            if (valueIdsBySetKey!.TryGetValue(key, out string? holder) && holder == valueId)
-                valueIdsBySetKey.Remove(key);
+            valueIdsBySetKey!.Remove(key, valueId);
         }
 
         private void RecordSetKey(string valueId)
@@ -310,7 +312,7 @@ namespace NeoCompose.Runtime
                 return;
             string key = NeoSetEntryKey.Of(entryMember, child.value, client);
             setKeysByValueId![valueId] = key;
-            valueIdsBySetKey!.TryAdd(key, valueId);
+            valueIdsBySetKey!.Add(key, valueId);
         }
 
         internal NeoRawListIndex GetDerivedIndex(string schemaKey, bool unique)

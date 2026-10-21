@@ -58,7 +58,7 @@ namespace NeoCompose.Runtime.NeoScript
             return new RuntimeTuple(elements, type);
         }
 
-        private static object? EvalTupleElement(FunctionTupleElementInfo info, NeoScriptScope scope, Context ctx)
+        private static object? EvalTupleElement(FunctionTupleElementInfo info, NeoScriptScope scope, Context ctx, bool refreshCollection = true)
         {
             object? receiver = EvalPointer(info.tuplePointer, scope, ctx);
             if (receiver is null && info.optional)
@@ -67,7 +67,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Tuple element read requires a tuple.");
             if (info.index < 0 || info.index >= value.Count)
                 throw new NSGetterRuntimeError("Tuple element index is out of range.");
-            return value[info.index];
+            return refreshCollection ? ReadNestedCollectionAlias(value[info.index], ctx) : value[info.index];
         }
 
         /// <summary>
@@ -101,9 +101,9 @@ namespace NeoCompose.Runtime.NeoScript
                     _ when setKey && SameRow(x, y, ctx) => true,
                     _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
                     { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
-                    ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => ReferenceEqual(x, y, ctx),
+                    ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => TupleHandleEqual(x, y, ctx),
                     { type: MemberKind.Reference } => x is NSSlotReference rx && y is NSSlotReference ry && rx.TargetId == ry.TargetId,
-                    _ when TupleHandle(element.type) => ReferenceEqual(x, y, ctx),
+                    _ when TupleHandle(element.type) => TupleHandleEqual(x, y, ctx),
                     _ => JsEqual(x, y, ctx),
                 };
                 if (!equal)
@@ -131,11 +131,11 @@ namespace NeoCompose.Runtime.NeoScript
                     elementHash = values.Hash(value);
                 else if (TupleHandle(type.type) || type is ReferenceTypeInfo reference && NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle)
                 {
-                    object? identity = ReferenceKeyOf(value, ctx);
                     if (EquatableHandleHash(value, ctx) is { } equatableHash)
                         elementHash = equatableHash;
                     else
                     {
+                        object? identity = TupleReferenceKey(value, ctx);
                         elementHash = identity is NeoVariantReference variant ? variant.GetHashCode()
                             : StringComparer.Ordinal.GetHashCode(TupleHandleKey(value, ctx));
                     }

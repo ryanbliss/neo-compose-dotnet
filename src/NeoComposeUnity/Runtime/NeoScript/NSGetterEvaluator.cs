@@ -4630,6 +4630,18 @@ namespace NeoCompose.Runtime.NeoScript
                 value = null;
                 return bound;
             }
+            if (pointer is FunctionPointer { function: TupleElementFunction tupleElement })
+            {
+                object? raw = EvalTupleElement(tupleElement.info, scope, ctx, refreshCollection: false);
+                RowReference? alias = raw is object?[] entries ? ctx.CollectionRowReference(entries) : FindRowReference(raw, ctx);
+                if (alias is not null && Answers(batch, alias.ownership, alias.valueId, read) is { } pending)
+                {
+                    value = null;
+                    return pending;
+                }
+                value = evaluate ? RuntimeCollection(ReadNestedCollectionAlias(raw, ctx), ctx) : raw;
+                return null;
+            }
             if (pointer is VariablePointer variable)
             {
                 RowReference? alias = null;
@@ -6778,12 +6790,11 @@ namespace NeoCompose.Runtime.NeoScript
                     target = selection[0];
                 return Box(target is string selected && ((NeoWriteBatch.PendingList)pending).Contains(selected));
             }
-            if (pending is not null && cnf.info.reference)
+            if (pending is not null && cnf.info.reference && target is not null)
             {
                 // Pending entries are value ids, so identity needs none read.
                 ctx.client.NotePendingRead(pending.Row.id);
-                return Box(target is not null
-                    && ReferenceKeyOf(target, ctx) is string referenceId
+                return Box(ReferenceKeyOf(target, ctx) is string referenceId
                     && ((NeoWriteBatch.PendingList)pending).Contains(referenceId));
             }
             if (pending?.CollectionMember is LookupMember lookup && lookup.collectionMemberId is { } collectionId
@@ -6820,7 +6831,8 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? setEntryMember = pending is null ? StoredSetEntryMember(c, ctx) : null;
             if (setEntryMember is not null)
                 return Box(SetHoldsKey(c, target, setEntryMember, ctx));
-            if (cnf.info.reference)
+            // A null class entry still has a row id, so null compares values.
+            if (cnf.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
             string? targetReferenceId = IdentitySearchId(target, ctx);
             if (c is object?[] entries)
@@ -6872,18 +6884,23 @@ namespace NeoCompose.Runtime.NeoScript
         /// is <paramref name="value"/>'s: its value id for Class entries, so
         /// those compare ids without reading a row.
         /// </summary>
-        internal static string StoredSetProbeKey(JsonMember member, object? value, Context ctx) =>
+        internal static string StoredSetProbeKey(JsonMember member, object? value, Context ctx, MemberValue? collectionRow = null) =>
             member is TupleMember tupleMember && value is RuntimeTuple tuple
-                ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx)
+                ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx, collectionRow)
                 : NeoSetEntryKey.OfPayload(member, value, ctx.client);
 
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (value is null)
                 return false;
+            // An unstored tuple probe resolves its generic slots from the
+            // destination set, not the invoking function's environment.
+            MemberValue? collectionRow = null;
+            if (entryMember is TupleMember && FindRowReference(set, ctx) is { } setRef)
+                ctx.client.TryGetValue(setRef.ownership, setRef.valueId, out collectionRow);
             string? key = entryMember is ClassMember
                 ? ReferenceKeyOf(value, ctx) as string
-                : StoredSetProbeKey(entryMember, value, ctx);
+                : StoredSetProbeKey(entryMember, value, ctx, collectionRow);
             return key is not null && StoredSetKeysOf(set, entryMember, ctx).Contains(key);
         }
 
@@ -6977,7 +6994,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (entryMember is ClassMember)
                 return ReferenceKeyOf(value, ctx) is string referenceId && set.Contains(referenceId);
             NeoWritePlan plan = ctx.client.PendingScriptWrites!.Plan;
-            return set.FindSetEntry(StoredSetProbeKey(entryMember, value, ctx), entryMember, plan) is not null;
+            return set.FindSetEntry(StoredSetProbeKey(entryMember, value, ctx, set.Row), entryMember, plan) is not null;
         }
 
         private static object? EvalIndexOf(
@@ -6993,7 +7010,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             NeoPrimitive? search = CollectionSearchKind(iof.info, ctx);
             var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), search);
-            if (iof.info.reference)
+            if (iof.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx));
             string? targetReferenceId = IdentitySearchId(target, ctx);
             var cursor = new CollectionCursor(c, ctx);
@@ -10126,6 +10143,24 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        internal static void RetainRemovedClassAliases(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership, IReadOnlyList<string> removed)
+        {
+            var retained = new HashSet<string>();
+            // Removal visits descendants first. Retain parents first so one
+            // copy preserves their aliases and all aliased children together.
+            for (int i = removed.Count - 1; i >= 0; i--)
+            {
+                string id = removed[i];
+                if (retained.Contains(id) || !HasClassAliases(ctx, ownership, id)
+                    || plan.Resolve(ownership, id) is not ObjectMemberValue { value: not null } row
+                    || NeoGeneratedTypesSupport.ResolveClassValueClassId(ctx.client, id, row) is not { } classId)
+                    continue;
+                RetainClassAliases(plan, ctx, ownership, id,
+                    NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row), retained);
+            }
+        }
+
         // Replacement must retire the old rows, including explicit Reference<T>
         // targets. Move evaluator aliases to a Session copy, reclaimed unless it escapes.
         internal static void RetainClassAliases(
@@ -10133,7 +10168,8 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             NeoValueOwnership ownership,
             string valueId,
-            JsonMember? member)
+            JsonMember? member,
+            HashSet<string>? retained = null)
         {
             if (member is not ClassMember classMember
                 || plan.Resolve(ownership, valueId) is not ObjectMemberValue { value: not null }
@@ -10142,7 +10178,11 @@ namespace NeoCompose.Runtime.NeoScript
             var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
             string rootId = ctx.client.StageClassRetention(plan, ownership, valueId, classMember, remapped);
             foreach (var pair in remapped)
+            {
+                if (pair.Key.scope == ownership)
+                    retained?.Add(pair.Key.id);
                 ctx.client.Random.PreserveInstanceOnMove(plan, pair.Key.scope, pair.Key.id, NeoValueOwnership.Session, pair.Value);
+            }
             void Retarget()
             {
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
@@ -10343,20 +10383,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string? ResolveStringValue(
             StringMemberValue value,
             StringMember member,
-            Context ctx)
-        {
-            if (value.value == null)
-                return null;
-            if (member.Format == NeoStringFormatKind.Plain)
-                return value.value;
-            if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal)
-                return value.value;
-            // A member read has no format arguments: hand back the localized
-            // template as-is. Running the formatter here can only succeed on
-            // placeholder-free text and warns (with a stack capture) on every
-            // read of a template that expects arguments.
-            return ctx.client.Localization.ResolveTextTemplate(value.value);
-        }
+            Context ctx) => NeoMemberString.ResolveText(ctx.client, member, value);
 
         // Always a new array, even when empty: an unwrapped List is keyed by
         // reference, and a shared empty array would alias every empty row.
@@ -11459,6 +11486,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? ResolveHostCollection(object? value, Context ctx)
         {
+            if (value is RuntimeTuple tuple)
+            {
+                var elements = new object?[tuple.Count];
+                for (int i = 0; i < elements.Length; i++)
+                    elements[i] = ResolveHostCollection(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx);
+                return new RuntimeTuple(elements, tuple.TypeInfo);
+            }
             if (value is RuntimeSet set)
             {
                 var exported = new object?[set.Count];
@@ -11480,7 +11514,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A class record is never a derived collection.
             else if (value is NeoObjectRecord || (entryMember = DerivedEntryMember(value)) is null)
                 return ResolveNestedRuntimeSets(value, ctx);
-            bool nested = entryMember is null or ListMember or DictionaryMember;
+            bool nested = entryMember is null or ListMember or DictionaryMember or TupleMember;
             bool values = rowRef is null && HoldsValues(value);
             NeoValueOwnership? ownership = rowRef?.ownership;
             if (value is object?[] rows)

@@ -6508,16 +6508,19 @@ namespace NeoCompose.Runtime
 
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
-            NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null)
+            NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
+            if (value is NeoScript.RuntimeTuple)
+                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
             var rows = new List<MemberValue>();
-            var env = ctx.thisValue is null
-                ? new Dictionary<string, NeoGenericEnvEntry>()
-                : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment");
+            var env = targetEnv ?? (ctx.thisValue is null
+                ? NeoGenericResolution.EmptyEnv
+                : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment"));
             object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
                 NeoTimestamp.Now(), item =>
                 {
@@ -7867,7 +7870,10 @@ namespace NeoCompose.Runtime
                             ? $"Stored interface field '{member.name}' requires an authored class value; store a List explicitly."
                             : $"Class constructor field '{member.name}' is not backed by a Neo value.");
                 }
+                // Detached children are authored classes whose rows are staged
+                // by valueReference and published with the completed graph.
                 if (member is ClassMember { DeclaredInterfaceId: not null }
+                    && runtimeValue is not NeoScript.NeoScriptObject
                     && (!client.TryGetValue(source.Value.ownership ?? NeoValueOwnership.Session, source.Value.valueId, out MemberValue? sourceRow)
                         || string.IsNullOrEmpty(sourceRow.classId)))
                 {

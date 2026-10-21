@@ -2956,6 +2956,13 @@ namespace NeoCompose.Runtime
                 object? value = NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx);
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver);
             }
+            if (instruction.target.pointer is FunctionPointer { function: TupleElementFunction }
+                && client.PendingScriptWrites is { HasCollections: true } tupleBatch)
+            {
+                if (NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out object? element) is { } pending)
+                    return CollectionMutation.Target(PendingTarget(client, tupleBatch, pending, instruction.target.typeInfo));
+                return ResolveCollectionValueMutation(client, instruction, scope, ctx, element);
+            }
             if (instruction.target.pointer is FunctionPointer or ForceUnwrapPointer)
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx,
                     Eval(instruction.target.pointer, scope, ctx));
@@ -3046,7 +3053,7 @@ namespace NeoCompose.Runtime
         {
             if (pending.Target is NeoDictionaryWriteTarget existing)
                 return existing;
-            var target = new NeoDictionaryWriteTarget(pending.Row.id, entryType, pending.Ownership);
+            var target = new NeoDictionaryWriteTarget(pending.Row.id, entryType, pending.EntryMember, pending.Ownership);
             pending.Target ??= target;
             return target;
         }
@@ -3734,7 +3741,8 @@ namespace NeoCompose.Runtime
             }
             if (row is ObjectMemberValue)
             {
-                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership, preparedPlan);
+                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo),
+                    client.TryResolveCollectionEntryMember(member, row), ownership, preparedPlan);
             }
             throw new NSGetterRuntimeError("Collection mutation target must be a list or dictionary.");
         }
@@ -3815,12 +3823,15 @@ namespace NeoCompose.Runtime
                     && NSGetterEvaluator.TryResolveSurfaceMember(
                         keyOf, receiver, objectRow.classId!, keyString, ctx, out JsonMember? memberMember, out MergedSchemaEntry? entry))
                 {
+                    // Collection entries close through the assignment receiver,
+                    // which can differ from the calling function's this value.
+                    var targetEnv = memberMember is GenericMember or ListMember or DictionaryMember or TupleMember
+                        ? NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
+                            client, receiver!, ctx, $"Member '{memberMember.name}'")
+                        : null;
                     if (memberMember is GenericMember)
                     {
-                        memberMember = NeoGenericResolution.SubstituteMember(
-                            client, memberMember,
-                            NeoNSFunctionRuntime.ResolveReceiverGenericEnv(
-                                client, receiver!, ctx, $"Member '{memberMember.name}'"));
+                        memberMember = NeoGenericResolution.SubstituteMember(client, memberMember, targetEnv!);
                     }
                     NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
@@ -3835,7 +3846,8 @@ namespace NeoCompose.Runtime
                             ownership,
                             receiverOwnership,
                             receiverNode,
-                            childNode);
+                            childNode,
+                            targetEnv);
                     }
                     return new NeoClassMemberWriteTarget(
                         receiverRowId,
@@ -3844,10 +3856,12 @@ namespace NeoCompose.Runtime
                         ownership,
                         receiverOwnership,
                         receiverNode,
-                        childNode);
+                        childNode,
+                        targetEnv);
                 }
                 EnsureWritableRow(client, receiverRowId, ownership);
-                return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
+                return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType,
+                    client.TryResolveCollectionEntryMember(receiverRef?.member, row), ownership);
             }
             throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or class object.");
         }
@@ -4333,7 +4347,8 @@ namespace NeoCompose.Runtime
             string id,
             NeoTimestamp createdAt,
             NeoTimestamp updatedAt,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
             if (member is ClassMember { DeclaredInterfaceId: not null })
                 RequireStoredInterfaceValue(MemberKindInfo(member), value, ctx, member.name);
@@ -4349,30 +4364,37 @@ namespace NeoCompose.Runtime
                     rowValueId = variant.rowValueId,
                 };
             }
-            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
+            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
             client.StageWritablePayloadRows(plan, ownership, payload);
-            return MemberValueFactory.Create(
+            MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
                 id,
                 createdAt,
                 updatedAt);
+            if (targetEnv is { Count: > 0 })
+                NeoGenericResolution.StampGenericBindings(client, member, row, targetEnv);
+            return row;
         }
 
         /// <summary>
         /// An entry's value as a read returns it. A localized String entry
         /// stores its text id, so matching a script's value compares its text.
+        /// A tuple's child ids resolve to tuple values before comparison.
         /// </summary>
         private static object? ReadEntryValue(
             MemberValue entry,
             JsonMember? entryMember,
-            NSGetterEvaluator.Context ctx) =>
-            entry is StringMemberValue text && entryMember is StringMember stringMember
-                ? NSGetterEvaluator.ResolveStringValue(text, stringMember, ctx)
-                : ReadRowValue(entry);
+            NSGetterEvaluator.Context ctx,
+            NeoValueOwnership? ownership = null) =>
+            entryMember is TupleMember
+                ? NSGetterEvaluator.ResolveValueIfId(entry.id, ctx, ownership, entryMember)
+                : entry is StringMemberValue text && entryMember is StringMember stringMember
+                    ? NSGetterEvaluator.ResolveStringValue(text, stringMember, ctx)
+                    : ReadRowValue(entry);
 
         private static object? ReadRowValue(MemberValue row)
         {
@@ -4704,7 +4726,7 @@ namespace NeoCompose.Runtime
                 case CollectionMutationKind.Remove:
                     for (int i = 0; i < list.Count; i++)
                     {
-                        if (reference)
+                        if (reference && args[0] is not null)
                         {
                             if (!NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx))
                                 continue;
@@ -4822,7 +4844,7 @@ namespace NeoCompose.Runtime
         // handle reference as its target's Class (P112 §5.2). An interface
         // entry's member carries the interface its writes check (P113 §3.5).
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
-            entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Generic
+            entryTypeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Tuple or MemberKind.Generic
                 or MemberKind.Class or MemberKind.Interface or MemberKind.Reference
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
                 && client.TryResolveCollectionEntryMember(collection, collectionRow) is JsonMember entry
@@ -4845,7 +4867,9 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership, MemberValue next, JsonMember? member, NSGetterEvaluator.Context ctx)
         {
             NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, next.id, member);
-            client.StageInPlaceReplacement(plan, ownership, next, member);
+            client.StageInPlaceReplacement(plan, ownership, next, member,
+                beforeRemovals: member is ClassMember ? null
+                    : removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, ownership, removed));
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(next, ctx, ownership));
         }
 
@@ -5122,6 +5146,7 @@ namespace NeoCompose.Runtime
             private JsonMember member;
             private NeoValueOwnership ownership;
             private NeoValueOwnership parentOwnership;
+            private IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv;
             // The parent row's node, so the leaf write reads it without an id lookup.
             private NeoValueNode? parentNode;
             // The node of the child the last bound-child read found, handed
@@ -5138,8 +5163,10 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 NeoValueOwnership? parentOwnership = null,
                 NeoValueNode? parentNode = null,
-                NeoValueNode? childNode = null)
+                NeoValueNode? childNode = null,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
             {
+                this.targetEnv = targetEnv;
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.member = member;
@@ -5157,13 +5184,14 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 NeoValueOwnership parentOwnership,
                 NeoValueNode? parentNode,
-                NeoValueNode? childNode)
+                NeoValueNode? childNode,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv)
             {
                 NeoClassMemberWriteTarget? target = pooled;
                 if (target is null || target.inUse)
                 {
                     target = new NeoClassMemberWriteTarget(
-                        parentRowId, key, member, ownership, parentOwnership, parentNode, childNode);
+                        parentRowId, key, member, ownership, parentOwnership, parentNode, childNode, targetEnv);
                     pooled ??= target;
                 }
                 else
@@ -5179,6 +5207,7 @@ namespace NeoCompose.Runtime
                         target.member = member;
                     target.ownership = ownership;
                     target.parentOwnership = parentOwnership;
+                    target.targetEnv = targetEnv;
                     if (parentNode is not null)
                         target.parentNode = parentNode;
                     if (childNode is not null)
@@ -5200,6 +5229,7 @@ namespace NeoCompose.Runtime
                 parentNode = null;
                 childNode = null;
                 unboundChildId = null;
+                targetEnv = null;
                 inUse = false;
             }
 
@@ -5403,7 +5433,7 @@ namespace NeoCompose.Runtime
                         return;
                     object? assignedCollection = value;
                     if (bound && member is ListMember assignedList)
-                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection);
+                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection, targetEnv);
                     // P112 §4.1. A collection slot that holds a row keeps it,
                     // so references to it survive; another row's contents are copied in.
                     if (bound
@@ -5414,7 +5444,7 @@ namespace NeoCompose.Runtime
                     {
                         value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
                     }
-                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan);
+                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv);
                     if (bound)
                     {
                         if (TryGetClassValueReferenceId(
@@ -5463,7 +5493,7 @@ namespace NeoCompose.Runtime
                             plan.AfterCommit(() => NSGetterEvaluator.InvalidateCachedCollection(existingId, ownership, ctx));
                             return;
                         }
-                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx);
+                        var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx, targetEnv);
                         replaced.classId = existing.classId;
                         StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
@@ -5491,8 +5521,8 @@ namespace NeoCompose.Runtime
                     {
                         var childId = unboundChildId ?? Guid.NewGuid().ToString();
                         if (member is ListMember assignedListMember)
-                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection);
-                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx);
+                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection, targetEnv);
+                        var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx, targetEnv);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;
                     }
@@ -5889,17 +5919,20 @@ namespace NeoCompose.Runtime
             private readonly string parentRowId;
             private readonly string key;
             private readonly TypeInfo typeInfo;
+            private readonly JsonMember? entryMember;
             private readonly NeoValueOwnership ownership;
 
             public NeoDictionaryEntryWriteTarget(
                 string parentRowId,
                 string key,
                 TypeInfo typeInfo,
+                JsonMember? entryMember,
                 NeoValueOwnership ownership)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.typeInfo = typeInfo;
+                this.entryMember = entryMember;
                 this.ownership = ownership;
             }
 
@@ -5922,7 +5955,7 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
-                var target = new NeoDictionaryWriteTarget(parentRowId, typeInfo, ownership);
+                var target = new NeoDictionaryWriteTarget(parentRowId, typeInfo, entryMember, ownership);
                 target.Set(client, key, value, ctx);
             }
         }
@@ -5969,6 +6002,8 @@ namespace NeoCompose.Runtime
                 string? referenceId = TryGetClassValueReferenceId(value, typeInfo, ctx, out string? id) ? id : null;
                 if (referenceId is not null)
                     RequireInterfaceSlotAdmits(client, typeInfo, referenceId, parentRowId, null);
+                if (value is RuntimeTuple)
+                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
                 WriteCollection(client, parentRowId, null, batch =>
                 {
                     EnsureWritableRow(client, parentRowId, ownership);
@@ -5998,7 +6033,8 @@ namespace NeoCompose.Runtime
                             childId,
                             existing.createdAt,
                             NeoTimestamp.Now(),
-                            ctx);
+                            ctx,
+                            NeoGenericResolution.EnvFromStamp(listRow.genericBindings));
                         next.classId = existing.classId;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6075,6 +6111,9 @@ namespace NeoCompose.Runtime
                                     INeoValuePayloadProvider provider => provider.ToNeoValuePayload(),
                                     _ => args[0],
                                 };
+                                value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
+                                    client, list.EntryMember, value, ownership, ctx, plan,
+                                    NeoGenericResolution.EnvFromStamp(list.value?.genericBindings));
                                 payload = NeoValueWritePayload.FromValue(value);
                             }
                             string addedId = list.PrepareAddSerialized(plan, payload);
@@ -6092,9 +6131,9 @@ namespace NeoCompose.Runtime
                         {
                             if (slotTarget is not null
                                 ? StoresTarget(client, entryId, slotTarget)
-                                : entryId == removeId || (removeId is null && !reference
+                                : entryId == removeId || (removeId is null && (!reference || args[0] is null)
                                     && client.TryGetValue(ownership, entryId, out MemberValue? entry)
-                                    && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx), args[0], list.EntryMember is DecimalMember, ctx)))
+                                    && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx, ownership), args[0], list.EntryMember is DecimalMember, ctx)))
                             {
                                 list.RemoveById(entryId);
                                 break;
@@ -6172,6 +6211,11 @@ namespace NeoCompose.Runtime
                     if (inserts)
                         RequireInterfaceSlotAdmits(client, entryMember, id!, rowId, null);
                 }
+                // Resolve the copied payload before staging, while source writes can commit.
+                // Set membership still probes the original tuple's handle identities.
+                object? insertedValue = inserts ? args[mutation == CollectionMutationKind.Insert ? 1 : 0] : null;
+                if (insertedValue is RuntimeTuple)
+                    insertedValue = NSGetterEvaluator.ResolveHostCollection(insertedValue, ctx);
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6214,12 +6258,13 @@ namespace NeoCompose.Runtime
                                     batch.Plan.Set(ownership, CreateValueRow(
                                         batch.Plan, client,
                                         ownership,
-                                        EntryMember(client, list.Row, entryTypeInfo),
-                                        args[mutation == CollectionMutationKind.Insert ? 1 : 0],
+                                        entryMember ?? EntryMember(client, list.Row, entryTypeInfo),
+                                        insertedValue,
                                         childId,
                                         now,
                                         now,
-                                        ctx));
+                                        ctx,
+                                        NeoGenericResolution.EnvFromStamp(list.Row.genericBindings)));
                                 }
                                 if (isSet)
                                     list.AddSetEntry(childId, now);
@@ -6233,17 +6278,18 @@ namespace NeoCompose.Runtime
                                 int index = ToInt(args[0], "RemoveAt index");
                                 if (index < 0 || index >= list.Count)
                                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
-                                batch.Release(ownership, list.RemoveAt(index, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                batch.Release(ownership, list.RemoveAt(index, now), entryMember ?? EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
                         case CollectionMutationKind.Remove:
                             if (isSet)
                             {
                                 if (FindSetEntry(batch, list, args[0], referenceId, ctx) is { } match && list.RemoveSetEntry(match, now))
-                                    batch.Release(ownership, match, EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                    batch.Release(ownership, match, entryMember ?? EntryMember(client, list.Row, entryTypeInfo), rowId);
                                 return;
                             }
-                            string? slotTarget = SlotTargetOf(args[0], EntryMember(client, list.Row, entryTypeInfo), ctx);
+                            JsonMember removeMember = entryMember ?? EntryMember(client, list.Row, entryTypeInfo);
+                            string? slotTarget = SlotTargetOf(args[0], removeMember, ctx);
                             // P127 §7. An equatable target's Equals decides, whatever the entry type.
                             bool equatable = NSGetterEvaluator.EquatableSearchClass(args[0], ctx) is not null;
                             for (int i = 0; i < list.Count; i++)
@@ -6255,18 +6301,18 @@ namespace NeoCompose.Runtime
                                     match = NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx);
                                 else
                                     match = list[i] == referenceId
-                                        || !reference
+                                        || (!reference || args[0] is null)
                                             && client.TryGetValue(list[i], out MemberValue? child)
-                                            && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, entryMember, ctx), args[0], entryMember is DecimalMember, ctx);
+                                            && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, removeMember, ctx, ownership), args[0], removeMember is DecimalMember, ctx);
                                 if (!match)
                                     continue;
-                                batch.Release(ownership, list.RemoveAt(i, now), EntryMember(client, list.Row, entryTypeInfo), rowId);
+                                batch.Release(ownership, list.RemoveAt(i, now), removeMember, rowId);
                                 return;
                             }
                             return;
                         case CollectionMutationKind.Clear:
                             {
-                                JsonMember releaseMember = EntryMember(client, list.Row, entryTypeInfo);
+                                JsonMember releaseMember = entryMember ?? EntryMember(client, list.Row, entryTypeInfo);
                                 foreach (string clearedId in list.Clear(now))
                                     batch.Release(ownership, clearedId, releaseMember, rowId);
                                 return;
@@ -6292,7 +6338,7 @@ namespace NeoCompose.Runtime
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 if (member is not ClassMember)
-                    return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx), member, batch.Plan);
+                    return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx, list.Row), member, batch.Plan);
                 referenceId ??= value is null ? null : FindValueId(value, ctx);
                 return referenceId is not null && list.Contains(referenceId) ? referenceId : null;
             }
@@ -6356,13 +6402,15 @@ namespace NeoCompose.Runtime
             private readonly NeoWritePlan? preparedPlan;
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
+            private readonly JsonMember? entryMember;
             private readonly NeoValueOwnership ownership;
 
-            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
+            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo, JsonMember? entryMember, NeoValueOwnership ownership, NeoWritePlan? preparedPlan = null)
             {
                 this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
+                this.entryMember = entryMember;
                 this.ownership = ownership;
             }
 
@@ -6402,6 +6450,8 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
+                if (value is RuntimeTuple)
+                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
                 string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
@@ -6413,7 +6463,7 @@ namespace NeoCompose.Runtime
                     MemberValue? current = batch.Collection(ownership, rowId)?.Row;
                     if (current is null && !plan.TryGet(ownership, rowId, out current))
                         throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
-                    JsonMember entryMember = EntryMember(client, current!, entryTypeInfo);
+                    JsonMember entryMember = this.entryMember ?? EntryMember(client, current!, entryTypeInfo);
                     // A reference entry selects its target; only an owned one adopts it.
                     string? referenceId = entryMember is LookupMember ? null : candidateId;
                     if (referenceId is not null)
@@ -6431,7 +6481,8 @@ namespace NeoCompose.Runtime
                                 existingId,
                                 existing.createdAt,
                                 now,
-                                ctx);
+                                ctx,
+                                NeoGenericResolution.EnvFromStamp(current.genericBindings));
                             next.classId = existing.classId;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6479,7 +6530,8 @@ namespace NeoCompose.Runtime
                             childId,
                             now,
                             now,
-                            ctx));
+                            ctx,
+                            NeoGenericResolution.EnvFromStamp(current.genericBindings)));
                     }
                     batch.Gain(ownership, childId, rowId);
                     Change(batch.Dictionary(ownership, rowId, ctx, this), key, childId, now);
@@ -6504,7 +6556,7 @@ namespace NeoCompose.Runtime
                     var row = (ObjectMemberValue)dictionary.Row;
                     if (!row.value!.TryGetValue(key, out string removedId))
                         return;
-                    batch.Release(ownership, removedId, EntryMember(client, row, entryTypeInfo), rowId);
+                    batch.Release(ownership, removedId, entryMember ?? EntryMember(client, row, entryTypeInfo), rowId);
                     row.value.Remove(key);
                     dictionary.Changes(NeoTimestamp.Now());
                 });
@@ -6519,7 +6571,7 @@ namespace NeoCompose.Runtime
                     EnsureWritableRow(client, rowId, ownership);
                     NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     var row = (ObjectMemberValue)dictionary.Row;
-                    JsonMember releaseMember = EntryMember(client, row, entryTypeInfo);
+                    JsonMember releaseMember = entryMember ?? EntryMember(client, row, entryTypeInfo);
                     foreach (string removedId in row.value!.Values)
                         batch.Release(ownership, removedId, releaseMember, rowId);
                     row.value.Clear();

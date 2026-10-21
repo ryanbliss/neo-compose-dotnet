@@ -1092,7 +1092,8 @@ namespace NeoCompose.Runtime
             => StageUnlinkedRemovals(plan, ownership, valueIds.Select(id => (id, member)));
 
         internal void StageUnlinkedRemovals(NeoWritePlan plan, NeoValueOwnership ownership,
-            IEnumerable<(string valueId, Member? member)> roots)
+            IEnumerable<(string valueId, Member? member)> roots,
+            Action<IReadOnlyList<string>>? beforeRemovals = null)
         {
             // A detached default often has no writable rows at all. Find the
             // actual removals before walking global reachability, and share
@@ -1103,7 +1104,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var root in roots)
                     StageOwnedRemoval(plan, ownership, root.valueId, root.member, false, visited, null, removals);
-                RemoveUnreachable(plan, ownership, removals);
+                RemoveUnreachable(plan, ownership, removals, beforeRemovals);
             }
             finally
             {
@@ -1124,7 +1125,7 @@ namespace NeoCompose.Runtime
             try
             {
                 StageOwnedRemoval(plan, ownership, valueId, member, false, visited, null, removals);
-                RemoveUnreachable(plan, ownership, removals, beforeRemoval);
+                RemoveUnreachable(plan, ownership, removals, beforeRemoval is null ? null : _ => beforeRemoval());
             }
             finally
             {
@@ -1134,7 +1135,7 @@ namespace NeoCompose.Runtime
         }
 
         private void RemoveUnreachable(NeoWritePlan plan, NeoValueOwnership ownership, List<string> removals,
-            Action? beforeRemoval = null)
+            Action<IReadOnlyList<string>>? beforeRemovals = null)
         {
             if (removals.Count == 0)
                 return;
@@ -1143,20 +1144,19 @@ namespace NeoCompose.Runtime
             {
                 if (CanProveUnreachable(ownership, removals))
                 {
-                    beforeRemoval?.Invoke();
+                    beforeRemovals?.Invoke(removals);
                     foreach (string id in removals)
                         RemoveOwnedRow(plan, ownership, id);
                     return;
                 }
                 reachable = BuildReachableWritableValueIds(ownership);
             }
+            removals.RemoveAll(reachable.Contains);
+            if (removals.Count == 0)
+                return;
+            beforeRemovals?.Invoke(removals);
             foreach (string id in removals)
-                if (!reachable.Contains(id))
-                {
-                    beforeRemoval?.Invoke();
-                    beforeRemoval = null;
-                    RemoveOwnedRow(plan, ownership, id);
-                }
+                RemoveOwnedRow(plan, ownership, id);
         }
 
         /// <summary>
@@ -1168,7 +1168,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void StageInPlaceReplacement(
             NeoWritePlan plan, NeoValueOwnership ownership, MemberValue next, Member? member,
-            string? changedField = null)
+            string? changedField = null, Action<IReadOnlyList<string>>? beforeRemovals = null)
         {
             // A pending collection's row is the one replaced, and preparing
             // the batch must not restage it over the replacement.
@@ -1191,7 +1191,7 @@ namespace NeoCompose.Runtime
             var kept = new HashSet<string>(EnumerateOwnedChildLinks(next, member).Select(child => child.valueId));
             released.RemoveAll(child => kept.Contains(child.valueId));
             if (released.Count != 0)
-                StageUnlinkedRemovals(plan, ownership, released);
+                StageUnlinkedRemovals(plan, ownership, released, beforeRemovals);
         }
 
         internal void StageOwnedRemoval(

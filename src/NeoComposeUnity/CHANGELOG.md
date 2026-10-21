@@ -18,6 +18,16 @@
 - Generated equatable classes override `Equals(object)` and `GetHashCode()` with the NeoScript contract, so `HashSet` and `Dictionary` follow NeoScript equality. Comparable classes implement `System.IComparable<T>` and `System.IComparable`. Primitives cross `IEquatable<T>` and `IComparable<T>` parameters and results as their CLR values.
 - Two changes affect existing scripts. `==` through an unconstrained `T` on class rows without `IEquatable` now compares identity, as `==` on the class type already did, so distinct rows with equal fields are no longer equal. Relational operators now follow IEEE order, so `+∞ >= +∞` and `+∞ <= +∞` are true.
 - Requires Unity export schema 47 and compiler revision 18. Upgrade CLI and SDK together and regenerate exports.
+- Fixed generic collection field assignments losing their closed type bindings. (#375)
+- Fixed null membership and removal in stored nullable class lists. (#381)
+- Fixed mutation of stored tuple collections by resolving the entry schema, including nested tuple elements. (#382)
+- Fixed writes to generic collection entries losing destination type bindings. (#389)
+- Fixed unordered-list insertion of composite entries by materializing their stored payloads. (#392)
+- Fixed interface materialization rejecting newly constructed classes before they were stored. (#384)
+- Fixed tuple string keys in sets, including localized text and translation collisions. (#388)
+- Fixed generic tuple set keys losing their closed element bindings. (#397)
+- Fixed captured tuple collection reads, equality, write-back, and C# returns observing stale contents. Appending through a captured tuple list stays linear. (#394)
+- Fixed replacing tuples or collections deleting class instances still held by NeoScript variables. Retained instances stay usable, obsolete owned rows are released, and temporary copies are reclaimed unless they escape. (#390)
 
 ## [0.79.0] - 2026-10-19
 
