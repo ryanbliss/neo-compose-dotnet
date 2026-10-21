@@ -37,6 +37,12 @@ namespace NeoCompose.Runtime
         }
         public IReadOnlyCollection<string> LoadedLocales => loadedLocales.Keys;
 
+        // Tuple set keys use resolved text and must refresh after locale data changes.
+        internal long Revision
+        {
+            get; private set;
+        }
+
         private NeoLocalization(
             ProjectLocalizationExport? export,
             INeoLocalizationLocaleFileSource? source = null,
@@ -92,7 +98,11 @@ namespace NeoCompose.Runtime
 
         public void SetLocale(string locale)
         {
-            CurrentLocale = ResolveSupportedLocale(locale);
+            string resolved = ResolveSupportedLocale(locale);
+            if (CurrentLocale == resolved)
+                return;
+            CurrentLocale = resolved;
+            Revision++;
         }
 
         public bool LoadLocale(string locale)
@@ -201,6 +211,7 @@ namespace NeoCompose.Runtime
             if (file == null || string.IsNullOrEmpty(file.locale))
                 return false;
             loadedLocales[file.locale] = file;
+            Revision++;
             return true;
         }
 

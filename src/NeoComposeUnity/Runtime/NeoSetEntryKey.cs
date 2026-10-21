@@ -14,6 +14,58 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
+    /// First entry per key, retaining collisions caused by translated tuple text.
+    /// Only colliding keys allocate an ordered bucket; removal stays constant-time.
+    /// </summary>
+    internal sealed class NeoSetEntryIndex
+    {
+        private readonly Dictionary<string, string> firstByKey;
+        private Dictionary<string, OrderedMap<string, string>>? collisions;
+
+        internal NeoSetEntryIndex(int capacity) => firstByKey = new(capacity, StringComparer.Ordinal);
+
+        internal bool TryGetValue(string key, out string value) => firstByKey.TryGetValue(key, out value);
+
+        internal void Add(string key, string id)
+        {
+            if (firstByKey.TryAdd(key, id) || firstByKey[key] == id)
+                return;
+            collisions ??= new(StringComparer.Ordinal);
+            if (!collisions.TryGetValue(key, out var entries))
+            {
+                entries = new OrderedMap<string, string>(StringComparer.Ordinal);
+                entries.Add(firstByKey[key], firstByKey[key]);
+                collisions.Add(key, entries);
+            }
+            entries.Add(id, id);
+        }
+
+        internal void Remove(string key, string id)
+        {
+            if (collisions is not null && collisions.TryGetValue(key, out var entries))
+            {
+                entries.Remove(id);
+                // A collision bucket starts with at least two entries.
+                foreach (string remaining in entries.Values)
+                {
+                    firstByKey[key] = remaining;
+                    break;
+                }
+                if (entries.Count == 1)
+                    collisions.Remove(key);
+            }
+            else if (firstByKey.TryGetValue(key, out string holder) && holder == id)
+                firstByKey.Remove(key);
+        }
+
+        internal void Clear()
+        {
+            firstByKey.Clear();
+            collisions?.Clear();
+        }
+    }
+
+    /// <summary>
     /// The P108 §3 key of one Set entry: the value id for Class entries and a
     /// canonical encoding of the stored value for every value kind. Two
     /// entries of one Set are equal iff their keys are equal. Mirrors the
@@ -148,6 +200,7 @@ namespace NeoCompose.Runtime
                     : element is TupleMember nested ? TupleFragment(nested, child, client, readRow)
                     : IsHandle(element) ? new JValue(child.id)
                     : element is LookupMember or DialogueLookupMember ? JToken.FromObject(((ArrayMemberValue)child).value!)
+                    : element is StringMember text ? new JValue(NeoMemberString.ResolveText(client, text, Require(child as StringMemberValue, element)))
                     : new JValue(Of(element, child, client, readRow));
                 parts.Add(new JArray((int)element.kind, key));
             }
@@ -179,6 +232,11 @@ namespace NeoCompose.Runtime
                     string? id = value is NSSlotReference slot ? slot.TargetId : NSGetterEvaluator.ReferenceKeyOf(value, context) as string;
                     key = id is null ? new JArray() : new JArray(id);
                 }
+                // Tuple strings compare the text a read produces, including
+                // localized elements. Direct Set<string> keeps its Plain rule.
+                else if (element is StringMember)
+                    key = value is string text ? new JValue(text)
+                        : throw new InvalidOperationException($"Tuple '{member.name}' element {index + 1} requires a string.");
                 else
                     key = new JValue(OfPayload(element, value, context.client));
                 parts.Add(new JArray((int)element.kind, key));

@@ -10230,20 +10230,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string? ResolveStringValue(
             StringMemberValue value,
             StringMember member,
-            Context ctx)
-        {
-            if (value.value == null)
-                return null;
-            if (member.Format == NeoStringFormatKind.Plain)
-                return value.value;
-            if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal)
-                return value.value;
-            // A member read has no format arguments: hand back the localized
-            // template as-is. Running the formatter here can only succeed on
-            // placeholder-free text and warns (with a stack capture) on every
-            // read of a template that expects arguments.
-            return ctx.client.Localization.ResolveTextTemplate(value.value);
-        }
+            Context ctx) => NeoMemberString.ResolveText(ctx.client, member, value);
 
         // Always a new array, even when empty: an unwrapped List is keyed by
         // reference, and a shared empty array would alias every empty row.

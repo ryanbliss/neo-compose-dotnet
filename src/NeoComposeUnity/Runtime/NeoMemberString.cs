@@ -34,7 +34,9 @@ namespace NeoCompose.Runtime
             }
         }
 
-        protected string? ResolveText(StringMemberValue? row)
+        protected string? ResolveText(StringMemberValue? row) => ResolveText(client, member, row);
+
+        internal static string? ResolveText(NeoClient client, StringMember member, StringMemberValue? row)
         {
             if (row?.value == null)
                 return null;
