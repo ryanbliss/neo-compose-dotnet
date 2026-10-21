@@ -267,7 +267,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static readonly Dictionary<string, NeoPrimitive> PrimitiveByName = new(StringComparer.Ordinal);
         private static readonly Dictionary<MemberKind, NeoPrimitive> PrimitiveByKind = new();
         private static readonly Dictionary<string, string> MemberNameById = new(StringComparer.Ordinal);
-        private static readonly Dictionary<string, string[]> ParameterIdsByInterfaceId = new(StringComparer.Ordinal);
+        internal static readonly Dictionary<string, string[]> ParameterIdsByInterfaceId = new(StringComparer.Ordinal);
 
         /// <summary>By interface id, each implementing primitive's constructions' arguments.</summary>
         private static readonly Dictionary<string, Dictionary<NeoPrimitive, List<string[]>>> Implementers = new(StringComparer.Ordinal);

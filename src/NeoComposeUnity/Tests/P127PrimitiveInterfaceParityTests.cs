@@ -164,6 +164,10 @@ namespace NeoCompose.Tests
 
             var error = Assert.Catch(() => Parity.Probe.ClrTupleIn(new ForeignPair()))!;
             StringAssert.Contains("received a CLR ForeignPair, which is not a value of Interface 'IEquatable'", error.ToString());
+            // P127 §4. A tuple is IEquatable only when its elements are.
+            Parity.IReadOnlyPlain plain = new Parity.Plain(1);
+            var plainError = Assert.Catch(() => Parity.Probe.ClrPlainTupIn((1, plain)))!;
+            StringAssert.Contains("which is not a value of Interface 'IEquatable'", plainError.ToString());
         }
 
         [Test]
@@ -194,7 +198,7 @@ namespace NeoCompose.Tests
         [Test]
         public void StoredGenericRowsRunAfterASaveLoad()
         {
-            const string afterBump = "3|false|true|true|true|false|true";
+            string afterBump = Fixture()["returns"]!.Value<string>("SavedBank")!;
             string saved;
             using (NeoClient client = Client())
             {

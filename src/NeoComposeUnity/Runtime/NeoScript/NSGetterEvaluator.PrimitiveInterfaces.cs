@@ -515,10 +515,65 @@ namespace NeoCompose.Runtime.NeoScript
             return true;
         }
 
-        /// <summary>P127 §6. A non-row value conforms through the primitive its type names.</summary>
-        private static bool PrimitiveImplementsInterface(object value, TypeInfo checkType, Context ctx) =>
-            NeoPrimitiveInterfaces.OfTypeInfo(CloseContextType(checkType, ctx)) is { } primitive
-            && RuntimeTypeCheck(value, NeoPrimitiveInterfaces.TypeInfoOf(primitive), ctx);
+        /// <summary>
+        /// P127 §6. A non-row value conforms through the primitive its type
+        /// names, or a tuple as its closed type conforms statically (§4).
+        /// </summary>
+        private static bool PrimitiveImplementsInterface(object value, TypeInfo checkType, Context ctx)
+        {
+            TypeInfo closed = CloseContextType(checkType, ctx);
+            if (value is RuntimeTuple tuple)
+                return TupleImplements(RuntimeTupleType(tuple.TypeInfo, ctx), closed, ctx.client);
+            return NeoPrimitiveInterfaces.OfTypeInfo(closed) is { } primitive
+                && RuntimeTypeCheck(value, NeoPrimitiveInterfaces.TypeInfoOf(primitive), ctx);
+        }
+
+        /// <summary>
+        /// P127 §4. A tuple is <c>IEquatable</c> or <c>IComparable</c> of
+        /// itself when every element is that interface of itself.
+        /// </summary>
+        internal static bool TupleImplements(TupleTypeInfo tuple, TypeInfo type, NeoClient client)
+        {
+            if (!NeoPrimitiveInterfaces.TryConstruction(type, out string interfaceId, out var typeArguments))
+                return false;
+            if (interfaceId != NeoPrimitiveInterfaces.IEquatableId && interfaceId != NeoPrimitiveInterfaces.IComparableId)
+                return false;
+            string parameterId = NeoPrimitiveInterfaces.ParameterIdsByInterfaceId[interfaceId][0];
+            if (typeArguments is null || !typeArguments.TryGetValue(parameterId, out TypeInfo? self))
+                return false;
+            if (!NeoClient.TypeInfoMatches(Required(tuple), self))
+                return false;
+            foreach (TupleElementTypeInfo element in tuple.elements)
+            {
+                TypeInfo elementType = Required(element.typeInfo);
+                var elementSelf = new InterfaceTypeInfo
+                {
+                    type = MemberKind.Interface,
+                    required = true,
+                    interfaceId = interfaceId,
+                    typeArguments = new Dictionary<string, TypeInfo> { [parameterId] = elementType },
+                };
+                bool implements = elementType switch
+                {
+                    _ when TupleTypeInfo.From(elementType) is { } nested => TupleImplements(nested, elementSelf, client),
+                    _ when NeoPrimitiveInterfaces.TryOfKind(elementType.type, out NeoPrimitive primitive) =>
+                        NeoPrimitiveInterfaces.Implements(primitive, interfaceId, elementSelf.typeArguments),
+                    _ => NeoExtensionRuntime.SatisfiesConstraint(elementType, elementSelf, client),
+                };
+                if (!implements)
+                    return false;
+            }
+            return true;
+        }
+
+        private static TypeInfo Required(TypeInfo type)
+        {
+            if (type.required)
+                return type;
+            TypeInfo copy = type.ShallowClone();
+            copy.required = true;
+            return copy;
+        }
 
         /// <summary>P127 §6. Whether <paramref name="type"/>'s values are decimals, through evidence if open.</summary>
         internal static bool HoldsDecimal(TypeInfo type, Context ctx)
@@ -1009,32 +1064,71 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>
         /// P127 §7. Buckets equatable rows by <c>GetHashCode</c> so rows that
         /// are <c>Equals</c> share the first one's set key. Each lookup runs
-        /// <c>Equals</c> only within one bucket.
+        /// <c>Equals</c> only within one bucket. Only the rows of actual
+        /// entries stay: each key settles with the entries it added or removed.
         /// </summary>
         internal sealed class EquatableSetKeys
         {
-            private readonly Dictionary<int, List<(object value, string classId, object key)>> buckets = new();
+            private sealed class Representative
+            {
+                internal readonly object Value;
+                internal readonly string ClassId;
+                internal readonly object Key;
+                internal readonly int Hash;
+                /// <summary>Entries keyed through this row.</summary>
+                internal int Uses;
 
-            internal object Key(object value, string classId, object identity, Context ctx)
+                internal Representative(object value, string classId, object key, int hash)
+                {
+                    Value = value;
+                    ClassId = classId;
+                    Key = key;
+                    Hash = hash;
+                }
+            }
+
+            private readonly Dictionary<int, List<Representative>> buckets = new();
+            /// <summary>The representative the current key matched or proposed.</summary>
+            private Representative? touched;
+
+            internal object Key(object value, string classId, object identity, bool reference, Context ctx)
             {
                 if (ctx.client.PrimitiveInterfaceSchema.Equatable(classId) is not { } equatable)
                     return identity;
                 int hash = EquatableHash(value, equatable, ctx);
                 if (!buckets.TryGetValue(hash, out var bucket))
                 {
-                    bucket = new List<(object value, string classId, object key)>();
+                    bucket = new List<Representative>();
                     buckets.Add(hash, bucket);
                 }
                 foreach (var representative in bucket)
                 {
                     // One row keeps one representative, even when its Equals rejects itself.
-                    if (SameRow(representative.value, value, ctx))
-                        return representative.key;
-                    if (RowEquality(representative.value, representative.classId, value, classId, ctx))
-                        return representative.key;
+                    if (SameRow(representative.Value, value, ctx)
+                        || RowEquality(representative.Value, representative.ClassId, value, classId, ctx))
+                    {
+                        touched = representative;
+                        // A detached row's key follows it once it attaches.
+                        return reference ? ReferenceKeyOf(representative.Key, ctx) ?? representative.Key : representative.Key;
+                    }
                 }
-                bucket.Add((value, classId, identity));
+                touched = new Representative(value, classId, identity, hash);
+                bucket.Add(touched);
                 return identity;
+            }
+
+            /// <summary>Ends the current key: <paramref name="delta"/> entries now use its row.</summary>
+            internal void Settle(int delta)
+            {
+                if (touched is not { } representative)
+                    return;
+                touched = null;
+                representative.Uses += delta;
+                if (representative.Uses > 0 || !buckets.TryGetValue(representative.Hash, out var bucket))
+                    return;
+                bucket.Remove(representative);
+                if (bucket.Count == 0)
+                    buckets.Remove(representative.Hash);
             }
         }
 
@@ -1046,7 +1140,7 @@ namespace NeoCompose.Runtime.NeoScript
             object? value = reference ? ResolveHandle(entry, ctx) : entry;
             if (value is null || ClassRowOf(value, ctx) is not { } classId)
                 return identity;
-            return keys.Key(value, classId, identity ?? value, ctx);
+            return keys.Key(value, classId, identity ?? value, reference, ctx);
         }
 
         /// <summary>

@@ -39,6 +39,7 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (var validate in validations.Values)
                 validate(value);
             entries.Add(key, value);
+            EquatableKeys?.Settle(1);
             if (Reference && value is not null)
                 NSGetterEvaluator.TrackRuntimeSetReference(value, this);
         }
@@ -47,8 +48,16 @@ namespace NeoCompose.Runtime.NeoScript
             if (entries.TryGetValue(oldKey, out object? entry) && ReferenceEquals(entry, originalEntry))
                 entries.Retarget(oldKey, newKey);
         }
-        internal void Remove(object? key) => entries.Remove(key ?? NullKey);
-        internal void Clear() => entries.Clear();
+        internal void Remove(object? key)
+        {
+            if (entries.Remove(key ?? NullKey))
+                EquatableKeys?.Settle(-1);
+        }
+        internal void Clear()
+        {
+            entries.Clear();
+            EquatableKeys = null;
+        }
         internal void Validate(object type, Action<object?> validate)
         {
             if (validations.ContainsKey(type))

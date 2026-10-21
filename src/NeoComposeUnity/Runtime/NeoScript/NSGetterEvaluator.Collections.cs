@@ -199,6 +199,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
         {
+            // Drops what a lookup, or an interrupted key, proposed.
+            set.EquatableKeys?.Settle(0);
             if (set.EnumEntries && value is object?[] { Length: 1 } selected)
                 value = selected[0];
             // Before Reference: an IEquatable<decimal> entry is a decimal.
@@ -403,6 +405,7 @@ namespace NeoCompose.Runtime.NeoScript
                                 seenSetKeys = new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
                                 equatableKeys = ctx.client.PrimitiveInterfaceSchema.AnyEquatable ? new EquatableSetKeys() : null;
                             }
+                            equatableKeys?.Settle(0);
                             object? setKey = info.reference && entry is not null
                                 ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
                                 : entry;
@@ -411,7 +414,10 @@ namespace NeoCompose.Runtime.NeoScript
                             else
                                 setKey = EquatableEntryKey(equatableKeys, entry, setKey, info.reference, ctx);
                             if (seenSetKeys.Add(setKey))
+                            {
+                                equatableKeys?.Settle(1);
                                 AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                            }
                             break;
                         default:
                             throw new NSGetterRuntimeError($"Unsupported collection query '{info.op}'.");

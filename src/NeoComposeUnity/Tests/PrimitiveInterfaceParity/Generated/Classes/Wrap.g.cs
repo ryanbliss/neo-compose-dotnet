@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Wrap<T> : NeoGeneratedClassValue, IReadOnlyWrap<T>
     {
         internal Wrap(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "dbae92a9-d61e-4a51-8f1b-59343a1c16c4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5ed57843-c745-40d3-9b8f-178d7bb51532", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "dbae92a9-d61e-4a51-8f1b-59343a1c16c4" => new Wrap<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5ed57843-c745-40d3-9b8f-178d7bb51532" => new Wrap<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Wrap' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "dbae92a9-d61e-4a51-8f1b-59343a1c16c4" => new Wrap<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5ed57843-c745-40d3-9b8f-178d7bb51532" => new Wrap<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Wrap' without a concrete client type id."),
                 };
             });

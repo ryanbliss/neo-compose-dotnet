@@ -1980,7 +1980,7 @@ namespace NeoCompose.Runtime
             if (HoldsPrimitive(value, typeInfo))
             {
                 TypeInfo closed = NSGetterEvaluator.CloseContextType(typeInfo, ctx);
-                if (NeoPrimitiveInterfaces.HeldTypeOf(closed) is not TypeInfo held)
+                if (HeldType(closed, client) is not TypeInfo held)
                     throw ForeignInterfaceValue(client, closed, value, subject, null);
                 try
                 {
@@ -2332,8 +2332,20 @@ namespace NeoCompose.Runtime
 
         private static TypeInfo? PrimitiveHeldType(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx) =>
             HoldsPrimitive(value, typeInfo)
-                ? NeoPrimitiveInterfaces.HeldTypeOf(NSGetterEvaluator.CloseContextType(typeInfo, ctx))
+                ? HeldType(NSGetterEvaluator.CloseContextType(typeInfo, ctx), ctx.client)
                 : null;
+
+        /// <summary>
+        /// The kind a closed value-usable interface holds; a tuple only when
+        /// its elements implement the interface too (P127 §4).
+        /// </summary>
+        private static TypeInfo? HeldType(TypeInfo closed, NeoClient client)
+        {
+            TypeInfo? held = NeoPrimitiveInterfaces.HeldTypeOf(closed);
+            if (TupleTypeInfo.From(held) is { } tuple && !NSGetterEvaluator.TupleImplements(tuple, closed, client))
+                return null;
+            return held;
+        }
 
         /// <summary>
         /// <see cref="Normalize"/> followed by

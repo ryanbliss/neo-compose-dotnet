@@ -23,13 +23,17 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
 
         IReadOnlyCounter<int> Hits { get; }
 
+        IReadOnlyCounter<Cash> Money { get; }
+
+        IReadOnlyCounter<float> Weight { get; }
+
         IReadOnlyWrap<int> Wrapped { get; }
     }
 
     public partial class Bank : NeoGeneratedClassValue, IReadOnlyBank
     {
         internal Bank(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b80a5a1e-28bf-4e39-9190-7ea3a6ef7ac2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1583c542-1129-4938-b3e2-8303232aa2cd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,19 +42,21 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         {
         }
 
-        public Bank(Counter<int>? Hits = null, Wrap<int>? Wrapped = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Hits, Wrapped), false, NeoValueOwnership.Session)
+        public Bank(Counter<int>? Hits = null, Wrap<int>? Wrapped = null, Counter<float>? Weight = null, Counter<Cash>? Money = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Hits, Wrapped, Weight, Money), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Counter<int>? Hits = null, Wrap<int>? Wrapped = null)
+        private static NeoMemberClassWritable CreateFactoryNode(Counter<int>? Hits = null, Wrap<int>? Wrapped = null, Counter<float>? Weight = null, Counter<Cash>? Money = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b80a5a1e-28bf-4e39-9190-7ea3a6ef7ac2",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "db97b204-bc74-4eee-8aef-5b9d9e9c3f3e", Hits),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Wrapped", "653c1319-cbf9-4dcf-a30d-521591e4771a", Wrapped)
+                "1583c542-1129-4938-b3e2-8303232aa2cd",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "a425c2ef-3396-4014-b6bd-8314aebc0245", Hits),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Wrapped", "3b42a0f4-487d-4988-813a-1310f1807963", Wrapped),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Weight", "8519f9a4-240b-431b-9873-09823b1ebcda", Weight),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "fa83bb34-2aa4-4147-b92c-9910a5e870ed", Money)
             );
         }
 
@@ -133,6 +139,66 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             }
         }
 
+        public Counter<Cash> Money
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Money");
+                    return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<Cash>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Money");
+                    return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<Cash>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("Bank.Money");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Money", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyCounter<Cash> IReadOnlyBank.Money
+        {
+            get
+            {
+                return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<Cash>.Create(client, node.Get<NeoMemberClass>("Money"));
+            }
+        }
+
+        public Counter<float> Weight
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Weight");
+                    return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<float>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Weight");
+                    return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<float>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("Bank.Weight");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Weight", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyCounter<float> IReadOnlyBank.Weight
+        {
+            get
+            {
+                return global::NeoCompose.Tests.PrimitiveInterfaceParity.Counter<float>.Create(client, node.Get<NeoMemberClass>("Weight"));
+            }
+        }
+
         public Wrap<int> Wrapped
         {
             get
@@ -170,6 +236,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             public static readonly NeoField<Counter<int>> Hits = new("Hits");
 
             public static readonly NeoField<Wrap<int>> Wrapped = new("Wrapped");
+
+            public static readonly NeoField<Counter<float>> Weight = new("Weight");
+
+            public static readonly NeoField<Counter<Cash>> Money = new("Money");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -178,6 +248,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             {
                 [Fields.Hits] = () => null,
                 [Fields.Wrapped] = () => null,
+                [Fields.Weight] = () => null,
+                [Fields.Money] = () => null,
             };
         }
 
@@ -197,6 +269,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             {
                 [Fields.Hits] = () => Hits,
                 [Fields.Wrapped] = () => Wrapped,
+                [Fields.Weight] = () => Weight,
+                [Fields.Money] = () => Money,
             };
         }
 
