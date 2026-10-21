@@ -6031,7 +6031,8 @@ namespace NeoCompose.Runtime
                             childId,
                             existing.createdAt,
                             NeoTimestamp.Now(),
-                            ctx);
+                            ctx,
+                            NeoGenericResolution.EnvFromStamp(listRow.genericBindings));
                         next.classId = existing.classId;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6250,7 +6251,8 @@ namespace NeoCompose.Runtime
                                         childId,
                                         now,
                                         now,
-                                        ctx));
+                                        ctx,
+                                        NeoGenericResolution.EnvFromStamp(list.Row.genericBindings)));
                                 }
                                 if (isSet)
                                     list.AddSetEntry(childId, now);
@@ -6459,7 +6461,8 @@ namespace NeoCompose.Runtime
                                 existingId,
                                 existing.createdAt,
                                 now,
-                                ctx);
+                                ctx,
+                                NeoGenericResolution.EnvFromStamp(current.genericBindings));
                             next.classId = existing.classId;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6507,7 +6510,8 @@ namespace NeoCompose.Runtime
                             childId,
                             now,
                             now,
-                            ctx));
+                            ctx,
+                            NeoGenericResolution.EnvFromStamp(current.genericBindings)));
                     }
                     batch.Gain(ownership, childId, rowId);
                     Change(batch.Dictionary(ownership, rowId, ctx, this), key, childId, now);
