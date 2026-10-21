@@ -2956,6 +2956,13 @@ namespace NeoCompose.Runtime
                 object? value = NSGetterEvaluator.EvaluateKeyOf(keyOfTarget, receiver, scope, ctx);
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver);
             }
+            if (instruction.target.pointer is FunctionPointer { function: TupleElementFunction }
+                && client.PendingScriptWrites is { HasCollections: true } tupleBatch)
+            {
+                if (NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out object? element) is { } pending)
+                    return CollectionMutation.Target(PendingTarget(client, tupleBatch, pending, instruction.target.typeInfo));
+                return ResolveCollectionValueMutation(client, instruction, scope, ctx, element);
+            }
             if (instruction.target.pointer is FunctionPointer or ForceUnwrapPointer)
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx,
                     Eval(instruction.target.pointer, scope, ctx));
@@ -6002,6 +6009,8 @@ namespace NeoCompose.Runtime
                 string? referenceId = TryGetClassValueReferenceId(value, typeInfo, ctx, out string? id) ? id : null;
                 if (referenceId is not null)
                     RequireInterfaceSlotAdmits(client, typeInfo, referenceId, parentRowId, null);
+                if (value is RuntimeTuple)
+                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
                 WriteCollection(client, parentRowId, null, batch =>
                 {
                     EnsureWritableRow(client, parentRowId, ownership);
@@ -6207,6 +6216,11 @@ namespace NeoCompose.Runtime
                     if (inserts)
                         RequireInterfaceSlotAdmits(client, entryMember, id!, rowId, null);
                 }
+                // Resolve the copied payload before staging, while source writes can commit.
+                // Set membership still probes the original tuple's handle identities.
+                object? insertedValue = inserts ? args[mutation == CollectionMutationKind.Insert ? 1 : 0] : null;
+                if (insertedValue is RuntimeTuple)
+                    insertedValue = NSGetterEvaluator.ResolveHostCollection(insertedValue, ctx);
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6250,7 +6264,7 @@ namespace NeoCompose.Runtime
                                         batch.Plan, client,
                                         ownership,
                                         entryMember ?? EntryMember(client, list.Row, entryTypeInfo),
-                                        args[mutation == CollectionMutationKind.Insert ? 1 : 0],
+                                        insertedValue,
                                         childId,
                                         now,
                                         now,
@@ -6435,6 +6449,8 @@ namespace NeoCompose.Runtime
                 object? value,
                 NSGetterEvaluator.Context ctx)
             {
+                if (value is RuntimeTuple)
+                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
                 string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
