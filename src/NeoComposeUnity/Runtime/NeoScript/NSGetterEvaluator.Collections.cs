@@ -494,6 +494,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return left.Equals(right);
                 if (x is RuntimeTuple leftTuple && y is RuntimeTuple rightTuple)
                     return TupleEqual(leftTuple, rightTuple, leftTuple.TypeInfo, context, setKey: true);
+                if (ComponentSetKeyEqual(x, y) is { } same)
+                    return same;
                 return JsEqual(x, y, context);
             }
 
@@ -506,11 +508,11 @@ namespace NeoCompose.Runtime.NeoScript
                     case RuntimeTuple tuple:
                         return TupleHash(tuple, context, this);
                     case NeoVector3Value vector:
-                        return HashCode.Combine(vector.x, vector.y, vector.z);
+                        return HashCode.Combine(ComponentHash(vector.x), ComponentHash(vector.y), ComponentHash(vector.z));
                     case NeoVector2Value vector:
-                        return HashCode.Combine(vector.x, vector.y);
+                        return HashCode.Combine(ComponentHash(vector.x), ComponentHash(vector.y));
                     case NeoColorValue color:
-                        return HashCode.Combine(color.r, color.g, color.b, color.a);
+                        return HashCode.Combine(ComponentHash(color.r), ComponentHash(color.g), ComponentHash(color.b), ComponentHash(color.a));
                     case null:
                         return 0;
                     case string text:
@@ -545,6 +547,22 @@ namespace NeoCompose.Runtime.NeoScript
                 return number.GetHashCode();
             }
         }
+
+        /// <summary>
+        /// P127 §7. Set keys compare vector and Color components with float
+        /// <c>Equals</c>, so they are NaN-reflexive as float keys are.
+        /// </summary>
+        private static bool? ComponentSetKeyEqual(object? x, object? y) => (x, y) switch
+        {
+            (NeoVector3Value a, NeoVector3Value b) => a.x.Equals(b.x) && a.y.Equals(b.y) && a.z.Equals(b.z),
+            (NeoVector3Value, _) or (_, NeoVector3Value) => null,
+            (NeoVector2Value a, NeoVector2Value b) => a.x.Equals(b.x) && a.y.Equals(b.y),
+            (NeoColorValue a, NeoColorValue b) => a.r.Equals(b.r) && a.g.Equals(b.g) && a.b.Equals(b.b) && a.a.Equals(b.a),
+            _ => null,
+        };
+
+        /// <summary>A component hash that unifies -0 with 0 and every NaN payload, as float Equals does.</summary>
+        private static int ComponentHash(double component) => component == 0 || double.IsNaN(component) ? 0 : component.GetHashCode();
 
         private sealed class OrderedResult
         {

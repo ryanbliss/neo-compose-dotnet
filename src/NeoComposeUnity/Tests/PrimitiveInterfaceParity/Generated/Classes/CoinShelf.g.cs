@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         internal CoinShelf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "748ba572-5a0c-4ae6-9c23-d75ba0985bea", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d3b6615b-3713-4d0b-a2b1-304c4b305e68", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -55,10 +55,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "748ba572-5a0c-4ae6-9c23-d75ba0985bea",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "33054e49-cd66-4b20-b6bf-e322e5a572ce", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Is", "5c6ea3b3-5231-45ce-b422-d803a09adaa0", Is),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Rs", "c833cf2b-a78f-48f9-a3c8-34ae1ff8912a", Rs)
+                "d3b6615b-3713-4d0b-a2b1-304c4b305e68",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "095ca0a8-b584-4848-9745-176d5f469dda", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Is", "128f9046-b153-4e68-9a1e-547a554d17b0", Is),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Rs", "97a5da60-f88c-4297-b28b-31fab94887dd", Rs)
             );
         }
 

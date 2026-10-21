@@ -100,6 +100,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // A tuple behind an interface or `T` compares as its own tuple.
                     _ when x is RuntimeTuple held && y is RuntimeTuple => TupleEqual(x, y, held.TypeInfo, ctx, setKey),
                     _ when setKey && TryAsDouble(x, out double xNumber) && TryAsDouble(y, out double yNumber) => xNumber.Equals(yNumber),
+                    _ when setKey && ComponentSetKeyEqual(x, y) is { } same => same,
                     _ when setKey && SameRow(x, y, ctx) => true,
                     _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
                     { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
