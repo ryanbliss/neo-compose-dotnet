@@ -207,24 +207,24 @@ namespace NeoCompose.Runtime
             return parts;
         }
 
-        internal static string OfRuntimeTuple(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context)
-            => RuntimeTupleFragment(member, tuple, context).ToString(Formatting.None);
+        internal static string OfRuntimeTuple(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context, MemberValue? collectionRow = null)
+            => RuntimeTupleFragment(member, tuple, context, collectionRow).ToString(Formatting.None);
 
-        private static JArray RuntimeTupleFragment(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context)
+        private static JArray RuntimeTupleFragment(TupleMember member, RuntimeTuple tuple, NSGetterEvaluator.Context context, MemberValue? collectionRow)
         {
             if (tuple.Count != member.elementMemberIds.Length)
                 throw new InvalidOperationException($"Tuple '{member.name}' has the wrong arity.");
             var parts = new JArray();
             for (int index = 0; index < tuple.Count; index++)
             {
-                Member element = context.client.TryResolveTupleElementMember(member, null, index)
+                Member element = context.client.TryResolveTupleElementMember(member, collectionRow, index)
                     ?? throw new InvalidOperationException($"Tuple '{member.name}' has no element {index + 1}.");
                 object? value = tuple[index];
                 JToken key;
                 if (value is null)
                     key = JValue.CreateNull();
                 else if (element is TupleMember nested && value is RuntimeTuple nestedValue)
-                    key = RuntimeTupleFragment(nested, nestedValue, context);
+                    key = RuntimeTupleFragment(nested, nestedValue, context, collectionRow);
                 else if (IsHandle(element))
                     key = new JValue(NSGetterEvaluator.ReferenceKeyOf(value, context) as string ?? "<unattached>");
                 else if (element is LookupMember or DialogueLookupMember)
