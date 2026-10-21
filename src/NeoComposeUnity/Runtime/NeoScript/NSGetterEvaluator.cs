@@ -4624,6 +4624,18 @@ namespace NeoCompose.Runtime.NeoScript
                 value = null;
                 return bound;
             }
+            if (pointer is FunctionPointer { function: TupleElementFunction tupleElement })
+            {
+                object? raw = EvalTupleElement(tupleElement.info, scope, ctx, refreshCollection: false);
+                RowReference? alias = raw is object?[] entries ? ctx.CollectionRowReference(entries) : FindRowReference(raw, ctx);
+                if (alias is not null && Answers(batch, alias.ownership, alias.valueId, read) is { } pending)
+                {
+                    value = null;
+                    return pending;
+                }
+                value = evaluate ? RuntimeCollection(ReadNestedCollectionAlias(raw, ctx), ctx) : raw;
+                return null;
+            }
             if (pointer is VariablePointer variable)
             {
                 RowReference? alias = null;
@@ -11317,6 +11329,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? ResolveHostCollection(object? value, Context ctx)
         {
+            if (value is RuntimeTuple tuple)
+            {
+                var elements = new object?[tuple.Count];
+                for (int i = 0; i < elements.Length; i++)
+                    elements[i] = ResolveHostCollection(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx);
+                return new RuntimeTuple(elements, tuple.TypeInfo);
+            }
             if (value is RuntimeSet set)
             {
                 var exported = new object?[set.Count];
@@ -11338,7 +11357,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A class record is never a derived collection.
             else if (value is NeoObjectRecord || (entryMember = DerivedEntryMember(value)) is null)
                 return ResolveNestedRuntimeSets(value, ctx);
-            bool nested = entryMember is null or ListMember or DictionaryMember;
+            bool nested = entryMember is null or ListMember or DictionaryMember or TupleMember;
             bool values = rowRef is null && HoldsValues(value);
             NeoValueOwnership? ownership = rowRef?.ownership;
             if (value is object?[] rows)
