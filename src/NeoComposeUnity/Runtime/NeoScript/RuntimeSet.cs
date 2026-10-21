@@ -16,16 +16,19 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly bool Reference;
         internal readonly bool EnumEntries;
         internal readonly bool DecimalEntries;
+        /// <summary>P127 §7. A stored lookup names rows by id, so entries key by identity.</summary>
+        internal readonly bool RowIdentity;
         internal readonly object?[] Source;
         /// <summary>P127 §7. Equal equatable rows' shared keys; set while any class is IEquatable.</summary>
         internal NSGetterEvaluator.EquatableSetKeys? EquatableKeys;
 
-        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer)
+        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer, bool rowIdentity = false)
         {
             Source = source;
             Reference = reference;
             EnumEntries = enumEntries;
             DecimalEntries = decimalEntries;
+            RowIdentity = rowIdentity;
             entries = new OrderedMap<object, object?>(comparer);
         }
 

@@ -158,13 +158,13 @@ namespace NeoCompose.Runtime.NeoScript
             runtimeLists.AddOrUpdate(after, identity);
         }
 
-        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false)
+        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false, bool rowIdentity = false)
         {
             var sets = runtimeSets;
             if (cache && sets.TryGetValue(source, out var existing))
                 return existing;
             var set = new RuntimeSet(source, reference, enumEntries, decimalEntries,
-                reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
+                reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx), rowIdentity);
             var cursor = new CollectionCursor(source, ctx);
             while (cursor.MoveNextUnresolved())
             {
@@ -207,7 +207,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (set.DecimalEntries && DecimalEntryKey(value, "set entry") is string decimalKey)
                 return decimalKey;
             object? key = set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
-            if (value is null || !ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
+            if (value is null || set.RowIdentity || !ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
                 return key;
             return EquatableEntryKey(set.EquatableKeys ??= new EquatableSetKeys(), value, key, set.Reference, ctx);
         }
@@ -250,7 +250,7 @@ namespace NeoCompose.Runtime.NeoScript
             LookupKeys index = lookupKeys.GetOrCreateValue(array);
             if (scope is null || !ReferenceEquals(index.scope, scope) || index.generation != generation || index.set is null)
             {
-                index.set = MakeRuntimeSet(array, reference, enumeration, ctx, cache: false);
+                index.set = MakeRuntimeSet(array, reference, enumeration, ctx, cache: false, rowIdentity: true);
                 index.scope = scope;
                 index.generation = generation;
             }

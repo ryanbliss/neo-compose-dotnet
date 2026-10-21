@@ -117,6 +117,11 @@
     "  public List<Reading> Rs = [new Reading(-1)];",
     "}",
     "",
+    "class CoinPicks {",
+    "  public List<Coin> Items = [new Coin(1), new Coin(1)];",
+    "  public Set<Reference<Coin>> Picked = [];",
+    "}",
+    "",
     "class Plain(int n) {",
     "  public int N = n;",
     "}",
@@ -158,6 +163,7 @@
     "}",
     "",
     "class Probe {",
+    "  @storage(allowed: .Session) public static CoinPicks Picks = new();",
     "  static bool EqPlainTup<T>(T v) => v is IEquatable<(int, Plain)>;",
     "  static bool CmpPlainTup<T>(T v) => v is IComparable<(int, Plain)>;",
     "  static bool EqIntStrTup<T>(T v) => v is IEquatable<(int, string)>;",
@@ -490,6 +496,9 @@
     "  public static int SetMissesRunNoEquals() { List<Counted> e = []; Set<Counted> s = e.ToSet(); int before = Probe.Calls.N; int hits = 0; for (int i = 0; i < 16; i++) { if (s.Contains(new Counted(i))) hits += 1; } return Probe.Calls.N - before + hits; }",
     "  public static string TupleTypeTestsCheckElements() { (float, string) f = (2.0, \"a\"); (int, Coin?) n = (1, null); return $\"{EqPlainTup((1, new Plain(1)))}|{CmpPlainTup((1, new Plain(1)))}|{EqIntStrTup(f)}|{EqIntStrTup((1, \"a\"))}|{EqCoinTup((1, new Coin(1)))}|{CmpCoinTup((1, new Coin(1)))}|{EqCoinNTup(n)}|{EqCoinTup(n)}\"; }",
     "  public static string TupleSetDropsDepartedRow() { List<(Coin, int)> e = []; Set<(Coin, int)> s = e.ToSet(); Coin a = new(1); Coin b = new(1); s.Add((a, 1)); s.Add((b, 2)); s.Remove((new Coin(1), 1)); a.Cents = 3; return $\"{s.Contains((new Coin(1), 2))}|{s.Contains((new Coin(3), 2))}|{s.Count}\"; }",
+    "  public static string TupleSetComparesOwnElements() { List<(Coin, int)> e = []; Set<(Coin, int)> s = e.ToSet(); Coin a = new(1); Coin b = new(1); s.Add((a, 1)); s.Add((b, 2)); a.Cents = 3; bool found = s.Contains((new Coin(1), 2)); s.Add((new Coin(1), 2)); return $\"{found}|{s.Count}\"; }",
+    "  public static string TupleSetComparesOwnElementsMirror() { List<(Coin, int)> e = []; Set<(Coin, int)> s = e.ToSet(); Coin a = new(1); Coin b = new(1); s.Add((a, 1)); s.Add((b, 2)); b.Cents = 3; return $\"{s.Contains((new Coin(3), 2))}|{s.Contains((new Coin(1), 1))}|{s.Contains((new Coin(1), 2))}\"; }",
+    "  public static string RefSetKeepsIdentity() { Picks.Picked.Add(Picks.Items[0]); Picks.Picked.Add(Picks.Items[1]); int both = Picks.Picked.Count; Picks.Picked.Remove(Picks.Items[0]); return $\"{both}|{Picks.Picked.Count}|{Picks.Picked.Contains(Picks.Items[1])}|{Picks.Picked.Contains(Picks.Items[0])}\"; }",
     "}"
   ],
   "returns": {
@@ -675,7 +684,10 @@
     "TupleSetCountsRowUses": "true|true|false|1",
     "SetMissesRunNoEquals": 0,
     "TupleTypeTestsCheckElements": "false|false|false|true|true|false|true|false",
-    "TupleSetDropsDepartedRow": "true|false|1"
+    "TupleSetDropsDepartedRow": "true|false|1",
+    "TupleSetComparesOwnElements": "true|2",
+    "TupleSetComparesOwnElementsMirror": "true|true|false",
+    "RefSetKeepsIdentity": "2|1|true|false"
   },
   "refuses": {
     "GenericDivideByZero": "Division by zero",

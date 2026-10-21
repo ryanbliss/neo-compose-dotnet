@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Score : NeoGeneratedClassValue, IReadOnlyScore
     {
         internal Score(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "758dd7f1-2818-4703-a59a-39e63f9b21e1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a272c421-9ced-4d26-a3e0-521dd8c7b443", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Score(int n, int? N = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "758dd7f1-2818-4703-a59a-39e63f9b21e1", "83c48cce-d5c0-5be2-b14a-6963b8d1a437", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "93cd4345-8643-4465-b55d-91646f9eb286", N) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "a272c421-9ced-4d26-a3e0-521dd8c7b443", "00117646-f8de-5a54-8e88-6b7bf4924fa9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "67580c81-efdd-4728-9f3d-1876dc6d3602", N) }), false, NeoValueOwnership.Session)
         {
         }
 
