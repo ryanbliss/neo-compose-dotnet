@@ -6750,6 +6750,104 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0, reopened.save.Get<NeoMemberDictionaryWritable>("ThingLists").Count);
         }
 
+        [Test]
+        public void ForceUnwrappedSparseNullableListMutationSurvivesReload()
+        {
+            var data = BuildProjectData();
+            data.classes["thing-class"].schema["Maybe"] = "thing-maybe";
+            data.members["thing-maybe"] = new ListMember
+            {
+                id = "thing-maybe",
+                projectId = "p75-project",
+                name = "Maybe",
+                kind = MemberKind.List,
+                Requirement = NeoMemberRequirementKind.Optional,
+                entryMemberId = "thing-count",
+                defaultValue = new ArrayMemberValueBase { value = new[] { "maybe-default" } },
+            };
+            data.values["maybe-default"] = new NumberMemberValue { id = "maybe-default", value = 1 };
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                ExecuteSaveInstruction(client, new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    mutation = CollectionMutationKind.Add,
+                    target = new WriteTarget
+                    {
+                        pointer = new ForceUnwrapPointer
+                        {
+                            type = PointerKind.ForceUnwrap,
+                            pointer = PointerKeyOf(SavePointer("Thing"), "Maybe"),
+                        },
+                        typeInfo = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true } },
+                        writability = WritabilityKind.Save,
+                    },
+                    args = new Pointer[] { IntLiteral(2) },
+                });
+                Assert.AreEqual(2, client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberListWritable>("Maybe").Count);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(2, reopened.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberListWritable>("Maybe").Count);
+        }
+
+        [Test]
+        public void ScriptNestedCollectionClearPreservesSaveOwnership(
+            [Values(false, true)] bool unwrap,
+            [Values(false, true)] bool localContainer)
+        {
+            var data = BuildNestedListProjectData();
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                string countId = WriteNestedListDeepCount(client);
+                Pointer pointer = PointerKeyOf(SavePointer("ThingLists"), "a");
+                if (localContainer)
+                    pointer = new KeyOfPointer
+                    {
+                        type = PointerKind.KeyOf,
+                        keyOf = new KeyOf
+                        {
+                            pointer = new ListLiteralPointer
+                            {
+                                type = PointerKind.ListLiteral,
+                                typeInfo = new CollectionTypeInfo
+                                {
+                                    type = MemberKind.List,
+                                    required = true,
+                                    entryTypeInfo = ThingCollectionType(MemberKind.List),
+                                },
+                                entries = new[] { pointer },
+                            },
+                            key = new ValuePointer
+                            {
+                                type = PointerKind.Value,
+                                value = new Value { typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, value = new JValue(0) },
+                            },
+                        },
+                    };
+                if (unwrap)
+                    pointer = new ForceUnwrapPointer { type = PointerKind.ForceUnwrap, pointer = pointer };
+                ExecuteSaveInstruction(client, new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    mutation = CollectionMutationKind.Clear,
+                    target = new WriteTarget
+                    {
+                        pointer = pointer,
+                        typeInfo = ThingCollectionType(MemberKind.List),
+                        writability = localContainer ? WritabilityKind.Runtime : WritabilityKind.Save,
+                    },
+                    args = Array.Empty<Pointer>(),
+                });
+                AssertReleased(client, countId);
+                saved = client.SerializeSaveData();
+            }
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(0, ((NeoMemberListWritable)reopened.save.Get<NeoMemberDictionaryWritable>("ThingLists")["a"]).Count);
+        }
+
         // A generic entry member substitutes through the collection row's stamp.
         [Test]
         public void ScriptGenericNestedListRemovalReleasesItsEntriesBeforeSaveReload()
