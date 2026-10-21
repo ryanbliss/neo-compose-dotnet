@@ -5807,17 +5807,40 @@ namespace NeoCompose.Runtime.NeoScript
                 case ComparisonOp.DoesNotEqual:
                     return !ConditionEqual(condition, a, b, ctx);
                 case ComparisonOp.GreaterThan:
-                    return RelationalCompare(a, b) > 0;
+                    return ConditionOrder(condition, a, b, ctx) > 0;
                 case ComparisonOp.GreaterThanOrEqualTo:
-                    return RelationalCompare(a, b) >= 0;
+                    return ConditionOrder(condition, a, b, ctx) >= 0;
                 case ComparisonOp.LessThan:
-                    return RelationalCompare(a, b) < 0;
+                    return ConditionOrder(condition, a, b, ctx) < 0;
                 case ComparisonOp.LessThanOrEqualTo:
-                    return RelationalCompare(a, b) <= 0;
+                    return ConditionOrder(condition, a, b, ctx) <= 0;
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown comparison operator '{condition.type}'");
             }
+        }
+
+        /// <summary>
+        /// P127 §8. <paramref name="a"/>'s order against <paramref name="b"/>:
+        /// predefined, or through the CompareTo of the operand the compiler
+        /// chose. A non-row float keeps IEEE semantics, so NaN orders against
+        /// nothing.
+        /// </summary>
+        private static double ConditionOrder(Condition condition, object? a, object? b, Context ctx)
+        {
+            if (condition.comparableOperand is not { } operand)
+                return RelationalCompare(a, b);
+            TypeInfo? evidence = condition.evidence?[operand - 1];
+            if (evidence is null)
+                throw new NSGetterRuntimeError("A comparable condition carries no evidence.");
+            object? receiver = operand == 1 ? a : b;
+            object? other = operand == 1 ? b : a;
+            if (receiver is null)
+                throw new NSGetterRuntimeError("Comparison received a null CompareTo operand.");
+            double order = SourcePrimitive(evidence, receiver, ctx) == NeoPrimitive.Float
+                ? RelationalCompare(receiver, other)
+                : CompareTo(receiver, other, evidence, ctx);
+            return operand == 1 ? order : -order;
         }
 
         // The operator parsed once per condition: a string switch compares
@@ -6801,7 +6824,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return Box(SetHoldsKey(c, target, setEntryMember, ctx));
             if (cnf.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
-            string? targetReferenceId = ValueIdOf(target, ctx);
+            string? targetReferenceId = IdentitySearchId(target, ctx);
             if (c is object?[] entries)
             {
                 // An entry whose stored id is the target's matches without
@@ -6974,7 +6997,7 @@ namespace NeoCompose.Runtime.NeoScript
             var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), search);
             if (iof.info.reference)
                 return Box(ReferenceIndexOf(c, target, ctx));
-            string? targetReferenceId = ValueIdOf(target, ctx);
+            string? targetReferenceId = IdentitySearchId(target, ctx);
             var cursor = new CollectionCursor(c, ctx);
             while (cursor.MoveNextUnresolved())
             {
@@ -9165,6 +9188,13 @@ namespace NeoCompose.Runtime.NeoScript
             }
             return -1;
         }
+
+        /// <summary>
+        /// The value id a collection search matches by identity. Null for an
+        /// equatable row, whose Equals decides even against itself (P127 §7).
+        /// </summary>
+        private static string? IdentitySearchId(object? target, Context ctx) =>
+            EquatableSearchClass(target, ctx) is null ? ValueIdOf(target, ctx) : null;
 
         private static bool IsSameReference(object? entry, object? target, object? targetKey, Context ctx)
         {

@@ -493,6 +493,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo[]? evidence;
+        /// <summary>
+        /// P127 §8. The operand (1 or 2) whose CompareTo orders a relational
+        /// condition, read through its <see cref="evidence"/>.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? comparableOperand;
         // Evaluator cache for type, parsed once.
         internal ComparisonOp comparison;
     }

@@ -139,6 +139,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedApiCrossesInterfaceBoundariesBothWays()
+        {
+            using var app = new Parity.TestProjectNeo(Client());
+            var five = new Parity.Coin(5);
+
+            Assert.That(Parity.Probe.ClrTupleOut(), Is.EqualTo((1, "a")));
+            Assert.That(Parity.Probe.ClrDecimalOut(), Is.EqualTo(1.10m));
+            Assert.That(Parity.Probe.ClrDecimalOut().ToString(), Is.EqualTo("1.10"));
+            Assert.That(Parity.Probe.ClrFloatOut(), Is.EqualTo(2.5f));
+            Assert.That(Parity.Probe.ClrCoinOut().Equals(five), Is.True);
+            IReadOnlyList<IEquatable<decimal>> decimals = Parity.Probe.ClrDecimalsOut();
+            Assert.That(decimals[0], Is.EqualTo(1.10m));
+            Assert.That(decimals[1], Is.InstanceOf<Parity.IReadOnlyDecBox>());
+            var pair = Parity.Probe.ClrPairOut();
+            Assert.That(pair.Item1, Is.EqualTo((1, "a")));
+            Assert.That(pair.Item2, Is.EqualTo(2.5f));
+
+            Assert.That(Parity.Probe.ClrTupleIn((1, "a")), Is.True);
+            Assert.That(Parity.Probe.ClrTupleIn((2, "a")), Is.False);
+            Assert.That(Parity.Probe.ClrValuesIn(1.10m, 2.5f, five), Is.EqualTo("true|true|true"));
+            Assert.That(Parity.Probe.ClrDecimalsIn(new List<IEquatable<decimal>> { 1.10m, new Parity.DecBox(2.5m) }), Is.EqualTo("2|true|true"));
+            Assert.That(Parity.Probe.ClrPairIn(((1, "a"), five)), Is.EqualTo("true|true"));
+
+            var error = Assert.Catch(() => Parity.Probe.ClrTupleIn(new ForeignPair()))!;
+            StringAssert.Contains("received a CLR ForeignPair, which is not a value of Interface 'IEquatable'", error.ToString());
+        }
+
+        [Test]
         public void ForeignClrValuesNameTheInterface()
         {
             using NeoClient client = Client();
@@ -177,6 +205,11 @@ namespace NeoCompose.Tests
             using NeoClient reloaded = Client(saved);
 
             Assert.That(Invoke(reloaded, "ReadSavedBank"), Is.EqualTo(afterBump));
+        }
+
+        private sealed class ForeignPair : IEquatable<(int, string)>
+        {
+            public bool Equals((int, string) other) => true;
         }
 
         private static string ExportPath => Path.Combine(PackageRoot, "primitive-interfaces-parity-export.json");

@@ -1977,9 +1977,7 @@ namespace NeoCompose.Runtime
                 throw new ObjectDisposedException(nameof(NeoClient));
             // P127 §12. A boxed primitive or ValueTuple passed as a value-usable
             // interface crosses as the kind its closed construction holds.
-            if (typeInfo.type == MemberKind.Interface
-                && value is not (null or IDictionary<string, object?> or INeoValueReference or NeoDetachedValue)
-                && NeoPrimitiveInterfaces.AdmitsPrimitives(typeInfo))
+            if (HoldsPrimitive(value, typeInfo))
             {
                 TypeInfo closed = NSGetterEvaluator.CloseContextType(typeInfo, ctx);
                 if (NeoPrimitiveInterfaces.HeldTypeOf(closed) is not TypeInfo held)
@@ -2319,9 +2317,23 @@ namespace NeoCompose.Runtime
         {
             if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
                 return;
-            ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateRuntimeValue(value, PrimitiveHeldType(value, typeInfo, ctx) ?? typeInfo, subject);
             ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
         }
+
+        /// <summary>
+        /// P127 §12. A boxed primitive or ValueTuple in a value-usable
+        /// interface slot, which crosses as the kind its closed construction holds.
+        /// </summary>
+        private static bool HoldsPrimitive(object? value, TypeInfo typeInfo) =>
+            typeInfo.type == MemberKind.Interface
+            && value is not (null or IDictionary<string, object?> or INeoValueReference or NeoDetachedValue)
+            && NeoPrimitiveInterfaces.AdmitsPrimitives(typeInfo);
+
+        private static TypeInfo? PrimitiveHeldType(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx) =>
+            HoldsPrimitive(value, typeInfo)
+                ? NeoPrimitiveInterfaces.HeldTypeOf(NSGetterEvaluator.CloseContextType(typeInfo, ctx))
+                : null;
 
         /// <summary>
         /// <see cref="Normalize"/> followed by
@@ -2382,6 +2394,12 @@ namespace NeoCompose.Runtime
                     {
                         if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
                             return;
+                        if (PrimitiveHeldType(value, typeInfo, ctx) is TypeInfo held)
+                        {
+                            ValidateRuntimeValue(value, held, subject);
+                            ValidateResolvedIdentity(client, value, held, ctx, subject);
+                            return;
+                        }
                         string? interfaceId = typeInfo switch
                         {
                             InterfaceTypeInfo interfaceType => interfaceType.interfaceId,
