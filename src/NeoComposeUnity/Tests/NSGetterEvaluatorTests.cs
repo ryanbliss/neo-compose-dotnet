@@ -291,6 +291,39 @@ namespace NeoCompose.Tests
             Assert.That(result, Is.EqualTo(expected));
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        public void StringCollectionSearchComparesTextRatherThanStorageIds(bool dictionary, bool indexOf)
+        {
+            var data = NeoTestExport.Read(LoadFixture("synth-example.json"))!;
+            var entry = StringMember("qa-search-entry", "Entry");
+            entry.DeclaredFormat = NeoStringFormatKind.Plain;
+            NeoCompose.Runtime.Json.Member collectionMember = dictionary
+                ? DictionaryMember("qa-search", "Search", entry.id)
+                : ListMember("qa-search", "Search", entry.id);
+            data.members[entry.id] = entry;
+            data.members[collectionMember.id] = collectionMember;
+            data.values["storage-id"] = StringValue("storage-id", "actual text");
+            data.values["other-id"] = StringValue("other-id", "storage-id");
+            MemberValue collectionRow = dictionary
+                ? ObjectValue("qa-search-row", null, new Dictionary<string, string> { ["a"] = "storage-id", ["b"] = "other-id" })
+                : ArrayValue("qa-search-row", "storage-id", "other-id");
+            data.values[collectionRow.id] = collectionRow;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object? collection = NSGetterEvaluator.UnwrapRow(collectionRow, context, NeoValueOwnership.Asset, collectionMember);
+            var search = JsonConvert.DeserializeObject<Pointer>(@"{
+                'type':'function','function':{'type':'__TYPE__','info':{
+                    'collectionPointer':{'type':'variable','variableId':'collection'},
+                    'valuePointer':{'type':'variable','variableId':'target'}}}}".Replace("__TYPE__", indexOf ? "indexOf" : "contains"))!;
+            object? Find(string target) => NSGetterEvaluator.EvaluatePointer(search,
+                new Dictionary<string, object?> { ["collection"] = collection, ["target"] = target }, context);
+            Assert.That(Find("other-id"), Is.EqualTo(indexOf ? (object)(-1) : false), "A row id is not a string entry.");
+            Assert.That(Find("storage-id"), Is.EqualTo(indexOf ? (object)1 : true), "Match the text in the second row.");
+            Assert.That(Find("actual text"), Is.EqualTo(indexOf ? (object)0 : true));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void MediaReferencePayloadsUseTheSharedWriteConversion(bool json)
@@ -2568,12 +2601,12 @@ namespace NeoCompose.Tests
                 },
             };
             Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "collection callbacks");
-            // A stored id equal to the target matches without reading its entry.
+            // A string equal to a storage id still compares against localized text.
             ((ContainsFunction)contains.function).info.valuePointer = StringPointer("value-command");
             var enclosing = client.BeginGetterReadCapture();
-            Assert.AreEqual(true, Evaluate(contains, MemberKind.Bool), "id match");
+            Assert.AreEqual(false, Evaluate(contains, MemberKind.Bool), "storage ids are not string values");
             var capture = client.EndGetterReadCapture(enclosing);
-            Assert.IsFalse(capture.reads!.Contains("value-command"), "the matched entry is not read");
+            Assert.IsTrue(capture.reads!.Contains("value-command"), "the resolved text determines membership");
             client.RecycleGetterCapture(capture);
             var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
             object? list = NSGetterEvaluator.Evaluate(ReturnFunction(KeyOf(root, "Commands"), MemberKind.List), ctx);
