@@ -2559,6 +2559,9 @@ namespace NeoCompose.Runtime
                 resolvedIdentity = false;
                 return rows;
             }
+            // Nested entries may still hold the array from before a mutation.
+            // Normalize its current contents before advancing the shared identity.
+            enumerable = (IEnumerable)NSGetterEvaluator.RuntimeCollection(value, ctx)!;
             var result = new List<object?>();
             foreach (object? entry in enumerable)
             {
@@ -2578,6 +2581,8 @@ namespace NeoCompose.Runtime
             result.CopyTo(normalized);
             NeoGeneratedTypesSupport.PreserveConstructorCollectionOrigin(value, normalized);
             NSGetterEvaluator.KeepDerivedOf(value, normalized, entryType);
+            if (typeInfo.type == MemberKind.List)
+                NSGetterEvaluator.ReplaceRuntimeList(value, normalized);
             return NSGetterEvaluator.DeclaredRuntimeSet(normalized, typeInfo, ctx)!;
         }
 

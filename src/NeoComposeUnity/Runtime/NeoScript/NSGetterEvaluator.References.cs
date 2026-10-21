@@ -479,7 +479,9 @@ namespace NeoCompose.Runtime.NeoScript
             var entries = new List<object?>();
             while (cursor.MoveNextUnresolved())
                 entries.Add(CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx));
-            return KeepDerived(entries.ToArray(), null, values: true);
+            var copied = new object?[entries.Count];
+            entries.CopyTo(copied);
+            return KeepDerived(copied, null, values: true);
         }
 
         private static object? CopiedEntry(object? entry, bool nested, Context ctx) =>

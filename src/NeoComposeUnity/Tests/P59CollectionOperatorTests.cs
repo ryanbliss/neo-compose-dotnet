@@ -161,7 +161,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void LocalAdd_GrowsInPlaceWhileEveryReadKeepsItsList()
+        public void LocalAdd_PreservesAliasesAcrossGrowthAndPooledFrames()
         {
             // var items = []; var before = items;
             // var i = 0; while (i < 6) { items.Add(i); i = i + 1; }
@@ -203,7 +203,7 @@ namespace NeoCompose.Tests
             for (int run = 0; run < 2; run++)
             {
                 CollectionAssert.AreEqual(
-                    new object?[] { 0d, 6d, 7d, 8d, 7d, 5d },
+                    new object?[] { 8d, 8d, 8d, 8d, 7d, 5d },
                     (object?[])NSGetterEvaluator.Evaluate(getter, ctx)!,
                     $"run {run}");
             }
