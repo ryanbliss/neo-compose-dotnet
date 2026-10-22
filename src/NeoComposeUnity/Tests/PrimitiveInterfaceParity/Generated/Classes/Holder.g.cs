@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Holder<T> : NeoGeneratedClassValue, IReadOnlyHolder<T>
     {
         internal Holder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "26d973b4-9d63-413a-9788-ea06b26c42b3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cde6b99a-e573-440d-b427-7a295474e4b2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "26d973b4-9d63-413a-9788-ea06b26c42b3" => new Holder<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cde6b99a-e573-440d-b427-7a295474e4b2" => new Holder<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Holder' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "26d973b4-9d63-413a-9788-ea06b26c42b3" => new Holder<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cde6b99a-e573-440d-b427-7a295474e4b2" => new Holder<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Holder' without a concrete client type id."),
                 };
             });
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             }
         }
 
-        [NeoMemberMethod("3e384715-2de0-44a7-8a8d-e04cb01cbf30")]
+        [NeoMemberMethod("3f65758e-4368-4fbd-8e7d-1318a827bbc4")]
         public void Set(T value)
         {
             InvokeFunction("Set", (object?)(value));

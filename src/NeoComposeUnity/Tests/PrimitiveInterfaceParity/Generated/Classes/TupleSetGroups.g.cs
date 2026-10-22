@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class TupleSetGroups : NeoGeneratedClassValue, IReadOnlyTupleSetGroups
     {
         internal TupleSetGroups(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3d3321b4-212d-4280-b47e-0e7f7851c664", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0580952c-c8b7-4139-b555-f2ebfa06cc62", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "3d3321b4-212d-4280-b47e-0e7f7851c664",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "bffd218d-f0c8-4401-8925-a8ffe2d4541b", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "fe1d4625-52ae-4ba8-a0d4-c7f0defe9c2b", Groups)
+                "0580952c-c8b7-4139-b555-f2ebfa06cc62",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "7670f5d0-4a5b-4a69-a90e-45d1aadabd1b", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "71dfbcd6-a5d3-46b0-a2ab-d542434bd8db", Groups)
             );
         }
 
