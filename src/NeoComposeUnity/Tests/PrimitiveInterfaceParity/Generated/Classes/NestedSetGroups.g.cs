@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class NestedSetGroups : NeoGeneratedClassValue, IReadOnlyNestedSetGroups
     {
         internal NestedSetGroups(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e2f54073-641e-421f-a64f-5755f1806ed8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e804ffd6-5d86-4e53-9549-7088844688d0", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e2f54073-641e-421f-a64f-5755f1806ed8",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "23475aea-c691-4413-8404-c23490ab415b", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nest", "fa7edb5a-24ce-43e2-9979-5c65eb7082b4", Nest)
+                "e804ffd6-5d86-4e53-9549-7088844688d0",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "fcfdce61-9ddb-4bb6-a803-66088a1f5428", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nest", "cf402cc5-7042-4627-9aaa-09a7231361bc", Nest)
             );
         }
 

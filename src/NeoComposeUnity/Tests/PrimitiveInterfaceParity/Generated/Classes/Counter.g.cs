@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Counter<T> : NeoGeneratedClassValue, IReadOnlyCounter<T>
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "73bc1c5b-a7b7-413e-b990-c4c1af77a5ba", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8ed21635-2bc9-4d52-aa02-88671716026c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "73bc1c5b-a7b7-413e-b990-c4c1af77a5ba" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "8ed21635-2bc9-4d52-aa02-88671716026c" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "73bc1c5b-a7b7-413e-b990-c4c1af77a5ba" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "8ed21635-2bc9-4d52-aa02-88671716026c" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
 
 
 
-        [NeoMemberMethod("094d6412-4881-4ab3-8e65-15271f9c9a9c")]
+        [NeoMemberMethod("886a168b-cefc-45ad-abc8-33fbe6abd458")]
         public void Add(T amount)
         {
             InvokeFunction("Add", (object?)(amount));
@@ -118,7 +118,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             return (bool)result!;
         }
 
-        [NeoMemberMethod("6428d05e-5e51-4e52-89cb-7c6c91492836")]
+        [NeoMemberMethod("512975ff-001f-49e2-98ff-8c49a57048d7")]
         public void Increment()
         {
             InvokeFunction("Increment");

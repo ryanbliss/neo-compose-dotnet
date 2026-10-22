@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class TokenShelf : NeoGeneratedClassValue, IReadOnlyTokenShelf
     {
         internal TokenShelf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c097a6d3-68e3-4799-ab56-5d3a6dd74f80", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5309c600-b2fd-416b-8a9f-56b2ba4d953c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c097a6d3-68e3-4799-ab56-5d3a6dd74f80",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "122b613f-ac14-408c-a540-0e880e11b6cd", Items)
+                "5309c600-b2fd-416b-8a9f-56b2ba4d953c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "8d9f18ed-a6a5-4062-bc10-dddda6ee9354", Items)
             );
         }
 
