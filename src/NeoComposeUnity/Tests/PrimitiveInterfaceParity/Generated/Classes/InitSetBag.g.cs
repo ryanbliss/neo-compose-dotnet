@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class InitSetBag<T> : NeoGeneratedClassValue, IReadOnlyInitSetBag<T>
     {
         internal InitSetBag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7a1ccf46-aaed-4115-b300-3b8f80bd7530", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "28de197f-81d6-4677-9d00-f96be2777fe5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7a1ccf46-aaed-4115-b300-3b8f80bd7530" => new InitSetBag<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "28de197f-81d6-4677-9d00-f96be2777fe5" => new InitSetBag<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'InitSetBag' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7a1ccf46-aaed-4115-b300-3b8f80bd7530" => new InitSetBag<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "28de197f-81d6-4677-9d00-f96be2777fe5" => new InitSetBag<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'InitSetBag' without a concrete client type id."),
                 };
             });
