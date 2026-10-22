@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class DecBox : NeoGeneratedClassValue, IReadOnlyDecBox
     {
         internal DecBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e9cad55c-de91-4e11-8d1c-e30069bb79f3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "52867c4b-c284-4bdd-b2a0-c835f6274823", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public DecBox(decimal v, decimal? V = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "e9cad55c-de91-4e11-8d1c-e30069bb79f3", "6bf04f06-e835-5129-9dae-fcdf8ffe9982", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "49181c15-cb71-4e32-82dd-4a17fc85406f", V) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "52867c4b-c284-4bdd-b2a0-c835f6274823", "9fbd2225-2589-5d62-aece-acae8c19ab67", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "05fb8c2b-d356-4629-944e-6d9f87698f16", V) }), false, NeoValueOwnership.Session)
         {
         }
 
