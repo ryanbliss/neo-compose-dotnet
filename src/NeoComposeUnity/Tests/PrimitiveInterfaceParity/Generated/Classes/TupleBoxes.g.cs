@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class TupleBoxes : NeoGeneratedClassValue, IReadOnlyTupleBoxes
     {
         internal TupleBoxes(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "35de0278-52f3-43b6-933d-42761bd3c364", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "673d64a6-079a-43f5-9033-fbe39459cc4b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "35de0278-52f3-43b6-933d-42761bd3c364",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "0b1d38c0-908b-4294-9140-90efbf4e30eb", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ranked", "6ae99a7a-e693-440f-a5a0-a83d505fe456", Ranked),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nullable", "cbfc0b8c-9025-4392-9086-4d35684c6693", Nullable)
+                "673d64a6-079a-43f5-9033-fbe39459cc4b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "7e836003-e24f-4fcb-ba15-0278069180e3", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ranked", "f01ab97f-ae5e-4f63-97a1-18a972759f4a", Ranked),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nullable", "95d9c4e4-2773-4dad-b820-33d6a95e6559", Nullable)
             );
         }
 

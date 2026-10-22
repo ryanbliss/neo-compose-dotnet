@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Money : NeoGeneratedClassValue, IReadOnlyMoney
     {
         internal Money(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "30ee5953-7619-4ff3-b3b3-be25a84e0a1c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c114f7f8-a7b1-496d-b42e-df523d0cd7c2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = new NeoMemberNSProperty(client, "26e01fe4-0cd1-4800-8df3-961b65da9ede", null, NeoValueOwnership.Session);
+                var node = new NeoMemberNSProperty(client, "4182bfe3-5007-4b8a-af2f-e2b010417920", null, NeoValueOwnership.Session);
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Money.CreateDetached(factoryClient, factoryValue, factorySaved));
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         public static string Label()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "11b57527-934f-48d0-8645-70d34f58cd84");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "448f393b-d7e9-4dde-8f04-be0431a468cd");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         public static IReadOnlyMoney Parse(string s)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a8621e80-b259-4c35-b758-48bfc517812e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ca0b25bc-7ab2-4fa5-a6f5-3ceb33c511ac");
             var result = node.InvokeStatic((object?)(s));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Money.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         public static IReadOnlyMoney? TryParse(string s)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "972c3f82-0eb9-4eee-8b58-b09797a419e5");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3b61f640-f0ca-4ff3-b6f1-d05607058082");
             var result = node.InvokeStatic((object?)(s));
             return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result, false, true, null, static (factoryClient, factoryNode) => Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Money.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = new NeoMemberNSProperty(client, "3d6b3181-b6ac-4f36-b510-40d18353c10a", null, NeoValueOwnership.Session);
+                var node = new NeoMemberNSProperty(client, "ec156ef2-1bd5-461e-bb0b-3dac743f1f6e", null, NeoValueOwnership.Session);
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Money.CreateDetached(factoryClient, factoryValue, factorySaved));
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Money(int cents, int? Cents = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "30ee5953-7619-4ff3-b3b3-be25a84e0a1c", "3af4f3a6-a3be-560a-84d6-15341cb6ebfe", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "3184cad7-2579-4ebc-a864-e5944e048f43", Cents) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "c114f7f8-a7b1-496d-b42e-df523d0cd7c2", "412b9ecc-4123-5acf-83c8-45ad1bece53d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "851a57ac-0a8a-4bf1-9da9-34a5978ef743", Cents) }), false, NeoValueOwnership.Session)
         {
         }
 

@@ -7082,8 +7082,11 @@ namespace NeoCompose.Runtime
                     // Open types and non-type members describe no closed type.
                     continue;
                 }
-                if (!NeoClient.TypeInfoMatches(described, typeArgument))
+                if (!NeoClient.TypeInfoMatches(described, typeArgument)
+                    || !StoresTypeShape(client, member, typeArgument))
+                {
                     continue;
+                }
                 memberId = member.id;
                 break;
             }
@@ -7098,6 +7101,65 @@ namespace NeoCompose.Runtime
             }
             return memberId;
         }
+
+        /// <summary>
+        /// P112 §1.1. A handle <c>Reference&lt;T&gt;</c> types as <c>T</c>, so a
+        /// member can describe a type argument while storing a Lookup where the
+        /// type stores the row. A descriptor stores the type's own shape.
+        /// </summary>
+        private static bool StoresTypeShape(NeoClient client, Member member, TypeInfo type)
+        {
+            MemberKind stored = type.type == MemberKind.Reference ? MemberKind.Lookup : type.type;
+            MemberKind kind = member is ClassMember classTyped ? classTyped.TypeKind : member.kind;
+            if (kind != stored)
+                return false;
+            switch (member)
+            {
+                case TupleMember tuple when TupleTypeInfo.From(type) is { } tupleType:
+                    for (int i = 0; i < tuple.elementMemberIds.Length; i++)
+                    {
+                        if (!StoresTypeShape(client, tuple.elementMemberIds[i], tupleType.elements[i].typeInfo))
+                            return false;
+                    }
+                    return true;
+                case ListMember list:
+                    return StoresTypeShape(client, list.entryMemberId, EntryTypeInfo(type));
+                case DictionaryMember dictionary:
+                    return StoresTypeShape(client, dictionary.entryMemberId, EntryTypeInfo(type));
+                case ClassMember { TypeArguments: { } bindings }:
+                    Dictionary<string, TypeInfo>? arguments = type switch
+                    {
+                        ClassTypeInfo classType => classType.typeArguments,
+                        InterfaceTypeInfo interfaceType => interfaceType.typeArguments,
+                        FunctionArgumentTypeInfo argument => argument.typeArguments,
+                        _ => null,
+                    };
+                    foreach (var binding in bindings)
+                    {
+                        if (binding.Value.memberId is { } bindingId
+                            && arguments is not null
+                            && arguments.TryGetValue(binding.Key, out TypeInfo? argumentType)
+                            && !StoresTypeShape(client, bindingId, argumentType))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        private static bool StoresTypeShape(NeoClient client, string memberId, TypeInfo? type) =>
+            type is null
+            || client.TryGetMember(memberId, out Member? member) && StoresTypeShape(client, member!, type);
+
+        private static TypeInfo? EntryTypeInfo(TypeInfo type) => type switch
+        {
+            CollectionTypeInfo collection => collection.entryTypeInfo,
+            FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+            _ => null,
+        };
 
         private static string GenericParameterName(NeoClient client, string parameterId)
         {
@@ -8005,6 +8067,11 @@ namespace NeoCompose.Runtime
                     client,
                     entryMember,
                     genericEnv);
+                // P127 §7. A constructed Set keys class entries by row. An
+                // assignment's sets were guarded before they reached here.
+                NeoScript.NSGetterEvaluator.Context? setGuard = listMember is SetMember
+                    ? scope?.ExistingEvaluationContext
+                    : null;
                 var ids = new List<string>();
                 string[]? sourceIds = null;
                 NeoConstructorValueReference? collectionSource = ConstructorCollectionOrigins.TryGetValue(suppliedValue, out var origin)
@@ -8019,6 +8086,8 @@ namespace NeoCompose.Runtime
                 {
                     foreach (object? item in enumerable)
                     {
+                        if (setGuard is not null)
+                            NeoScript.NSGetterEvaluator.AssertStoredSetEntryNotEquatable(item, entryMember, setGuard);
                         string? id = MaterializeRuntimeConstructorValue(
                             client,
                             entryMember,

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Totals<T> : NeoGeneratedClassValue, IReadOnlyTotals<T>
     {
         internal Totals(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9a3ec18f-2df3-45b2-a7c4-d61b69ab30b5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "22d4ac2f-3084-4531-9028-7d58c932885b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9a3ec18f-2df3-45b2-a7c4-d61b69ab30b5" => new Totals<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "22d4ac2f-3084-4531-9028-7d58c932885b" => new Totals<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Totals' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9a3ec18f-2df3-45b2-a7c4-d61b69ab30b5" => new Totals<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "22d4ac2f-3084-4531-9028-7d58c932885b" => new Totals<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Totals' without a concrete client type id."),
                 };
             });
