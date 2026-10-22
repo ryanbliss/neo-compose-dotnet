@@ -69,6 +69,8 @@ namespace NeoCompose.Runtime.Json
         public const string RowOf = "rowOf";
         /// <summary>P112 §5.3. The target a reference names; a write through it targets the slot.</summary>
         public const string Deref = "deref";
+        /// <summary>P127 §2. A static interface member read or call through a type parameter.</summary>
+        public const string TypeParameterStatic = "typeParameterStatic";
     }
 
     public static class InstructionKind
@@ -198,6 +200,11 @@ namespace NeoCompose.Runtime.Json
         /// <c>Parse</c>/<c>TryParse</c>/<c>ToString(format)</c>.
         /// </summary>
         public const string TextOp = "textOp";
+        /// <summary>
+        /// P127 §5. <c>Equals</c>, <c>CompareTo</c>, <c>GetHashCode</c> and
+        /// vector or <c>Color</c> <c>ToString(format)</c> on a primitive receiver.
+        /// </summary>
+        public const string PrimitiveOp = "primitiveOp";
         public const string ListIndex = "listIndex";
         /// <summary>
         /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,
@@ -305,6 +312,15 @@ namespace NeoCompose.Runtime.Json
         public const string IsNullOrWhiteSpace = "isNullOrWhiteSpace";
         public const string Parse = "parse";
         public const string TryParse = "tryParse";
+        public const string Format = "format";
+    }
+
+    /// <summary>P127 §5. The primitive instance members <c>primitiveOp</c> evaluates.</summary>
+    public static class PrimitiveOpKind
+    {
+        public const string EqualsOp = "equals";
+        public const string CompareTo = "compareTo";
+        public const string GetHashCode = "getHashCode";
         public const string Format = "format";
     }
 
@@ -471,6 +487,18 @@ namespace NeoCompose.Runtime.Json
         /// instance).
         /// </summary>
         public bool reference;
+        /// <summary>
+        /// P127 §6. Both operands' static types when either may hold a
+        /// primitive behind a type parameter or interface.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo[]? evidence;
+        /// <summary>
+        /// P127 §8. The operand (1 or 2) whose CompareTo orders a relational
+        /// condition, read through its <see cref="evidence"/>.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? comparableOperand;
         // Evaluator cache for type, parsed once.
         internal ComparisonOp comparison;
     }
@@ -587,9 +615,11 @@ namespace NeoCompose.Runtime.Json
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
         /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
         /// <c>reference</c> identity equality; revision 17 adds typed
-        /// <c>numeric</c> arithmetic with 32-bit float rounding.
+        /// <c>numeric</c> arithmetic with 32-bit float rounding; revision 18
+        /// adds P127 primitive interfaces: <c>typeParameterStatic</c>,
+        /// <c>primitiveOp</c>, primitive evidence and equatable equality.
         /// </summary>
-        public const int CurrentCompilerRevision = 17;
+        public const int CurrentCompilerRevision = 18;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

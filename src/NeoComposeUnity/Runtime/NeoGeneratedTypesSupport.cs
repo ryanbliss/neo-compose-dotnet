@@ -2174,8 +2174,77 @@ namespace NeoCompose.Runtime
                 if (resolved is T resolvedTyped)
                     return resolvedTyped;
             }
+            else if (HeldInterfaceValue(client, value, typeof(T), readOnlyFactories, savedFactories) is T held)
+            {
+                return held;
+            }
             throw new NeoScript.NSGetterRuntimeError(
                 $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
+        }
+
+        /// <summary>P127 §12. ToInt32 of an authored <c>GetHashCode()</c> result, as a CLR override returns it.</summary>
+        public static int HashCode(object? result)
+        {
+            if (!NeoScript.NSGetterEvaluator.TryAsDouble(result, out double number))
+                throw new NeoScript.NSGetterRuntimeError("GetHashCode must return an int.");
+            return NeoScript.NSGetterEvaluator.ToInt32(number);
+        }
+
+        /// <summary>
+        /// P127 §12. CLR <c>Equals(object)</c> for a generated equatable class:
+        /// NeoScript row equality (§7), so <c>HashSet</c> and <c>Dictionary</c>
+        /// follow the NeoScript contract, including identity for a
+        /// non-equatable argument.
+        /// </summary>
+        public static bool ValueEquals(NeoGeneratedClassValue self, object? obj)
+        {
+            if (obj is not NeoGeneratedClassValue other)
+                return false;
+            if (!ReferenceEquals(self.Client, other.Client))
+                return false;
+            if (EqualityOperand(self) is not { } left)
+                return false;
+            if (EqualityOperand(other) is not { } right)
+                return false;
+            NeoClient client = self.Client;
+            var ctx = client.RentDirectFunctionContext(self.StorageOwnership);
+            try
+            {
+                return NeoScript.NSGetterEvaluator.GeneratedValueEquality(left, right, ctx);
+            }
+            finally
+            {
+                client.ReturnDirectFunctionContext(ctx, null);
+            }
+        }
+
+        // A pending temporary compares as its detached object, without attaching rows.
+        private static object? EqualityOperand(NeoGeneratedClassValue value) =>
+            value.PendingValue is NeoScript.NeoScriptObject { attachedId: null } pending ? pending : value.valueId;
+
+        /// <summary>
+        /// P127 §12. A non-row value of a mapped <c>IEquatable&lt;X&gt;</c> or
+        /// <c>IComparable&lt;X&gt;</c>, converted to the CLR <c>X</c> it holds
+        /// (a primitive, Unity vector, <c>Color</c> or <c>ValueTuple</c>).
+        /// </summary>
+        private static object? HeldInterfaceValue(
+            NeoClient client,
+            object value,
+            Type type,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+        {
+            if (!type.IsInterface || !type.IsGenericType)
+                return null;
+            Type[] arguments = type.GetGenericArguments();
+            if (arguments.Length != 1)
+                return null;
+            Type held = arguments[0];
+            if (!held.IsValueType && held != typeof(string))
+                return null;
+            return type.IsAssignableFrom(held)
+                ? ConvertTypeArgument(client, value, held, readOnlyFactories, savedFactories, null)
+                : null;
         }
 
         /// <summary>
@@ -2361,7 +2430,7 @@ namespace NeoCompose.Runtime
             if (type == typeof(float))
                 return Convert.ToSingle(value, System.Globalization.CultureInfo.InvariantCulture);
             if (type == typeof(decimal))
-                return value is string text ? NeoDecimalValues.Parse(text) : null;
+                return value is string or double ? NeoDecimalValues.Parse(NeoScript.NSGetterEvaluator.CoerceDecimalOperand(value, "conversion")) : null;
             if (type == typeof(Vector2))
                 return ReadVector2Value(value);
             if (type == typeof(Vector2Int))
@@ -2378,7 +2447,7 @@ namespace NeoCompose.Runtime
                 return ReadAudioClip(client, value);
             string? valueId = ValueId(value);
             if (string.IsNullOrEmpty(valueId))
-                return null;
+                return HeldInterfaceValue(client, value, type, readOnlyFactories, savedFactories);
             return readOnlyFactories is null
                 ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
                 : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);
@@ -6446,12 +6515,13 @@ namespace NeoCompose.Runtime
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
-            if (value is NeoScript.RuntimeTuple)
-                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
-            var rows = new List<MemberValue>();
             var env = targetEnv ?? (ctx.thisValue is null
                 ? NeoGenericResolution.EmptyEnv
                 : NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, ctx.thisValue, ctx, "Collection assignment"));
+            NeoScript.NSGetterEvaluator.AssertAssignedSetsNotEquatable(member, value, env, ctx);
+            if (value is NeoScript.RuntimeTuple)
+                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+            var rows = new List<MemberValue>();
             object? payload = ComputeRuntimeConstructorPayload(client, member, value, rows,
                 NeoTimestamp.Now(), item =>
                 {
@@ -7012,8 +7082,11 @@ namespace NeoCompose.Runtime
                     // Open types and non-type members describe no closed type.
                     continue;
                 }
-                if (!NeoClient.TypeInfoMatches(described, typeArgument))
+                if (!NeoClient.TypeInfoMatches(described, typeArgument)
+                    || !StoresTypeShape(client, member, typeArgument))
+                {
                     continue;
+                }
                 memberId = member.id;
                 break;
             }
@@ -7028,6 +7101,65 @@ namespace NeoCompose.Runtime
             }
             return memberId;
         }
+
+        /// <summary>
+        /// P112 §1.1. A handle <c>Reference&lt;T&gt;</c> types as <c>T</c>, so a
+        /// member can describe a type argument while storing a Lookup where the
+        /// type stores the row. A descriptor stores the type's own shape.
+        /// </summary>
+        private static bool StoresTypeShape(NeoClient client, Member member, TypeInfo type)
+        {
+            MemberKind stored = type.type == MemberKind.Reference ? MemberKind.Lookup : type.type;
+            MemberKind kind = member is ClassMember classTyped ? classTyped.TypeKind : member.kind;
+            if (kind != stored)
+                return false;
+            switch (member)
+            {
+                case TupleMember tuple when TupleTypeInfo.From(type) is { } tupleType:
+                    for (int i = 0; i < tuple.elementMemberIds.Length; i++)
+                    {
+                        if (!StoresTypeShape(client, tuple.elementMemberIds[i], tupleType.elements[i].typeInfo))
+                            return false;
+                    }
+                    return true;
+                case ListMember list:
+                    return StoresTypeShape(client, list.entryMemberId, EntryTypeInfo(type));
+                case DictionaryMember dictionary:
+                    return StoresTypeShape(client, dictionary.entryMemberId, EntryTypeInfo(type));
+                case ClassMember { TypeArguments: { } bindings }:
+                    Dictionary<string, TypeInfo>? arguments = type switch
+                    {
+                        ClassTypeInfo classType => classType.typeArguments,
+                        InterfaceTypeInfo interfaceType => interfaceType.typeArguments,
+                        FunctionArgumentTypeInfo argument => argument.typeArguments,
+                        _ => null,
+                    };
+                    foreach (var binding in bindings)
+                    {
+                        if (binding.Value.memberId is { } bindingId
+                            && arguments is not null
+                            && arguments.TryGetValue(binding.Key, out TypeInfo? argumentType)
+                            && !StoresTypeShape(client, bindingId, argumentType))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                default:
+                    return true;
+            }
+        }
+
+        private static bool StoresTypeShape(NeoClient client, string memberId, TypeInfo? type) =>
+            type is null
+            || client.TryGetMember(memberId, out Member? member) && StoresTypeShape(client, member!, type);
+
+        private static TypeInfo? EntryTypeInfo(TypeInfo type) => type switch
+        {
+            CollectionTypeInfo collection => collection.entryTypeInfo,
+            FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+            _ => null,
+        };
 
         private static string GenericParameterName(NeoClient client, string parameterId)
         {
@@ -7935,6 +8067,11 @@ namespace NeoCompose.Runtime
                     client,
                     entryMember,
                     genericEnv);
+                // P127 §7. A constructed Set keys class entries by row. An
+                // assignment's sets were guarded before they reached here.
+                NeoScript.NSGetterEvaluator.Context? setGuard = listMember is SetMember
+                    ? scope?.ExistingEvaluationContext
+                    : null;
                 var ids = new List<string>();
                 string[]? sourceIds = null;
                 NeoConstructorValueReference? collectionSource = ConstructorCollectionOrigins.TryGetValue(suppliedValue, out var origin)
@@ -7949,6 +8086,8 @@ namespace NeoCompose.Runtime
                 {
                     foreach (object? item in enumerable)
                     {
+                        if (setGuard is not null)
+                            NeoScript.NSGetterEvaluator.AssertStoredSetEntryNotEquatable(item, entryMember, genericEnv, setGuard);
                         string? id = MaterializeRuntimeConstructorValue(
                             client,
                             entryMember,

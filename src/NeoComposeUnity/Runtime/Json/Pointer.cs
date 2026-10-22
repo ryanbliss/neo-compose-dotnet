@@ -200,6 +200,36 @@ namespace NeoCompose.Runtime.Json
         public Pointer pointer = null!;
         public TypeInfo checkType = null!;
         public string? bindingId;
+        /// <summary>
+        /// P127 §6. The operand's static type when it is a type parameter or
+        /// interface that admits primitives: a non-row value tests as the
+        /// primitive it resolves, never as the kind <see cref="checkType"/> admits.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? primitiveEvidence;
+    }
+
+    /// <summary>
+    /// P127 §2. <c>T.Name</c> or <c>T.Name(args)</c>. The runtime resolves T's
+    /// binding, then runs the primitive intrinsic or the bound class's
+    /// implementing static.
+    /// </summary>
+    public sealed class TypeParameterStaticPointer : Pointer
+    {
+        /// <summary>A <see cref="GenericTypeInfo"/> or <see cref="FunctionGenericTypeInfo"/>.</summary>
+        public TypeInfo typeParameter = null!;
+        /// <summary>The interface member's canonical id.</summary>
+        public string memberId = null!;
+        /// <summary>Present exactly when the member is a function.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer[]? args;
+        public override string? callSiteId
+        {
+            get; set;
+        }
+        /// <summary>The implementing static's ordinary read or call, by bound class id.</summary>
+        [JsonIgnore]
+        internal System.Collections.Generic.Dictionary<string, Pointer>? implementations;
     }
 
     public static class CallReceiverKind
@@ -440,6 +470,13 @@ namespace NeoCompose.Runtime.Json
         public bool? optional;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? missingMemberFallback;
+        /// <summary>
+        /// P127 §6. The receiver's static type when it is a type parameter or
+        /// an interface that admits primitives. A non-row receiver whose
+        /// evidence resolves a primitive runs that primitive's intrinsic member.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? primitiveEvidence;
         public override string? callSiteId
         {
             get; set;
@@ -592,6 +629,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(RowOfPointer);
                 case PointerKind.Deref:
                     return typeof(DerefPointer);
+                case PointerKind.TypeParameterStatic:
+                    return typeof(TypeParameterStaticPointer);
                 default:
                     return null;
             }
@@ -599,6 +638,20 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(TypeParameterStaticPointer))
+            {
+                if (obj["typeParameter"] is not JObject)
+                    throw new JsonSerializationException("TypeParameterStaticPointer requires a typeParameter.");
+                if (string.IsNullOrWhiteSpace(obj["memberId"]?.Value<string>()))
+                    throw new JsonSerializationException("TypeParameterStaticPointer requires a member id.");
+                bool hasArgs = obj["args"] is JArray;
+                bool hasCallSite = obj["callSiteId"]?.Type == JTokenType.String;
+                if (hasArgs && !hasCallSite)
+                    throw new JsonSerializationException("TypeParameterStaticPointer call requires a callSiteId.");
+                if (hasCallSite && !hasArgs)
+                    throw new JsonSerializationException("TypeParameterStaticPointer read must not carry a callSiteId.");
+                return;
+            }
             if (concrete == typeof(MemberTargetPointer))
             {
                 if (string.IsNullOrWhiteSpace(obj["memberId"]?.Value<string>()))

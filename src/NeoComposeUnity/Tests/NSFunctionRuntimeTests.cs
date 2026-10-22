@@ -241,7 +241,7 @@ namespace NeoCompose.Tests
         [TestCase(double.PositiveInfinity, double.PositiveInfinity)]
         [TestCase(double.NaN, 1d)]
         [TestCase(-2d, 1d)]
-        public void UnboxedNumericComparisonsKeepExistingSpecialValueSemantics(double left, double right)
+        public void UnboxedNumericComparisonsUseIeeeOrder(double left, double right)
         {
             using var client = BuildClient(Array.Empty<JsonMember>(), ReceiverClass());
             var context = new NSGetterEvaluator.Context(client, null, null);
@@ -256,10 +256,10 @@ namespace NeoCompose.Tests
                 {
                     OperatorKind.EqualTo => left == right,
                     OperatorKind.DoesNotEqual => left != right,
-                    OperatorKind.GreaterThan => left - right > 0,
-                    OperatorKind.GreaterThanOrEqualTo => left - right >= 0,
-                    OperatorKind.LessThan => left - right < 0,
-                    _ => left - right <= 0,
+                    OperatorKind.GreaterThan => left > right,
+                    OperatorKind.GreaterThanOrEqualTo => left >= right,
+                    OperatorKind.LessThan => left < right,
+                    _ => left <= right,
                 };
                 Assert.That(NSGetterEvaluator.EvalBooleanExpression(expression, scope, context), Is.EqualTo(expected), op);
             }

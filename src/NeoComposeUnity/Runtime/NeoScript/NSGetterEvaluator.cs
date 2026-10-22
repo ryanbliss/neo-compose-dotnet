@@ -204,7 +204,7 @@ namespace NeoCompose.Runtime.NeoScript
             // there is nothing to retain and no owned-parent graph to scan.
             if (_allocatedRootIds is null || _allocatedRootIds.Count == 0)
                 return;
-            MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal));
+            MarkEscaped(value, ctx, new HashSet<object>(NSGetterEvaluator.ReferenceEqualityComparer.Instance), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal));
         }
 
         internal void MarkEscaped(
@@ -2142,6 +2142,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalVariant(variantPointer);
                 case StaticMemberPointer staticPointer:
                     return ReadStaticMember(staticPointer.memberId, ctx);
+                case TypeParameterStaticPointer typeParameterStatic:
+                    return EvalTypeParameterStatic(typeParameterStatic, scope, ctx);
                 case RowOfPointer rowOf:
                     return EvalRowOf(rowOf, scope, ctx);
                 case DerefPointer deref:
@@ -2161,6 +2163,8 @@ namespace NeoCompose.Runtime.NeoScript
                         var v = EvalPointer(icp.pointer, scope, ctx);
                         if (icp.bindingId is not null)
                             scope.SetLocal(icp.bindingId, v);
+                        if (SourcePrimitive(icp.primitiveEvidence, v, ctx) is { } primitive)
+                            return Box(NeoPrimitiveInterfaces.IsType(primitive, CloseContextType(icp.checkType, ctx)));
                         return Box(RuntimeTypeCheck(v, icp.checkType, ctx));
                     }
                 case CallGetterPointer cgp:
@@ -2800,6 +2804,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!pointer.receiver.IsStatic)
                     return null;
             }
+            if (TryPrimitiveReceiverCall(pointer, receiver, scope, ctx, out object? primitiveResult))
+                return primitiveResult;
             if (TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
             CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
@@ -5740,11 +5746,9 @@ namespace NeoCompose.Runtime.NeoScript
             object? right = EvaluateComparand(condition.operand2, scope, ctx, out double rightNumber);
             if (condition.isDecimal != true && ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
             {
-                // Keep the existing subtraction-based ordering, including
-                // its NaN/infinity behavior, without boxing either operand.
+                // IEEE order without boxing either operand.
                 leftNumber = ArithmeticValue.NumberOf(left, leftNumber);
                 rightNumber = ArithmeticValue.NumberOf(right, rightNumber);
-                double difference = leftNumber - rightNumber;
                 switch (op)
                 {
                     case ComparisonOp.EqualTo:
@@ -5752,13 +5756,13 @@ namespace NeoCompose.Runtime.NeoScript
                     case ComparisonOp.DoesNotEqual:
                         return leftNumber != rightNumber;
                     case ComparisonOp.GreaterThan:
-                        return difference > 0;
+                        return leftNumber > rightNumber;
                     case ComparisonOp.GreaterThanOrEqualTo:
-                        return difference >= 0;
+                        return leftNumber >= rightNumber;
                     case ComparisonOp.LessThan:
-                        return difference < 0;
+                        return leftNumber < rightNumber;
                     case ComparisonOp.LessThanOrEqualTo:
-                        return difference <= 0;
+                        return leftNumber <= rightNumber;
                 }
             }
             var a = ArithmeticValue.Box(left, leftNumber);
@@ -5809,21 +5813,44 @@ namespace NeoCompose.Runtime.NeoScript
             switch (op)
             {
                 case ComparisonOp.EqualTo:
-                    return condition.reference ? ReferenceEqual(a, b, ctx) : JsEqual(a, b, ctx);
+                    return ConditionEqual(condition, a, b, ctx);
                 case ComparisonOp.DoesNotEqual:
-                    return condition.reference ? !ReferenceEqual(a, b, ctx) : !JsEqual(a, b, ctx);
+                    return !ConditionEqual(condition, a, b, ctx);
                 case ComparisonOp.GreaterThan:
-                    return NumericCompare(a, b) > 0;
+                    return ConditionOrder(condition, a, b, ctx) > 0;
                 case ComparisonOp.GreaterThanOrEqualTo:
-                    return NumericCompare(a, b) >= 0;
+                    return ConditionOrder(condition, a, b, ctx) >= 0;
                 case ComparisonOp.LessThan:
-                    return NumericCompare(a, b) < 0;
+                    return ConditionOrder(condition, a, b, ctx) < 0;
                 case ComparisonOp.LessThanOrEqualTo:
-                    return NumericCompare(a, b) <= 0;
+                    return ConditionOrder(condition, a, b, ctx) <= 0;
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown comparison operator '{condition.type}'");
             }
+        }
+
+        /// <summary>
+        /// P127 §8. <paramref name="a"/>'s order against <paramref name="b"/>:
+        /// predefined, or through the CompareTo of the operand the compiler
+        /// chose. A non-row float keeps IEEE semantics, so NaN orders against
+        /// nothing.
+        /// </summary>
+        private static double ConditionOrder(Condition condition, object? a, object? b, Context ctx)
+        {
+            if (condition.comparableOperand is not { } operand)
+                return RelationalCompare(a, b);
+            TypeInfo? evidence = condition.evidence?[operand - 1];
+            if (evidence is null)
+                throw new NSGetterRuntimeError("A comparable condition carries no evidence.");
+            object? receiver = operand == 1 ? a : b;
+            object? other = operand == 1 ? b : a;
+            if (receiver is null)
+                throw new NSGetterRuntimeError("Comparison received a null CompareTo operand.");
+            double order = SourcePrimitive(evidence, receiver, ctx) == NeoPrimitive.Float
+                ? RelationalCompare(receiver, other)
+                : CompareTo(receiver, other, evidence, ctx);
+            return operand == 1 ? order : -order;
         }
 
         // The operator parsed once per condition: a string switch compares
@@ -6301,6 +6328,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalListRepeat(lrf.info, scope, ctx);
                 case TextOpFunction tof:
                     return EvalTextOp(tof.info, scope, ctx);
+                case PrimitiveOpFunction pof:
+                    return EvalPrimitiveOp(pof.info, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown function kind {fn.GetType().Name}");
@@ -6718,15 +6747,21 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         internal static bool CollectionValueEqual(object? left, object? right, bool decimalEntries, Context ctx) =>
-            decimalEntries && left is string a && right is string b
-                ? NeoSetEntryKey.DecimalKey(a) == NeoSetEntryKey.DecimalKey(b)
+            decimalEntries
+                ? JsEqual(DecimalEntryKey(left, "collection entry"), DecimalEntryKey(right, "collection search"), ctx)
                 : JsEqual(left, right, ctx);
 
-        private static object? CollectionSearchTarget(object? target, FunctionCollectionContainsInfo info)
+        /// <summary>A decimal's scale-free key; a class row that is an <c>IEquatable&lt;decimal&gt;</c> stays itself.</summary>
+        internal static object? DecimalEntryKey(object? value, string context) =>
+            value is string || TryAsDouble(value, out _)
+                ? NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, context))
+                : value;
+
+        private static object? CollectionSearchTarget(object? target, NeoPrimitive? search)
         {
-            if (info.@float && TryAsDouble(target, out double number))
+            if (search == NeoPrimitive.Float && TryAsDouble(target, out double number))
                 return Box((double)(float)number);
-            return info.@decimal && target is not null ? CoerceDecimalOperand(target, "collection search") : target;
+            return search == NeoPrimitive.Decimal ? DecimalEntryKey(target, "collection search") : target;
         }
 
         private static object? EvalContains(
@@ -6740,7 +6775,9 @@ namespace NeoCompose.Runtime.NeoScript
                 pending = EvalPendingCollection(cnf.info.collectionPointer, PendingRead.Membership, scope, ctx, out c);
             else
                 c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
-            object? target = CollectionSearchTarget(EvalPointer(cnf.info.valuePointer, scope, ctx), cnf.info);
+            NeoPrimitive? search = CollectionSearchKind(cnf.info, ctx);
+            bool decimalSearch = search == NeoPrimitive.Decimal;
+            object? target = CollectionSearchTarget(EvalPointer(cnf.info.valuePointer, scope, ctx), search);
             if (pending is { CollectionMember: SetMember })
             {
                 ctx.client.NotePendingRead(pending.Row.id);
@@ -6797,7 +6834,7 @@ namespace NeoCompose.Runtime.NeoScript
             // A null class entry still has a row id, so null compares values.
             if (cnf.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx) >= 0);
-            string? targetReferenceId = ValueIdOf(target, ctx);
+            string? targetReferenceId = IdentitySearchId(target, ctx);
             if (c is object?[] entries)
             {
                 // An entry whose stored id is the target's matches without
@@ -6816,7 +6853,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var listCursor = new CollectionCursor(c, ctx);
                 while (listCursor.MoveNextUnresolved())
                 {
-                    if (CollectionValueEqual(listCursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
+                    if (CollectionValueEqual(listCursor.ResolveEntry(ctx), target, decimalSearch, ctx))
                         return BoxedTrue;
                 }
                 return BoxedFalse;
@@ -6825,7 +6862,7 @@ namespace NeoCompose.Runtime.NeoScript
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
+                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, decimalSearch, ctx))
                 {
                     return BoxedTrue;
                 }
@@ -6971,15 +7008,16 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     "IndexOf receiver must be a List value.");
             }
-            var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), iof.info);
+            NeoPrimitive? search = CollectionSearchKind(iof.info, ctx);
+            var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), search);
             if (iof.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx));
-            string? targetReferenceId = ValueIdOf(target, ctx);
+            string? targetReferenceId = IdentitySearchId(target, ctx);
             var cursor = new CollectionCursor(c, ctx);
             while (cursor.MoveNextUnresolved())
             {
                 if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, iof.info.@decimal, ctx))
+                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, search == NeoPrimitive.Decimal, ctx))
                 {
                     return Box(cursor.Index);
                 }
@@ -8997,8 +9035,13 @@ namespace NeoCompose.Runtime.NeoScript
             // Numeric-tolerant equality (int vs double both come through as numbers).
             if (TryAsDouble(a, out double da) && TryAsDouble(b, out double db))
                 return da == db;
+            // P127 §7 step 4. An equatable row's Equals decides, even against itself.
             if (ReferenceEquals(a, b))
-                return true;
+            {
+                return !ctx.client.PrimitiveInterfaceSchema.AnyEquatable
+                    || ClassRowOf(a, ctx) is not { } classId
+                    || RowEquality(a, classId, b, classId, ctx);
+            }
             // P112 §3.3: references compare by the row they name.
             if (a is NSSlotReference || b is NSSlotReference)
                 return a is NSSlotReference left && b is NSSlotReference right && left.TargetId == right.TargetId;
@@ -9046,6 +9089,14 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return true;
             }
+            if (a is IDictionary<string, object?> or INeoValueReference || b is IDictionary<string, object?> or INeoValueReference)
+            {
+                // P127 §7. Class rows compare by identity unless both are equatable.
+                string? leftClass = ClassRowOf(a, ctx);
+                string? rightClass = ClassRowOf(b, ctx);
+                if (leftClass is not null || rightClass is not null)
+                    return RowEquality(a, leftClass, b, rightClass, ctx);
+            }
             if (a is IDictionary<string, object?> ad && b is IDictionary<string, object?> bd)
             {
                 if (ad.Count != bd.Count)
@@ -9068,7 +9119,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return true;
             }
-            return Equals(a, b);
+            // P127 §7. A generated wrapper's Equals is authored; rows compared above.
+            return a is not INeoValueReference && Equals(a, b);
         }
 
         /// <summary>
@@ -9083,10 +9135,23 @@ namespace NeoCompose.Runtime.NeoScript
                 return JsEqual(ReadThroughReference(a, ctx), ReadThroughReference(b, ctx), ctx);
             if (a is null || b is null)
                 return a is null && b is null;
-            if (ReferenceEquals(a, b))
-                return true;
-            object? key = ReferenceKeyOf(a, ctx);
-            return key is not null && key.Equals(ReferenceKeyOf(b, ctx));
+            bool same = ReferenceEquals(a, b);
+            if (!same)
+            {
+                object? key = ReferenceKeyOf(a, ctx);
+                same = key is not null && key.Equals(ReferenceKeyOf(b, ctx));
+            }
+            if (!ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
+                return same;
+            // P127 §7 step 4. An equatable row's Equals decides, even against
+            // itself. A handle resolves to its row only here.
+            object? left = ResolveHandle(a, ctx);
+            object? right = ResolveHandle(b, ctx);
+            if (left is null || ClassRowOf(left, ctx) is not { } leftClass)
+                return same;
+            if (right is null || ClassRowOf(right, ctx) is not { } rightClass)
+                return same;
+            return EquatableRowsEqual(left, leftClass, right, rightClass, ctx) ?? same;
         }
 
         /// <summary>
@@ -9118,11 +9183,14 @@ namespace NeoCompose.Runtime.NeoScript
         private static int ReferenceIndexOf(object? collection, object? target, Context ctx)
         {
             object? targetKey = target is null ? null : ReferenceKeyOf(target, ctx);
+            // P127 §7. Only an equatable target's search reads entry rows.
+            string? equatableClass = EquatableSearchClass(target, ctx);
+            object? equatableTarget = equatableClass is null ? null : ResolveHandle(target, ctx);
             if (collection is object?[] entries)
             {
                 for (int i = 0; i < entries.Length; i++)
                 {
-                    if (IsSameReference(entries[i], target, targetKey, ctx))
+                    if (IsSearchMatch(entries[i], target, targetKey, equatableTarget, equatableClass, ctx))
                         return i;
                 }
                 return -1;
@@ -9130,27 +9198,72 @@ namespace NeoCompose.Runtime.NeoScript
             var cursor = new CollectionCursor(collection, ctx);
             while (cursor.MoveNextUnresolved())
             {
-                if (IsSameReference(cursor.Raw, target, targetKey, ctx))
+                if (IsSearchMatch(cursor.Raw, target, targetKey, equatableTarget, equatableClass, ctx))
                     return cursor.Index;
             }
             return -1;
         }
 
-        private static bool IsSameReference(object? entry, object? target, object? targetKey, Context ctx) =>
-            ReferenceEquals(entry, target)
-            || (targetKey is not null && entry is not null && targetKey.Equals(ReferenceKeyOf(entry, ctx)));
+        /// <summary>
+        /// The value id a collection search matches by identity. Null for an
+        /// equatable row, whose Equals decides even against itself (P127 §7).
+        /// </summary>
+        private static string? IdentitySearchId(object? target, Context ctx) =>
+            EquatableSearchClass(target, ctx) is null ? ValueIdOf(target, ctx) : null;
+
+        private static bool IsSameReference(object? entry, object? target, object? targetKey, Context ctx)
+        {
+            if (entry is null)
+                return target is null;
+            return ReferenceEquals(entry, target)
+                || (targetKey is not null && targetKey.Equals(ReferenceKeyOf(entry, ctx)));
+        }
+
+        // P127 §7 step 4. An equatable row's Equals decides, even against itself.
+        private static bool IsSearchMatch(
+            object? raw,
+            object? target,
+            object? targetKey,
+            object? equatableTarget,
+            string? equatableClass,
+            Context ctx)
+        {
+            bool same = IsSameReference(raw, target, targetKey, ctx);
+            if (equatableClass is null || raw is null)
+                return same;
+            object? entry = ResolveHandle(raw, ctx);
+            if (entry is null || ClassRowOf(entry, ctx) is not { } entryClass)
+                return same;
+            return EquatableRowsEqual(entry, entryClass, equatableTarget!, equatableClass, ctx) ?? same;
+        }
 
         private static bool SameEntry(KeyValuePair<string, object?> entry, IDictionary<string, object?> other, Context ctx) =>
             other.TryGetValue(entry.Key, out var value) && JsEqual(entry.Value, value, ctx);
 
-        private static double NumericCompare(object? a, object? b)
+        private static bool ConditionEqual(Condition condition, object? a, object? b, Context ctx)
         {
+            if (condition.evidence is { } evidence)
+                return EvidenceEquality(a, b, evidence, ctx);
+            return condition.reference ? ReferenceEqual(a, b, ctx) : JsEqual(a, b, ctx);
+        }
+
+        /// <summary>Relational order: numbers in IEEE order, NaN when unordered; strings ordinally (P127 §8).</summary>
+        private static double RelationalCompare(object? a, object? b)
+        {
+            if (a is string left && b is string right)
+                return Math.Sign(string.CompareOrdinal(left, right));
             if (!TryAsDouble(a, out double da) || !TryAsDouble(b, out double db))
             {
                 throw new NSGetterRuntimeError(
-                    $"Comparison requires numeric operands; got {ReceiverTypeName(a)} and {ReceiverTypeName(b)}");
+                    $"Comparison requires numeric or string operands; got {ReceiverTypeName(a)} and {ReceiverTypeName(b)}");
             }
-            return da - db;
+            if (da < db)
+                return -1;
+            if (da > db)
+                return 1;
+            if (da == db)
+                return 0;
+            return double.NaN;
         }
 
         /// <summary>
@@ -9287,10 +9400,10 @@ namespace NeoCompose.Runtime.NeoScript
                         if (IsIntrinsicSequence(value, checkType, ctx))
                             return true;
                         if (value is not IDictionary<string, object?>)
-                            return false;
+                            return PrimitiveImplementsInterface(value, checkType, ctx);
                         string? runtimeClassId = FindRowClassIdByReference(value, ctx);
                         if (string.IsNullOrEmpty(runtimeClassId))
-                            return false;
+                            return PrimitiveImplementsInterface(value, checkType, ctx);
                         if (checkType is not InterfaceTypeInfo interfaceType)
                             return false;
                         return RowImplementsInterface(value, runtimeClassId!, interfaceType, ctx);
@@ -11153,6 +11266,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null)
                 return "";
+            if (sourceType.type == MemberKind.Generic || NeoPrimitiveInterfaces.AdmitsPrimitives(sourceType))
+            {
+                // P127 §6. A row behind T formats as its class; a primitive
+                // behind T or an interface formats as itself.
+                string? classId = ClassRowOf(value, ctx);
+                if (classId is not null && sourceType.type == MemberKind.Generic)
+                    return FormatClassForInterp(value, classId, ctx);
+                if (classId is null && NeoPrimitiveInterfaces.OfTypeInfo(CloseContextType(sourceType, ctx)) is { } primitive)
+                    return FormatForInterp(value, NeoPrimitiveInterfaces.TypeInfoOf(primitive), ctx);
+            }
             if (ctx.client.IsSequenceType(sourceType))
                 return $"<{SequenceTypeLabel(sourceType, ctx)} unenumerated>";
             if (sourceType is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
@@ -11194,13 +11317,15 @@ namespace NeoCompose.Runtime.NeoScript
                         return string.Join(", ", labels);
                     }
                 case MemberKind.Class:
+                    return FormatClassForInterp(value, (sourceType as ClassTypeInfo)?.classId ?? "", ctx);
+                case MemberKind.Interface:
                     {
-                        string classId = (sourceType as ClassTypeInfo)?.classId ?? "";
-                        string typeName = ctx.client.TryGetClass(classId, out NeoSchemaClass? ct)
-                            ? ct.name
-                            : classId;
+                        string interfaceId = ((InterfaceTypeInfo)sourceType).interfaceId;
+                        string typeName = ctx.client.TryGetInterface(interfaceId, out Interface? declaration)
+                            ? declaration.name
+                            : interfaceId;
                         string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
-                        return $"(Class<{typeName}>, Value<{rowId}>)";
+                        return $"(Interface<{typeName}>, Value<{rowId}>)";
                     }
                 case MemberKind.List:
                 case MemberKind.Set:
@@ -11227,6 +11352,15 @@ namespace NeoCompose.Runtime.NeoScript
                 default:
                     return value.ToString() ?? "";
             }
+        }
+
+        private static string FormatClassForInterp(object value, string classId, Context ctx)
+        {
+            string typeName = ctx.client.TryGetClass(classId, out NeoSchemaClass? ct)
+                ? ct.name
+                : classId;
+            string rowId = FindRowIdByReference(value, ctx) ?? "<unknown>";
+            return $"(Class<{typeName}>, Value<{rowId}>)";
         }
 
         private static string DescribeRuntimeType(TypeInfo t, Context ctx)

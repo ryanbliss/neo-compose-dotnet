@@ -213,7 +213,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("Cell");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
                 return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
             }

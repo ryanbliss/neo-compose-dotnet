@@ -16,14 +16,19 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly bool Reference;
         internal readonly bool EnumEntries;
         internal readonly bool DecimalEntries;
+        /// <summary>P127 §7. A stored lookup names rows by id, so entries key by identity.</summary>
+        internal readonly bool RowIdentity;
         internal readonly object?[] Source;
+        /// <summary>P127 §7. Equal equatable rows' shared keys; set while any class is IEquatable.</summary>
+        internal NSGetterEvaluator.EquatableSetKeys? EquatableKeys;
 
-        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer)
+        internal RuntimeSet(object?[] source, bool reference, bool enumEntries, bool decimalEntries, IEqualityComparer<object?> comparer, bool rowIdentity = false)
         {
             Source = source;
             Reference = reference;
             EnumEntries = enumEntries;
             DecimalEntries = decimalEntries;
+            RowIdentity = rowIdentity;
             entries = new OrderedMap<object, object?>(comparer);
         }
 
@@ -37,6 +42,7 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (var validate in validations.Values)
                 validate(value);
             entries.Add(key, value);
+            EquatableKeys?.Settle(1);
             if (Reference && value is not null)
                 NSGetterEvaluator.TrackRuntimeSetReference(value, this);
         }
@@ -45,8 +51,16 @@ namespace NeoCompose.Runtime.NeoScript
             if (entries.TryGetValue(oldKey, out object? entry) && ReferenceEquals(entry, originalEntry))
                 entries.Retarget(oldKey, newKey);
         }
-        internal void Remove(object? key) => entries.Remove(key ?? NullKey);
-        internal void Clear() => entries.Clear();
+        internal void Remove(object? key)
+        {
+            if (entries.Remove(key ?? NullKey))
+                EquatableKeys?.Settle(-1);
+        }
+        internal void Clear()
+        {
+            entries.Clear();
+            EquatableKeys = null;
+        }
         internal void Validate(object type, Action<object?> validate)
         {
             if (validations.ContainsKey(type))

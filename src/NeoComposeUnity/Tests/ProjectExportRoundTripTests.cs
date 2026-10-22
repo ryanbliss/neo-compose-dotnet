@@ -321,7 +321,7 @@ namespace NeoCompose.Tests
     ""init"": {
       ""code"": ""StaticFunc(\""bar\"")"",
       ""compiled"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -336,7 +336,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(member.defaultValue!.init);
             Assert.AreEqual("StaticFunc(\"bar\")", member.defaultValue.init!.code);
-            Assert.AreEqual(17, member.defaultValue.init.compiled!.compilerRevision);
+            Assert.AreEqual(18, member.defaultValue.init.compiled!.compilerRevision);
             Assert.IsNull(member.defaultValue.value);
             Assert.IsNull(member.defaultValue.classId);
         }
@@ -525,7 +525,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -549,14 +549,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""AllCaps"", ""type"": 1, ""required"": true }],
       ""code"": ""\t\tif (AllCaps) {\n\t\t\tthis.Bar = \""BAR\"";\n\t\t}"",
       ""action"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseArguments"": [{ ""name"": ""Seed"", ""code"": ""AllCaps"" }],
       ""compiledBaseArguments"": [{
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 1, ""required"": true }
@@ -592,7 +592,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -617,14 +617,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": """",
       ""action"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseInitializerFields"": [{ ""name"": ""Bar"", ""code"": ""bar"" }],
       ""compiledBaseInitializerFields"": [{
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -683,7 +683,7 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": null,
       ""action"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
       ""classId"": ""class-bar"",
       ""argumentTypes"": [],
       ""action"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
@@ -787,7 +787,7 @@ namespace NeoCompose.Tests
         [Test]
         public void CompilerRevision_SixteenIsTheCurrentCeiling()
         {
-            Assert.AreEqual(17, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(18, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

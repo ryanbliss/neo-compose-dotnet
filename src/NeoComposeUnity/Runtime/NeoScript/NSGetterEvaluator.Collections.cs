@@ -163,13 +163,13 @@ namespace NeoCompose.Runtime.NeoScript
             runtimeLists.AddOrUpdate(after, identity);
         }
 
-        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false)
+        internal static RuntimeSet MakeRuntimeSet(object?[] source, bool reference, bool enumEntries, Context ctx, bool cache = true, bool decimalEntries = false, bool rowIdentity = false)
         {
             var sets = runtimeSets;
             if (cache && sets.TryGetValue(source, out var existing))
                 return existing;
             var set = new RuntimeSet(source, reference, enumEntries, decimalEntries,
-                reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
+                reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx), rowIdentity);
             var cursor = new CollectionCursor(source, ctx);
             while (cursor.MoveNextUnresolved())
             {
@@ -199,16 +199,22 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             MemberKind entry = entryType.type;
             return MakeRuntimeSet(array, entry is MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Dictionary or MemberKind.Lookup,
-                entry is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: entry == MemberKind.Decimal);
+                entry is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: HoldsDecimal(entryType, ctx));
         }
 
         internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
         {
+            // Drops what a lookup, or an interrupted key, proposed.
+            set.EquatableKeys?.Settle(0);
             if (set.EnumEntries && value is object?[] { Length: 1 } selected)
                 value = selected[0];
-            if (set.DecimalEntries && value is not null)
-                return NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, "set entry"));
-            return set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
+            // Before Reference: an IEquatable<decimal> entry is a decimal.
+            if (set.DecimalEntries && DecimalEntryKey(value, "set entry") is string decimalKey)
+                return decimalKey;
+            object? key = set.Reference && value is not null ? ReferenceKeyOf(value, ctx) ?? value : value;
+            if (value is null || set.RowIdentity || !ctx.client.PrimitiveInterfaceSchema.AnyEquatable)
+                return key;
+            return EquatableEntryKey(set.EquatableKeys ??= new EquatableSetKeys(), value, key, set.Reference, ctx);
         }
 
         internal static void TrackRuntimeSetReference(object value, RuntimeSet set)
@@ -249,7 +255,7 @@ namespace NeoCompose.Runtime.NeoScript
             LookupKeys index = lookupKeys.GetOrCreateValue(array);
             if (scope is null || !ReferenceEquals(index.scope, scope) || index.generation != generation || index.set is null)
             {
-                index.set = MakeRuntimeSet(array, reference, enumeration, ctx, cache: false);
+                index.set = MakeRuntimeSet(array, reference, enumeration, ctx, cache: false, rowIdentity: true);
                 index.scope = scope;
                 index.generation = generation;
             }
@@ -330,6 +336,8 @@ namespace NeoCompose.Runtime.NeoScript
                 bool all = true;
                 object? selected = null;
                 HashSet<object?>? seenSetKeys = null;
+                EquatableSetKeys? equatableKeys = null;
+                bool decimalEntries = info.decimalEntries || (info.evidence is { } evidence && HoldsDecimal(evidence, ctx));
                 var cursor = new CollectionCursor(collection, ctx);
                 while (cursor.MoveNextUnresolved())
                 {
@@ -397,14 +405,24 @@ namespace NeoCompose.Runtime.NeoScript
                             break;
                         case "Distinct":
                         case "ToSet":
-                            seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
+                            if (seenSetKeys is null)
+                            {
+                                seenSetKeys = new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
+                                equatableKeys = ctx.client.PrimitiveInterfaceSchema.AnyEquatable ? new EquatableSetKeys() : null;
+                            }
+                            equatableKeys?.Settle(0);
                             object? setKey = info.reference && entry is not null
                                 ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
                                 : entry;
-                            if (info.decimalEntries && entry is not null)
-                                setKey = NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(entry, "Distinct entry"));
+                            if (decimalEntries && DecimalEntryKey(entry, "Distinct entry") is string decimalKey)
+                                setKey = decimalKey;
+                            else
+                                setKey = EquatableEntryKey(equatableKeys, entry, setKey, info.reference, ctx);
                             if (seenSetKeys.Add(setKey))
+                            {
+                                equatableKeys?.Settle(1);
                                 AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                            }
                             break;
                         default:
                             throw new NSGetterRuntimeError($"Unsupported collection query '{info.op}'.");
@@ -447,7 +465,7 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                 }
                 if (info.op == "ToSet" && result is object?[] setEntries)
-                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries);
+                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: decimalEntries);
                 return result;
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
@@ -470,10 +488,16 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly Context context;
             internal JsValueComparer(Context context) => this.context = context;
 
-            bool IEqualityComparer<object?>.Equals(object? x, object? y) =>
-                TryAsDouble(x, out double left) && TryAsDouble(y, out double right)
-                    ? left.Equals(right)
-                    : JsEqual(x, y, context);
+            bool IEqualityComparer<object?>.Equals(object? x, object? y)
+            {
+                if (TryAsDouble(x, out double left) && TryAsDouble(y, out double right))
+                    return left.Equals(right);
+                if (x is RuntimeTuple leftTuple && y is RuntimeTuple rightTuple)
+                    return TupleEqual(leftTuple, rightTuple, leftTuple.TypeInfo, context, setKey: true);
+                if (ComponentSetKeyEqual(x, y) is { } same)
+                    return same;
+                return JsEqual(x, y, context);
+            }
 
             int IEqualityComparer<object?>.GetHashCode(object? value) => Hash(value);
 
@@ -484,11 +508,11 @@ namespace NeoCompose.Runtime.NeoScript
                     case RuntimeTuple tuple:
                         return TupleHash(tuple, context, this);
                     case NeoVector3Value vector:
-                        return HashCode.Combine(vector.x, vector.y, vector.z);
+                        return HashCode.Combine(ComponentHash(vector.x), ComponentHash(vector.y), ComponentHash(vector.z));
                     case NeoVector2Value vector:
-                        return HashCode.Combine(vector.x, vector.y);
+                        return HashCode.Combine(ComponentHash(vector.x), ComponentHash(vector.y));
                     case NeoColorValue color:
-                        return HashCode.Combine(color.r, color.g, color.b, color.a);
+                        return HashCode.Combine(ComponentHash(color.r), ComponentHash(color.g), ComponentHash(color.b), ComponentHash(color.a));
                     case null:
                         return 0;
                     case string text:
@@ -515,16 +539,35 @@ namespace NeoCompose.Runtime.NeoScript
                     case NSSlotReference reference:
                         return StringComparer.Ordinal.GetHashCode(reference.TargetId);
                 }
-                if (TryAsDouble(value, out double number))
-                    return number == 0 ? 0 : number.GetHashCode();
-                return value.GetHashCode();
+                if (!TryAsDouble(value, out double number))
+                    return value.GetHashCode();
+                // Equals unifies -0 with 0 and every NaN payload.
+                if (number == 0 || double.IsNaN(number))
+                    return 0;
+                return number.GetHashCode();
             }
         }
+
+        /// <summary>
+        /// P127 §7. Set keys compare vector and Color components with float
+        /// <c>Equals</c>, so they are NaN-reflexive as float keys are.
+        /// </summary>
+        private static bool? ComponentSetKeyEqual(object? x, object? y) => (x, y) switch
+        {
+            (NeoVector3Value a, NeoVector3Value b) => a.x.Equals(b.x) && a.y.Equals(b.y) && a.z.Equals(b.z),
+            (NeoVector3Value, _) or (_, NeoVector3Value) => null,
+            (NeoVector2Value a, NeoVector2Value b) => a.x.Equals(b.x) && a.y.Equals(b.y),
+            (NeoColorValue a, NeoColorValue b) => a.r.Equals(b.r) && a.g.Equals(b.g) && a.b.Equals(b.b) && a.a.Equals(b.a),
+            _ => null,
+        };
+
+        /// <summary>A component hash that unifies -0 with 0 and every NaN payload, as float Equals does.</summary>
+        private static int ComponentHash(double component) => component == 0 || double.IsNaN(component) ? 0 : component.GetHashCode();
 
         private sealed class OrderedResult
         {
             internal object?[][] Keys = null!;
-            internal List<(string? type, bool descending)> Levels = null!;
+            internal List<(string? type, TypeInfo? evidence, bool descending)> Levels = null!;
         }
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OrderedResult> orderedResults = new();
 
@@ -534,8 +577,8 @@ namespace NeoCompose.Runtime.NeoScript
             OrderedResult? previous = null;
             if (secondary && (collection is null || !orderedResults.TryGetValue(collection, out previous)))
                 throw new NSGetterRuntimeError($"{info.op} requires an ordered result.");
-            var levels = previous is null ? new List<(string? type, bool descending)>() : new(previous.Levels);
-            levels.Add((info.keyType, info.op.EndsWith("Descending", StringComparison.Ordinal)));
+            var levels = previous is null ? new List<(string? type, TypeInfo? evidence, bool descending)>() : new(previous.Levels);
+            levels.Add((info.keyType, info.keyEvidence, info.op.EndsWith("Descending", StringComparison.Ordinal)));
             var entries = new List<(object? value, object?[] keys)>();
             var cursor = new CollectionCursor(collection, ctx);
             while (cursor.MoveNextUnresolved())
@@ -551,7 +594,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 for (int level = 0; level < levels.Count; level++)
                 {
-                    int order = CompareCollectionKeys(a.keys[level], b.keys[level], levels[level].type);
+                    int order = CompareCollectionKeys(a.keys[level], b.keys[level], levels[level].type, levels[level].evidence, ctx);
                     if (order != 0)
                         return levels[level].descending ? -order : order;
                 }
@@ -589,12 +632,14 @@ namespace NeoCompose.Runtime.NeoScript
             return entries;
         }
 
-        private static int CompareCollectionKeys(object? left, object? right, string? keyType)
+        private static int CompareCollectionKeys(object? left, object? right, string? keyType, TypeInfo? keyEvidence, Context ctx)
         {
             if (left is null)
                 return right is null ? 0 : -1;
             if (right is null)
                 return 1;
+            if (keyType == "comparable")
+                return CompareTo(left, right, keyEvidence, ctx);
             if (keyType == "decimal")
                 return NeoDecimalMath.Compare((string)left, (string)right);
             if (keyType == "string")

@@ -189,7 +189,7 @@ namespace NeoCompose.Runtime
             NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(ctx.client, receiver, receiverType, ctx, $"receiver of extension '{member.name}'");
         }
 
-        private static bool SatisfiesConstraint(TypeInfo argument, TypeInfo constraint, NeoClient client)
+        internal static bool SatisfiesConstraint(TypeInfo argument, TypeInfo constraint, NeoClient client)
         {
             if (constraint is EnumTypeInfo expectedEnum)
                 return argument is EnumTypeInfo actualEnum && actualEnum.enumId == expectedEnum.enumId;

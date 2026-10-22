@@ -171,6 +171,11 @@ namespace NeoCompose.Runtime
         /// <summary>The P113 §3.5 implementer index for the current schema.</summary>
         internal NeoInterfaceImplementers InterfaceImplementers =>
             interfaceImplementers ??= new NeoInterfaceImplementers(this, data);
+        private NeoScript.NeoPrimitiveInterfaceSchema? primitiveInterfaceSchema;
+
+        /// <summary>P127. Static interface implementations and IEquatable classes for the current schema.</summary>
+        internal NeoScript.NeoPrimitiveInterfaceSchema PrimitiveInterfaceSchema =>
+            primitiveInterfaceSchema ??= new NeoScript.NeoPrimitiveInterfaceSchema(this);
         private readonly Dictionary<string, MemberValue> virtualValues = new();
         private readonly Dictionary<string, NeoValueOwnership> virtualValueOwnership = new();
         private readonly Dictionary<string, Dictionary<string, string>> virtualClassChildren = new();
@@ -2354,6 +2359,7 @@ namespace NeoCompose.Runtime
                 node.live = false;
             classNodes.Clear();
             interfaceImplementers = null;
+            primitiveInterfaceSchema = null;
             interfaceHooks.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             constantDeclarationValueIds.Clear();
@@ -7169,7 +7175,8 @@ namespace NeoCompose.Runtime
             else if (wrappers is HashSet<NeoGeneratedClassValue> set)
                 set.Add(generated);
             else if (!ReferenceEquals(wrappers, generated))
-                generatedValuesByValueId[valueId] = new HashSet<NeoGeneratedClassValue> { (NeoGeneratedClassValue)wrappers, generated };
+                // P127 §7. Equatable wrappers override Equals; the index keeps every instance.
+                generatedValuesByValueId[valueId] = new HashSet<NeoGeneratedClassValue>(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance) { (NeoGeneratedClassValue)wrappers, generated };
         }
 
         private void UnindexGeneratedClassValue(NeoGeneratedClassValue generated)

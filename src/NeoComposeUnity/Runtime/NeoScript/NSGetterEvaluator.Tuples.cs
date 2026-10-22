@@ -70,7 +70,12 @@ namespace NeoCompose.Runtime.NeoScript
             return refreshCollection ? ReadNestedCollectionAlias(value[info.index], ctx) : value[info.index];
         }
 
-        private static bool TupleEqual(object? left, object? right, TupleTypeInfo type, Context ctx)
+        /// <summary>
+        /// Elementwise tuple <c>==</c>; with <paramref name="setKey"/>, the
+        /// set-key equality whose floats are NaN-reflexive and whose
+        /// identical rows match before their Equals runs (P127 §7).
+        /// </summary>
+        private static bool TupleEqual(object? left, object? right, TupleTypeInfo type, Context ctx, bool setKey = false)
         {
             if (left is null || right is null)
                 return left is null && right is null;
@@ -91,7 +96,13 @@ namespace NeoCompose.Runtime.NeoScript
                 TypeInfo element = type.elements[i].typeInfo;
                 bool equal = element switch
                 {
-                    TupleTypeInfo nested => TupleEqual(x, y, nested, ctx),
+                    TupleTypeInfo nested => TupleEqual(x, y, nested, ctx, setKey),
+                    // A tuple behind an interface or `T` compares as its own tuple.
+                    _ when x is RuntimeTuple held && y is RuntimeTuple => TupleEqual(x, y, held.TypeInfo, ctx, setKey),
+                    _ when setKey && TryAsDouble(x, out double xNumber) && TryAsDouble(y, out double yNumber) => xNumber.Equals(yNumber),
+                    _ when setKey && ComponentSetKeyEqual(x, y) is { } same => same,
+                    _ when setKey && SameRow(x, y, ctx) => true,
+                    _ when NeoPrimitiveInterfaces.AdmitsPrimitives(element) => EvidenceEquality(x, y, new[] { element, element }, ctx),
                     { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
                     ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => TupleHandleEqual(x, y, ctx),
                     { type: MemberKind.Reference } => x is NSSlotReference rx && y is NSSlotReference ry && rx.TargetId == ry.TargetId,
@@ -117,13 +128,22 @@ namespace NeoCompose.Runtime.NeoScript
                 int elementHash;
                 if (value is null)
                     elementHash = 0;
-                else if (type.type == MemberKind.Decimal)
+                else if (value is RuntimeTuple nested)
+                    elementHash = TupleHash(nested, ctx, values);
+                else if (type.type == MemberKind.Decimal || IsDecimalEvidence(value, type, ctx))
                     elementHash = StringComparer.Ordinal.GetHashCode(NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(value, "tuple key")));
+                else if (NeoPrimitiveInterfaces.AdmitsPrimitives(type) && ClassRowOf(value, ctx) is null)
+                    elementHash = values.Hash(value);
                 else if (TupleHandle(type.type) || type is ReferenceTypeInfo reference && NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle)
                 {
-                    object? identity = TupleReferenceKey(value, ctx);
-                    elementHash = identity is NeoVariantReference variant ? variant.GetHashCode()
-                        : StringComparer.Ordinal.GetHashCode(TupleHandleKey(value, ctx));
+                    if (EquatableHandleHash(value, ctx) is { } equatableHash)
+                        elementHash = equatableHash;
+                    else
+                    {
+                        object? identity = TupleReferenceKey(value, ctx);
+                        elementHash = identity is NeoVariantReference variant ? variant.GetHashCode()
+                            : StringComparer.Ordinal.GetHashCode(TupleHandleKey(value, ctx));
+                    }
                 }
                 else
                     elementHash = values.Hash(value);

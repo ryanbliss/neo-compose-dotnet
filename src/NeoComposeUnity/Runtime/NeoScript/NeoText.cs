@@ -25,6 +25,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal const string Int = "int";
         internal const string Float = "float";
         internal const string Decimal = "decimal";
+        internal const string Bool = "bool";
 
         /// <summary>The largest format precision, the range every digits argument uses.</summary>
         private const int MaxFormatPrecision = 28;
@@ -372,8 +373,29 @@ namespace NeoCompose.Runtime.NeoScript
             return NeoDecimalMath.FormatParts(new NeoDecimalMath.DecimalParts(coefficient, fraction.Length));
         }
 
+        private static bool IsBoolTrim(char code)
+        {
+            return code == 0 || IsWhiteSpace(code);
+        }
+
+        /// <summary>P127 §5. <c>bool.Parse(s)</c>: <c>true</c>/<c>false</c> in any case, past whitespace and NUL.</summary>
+        private static object? ParseBool(string text, out string? error)
+        {
+            error = null;
+            int start = FirstKept(text, IsBoolTrim);
+            string trimmed = text.Substring(start, LastKeptEnd(text, start, IsBoolTrim) - start);
+            if (string.Equals(trimmed, "true", StringComparison.OrdinalIgnoreCase))
+                return NSGetterEvaluator.Box(true);
+            if (string.Equals(trimmed, "false", StringComparison.OrdinalIgnoreCase))
+                return NSGetterEvaluator.Box(false);
+            error = "bool.Parse input is not 'true' or 'false'.";
+            return null;
+        }
+
         private static object? ParseText(string number, string text, out string? error)
         {
+            if (number == Bool)
+                return ParseBool(text, out error);
             string trimmed = TrimNumberWhiteSpace(text);
             switch (number)
             {

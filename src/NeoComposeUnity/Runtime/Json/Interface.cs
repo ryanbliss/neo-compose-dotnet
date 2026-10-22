@@ -18,6 +18,9 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(InterfaceMemberConverter))]
     public class InterfaceMember
     {
+        /// <summary>Durable declaration identity, independent of the member name.</summary>
+        public string id = null!;
+
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public NeoInterfaceMemberKind kind;
 
@@ -46,6 +49,15 @@ namespace NeoCompose.Runtime.Json
         public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
+        /// <summary>
+        /// P127 §2. Absent means an instance contract. <see cref="NeoMemberModifierKind.Static"/>
+        /// is the only value: a static contract a class implements with a static member.
+        /// </summary>
+        [JsonProperty("modifier", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberModifierKind? modifier;
+
+        [JsonIgnore]
+        public bool IsStatic => modifier == NeoMemberModifierKind.Static;
 
         [JsonIgnore]
         public NeoMemberAccessKind Access

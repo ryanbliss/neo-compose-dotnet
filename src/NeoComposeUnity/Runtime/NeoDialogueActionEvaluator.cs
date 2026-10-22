@@ -3041,7 +3041,7 @@ namespace NeoCompose.Runtime
             if (collectionType is LookupTypeInfo lookup && !isSet)
                 target = new NeoLookupSetWriteTarget(id, lookup, pending.Ownership);
             else if (pending is NeoWriteBatch.PendingList)
-                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership, isSet: isSet);
+                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership, isSet: isSet, genericBindings: pending.Row.genericBindings);
             else
                 return PendingDictionaryTarget(pending, EntryTypeInfo(collectionType));
             pending.Target = target;
@@ -3284,6 +3284,8 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
+            if (NSGetterEvaluator.TryPrimitiveReceiverCall(pointer, receiver, scope, ctx, out object? primitiveResult))
+                return primitiveResult;
             if (NSGetterEvaluator.TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
             // The target depends only on the receiver, so an NSFunction's
@@ -3735,7 +3737,8 @@ namespace NeoCompose.Runtime
                     client.TryResolveCollectionEntryMember(member, row),
                     ownership,
                     preparedPlan,
-                    member is SetMember);
+                    member is SetMember,
+                    row.genericBindings);
             }
             if (row is ObjectMemberValue)
             {
@@ -4070,7 +4073,9 @@ namespace NeoCompose.Runtime
                 return;
             if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
                 return;
-            throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
+            if (value is NSGetterEvaluator.ScriptSequence or RuntimeSet or object?[])
+                throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
+            throw new NSGetterRuntimeError($"Stored interface member '{label}': {NeoPrimitiveInterfaces.StorageMessage}");
         }
 
         private static bool TryGetClassValueReferenceId(
@@ -4595,19 +4600,6 @@ namespace NeoCompose.Runtime
             return index;
         }
 
-        private static bool JsEqual(object? a, object? b)
-        {
-            if (a == null || b == null)
-                return a == null && b == null;
-            if (a is double da && b is double db)
-                return da == db;
-            if (a is double da2 && b is int ib)
-                return da2 == ib;
-            if (a is int ia && b is double db2)
-                return ia == db2;
-            return Equals(a, b);
-        }
-
         private static VariablePointer? CollectionVariable(Pointer pointer)
         {
             while (pointer is ForceUnwrapPointer unwrap)
@@ -4644,7 +4636,7 @@ namespace NeoCompose.Runtime
             local = NSGetterEvaluator.RuntimeCollection(local, ctx);
             if (local is object?[] setSource && collectionType is LookupTypeInfo setType)
                 local = NSGetterEvaluator.MakeRuntimeSet(setSource, reference,
-                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: setType.entryTypeInfo.type == MemberKind.Decimal);
+                    setType.entryTypeInfo.type is MemberKind.Enum or MemberKind.DialogueLookup, ctx, decimalEntries: NSGetterEvaluator.HoldsDecimal(setType.entryTypeInfo, ctx));
             if (local is RuntimeSet set)
             {
                 switch (mutation)
@@ -4683,14 +4675,14 @@ namespace NeoCompose.Runtime
                     return NSGetterEvaluator.KeepDerived(added, entryMember, values);
                 }
                 var arrayList = new List<object?>(array);
-                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
+                MutateLocalList(arrayList, collectionType.type, mutation, args, reference, values ? null : entryMember, NSGetterEvaluator.HoldsDecimal(EntryTypeInfo(collectionType), ctx), ctx);
                 var mutated = new object?[arrayList.Count];
                 arrayList.CopyTo(mutated);
                 return NSGetterEvaluator.KeepDerived(mutated, entryMember, values);
             }
             if (local is List<object?> list)
             {
-                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, EntryTypeInfo(collectionType).type == MemberKind.Decimal, ctx);
+                MutateLocalList(list, collectionType.type, mutation, args, reference, values ? null : entryMember, NSGetterEvaluator.HoldsDecimal(EntryTypeInfo(collectionType), ctx), ctx);
                 return list;
             }
             if (local is IDictionary<string, object?> dict)
@@ -4726,7 +4718,7 @@ namespace NeoCompose.Runtime
                         {
                             if (reference
                                     ? NSGetterEvaluator.ReferenceEqual(entry, args[0], ctx)
-                                    : JsEqual(entry, args[0]))
+                                    : NSGetterEvaluator.CollectionValueEqual(entry, args[0], decimalEntries, ctx))
                                 return;
                         }
                     }
@@ -6171,6 +6163,8 @@ namespace NeoCompose.Runtime
             private readonly NeoValueOwnership ownership;
             // A Set skips an Add whose key it holds and removes by key.
             private readonly bool isSet;
+            // The row's stamp, which closes a Set entry's tuple elements.
+            private readonly Dictionary<string, string>? genericBindings;
 
             public NeoListWriteTarget(
                 string rowId,
@@ -6178,7 +6172,8 @@ namespace NeoCompose.Runtime
                 JsonMember? entryMember,
                 NeoValueOwnership ownership,
                 NeoWritePlan? preparedPlan = null,
-                bool isSet = false)
+                bool isSet = false,
+                Dictionary<string, string>? genericBindings = null)
             {
                 this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
@@ -6186,6 +6181,7 @@ namespace NeoCompose.Runtime
                 this.entryMember = entryMember;
                 this.ownership = ownership;
                 this.isSet = isSet;
+                this.genericBindings = genericBindings;
             }
 
             public override void Mutate(
@@ -6196,6 +6192,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
+                if (isSet && mutation == CollectionMutationKind.Add && client.PrimitiveInterfaceSchema.AnyEquatable)
+                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], entryMember, NeoGenericResolution.EnvFromStamp(genericBindings), ctx);
                 if (inserts)
                     RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);
@@ -6297,11 +6295,17 @@ namespace NeoCompose.Runtime
                             }
                             JsonMember removeMember = entryMember ?? EntryMember(client, list.Row, entryTypeInfo);
                             string? slotTarget = SlotTargetOf(args[0], removeMember, ctx);
+                            // P127 §7. An equatable target's Equals decides, whatever the entry type.
+                            bool equatable = NSGetterEvaluator.EquatableSearchClass(args[0], ctx) is not null;
                             for (int i = 0; i < list.Count; i++)
                             {
-                                bool match = slotTarget is not null
-                                    ? StoresTarget(client, list[i], slotTarget)
-                                    : list[i] == referenceId
+                                bool match;
+                                if (slotTarget is not null)
+                                    match = StoresTarget(client, list[i], slotTarget);
+                                else if (equatable)
+                                    match = NSGetterEvaluator.ReferenceEqual(list[i], args[0], ctx);
+                                else
+                                    match = list[i] == referenceId
                                         || (!reference || args[0] is null)
                                             && client.TryGetValue(list[i], out MemberValue? child)
                                             && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(child, removeMember, ctx, ownership), args[0], removeMember is DecimalMember, ctx);

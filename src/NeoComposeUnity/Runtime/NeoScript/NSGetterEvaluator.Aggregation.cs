@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
                 {
                     if (instruction.comparison is null)
-                        return CompareCollectionKeys(a.value, b.value, instruction.keyType);
+                        return CompareCollectionKeys(a.value, b.value, instruction.keyType, instruction.keyEvidence, ctx);
                     object? compared = callback.ProjectPair(a.value, b.value);
                     if (!TryAsDouble(compared, out double number) || !NeoNumbers.IsWhole(number))
                         throw new NSGetterRuntimeError("Sort comparison must return a finite int.");
@@ -75,8 +75,33 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>P127 §8. <c>K.Zero</c> plus each non-null value, through <c>K</c>'s <c>+</c>.</summary>
+        private static object? NumberBaseSum(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, Context ctx)
+        {
+            if (info.zero is null)
+                throw new NSGetterRuntimeError("A numberBase Sum has no zero.");
+            if (info.add is null)
+                throw new NSGetterRuntimeError("A numberBase Sum has no add.");
+            var scope = new NeoScriptScope();
+            object? sum = EvalPointer(info.zero, scope, ctx);
+            var cursor = new CollectionCursor(collection, ctx);
+            while (cursor.MoveNextUnresolved())
+            {
+                object? entry = cursor.ResolveEntry(ctx);
+                object? value = info.function is null ? entry : callback.Project(in cursor, entry);
+                if (value is null)
+                    continue;
+                scope.SetLocal("$sum", sum);
+                scope.SetLocal("$entry", value);
+                sum = EvalPointer(info.add, scope, ctx);
+            }
+            return sum;
+        }
+
         private static object? ReduceCollection(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, Context ctx)
         {
+            if (info.keyType == "numberBase")
+                return NumberBaseSum(info, collection, ref callback, ctx);
             int count = 0;
             double total = 0;
             string decimalTotal = "0";
@@ -108,7 +133,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NSGetterRuntimeError($"{info.op} integer total must be finite.");
                     continue;
                 }
-                int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType);
+                int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType, info.keyEvidence, ctx);
                 if (count == 1 || (info.op is "Min" or "MinBy" ? order < 0 : order > 0))
                 {
                     bestKey = value;

@@ -1975,6 +1975,22 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
             if (owner?.IsDisposed == true)
                 throw new ObjectDisposedException(nameof(NeoClient));
+            // P127 §12. A boxed primitive or ValueTuple passed as a value-usable
+            // interface crosses as the kind its closed construction holds.
+            if (HoldsPrimitive(value, typeInfo))
+            {
+                TypeInfo closed = NSGetterEvaluator.CloseContextType(typeInfo, ctx);
+                if (HeldType(closed, client) is not TypeInfo held)
+                    throw ForeignInterfaceValue(client, closed, value, subject, null);
+                try
+                {
+                    return Normalize(client, ownership, value, held, ctx, subject, resolvedIdentity);
+                }
+                catch (Exception error) when (error is InvalidOperationException or NSGetterRuntimeError)
+                {
+                    throw ForeignInterfaceValue(client, closed, value, subject, error);
+                }
+            }
             if (typeInfo.type == MemberKind.Interface
                 && !NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx)
                 && !NSGetterEvaluator.IsRowRecord(value, ctx))
@@ -2022,6 +2038,20 @@ namespace NeoCompose.Runtime
             if (resolvedIdentity)
                 ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
             return value;
+        }
+
+        private static InvalidOperationException ForeignInterfaceValue(
+            NeoClient client,
+            TypeInfo closed,
+            object value,
+            in ValueSubject subject,
+            Exception? inner)
+        {
+            NeoPrimitiveInterfaces.TryConstruction(closed, out string interfaceId, out _);
+            string interfaceName = client.TryGetInterface(interfaceId, out Interface? declaration) ? declaration.name : interfaceId;
+            string detail = inner is null ? "" : $" {inner.Message}";
+            return new InvalidOperationException(
+                $"{subject} received a CLR {value.GetType().Name}, which is not a value of Interface '{interfaceName}'.{detail}", inner);
         }
 
         private static object? NormalizeRewritten(
@@ -2287,8 +2317,34 @@ namespace NeoCompose.Runtime
         {
             if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
                 return;
-            ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateRuntimeValue(value, PrimitiveHeldType(value, typeInfo, ctx) ?? typeInfo, subject);
             ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
+        }
+
+        /// <summary>
+        /// P127 §12. A boxed primitive or ValueTuple in a value-usable
+        /// interface slot, which crosses as the kind its closed construction holds.
+        /// </summary>
+        private static bool HoldsPrimitive(object? value, TypeInfo typeInfo) =>
+            typeInfo.type == MemberKind.Interface
+            && value is not (null or IDictionary<string, object?> or INeoValueReference or NeoDetachedValue)
+            && NeoPrimitiveInterfaces.AdmitsPrimitives(typeInfo);
+
+        private static TypeInfo? PrimitiveHeldType(object? value, TypeInfo typeInfo, NSGetterEvaluator.Context ctx) =>
+            HoldsPrimitive(value, typeInfo)
+                ? HeldType(NSGetterEvaluator.CloseContextType(typeInfo, ctx), ctx.client)
+                : null;
+
+        /// <summary>
+        /// The kind a closed value-usable interface holds; a tuple only when
+        /// its elements implement the interface too (P127 §4).
+        /// </summary>
+        private static TypeInfo? HeldType(TypeInfo closed, NeoClient client)
+        {
+            TypeInfo? held = NeoPrimitiveInterfaces.HeldTypeOf(closed);
+            if (TupleTypeInfo.From(held) is { } tuple && !NSGetterEvaluator.TupleImplements(tuple, closed, client))
+                return null;
+            return held;
         }
 
         /// <summary>
@@ -2350,6 +2406,12 @@ namespace NeoCompose.Runtime
                     {
                         if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
                             return;
+                        if (PrimitiveHeldType(value, typeInfo, ctx) is TypeInfo held)
+                        {
+                            ValidateRuntimeValue(value, held, subject);
+                            ValidateResolvedIdentity(client, value, held, ctx, subject);
+                            return;
+                        }
                         string? interfaceId = typeInfo switch
                         {
                             InterfaceTypeInfo interfaceType => interfaceType.interfaceId,
