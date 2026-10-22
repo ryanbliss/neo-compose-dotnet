@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class TupleArgumentBoxes : NeoGeneratedClassValue, IReadOnlyTupleArgumentBoxes
     {
         internal TupleArgumentBoxes(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b4efe0a3-97e4-4410-8270-5ed7eca0c5c8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e8498f66-90e0-4e11-9487-8d838b8dc4df", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b4efe0a3-97e4-4410-8270-5ed7eca0c5c8",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nested", "e2a4c419-137f-4c69-854c-fa40b1380ade", Nested),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Named", "afe31292-b085-4bfe-8be0-2319424bfd68", Named),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("WithCoin", "b16dc482-de4c-4f6f-b238-96fae948efea", WithCoin)
+                "e8498f66-90e0-4e11-9487-8d838b8dc4df",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nested", "90eb0f3a-c308-4071-b008-86f2bb3bface", Nested),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Named", "bfebc0ca-399d-4a97-8a99-66762d455cac", Named),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("WithCoin", "dadc69a9-16a5-4375-b86e-d8543ab95e33", WithCoin)
             );
         }
 

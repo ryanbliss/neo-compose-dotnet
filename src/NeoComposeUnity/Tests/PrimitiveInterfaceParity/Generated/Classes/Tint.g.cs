@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Tint : NeoGeneratedClassValue, IReadOnlyTint
     {
         internal Tint(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "10ad0171-f6dd-47df-9c54-88b9eae9a21d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c2e3d3d0-c7cf-4b71-9aaa-3c6397b0f975", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "10ad0171-f6dd-47df-9c54-88b9eae9a21d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "559bd7d3-0809-4111-b53b-01692ea659c8", Value)
+                "c2e3d3d0-c7cf-4b71-9aaa-3c6397b0f975",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "a304bb4e-2feb-4983-befa-98c1b4a3f36c", Value)
             );
         }
 

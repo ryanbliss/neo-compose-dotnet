@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class CmpBox<T> : NeoGeneratedClassValue, IReadOnlyCmpBox<T>
     {
         internal CmpBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ca22dcc9-2bab-44f1-8ce4-daa58abff893", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d2a30d7a-61a0-4b8a-82d1-fad0e66bd4ea", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ca22dcc9-2bab-44f1-8ce4-daa58abff893" => new CmpBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d2a30d7a-61a0-4b8a-82d1-fad0e66bd4ea" => new CmpBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CmpBox' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ca22dcc9-2bab-44f1-8ce4-daa58abff893" => new CmpBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d2a30d7a-61a0-4b8a-82d1-fad0e66bd4ea" => new CmpBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CmpBox' without a concrete client type id."),
                 };
             });

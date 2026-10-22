@@ -254,6 +254,8 @@
     "  @storage(allowed: .Session) public static BagList IndexReplacedBags = new();",
     "  @storage(allowed: .Session) public static BagList AssignedRemovedBags = new();",
     "  @storage(allowed: .Session) public static BagList AddedRemovedBags = new();",
+    "  @storage(allowed: .Session) public static BagList LocalListBags = new();",
+    "  @storage(allowed: .Session) public static BagList RemovedBags = new();",
     "  @storage(allowed: .Session) public static List<Set<(Reference<Coin>, int)>> StaticSetSlot = [];",
     "  @storage(allowed: .Session) public static NestedSetGroups ShiftedNestGroups = new();",
     "  @storage(allowed: .Session) public static NullableElementBoxes NullableElements = new();",
@@ -672,7 +674,11 @@
     "  public static bool IndexReplacedListIsLocal() { KeyedSetGroups g = DroppedHolderItems; IndexReplacedBags.Bags = [new()]; KeyedSetGroups b = IndexReplacedBags.Bags[0]; List<Set<(Coin, int)>> l = []; b.Groups = l; IndexReplacedBags.Bags[0] = new(); List<(Coin, int)> one = [(g.Items[0], 1)]; l.Add(one.ToSet()); return l[0].Contains((g.Items[1], 1)); }",
     "  public static bool AssignedRemovedListIsLocal() { KeyedSetGroups g = DroppedHolderItems; AssignedRemovedBags.Bags = [new()]; KeyedSetGroups b = AssignedRemovedBags.Bags[0]; List<Set<(Coin, int)>> l = []; b.Groups = l; AssignedRemovedBags.Bags.RemoveAt(0); List<(Coin, int)> one = [(g.Items[0], 1)]; l.Add(one.ToSet()); return l[0].Contains((g.Items[1], 1)); }",
     "  public static bool AddedRemovedListIsLocal() { KeyedSetGroups g = DroppedHolderItems; AddedRemovedBags.Bags = []; AddedRemovedBags.Bags.Add(new()); KeyedSetGroups b = AddedRemovedBags.Bags[0]; List<Set<(Coin, int)>> l = []; b.Groups = l; AddedRemovedBags.Bags.RemoveAt(0); List<(Coin, int)> one = [(g.Items[0], 1)]; l.Add(one.ToSet()); return l[0].Contains((g.Items[1], 1)); }",
+    "  public static bool RemovedListIsLocal() { KeyedSetGroups g = DroppedHolderItems; RemovedBags.Bags = [new()]; KeyedSetGroups b = RemovedBags.Bags[0]; List<Set<(Coin, int)>> l = []; b.Groups = l; RemovedBags.Bags.Remove(b); List<(Coin, int)> one = [(g.Items[0], 1)]; l.Add(one.ToSet()); return l[0].Contains((g.Items[1], 1)); }",
     "  public static int ShiftedListLateEntryGuard() { SetLists<Coin> b = new(); List<Coin> e = []; b.Values.Add(e.ToSet()); b.Values.Insert(0, e.ToSet()); Set<Coin> a = b.Values[1]; try { a.Add(new Coin(1)); } catch (string message) {} b.Values.Add(e.ToSet()); Set<Coin> s = b.Values[2]; b.Values.RemoveAt(0); s.Add(new Coin(1)); return s.Count; }",
+    "  public static int LocalListReplacedHolderGuard() { SetLists<Coin> b = new(); List<SetLists<Coin>> l = [b]; l[0] = new(); List<Coin> e = []; b.Values.Add(e.ToSet()); Set<Coin> s = b.Values[0]; s.Add(new Coin(1)); return s.Count; }",
+    "  public static int LocalListRowReplacedHolderGuard() { SetLists<Coin> b = new(); SetLists<Coin> c = new(); List<SetLists<Coin>> l = [b]; l[0] = c; List<Coin> e = []; b.Values.Add(e.ToSet()); Set<Coin> s = b.Values[0]; s.Add(new Coin(1)); return s.Count; }",
+    "  public static bool LocalListKeepsHeldBag() { KeyedSetGroups g = DroppedHolderItems; LocalListBags.Bags = [new()]; KeyedSetGroups b = LocalListBags.Bags[0]; List<KeyedSetGroups> l = [b]; l[0] = new(); List<(Coin, int)> one = [(g.Items[0], 1)]; b.Groups.Add(one.ToSet()); return b.Groups[0].Contains((g.Items[1], 1)); }",
     "  public static string ShiftedNestedListAddSetIdentity() { NestedSetGroups g = ShiftedNestGroups; List<(Coin, int)> one = [(g.Items[0], 1)]; g.Nest.Add([]); g.Nest.Insert(0, []); g.Nest[1].Add(one.ToSet()); Set<(Coin, int)> s = g.Nest[1][0]; bool has = s.Contains((g.Items[1], 1)); s.Add((g.Items[1], 1)); return $\"{has}|{s.Count}|{g.Nest[1][0].Count}\"; }",
     "}"
   ],
@@ -919,7 +925,9 @@
     "OwnerReplacedListIsLocal": true,
     "KeptHolderSetIdentity": false,
     "RefusedInsertKeepsSet": "true|true|0",
-    "AssignedRemovedListIsLocal": true
+    "AssignedRemovedListIsLocal": true,
+    "LocalListKeepsHeldBag": false,
+    "RemovedListIsLocal": true
   },
   "refuses": {
     "GenericDivideByZero": "Division by zero",
@@ -934,6 +942,8 @@
     "IdentitySetMemberGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
     "ConstructorInitSetGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
     "ConstructorBodySetGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
-    "ShiftedListLateEntryGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`."
+    "ShiftedListLateEntryGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
+    "LocalListReplacedHolderGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`.",
+    "LocalListRowReplacedHolderGuard": "Set Add: `Set` elements can't hold `IEquatable` class 'Coin', since a stored Set keys entries by row. Use a `List`."
   }
 }
