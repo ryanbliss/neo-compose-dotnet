@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class KeyedSetGroups : NeoGeneratedClassValue, IReadOnlyKeyedSetGroups
     {
         internal KeyedSetGroups(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d619ab4d-a4b2-46ba-86d1-847c31b68162", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9ff46570-c314-4841-8794-43ef074d2532", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "d619ab4d-a4b2-46ba-86d1-847c31b68162",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "f03184da-d82e-4aee-a362-0c6baf2b8201", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "c162d1d5-36d1-460d-bc20-694cd63a68e8", Groups),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Keyed", "13a9c6eb-14e5-4a08-b62c-2436a2195b75", Keyed)
+                "9ff46570-c314-4841-8794-43ef074d2532",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "842362eb-df4f-4131-b94f-c81340fc4dd0", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "87c1fba0-e900-4a2d-8027-43d0a6e27d17", Groups),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Keyed", "3f070a1e-f240-46f6-8e43-023461d8aca6", Keyed)
             );
         }
 
