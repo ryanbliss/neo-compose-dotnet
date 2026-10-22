@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class SelfReference : NeoGeneratedClassValue, IReadOnlySelfReference
     {
         internal SelfReference(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a27e93da-dad4-4fbd-8cc3-e51f748e8c56", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a90f3a7f-114c-447e-a26f-fdbcab862dc6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "a27e93da-dad4-4fbd-8cc3-e51f748e8c56",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "aafd1759-76a0-47f5-8a4a-415a1374c6f0", Items),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Link", "ef50172f-cee5-49f1-ac32-75bb28e2f012", Link),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "319ef371-cc93-4572-b2d9-86ccd94eeaf2", Groups)
+                "a90f3a7f-114c-447e-a26f-fdbcab862dc6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "7c06da0f-cf35-4f68-8885-aa3aaba92913", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Link", "929cc473-919f-40be-98bc-a4de0e2002b3", Link),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "84014d4b-a9a1-427c-a5f8-555422a45edd", Groups)
             );
         }
 

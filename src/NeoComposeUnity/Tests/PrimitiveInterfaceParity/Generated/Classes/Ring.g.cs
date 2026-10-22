@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Ring : NeoGeneratedClassValue, IReadOnlyRing
     {
         internal Ring(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a1041e7d-005a-4276-aad8-4e36d9826a0d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3a44ff84-4e5b-44b9-a569-7d37ea199650", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "a1041e7d-005a-4276-aad8-4e36d9826a0d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Kids", "4b3009aa-6e52-470f-bd0e-12e763273de1", Kids),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "c69460da-6f25-45b1-bc05-5de020b293c3", Sets)
+                "3a44ff84-4e5b-44b9-a569-7d37ea199650",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Kids", "43d03d07-5ce0-4cd9-be3c-e917b046b368", Kids),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "78b9b120-d972-4ff7-a1f7-cdc4b189bcd1", Sets)
             );
         }
 

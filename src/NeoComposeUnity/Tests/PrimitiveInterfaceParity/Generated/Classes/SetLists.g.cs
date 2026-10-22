@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class SetLists<T> : NeoGeneratedClassValue, IReadOnlySetLists<T>
     {
         internal SetLists(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f85179ab-7b15-4b61-8c52-2742fb8f6dab", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4000bd87-feb4-4fa2-9e8b-64edf4b342ab", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f85179ab-7b15-4b61-8c52-2742fb8f6dab" => new SetLists<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4000bd87-feb4-4fa2-9e8b-64edf4b342ab" => new SetLists<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SetLists' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f85179ab-7b15-4b61-8c52-2742fb8f6dab" => new SetLists<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4000bd87-feb4-4fa2-9e8b-64edf4b342ab" => new SetLists<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SetLists' without a concrete client type id."),
                 };
             });

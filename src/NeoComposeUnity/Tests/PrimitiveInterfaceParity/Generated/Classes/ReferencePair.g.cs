@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class ReferencePair : NeoGeneratedClassValue, IReadOnlyReferencePair
     {
         internal ReferencePair(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5fe1648b-6b09-4191-849f-30f6a2690cec", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5ec50a1c-9d24-4c5d-b92a-4c5d00d707b3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "5fe1648b-6b09-4191-849f-30f6a2690cec",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "5a57e776-050b-46bc-8978-dcd6f19f5ea5", Pair)
+                "5ec50a1c-9d24-4c5d-b92a-4c5d00d707b3",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "e88496a6-6d68-4b8e-9020-0641bf2e61ba", Pair)
             );
         }
 
