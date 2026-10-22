@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class OrderLog : NeoGeneratedClassValue, IReadOnlyOrderLog
     {
         internal OrderLog(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "974fac79-2668-4d5a-a3bf-e0b80a222657", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "64021c9b-38c0-4e37-aff4-52c2ce5e9fe8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "974fac79-2668-4d5a-a3bf-e0b80a222657",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "de1f77af-d1ee-4bb7-bef7-c9c624f811ab", N)
+                "64021c9b-38c0-4e37-aff4-52c2ce5e9fe8",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "5f71c75b-9a82-4a23-8f5d-0dc4018dd177", N)
             );
         }
 

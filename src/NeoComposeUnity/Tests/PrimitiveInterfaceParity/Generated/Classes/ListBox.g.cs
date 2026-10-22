@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class ListBox<T> : NeoGeneratedClassValue, IReadOnlyListBox<T>
     {
         internal ListBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1ae2d468-c978-416b-9551-f88480a3faea", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "73ff3bc8-831c-4b77-a7cb-9fe2df46055e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1ae2d468-c978-416b-9551-f88480a3faea" => new ListBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "73ff3bc8-831c-4b77-a7cb-9fe2df46055e" => new ListBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ListBox' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1ae2d468-c978-416b-9551-f88480a3faea" => new ListBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "73ff3bc8-831c-4b77-a7cb-9fe2df46055e" => new ListBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ListBox' without a concrete client type id."),
                 };
             });

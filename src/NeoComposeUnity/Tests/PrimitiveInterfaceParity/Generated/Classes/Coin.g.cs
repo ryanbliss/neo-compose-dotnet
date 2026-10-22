@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class Coin : NeoGeneratedClassValue, IReadOnlyCoin
     {
         internal Coin(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "85574c14-731e-45aa-814e-0ad45fab2ca4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8ac822a9-ea94-4b6e-8665-7d80efd38a0f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
         }
 
         public Coin(int cents, int? Cents = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "85574c14-731e-45aa-814e-0ad45fab2ca4", "2a3d5e14-585b-578d-8051-b70ffb39510c", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "b756bf27-dd4a-4a3e-a5fd-069f1910ae06", Cents) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "8ac822a9-ea94-4b6e-8665-7d80efd38a0f", "663b03e6-5388-5832-a41d-4b04e0502321", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "d2b22888-34c5-49aa-bb82-ce157373398a", Cents) }), false, NeoValueOwnership.Session)
         {
         }
 

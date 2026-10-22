@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class GroupBags : NeoGeneratedClassValue, IReadOnlyGroupBags
     {
         internal GroupBags(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f917b4ef-0589-4d28-a6ac-59b0192c4332", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a0782a4c-4843-4211-88bc-b40e7aa9934c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f917b4ef-0589-4d28-a6ac-59b0192c4332",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bags", "4935e7e6-c9eb-4af3-a075-35c30aa6fdc0", Bags),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "af876b8b-abbb-4d86-9c81-62870aa7c040", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "f473f8bd-2804-412a-aa01-81dbe54b8330", Map)
+                "a0782a4c-4843-4211-88bc-b40e7aa9934c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bags", "f89a8e3c-d380-4fd5-a3c7-995233c4dddc", Bags),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "2a7a7bd6-b7f2-434e-8c8c-e1a1c269fa32", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "e0b94655-25a2-4472-ab03-b1db3cbddd7a", Map)
             );
         }
 

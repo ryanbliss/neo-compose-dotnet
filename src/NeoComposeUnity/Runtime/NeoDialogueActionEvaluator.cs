@@ -3041,7 +3041,7 @@ namespace NeoCompose.Runtime
             if (collectionType is LookupTypeInfo lookup && !isSet)
                 target = new NeoLookupSetWriteTarget(id, lookup, pending.Ownership);
             else if (pending is NeoWriteBatch.PendingList)
-                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership, isSet: isSet);
+                target = new NeoListWriteTarget(id, EntryTypeInfo(collectionType), pending.EntryMember, pending.Ownership, isSet: isSet, genericBindings: pending.Row.genericBindings);
             else
                 return PendingDictionaryTarget(pending, EntryTypeInfo(collectionType));
             pending.Target = target;
@@ -3737,7 +3737,8 @@ namespace NeoCompose.Runtime
                     client.TryResolveCollectionEntryMember(member, row),
                     ownership,
                     preparedPlan,
-                    member is SetMember);
+                    member is SetMember,
+                    row.genericBindings);
             }
             if (row is ObjectMemberValue)
             {
@@ -6162,6 +6163,8 @@ namespace NeoCompose.Runtime
             private readonly NeoValueOwnership ownership;
             // A Set skips an Add whose key it holds and removes by key.
             private readonly bool isSet;
+            // The row's stamp, which closes a Set entry's tuple elements.
+            private readonly Dictionary<string, string>? genericBindings;
 
             public NeoListWriteTarget(
                 string rowId,
@@ -6169,7 +6172,8 @@ namespace NeoCompose.Runtime
                 JsonMember? entryMember,
                 NeoValueOwnership ownership,
                 NeoWritePlan? preparedPlan = null,
-                bool isSet = false)
+                bool isSet = false,
+                Dictionary<string, string>? genericBindings = null)
             {
                 this.preparedPlan = preparedPlan;
                 this.rowId = rowId;
@@ -6177,6 +6181,7 @@ namespace NeoCompose.Runtime
                 this.entryMember = entryMember;
                 this.ownership = ownership;
                 this.isSet = isSet;
+                this.genericBindings = genericBindings;
             }
 
             public override void Mutate(
@@ -6187,8 +6192,8 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
-                if (isSet && mutation == CollectionMutationKind.Add)
-                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], entryMember, ctx);
+                if (isSet && mutation == CollectionMutationKind.Add && client.PrimitiveInterfaceSchema.AnyEquatable)
+                    NSGetterEvaluator.AssertStoredSetEntryNotEquatable(args[0], entryMember, NeoGenericResolution.EnvFromStamp(genericBindings), ctx);
                 if (inserts)
                     RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);

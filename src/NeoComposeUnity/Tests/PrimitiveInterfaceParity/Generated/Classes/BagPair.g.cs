@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class BagPair : NeoGeneratedClassValue, IReadOnlyBagPair
     {
         internal BagPair(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4cab9d8f-0835-4e8b-b23e-07646b064838", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "edd33f35-49c0-4395-88b4-c20acc142825", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "4cab9d8f-0835-4e8b-b23e-07646b064838",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "4c6c2322-9f56-45e6-a432-b8d117c66fa7", Pair)
+                "edd33f35-49c0-4395-88b4-c20acc142825",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "ee1092fc-d1d7-4768-8a30-6b930a9f5ed7", Pair)
             );
         }
 

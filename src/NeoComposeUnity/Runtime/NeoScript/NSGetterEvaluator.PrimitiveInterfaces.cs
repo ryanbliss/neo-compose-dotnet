@@ -1147,8 +1147,13 @@ namespace NeoCompose.Runtime.NeoScript
         /// P127 §7. A stored Set keys class entries by row, so it refuses a
         /// row, or a tuple element row, of an equatable class. A
         /// <c>Reference&lt;T&gt;</c> element is a stored Lookup and keys by identity.
+        /// Tuple elements close over <paramref name="env"/> as they're reached.
         /// </summary>
-        internal static void AssertStoredSetEntryNotEquatable(object? value, Member? member, Context ctx)
+        internal static void AssertStoredSetEntryNotEquatable(
+            object? value,
+            Member? member,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            Context ctx)
         {
             NeoPrimitiveInterfaceSchema schema = ctx.client.PrimitiveInterfaceSchema;
             if (!schema.AnyEquatable || member is LookupMember)
@@ -1158,9 +1163,13 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < tuple.Count; i++)
                 {
                     Member? element = null;
-                    if (member is TupleMember tupleMember && !ctx.client.TryGetMember(tupleMember.elementMemberIds[i], out element))
-                        throw new NSGetterRuntimeError($"Tuple '{tupleMember.name}' element {i + 1} has no member descriptor.");
-                    AssertStoredSetEntryNotEquatable(tuple[i], element, ctx);
+                    if (member is TupleMember tupleMember)
+                    {
+                        if (!ctx.client.TryGetMember(tupleMember.elementMemberIds[i], out element))
+                            throw new NSGetterRuntimeError($"Tuple '{tupleMember.name}' element {i + 1} has no member descriptor.");
+                        element = NeoGenericResolution.SubstituteMember(ctx.client, element!, env);
+                    }
+                    AssertStoredSetEntryNotEquatable(tuple[i], element, env, ctx);
                 }
                 return;
             }
@@ -1194,7 +1203,7 @@ namespace NeoCompose.Runtime.NeoScript
                     foreach (object? entry in entries)
                     {
                         if (listMember is SetMember)
-                            AssertStoredSetEntryNotEquatable(entry, entryMember, ctx);
+                            AssertStoredSetEntryNotEquatable(entry, entryMember, env, ctx);
                         else
                             AssertAssignedSetsNotEquatable(entryMember, entry, env, ctx);
                     }

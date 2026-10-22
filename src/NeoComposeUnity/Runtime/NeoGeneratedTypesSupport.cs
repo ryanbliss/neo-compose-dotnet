@@ -8087,7 +8087,7 @@ namespace NeoCompose.Runtime
                     foreach (object? item in enumerable)
                     {
                         if (setGuard is not null)
-                            NeoScript.NSGetterEvaluator.AssertStoredSetEntryNotEquatable(item, entryMember, setGuard);
+                            NeoScript.NSGetterEvaluator.AssertStoredSetEntryNotEquatable(item, entryMember, genericEnv, setGuard);
                         string? id = MaterializeRuntimeConstructorValue(
                             client,
                             entryMember,

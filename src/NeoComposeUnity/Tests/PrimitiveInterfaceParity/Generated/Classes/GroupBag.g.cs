@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class GroupBag : NeoGeneratedClassValue, IReadOnlyGroupBag
     {
         internal GroupBag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "41b4430e-36f8-4d20-82d8-d6049ec7ec8e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7db33ee9-8359-4d32-9f76-50ea3ab48111", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "41b4430e-36f8-4d20-82d8-d6049ec7ec8e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "16dbbd16-7717-4087-ba85-cc19843b69f0", Groups)
+                "7db33ee9-8359-4d32-9f76-50ea3ab48111",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "6fd03cb5-64cc-4f10-b3ec-6272a1db52b6", Groups)
             );
         }
 
