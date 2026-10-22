@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
     public partial class NullableElementBoxes : NeoGeneratedClassValue, IReadOnlyNullableElementBoxes
     {
         internal NullableElementBoxes(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6c7ee9ef-65ee-43f6-aaa4-7729013a6443", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f894ed17-4a16-4ef3-907a-3b1808c5ae3f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.PrimitiveInterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "6c7ee9ef-65ee-43f6-aaa4-7729013a6443",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CoinPair", "4e9aab06-27cb-4830-baa8-c8499681d47c", CoinPair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nested", "3610837e-1df2-4fd0-bc02-0d5b4e8ac5d2", Nested)
+                "f894ed17-4a16-4ef3-907a-3b1808c5ae3f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CoinPair", "ac443ea7-e6a4-43d7-9792-d383d380010f", CoinPair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nested", "65c81e2d-1e70-4464-afec-3a7bf97ae77b", Nested)
             );
         }
 
