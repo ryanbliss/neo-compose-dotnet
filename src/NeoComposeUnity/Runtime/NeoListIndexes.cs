@@ -116,21 +116,39 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private string ReadDependency => $"list-index:{list.ownership}:{list.value?.id}:{definition.schemaKey}";
+
+        private void InvalidateReaders() => list.Client.InvalidateGetterMemoForRow(ReadDependency);
+
         internal void UpdateEntry(string valueId)
         {
             if (buckets is null || keysByValueId is null)
                 return;
-            RemoveEntry(valueId);
             if (!list.TryGetChildById(valueId, out NeoMember? child))
+            {
+                RemoveEntry(valueId);
                 return;
+            }
             string? rawKey = ReadRawKey(child);
+            if (keysByValueId.TryGetValue(valueId, out string? previousKey) && previousKey == rawKey)
+                return;
+            RemoveEntryCore(valueId);
             keysByValueId[valueId] = rawKey;
             if (rawKey is not null)
                 AddToBucket(rawKey, valueId);
             list.IndexDiagnostics.DerivedIncrementalUpdateCount += 1;
+            InvalidateReaders();
         }
 
         internal void RemoveEntry(string valueId)
+        {
+            if (keysByValueId?.ContainsKey(valueId) != true)
+                return;
+            RemoveEntryCore(valueId);
+            InvalidateReaders();
+        }
+
+        private void RemoveEntryCore(string valueId)
         {
             if (buckets is null || keysByValueId is null)
                 return;
@@ -161,10 +179,12 @@ namespace NeoCompose.Runtime
             buckets.Clear();
             keysByValueId!.Clear();
             duplicateKeys?.Clear();
+            InvalidateReaders();
         }
 
         internal void Invalidate()
         {
+            InvalidateReaders();
             buckets = null;
             keysByValueId = null;
             duplicateKeys = null;
@@ -176,6 +196,9 @@ namespace NeoCompose.Runtime
         {
             list.ObserveScriptWrites();
             EnsureBuilt();
+            // A bucket count (including an empty bucket) need not read any
+            // entry rows. Track the index itself so key edits invalidate it.
+            list.Client.NoteRowRead(ReadDependency);
             if (definition.Kind == NeoListIndexKind.Unique && duplicateKeys is { Count: > 0 })
             {
                 throw new InvalidOperationException(

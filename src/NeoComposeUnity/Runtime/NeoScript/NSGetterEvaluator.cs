@@ -9915,7 +9915,7 @@ namespace NeoCompose.Runtime.NeoScript
                         indexedKeys!.Remove(key);
                         continue;
                     }
-                    if (PatchCachedShape(row, cached))
+                    if (PatchCachedShape(row, cached, ctx))
                     {
                         if (cached is not null)
                             patchedObjects.Add(cached);
@@ -9954,7 +9954,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (alias is RuntimeListIdentity list && row is ArrayMemberValue { value: not null } arrayRow)
                         ReadAssignedList(list, arrayRow, reference, ctx);
                     else if (!patchedObjects.Contains(alias))
-                        PatchCachedShape(row, alias);
+                        PatchCachedShape(row, alias, ctx);
                 }
             }
             finally
@@ -9969,7 +9969,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static bool PatchCachedShape(MemberValue row, object? cached)
+        private static bool PatchCachedShape(MemberValue row, object? cached, Context ctx)
         {
             if (row is ObjectMemberValue { value: not null } objectRow
                 && cached is IDictionary<string, object?> record)
@@ -9984,6 +9984,13 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return true;
             }
+            // Unordered membership lives on child rows, not in the container's
+            // wire array. Evict its materialized snapshot even when that array
+            // is still empty; the next read joins the current membership.
+            if (row is ArrayMemberValue && cached is object?[]
+                && ctx.rowReverseIndex.TryGetValue(cached, out RowReference reference)
+                && reference.member is ListMember list && ctx.client.IsUnorderedList(list))
+                return false;
             if (row is ArrayMemberValue arrayRow
                 && cached is object?[] array
                 && arrayRow.value is not null

@@ -1,0 +1,15 @@
+enum MailStatus { Scheduled, Delivered, Viewed }
+enum RewardStatus { Pending, Claimed }
+class Reward { public RewardStatus Result = .Pending; }
+class Mail { public MailStatus Status = .Scheduled; public List<Reward> RewardResults = [new(), new()]; }
+class Mailbox {
+ @settings(kind: .Unordered) @index(member: Status) public List<Mail> Inbox = [new() { Status = .Delivered }];
+ public int IndexedUnread => Inbox.Index.Status[.Delivered].Count;
+ public int ScanUnread { get { int count = 0; foreach (Mail mail in Inbox) { if (mail.Status == .Delivered) count++; } return count; } }
+ public int ScanAny { get { int count = 0; foreach (Mail mail in Inbox) { if (mail.Status != .Viewed) continue; if (mail.RewardResults.Any((result) => result.Result == .Pending)) count++; } return count; } }
+ public int ScanLoop { get { int count = 0; foreach (Mail mail in Inbox) { if (mail.Status != .Viewed) continue; foreach (Reward result in mail.RewardResults) { if (result.Result == .Pending) { count++; break; } } } return count; } }
+ public int IndexedAny { get { int count = 0; foreach (Mail mail in Inbox.Index.Status[.Viewed]) { if (mail.RewardResults.Any((result) => result.Result == .Pending)) count++; } return count; } }
+ public (int unread, int rewards) TupleAny { get { int unread = 0; int rewards = 0; foreach (Mail mail in Inbox) { if (mail.Status == .Scheduled) continue; if (mail.Status == .Delivered) { unread++; continue; } if (mail.RewardResults.Any((result) => result.Result == .Pending)) rewards++; } return (unread, rewards); } }
+ public (int unread, int rewards) TupleLoop { get { int unread = 0; int rewards = 0; foreach (Mail mail in Inbox) { if (mail.Status == .Scheduled) continue; if (mail.Status == .Delivered) { unread++; continue; } foreach (Reward result in mail.RewardResults) { if (result.Result == .Pending) { rewards++; break; } } } return (unread, rewards); } }
+}
+class Probe { @storage(allowed: .Save) public static Mailbox Box = new(); }
