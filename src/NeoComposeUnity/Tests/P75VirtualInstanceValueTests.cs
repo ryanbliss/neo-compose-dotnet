@@ -19,6 +19,67 @@ namespace NeoCompose.Tests
     public partial class P75VirtualInstanceValueTests
     {
         [Test]
+        public void RequiredOverrideReplaysInheritedNullDefaultBeforeStoredValue()
+        {
+            ProjectData data = BuildRequiredOverrideWithNullDefault();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            Assert.That(thing.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(17));
+            thing.Get<NeoMemberIntWritable>("Count").Set(23);
+            string saved = client.SerializeSaveData();
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(
+                BuildRequiredOverrideWithNullDefault(), loadedSaveContent: saved);
+            Assert.That(reloaded.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(23));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RequiredOverrideValidatesNullAfterCallSiteFields(bool supplyValue)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildRequiredOverrideWithNullDefault());
+            NeoGeneratedConstructorValue[] fields = supplyValue
+                ? new[] { new NeoGeneratedConstructorValue("Count", "thing-count", 31) }
+                : Array.Empty<NeoGeneratedConstructorValue>();
+            if (supplyValue)
+            {
+                var constructed = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                    client, "thing-class", null, Array.Empty<NeoDeclaredConstructorArgument>(), fields);
+                Assert.That(constructed.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(31));
+            }
+            else
+            {
+                var error = Assert.Throws<InvalidOperationException>(() =>
+                    NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                        client, "thing-class", null, Array.Empty<NeoDeclaredConstructorArgument>(), fields));
+                Assert.That(error!.Message, Does.Contain("Count").And.Contain("null"));
+            }
+        }
+
+        private static ProjectData BuildRequiredOverrideWithNullDefault()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["base-thing"] = SchemaClass("base-thing", "BaseThing", NeoMemberStorage.Save);
+            data.classes["base-thing"].schema["Count"] = "base-count";
+            data.classes["thing-class"].extendsClassId = "base-thing";
+            data.members["base-count"] = new IntMember
+            {
+                id = "base-count",
+                projectId = "p75-project",
+                name = "Count",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Optional,
+                defaultValue = new NumberMemberValueBase { value = null },
+            };
+            var count = (IntMember)data.members["thing-count"];
+            count.extendsMemberId = "base-count";
+            count.defaultValue = null;
+            ((ObjectMemberValue)data.values["thing-instance"]).value!["Count"] = "stored-count";
+            data.values["stored-count"] = new NumberMemberValue { id = "stored-count", value = 17 };
+            return data;
+        }
+
+        [Test]
         public void InlineDefaultListenersRemapTheirOwnerAndInternalReceiverWithoutSaveMetadata()
         {
             ProjectData data = BuildProjectData();
