@@ -1,0 +1,26 @@
+class PlacedItem : NeoObject {}
+class PlacedPrimaryItem : PlacedItem {}
+class PlacedMailboxItem : PlacedPrimaryItem {}
+class UnrelatedItem : NeoObject {}
+class InventoryItemBase {
+  public virtual NeoVariant<PlacedItem>? Placed = null;
+}
+class MailboxItem : InventoryItemBase {
+  public override NeoVariant<PlacedMailboxItem> Placed;
+}
+NeoVariant<PlacedMailboxItem> MailboxVariant = new(initialize: () => new PlacedMailboxItem(), overrides: new {});
+class Holder {
+  public static MailboxItem Item = new MailboxItem { Placed = PlacedMailboxItem.Variants.MailboxVariant };
+}
+
+class SameItem : InventoryItemBase { public override NeoVariant<PlacedItem> Placed; }
+class OptionalItem : InventoryItemBase { public override NeoVariant<PlacedMailboxItem>? Placed; }
+class DeepItem : MailboxItem {}
+class Probe {
+ @storage(.Save) public static MailboxItem Other = new MailboxItem { Placed = PlacedMailboxItem.Variants.Base };
+ @storage(.Save) public static DeepItem Deep = new DeepItem { Placed = PlacedMailboxItem.Variants.MailboxVariant };
+ public static InventoryItemBase BaseItem = new InventoryItemBase { Placed = PlacedItem.Variants.Base };
+ @storage(.Save) public static MailboxItem Live = new MailboxItem { Placed = PlacedMailboxItem.Variants.MailboxVariant };
+ @storage(.Save) public static SameItem Same = new SameItem { Placed = PlacedMailboxItem.Variants.MailboxVariant };
+ @storage(.Save) public static OptionalItem Optional = new OptionalItem {};
+}
