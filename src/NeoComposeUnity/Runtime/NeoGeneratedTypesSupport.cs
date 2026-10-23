@@ -5365,6 +5365,9 @@ namespace NeoCompose.Runtime
                 // allocation scope closing mid-construction.
                 try
                 {
+                    using var replayRoot = replayDefaultRoot
+                        ? client.BindStoredConstructorReplayRoot(root)
+                        : (NeoClient.StoredConstructorReplayRootScope?)null;
                     // Steps 2 and 3 — base chain then this body, both against the
                     // same `this`.
                     object? thisValue = NeoScript.NSGetterEvaluator.UnwrapRow(

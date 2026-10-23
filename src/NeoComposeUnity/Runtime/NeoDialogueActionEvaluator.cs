@@ -5473,7 +5473,7 @@ namespace NeoCompose.Runtime
                                 ownership,
                                 referenceId!,
                                 ctx,
-                                existingId);
+                                client.StoredReplayDestinationValueId(parentRowId, key, existingId, referenceId));
                             if (importedId == existingId)
                                 return;
                             ObjectMemberValue rebound = WritableParent();
@@ -5521,7 +5521,8 @@ namespace NeoCompose.Runtime
                             plan, client,
                             ownership,
                             linkedReferenceId!,
-                            ctx);
+                            ctx,
+                            client.StoredReplayDestinationValueId(parentRowId, key, null, linkedReferenceId));
                         plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             linked.value[key],
                             parentRowId));
