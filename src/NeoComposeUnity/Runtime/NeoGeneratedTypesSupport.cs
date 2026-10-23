@@ -7020,7 +7020,8 @@ namespace NeoCompose.Runtime
                         client,
                         member,
                         NeoGenericResolution.EmptyEnv,
-                        new HashSet<string>());
+                        new HashSet<string>(),
+                        NeoNSFunctionRuntime.BindingTypeProjection.Stored);
                 }
                 catch (NeoScript.NSGetterRuntimeError)
                 {
@@ -7100,6 +7101,10 @@ namespace NeoCompose.Runtime
             TypeInfo typeInfo,
             Member member)
         {
+            if (typeInfo is ReferenceTypeInfo && member is LookupMember)
+                return NeoClient.TypeInfoMatches(typeInfo, NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    client, member, NeoGenericResolution.EmptyEnv, new HashSet<string>(),
+                    NeoNSFunctionRuntime.BindingTypeProjection.Stored));
             MemberKind memberType = member is ClassMember slot ? slot.TypeKind : member.kind;
             if (typeInfo.type != memberType
                 || typeInfo.required != (member.Requirement == NeoMemberRequirementKind.Required))
@@ -7108,7 +7113,8 @@ namespace NeoCompose.Runtime
             }
             if (member is TupleMember)
                 return NeoClient.TypeInfoMatches(typeInfo, NeoNSFunctionRuntime.TypeInfoFromBindingMember(
-                    client, member, NeoGenericResolution.EmptyEnv, new HashSet<string>()));
+                    client, member, NeoGenericResolution.EmptyEnv, new HashSet<string>(),
+                    NeoNSFunctionRuntime.BindingTypeProjection.Stored));
             if (typeInfo is ClassTypeInfo classType
                 && member is ClassMember classMember)
             {
