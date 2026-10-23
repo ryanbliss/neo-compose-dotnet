@@ -26,6 +26,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             : base(client, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, NeoClassIdsByType)
         {
             Client.ScriptGridQueries.RegisterFactories(ScriptGridContentFactories);
+            Client.RegisterGeneratedDetachedClassFactories(NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds, NeoTypeArgumentInterfaceIds);

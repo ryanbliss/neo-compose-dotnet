@@ -113,7 +113,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("HasVisited");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return (bool)result.value!;
             }
         }
