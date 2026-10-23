@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.79.1] - 2026-10-22
+
+- Fixed sparse constructor replay rejecting an inherited null default before a stored value or call-site initializer replaces it. Required fields still reject null after runtime construction finishes. This fixes existing and new Neowyn saves failing to load after a local mailbox export. (#412)
+- Unity export schema remains 46 and compiler revision remains 17.
 - Fixed stored string collection `Contains` and `IndexOf` comparing text with storage row IDs instead of string values. Localized text searches retain their read dependencies. (#356)
 - Fixed vector and color hashing in sets and `Distinct`, including tuple keys containing these values. Equal components now produce equal hashes. (#358)
 - Fixed local list aliases, parameters, and returned lists observing stale membership after mutation. Independent collection results keep distinct identities. (#361)
