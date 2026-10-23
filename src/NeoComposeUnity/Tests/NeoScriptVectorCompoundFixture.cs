@@ -6,7 +6,7 @@ namespace NeoCompose.Tests
     internal static class NeoScriptVectorCompoundFixture
     {
         internal const string Json = @"{
-  ""compilerRevision"": 17,
+  ""compilerRevision"": 18,
   ""source"": {
     ""name"": ""getter"",
     ""coordinateSpace"": ""body""
@@ -146,7 +146,7 @@ namespace NeoCompose.Tests
             ""value"": {
               ""code"": ""() => { Debug.Log(\""index\""); return 0; }"",
               ""action"": {
-                ""compilerRevision"": 17,
+                ""compilerRevision"": 18,
                 ""source"": {
                   ""coordinateSpace"": ""body"",
                   ""name"": ""getter <delegate>""
@@ -274,7 +274,7 @@ namespace NeoCompose.Tests
             ""value"": {
               ""code"": ""() => { Debug.Log(\""scalar\""); return 2; }"",
               ""action"": {
-                ""compilerRevision"": 17,
+                ""compilerRevision"": 18,
                 ""source"": {
                   ""coordinateSpace"": ""body"",
                   ""name"": ""getter <delegate>""

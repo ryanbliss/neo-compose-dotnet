@@ -103,7 +103,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NumberCursor.Current",
           "uri": "Sequences.neo",
@@ -199,7 +199,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NumberCursor.MoveNext",
           "uri": "Sequences.neo",
@@ -393,7 +393,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NumberCursor.Dispose",
           "uri": "Sequences.neo",
@@ -468,7 +468,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "NumberStream.GetEnumerator",
           "uri": "Sequences.neo",
@@ -582,7 +582,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -841,7 +841,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.Sum",
           "uri": "Sequences.neo",
@@ -1066,7 +1066,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.Cursor",
           "uri": "Sequences.neo",
@@ -1207,7 +1207,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.Remaining",
           "uri": "Sequences.neo",
@@ -1350,7 +1350,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -1495,7 +1495,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -1640,7 +1640,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -1777,7 +1777,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.SumNested",
           "uri": "Sequences.neo",
@@ -2114,7 +2114,7 @@
         "init": {
           "code": "value",
           "compiled": {
-            "compilerRevision": 17,
+            "compilerRevision": 18,
             "source": {
               "name": "Value",
               "coordinateSpace": "body"
@@ -2229,7 +2229,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerator",
           "elementType": {
@@ -2351,7 +2351,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.MakeBox",
           "uri": "Sequences.neo",
@@ -2513,7 +2513,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceStorage.StoreList",
           "uri": "Sequences.neo",
@@ -2697,7 +2697,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceStorage.StoreDictionary",
           "uri": "Sequences.neo",
@@ -2879,7 +2879,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.SumConcrete",
           "uri": "Sequences.neo",
@@ -3080,7 +3080,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.SumInherited",
           "uri": "Sequences.neo",
@@ -3290,7 +3290,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -3454,7 +3454,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.IsSequence",
           "uri": "Sequences.neo",
@@ -3579,7 +3579,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.GenericListCheck",
           "uri": "Sequences.neo",
@@ -4058,7 +4058,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.IsSequenceField",
           "uri": "Sequences.neo",
@@ -4195,7 +4195,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.GenericNested",
           "uri": "Sequences.neo",
@@ -4365,7 +4365,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.SumConstrained",
           "uri": "Sequences.neo",
@@ -4560,7 +4560,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.ConstrainedCheck",
           "uri": "Sequences.neo",
@@ -5089,7 +5089,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceConstrained.Sum",
           "uri": "Sequences.neo",
@@ -5304,7 +5304,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.SumDerived",
           "uri": "Sequences.neo",
@@ -5513,7 +5513,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.CountField",
           "uri": "Sequences.neo",
@@ -5659,7 +5659,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.CountExplicit",
           "uri": "Sequences.neo",
@@ -5805,7 +5805,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.CountGenerator",
           "uri": "Sequences.neo",
@@ -5930,7 +5930,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerable",
           "elementType": {
@@ -6097,7 +6097,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box.CountBindings",
           "uri": "Sequences.neo",
@@ -6374,7 +6374,7 @@
                                   "variableId": "__arg_0__"
                                 },
                                 "function": {
-                                  "compilerRevision": 17,
+                                  "compilerRevision": 18,
                                   "source": {
                                     "uri": "Sequences.neo",
                                     "coordinateSpace": "file",
@@ -6555,7 +6555,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.CountGeneric",
           "uri": "Sequences.neo",
@@ -6774,7 +6774,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.ClassGenericCheck",
           "uri": "Sequences.neo",
@@ -7779,7 +7779,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.LiteralCheck",
           "uri": "Sequences.neo",
@@ -8093,7 +8093,7 @@
         "init": {
           "code": "SequenceApi.Copy<T>([]).Count",
           "compiled": {
-            "compilerRevision": 17,
+            "compilerRevision": 18,
             "source": {
               "name": "EmptyCount",
               "coordinateSpace": "body"
@@ -8264,7 +8264,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.Copy",
           "uri": "Sequences.neo",
@@ -8490,7 +8490,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.Empty",
           "uri": "Sequences.neo",
@@ -8614,7 +8614,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.CountNullable",
           "uri": "Sequences.neo",
@@ -8851,7 +8851,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.EchoConstrained",
           "uri": "Sequences.neo",
@@ -8978,7 +8978,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "SequenceApi.EchoNullable",
           "uri": "Sequences.neo",
@@ -9115,7 +9115,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerator",
           "elementType": {
@@ -9246,7 +9246,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "generator": {
           "kind": "enumerator",
           "elementType": {
@@ -10081,7 +10081,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "IntBox",
           "coordinateSpace": "body"
@@ -10134,7 +10134,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 17,
+          "compilerRevision": 18,
           "source": {
             "name": "IntBox base argument value",
             "coordinateSpace": "body"
@@ -10220,7 +10220,7 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000,
       "action": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "source": {
           "name": "Box",
           "coordinateSpace": "body"
