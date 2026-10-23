@@ -1,0 +1,9 @@
+{
+  "source": [
+    "class Coin(int cents) { public int Cents = cents; }\nclass Groups {\n public List<Set<Reference<Coin>>> Sets = [];\n public Dictionary<string, Set<Reference<Coin>>> Map = {};\n public List<Set<Reference<int>>> Slots = [];\n public List<Set<Reference<List<int>>>> Collections = [];\n}\n@storage(allowed: .Immutable)\nclass FrozenGroups {\n public List<Set<Reference<Coin>>> Sets = [[]];\n public Dictionary<string, Set<Reference<Coin>>> Map = {\"first\": []};\n public List<Set<Reference<int>>> Slots = [[]];\n public List<Set<Reference<List<int>>>> Collections = [[]];\n}\nclass Constrained<T extends Coin> {\n public List<Set<Reference<T>>> Picks = [[]];\n public Dictionary<string, Set<Reference<T>>> Map = {\"first\": []};\n}\nclass Probe {\n @storage(allowed: .Session) public static Groups Saved = new();\n @storage(allowed: .Immutable) public static FrozenGroups Frozen = new();\n @storage(allowed: .Immutable) public static Groups Asset = new();\n @storage(allowed: .Session) public static Constrained<Coin> Bound = new();\n @storage(allowed: .Immutable) public static Coin FrozenCoin = new Coin(11);\n @storage(allowed: .Session) public static Coin LiveCoin = new Coin(3);\n public static Groups Make() => new Groups();\n public static int Empty() => new Groups().Sets.Count;\n}",
+    "class NestedSlots<T> { public List<Dictionary<string, Set<Reference<T>>>> Values = [{\"first\": []}]; }\nclass SlotProbe { @storage(allowed: .Session) public static NestedSlots<int> Integers = new(); @storage(allowed: .Session) public static NestedSlots<Coin> Coins = new(); }"
+  ],
+  "returns": {
+    "Empty": 0
+  }
+}

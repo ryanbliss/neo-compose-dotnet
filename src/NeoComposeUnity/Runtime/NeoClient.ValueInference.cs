@@ -72,7 +72,8 @@ namespace NeoCompose.Runtime
                 bool found = candidateReadPlan is null
                     ? rows.TryGetValue(id, out row)
                     : TryGetWritableValue(ownership, id, out row);
-                if (!found || !MightReferenceChildValueId(row!, childId))
+                if (!found || (!HasIndexedChildReference(id, row!, ownership, childId)
+                    && !MightReferenceChildValueId(row!, childId)))
                     continue;
                 if (first is not null)
                 {
@@ -86,7 +87,8 @@ namespace NeoCompose.Runtime
                         found = candidateReadPlan is null
                             ? rows.TryGetValue(orderedId, out row)
                             : TryGetWritableValue(ownership, orderedId, out row);
-                        if (found && MightReferenceChildValueId(row!, childId))
+                        if (found && (HasIndexedChildReference(orderedId, row!, ownership, childId)
+                            || MightReferenceChildValueId(row!, childId)))
                             yield return new KeyValuePair<string, MemberValue>(orderedId, row!);
                     }
                     yield break;

@@ -392,7 +392,15 @@ namespace NeoCompose.Runtime.NeoScript
                 && NeoNSFunctionRuntime.ContainsGeneric(declared)
                 && ctx.client.TryFindOwnedParent(ResolveOwnershipForValueId(ctx, lookupRowId), lookupRowId, out string? ownerId))
             {
-                owner = ResolveValueIfId(ownerId, ctx);
+                var visited = new HashSet<string> { lookupRowId };
+                while (visited.Add(ownerId))
+                {
+                    owner = ResolveValueIfId(ownerId, ctx);
+                    if (FindRowClassIdByReference(owner, ctx) is not null)
+                        break;
+                    if (!TryFindHolder(ownerId, ctx, out ownerId))
+                        break;
+                }
             }
             TypeInfo target = LookupTarget(lookup, owner, ctx);
             return NeoReferenceTypes.Category(target, ctx.client) == NeoReferenceCategory.Slot ? target : null;
