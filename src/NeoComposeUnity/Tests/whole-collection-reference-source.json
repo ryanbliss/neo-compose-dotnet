@@ -1,0 +1,18 @@
+{
+  "source": [
+    "class Coin(int number) { public int Number = number; }\nclass Input {\n public List<Dictionary<string,int>> Values = [{\"key\":7}];\n public List<int> Empty = [];\n public List<int> Numbers = [3,4];\n public Dictionary<string,int> Map = {\"key\":7};\n public Set<int> NumbersSet = [3,4];\n public Set<Reference<Coin>> Picks = [];\n public Coin C = new Coin(9);\n}\nclass Generic<T>(Reference<T> value) { public Reference<T> Value = value; }\nclass Concrete(Reference<List<int>> value) { public Reference<List<int>> Value = value; }\nclass Written { public Reference<List<int>> Value; public Written(Reference<List<int>> value) { Value = value; } }\nclass SetReference(Reference<Set<int>> value) { public Reference<Set<int>> Value = value; }\nclass SelectionReference(Reference<Set<Reference<Coin>>> value) { public Reference<Set<Reference<Coin>>> Value = value; }\nclass Probe {\n @storage(allowed: .Session) public static Input Saved = new();\n public static int Mixed() { Generic<List<Dictionary<string,int>>> x = new(Reference(Saved.Values)); return x.Value[0][\"key\"]; }\n public static int Empty() { Generic<List<int>> x = new(Reference(Saved.Empty)); return x.Value.Count; }\n public static int Multiple() { Generic<List<int>> x = new(Reference(Saved.Numbers)); return x.Value.Count; }\n public static int Dictionary() { Generic<Dictionary<string,int>> x = new(Reference(Saved.Map)); return x.Value[\"key\"]; }\n public static int Set() { SetReference x = new(Reference(Saved.NumbersSet)); return x.Value.Count; }\n public static int Selection() { Saved.Picks.Add(Saved.C); SelectionReference x = new(Reference(Saved.Picks)); return x.Value.First().Number; }\n public static int Concrete() { Concrete x = new(Reference(Saved.Numbers)); return x.Value[1]; }\n public static int Body() { Written x = new(Reference(Saved.Numbers)); return x.Value[1]; }\n public static int LiveAlias() { Generic<List<int>> x = new(Reference(Saved.Numbers)); Saved.Numbers.Add(5); return x.Value.Count; }\n public static int ReferenceSlot() { Generic<int> x = new(Reference(Saved.C.Number)); return x.Value; }\n public static int ReferenceClass() { Generic<Coin> x = new(Reference(Saved.C)); return x.Value.Number; }\n}\n"
+  ],
+  "returns": {
+    "Mixed": 7,
+    "Empty": 0,
+    "Multiple": 2,
+    "Dictionary": 7,
+    "Set": 2,
+    "Selection": 9,
+    "Concrete": 4,
+    "Body": 4,
+    "LiveAlias": 3,
+    "ReferenceSlot": 9,
+    "ReferenceClass": 9
+  }
+}
