@@ -3877,8 +3877,8 @@ namespace NeoCompose.Runtime
                         // P43 §6.1: a declared constructor's body (step 3) and
                         // its call site's initializer block (step 4) both run
                         // AFTER this graph is prepared, so the root is
-                        // legitimately incomplete here. Completeness is
-                        // re-asserted on the finished instance instead — see
+                        // legitimately incomplete here. Completeness and non-nullness
+                        // are checked on the finished instance instead — see
                         // AssertDeclaredConstructorRootIsComplete. Nested rows
                         // always keep the check; nothing writes into them
                         // between preparation and publication.
@@ -3925,7 +3925,8 @@ namespace NeoCompose.Runtime
                         traversal,
                         env,
                         referenceOwnershipByPath,
-                        trustedMaterialization);
+                        trustedMaterialization,
+                        requireNonNull: requireRequiredMembers);
                 }
             }
             finally
@@ -3953,7 +3954,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoValueOwnership>?
                 referenceOwnershipByPath,
             bool trustedMaterialization = false,
-            string? expectedContainerId = null)
+            string? expectedContainerId = null,
+            bool requireNonNull = true)
         {
             bool isStaged = stagedById.TryGetValue(
                 valueId,
@@ -3997,7 +3999,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Constructed field '{path}' references missing aggregate value '{valueId}'.");
                 }
-                ValidateConstructedRowShape(client, member, source!, path);
+                ValidateConstructedRowShape(client, member, source!, path, requireNonNull);
                 if (!MapKeyCanMoveTo(source.mapKey, expectedMapKey))
                 {
                     throw new InvalidOperationException(
@@ -4042,9 +4044,9 @@ namespace NeoCompose.Runtime
             }
             if (!trustedMaterialization)
             {
-                ValidateConstructedRowShape(client, member, row, path);
+                ValidateConstructedRowShape(client, member, row, path, requireNonNull);
             }
-            else if (member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            else if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
             {
                 throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
@@ -4215,7 +4217,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             Member member,
             MemberValue row,
-            string path)
+            string path,
+            bool requireNonNull)
         {
             bool shapeMatches = member switch
             {
@@ -4244,7 +4247,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema member '{member.id}' ({member.kind}).");
             }
-            if (member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
             {
                 throw new InvalidOperationException(
                     $"Constructed required field '{path}' has a null value.");
@@ -6146,8 +6149,20 @@ namespace NeoCompose.Runtime
                     continue;
                 if (member.Requirement != NeoMemberRequirementKind.Required)
                     continue;
-                if (root.value.ContainsKey(entry.schemaKey))
+                if (root.value.TryGetValue(entry.schemaKey, out string fieldId))
+                {
+                    if (!client.TryGetValue(NeoValueOwnership.Session, fieldId, out MemberValue? field))
+                    {
+                        throw new InvalidOperationException(
+                            $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' pointing at missing value '{fieldId}'.");
+                    }
+                    if (IsNullStoredValue(field))
+                    {
+                        throw new InvalidOperationException(
+                            $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' null.");
+                    }
                     continue;
+                }
                 // An instance no stage wrote reads the constant's shared value.
                 if (IsConstantMember(client, member))
                     continue;
