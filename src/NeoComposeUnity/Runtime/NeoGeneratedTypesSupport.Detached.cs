@@ -479,7 +479,7 @@ namespace NeoCompose.Runtime
                 target.MarkWritten(index);
                 return true;
             }
-            else if (!TryNormalizeDetachedValue(target, slot.member, slot.kind, value, bareId: true, out stored)
+            else if (!TryNormalizeDetachedValue(target, slot.member, slot.kind, value, bareId: true, out stored, ctx)
                 || stored is NeoScriptObject child && !TryAdoptDetachedChild(target, child))
             {
                 return false;
@@ -649,7 +649,8 @@ namespace NeoCompose.Runtime
             DetachedSlotKind kind,
             object? value,
             bool bareId,
-            out object? stored)
+            out object? stored,
+            NSGetterEvaluator.Context? context = null)
         {
             stored = null;
             if (value is null)
@@ -668,7 +669,7 @@ namespace NeoCompose.Runtime
                     stored = child;
                     return true;
                 case DetachedSlotKind.Leaf:
-                    return TryNormalizeDetachedLeaf(target, member, value, bareId, out stored);
+                    return TryNormalizeDetachedLeaf(target, member, value, bareId, out stored, context);
                 default:
                     return false;
             }
@@ -689,7 +690,8 @@ namespace NeoCompose.Runtime
             Member member,
             object value,
             bool bareId,
-            out object? stored)
+            out object? stored,
+            NSGetterEvaluator.Context? context = null)
         {
             stored = null;
             // Scalars first: they are most of what scripts assign.
@@ -744,7 +746,7 @@ namespace NeoCompose.Runtime
                     string[] ids;
                     try
                     {
-                        ids = ConstructorLookupIds(value, lookupMember);
+                        ids = ConstructorLookupIds(value, lookupMember, context);
                     }
                     catch (InvalidOperationException)
                     {

@@ -8067,7 +8067,8 @@ namespace NeoCompose.Runtime
             }
             else if (member is LookupMember lookupMember)
             {
-                payload = ConstructorLookupIds(suppliedValue!, lookupMember);
+                payload = ConstructorLookupIds(
+                    suppliedValue!, lookupMember, scope?.ExistingEvaluationContext, genericEnv);
             }
             else if (member is DialogueLookupMember dialogueMember)
             {
@@ -8262,8 +8263,25 @@ namespace NeoCompose.Runtime
 
         internal static string[] ConstructorLookupIds(
             object runtimeValue,
-            LookupMember member)
+            LookupMember member,
+            NeoScript.NSGetterEvaluator.Context? context = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv = null)
         {
+            // A Reference to a collection selects its backing row, not its
+            // entries. Evaluator collections carry that identity in the context;
+            // generated collection views already expose it through LookupValueId.
+            if (context is not null
+                && member.Selection != NeoMemberSelectionKind.Multi
+                && LookupValueId(runtimeValue) is null
+                && NeoScript.NSGetterEvaluator.FindRowReference(runtimeValue, context) is { } collection
+                && NeoReferenceTypes.SlotTypeInfo(context.client, member, genericEnv)
+                    is ReferenceTypeInfo { targetTypeInfo: { } target }
+                && target.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup)
+            {
+                NeoScript.NSGetterEvaluator.AssertReferencedRow(
+                    new NeoScript.NSSlotReference(collection.valueId, null, target, member.id), context);
+                return new[] { collection.valueId };
+            }
             var ids = ConstructorReferenceIds(
                 runtimeValue,
                 value => LookupValueId(value),
