@@ -731,6 +731,76 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "zero", "a", "b", "c" }, StoredNames(client));
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void OwnedInsertionArgumentResumesOnceWithoutPublishingFailedEntry(bool fail, bool held = false)
+        {
+            var schema = Schema(false);
+            var load = NativeFunction("load-list", "LoadList", NeoFunctionDispatchKind.Asynchronous);
+            load.returnTypeInfo = JsonConvert.DeserializeObject<TypeInfo>(NamesTypeJson)!;
+            schema.members[load.id] = load;
+            schema.classes["save"].schema!["LoadList"] = load.id;
+            var key = NativeFunction("next-key", "NextKey", NeoFunctionDispatchKind.Synchronous);
+            key.returnTypeInfo = JsonConvert.DeserializeObject<TypeInfo>(StringTypeJson)!;
+            schema.members[key.id] = key;
+            schema.classes["save"].schema!["NextKey"] = key.id;
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            NeoDeferredFunction<object?[]>? pending = null;
+            int keyCalls = 0, argumentCalls = 0;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [key.id] = (_, _, _, _) => { keyCalls++; return "inserted"; },
+            });
+            client.RegisterDeferredNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                [load.id] = (_, _, _, _, deferred) =>
+                {
+                    argumentCalls++;
+                    pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<object?[]>>(deferred, load.name);
+                },
+            });
+            if (held)
+                client.EnterScriptWrites();
+            try
+            {
+                var result = Start(client, NeoScriptExecutionOptions.ForDirectFunction(client),
+                    Call(Field("save", "Groups"), GroupsTypeJson, "save", "Add", CallNative(key.id), CallNative(load.id)));
+                Assert.IsTrue(result.IsPaused);
+                Assert.AreEqual(1, keyCalls);
+                Assert.AreEqual(1, argumentCalls);
+                Assert.IsFalse(client.save.Get<NeoMemberDictionary>("Groups").value!.value!.ContainsKey("inserted"));
+                bool completed = false;
+                Exception? failure = null;
+                result.WhenDeferredSettled(_ => completed = true, error => failure = error);
+                if (fail)
+                    pending!.Fail(new NSGetterRuntimeError("argument failure"));
+                else
+                    pending!.Complete(new object?[] { "a", "b" });
+                Assert.AreEqual(1, keyCalls, "A completed key argument is not evaluated again after resume.");
+                Assert.AreEqual(1, argumentCalls);
+                if (fail)
+                {
+                    Assert.IsNotNull(failure);
+                    Assert.IsFalse(completed);
+                    Assert.IsFalse(client.save.Get<NeoMemberDictionary>("Groups").value!.value!.ContainsKey("inserted"));
+                }
+                else
+                {
+                    Assert.IsNull(failure);
+                    Assert.IsTrue(completed);
+                    var groups = client.save.Get<NeoMemberDictionary>("Groups");
+                    CollectionAssert.AreEqual(new[] { "a", "b" }, StoredList(client, groups.value!.value!["inserted"]));
+                }
+            }
+            finally
+            {
+                if (held)
+                    client.ExitScriptWrites();
+            }
+        }
+
         [Test]
         public void NestedEntryReadsAndWritesStayPending()
         {

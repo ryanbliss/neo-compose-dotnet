@@ -146,6 +146,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>The held script batch this plan stages for, which every row it stages touches.</summary>
         internal NeoWriteBatch? HeldBy;
+        internal NeoScript.LocalCollectionSelections.Publication? LocalSelections;
 
         internal NeoWritePlan(NeoClient client, int? requiredSaveFormatRevision = null)
         {
@@ -165,7 +166,7 @@ namespace NeoCompose.Runtime
         internal Checkpoint Open()
         {
             openCheckpoints++;
-            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count, listenerJournal?.Count ?? 0, listenerMoveJournal?.Count ?? 0);
+            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count, listenerJournal?.Count ?? 0, listenerMoveJournal?.Count ?? 0, LocalSelections?.JournalCount ?? 0);
         }
 
         /// <summary>Keeps what was staged since the last open checkpoint.</summary>
@@ -183,6 +184,7 @@ namespace NeoCompose.Runtime
         internal void Rollback(Checkpoint checkpoint)
         {
             listenerRenames = null;
+            LocalSelections?.Rollback(checkpoint.LocalSelections);
             if (listenerMoveJournal is not null)
             {
                 for (int index = listenerMoveJournal.Count - 1; index >= checkpoint.ListenerMoveJournal; index--)
@@ -247,13 +249,15 @@ namespace NeoCompose.Runtime
             internal readonly int AfterCommit;
             internal readonly int ListenerJournal;
             internal readonly int ListenerMoveJournal;
+            internal readonly int LocalSelections;
 
-            internal Checkpoint(int journal, int afterCommit, int listenerJournal, int listenerMoveJournal)
+            internal Checkpoint(int journal, int afterCommit, int listenerJournal, int listenerMoveJournal, int localSelections)
             {
                 Journal = journal;
                 AfterCommit = afterCommit;
                 ListenerJournal = listenerJournal;
                 ListenerMoveJournal = listenerMoveJournal;
+                LocalSelections = localSelections;
             }
         }
 
@@ -629,6 +633,13 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        // Only real writable-store installation sets this; candidate replay does not.
+        internal bool Installed
+        {
+            get; private set;
+        }
+        internal void MarkInstalled() => Installed = true;
+
         internal void NotifyCompleted() => afterNotifications.Run(Client);
         internal void AfterCommit(Action callback) => afterCommit.Add(callback);
         internal void NotifyCommitted() => afterCommit.Run(Client);
@@ -822,19 +833,23 @@ namespace NeoCompose.Runtime
 
         internal void CommitWritePlan(NeoWritePlan plan)
         {
-            if (scriptWriteBatch is null)
-            {
-                CommitPreparedPlan(plan);
-                return;
-            }
-            commitsUnderScriptBatch++;
+            bool held = scriptWriteBatch is not null;
+            if (held)
+                commitsUnderScriptBatch++;
             try
             {
                 CommitPreparedPlan(plan);
             }
+            catch
+            {
+                if (!plan.Installed)
+                    plan.LocalSelections?.Discard();
+                throw;
+            }
             finally
             {
-                commitsUnderScriptBatch--;
+                if (held)
+                    commitsUnderScriptBatch--;
             }
         }
 
@@ -843,6 +858,7 @@ namespace NeoCompose.Runtime
 #if NEO_COMPOSE_PROFILING
             using var marker = CommitWriteMarker.Auto();
 #endif
+            plan.LocalSelections?.Prepare();
             ValidateReplayDefaultWrites(plan);
             if (nestedConstructedRows is not null)
                 foreach (var key in plan.Rows.Keys)
@@ -985,6 +1001,8 @@ namespace NeoCompose.Runtime
                 }
                 CommitListenerEntries(plan, preparedListeners);
                 PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, requiredSaveFormatRevision);
+                plan.MarkInstalled();
+                plan.LocalSelections?.Install();
                 WriteRevision++;
                 if (plan.HeldBy is null)
                     foreignWriteRevision = WriteRevision;

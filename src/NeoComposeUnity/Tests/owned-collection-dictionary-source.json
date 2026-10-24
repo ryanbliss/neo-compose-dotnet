@@ -1,0 +1,22 @@
+{
+  "source": [
+    "class Coin { public int Value = 7; }",
+    "class Coins { public List<Coin> Values = []; }",
+    "class StringMaps { public List<Dictionary<string, string>> Values = []; }",
+    "class CoinMaps { public List<Dictionary<string, Coin>> Values = []; }",
+    "class Probe {",
+    " public static int AddScalarId() { StringMaps h = new(); Coin c = new(); h.Values.Add({}); h.Values[0].Add(\"k\", c.Id); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int AssignScalarId() { StringMaps h = new(); Coin c = new(); h.Values.Add({\"k\": \"before\"}); h.Values[0][\"k\"] = c.Id; Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int RefuseOwned() { CoinMaps h = new(); Coin c = new(); h.Values.Add({}); h.Values[0].Add(\"k\", c); Coins other = new(); other.Values.Add(c); return 1; }",
+    " public static int RemoveThenTransfer() { CoinMaps h = new(); Coin c = new(); h.Values.Add({}); h.Values[0].Add(\"k\", c); h.Values[0].Remove(\"k\"); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    "}"
+  ],
+  "returns": {
+    "AddScalarId": 7,
+    "AssignScalarId": 7,
+    "RemoveThenTransfer": 7
+  },
+  "refuses": {
+    "RefuseOwned": "already owned"
+  }
+}

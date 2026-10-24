@@ -150,7 +150,35 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is not NSSlotReference reference)
                 return value;
-            if (reference.Place is { } place)
+            NSSlotPlace? readPlace = reference.Place;
+            string? ownerId = null;
+            NeoValueOwnership ownerOwnership = default;
+            if (readPlace is { IsStatic: false } captured)
+            {
+                // A retained ordinary alias can move to a fresh copy. An explicit
+                // reference still names its original target, never that copy's slot.
+                if (SlotTargetId(captured.Owner!, captured.Key!, captured.MemberId, ctx) != reference.TargetId)
+                    readPlace = null;
+                else
+                {
+                    ownerId = FindRowIdByReference(captured.Owner, ctx);
+                    ownerOwnership = FindRowOwnershipByReference(captured.Owner, ctx) ?? ctx.valueOwnership;
+                }
+            }
+            bool committed = ctx.client.CommitRemovedScriptReference(
+                ResolveOwnershipForValueId(ctx, reference.TargetId), reference.TargetId);
+            if (ownerId is not null)
+            {
+                // Sparse slots have no row/index edge yet. Their exact captured
+                // place supplies the owner edge without changing the target ID.
+                committed |= ctx.client.CommitRemovedScriptReference(ownerOwnership, ownerId);
+                NeoValueNode? ownerNode = null;
+                if (ctx.client.ReadReplayReference(ownerId, ref ownerNode, ownerOwnership) is not { IsRemoved: false })
+                    throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
+            }
+            if (committed)
+                AssertReferencedRow(reference, ctx);
+            if (readPlace is { } place)
             {
                 AssertPlaceAttached(reference, place, ctx);
                 if (TryReadReferenceRow(reference, ctx))
@@ -375,6 +403,16 @@ namespace NeoCompose.Runtime.NeoScript
         private static TypeInfo StoredSlotType(NSSlotReference reference, JsonMember member, NSSlotPlace? place, Context ctx)
         {
             TypeInfo? stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member);
+            // A nested or retained collection carries its closed placement on
+            // its own row. That stamp takes precedence over an enclosing class.
+            if (stored is not null && NeoNSFunctionRuntime.ContainsGeneric(stored)
+                && member is ListMember or DictionaryMember
+                && ctx.client.TryGetValue(ResolveOwnershipForValueId(ctx, reference.TargetId), reference.TargetId, out MemberValue? row)
+                && row.genericBindings is not null)
+            {
+                stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member,
+                    NeoGenericResolution.EnvFromStamp(row.genericBindings));
+            }
             // §3.5. A `T` slot's stored type is its owner's binding.
             if (stored is null || NeoNSFunctionRuntime.ContainsGeneric(stored))
             {
@@ -395,6 +433,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static TypeInfo? LookupSlotTarget(LookupMember lookup, Context ctx, string? lookupRowId = null)
         {
+            TypeInfo target = LookupTargetForRow(lookup, ctx, lookupRowId);
+            return NeoReferenceTypes.Category(target, ctx.client) == NeoReferenceCategory.Slot ? target : null;
+        }
+
+        internal static TypeInfo LookupTargetForRow(LookupMember lookup, Context ctx, string? lookupRowId)
+        {
             object? owner = null;
             if (lookupRowId is not null
                 && lookup.declaredTypeInfo is { } declared
@@ -411,8 +455,7 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                 }
             }
-            TypeInfo target = LookupTarget(lookup, owner, ctx);
-            return NeoReferenceTypes.Category(target, ctx.client) == NeoReferenceCategory.Slot ? target : null;
+            return LookupTarget(lookup, owner, ctx);
         }
 
         /// <summary>The Lookup's target, with <paramref name="owner"/>'s generic arguments applied.</summary>

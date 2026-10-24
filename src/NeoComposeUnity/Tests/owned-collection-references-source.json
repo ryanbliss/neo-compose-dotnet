@@ -1,0 +1,41 @@
+{
+  "source": [
+    "class Coin { public int Value=7; }",
+    "class Coins { public List<Reference<Coin>> Values=[]; }",
+    "class OptionalCoins { public List<Reference<Coin>?> Values=[]; }",
+    "class Multi { public List<Set<Reference<Coin>>> Values=[]; }",
+    "class Maybe { public int? Number; }",
+    "class Maybes { public List<Maybe> Values=[]; }",
+    "class Probe {",
+    " public static int RemoveOneRepeatedSelection() { Coins h=new(); Coin c=new(); h.Values.Add(c); h.Values.Add(c); h.Values.Remove(c); return h.Values.Count*10+c.Value; }",
+    " public static int RemoveRepeatedSelectionsAndMissing() { Coins h=new(); Coin c=new(); h.Values.Add(c); h.Values.Add(c); h.Values.Remove(c); h.Values.Remove(c); h.Values.Remove(c); return h.Values.Count*10+c.Value; }",
+    " public static int RemoveNoMatchKeepsBoth() { Coins h=new(); Coin c=new(); Coin d=new(); h.Values.Add(c); h.Values.Add(c); h.Values.Remove(d); return h.Values.Count*10+c.Value; }",
+    " public static int RemoveSharesOtherOwner() { Coins h=new(); Coins other=new(); Coin c=new(); h.Values.Add(c); other.Values.Add(c); h.Values.Remove(c); other.Values[0].Value=9; return h.Values.Count*100+other.Values.Count*10+c.Value; }",
+    " public static int RemoveNullSelection() { OptionalCoins h=new(); Coin c=new(); h.Values.Add(null); h.Values.Add(c); h.Values.Add(null); h.Values.Remove(null); return h.Values.Count*10+h.Values[0]!.Value; }",
+    " public static int RemoveEmptyOptional() { OptionalCoins h=new(); h.Values.Remove(null); return h.Values.Count; }",
+    " public static int MultiSelectionIsNotSingleTarget() { Multi h=new(); Coin c=new(); Set<Reference<Coin>> first=[c].ToSet(); Set<Reference<Coin>> other=[c].ToSet(); h.Values.Add(first); h.Values.Remove(other); return h.Values.Count*10+c.Value; }",
+    " public static int SparseOptionalReferenceReadsNull() { Maybes h=new(); h.Values.Add(new()); var r=Reference(h.Values[0].Number); return r==null ? 3 : -1; }",
+    " public static int RemovedSparseOptionalReferenceDangles() { Maybes h=new(); h.Values.Add(new()); var r=Reference(h.Values[0].Number); h.Values.Clear(); try { return r==null ? -1 : -2; } catch(string e) { return 99; } }",
+    " public static int ExistingOptionalReferenceDangles() { Maybes h=new(); h.Values.Add(new()); h.Values[0].Number=7; var r=Reference(h.Values[0].Number); h.Values.Clear(); try { return r==null ? -1 : 7; } catch(string e) { return 99; } }",
+    "public static int ClassReattachBeforeReferenceRead() { List<Coin> from=[]; List<Coin> to=[]; Coin c=new(); from.Add(c); var r=Reference(from[0].Value); from.Remove(c); to.Add(c); return r; }",
+    "public static int SameClassContainerReattachBeforeReferenceRead() { List<Coin> list=[]; Coin c=new(); list.Add(c); var r=Reference(list[0].Value); list.Remove(c); list.Add(c); return r; }",
+    "public static int MultiSelectionRemovesStoredContainer() { Multi h=new(); Coin c=new(); h.Values.Add([c].ToSet()); h.Values.Remove(h.Values[0]); return h.Values.Count*10+c.Value; }",
+    "}"
+  ],
+  "returns": {
+    "RemoveOneRepeatedSelection": 17,
+    "RemoveRepeatedSelectionsAndMissing": 7,
+    "RemoveNoMatchKeepsBoth": 27,
+    "RemoveSharesOtherOwner": 19,
+    "RemoveNullSelection": 27,
+    "RemoveEmptyOptional": 0,
+    "MultiSelectionIsNotSingleTarget": 17,
+    "SparseOptionalReferenceReadsNull": 3,
+    "RemovedSparseOptionalReferenceDangles": 99,
+    "ExistingOptionalReferenceDangles": 99,
+    "ClassReattachBeforeReferenceRead": 7,
+    "SameClassContainerReattachBeforeReferenceRead": 7,
+    "MultiSelectionRemovesStoredContainer": 7
+  },
+  "refuses": {}
+}

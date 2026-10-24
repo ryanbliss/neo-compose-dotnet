@@ -28,6 +28,34 @@ namespace NeoCompose.Runtime
         internal bool live = true;
         /// <summary>A materialized getter temporary is copied when assigned to a stored owner.</summary>
         internal bool sharedGetterResult;
+        // Only a successfully retained, parentless Session aggregate needs this
+        // contract. Ordinary placement inference always takes precedence.
+        internal RetainedRootContract? retainedRoot;
+
+        internal sealed class RetainedRootContract
+        {
+            internal readonly Member member;
+            internal readonly object schema;
+            internal readonly System.Collections.Generic.Dictionary<string, string>? bindings;
+
+            internal RetainedRootContract(Member member, object schema, MemberValue row)
+            {
+                this.member = member;
+                this.schema = schema;
+                bindings = row.genericBindings is null ? null : new(row.genericBindings);
+            }
+
+            internal bool MatchesBindings(MemberValue row)
+            {
+                if ((bindings?.Count ?? 0) != (row.genericBindings?.Count ?? 0))
+                    return false;
+                if (bindings is not null)
+                    foreach (var pair in bindings)
+                        if (row.genericBindings?.TryGetValue(pair.Key, out string value) != true || value != pair.Value)
+                            return false;
+                return true;
+            }
+        }
         /// <summary>The evaluator's canonical unwraps of this row.</summary>
         internal NeoScript.NSGetterEvaluator.UnwrapMemo? unwrapMemo;
         /// <summary>The getter capture that last recorded a read of this row.</summary>

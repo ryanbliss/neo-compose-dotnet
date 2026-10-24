@@ -6566,10 +6566,69 @@ namespace NeoCompose.Runtime
             finally { client.ReturnDirectFunctionContext(context, null); }
         }
 
+        // Only collection insertion adopts aggregate identities. Field and constructor
+        // arguments retain their existing copy semantics.
+        internal sealed class CollectionInsertion
+        {
+            private readonly NeoWritePlan plan;
+            private readonly NeoScript.NSGetterEvaluator.Context context;
+            private readonly NeoValueOwnership ownership;
+            private readonly Dictionary<object, string> fresh = new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+
+            internal CollectionInsertion(NeoWritePlan plan, NeoScript.NSGetterEvaluator.Context context, NeoValueOwnership ownership)
+            {
+                this.plan = plan;
+                this.context = context;
+                this.ownership = ownership;
+            }
+
+            internal string? Existing(Member member, object? value)
+            {
+                if (member is not (ListMember or DictionaryMember) || value is null
+                    || NeoScript.NSGetterEvaluator.FindRowReference(value, context) is not { } reference)
+                    return null;
+                return NeoScriptExecutor.ImportClassValueReference(plan, context.client, ownership, reference.valueId, context);
+            }
+
+            internal void Reserve(Member member, object? value, string id)
+            {
+                if (member is not (ListMember or DictionaryMember) || value is null)
+                    return;
+                object identity = NeoScript.NSGetterEvaluator.SequenceCollectionIdentity(value);
+                if (plan.HeldBy?.HasPendingAttachment(identity) == true || fresh.ContainsKey(identity))
+                    throw new NeoScript.NSGetterRuntimeError("Collection value is already owned by another entry. Use .Clone() to attach a separate value.");
+                fresh.Add(identity, id);
+            }
+
+            internal void Imported(object value)
+            {
+                if (plan.HeldBy is not { } batch)
+                    return;
+                if (batch.HasPendingAttachment(value))
+                    throw new NeoScript.NSGetterRuntimeError("Class value is already owned by another entry. Use .Clone() to attach a separate value.");
+                batch.TrackAttachment(value);
+                if (value is NeoScript.NeoScriptObject detached
+                    && NeoScript.NSGetterEvaluator.ForwardDetached(detached, context) is { } record)
+                    batch.TrackAttachment(record);
+            }
+
+            internal void Publish(Member member, object? value, MemberValue row)
+            {
+                if (member is not (ListMember or DictionaryMember) || value is null)
+                    return;
+                Action publish = () => NeoScript.NSGetterEvaluator.BindInsertedCollection(value, member, row.id, ownership, context);
+                if (plan.HeldBy is { } batch)
+                    batch.TrackCollectionAttachment(value, row, member, ownership, context, publish);
+                else
+                    plan.AfterCommit(publish);
+            }
+        }
+
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
             NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
+            CollectionInsertion? insertion = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
@@ -6590,8 +6649,11 @@ namespace NeoCompose.Runtime
                     string imported = plan is null
                         ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
+                    if (item is not null)
+                        insertion?.Imported(item);
                     return new NeoConstructorValueReference(imported, ownership);
-                }, env, member.name, scope: null);
+                }, env, member.name, scope: null, insertion,
+                selections: plan is null ? null : new NeoScript.LocalCollectionSelections.Materialization(plan, ctx, ownership));
             return CallSiteWritePayload(payload, rows);
         }
 
@@ -7913,8 +7975,12 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
             NeoConstructionScope? scope,
-            bool preserveOptionalNull = false)
+            bool preserveOptionalNull = false,
+            CollectionInsertion? insertion = null,
+            NeoScript.LocalCollectionSelections.Materialization? selections = null)
         {
+            if (insertion?.Existing(member, runtimeValue) is { } existing)
+                return existing;
             if (runtimeValue is null)
             {
                 if (member.Requirement == NeoMemberRequirementKind.Required)
@@ -7959,7 +8025,11 @@ namespace NeoCompose.Runtime
             }
 
             string valueId = Guid.NewGuid().ToString();
-            object? payload = ComputeRuntimeConstructorPayload(
+            insertion?.Reserve(member, runtimeValue, valueId);
+            NeoScript.LocalCollectionSelections.Occurrence? occurrence = member is LookupMember lookup && runtimeValue is not null && selections is not null
+                ? NeoScript.LocalCollectionSelections.Capture(selections.Plan, selections.Ownership, valueId,
+                    lookup, runtimeValue, selections.Context, genericEnv) : null;
+            object? payload = occurrence is not null ? Array.Empty<string>() : ComputeRuntimeConstructorPayload(
                 client,
                 member,
                 runtimeValue,
@@ -7968,7 +8038,8 @@ namespace NeoCompose.Runtime
                 valueReference,
                 genericEnv,
                 path,
-                scope);
+                scope,
+                insertion, selections);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -7981,6 +8052,9 @@ namespace NeoCompose.Runtime
                 row,
                 genericEnv);
             rows.Add(row);
+            if (occurrence is not null)
+                occurrence.Row = (ArrayMemberValue)row;
+            insertion?.Publish(member, runtimeValue, row);
             return valueId;
         }
 
@@ -8009,7 +8083,9 @@ namespace NeoCompose.Runtime
             Func<object?, NeoConstructorValueReference?> valueReference,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             string path,
-            NeoConstructionScope? scope)
+            NeoConstructionScope? scope,
+            CollectionInsertion? insertion = null,
+            NeoScript.LocalCollectionSelections.Materialization? selections = null)
         {
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
@@ -8052,13 +8128,15 @@ namespace NeoCompose.Runtime
                     object? item = suppliedValue is NeoScript.RuntimeTuple runtimeTuple
                         ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
                     ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
-                        $"{path}.Item{index + 1}", scope, preserveOptionalNull: true)
+                        $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections)
                         ?? throw new InvalidOperationException($"Tuple field '{path}' did not materialize element {index + 1}.");
                 }
                 payload = ids;
             }
             else if (member is ListMember listMember)
             {
+                if (insertion is not null)
+                    suppliedValue = NeoScript.NSGetterEvaluator.CurrentInsertionList(suppliedValue)!;
                 if (!client.TryGetMember(
                         listMember.entryMemberId,
                         out Member? entryMember))
@@ -8094,7 +8172,7 @@ namespace NeoCompose.Runtime
                             genericEnv,
                             $"{path}[{ids.Count}]",
                             scope,
-                            preserveOptionalNull: true);
+                            preserveOptionalNull: true, insertion, selections);
                         if (id is null)
                         {
                             throw new InvalidOperationException(
@@ -8161,7 +8239,7 @@ namespace NeoCompose.Runtime
                         genericEnv,
                         $"{path}[{key}]",
                         scope,
-                        preserveOptionalNull: true);
+                        preserveOptionalNull: true, insertion, selections);
                     if (id is null)
                     {
                         throw new InvalidOperationException(
@@ -8179,7 +8257,7 @@ namespace NeoCompose.Runtime
             else if (member is LookupMember lookupMember)
             {
                 payload = ConstructorLookupIds(
-                    suppliedValue!, lookupMember, scope?.ExistingEvaluationContext, genericEnv);
+                    suppliedValue!, lookupMember, scope?.ExistingEvaluationContext ?? selections?.Context, genericEnv);
             }
             else if (member is DialogueLookupMember dialogueMember)
             {
@@ -8370,6 +8448,40 @@ namespace NeoCompose.Runtime
                 ConstructorKeyValuePairAccessorsCache[pairType] = result;
             }
             return result;
+        }
+
+        internal static Member LocalSelectionDescriptor(NeoClient client, TypeInfo target)
+        {
+            // Scalar Sets use a Lookup read type and a Set storage descriptor.
+            // Reuse constructor descriptor matching, then verify the complete
+            // slot contract so bound selections cannot become owned Sets.
+            TypeInfo stored = target is LookupTypeInfo lookup
+                ? new CollectionTypeInfo { type = MemberKind.Set, required = target.required, entryTypeInfo = lookup.entryTypeInfo }
+                : target;
+            Member member = client.members[DescriptorMemberId(client, "local Reference", stored)];
+            TypeInfo? described = NeoReferenceTypes.SlotTypeInfo(client, member, NeoGenericResolution.EmptyEnv);
+            if (member is not (ListMember or DictionaryMember) || described is null
+                || !NeoReferenceTypes.InvariantlyEqual(described, target))
+                throw new InvalidOperationException("Local Reference target has no exact collection descriptor in the export.");
+            return member;
+        }
+
+        internal static string MaterializeLocalSelection(NeoWritePlan plan, Member member, object? value,
+            NeoScript.NSGetterEvaluator.Context context)
+        {
+            var rows = new List<MemberValue>();
+            string id = MaterializeRuntimeConstructorValue(context.client, member, value, rows, NeoTimestamp.Now(),
+                item =>
+                {
+                    var source = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, context);
+                    return source is null ? null : new NeoConstructorValueReference(
+                        NeoScriptExecutor.ImportClassValueReference(plan, context.client, NeoValueOwnership.Session,
+                            source.Value.valueId, context), NeoValueOwnership.Session);
+                }, NeoGenericResolution.EmptyEnv, member.name, null)
+                ?? throw new InvalidOperationException("A local collection Reference requires a non-null target.");
+            foreach (MemberValue row in rows)
+                plan.Set(NeoValueOwnership.Session, row);
+            return id;
         }
 
         internal static string[] ConstructorLookupIds(
