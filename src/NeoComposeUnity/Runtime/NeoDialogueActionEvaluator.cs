@@ -5437,8 +5437,8 @@ namespace NeoCompose.Runtime
                             out MemberValue? existing,
                             out _)
                         && existing is not null;
-                    if (bound && member is ListMember
-                        && TryGetValueReferenceId(value, ctx, out string? sameListId) && sameListId == existingId)
+                    if (bound && member is ListMember or DictionaryMember
+                        && TryGetValueReferenceId(value, ctx, out string? sameCollectionId) && sameCollectionId == existingId)
                         return;
                     object? assignedCollection = value;
                     if (bound && member is ListMember assignedList)

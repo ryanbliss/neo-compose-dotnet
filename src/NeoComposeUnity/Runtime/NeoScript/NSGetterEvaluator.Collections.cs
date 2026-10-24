@@ -57,8 +57,8 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         // Field handles copy into another field. Only an unowned local list
-        // can bind its identity to the destination. Composite entries need
-        // their own retention policy when their owning list is replaced.
+        // can bind its identity to the destination. Class aliases use the existing
+        // retained-class path; nested containers keep their separate copy policy.
         internal static RuntimeListIdentity? AssignedListIdentity(object? value, ListMember member, Context ctx,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
@@ -66,7 +66,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return null;
             if (entry is GenericMember && targetEnv is not null)
                 entry = NeoGenericResolution.SubstituteMember(ctx.client, entry, targetEnv);
-            if (entry is ClassMember or ListMember or DictionaryMember or TupleMember or GenericMember
+            if (entry is ListMember or DictionaryMember or TupleMember or GenericMember
                 || value is not object?[] array
                 || FindRowReference(array, ctx) is not null
                 || ctx.ArrayDetachedOrigin(array) is not null)
@@ -83,9 +83,23 @@ namespace NeoCompose.Runtime.NeoScript
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
             RuntimeListIdentity? incoming = AssignedListIdentity(assigned, member, ctx, targetEnv);
+            HashSet<RuntimeListIdentity>? retained = null;
+            List<object?[]>? backedAliases = null;
             foreach (object alias in ctx.rowAliases.Get(ownership, valueId))
             {
-                if (alias is not RuntimeListIdentity previous || ReferenceEquals(previous, incoming))
+                RuntimeListIdentity? previous = alias as RuntimeListIdentity;
+                if (previous is null && alias is object?[] array)
+                    runtimeLists.TryGetValue(array, out previous);
+                if (previous is null || !previous.captured
+                    || !ReferenceEquals(previous.referenceIndex, ctx.rowReverseIndex)
+                    || previous.reference is not { } assignedReference
+                    || assignedReference.valueId != valueId || assignedReference.ownership != ownership)
+                {
+                    if (alias is object?[] held)
+                        (backedAliases ??= new()).Add(held);
+                    continue;
+                }
+                if (ReferenceEquals(previous, incoming) || !(retained ??= new()).Add(previous))
                     continue;
                 var reference = new RowReference(valueId, ownership, null, member);
                 if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is not ArrayMemberValue { value: not null } row)
@@ -97,6 +111,28 @@ namespace NeoCompose.Runtime.NeoScript
                     InvalidateCachedCollection(valueId, ownership, ctx);
                     ReplaceRuntimeList(previous.origin, snapshot);
                     NoteCollectionAlias();
+                });
+            }
+            // Replaying a sparse owner can evict a still-live field row's
+            // evaluator provenance during commit. Field handles follow that
+            // same destination; captured local lists above retain their old contents.
+            if (backedAliases is not null)
+            {
+                plan.AfterCommit(() =>
+                {
+                    var reference = new RowReference(valueId, ownership, null, member);
+                    if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is not ArrayMemberValue current)
+                        return;
+                    bool restored = false;
+                    foreach (object?[] held in backedAliases)
+                    {
+                        if (FindRowReference(held, ctx) is not null)
+                            continue;
+                        SetRowReference(ctx, held, reference);
+                        restored = true;
+                    }
+                    if (restored)
+                        RefreshCachedRowAfterWrite(current, ctx, ownership);
                 });
             }
             if (incoming is not null)
