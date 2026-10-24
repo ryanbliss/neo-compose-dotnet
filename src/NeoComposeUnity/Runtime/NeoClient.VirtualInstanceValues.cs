@@ -89,6 +89,53 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        private (string temporaryId, ObjectMemberValue durableRoot)? storedConstructorReplayRoot;
+
+        internal StoredConstructorReplayRootScope BindStoredConstructorReplayRoot(ObjectMemberValue temporaryRoot)
+        {
+            var previous = storedConstructorReplayRoot;
+            (string temporaryId, ObjectMemberValue durableRoot)? next = null;
+            if (isReplayingVirtualInstance
+                && temporaryRoot.classId == replayingVirtualInstanceClassId
+                && replayingVirtualInstanceRootId is string durableId
+                && TryGetReplayReference(durableId, out MemberValue? row)
+                && row is ObjectMemberValue durableRoot
+                && durableRoot.classId == temporaryRoot.classId)
+            {
+                next = (temporaryRoot.id, durableRoot);
+            }
+            storedConstructorReplayRoot = next;
+            return new StoredConstructorReplayRootScope(this, previous);
+        }
+
+        internal readonly struct StoredConstructorReplayRootScope : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly (string temporaryId, ObjectMemberValue durableRoot)? previous;
+
+            internal StoredConstructorReplayRootScope(NeoClient client,
+                (string temporaryId, ObjectMemberValue durableRoot)? previous)
+            {
+                this.client = client;
+                this.previous = previous;
+            }
+
+            public void Dispose() => client.storedConstructorReplayRoot = previous;
+        }
+
+        internal string? StoredReplayDestinationValueId(string? temporaryRootId, string key, string? currentId, string? incomingId)
+        {
+            if (currentId is not null && currentId == incomingId)
+                return currentId;
+            if (storedConstructorReplayRoot is not { } replay
+                || !isReplayingVirtualInstance
+                || replay.temporaryId != temporaryRootId
+                || replay.durableRoot.id != replayingVirtualInstanceRootId
+                || replay.durableRoot.classId != replayingVirtualInstanceClassId)
+                return currentId;
+            return replay.durableRoot.value?.GetValueOrDefault(key) ?? currentId;
+        }
+
         internal bool IsReferenceOwnedByReplayingVirtualInstance(
             NeoValueOwnership ownership,
             string valueId)

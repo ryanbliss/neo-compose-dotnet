@@ -1140,7 +1140,7 @@ namespace NeoCompose.Runtime
                         childOwnership,
                         setValue.valueId!,
                         out bool sourceMoved,
-                        existingValueId);
+                        client.StoredReplayDestinationValueId(valueId, key, existingValueId, setValue.valueId));
                     if (sourceMoved)
                         RetargetMovedReferenceAfterCommit(plan, setValue, childMember, importedValueId, childOwnership);
                     if (importedValueId == existingValueId)
@@ -1242,7 +1242,8 @@ namespace NeoCompose.Runtime
                         plan,
                     childOwnership,
                     setValue.valueId!,
-                    out bool sourceMoved);
+                    out bool sourceMoved,
+                    client.StoredReplayDestinationValueId(valueId, key, null, setValue.valueId));
                 if (sourceMoved)
                 {
                     RetargetMovedReferenceAfterCommit(plan, setValue, childMember, newValueId, childOwnership);
