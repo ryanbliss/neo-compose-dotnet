@@ -990,7 +990,10 @@ namespace NeoCompose.Runtime
             OnWritableValueChanged = null;
             // Value nodes mirror these listeners, so drop them as well.
             foreach (var pair in valueNodes)
+            {
                 pair.Value.subscribers = null;
+                pair.Value.retainedRoot = null;
+            }
             writableValueSubscriptions.Clear();
             OnStaticBindingChanged = null;
             assets?.Dispose();
@@ -1227,6 +1230,7 @@ namespace NeoCompose.Runtime
         internal void ReturnDirectFunctionContext(NeoScript.NSGetterEvaluator.Context context, object? result)
         {
             if (isDisposed || !context.allocationTracker.ReusableContext
+                || context.allocationTracker.HasDeferredCompletion
                 || context.allocationTracker.ActiveExecutionCount != 0
                 || !IsContextFreeResult(result)
                 || isReplayingVirtualInstance)
@@ -3605,7 +3609,7 @@ namespace NeoCompose.Runtime
 
         internal string StageClassRetention(
             NeoWritePlan plan, NeoValueOwnership sourceOwnership, string sourceValueId,
-            ClassMember member, Dictionary<(NeoValueOwnership scope, string id), string> retainedRows)
+            Member member, Dictionary<(NeoValueOwnership scope, string id), string> retainedRows)
         {
             EnsureVirtualReplayArgumentReady(sourceValueId);
             return PrepareFreshClone(plan, NeoValueOwnership.Session, sourceOwnership, sourceValueId,
@@ -4278,7 +4282,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership childOwnership,
             string childValueId,
             [NotNullWhen(true)] out string? parentValueId,
-            out NeoValueOwnership parentOwnership)
+            out NeoValueOwnership parentOwnership, NeoWriteBatch? removalBatch = null)
         {
             // The placement index is a conservative set of payload references,
             // not proof of ownership. Inspect each candidate in BOTH writable
@@ -4291,7 +4295,7 @@ namespace NeoCompose.Runtime
                 foreach (string id in candidates)
                 {
                     if (WritableParent(NeoValueOwnership.Session, id) is { IsRemoved: false } row
-                        && OwnsChildEdge(id, row, NeoValueOwnership.Session, childOwnership, childValueId))
+                        && OwnsChildEdge(id, row, NeoValueOwnership.Session, childOwnership, childValueId, removalBatch))
                     {
                         parentValueId = id;
                         parentOwnership = NeoValueOwnership.Session;
@@ -4301,7 +4305,7 @@ namespace NeoCompose.Runtime
                 foreach (string id in candidates)
                 {
                     if (WritableParent(NeoValueOwnership.Save, id) is { IsRemoved: false } row
-                        && OwnsChildEdge(id, row, NeoValueOwnership.Save, childOwnership, childValueId))
+                        && OwnsChildEdge(id, row, NeoValueOwnership.Save, childOwnership, childValueId, removalBatch))
                     {
                         parentValueId = id;
                         parentOwnership = NeoValueOwnership.Save;
@@ -4311,7 +4315,7 @@ namespace NeoCompose.Runtime
                 foreach (string id in candidates)
                 {
                     if (WritableParent(NeoValueOwnership.User, id) is { IsRemoved: false } row
-                        && OwnsChildEdge(id, row, NeoValueOwnership.User, childOwnership, childValueId))
+                        && OwnsChildEdge(id, row, NeoValueOwnership.User, childOwnership, childValueId, removalBatch))
                     {
                         parentValueId = id;
                         parentOwnership = NeoValueOwnership.User;
@@ -4327,7 +4331,7 @@ namespace NeoCompose.Runtime
                     if (ownership != NeoValueOwnership.Asset
                         && WritableParent(ownership, id) is not null)
                         continue;
-                    if (OwnsChildEdge(id, row, ownership, childOwnership, childValueId))
+                    if (OwnsChildEdge(id, row, ownership, childOwnership, childValueId, removalBatch))
                     {
                         parentValueId = id;
                         parentOwnership = ownership;
@@ -4353,7 +4357,7 @@ namespace NeoCompose.Runtime
             MemberValue parent,
             NeoValueOwnership parentOwnership,
             NeoValueOwnership childOwnership,
-            string childValueId)
+            string childValueId, NeoWriteBatch? removalBatch = null)
         {
             // Member inference walks schema/value paths and is materially
             // more expensive than inspecting a row payload. Almost every row
@@ -4366,9 +4370,9 @@ namespace NeoCompose.Runtime
                 return false;
             Member? parentMember = TryInferMemberForValueId(
                 parentId,
-                out Member? inferredParent)
+                out Member? inferredParent, parentOwnership)
                     ? inferredParent
-                    : null;
+                    : removalBatch?.RemovalMember(parentOwnership, parentId, parent);
             if (indexedReference)
             {
                 Member? entry = parentMember switch
@@ -5231,7 +5235,8 @@ namespace NeoCompose.Runtime
 
         internal bool TryInferMemberForValueId(
             string valueId,
-            [NotNullWhen(true)] out Member? member)
+            [NotNullWhen(true)] out Member? member,
+            NeoValueOwnership? ownership = null)
         {
             // Most ids are indexed directly; only a walk needs the cycle guard.
             if (TryInferDirectMemberForValueId(valueId, out member))
@@ -5239,7 +5244,7 @@ namespace NeoCompose.Runtime
             HashSet<string> visiting = RentIdSet();
             try
             {
-                return TryInferMemberForValueId(valueId, visiting, out member);
+                return TryInferMemberForValueId(valueId, visiting, out member, ownership);
             }
             finally
             {
@@ -5250,7 +5255,8 @@ namespace NeoCompose.Runtime
         private bool TryInferMemberForValueId(
             string valueId,
             HashSet<string> visitingValueIds,
-            [NotNullWhen(true)] out Member? member)
+            [NotNullWhen(true)] out Member? member,
+            NeoValueOwnership? ownership = null)
         {
             if (!visitingValueIds.Add(valueId))
             {
@@ -5273,7 +5279,7 @@ namespace NeoCompose.Runtime
                 }
                 if (TryGetValue(valueId, out MemberValue? containedValue)
                     && !string.IsNullOrEmpty(containedValue.containerId)
-                    && TryInferMemberForValueId(containedValue.containerId!, visitingValueIds, out Member? containerMember)
+                    && TryInferMemberForValueId(containedValue.containerId!, visitingValueIds, out Member? containerMember, ownership)
                     && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
                 {
                     member = containedMember;
@@ -5289,7 +5295,7 @@ namespace NeoCompose.Runtime
                         if (!parentInferred)
                         {
                             parentInferred = true;
-                            TryInferMemberForValueId(parent.Key, visitingValueIds, out parentMember);
+                            TryInferMemberForValueId(parent.Key, visitingValueIds, out parentMember, ownership);
                         }
                         return parentMember;
                     }
@@ -5358,8 +5364,7 @@ namespace NeoCompose.Runtime
                         return true;
                     }
                 }
-                member = null;
-                return false;
+                return TryRetainedRootMember(valueId, ownership, out member);
             }
             finally { visitingValueIds.Remove(valueId); }
         }
@@ -5753,7 +5758,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal IReadOnlyCollection<string> RemoveTemporaryWritableValueGraph(
             NeoValueOwnership ownership,
-            string valueId)
+            string valueId, Member? sourceMember = null)
         {
             if (candidateReplay is not null)
             {
@@ -5762,7 +5767,7 @@ namespace NeoCompose.Runtime
                 return RemoveReplayAllocationGraph(valueId);
             }
 
-            Member? sourceMember = TryInferMemberForValueId(
+            sourceMember ??= TryInferMemberForValueId(
                 valueId,
                 out Member? inferred)
                     ? inferred

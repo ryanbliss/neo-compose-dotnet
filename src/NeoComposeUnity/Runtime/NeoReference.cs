@@ -49,13 +49,23 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>This reference as the evaluator holds it.</summary>
-        internal NSSlotReference Slot(NSGetterEvaluator.Context ctx)
+        internal LookupMember? Holder => holder;
+
+        internal NSSlotReference Slot(NSGetterEvaluator.Context ctx) => Slot(ctx, out _);
+
+        internal NSSlotReference Slot(NSGetterEvaluator.Context ctx, out TypeInfo? target)
         {
             if (owner is not null)
-                return (NSSlotReference)NSGetterEvaluator.ReferenceToKey(owner, key!, ctx)!;
-            TypeInfo? target = holder is null ? null : NSGetterEvaluator.LookupSlotTarget(holder, ctx, holderRowId);
-            return new NSSlotReference(TargetId, null, target, holder?.id);
+            {
+                var reference = (NSSlotReference)NSGetterEvaluator.ReferenceToKey(owner, key!, ctx)!;
+                target = reference.Target;
+                return reference;
+            }
+            target = holder is null ? null : NSGetterEvaluator.LookupTargetForRow(holder, ctx, holderRowId);
+            TypeInfo? slotTarget = target is not null && NeoReferenceTypes.Category(target, client) == NeoReferenceCategory.Slot ? target : null;
+            return new NSSlotReference(TargetId, null, slotTarget, holder?.id);
         }
+
     }
 
     /// <summary>
@@ -81,7 +91,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public T Value
         {
-            get => NeoGeneratedTypesSupport.ReadReferenceValue<T>(client, NeoScriptExecutor.ReadReference(client, this));
+            get => NeoScriptExecutor.ReadReference<T>(client, this);
             set => NeoScriptExecutor.WriteReference(client, this, value);
         }
 

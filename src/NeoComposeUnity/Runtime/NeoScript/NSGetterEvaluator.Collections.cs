@@ -33,6 +33,14 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? RuntimeCollection(object? value, Context ctx)
         {
+            if (value is RuntimeSet or object?[] or IDictionary<string, object?>)
+            {
+                ctx.client.CommitRemovedScriptAlias(value, ctx);
+                ctx.client.CommitScriptAttachment(value);
+            }
+            if (value is RuntimeSet && FindRowReference(value, ctx) is { } setReference
+                && ctx.client.ReadValue(setReference.ownership, setReference.valueId, ref setReference.node) is ArrayMemberValue setRow)
+                return UnwrapCached(setRow, ctx, setReference.ownership, setReference.member, setReference.node);
             if (value is not object?[] array)
                 return value;
             if (runtimeSets.TryGetValue(array, out var set))
@@ -44,6 +52,13 @@ namespace NeoCompose.Runtime.NeoScript
                 return ReadAssignedList(list, row, reference, ctx);
             return list.growing?.Snapshot() ?? list.current;
         }
+
+        // Insertion traverses a local list's live snapshot without publishing its
+        // pending row. Published identities are resolved by the normal import path.
+        internal static object? CurrentInsertionList(object? value) =>
+            value is object?[] array && runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)
+                ? identity.growing?.Snapshot() ?? identity.current
+                : value;
 
         private static object? ReadAssignedList(RuntimeListIdentity identity, ArrayMemberValue row, RowReference reference, Context ctx)
         {
@@ -68,7 +83,8 @@ namespace NeoCompose.Runtime.NeoScript
                 entry = NeoGenericResolution.SubstituteMember(ctx.client, entry, targetEnv);
             if (entry is ListMember or DictionaryMember or TupleMember or GenericMember
                 || value is not object?[] array
-                || FindRowReference(array, ctx) is not null
+                || (FindRowReference(array, ctx) is { } reference
+                    && ctx.allocationTracker.LocalSelections?.IsPublicationLocal(array, reference) != true)
                 || ctx.ArrayDetachedOrigin(array) is not null)
                 return null;
             return runtimeLists.TryGetValue(array, out var identity) && identity.captured ? identity : null;
@@ -105,6 +121,12 @@ namespace NeoCompose.Runtime.NeoScript
                 if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is not ArrayMemberValue { value: not null } row)
                     continue;
                 object? snapshot = CopiedCollectionContents(UnwrapCached(row, ctx, ownership, member, reference.node), ctx);
+                if (ctx.allocationTracker.LocalSelections?.Find(previous.origin) is { } outgoingSelection)
+                {
+                    (plan.LocalSelections ??= new LocalCollectionSelections.Publication(plan))
+                        .Transition(outgoingSelection, null, NeoValueOwnership.Session, snapshot);
+                    continue;
+                }
                 plan.AfterCommit(() =>
                 {
                     ctx.rowAliases.DetachRuntimeList(ctx, ownership, valueId, previous);
@@ -137,6 +159,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (incoming is not null)
             {
+                if (ctx.allocationTracker.LocalSelections?.Find(incoming.origin) is { } incomingSelection)
+                    (plan.LocalSelections ??= new LocalCollectionSelections.Publication(plan))
+                        .Transition(incomingSelection, valueId, ownership, null);
                 plan.AfterCommit(() =>
                 {
                     var reference = new RowReference(valueId, ownership, null, member);
@@ -151,6 +176,38 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 });
             }
+        }
+
+        internal static void BindInsertedCollection(object value, Member member, string id, NeoValueOwnership ownership, Context ctx)
+        {
+            if (!ctx.client.TryGetValue(ownership, id, out MemberValue? row))
+                return;
+            var reference = new RowReference(id, ownership, row.classId, member);
+            SetRowReference(ctx, value, reference);
+            if (value is object?[] array)
+            {
+                RuntimeListIdentity identity = runtimeLists.GetValue(array, source => new RuntimeListIdentity(source));
+                identity.growing = null;
+                SetRowReference(ctx, identity, reference);
+            }
+            NoteCollectionAlias();
+        }
+
+        internal static void InstallLocalSelectionBinding(object value, object? snapshot, Member member,
+            string id, NeoValueOwnership ownership, Context ctx)
+        {
+            if (value is object?[] array && runtimeLists.TryGetValue(array, out var identity))
+            {
+                if (identity.reference is { } previous && ReferenceEquals(identity.referenceIndex, ctx.rowReverseIndex))
+                    ctx.rowAliases.DetachRuntimeList(ctx, previous.ownership, previous.valueId, identity);
+                if (snapshot is not null)
+                    ReplaceRuntimeList(value, snapshot);
+                identity.growing = null;
+                SetRowReference(ctx, identity, new RowReference(id, ownership, null, member));
+            }
+            else
+                SetRowReference(ctx, value, new RowReference(id, ownership, null, member));
+            NoteCollectionAlias();
         }
 
         internal static void CaptureRuntimeList(object?[] list) =>

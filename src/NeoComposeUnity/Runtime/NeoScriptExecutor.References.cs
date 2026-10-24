@@ -468,6 +468,26 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The value <paramref name="reference"/> names, as NeoScript reads it.</summary>
+        internal static T ReadReference<T>(NeoClient client, NeoReference reference)
+        {
+            NSGetterEvaluator.Context ctx = HostContext(client);
+            NSSlotReference current = reference.Slot(ctx, out TypeInfo? target);
+            if (target is not null && !NeoNSFunctionRuntime.ContainsGeneric(target)
+                && NeoReferenceTypes.Category(target, client) == NeoReferenceCategory.Handle
+                && target.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup
+                && reference.Holder is { } lookup)
+            {
+                var slot = new NSSlotReference(reference.TargetId, null, target, lookup.id);
+                NeoValueOwnership ownership = client.TryGetValueOwnership(reference.TargetId, out var scope) ? scope : ctx.valueOwnership;
+                client.CommitRemovedScriptReference(ownership, reference.TargetId);
+                NSGetterEvaluator.AssertReferencedRow(slot, ctx);
+                NeoMember selected = NeoMemberLookup.ResolveSelected(client, lookup, reference.TargetId);
+                if (selected.member is ListMember or DictionaryMember)
+                    return NeoGenericBindings.ResolveForMember<T>(client, selected.member).Read(selected);
+            }
+            return NeoGeneratedTypesSupport.ReadReferenceValue<T>(client, NSGetterEvaluator.ReadThroughReference(current, ctx));
+        }
+
         internal static object? ReadReference(NeoClient client, NeoReference reference)
         {
             NSGetterEvaluator.Context ctx = HostContext(client);

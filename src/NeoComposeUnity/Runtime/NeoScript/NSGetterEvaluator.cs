@@ -81,6 +81,7 @@ namespace NeoCompose.Runtime.NeoScript
         // Most invocations only read existing rows; constructor bookkeeping is
         // needed only after an invocation actually creates a Session graph.
         private HashSet<string>? _allocatedRootIds;
+        private Dictionary<string, JsonMember>? retainedRootMembers;
         private HashSet<string> allocatedRootIds => _allocatedRootIds ??= new();
         private HashSet<string>? _escapedRootIds;
         private HashSet<string> escapedRootIds => _escapedRootIds ??= new();
@@ -91,6 +92,58 @@ namespace NeoCompose.Runtime.NeoScript
         private HashSet<string>? _parentlessAllocatedRootIds;
         private HashSet<string> parentlessAllocatedRootIds => _parentlessAllocatedRootIds ??= new();
         private int activeExecutions;
+        internal LocalCollectionSelections? LocalSelections;
+        private DeferredCompletion? deferredCompletion;
+        internal bool HasDeferredCompletion => deferredCompletion is not null;
+
+        internal sealed class DeferredCompletion
+        {
+            internal readonly NeoScriptAllocationTracker Tracker;
+            internal readonly NSGetterEvaluator.Context Context;
+            internal List<(object? value, NSGetterEvaluator.Context context)>? Returns;
+
+            internal DeferredCompletion(NeoScriptAllocationTracker tracker, NSGetterEvaluator.Context context)
+            {
+                Tracker = tracker;
+                Context = context;
+            }
+
+            internal void Remember(in NeoScriptExecutionResult result, NSGetterEvaluator.Context context)
+            {
+                if (result.Returned && result.ReturnValue is not null)
+                    (Returns ??= new()).Add((result.ReturnValue, context));
+            }
+
+            internal void PreserveReturns(Dictionary<string, NeoScriptAllocationTracker>? retainedOwners)
+            {
+                Exception? failure = null;
+                if (Returns is not null)
+                    foreach (var item in Returns)
+                        try
+                        {
+                            Tracker.MarkEscaped(item.value, item.context, retainedOwners);
+                        }
+                        catch (Exception error) { failure ??= error; }
+                if (failure is not null)
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+            }
+
+            internal void Complete()
+            {
+                if (ReferenceEquals(Tracker.deferredCompletion, this))
+                    Tracker.deferredCompletion = null;
+                Returns = null;
+                if (Tracker.activeExecutions == 0 && Tracker.deferredCompletion is null)
+                    Tracker.ReclaimCompletedRoots(Context.client, Context);
+            }
+        }
+
+        internal void DeferCompletion(NeoWriteBatch batch, NSGetterEvaluator.Context context,
+            in NeoScriptExecutionResult result)
+        {
+            deferredCompletion = batch.DeferCompletion(this, context);
+            deferredCompletion.Remember(in result, context);
+        }
         private NeoTimestamp? constructionTimestamp;
 
         internal int ActiveExecutionCount => activeExecutions;
@@ -123,8 +176,12 @@ namespace NeoCompose.Runtime.NeoScript
                 Generation++;
                 constructionTimestamp = null;
                 _completedAllocationRootIds?.Clear();
-                _constructedParentByChildId?.Clear();
-                _parentlessAllocatedRootIds?.Clear();
+                if (deferredCompletion is null)
+                {
+                    retainedRootMembers?.Clear();
+                    _constructedParentByChildId?.Clear();
+                    _parentlessAllocatedRootIds?.Clear();
+                }
             }
             activeExecutions++;
         }
@@ -132,12 +189,14 @@ namespace NeoCompose.Runtime.NeoScript
         internal NeoTimestamp ConstructionTimestamp =>
             constructionTimestamp ??= NeoTimestamp.Now();
 
-        internal void RegisterSessionRoot(string valueId)
+        internal void RegisterSessionRoot(string valueId, JsonMember? retainedMember = null)
         {
             ReusableContext = false;
             if (string.IsNullOrEmpty(valueId))
                 return;
             allocatedRootIds.Add(valueId);
+            if (retainedMember is not null)
+                (retainedRootMembers ??= new())[valueId] = retainedMember;
             if (!constructedParentByChildId.ContainsKey(valueId))
             {
                 parentlessAllocatedRootIds.Add(valueId);
@@ -198,13 +257,15 @@ namespace NeoCompose.Runtime.NeoScript
         /// the current NeoScript frame. Mark its complete constructed graph as
         /// escaped; a later parent assignment may still move/import it.
         /// </summary>
-        internal void MarkEscaped(object? value, NSGetterEvaluator.Context ctx)
+        internal void MarkEscaped(object? value, NSGetterEvaluator.Context ctx,
+            Dictionary<string, NeoScriptAllocationTracker>? retainedOwners = null)
         {
             // Most getters return existing rows. With no temporary roots,
             // there is nothing to retain and no owned-parent graph to scan.
-            if (_allocatedRootIds is null || _allocatedRootIds.Count == 0)
+            if ((_allocatedRootIds is null || _allocatedRootIds.Count == 0) && retainedOwners is null)
                 return;
-            MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal));
+            MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal),
+                retainedOwners: retainedOwners);
         }
 
         internal void MarkEscaped(
@@ -212,20 +273,23 @@ namespace NeoCompose.Runtime.NeoScript
             NSGetterEvaluator.Context ctx,
             HashSet<object>? visited,
             Dictionary<string, HashSet<string>?> ownedChildren,
-            NeoScriptExecutor.GeneratorRetention? retention = null)
+            NeoScriptExecutor.GeneratorRetention? retention = null,
+            Dictionary<string, NeoScriptAllocationTracker>? retainedOwners = null)
         {
             if (value is null || value is string || value.GetType().IsValueType)
             {
                 return;
             }
-            string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
-            if (valueId is not null && (_allocatedRootIds is null || _allocatedRootIds.Count == 0))
+            var reference = NSGetterEvaluator.FindRowReference(value, ctx);
+            string? valueId = reference?.valueId;
+            var rowOwners = reference?.ownership == NeoValueOwnership.Session ? retainedOwners : null;
+            if (valueId is not null && (_allocatedRootIds is null || _allocatedRootIds.Count == 0) && retainedOwners is null)
                 return;
             if (!(retention is null ? visited!.Add(value) : retention.Visit(value)))
                 return;
             if (value is LocalList list)
             {
-                list.MarkRetained(ctx, visited, ownedChildren, retention);
+                list.MarkRetained(ctx, visited, ownedChildren, retention, retainedOwners);
                 return;
             }
             if (value is NeoScriptObject detached)
@@ -233,21 +297,21 @@ namespace NeoCompose.Runtime.NeoScript
                 // A detached graph holds no rows yet; an attached one escapes
                 // through its root like any constructed row.
                 if (detached.attachedId is not null)
-                    MarkAllocationGroupEscaped(detached.attachedId, ctx, ownedChildren);
+                    MarkAllocationGroupEscaped(detached.attachedId, ctx, ownedChildren, rowOwners);
                 return;
             }
 
             if (valueId is not null)
             {
-                MarkAllocationGroupEscaped(valueId, ctx, ownedChildren);
+                MarkAllocationGroupEscaped(valueId, ctx, ownedChildren, rowOwners);
             }
 
             if (value is System.Collections.IDictionary dictionary)
             {
                 foreach (System.Collections.DictionaryEntry entry in dictionary)
                 {
-                    MarkEscaped(entry.Key, ctx, visited, ownedChildren, retention);
-                    MarkEscaped(entry.Value, ctx, visited, ownedChildren, retention);
+                    MarkEscaped(entry.Key, ctx, visited, ownedChildren, retention, retainedOwners);
+                    MarkEscaped(entry.Value, ctx, visited, ownedChildren, retention, retainedOwners);
                 }
                 return;
             }
@@ -255,7 +319,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (object? entry in enumerable)
                 {
-                    MarkEscaped(entry, ctx, visited, ownedChildren, retention);
+                    MarkEscaped(entry, ctx, visited, ownedChildren, retention, retainedOwners);
                 }
             }
         }
@@ -263,9 +327,10 @@ namespace NeoCompose.Runtime.NeoScript
         private void MarkAllocationGroupEscaped(
             string valueId,
             NSGetterEvaluator.Context ctx,
-            Dictionary<string, HashSet<string>?> ownedChildren)
+            Dictionary<string, HashSet<string>?> ownedChildren,
+            Dictionary<string, NeoScriptAllocationTracker>? retainedOwners)
         {
-            if (_allocatedRootIds is null || _allocatedRootIds.Count == 0)
+            if ((_allocatedRootIds is null || _allocatedRootIds.Count == 0) && retainedOwners is null)
                 return;
             // A NeoScript return may expose any object-shaped row in a
             // constructor graph (for example a nested Class, List, or
@@ -277,10 +342,10 @@ namespace NeoCompose.Runtime.NeoScript
             string cursor = valueId;
             while (visited.Add(cursor))
             {
-                if (allocatedRootIds.Contains(cursor))
-                {
+                if (_allocatedRootIds?.Contains(cursor) == true)
                     escapedRootIds.Add(cursor);
-                }
+                if (retainedOwners?.TryGetValue(cursor, out var owner) == true)
+                    owner.escapedRootIds.Add(cursor);
                 if (!TryFindConstructedOrStoredParent(
                         ctx.client,
                         cursor,
@@ -311,16 +376,24 @@ namespace NeoCompose.Runtime.NeoScript
             if (activeExecutions != 0)
                 return;
             SealListBuffers();
+            if (client.DeferScriptAllocationCompletion(this, ctx, in terminalResult))
+                return;
+            // A successful commit can register retained roots and remap a return.
+            // Remember it before a pending completion drains during that commit.
+            deferredCompletion?.Remember(in terminalResult, ctx);
+            client.CommitScriptWrites();
+            if (terminalResult.Returned)
+                MarkEscaped(terminalResult.ReturnValue, ctx);
+            ReclaimCompletedRoots(client, ctx);
+        }
+
+        private void ReclaimCompletedRoots(NeoClient client, NSGetterEvaluator.Context ctx)
+        {
+            // Selection occurrences are execution-local. Escaped public handles
+            // retain their fixed target through the ordinary root policy below.
+            LocalSelections = null;
             if (_allocatedRootIds is null)
                 return;
-            // Reclaiming decides from where the roots live now.
-            client.CommitScriptWrites();
-
-            if (terminalResult.Returned)
-            {
-                MarkEscaped(terminalResult.ReturnValue, ctx);
-            }
-
             completedAllocationRootIds.UnionWith(allocatedRootIds);
 
             var ownedChildren = new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal);
@@ -354,7 +427,8 @@ namespace NeoCompose.Runtime.NeoScript
                 IReadOnlyCollection<string> removed =
                     client.RemoveTemporaryWritableValueGraph(
                         NeoValueOwnership.Session,
-                        valueId);
+                        valueId,
+                        retainedRootMembers is not null && retainedRootMembers.TryGetValue(valueId, out var retainedMember) ? retainedMember : null);
                 if (removed.Count == 0)
                     continue;
                 client.DisposeWrappersTouchingRows(removed);
@@ -364,6 +438,7 @@ namespace NeoCompose.Runtime.NeoScript
                     removed);
             }
             _allocatedRootIds?.Clear();
+            retainedRootMembers?.Clear();
             _escapedRootIds?.Clear();
             _constructedParentByChildId?.Clear();
             _parentlessAllocatedRootIds?.Clear();
@@ -1567,6 +1642,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal sealed class RowAliasIndex
         {
             private readonly Dictionary<RowKey, List<WeakReference<object>>> rows = new();
+            internal Dictionary<RowKey, List<WeakReference<object>>>.KeyCollection Keys => rows.Keys;
 
             internal void Add(object alias, RowReference row)
             {
@@ -2089,6 +2165,21 @@ namespace NeoCompose.Runtime.NeoScript
                 ? EvalPointerCore(pointer, scope, ctx)
                 : EvalPointerAtSource(pointer, scope, ctx), ctx);
 
+        // An owned insertion needs the candidate identity, not a published
+        // collection snapshot. Keep every other expression on its normal read path.
+        internal static object? EvaluateCollectionInsertionArgument(
+            Pointer pointer, TypeInfo entryType, NeoScriptScope scope, Context ctx)
+        {
+            object? value = pointer.source is null
+                ? EvalPointerCore(pointer, scope, ctx)
+                : EvalPointerAtSource(pointer, scope, ctx);
+            if (entryType.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary
+                && value is not null
+                && ctx.client.PendingScriptWrites?.HasCurrentCollectionAttachment(value, ctx) == true)
+                return value;
+            return RuntimeCollection(value, ctx);
+        }
+
         private static object? EvalPointerAtSource(Pointer pointer, NeoScriptScope scope, Context ctx)
         {
             if (pointer is FunctionPointer { function: VectorConstructorFunction vector })
@@ -2354,6 +2445,8 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Variable '{vrp.variableId}' is not in scope");
             }
+            if (v is not null && ctx.client.CommitRemovedScriptAlias(v, ctx))
+                return EvalVariable(vrp, scope, ctx);
             // Row-backed list aliases retain provenance even when a
             // mutation replaces their fixed-size CLR array.
             if (v is object?[] entries)
@@ -2369,6 +2462,9 @@ namespace NeoCompose.Runtime.NeoScript
                 if (listRef is not null
                     && ctx.client.ReadValue(listRef.ownership, listRef.valueId, ref listRef.node) is ArrayMemberValue { value: not null } listRow)
                 {
+                    if (ctx.allocationTracker.LocalSelections?.Find(entries) is not null
+                        && runtimeLists.TryGetValue(entries, out RuntimeListIdentity identity))
+                        return ReadAssignedList(identity, listRow, listRef, ctx);
                     return UnwrapCached(listRow, ctx, listRef.ownership, listRef.member, listRef.node);
                 }
                 if (ctx.ArrayDetachedOrigin(entries) is { } detachedArray)
@@ -4449,6 +4545,9 @@ namespace NeoCompose.Runtime.NeoScript
         // exact stable value ids (including numeric-looking strings).
         private static object? ReadListEntry(object?[] list, Pointer keyPointer, NeoScriptScope scope, Context ctx)
         {
+            if (ctx.client.CommitRemovedScriptAlias(list, ctx)
+                && RuntimeCollection(list, ctx) is object?[] current)
+                return ReadListEntry(current, keyPointer, scope, ctx);
             int idx;
             // A number variable indexes without boxing its value.
             if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
@@ -4672,6 +4771,16 @@ namespace NeoCompose.Runtime.NeoScript
             if (pointer is FunctionPointer { function: TupleElementFunction tupleElement })
             {
                 object? raw = EvalTupleElement(tupleElement.info, scope, ctx, refreshCollection: false);
+                if (raw is not null && ctx.client.CommitRemovedScriptAlias(raw, ctx))
+                {
+                    value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
+                    return null;
+                }
+                if (batch.PendingAttachment(raw, ctx) is { } inserted && Answers(batch, inserted, read))
+                {
+                    value = null;
+                    return inserted;
+                }
                 RowReference? alias = raw is object?[] entries ? ctx.CollectionRowReference(entries) : FindRowReference(raw, ctx);
                 if (alias is not null && Answers(batch, alias.ownership, alias.valueId, read) is { } pending)
                 {
@@ -4685,6 +4794,16 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 RowReference? alias = null;
                 object? raw = scope.ReadVariable(variable, ctx.rowReverseIndex, out bool found, out bool remembered, ref alias);
+                if (found && raw is not null && ctx.client.CommitRemovedScriptAlias(raw, ctx))
+                {
+                    value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
+                    return null;
+                }
+                if (found && batch.PendingAttachment(raw, ctx) is { } inserted && Answers(batch, inserted, read))
+                {
+                    value = null;
+                    return inserted;
+                }
                 // A Class record is never a collection.
                 RowReference? aliasReference = !found ? null
                     : raw is object?[] entries ? remembered ? alias : ctx.CollectionRowReference(entries)
@@ -4784,6 +4903,9 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? ResolvePendingEntry(NeoWriteBatch.PendingCollection pending, string entryId, Context ctx)
         {
             ctx.client.NotePendingRead(pending.Row.id);
+            if (ctx.client.PendingScriptWrites is { } batch
+                && ctx.allocationTracker.LocalSelections?.TryRead(pending.Ownership, entryId, batch.Plan, out object? local) == true)
+                return local;
             return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
         }
 
@@ -6740,7 +6862,8 @@ namespace NeoCompose.Runtime.NeoScript
             // Typed aliases share membership changes. Stored lists already have
             // row identity and keep their existing read/write paths.
             if (captureList && type?.type == MemberKind.List && value is object?[] list
-                && ctx is not null && FindRowReference(list, ctx) is null)
+                && ctx is not null && ctx.client.PendingScriptWrites?.HasCurrentCollectionAttachment(list, ctx) != true
+                && FindRowReference(list, ctx) is null)
                 CaptureRuntimeList(list);
             if (TupleTypeInfo.From(type) is { } tupleType && value is not null)
             {
@@ -10100,6 +10223,92 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        // A removed owned aggregate survives only through ordinary evaluator aliases.
+        // Its stored identity still retires, so explicit References do not follow it.
+        internal static void RetainRemovedCollectionAlias(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership, string id,
+            IReadOnlyDictionary<string, JsonMember?> members,
+            Dictionary<(NeoValueOwnership scope, string id), string> retained, NeoWriteBatch batch)
+        {
+            var pendingAlias = batch.AttachmentForRow(ownership, id);
+            if (pendingAlias is not null && !ReferenceEquals(pendingAlias.Context.rowReverseIndex, ctx.rowReverseIndex))
+                pendingAlias = null;
+            if (!HasClassAliases(ctx, ownership, id) && pendingAlias is null)
+                return;
+            var row = plan.Resolve(ownership, id);
+            members.TryGetValue(id, out JsonMember? member);
+            member ??= pendingAlias?.Member;
+            if (row is ObjectMemberValue { classId: not null } classRow)
+                member = NeoGeneratedTypesSupport.UnplacedClassMember(classRow.classId, null, classRow);
+            if (member is null)
+                foreach (object alias in ctx.rowAliases.Get(ownership, id))
+                    if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference reference)
+                        && reference.ownership == ownership && reference.valueId == id && reference.member is not null)
+                    {
+                        member = reference.member;
+                        break;
+                    }
+            if (member is not (ClassMember or ListMember or DictionaryMember))
+                return;
+            bool alreadyRetained = retained.TryGetValue((ownership, id), out string? rootId);
+            var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
+            if (alreadyRetained)
+                remapped[(ownership, id)] = rootId!;
+            else
+            {
+                rootId = ctx.client.StageClassRetention(plan, ownership, id, member, remapped);
+                foreach (var pair in remapped)
+                {
+                    retained[pair.Key] = pair.Value;
+                    ctx.client.Random.PreserveInstanceOnMove(plan, pair.Key.scope, pair.Key.id,
+                        NeoValueOwnership.Session, pair.Value);
+                }
+            }
+            // Commit eviction removes provenance. Capture only this graph's
+            // reverse-indexed aliases, and restore them after full success.
+            var aliases = new List<(object alias, RowReference reference, string target)>();
+            foreach (var pair in remapped)
+                foreach (object alias in ctx.rowAliases.Get(pair.Key.scope, pair.Key.id))
+                    if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference reference)
+                        && reference.ownership == pair.Key.scope && reference.valueId == pair.Key.id)
+                        aliases.Add((alias, reference, pair.Value));
+            var insertedAliases = new List<(NeoWriteBatch.Attachment attachment, string target)>();
+            foreach (var pair in remapped)
+                if (batch.AttachmentForRow(pair.Key.scope, pair.Key.id) is { } attachment
+                    && ReferenceEquals(attachment.Context.rowReverseIndex, ctx.rowReverseIndex))
+                    insertedAliases.Add((attachment, pair.Value));
+            string retainedRoot = rootId!;
+            batch.AfterPublication(() =>
+            {
+                if (!ctx.client.HasWritableValue(NeoValueOwnership.Session, retainedRoot))
+                    return;
+                if (!alreadyRetained)
+                {
+                    if (member is ListMember or DictionaryMember)
+                        ctx.client.RegisterRetainedRootContract(retainedRoot, member);
+                    batch.RegisterRetainedRoot(retainedRoot, member, ctx.allocationTracker);
+                }
+                foreach (var inserted in insertedAliases)
+                    if (ctx.client.HasWritableValue(NeoValueOwnership.Session, inserted.target))
+                        BindInsertedCollection(inserted.attachment.Value, inserted.attachment.Member!, inserted.target,
+                            NeoValueOwnership.Session, ctx);
+                foreach (var captured in aliases)
+                {
+                    if (!ctx.client.HasWritableValue(NeoValueOwnership.Session, captured.target))
+                        continue;
+                    SetRowReference(ctx, captured.alias, new RowReference(captured.target,
+                        NeoValueOwnership.Session, captured.reference.classId, captured.reference.member));
+                    if (captured.alias is NeoObjectRecord record && record.valueId == captured.reference.valueId)
+                        record.Rebind(captured.target, NeoValueOwnership.Session);
+                    if (captured.alias is NeoScriptObject detached && detached.attachedId == captured.reference.valueId)
+                        detached.attachedId = captured.target;
+                }
+                foreach (var pair in remapped)
+                    if (plan.Resolve(NeoValueOwnership.Session, pair.Value) is { } retainedRow)
+                        RefreshCachedRowAfterWrite(retainedRow, ctx, NeoValueOwnership.Session);
+            });
+        }
+
         // Replacement must retire the old rows, including explicit Reference<T>
         // targets. Move evaluator aliases to a Session copy, reclaimed unless it escapes.
         internal static void RetainClassAliases(
@@ -11749,10 +11958,15 @@ namespace NeoCompose.Runtime.NeoScript
         /// detached objects never are, and skip the table's locked lookup.
         /// </summary>
         private static bool MayBeRowAlias(object? value) =>
-            value is object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
+            value is RuntimeSet or object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
 
         internal static RowReference? FindRowReference(object? value, Context ctx)
         {
+            if (value is not null)
+            {
+                ctx.client.CommitRemovedScriptAlias(value, ctx);
+                ctx.client.CommitScriptAttachment(value);
+            }
             // A static receiver, among others.
             if (value is null)
                 return null;

@@ -2558,9 +2558,10 @@ namespace NeoCompose.Runtime
                 if (entryType is null)
                     return rows;
                 bool rowEntries = entryType.type is MemberKind.Class or MemberKind.Interface;
+                Member? entryMember = rowRef?.EntryMember(client);
                 for (int i = 0; i < rows.Length; i++)
                 {
-                    object? entry = NSGetterEvaluator.ResolveListEntry(rows, i, rowRef, rowOwnership, ctx);
+                    object? entry = NSGetterEvaluator.ResolveListEntry(rows, i, rowRef, rowOwnership, ctx, entryMember);
                     // A resolved row record is already canonical: normalizing
                     // it would only read its row again.
                     if (!rowEntries || !NSGetterEvaluator.IsRowRecord(entry, ctx))

@@ -369,10 +369,11 @@ namespace NeoCompose.Runtime.NeoScript
             snapshot = null;
         }
 
-        internal void MarkRetained(NSGetterEvaluator.Context ctx, HashSet<object>? visited, Dictionary<string, HashSet<string>?> children, NeoScriptExecutor.GeneratorRetention? retention)
+        internal void MarkRetained(NSGetterEvaluator.Context ctx, HashSet<object>? visited, Dictionary<string, HashSet<string>?> children, NeoScriptExecutor.GeneratorRetention? retention,
+            Dictionary<string, NeoScriptAllocationTracker>? retainedOwners = null)
         {
             for (int index = 0; index < count; index++)
-                ctx.allocationTracker.MarkEscaped(entries[index], ctx, visited, children, retention);
+                ctx.allocationTracker.MarkEscaped(entries[index], ctx, visited, children, retention, retainedOwners);
         }
 
         internal object?[] Snapshot()

@@ -1,0 +1,43 @@
+{
+  "source": [
+    "class Sets { public List<Set<int>> Values = []; }",
+    "class Coin { public int Value = 7; }",
+    "class CoinSets { public List<Set<Coin>> Values = []; }",
+    "class Coins { public List<Coin> Values = []; }",
+    "class StringSets { public List<Set<@settings(format: .Plain) string>> Values = []; }",
+    "class Probe {",
+    " public static int RemoveOriginal() { Sets h = new(); h.Values.Add([3].ToSet()); h.Values[0].Remove(3); return h.Values[0].Count; }",
+    " public static int RemoveAdded() { Sets h = new(); h.Values.Add([3].ToSet()); h.Values[0].Add(4); h.Values[0].Remove(4); return h.Values[0].Count; }",
+    " public static int AliasAfterRemove() { Sets h = new(); var s = [3].ToSet(); h.Values.Add(s); h.Values[0].Remove(3); return s.Count; }",
+    " public static int RemoveMissing() { Sets h = new(); h.Values.Add([3].ToSet()); h.Values[0].Remove(4); return h.Values[0].Count; }",
+    " public static int ClearControl() { Sets h = new(); h.Values.Add([3].ToSet()); h.Values[0].Clear(); return h.Values[0].Count; }",
+    " public static int RemoveThenTransfer() { CoinSets h = new(); Coin c = new(); h.Values.Add([c].ToSet()); h.Values[0].Remove(c); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int ClearThenTransfer() { CoinSets h = new(); Coin c = new(); h.Values.Add([c].ToSet()); h.Values[0].Clear(); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int AliasRemoveThenTransfer() { CoinSets h = new(); Coin c = new(); h.Values.Add([c].ToSet()); var s = h.Values[0]; s.Remove(c); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int AddedCoinThenTransfer() { CoinSets h = new(); Coin c = new(); List<Coin> empty = []; h.Values.Add(empty.ToSet()); h.Values[0].Add(c); h.Values[0].Remove(c); Coins other = new(); other.Values.Add(c); return other.Values[0].Value; }",
+    " public static int AddExistingCoin() { CoinSets h = new(); Coin c = new(); h.Values.Add([c].ToSet()); h.Values[0].Add(c); return h.Values[0].Count; }",
+    " public static int ScalarIdDoesNotOwnCoin() { StringSets h = new(); Coin c = new(); List<string> empty = []; h.Values.Add(empty.ToSet()); h.Values[0].Add(c.Id); h.Values[0].Add(\"other\"); Coins other = new(); other.Values.Add(c); return h.Values[0].Contains(c.Id) ? other.Values[0].Value : -1; }",
+    " public static int RefuseEarlierAddedCoin() { CoinSets h = new(); Coin c = new(); List<Coin> empty = []; h.Values.Add(empty.ToSet()); h.Values[0].Add(c); h.Values[0].Add(new Coin()); Coins other = new(); other.Values.Add(c); return 1; }",
+    " public static int RefuseOwnedCoin() { CoinSets h = new(); Coin c = new(); h.Values.Add([c].ToSet()); Coins other = new(); other.Values.Add(c); return 1; }",
+    " public static int RefuseAddedCoin() { CoinSets h = new(); Coin c = new(); List<Coin> empty = []; h.Values.Add(empty.ToSet()); h.Values[0].Add(c); Coins other = new(); other.Values.Add(c); return 1; }",
+    "}"
+  ],
+  "returns": {
+    "RemoveOriginal": 0,
+    "RemoveAdded": 1,
+    "AliasAfterRemove": 0,
+    "RemoveMissing": 1,
+    "ClearControl": 0,
+    "RemoveThenTransfer": 7,
+    "ClearThenTransfer": 7,
+    "AliasRemoveThenTransfer": 7,
+    "AddedCoinThenTransfer": 7,
+    "AddExistingCoin": 1,
+    "ScalarIdDoesNotOwnCoin": 7
+  },
+  "refuses": {
+    "RefuseOwnedCoin": "already owned",
+    "RefuseAddedCoin": "already owned",
+    "RefuseEarlierAddedCoin": "already owned"
+  }
+}

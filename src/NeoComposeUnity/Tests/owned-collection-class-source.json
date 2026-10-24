@@ -1,0 +1,51 @@
+{
+  "source": [
+    "class Ring { public int Value = 7; public List<Ring> Kids = []; }",
+    "class RingList { public List<Ring> Rings = []; }",
+    "class RingMap { public Dictionary<string, Ring> Rings = {}; }",
+    "class FilledList { public List<Ring> Rings = [new()]; }",
+    "class FilledMap { public Dictionary<string, Ring> Rings = { \"k\": new Ring() }; }",
+    "class Probe {",
+    " @storage(allowed: .Session) public static FilledList Filled = new();",
+    " @storage(allowed: .Session) public static FilledMap Mapped = new();",
+    " @storage(allowed: .Session) public static RingList Kept = new();",
+    " @storage(allowed: .Session) public static RingList Other = new();",
+    " public static int StoredSelfAdd() { Kept.Rings = [new()]; Ring b = Kept.Rings[0]; b.Kids.Add(b); return b.Kids.Count; }",
+    " public static int StoredOtherAdd() { Kept.Rings = [new()]; Ring b = Kept.Rings[0]; Other.Rings.Add(b); return Other.Rings.Count; }",
+    " public static int LocalOwnedAdd() { RingList l = new(); l.Rings = [new()]; Ring b = l.Rings[0]; b.Kids.Add(b); return b.Kids.Count; }",
+    " public static int InsertOwned() { Kept.Rings = [new()]; Other.Rings.Insert(0, Kept.Rings[0]); return Other.Rings.Count; }",
+    " public static int DuplicateOwned() { Kept.Rings = [new()]; Kept.Rings.Add(Kept.Rings[0]); return Kept.Rings.Count; }",
+    " public static int ParentlessSelfAdd() { Ring a = new(); a.Kids.Add(a); return a.Kids.Count; }",
+    " public static int CloneToOther() { Kept.Rings = [new()]; Other.Rings.Add(Kept.Rings[0].Clone()); return Other.Rings.Count; }",
+    " public static int RejectedWriteIsAtomic() { Kept.Rings = [new()]; try { Other.Rings.Add(Kept.Rings[0]); } catch (string message) { } return Kept.Rings.Count * 10 + Other.Rings.Count; }",
+    " public static int AssignedAliasStaysLive() { List<Ring> alias = [new()]; Kept.Rings = alias; alias.Add(new()); return Kept.Rings.Count; }",
+    " public static int RemoveThenAttach() { Kept.Rings = [new()]; Ring b = Kept.Rings[0]; Kept.Rings.Remove(b); Other.Rings.Add(b); return Other.Rings.Count; }",
+    " public static int ReplacementReleasesOwner() { Kept.Rings = [new()]; Ring b = Kept.Rings[0]; Kept.Rings = []; Other.Rings.Add(b); return Other.Rings.Count; }",
+    " public static int DictionaryOwnedAdd() { RingMap m = new(); m.Rings = { \"k\": new Ring() }; Other.Rings.Add(m.Rings[\"k\"]); return Other.Rings.Count; }",
+    " public static int ListSelfAssignment() { FilledList f = new(); f.Rings = f.Rings; return f.Rings[0].Value; }",
+    " public static int DictionarySelfAssignment() { FilledMap f = new(); f.Rings = f.Rings; return f.Rings[\"k\"].Value; }",
+    " public static int OutgoingListAlias() { var before = Filled.Rings; Filled.Rings = [new()]; return before[0].Value; }",
+    " public static int OutgoingDictionaryAlias() { var before = Mapped.Rings; Mapped.Rings = { \"k\": new Ring() }; return before[\"k\"].Value; }",
+    "}"
+  ],
+  "returns": {
+    "ParentlessSelfAdd": 1,
+    "CloneToOther": 1,
+    "RejectedWriteIsAtomic": 10,
+    "RemoveThenAttach": 1,
+    "ReplacementReleasesOwner": 1,
+    "ListSelfAssignment": 7,
+    "OutgoingDictionaryAlias": 7,
+    "AssignedAliasStaysLive": 2,
+    "DictionarySelfAssignment": 7,
+    "OutgoingListAlias": 7
+  },
+  "refuses": {
+    "StoredSelfAdd": "already owned",
+    "StoredOtherAdd": "already owned",
+    "LocalOwnedAdd": "already owned",
+    "InsertOwned": "already owned",
+    "DuplicateOwned": "already owned",
+    "DictionaryOwnedAdd": "already owned"
+  }
+}

@@ -66,6 +66,8 @@ namespace NeoCompose.Runtime
             {
                 case NeoValueOwnership.Session:
                     node.session = value;
+                    if (value.IsRemoved)
+                        node.retainedRoot = null;
                     break;
                 case NeoValueOwnership.Save:
                     node.save = value;
@@ -109,6 +111,8 @@ namespace NeoCompose.Runtime
         private bool FillValueNode(NeoValueNode node)
         {
             sessionData.values.TryGetValue(node.id, out node.session);
+            if (node.session is null || node.session.IsRemoved)
+                node.retainedRoot = null;
             saveData.values.TryGetValue(node.id, out node.save);
             userSource.userData.values.TryGetValue(node.id, out node.user);
             TryGetVirtualRow(node.id, out node.virtualRow, out node.virtualOwnership);
@@ -135,9 +139,34 @@ namespace NeoCompose.Runtime
                     DropValueNode(node);
         }
 
+        internal void RegisterRetainedRootContract(string id, Member member)
+        {
+            if (ValueNode(id) is { live: true, session: { IsRemoved: false } row } node)
+                node.retainedRoot = new NeoValueNode.RetainedRootContract(member, SchemaResolution, row);
+        }
+
+        private bool TryRetainedRootMember(string id, NeoValueOwnership? ownership, out Member? member)
+        {
+            member = null;
+            if (ownership is not null && ownership != NeoValueOwnership.Session)
+                return false;
+            if (ExistingValueNode(id) is not { live: true, session: { IsRemoved: false } row, retainedRoot: { } contract })
+                return false;
+            // Do not reinterpret an escaped root after its schema or binding
+            // contract changed. Current typed placement was already tried.
+            if (!ReferenceEquals(contract.schema, SchemaResolution)
+                || !contract.MatchesBindings(row)
+                || !(contract.member is ListMember && row is ArrayMemberValue
+                    || contract.member is DictionaryMember && row is ObjectMemberValue { classId: null }))
+                throw new System.InvalidOperationException($"Retained collection '{id}' no longer has its validated schema contract.");
+            member = contract.member;
+            return true;
+        }
+
         private void DropValueNode(NeoValueNode node)
         {
             node.live = false;
+            node.retainedRoot = null;
             valueNodes.Remove(node.id);
         }
     }

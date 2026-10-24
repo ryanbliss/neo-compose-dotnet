@@ -23,11 +23,11 @@ namespace NeoCompose.Runtime
         private readonly bool held;
         // By store: a Session copy of a released Save entry keeps its ids.
         private readonly Dictionary<(NeoValueOwnership ownership, string id), PendingCollection> collections = new();
-        private List<(NeoValueOwnership ownership, string id, Member? member)>? releases;
+        private List<(NeoValueOwnership ownership, string id, Member? member, string parentId)>? releases;
         // The entries pending collections gained, by the collection that
         // gained them, or released (null). Their rows don't hold that
         // membership until the batch is prepared.
-        private Dictionary<(NeoValueOwnership ownership, string id), string?>? entries;
+        private Dictionary<(NeoValueOwnership ownership, string id), (string? parent, RemovalContext? context)>? entries;
         // The rows the plan stages since it last handed them off. A read of
         // one of these or of a pending collection must commit first.
         private HashSet<string>? staged;
@@ -43,6 +43,345 @@ namespace NeoCompose.Runtime
         private HashSet<(NeoValueOwnership ownership, string id)>? parents;
         private bool anyParent;
         private int staging;
+        // Values inserted during this held batch are not row aliases until the
+        // whole owning graph commits. Reusing one must publish that graph first.
+        private Dictionary<object, Attachment>? pendingAttachments;
+        private Dictionary<(NeoValueOwnership ownership, string id), Attachment>? attachmentsByRow;
+        private List<Action>? collectionRollbacks;
+        private List<object>? attachmentJournal;
+        private List<Action>? attachmentCallbacks;
+        private List<Action>? requiredPublicationCallbacks;
+        private Dictionary<NeoScriptAllocationTracker, NeoScriptAllocationTracker.DeferredCompletion>? deferredCompletions;
+        private Dictionary<string, NeoScriptAllocationTracker>? retainedRootOwners;
+
+        internal void RegisterRetainedRoot(string id, Member member, NeoScriptAllocationTracker tracker)
+        {
+            tracker.RegisterSessionRoot(id, member);
+            (retainedRootOwners ??= new(StringComparer.Ordinal)).Add(id, tracker);
+        }
+
+        private int publicationDrainState;
+        private int completionState;
+        private bool publicationHookRegistered;
+        private Exception? completionFailure;
+
+        internal void AfterPublication(Action callback) =>
+            (requiredPublicationCallbacks ??= new()).Add(callback);
+
+        internal NeoScriptAllocationTracker.DeferredCompletion DeferCompletion(
+            NeoScriptAllocationTracker tracker, NSGetterEvaluator.Context context)
+        {
+            if (completionState != 0)
+                throw new InvalidOperationException("Cannot defer an execution to a completed write batch.");
+            if ((deferredCompletions ??= new()).TryGetValue(tracker, out var completion))
+                return completion;
+            completion = new NeoScriptAllocationTracker.DeferredCompletion(tracker, context);
+            deferredCompletions.Add(tracker, completion);
+            return completion;
+        }
+
+        internal void RegisterPublicationHook()
+        {
+            if (publicationHookRegistered)
+                return;
+            publicationHookRegistered = true;
+            Plan.AfterCommit(DrainRequiredPublication);
+        }
+
+        private void RecordCompletionFailure(Exception error) => completionFailure ??= error;
+
+        private void DrainRequiredPublication()
+        {
+            if (publicationDrainState != 0)
+                return;
+            publicationDrainState = 1;
+            var callbacks = requiredPublicationCallbacks;
+            requiredPublicationCallbacks = null;
+            try
+            {
+                if (callbacks is not null)
+                    foreach (Action callback in callbacks)
+                        try
+                        {
+                            callback();
+                        }
+                        catch (Exception error) { RecordCompletionFailure(error); }
+            }
+            finally { publicationDrainState = 2; }
+            if (completionFailure is not null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(completionFailure).Throw();
+        }
+
+        internal void FinishCommit(Exception? failure, bool published)
+        {
+            if (failure is not null)
+                RecordCompletionFailure(failure);
+            // A reentrant completion cannot overtake the detached remap queue.
+            if (completionState != 0 || publicationDrainState == 1)
+                return;
+            completionState = 1;
+            try
+            {
+                if (published)
+                {
+                    try
+                    {
+                        DrainRequiredPublication();
+                    }
+                    catch (Exception error) { RecordCompletionFailure(error); }
+                    try
+                    {
+                        CompleteAttachments();
+                    }
+                    catch (Exception error) { RecordCompletionFailure(error); }
+                }
+                else
+                {
+                    Plan.LocalSelections?.Discard();
+                    requiredPublicationCallbacks = null;
+                    publicationDrainState = 2;
+                    DiscardAttachments();
+                }
+                var completions = deferredCompletions;
+                deferredCompletions = null;
+                if (completions is not null)
+                {
+                    // All remaps are visible before any caller's roots can be
+                    // reclaimed. A different caller may have returned an alias.
+                    foreach (var completion in completions.Values)
+                        try
+                        {
+                            completion.PreserveReturns(retainedRootOwners);
+                        }
+                        catch (Exception error) { RecordCompletionFailure(error); }
+                    foreach (var completion in completions.Values)
+                        try
+                        {
+                            completion.Complete();
+                        }
+                        catch (Exception error) { RecordCompletionFailure(error); }
+                }
+            }
+            finally
+            {
+                retainedRootOwners = null;
+                completionState = 2;
+            }
+            if (completionFailure is not null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(completionFailure).Throw();
+        }
+
+        internal bool HasPendingAttachment(object value) => pendingAttachments?.ContainsKey(NSGetterEvaluator.SequenceCollectionIdentity(value)) == true;
+
+        internal bool HasCurrentCollectionAttachment(object value, NSGetterEvaluator.Context context) =>
+            CurrentCollectionAttachment(value, context) is not null;
+
+        internal Attachment? CurrentCollectionAttachment(object value, NSGetterEvaluator.Context context) =>
+            pendingAttachments?.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out var attachment) == true
+                && CurrentAttachment(attachment) && !RemovesAlias(value, context) ? attachment : null;
+
+
+        internal bool RemovesAlias(object value, NSGetterEvaluator.Context context)
+        {
+            if (releases is null || releases.Count == 0)
+                return false;
+            string? id = null;
+            NeoValueOwnership ownership = NeoValueOwnership.Session;
+            if (pendingAttachments?.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out var attachment) == true && attachment.Row is { } inserted)
+            {
+                id = inserted.id;
+                ownership = attachment.Ownership;
+            }
+            else if (context.rowReverseIndex.TryGetValue(value, out var reference))
+            {
+                // Class handles retain the existing pending move path. The
+                // barrier protects extraction from removed collection payloads.
+                if (reference.classId is not null || reference.member is ClassMember)
+                    return false;
+                id = reference.valueId;
+                ownership = reference.ownership;
+            }
+            if (id is null)
+                return false;
+            return RemovesReference(ownership, id);
+        }
+
+        internal bool RemovesReference(NeoValueOwnership ownership, string id)
+        {
+            if (releases is null || releases.Count == 0)
+                return false;
+            var visited = new HashSet<(NeoValueOwnership, string)>();
+            staging++;
+            try
+            {
+                using (Plan.Client.ReadCandidate(Plan))
+                    while (visited.Add((ownership, id)))
+                    {
+                        if (TryGetEntryParent(ownership, id, out string? pendingParent))
+                        {
+                            if (pendingParent is null)
+                                return true;
+                            id = pendingParent;
+                        }
+                        else if (Plan.Client.TryFindOwnedParent(ownership, id, out string? parent, out var parentOwnership)
+                            || Plan.Client.TryFindRemovalParent(this, ownership, id, out parent, out parentOwnership))
+                        {
+                            id = parent;
+                            ownership = parentOwnership;
+                        }
+                        else
+                            break;
+                    }
+                return false;
+            }
+            finally { staging--; }
+        }
+
+
+        // A released aggregate loses its placement before its descendants do.
+        // Keep only this batch's exact validated row contract for the removal walk.
+        internal sealed class RemovalContext
+        {
+            private readonly MemberValue row;
+            private readonly NeoValueNode.RetainedRootContract contract;
+
+            internal RemovalContext(NeoClient client, MemberValue row, Member member)
+            {
+                this.row = row;
+                contract = new NeoValueNode.RetainedRootContract(member, client.SchemaResolution, row);
+            }
+
+            internal Member? Resolve(NeoClient client, MemberValue current)
+            {
+                if (!ReferenceEquals(row, current) || current.IsRemoved)
+                    return null;
+                if (!ReferenceEquals(contract.schema, client.SchemaResolution) || !contract.MatchesBindings(current))
+                    throw new InvalidOperationException("A pending removal no longer has its validated schema contract.");
+                return contract.member switch
+                {
+                    ListMember when current is ArrayMemberValue => contract.member,
+                    DictionaryMember when current is ObjectMemberValue { constructorArgs: null } => contract.member,
+                    _ => null,
+                };
+            }
+        }
+
+        internal Member? RemovalMember(NeoValueOwnership ownership, string id, MemberValue row)
+        {
+            if (!ReferenceEquals(Plan.Resolve(ownership, id), row))
+                return null;
+            if (entries?.TryGetValue((ownership, id), out var entry) == true)
+                return entry.context?.Resolve(Plan.Client, row);
+            return AttachmentForRow(ownership, id)?.Removal?.Resolve(Plan.Client, row);
+        }
+
+        internal void TrackAttachment(object value, Action? completed = null)
+        {
+            value = NSGetterEvaluator.SequenceCollectionIdentity(value);
+            if ((pendingAttachments ??= new(NSGetterEvaluator.ReferenceEqualityComparer.Instance)).TryAdd(value, new Attachment()))
+                (attachmentJournal ??= new()).Add(value);
+            if (completed is not null)
+                (attachmentCallbacks ??= new()).Add(completed);
+        }
+
+        internal sealed class Attachment
+        {
+            internal object Value = null!;
+            internal NSGetterEvaluator.Context Context = null!;
+            internal MemberValue? Row;
+            internal Member? Member;
+            internal RemovalContext? Removal;
+            internal NeoValueOwnership Ownership;
+        }
+
+        internal void TrackCollectionAttachment(object value, MemberValue row, Member member,
+            NeoValueOwnership ownership, NSGetterEvaluator.Context context, Action completed)
+        {
+            var attachment = new Attachment
+            {
+                Row = row,
+                Member = member,
+                Ownership = ownership,
+                Value = value,
+                Context = context,
+                Removal = member is ListMember or DictionaryMember ? new RemovalContext(Plan.Client, row, member) : null
+            };
+            object identity = NSGetterEvaluator.SequenceCollectionIdentity(value);
+            if (!(pendingAttachments ??= new(NSGetterEvaluator.ReferenceEqualityComparer.Instance)).TryAdd(identity, attachment))
+                throw new NSGetterRuntimeError("Collection is already owned by another entry.");
+            (attachmentJournal ??= new()).Add(identity);
+            (attachmentsByRow ??= new()).Add((ownership, row.id), attachment);
+            (attachmentCallbacks ??= new()).Add(() =>
+            {
+                if (CurrentAttachment(attachment))
+                    completed();
+            });
+        }
+
+        internal Attachment? AttachmentForRow(NeoValueOwnership ownership, string id) =>
+            attachmentsByRow is not null && attachmentsByRow.TryGetValue((ownership, id), out var attachment) ? attachment : null;
+
+        private bool CurrentAttachment(Attachment attachment) => attachment.Row is { } row
+            && (!TryGetEntryParent(attachment.Ownership, row.id, out string? parent) || parent is not null)
+            && (ReferenceEquals(Plan.Resolve(attachment.Ownership, row.id), row)
+                || Collection(attachment.Ownership, row.id) is { } pending
+                    && ReferenceEquals(Plan.Resolve(attachment.Ownership, row.id), pending.Row));
+
+        internal PendingCollection? PendingAttachment(object? value, NSGetterEvaluator.Context context)
+        {
+            if (value is null || pendingAttachments is null
+                || !pendingAttachments.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out Attachment attachment)
+                || !CurrentAttachment(attachment))
+                return null;
+            if (Collection(attachment.Ownership, attachment.Row!.id) is { } existing)
+            {
+                existing.Touch(context);
+                return existing;
+            }
+            PendingCollection? pending = null;
+            // Like a mutation, resolving a staged child's parent must read the
+            // candidate without recursively committing its owning collection.
+            Stage(_ =>
+            {
+                pending = attachment.Member switch
+                {
+                    ListMember => List(attachment.Ownership, attachment.Row.id, context, value),
+                    DictionaryMember => Dictionary(attachment.Ownership, attachment.Row.id, context, value),
+                    _ => throw new InvalidOperationException("An attachment view must be an owned collection."),
+                };
+                ResolveMembers(pending, attachment.Member);
+            });
+            return pending;
+        }
+
+        internal void CompleteAttachments()
+        {
+            Exception? failure = null;
+            var callbacks = attachmentCallbacks;
+            attachmentCallbacks = null;
+            try
+            {
+                if (callbacks is not null)
+                    foreach (Action callback in callbacks)
+                        try
+                        {
+                            callback();
+                        }
+                        catch (Exception error) { failure ??= error; }
+            }
+            finally { DiscardAttachments(); }
+            if (failure is not null)
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
+        internal void DiscardAttachments()
+        {
+            pendingAttachments?.Clear();
+            attachmentsByRow?.Clear();
+            attachmentJournal?.Clear();
+            attachmentCallbacks?.Clear();
+        }
+
 
         internal NeoWriteBatch(NeoWritePlan plan, bool held)
         {
@@ -90,6 +429,10 @@ namespace NeoCompose.Runtime
         internal void Stage(Action<NeoWriteBatch> mutate)
         {
             NeoWritePlan.Checkpoint checkpoint = Plan.Open();
+            int attachmentCount = attachmentJournal?.Count ?? 0;
+            int callbackCount = attachmentCallbacks?.Count ?? 0;
+            int collectionCount = collectionRollbacks?.Count ?? 0;
+            int releaseCount = releases?.Count ?? 0;
             staging++;
             try
             {
@@ -99,11 +442,34 @@ namespace NeoCompose.Runtime
             catch
             {
                 Plan.Rollback(checkpoint);
+                if (releases is not null && releases.Count > releaseCount)
+                    releases.RemoveRange(releaseCount, releases.Count - releaseCount);
+                if (collectionRollbacks is not null)
+                {
+                    for (int i = collectionRollbacks.Count - 1; i >= collectionCount; i--)
+                        collectionRollbacks[i]();
+                    collectionRollbacks.RemoveRange(collectionCount, collectionRollbacks.Count - collectionCount);
+                }
+                if (attachmentJournal is not null)
+                {
+                    for (int i = attachmentJournal.Count - 1; i >= attachmentCount; i--)
+                    {
+                        object value = attachmentJournal[i];
+                        if (pendingAttachments!.TryGetValue(value, out var attachment) && attachment.Row is { } row)
+                            attachmentsByRow!.Remove((attachment.Ownership, row.id));
+                        pendingAttachments.Remove(value);
+                    }
+                    attachmentJournal.RemoveRange(attachmentCount, attachmentJournal.Count - attachmentCount);
+                }
+                if (attachmentCallbacks is not null)
+                    attachmentCallbacks.RemoveRange(callbackCount, attachmentCallbacks.Count - callbackCount);
                 throw;
             }
             finally
             {
                 staging--;
+                if (staging == 0)
+                    collectionRollbacks?.Clear();
             }
             Plan.Close();
         }
@@ -145,8 +511,13 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool TryGetEntryParent(NeoValueOwnership ownership, string id, out string? parentId)
         {
+            if (entries?.TryGetValue((ownership, id), out var entry) == true)
+            {
+                parentId = entry.parent;
+                return true;
+            }
             parentId = null;
-            return entries?.TryGetValue((ownership, id), out parentId) == true;
+            return false;
         }
 
         /// <summary>
@@ -158,9 +529,9 @@ namespace NeoCompose.Runtime
         {
             parentId = null;
             return entries is not null
-                && (entries.TryGetValue((NeoValueOwnership.Session, id), out parentId)
-                    || entries.TryGetValue((NeoValueOwnership.Save, id), out parentId)
-                    || entries.TryGetValue((NeoValueOwnership.User, id), out parentId));
+                && (TryGetEntryParent(NeoValueOwnership.Session, id, out parentId)
+                    || TryGetEntryParent(NeoValueOwnership.Save, id, out parentId)
+                    || TryGetEntryParent(NeoValueOwnership.User, id, out parentId));
         }
 
         /// <summary>The pending collection at <paramref name="id"/> in <paramref name="ownership"/>'s store.</summary>
@@ -187,6 +558,34 @@ namespace NeoCompose.Runtime
         private void Add(NeoValueOwnership ownership, string id, PendingCollection collection)
         {
             collections.Add((ownership, id), collection);
+            ulong previousCollections = collectionBits, previousTouched = touchedBits;
+            int previousShape = Shape;
+            bool previousGrid = GridDependent, previousAnyParent = anyParent;
+            (NeoValueOwnership ownership, string parent, string key)? addedField = null;
+            string? previousField = null;
+            bool addedFieldKey = false;
+            (NeoValueOwnership ownership, string id)? addedParent = null;
+            if (staging != 0)
+                (collectionRollbacks ??= new()).Add(() =>
+                {
+                    collections.Remove((ownership, id));
+                    collectionBits = previousCollections;
+                    touchedBits = previousTouched;
+                    Shape = previousShape;
+                    GridDependent = previousGrid;
+                    anyParent = previousAnyParent;
+                    if (addedField is { } field)
+                    {
+                        if (previousField is null)
+                            fields!.Remove(field);
+                        else
+                            fields![field] = previousField;
+                        if (addedFieldKey)
+                            fieldKeys!.Remove(field.key);
+                    }
+                    if (addedParent is { } parent)
+                        parents!.Remove(parent);
+                });
             collectionBits |= Bit(id);
             touchedBits |= Bit(id);
             Shape = ++nextShape;
@@ -201,11 +600,14 @@ namespace NeoCompose.Runtime
                 foreach (var field in row.value)
                     if (field.Value == id)
                     {
-                        (fields ??= new())[(ownership, parent, field.Key)] = id;
-                        (fieldKeys ??= new HashSet<string>(StringComparer.Ordinal)).Add(field.Key);
+                        addedField = (ownership, parent, field.Key);
+                        (fields ??= new()).TryGetValue(addedField.Value, out previousField);
+                        fields[addedField.Value] = id;
+                        addedFieldKey = (fieldKeys ??= new HashSet<string>(StringComparer.Ordinal)).Add(field.Key);
                         return;
                     }
-            (parents ??= new()).Add((ownership, parent));
+            if ((parents ??= new()).Add((ownership, parent)))
+                addedParent = (ownership, parent);
         }
 
         /// <summary>The ids of the pending collections.</summary>
@@ -237,8 +639,8 @@ namespace NeoCompose.Runtime
         /// <summary>Moves row <paramref name="id"/>'s pending membership and collection with the graph that owns it.</summary>
         internal void Rehome(string id, NeoValueOwnership from, NeoValueOwnership to)
         {
-            if (entries is not null && entries.Remove((from, id), out string? parentId))
-                entries[(to, id)] = parentId;
+            if (entries is not null && entries.Remove((from, id), out var entry))
+                entries[(to, id)] = (entry.parent, null);
             if (!collections.Remove((from, id), out PendingCollection? collection))
                 return;
             collection.Ownership = to;
@@ -276,6 +678,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal NeoWritePlan? TakeRows()
         {
+            Plan.LocalSelections?.Prepare();
             NeoWritePlan plan = Plan;
             if (plan.Rows.Count == 0 && plan.Bindings.Count == 0 && plan.ListenerEntries?.Count is not > 0)
                 return null;
@@ -349,17 +752,34 @@ namespace NeoCompose.Runtime
         internal void Release(NeoValueOwnership ownership, string id, Member? member, string parentId)
         {
             Plan.Client.CaptureListenerMove(Plan, ownership, ownership, id, member, parentId);
-            (releases ??= new()).Add((ownership, id, member));
-            (entries ??= new())[(ownership, id)] = null;
+            (releases ??= new()).Add((ownership, id, member, parentId));
+            SetEntryParent(ownership, id, null, member is ListMember or DictionaryMember && Plan.Resolve(ownership, id) is { } row
+                ? new RemovalContext(Plan.Client, row, member) : null);
         }
 
         /// <summary>Records that collection <paramref name="parentId"/> gained entry <paramref name="id"/>.</summary>
         internal void Gain(NeoValueOwnership ownership, string id, string parentId) =>
-            (entries ??= new())[(ownership, id)] = parentId;
+            SetEntryParent(ownership, id, parentId);
+
+        private void SetEntryParent(NeoValueOwnership ownership, string id, string? parentId, RemovalContext? context = null)
+        {
+            var key = (ownership, id);
+            bool present = (entries ??= new()).TryGetValue(key, out var previous);
+            if (staging != 0)
+                (collectionRollbacks ??= new()).Add(() =>
+                {
+                    if (present)
+                        entries[key] = previous;
+                    else
+                        entries.Remove(key);
+                });
+            entries[key] = (parentId, context);
+        }
 
         /// <summary>Stages every changed collection's row and the entries it released.</summary>
         internal void Prepare()
         {
+            RegisterPublicationHook();
             foreach (var pair in collections)
             {
                 PendingCollection collection = pair.Value;
@@ -383,7 +803,63 @@ namespace NeoCompose.Runtime
                     if (release.ownership == ownership)
                         (roots ??= new()).Add((release.id, release.member));
                 if (roots is not null)
-                    Plan.Client.StageUnlinkedRemovals(Plan, ownership, roots);
+                {
+                    var contexts = new Dictionary<object, NSGetterEvaluator.Context>();
+                    var members = new Dictionary<string, Member?>(StringComparer.Ordinal);
+                    foreach (var release in releases)
+                    {
+                        if (release.ownership != ownership)
+                            continue;
+                        members[release.id] = release.member;
+                        Collection(ownership, release.parentId)?.ForEachContext(ctx =>
+                        {
+                            if (ctx is not null)
+                                contexts[ctx.rowReverseIndex] = ctx;
+                        });
+                    }
+                    Plan.Client.StageUnlinkedRemovals(Plan, ownership, roots, removed =>
+                    {
+                        foreach (string id in removed)
+                            if (AttachmentForRow(ownership, id) is { } attachment)
+                                contexts[attachment.Context.rowReverseIndex] = attachment.Context;
+                        var removedIds = new HashSet<string>(removed, StringComparer.Ordinal);
+                        var associations = new Dictionary<string, Dictionary<object, NSGetterEvaluator.Context>>(StringComparer.Ordinal);
+                        void Associate(string id, NSGetterEvaluator.Context context)
+                        {
+                            if (!associations.TryGetValue(id, out var caches))
+                                associations[id] = caches = new();
+                            caches[context.rowReverseIndex] = context;
+                        }
+                        // Build the join before live-alias checks can prune dead
+                        // weak entries from these existing participating indexes.
+                        foreach (var context in contexts.Values)
+                        {
+                            if (removedIds.Count <= context.rowAliases.Keys.Count)
+                            {
+                                foreach (string id in removedIds)
+                                    if (context.rowAliases.Contains(new NSGetterEvaluator.RowKey(ownership, id)))
+                                        Associate(id, context);
+                            }
+                            else
+                            {
+                                foreach (var key in context.rowAliases.Keys)
+                                    if (key.ownership == ownership && removedIds.Contains(key.rowId))
+                                        Associate(key.rowId, context);
+                            }
+                        }
+                        foreach (string id in removed)
+                            if (AttachmentForRow(ownership, id) is { } attachment)
+                                Associate(id, attachment.Context);
+                        var retained = new Dictionary<(NeoValueOwnership scope, string id), string>();
+                        // The existing removal walk is descendants first. Across
+                        // all caches, retain a parent before any aliased child.
+                        for (int index = removed.Count - 1; index >= 0; index--)
+                            if (associations.TryGetValue(removed[index], out var caches))
+                                foreach (var context in caches.Values)
+                                    NSGetterEvaluator.RetainRemovedCollectionAlias(Plan, context, ownership,
+                                        removed[index], members, retained, this);
+                    });
+                }
             }
         }
 
@@ -750,19 +1226,61 @@ namespace NeoCompose.Runtime
             if (CommittableScriptWrites is not { } batch)
                 return;
             scriptWriteBatch = null;
+            Exception? failure = null;
+            bool completed = false;
             try
             {
                 batch.Prepare();
+                batch.RegisterPublicationHook();
                 if (batch.Plan.Rows.Count != 0 || batch.Plan.Bindings.Count != 0 || batch.Plan.ListenerEntries?.Count > 0)
                     CommitScriptPlan(batch.Plan);
+                completed = true;
             }
-            catch
+            catch (Exception error)
             {
-                // Getters that read the mutations pending must not keep them.
-                foreach (string id in batch.CollectionIds)
-                    InvalidateGetterMemoForRow(id);
-                throw;
+                failure = error;
+                // A failed preparation never published its pending reads. A
+                // notification failure after installation is not a rollback.
+                if (!batch.Plan.Installed)
+                    foreach (string id in batch.CollectionIds)
+                        InvalidateGetterMemoForRow(id);
             }
+            batch.FinishCommit(failure, completed || batch.Plan.Installed);
+        }
+
+        internal bool DeferScriptAllocationCompletion(NeoScriptAllocationTracker tracker,
+            NSGetterEvaluator.Context context, in NeoScriptExecutionResult result)
+        {
+            if (scriptWriteDepth <= 1 || CommittableScriptWrites is not { } batch)
+                return false;
+            tracker.DeferCompletion(batch, context, in result);
+            return true;
+        }
+
+        internal bool TryFindRemovalParent(NeoWriteBatch batch, NeoValueOwnership scope, string id,
+            out string? parent, out NeoValueOwnership parentScope) =>
+            TryFindOwningParentRow(scope, id, out parent, out parentScope, batch);
+
+        internal bool CommitRemovedScriptReference(NeoValueOwnership ownership, string id)
+        {
+            if (CommittableScriptWrites is not { } batch || !batch.RemovesReference(ownership, id))
+                return false;
+            CommitScriptWrites();
+            return true;
+        }
+
+        internal bool CommitRemovedScriptAlias(object value, NSGetterEvaluator.Context context)
+        {
+            if (CommittableScriptWrites is not { } batch || !batch.RemovesAlias(value, context))
+                return false;
+            CommitScriptWrites();
+            return true;
+        }
+
+        internal void CommitScriptAttachment(object value)
+        {
+            if (CommittableScriptWrites is { } batch && batch.HasPendingAttachment(value))
+                CommitScriptWrites();
         }
 
         /// <summary>Commits the rows the held batch staged, leaving its collections pending.</summary>
