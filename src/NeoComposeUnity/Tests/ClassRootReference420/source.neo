@@ -1,0 +1,2 @@
+class Item { public int Number = 7; }
+class RefHolder(Reference<Item> value) { public Reference<Item> Value = value; }

@@ -244,7 +244,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>
         /// The slot that holds a row: a static binding or an owner's member.
         /// <paramref name="containerId"/> is the List or Set a slotless entry
-        /// belongs to. A row nothing holds dangles (§4.4).
+        /// belongs to. Class handles can be freestanding; a removed scalar
+        /// or variant slot still dangles (§4.4).
         /// </summary>
         internal static NSSlotPlace? SlotPlaceOfRow(NSSlotReference reference, Context ctx, out string? containerId)
         {
@@ -260,7 +261,15 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // A removed entry's row lingers, but no collection holds it.
             if (!TryFindHolder(rowId, ctx, out string? parentId))
+            {
+                // Constructor arguments can supply a class descriptor without
+                // owning the object. Such a reference reads the object itself.
+                if (member is ClassMember classMember
+                    && classMember.TryGetDeclaredClassId(out string classId)
+                    && !NeoReferenceTypes.IsVariantClass(ctx.client, classId))
+                    return null;
                 throw DanglingReferenceError(reference.MemberId, rowId, ctx);
+            }
             if (parentId.StartsWith("member:", System.StringComparison.Ordinal)
                 || parentId.StartsWith("static:", System.StringComparison.Ordinal))
             {
