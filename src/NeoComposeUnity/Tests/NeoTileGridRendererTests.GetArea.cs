@@ -168,7 +168,9 @@ namespace NeoCompose.Tests
         {
             // Package tests run inside the HelloWorld sample, whose export carries the seed schema.
             const string projectJsonPath = "Assets/Resources/Neo/project.json";
-            var members = (JObject)JObject.Parse(File.ReadAllText(projectJsonPath))["members"]!;
+            string projectJson = File.ReadAllText(projectJsonPath);
+            var members = (JObject)JObject.Parse(projectJson)["members"]!;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(projectJson), assumeCurrentSchema: false);
             var unhandled = new List<string>();
             int natives = 0;
             foreach (var pair in members)
@@ -179,11 +181,25 @@ namespace NeoCompose.Tests
                 // NeoTile.TryConvert compiles to tileConvert.
                 if (pair.Key == "system_54ecc5a7-874d-54ed-92f4-38100a4b7465")
                     continue;
+                if (NeoRandomContract.IsSharedNative(pair.Key) || pair.Key == NeoRandomContract.ValidateSeed)
+                {
+                    object?[] arguments = pair.Key switch
+                    {
+                        NeoRandomContract.SetSeed or NeoRandomContract.ValidateSeed => new object?[] { 1d },
+                        NeoRandomContract.RangeInt or NeoRandomContract.RangeFloat => new object?[] { 0d, 1d },
+                        _ => Array.Empty<object?>(),
+                    };
+                    Assert.DoesNotThrow(() => NSGetterEvaluator.InvokeRandomFunction(
+                        client, pair.Key, null, arguments, CallReceiverKind.Static));
+                    continue;
+                }
                 if (!NeoCellPatternRuntime.Handles(pair.Key) && !NeoScriptGridQueries.Handles(pair.Key))
                     unhandled.Add($"{pair.Value!["name"]} ({pair.Key})");
             }
             Assert.Greater(natives, 0, "The sample export has no system natives; the kind filter is wrong.");
             CollectionAssert.IsEmpty(unhandled, "System natives with no SDK runtime.");
+            StringAssert.Contains("Unknown NeoRandom member", Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.InvokeRandomFunction(client, "unknown-native", null, Array.Empty<object?>(), CallReceiverKind.Static))!.Message);
         }
 
         /// <summary>

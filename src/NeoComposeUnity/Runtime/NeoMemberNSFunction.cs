@@ -1252,12 +1252,13 @@ namespace NeoCompose.Runtime
             NeoClient client,
             TypeInfo typeInfo,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
-            HashSet<string> visitingMembers)
+            HashSet<string> visitingMembers,
+            BindingTypeProjection projection = BindingTypeProjection.Read)
         {
             if (TupleTypeInfo.From(typeInfo) is { } tuple)
             {
                 TupleElementTypeInfo[] elements = TupleTypeInfo.MapElements(tuple.elements,
-                    element => ResolveInvocationTypeInfo(client, element, genericEnv, visitingMembers));
+                    element => ResolveInvocationTypeInfo(client, element, genericEnv, visitingMembers, projection));
                 return ReferenceEquals(elements, tuple.elements) ? tuple : new TupleTypeInfo
                 {
                     type = MemberKind.Tuple,
@@ -1294,7 +1295,7 @@ namespace NeoCompose.Runtime
                     client,
                     bindingMember,
                     genericEnv,
-                    visitingMembers);
+                    visitingMembers, projection);
                 resolved.required &= typeInfo.required;
                 return resolved;
             }
@@ -1327,7 +1328,7 @@ namespace NeoCompose.Runtime
                         client,
                         typeArguments,
                         genericEnv,
-                        visitingMembers),
+                        visitingMembers, projection),
                 };
             }
 
@@ -1357,7 +1358,7 @@ namespace NeoCompose.Runtime
                         client,
                         delegateArguments[i],
                         genericEnv,
-                        visitingMembers);
+                        visitingMembers, projection);
                 }
                 return new DelegateTypeInfo
                 {
@@ -1369,7 +1370,7 @@ namespace NeoCompose.Runtime
                             client,
                             delegateReturn,
                             genericEnv,
-                            visitingMembers),
+                            visitingMembers, projection),
                     argumentTypes = resolvedArguments,
                 };
             }
@@ -1394,7 +1395,7 @@ namespace NeoCompose.Runtime
                         client,
                         actionArguments[i],
                         genericEnv,
-                        visitingMembers);
+                        visitingMembers, projection);
                 }
                 // No return slot to substitute: void is structural for an
                 // action, so the delegate arm's void carve-outs do not exist.
@@ -1437,7 +1438,7 @@ namespace NeoCompose.Runtime
                         client,
                         entryTypeInfo,
                         genericEnv,
-                        visitingMembers),
+                        visitingMembers, projection),
                 };
             }
             if (typeInfo.type == MemberKind.Lookup
@@ -1467,7 +1468,7 @@ namespace NeoCompose.Runtime
                         client,
                         entryTypeInfo,
                         genericEnv,
-                        visitingMembers),
+                        visitingMembers, projection),
                 };
             }
             return typeInfo;
@@ -1478,7 +1479,8 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 IReadOnlyDictionary<string, TypeInfo>? typeArguments,
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
-                HashSet<string> visitingMembers)
+                HashSet<string> visitingMembers,
+            BindingTypeProjection projection = BindingTypeProjection.Read)
         {
             if (typeArguments is null)
                 return null;
@@ -1489,7 +1491,7 @@ namespace NeoCompose.Runtime
                     client,
                     pair.Value,
                     genericEnv,
-                    visitingMembers);
+                    visitingMembers, projection);
             }
             return resolved;
         }
@@ -1517,11 +1519,18 @@ namespace NeoCompose.Runtime
             return entryMember;
         }
 
+        internal enum BindingTypeProjection
+        {
+            Read,
+            Stored,
+        }
+
         internal static TypeInfo TypeInfoFromBindingMember(
             NeoClient client,
             JsonMember member,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
-            HashSet<string> visitingMembers)
+            HashSet<string> visitingMembers,
+            BindingTypeProjection projection = BindingTypeProjection.Read)
         {
             if (!visitingMembers.Add(member.id))
             {
@@ -1542,7 +1551,7 @@ namespace NeoCompose.Runtime
                                 genericParamId = generic.genericParamId,
                             },
                             genericEnv,
-                            visitingMembers);
+                            visitingMembers, projection);
                     case ClassMember classMember:
                         return classMember.DeclaredTypeInfo(
                             classMember.Requirement == NeoMemberRequirementKind.Required,
@@ -1550,7 +1559,7 @@ namespace NeoCompose.Runtime
                                 client,
                                 classMember.TypeArguments,
                                 genericEnv,
-                                visitingMembers));
+                                visitingMembers, projection));
                     case EnumMember enumMember:
                         return new EnumTypeInfo
                         {
@@ -1568,7 +1577,7 @@ namespace NeoCompose.Runtime
                                 elements[i] = new TupleElementTypeInfo
                                 {
                                     name = element.name == $"Item{i + 1}" ? null : element.name,
-                                    typeInfo = TypeInfoFromBindingMember(client, element, genericEnv, visitingMembers),
+                                    typeInfo = TypeInfoFromBindingMember(client, element, genericEnv, visitingMembers, projection),
                                 };
                             }
                             return new TupleTypeInfo
@@ -1584,23 +1593,24 @@ namespace NeoCompose.Runtime
                             list,
                             list.entryMemberId,
                             genericEnv,
-                            visitingMembers);
+                            visitingMembers, projection);
                     case DictionaryMember dictionary:
                         return CollectionBindingTypeInfo(
                             client,
                             dictionary,
                             dictionary.entryMemberId,
                             genericEnv,
-                            visitingMembers);
+                            visitingMembers, projection);
                     case LookupMember lookup:
                         {
                             TypeInfo entry = lookup.declaredTypeInfo is null
-                                ? TypeInfoFromBindingMember(client, LookupBindingEntry(client, lookup), genericEnv, visitingMembers)
-                                : ResolveInvocationTypeInfo(client, lookup.declaredTypeInfo, genericEnv, visitingMembers).ShallowClone();
+                                ? TypeInfoFromBindingMember(client, LookupBindingEntry(client, lookup), genericEnv, visitingMembers, projection)
+                                : ResolveInvocationTypeInfo(client, lookup.declaredTypeInfo, genericEnv, visitingMembers, projection).ShallowClone();
                             bool multiple = lookup.Selection == NeoMemberSelectionKind.Multi;
                             bool required = multiple || lookup.Requirement == NeoMemberRequirementKind.Required;
                             // P112 §1.1. A handle reference types as its target; a slot one stays a reference.
-                            if (NeoReferenceTypes.Category(entry, client) == NeoReferenceCategory.Slot)
+                            if (projection == BindingTypeProjection.Stored
+                                || NeoReferenceTypes.Category(entry, client) == NeoReferenceCategory.Slot)
                             {
                                 entry = new ReferenceTypeInfo
                                 {
@@ -1633,7 +1643,7 @@ namespace NeoCompose.Runtime
                                     client,
                                     delegateMember.argumentTypes[i],
                                     genericEnv,
-                                    visitingMembers);
+                                    visitingMembers, projection);
                             }
                             return new DelegateTypeInfo
                             {
@@ -1645,7 +1655,7 @@ namespace NeoCompose.Runtime
                                         client,
                                         delegateMember.returnTypeInfo,
                                         genericEnv,
-                                        visitingMembers),
+                                        visitingMembers, projection),
                                 argumentTypes = arguments,
                             };
                         }
@@ -1658,7 +1668,7 @@ namespace NeoCompose.Runtime
                                     client,
                                     actionMember.argumentTypes[i],
                                     genericEnv,
-                                    visitingMembers);
+                                    visitingMembers, projection);
                             }
                             return new ActionTypeInfo
                             {
@@ -1700,7 +1710,8 @@ namespace NeoCompose.Runtime
             NeoClient client,
             IReadOnlyDictionary<string, GenericBinding>? bindings,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
-            HashSet<string> visitingMembers)
+            HashSet<string> visitingMembers,
+            BindingTypeProjection projection = BindingTypeProjection.Read)
         {
             if (bindings is null)
                 return null;
@@ -1739,7 +1750,7 @@ namespace NeoCompose.Runtime
                     client,
                     bindingMember,
                     genericEnv,
-                    visitingMembers);
+                    visitingMembers, projection);
             }
             return resolved;
         }
@@ -1749,7 +1760,8 @@ namespace NeoCompose.Runtime
             JsonMember collection,
             string entryMemberId,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
-            HashSet<string> visitingMembers)
+            HashSet<string> visitingMembers,
+            BindingTypeProjection projection = BindingTypeProjection.Read)
         {
             if (!client.TryGetMember(
                 entryMemberId,
@@ -1768,7 +1780,7 @@ namespace NeoCompose.Runtime
                     client,
                     entryMember,
                     genericEnv,
-                    visitingMembers),
+                    visitingMembers, projection),
             };
         }
 

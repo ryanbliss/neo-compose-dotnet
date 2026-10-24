@@ -163,7 +163,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("FullDisplayText");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return (string)result.value!;
             }
         }
@@ -209,7 +209,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("Save");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
@@ -219,7 +219,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("SaveUnsafe");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }

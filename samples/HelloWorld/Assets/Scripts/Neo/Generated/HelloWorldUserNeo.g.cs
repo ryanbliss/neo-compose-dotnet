@@ -29,6 +29,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         private HelloWorldUserNeo(NeoClient client)
             : base(client, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories)
         {
+            Client.RegisterGeneratedDetachedClassFactories(HelloWorldNeo.NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(HelloWorldNeo.NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(HelloWorldNeo.DeferredNativeFunctionInvokers);
             Client.TypeArguments.Register(HelloWorldNeo.NeoTypeArgumentClassIds, HelloWorldNeo.NeoTypeArgumentEnumIds, HelloWorldNeo.NeoTypeArgumentInterfaceIds);

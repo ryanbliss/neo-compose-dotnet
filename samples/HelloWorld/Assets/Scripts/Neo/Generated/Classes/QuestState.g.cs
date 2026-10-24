@@ -206,7 +206,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var result = ComputeProperty("NextHint");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return (string)result.value!;
             }
         }
