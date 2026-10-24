@@ -23,7 +23,8 @@ namespace NeoCompose.Runtime
             object? result = null;
             try
             {
-                result = NSGetterEvaluator.UnwrapRow(row, context, ownership, member);
+                result = NSGetterEvaluator.ResolveHostCollection(
+                    NSGetterEvaluator.UnwrapRow(row, context, ownership, member), context);
                 return (RuntimeTuple?)result;
             }
             finally

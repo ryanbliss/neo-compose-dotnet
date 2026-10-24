@@ -157,7 +157,7 @@ namespace NeoCompose.Runtime
         /// would have. Class entries key by value id, so callers resolve them
         /// before reaching here.
         /// </summary>
-        internal static string OfPayload(Member entryMember, object? payload, NeoClient? client = null, Func<string, MemberValue?>? readRow = null)
+        internal static string OfPayload(Member entryMember, object? payload, NeoClient? client = null, Func<string, MemberValue?>? readRow = null, MemberValue? contextRow = null)
         {
             if (entryMember is ClassMember)
             {
@@ -173,7 +173,10 @@ namespace NeoCompose.Runtime
                 readRow = id => rows.TryGetValue(id, out MemberValue row) ? row : fallback is null ? client?.ResolveValueRow(id) : fallback(id);
                 payload = wrapped.value;
             }
-            return Of(entryMember, MemberValueFactory.Create(entryMember, payload, string.Empty, default, default), client, readRow);
+            var temporaryRow = MemberValueFactory.Create(entryMember, payload, string.Empty, default, default);
+            if (entryMember is TupleMember)
+                temporaryRow.genericBindings = contextRow?.genericBindings;
+            return Of(entryMember, temporaryRow, client, readRow);
         }
 
         private static bool IsHandle(Member member) => member is ClassMember or ListMember or DictionaryMember

@@ -265,7 +265,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>The P108 §3 key a value-kind entry built from <paramref name="payload"/> would hold.</summary>
         internal string SetEntryKeyOf(NeoValueWritePayload? payload) =>
-            NeoSetEntryKey.OfPayload(entryMember, payload?.value, client);
+            NeoSetEntryKey.OfPayload(entryMember, payload?.value, client,
+                contextRow: entryMember is TupleMember ? value : null);
 
         /// <summary>The P108 §3 key of one of this list's entries.</summary>
         internal string SetEntryKeyOfEntry(NeoMember child)

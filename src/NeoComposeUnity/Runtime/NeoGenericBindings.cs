@@ -126,6 +126,9 @@ namespace NeoCompose.Runtime
     ///   <item><description>Enum (multiSelect) →
     ///   <c>IReadOnlyList&lt;Enum&gt;</c> or raw
     ///   <c>string[]</c></description></item>
+    ///   <item><description>Tuple → the corresponding ValueTuple, including
+    ///   nullable tuples and snapshot collection elements. Whole-slot writes
+    ///   use the ordinary tuple serializer and parent write path.</description></item>
     ///   <item><description>Class → the generated class; dispatched through
     ///   the class's generated <c>Create</c>/<c>CreateWritable</c> factory
     ///   (reflected once per <c>T</c>), matching the registry+checked-cast
@@ -175,7 +178,7 @@ namespace NeoCompose.Runtime
             {
                 return ResolveForMember<T>(client, dictionaryNode.EntryMember, dictionaryNode);
             }
-            return ResolveForMember<T>(client, node.member);
+            return ResolveForMember<T>(client, node.member, node is NeoMemberTuple ? node : null);
         }
 
         /// <summary>
@@ -258,6 +261,8 @@ namespace NeoCompose.Runtime
                     return SetCodec<T>(client, member);
                 case MemberKind.Dictionary:
                     return DictionaryCodec<T>(client, member);
+                case MemberKind.Tuple:
+                    return TupleCodec<T>(client, member, collection);
                 case MemberKind.Lookup:
                     return LookupCodec<T>(client, member, collection);
                 case MemberKind.DialogueLookup:
@@ -1146,6 +1151,19 @@ namespace NeoCompose.Runtime
         // entry member.
         // ------------------------------------------------------------------
 
+        private static NeoGenericBinding<T> TupleCodec<T>(NeoClient client, Member member, NeoMember? context)
+        {
+            Type projection = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
+            if (!projection.IsValueType || !typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(projection))
+                throw Mismatch<T>(member, "ValueTuple");
+            return new NeoGenericBinding<T>(
+                MemberKind.Tuple,
+                node => NeoGeneratedTypesSupport.ReadStoredTuple<T>(client, RequireNode<NeoMemberTuple>(node, member)),
+                (node, value) => AssignClassThroughParent(node, member, NeoGeneratedTypesSupport.TupleValue(client, node, value)),
+                value => NeoGeneratedTypesSupport.TupleValue(client,
+                    context ?? throw new InvalidOperationException("Tuple serialization requires its collection or slot context."), value));
+        }
+
         private static NeoGenericBinding<T> ListCodec<T>(NeoClient client, Member member)
         {
             Type target = typeof(T);
@@ -1326,7 +1344,7 @@ namespace NeoCompose.Runtime
                     NeoGenericBinding<TEntry>? entryCodec = null;
                     NeoGenericBinding<TEntry> EntryCodec()
                     {
-                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember);
+                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember, setNode);
                         return entryCodec;
                     }
                     return new NeoReadOnlySet<TEntry>(
@@ -1351,7 +1369,7 @@ namespace NeoCompose.Runtime
                     NeoGenericBinding<TEntry>? entryCodec = null;
                     NeoGenericBinding<TEntry> EntryCodec()
                     {
-                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember);
+                        entryCodec ??= ResolveForMember<TEntry>(client, setNode.EntryMember, setNode);
                         return entryCodec;
                     }
                     return new NeoSet<TEntry>(

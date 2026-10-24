@@ -2346,6 +2346,14 @@ namespace NeoCompose.Runtime
             }
             if (type.IsInstanceOfType(value))
                 return value;
+            if (type.IsGenericType)
+            {
+                Type definition = type.GetGenericTypeDefinition();
+                if (definition == typeof(IReadOnlyList<>) || definition == typeof(INeoReadOnlySet<>)
+                    || definition == typeof(IReadOnlyDictionary<,>) && type.GetGenericArguments()[0] == typeof(string))
+                    return tupleCollectionReaders.GetOrAdd(type, CreateTupleCollectionReader)(
+                        client, value, readOnlyFactories, savedFactories);
+            }
             if (type.IsEnum)
                 return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
             if (type == typeof(NeoDialogueReference))
@@ -2382,6 +2390,54 @@ namespace NeoCompose.Runtime
             return readOnlyFactories is null
                 ? client.ResolveRegisteredGeneratedClassValue(valueId!, null, interfaceResolver)
                 : ResolveClassValue(client, valueId!, readOnlyFactories, savedFactories!, null, interfaceResolver);
+        }
+
+        private delegate object TupleCollectionReader(NeoClient client, object value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories);
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, TupleCollectionReader> tupleCollectionReaders = new();
+
+        private static TupleCollectionReader CreateTupleCollectionReader(Type type)
+        {
+            Type definition = type.GetGenericTypeDefinition();
+            string method = definition == typeof(IReadOnlyList<>) ? nameof(ReadTupleList)
+                : definition == typeof(INeoReadOnlySet<>) ? nameof(ReadTupleSet) : nameof(ReadTupleDictionary);
+            Type[] arguments = type.GetGenericArguments();
+            return (TupleCollectionReader)typeof(NeoGeneratedTypesSupport)
+                .GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .MakeGenericMethod(arguments[arguments.Length - 1]).CreateDelegate(typeof(TupleCollectionReader));
+        }
+
+        private static T ReadTupleCollectionEntry<T>(NeoClient client, object? value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories)
+        {
+            if (TryConvertValue<T>(client, value, readOnlyFactories, savedFactories, out T result))
+                return result;
+            throw new NeoTypeArgumentException($"Tuple collection entry cannot convert to {typeof(T).Name}.");
+        }
+
+        private static object ReadTupleList<T>(NeoClient client, object value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+            ReadScriptList(value, entry => ReadTupleCollectionEntry<T>(client, entry, readOnlyFactories, savedFactories));
+
+        private static object ReadTupleSet<T>(NeoClient client, object value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+            ReadScriptSet(value, entry => ReadTupleCollectionEntry<T>(client, entry, readOnlyFactories, savedFactories));
+
+        private static object ReadTupleDictionary<T>(NeoClient client, object value,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories) =>
+            ReadScriptDictionary(value, entry => ReadTupleCollectionEntry<T>(client, entry, readOnlyFactories, savedFactories));
+
+        internal static T ReadStoredTuple<T>(NeoClient client, NeoMemberTuple node)
+        {
+            if (TryConvertValue<T>(client, node.ReadTuple(), null, null, out T result))
+                return result;
+            throw new NeoTypeArgumentException($"Tuple member '{node.member.name}' cannot convert to {typeof(T).Name}.");
         }
 
         /// <summary>Projects an evaluator tuple once through a generated, statically typed converter.</summary>
@@ -4083,6 +4139,54 @@ namespace NeoCompose.Runtime
                                     classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId))));
                         break;
                     }
+                case TupleMember tupleMember
+                    when row is ArrayMemberValue tupleRow
+                    && tupleRow.value is not null:
+                    {
+                        if (tupleRow.value.Length != tupleMember.elementMemberIds.Length)
+                            throw new InvalidOperationException($"Constructed Tuple field '{path}' has the wrong arity.");
+                        if (!traversal.Add(tupleRow.id))
+                            throw new InvalidOperationException($"Constructed Tuple field '{path}' contains an ownership cycle.");
+                        try
+                        {
+                            var elementEnv = tupleRow.genericBindings is null
+                                ? env
+                                : NeoGenericResolution.EnvFromStamp(tupleRow.genericBindings);
+                            for (int index = 0; index < tupleRow.value.Length; index++)
+                            {
+                                if (!client.TryGetMember(tupleMember.elementMemberIds[index], out Member? element))
+                                    throw new InvalidOperationException($"Constructed Tuple field '{path}' is missing element {index + 1}.");
+                                element = NeoGenericResolution.SubstituteMember(client, element, elementEnv);
+                                string childId = tupleRow.value[index];
+                                bool childIsTrustedStaged = trustedMaterialization && stagedById.ContainsKey(childId);
+                                ValidateConstructedValueLink(
+                                    client,
+                                    element,
+                                    childId,
+                                    childIsTrustedStaged ? null : ReplaceEntryValueId(tupleRow, index),
+                                    tupleRow.mapKey,
+                                    tupleRow.classId,
+                                    stagedById,
+                                    reachableStagedIds,
+                                    ownedByPath,
+                                    parentByChildId,
+                                    pending,
+                                    tupleRow.id,
+                                    childIsTrustedStaged && referenceOwnershipByPath is { Count: 0 }
+                                        ? path
+                                        : $"{path}.Item{index + 1}",
+                                    traversal,
+                                    elementEnv,
+                                    referenceOwnershipByPath,
+                                    trustedMaterialization);
+                            }
+                        }
+                        finally
+                        {
+                            traversal.Remove(tupleRow.id);
+                        }
+                        break;
+                    }
                 case ListMember listMember
                     when row is ArrayMemberValue listRow
                     && listRow.value is not null:
@@ -4230,7 +4334,7 @@ namespace NeoCompose.Runtime
                 FloatMember => row is NumberMemberValue,
                 StringMember or DecimalMember => row is StringMemberValue,
                 DictionaryMember or ClassMember => row is ObjectMemberValue,
-                ListMember or EnumMember or LookupMember or DialogueLookupMember =>
+                ListMember or TupleMember or EnumMember or LookupMember or DialogueLookupMember =>
                     row is ArrayMemberValue,
                 SpriteMember => row is SpriteMemberValue,
                 AudioMember => row is FileMemberValue,
@@ -6443,8 +6547,15 @@ namespace NeoCompose.Runtime
             if (member is not TupleMember)
                 throw new InvalidOperationException("Tuple serialization received a non-tuple slot.");
             var rows = new List<MemberValue>();
-            var env = NeoGenericResolution.CollectionEntryEnv(client, node.member, node.value, node.value is null)
-                ?? new Dictionary<string, NeoGenericEnvEntry>();
+            var row = node.value;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env;
+            if (row?.genericBindings is { } stamp)
+                env = NeoGenericResolution.EnvFromStamp(stamp);
+            else if (node.parent is NeoMemberClass parentClass)
+                env = parentClass.GenericEnv;
+            else
+                env = NeoGenericResolution.CollectionEntryEnv(client, node.member, row, row is null)
+                    ?? NeoGenericResolution.EmptyEnv;
             var context = client.RentDirectFunctionContext(node.ownership);
             try
             {
