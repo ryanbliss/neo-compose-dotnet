@@ -64,6 +64,7 @@ namespace NeoCompose.Runtime
             private readonly Dictionary<List<MemberValue>, int> indexedCounts = new();
             private ProjectionState? projection;
             private ObjectMemberValue? logicalRoot;
+            private HashSet<string>? projectingIds;
 
             // Most constructors never read through root. Allocate the identity
             // index and hash only when a completed default is actually read.
@@ -175,8 +176,12 @@ namespace NeoCompose.Runtime
             {
                 id = null;
                 if (!classes.TryGetValue(parentId, out var builder))
-                    return projection?.Expansion.ClassChildren.TryGetValue(parentId, out var children) == true
-                        && children.TryGetValue(key, out id);
+                {
+                    ProjectIndexedChild(parentId);
+                    if (!classes.TryGetValue(parentId, out builder))
+                        return projection?.Expansion.ClassChildren.TryGetValue(parentId, out var children) == true
+                            && children.TryGetValue(key, out id);
+                }
                 if (builder.Rows is not null)
                     IndexRows(builder.Rows);
                 builder.Members.TryGetValue(key, out var member);
@@ -237,7 +242,51 @@ namespace NeoCompose.Runtime
                     return true;
                 }
                 row = null!;
+                if (projection?.Expansion.Values.TryGetValue(id, out row) == true)
+                    return true;
+                ProjectIndexedChild(id);
                 return projection?.Expansion.Values.TryGetValue(id, out row) == true;
+            }
+
+            // Stored edges can enter below an unread parent. Warm replays have
+            // virtual placements; cold loads use the existing stored-parent index.
+            // Both paths must reach this replay's builder before projecting a child.
+            private void ProjectIndexedChild(string id)
+            {
+                if (id == Root.id || RootFields is null)
+                    return;
+                projectingIds ??= new(StringComparer.Ordinal);
+                if (!projectingIds.Add(id))
+                    return;
+                try
+                {
+                    if (client.virtualClassPlacementByChildId.TryGetValue(id, out var placement)
+                        && placement.rootId == Root.id
+                        && placement.parentValueId != id
+                        && placement.schemaKey is string key)
+                    {
+                        TryGetChild(placement.parentValueId, key, out _);
+                        return;
+                    }
+                    foreach (var parent in client.InferMemberParents(id))
+                    {
+                        if (parent.Value is not ObjectMemberValue { value: not null, IsRemoved: false } row
+                            || parent.Key == id)
+                            continue;
+                        if (!classes.ContainsKey(parent.Key))
+                            ProjectIndexedChild(parent.Key);
+                        if (!classes.ContainsKey(parent.Key))
+                            continue;
+                        foreach (var field in row.value)
+                            if (field.Value == id && TryGetChild(parent.Key, field.Key, out string? projectedId)
+                                && projectedId == id)
+                                return;
+                    }
+                }
+                finally
+                {
+                    projectingIds.Remove(id);
+                }
             }
 
             internal bool TryGetOwnership(string id, out NeoValueOwnership ownership)
