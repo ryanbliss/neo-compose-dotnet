@@ -4361,19 +4361,52 @@ namespace NeoCompose.Runtime
             // We still resolve the schema for an actual payload match below,
             // which is what distinguishes owned Class/List/Dictionary edges
             // from lookup/reference edges.
-            if (!MightReferenceChildValueId(parent, childValueId))
+            bool indexedReference = HasIndexedChildReference(parentId, parent, parentOwnership, childValueId);
+            if (!indexedReference && !MightReferenceChildValueId(parent, childValueId))
                 return false;
             Member? parentMember = TryInferMemberForValueId(
                 parentId,
                 out Member? inferredParent)
                     ? inferredParent
                     : null;
+            if (indexedReference)
+            {
+                Member? entry = parentMember switch
+                {
+                    ListMember when parent is ArrayMemberValue => TryResolveCollectionEntryMember(parentMember),
+                    DictionaryMember when parent is ObjectMemberValue { constructorArgs: null } =>
+                        TryResolveCollectionEntryMember(parentMember, parent),
+                    _ => null,
+                };
+                if (entry is not null)
+                    return ChildOwnership(entry, parentOwnership) == childOwnership;
+            }
             foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentMember))
             {
                 if (ChildOwnership(ownedChild.member, parentOwnership) == childOwnership
                     && ownedChild.valueId == childValueId)
                     return true;
             }
+            return false;
+        }
+
+        // The placement index proves payload membership, not ownership. Only a
+        // current committed row may use it; OwnsChildEdge still checks its schema.
+        private bool HasIndexedChildReference(
+            string parentId, MemberValue parent, NeoValueOwnership ownership, string childId)
+        {
+            if (ownership != NeoValueOwnership.Asset
+                && ReferenceEquals(GetWritableStore(ownership).values.GetValueOrDefault(parentId), parent))
+            {
+                return HasPlacementParent(IndexedPlacementParents(ownership, childId), parentId);
+            }
+            if (!ReferenceEquals(data.values.GetValueOrDefault(parentId), parent)
+                || ResolveAuthoredOwnership(parentId, parent) != ownership
+                || !ValueInferenceIndex.Parents.TryGetValue(childId, out var parents))
+                return false;
+            foreach (var candidate in parents)
+                if (candidate.Key == parentId && ReferenceEquals(candidate.Value, parent))
+                    return true;
             return false;
         }
 
