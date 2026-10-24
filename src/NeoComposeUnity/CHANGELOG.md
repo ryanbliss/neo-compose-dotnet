@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.79.2] - 2026-10-24
+
+- Preserve class-list aliases through assignment and replacement, restore surviving field-handle provenance after sparse-owner replay, and keep dictionary self-assignment a no-op.
+- Refresh computed field values and subscriptions after unordered list membership and indexed key changes, including newly added rows and nested reward updates.
+- Reject incompatible Variant selections against an overridden field's effective target before changing stored values, including assignments through inherited generated wrappers.
+- Resolve nested generic reference-set targets from their enclosing class rather than a collection owner.
+- Preserve aliases and strict ownership when inserting nested collections. Keep early local collection References attached through field binding and replacement, and read generic collection References with their closed target types. Retain live ordinary aliases after removal with fresh Session identities, and reclaim unescaped retained graphs after the complete write commits.
+- Read stored reference overrides according to the statically declared getter return type, preserving nested reference handles and identity.
+- Resolve generic constructor arguments against stored type descriptors, preserving nested reference targets and the distinction between shared references and owned class entries. Ordinary expression type projection is unchanged.
+- Accept compiler revision 18 exports, which distinguish structured field writes from dictionary entries. Preserve the SDK's existing strict Color and vector validation.
+- Allow a trusted stored constructor replay to restore its owned argument into the same root slot while retaining strict ownership for other destinations.
+- Preserve whole collection targets when declared constructors initialize single references from tracked runtime collections.
+- Read references to constructed class roots through their effective class member, preserving identity. (#425)
+- Preserve closed generic context in tuple factories, collection codecs, optional tuple writes, and tuple Set key comparisons. (#430)
+- Requires matching compiler revision 18 exports and Unity export schema 46. This release adds no revision change or migration; regenerate exports with the matching CLI.
+
 ## [0.79.1] - 2026-10-22
 
 - Fixed sparse constructor replay rejecting an inherited null default before a stored value or call-site initializer replaces it. Required fields still reject null after runtime construction finishes. This fixes existing and new Neowyn saves failing to load after a local mailbox export. (#412)
