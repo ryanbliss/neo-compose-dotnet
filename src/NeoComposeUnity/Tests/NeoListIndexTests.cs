@@ -203,6 +203,40 @@ namespace NeoCompose.Tests
             Assert.GreaterOrEqual(node.IndexDiagnostics.DerivedLookupCount, 10_001);
         }
 
+        [TestCase(8)]
+        [TestCase(64)]
+        public void GetterIndexDependencies_AreBoundedAndInvalidateOnlyChangedIndexes(int count)
+        {
+            var node = LoadItems(count, out NeoClient client);
+            using (client)
+            {
+                var slug = node.GetDerivedIndex("Slug", true);
+                var category = node.GetDerivedIndex("Category", false);
+                _ = slug.Count;
+                _ = category.Count;
+                long buildWork = node.IndexDiagnostics.DerivedBuildEntryCount;
+                var slugKey = new NeoClient.GetterMemoKey(NeoValueOwnership.Save,
+                    "receiver", "slug-getter", NeoValueOwnership.Save);
+                var categoryKey = new NeoClient.GetterMemoKey(NeoValueOwnership.Save,
+                    "receiver", "category-getter", NeoValueOwnership.Save);
+                var outer = client.BeginGetterReadCapture();
+                Assert.That(slug.TryGetUnique("missing", out _), Is.False);
+                var slugEntry = client.MemoizeGetter(slugKey, null, null, client.EndGetterReadCapture(outer))!;
+                outer = client.BeginGetterReadCapture();
+                Assert.That(category.GetMany("even").Count, Is.EqualTo(count / 2));
+                var categoryEntry = client.MemoizeGetter(categoryKey, count / 2, null, client.EndGetterReadCapture(outer))!;
+                Assert.That(slugEntry.reads!.Count, Is.EqualTo(1), "Index captures must not scan every key row.");
+                Assert.That(categoryEntry.reads!.Count, Is.EqualTo(1));
+                var first = ((NeoMemberClassWritable)node[0]).Get<NeoMemberStringWritable>("Slug");
+                first.Set("missing");
+                Assert.That(client.FindMemoizedGetter(slugKey), Is.Null, "An empty unique lookup must hear a newly matching key.");
+                Assert.That(client.FindMemoizedGetter(categoryKey), Is.SameAs(categoryEntry), "An unrelated index remains cached.");
+                Assert.That(slug.TryGetUnique("missing", out string? found), Is.True);
+                Assert.That(found, Is.EqualTo("item-0"));
+                Assert.That(node.IndexDiagnostics.DerivedBuildEntryCount, Is.EqualTo(buildWork), "Key edits must update indexes without rebuilding them.");
+            }
+        }
+
         [Test]
         public void ListIndexDefinition_DeserializesWithAndWithoutIndexes()
         {
