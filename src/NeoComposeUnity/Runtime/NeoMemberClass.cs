@@ -1075,6 +1075,19 @@ namespace NeoCompose.Runtime
                     nameof(setValue),
                     $"Cannot be null when child member '{key}' is required");
             }
+            // Generated overrides retain the inherited CLR Variant wrapper.
+            // Validate its selection against the effective slot before any row
+            // is imported or written, including writes through a base view.
+            if (childMember is VariantMember { targetTypeInfo: ClassTypeInfo target })
+            {
+                object? selected = setValue?.value;
+                if (selected is NeoValuePayload envelope)
+                    selected = envelope.value;
+                if (selected is VariantRefValue variant
+                    && !client.ClassChainContains(variant.classId, target.classId))
+                    throw new System.InvalidOperationException(
+                        $"Cannot set '{schemaClass.name}.{key}': Variant target '{variant.classId}' must derive from '{target.classId}'.");
+            }
             client.RequireInterfaceSlotAdmits(childMember, schemaClass.name, key, setValue);
 
             // Per-placement storage (specs/member-storage.md): a declared
