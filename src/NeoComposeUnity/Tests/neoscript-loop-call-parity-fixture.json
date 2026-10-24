@@ -4,7 +4,7 @@
     {
       "name": "while consumes continue and break with outer-local writes",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -225,7 +225,7 @@
     {
       "name": "doWhile consumes continue and break with outer-local writes",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -446,7 +446,7 @@
     {
       "name": "while evaluates a false condition at the correct phase",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -560,7 +560,7 @@
     {
       "name": "doWhile evaluates a false condition at the correct phase",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -674,7 +674,7 @@
     {
       "name": "Replace is ordinal, non-overlapping, and keeps replacement tokens literal",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -730,7 +730,7 @@
     {
       "name": "discarded builtin calls still evaluate their argument",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -799,7 +799,7 @@
     {
       "name": "while runs past 10,000 iterations",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -904,7 +904,7 @@
     {
       "name": "doWhile runs past 10,000 iterations",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "instructions": [
           {
@@ -1009,7 +1009,7 @@
     {
       "name": "Insert retains ordered list position",
       "getter": {
-        "compilerRevision": 17,
+        "compilerRevision": 18,
         "parameters": [],
         "typeInfo": {
           "type": 6,

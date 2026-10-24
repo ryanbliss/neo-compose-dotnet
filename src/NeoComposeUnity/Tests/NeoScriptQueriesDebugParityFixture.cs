@@ -12,7 +12,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Any stops at first matching entry"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -73,7 +73,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -184,7 +184,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""All stops at first failing entry"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -245,7 +245,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -356,7 +356,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""empty Any is false"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -408,7 +408,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""empty All is true"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -438,7 +438,7 @@ namespace NeoCompose.Tests
                     ""entries"": []
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -510,7 +510,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Last selects one"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -573,7 +573,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Last empty"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -625,7 +625,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""LastOrDefault selects one"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -688,7 +688,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""LastOrDefault empty"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -740,7 +740,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Single selects one"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -803,7 +803,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Single empty"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -855,7 +855,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""SingleOrDefault selects one"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -918,7 +918,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""SingleOrDefault empty"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -970,7 +970,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Single stops on second match"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1031,7 +1031,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -1162,7 +1162,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""SingleOrDefault stops on second match"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1223,7 +1223,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -1354,7 +1354,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""SelectMany flattens in source order"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1405,7 +1405,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -1499,7 +1499,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""OrderBy caches keys"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1560,7 +1560,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -1711,7 +1711,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""OrderBy ties retain source order"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1772,7 +1772,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -1850,7 +1850,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Skip1"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -1948,7 +1948,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Skip-1"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2046,7 +2046,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Take2"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2144,7 +2144,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Take0"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2242,7 +2242,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""SkipWhile"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2303,7 +2303,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -2419,7 +2419,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""TakeWhile"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2480,7 +2480,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -2596,7 +2596,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Reverse"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2684,7 +2684,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Concat preserves duplicates"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2796,7 +2796,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""ordinal string"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2857,7 +2857,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -2929,7 +2929,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""ordinal decimal"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -2990,7 +2990,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -3062,7 +3062,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 0"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3132,7 +3132,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug -0.0"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3202,7 +3202,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 0.1"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3272,7 +3272,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 1e-05"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3342,7 +3342,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 1000000000.0"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3412,7 +3412,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 1.25"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3482,7 +3482,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""float debug 123456.789"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3552,7 +3552,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Reverse"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3604,7 +3604,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Skip"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3666,7 +3666,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Take"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3728,7 +3728,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Concat"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3795,7 +3795,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set SelectMany"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3828,7 +3828,7 @@ namespace NeoCompose.Tests
                   },
                   ""enumEntries"": true,
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -3904,7 +3904,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set OrderBy"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -3937,7 +3937,7 @@ namespace NeoCompose.Tests
                   },
                   ""enumEntries"": true,
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -4004,7 +4004,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Last"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4052,7 +4052,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""enum Set Single"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4100,7 +4100,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""fractional float ordering"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4162,7 +4162,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""float"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -4233,7 +4233,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""bool ordering"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4295,7 +4295,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""bool"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -4366,7 +4366,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nullable ascending"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4438,7 +4438,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""int"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -4509,7 +4509,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nullable descending"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4581,7 +4581,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""int"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -4652,7 +4652,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nonfinite and signed zero ascending"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -4744,7 +4744,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""float"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -5107,7 +5107,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nonfinite and signed zero descending"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -5199,7 +5199,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""float"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -5562,7 +5562,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""mixed int and float selector"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -5624,7 +5624,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""float"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -5733,7 +5733,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""dictionary ordering uses key and value"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -5830,7 +5830,7 @@ namespace NeoCompose.Tests
                   },
                   ""keyType"": ""int"",
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""key"",
@@ -5917,7 +5917,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""dictionary flattening"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -6013,7 +6013,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""key"",
@@ -6122,7 +6122,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""nested callbacks retain captured values and frames"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -6173,7 +6173,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -6226,7 +6226,7 @@ namespace NeoCompose.Tests
                                 ]
                               },
                               ""function"": {
-                                ""compilerRevision"": 17,
+                                ""compilerRevision"": 18,
                                 ""parameters"": [
                                   {
                                     ""id"": ""m"",
@@ -6398,7 +6398,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""derived class entries preserve base collection traversal"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -6448,7 +6448,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 17,
+                    ""compilerRevision"": 18,
                     ""parameters"": [
                       {
                         ""id"": ""n"",
@@ -6521,7 +6521,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""interface debug summary retains declared identity"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -6593,7 +6593,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""missing instruction location does not inherit preceding coordinates"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Run"",
@@ -6693,7 +6693,7 @@ namespace NeoCompose.Tests
       ""name"": ""same-line non-ASCII uses UTF-16 columns"",
       ""sourceText"": ""string note = \""🌿\""; Debug.Log(note); return 1;"",
       ""getter"": {
-        ""compilerRevision"": 17,
+        ""compilerRevision"": 18,
         ""parameters"": [],
         ""source"": {
           ""name"": ""Cases.Unicode"",

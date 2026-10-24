@@ -100,7 +100,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""action"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Identity"",
             ""uri"": ""Inference.neo"",
@@ -238,7 +238,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""action"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Map"",
             ""uri"": ""Inference.neo"",
@@ -413,7 +413,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""action"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Forward"",
             ""uri"": ""Inference.neo"",
@@ -537,7 +537,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Nested"",
             ""uri"": ""Inference.neo"",
@@ -665,7 +665,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Captured"",
             ""uri"": ""Inference.neo"",
@@ -773,7 +773,7 @@ namespace NeoCompose.Tests
                       ]
                     },
                     ""action"": {
-                      ""compilerRevision"": 17,
+                      ""compilerRevision"": 18,
                       ""source"": {
                         ""uri"": ""Inference.neo"",
                         ""coordinateSpace"": ""file"",
@@ -960,7 +960,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Typed"",
             ""uri"": ""Inference.neo"",
@@ -1045,7 +1045,7 @@ namespace NeoCompose.Tests
                     ""value"": {
                       ""code"": ""(value) => value * 2"",
                       ""action"": {
-                        ""compilerRevision"": 17,
+                        ""compilerRevision"": 18,
                         ""source"": {
                           ""uri"": ""Inference.neo"",
                           ""coordinateSpace"": ""file"",
@@ -1225,7 +1225,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Once"",
             ""uri"": ""Inference.neo"",
@@ -1333,7 +1333,7 @@ namespace NeoCompose.Tests
                       ""value"": {
                         ""code"": ""(value) => { Debug.Log(value); return value + 1; }"",
                         ""action"": {
-                          ""compilerRevision"": 17,
+                          ""compilerRevision"": 18,
                           ""source"": {
                             ""uri"": ""Inference.neo"",
                             ""coordinateSpace"": ""file"",
@@ -1521,7 +1521,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""action"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Pair"",
             ""uri"": ""Inference.neo"",
@@ -1649,7 +1649,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""action"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Mark"",
             ""uri"": ""Inference.neo"",
@@ -1760,7 +1760,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Order"",
             ""uri"": ""Inference.neo"",
@@ -1907,7 +1907,7 @@ namespace NeoCompose.Tests
         ""createdAt"": 1700000000000,
         ""updatedAt"": 1700000000000,
         ""getter"": {
-          ""compilerRevision"": 17,
+          ""compilerRevision"": 18,
           ""source"": {
             ""name"": ""Inference.Combined"",
             ""uri"": ""Inference.neo"",
@@ -1994,7 +1994,7 @@ namespace NeoCompose.Tests
                       ""value"": {
                         ""code"": ""(value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }"",
                         ""action"": {
-                          ""compilerRevision"": 17,
+                          ""compilerRevision"": 18,
                           ""source"": {
                             ""uri"": ""Inference.neo"",
                             ""coordinateSpace"": ""file"",

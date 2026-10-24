@@ -587,9 +587,10 @@ namespace NeoCompose.Runtime.Json
         /// <c>indexOf</c> intrinsic and predicate-bearing <c>count</c> shape;
         /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
         /// <c>reference</c> identity equality; revision 17 adds typed
-        /// <c>numeric</c> arithmetic with 32-bit float rounding.
+        /// <c>numeric</c> arithmetic with 32-bit float rounding; revision 18
+        /// identifies structured leaf assignment receivers for validation.
         /// </summary>
-        public const int CurrentCompilerRevision = 17;
+        public const int CurrentCompilerRevision = 18;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

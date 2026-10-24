@@ -6,7 +6,7 @@ namespace NeoCompose.Tests
         internal const string Json = @"{
   ""getters"": {
     ""pow"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -107,7 +107,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""exp"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -187,7 +187,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""log"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -267,7 +267,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""log10"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -347,7 +347,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""sin"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -427,7 +427,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""cos"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -507,7 +507,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""tan"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -587,7 +587,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""asin"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -667,7 +667,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""acos"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -747,7 +747,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""atan"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -827,7 +827,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""atan2"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -928,7 +928,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""lerp"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -1050,7 +1050,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""inverselerp"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -1172,7 +1172,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""movetowards"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -1294,7 +1294,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""repeat"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
@@ -1395,7 +1395,7 @@ namespace NeoCompose.Tests
       ]
     },
     ""pingpong"": {
-      ""compilerRevision"": 17,
+      ""compilerRevision"": 18,
       ""parameters"": [
         {
           ""id"": ""__this__"",
