@@ -1,0 +1,11 @@
+{
+    "schemaVersion": 1,
+    "projectId": "project-id",
+    "versionId": "version-id",
+    "locale": "en-US",
+    "sourceLocale": null,
+    "formattingSyntax": "smart-format",
+    "values": {
+        "a64ff968-0bda-5772-b018-ea764950bfd1": "seven"
+    }
+}

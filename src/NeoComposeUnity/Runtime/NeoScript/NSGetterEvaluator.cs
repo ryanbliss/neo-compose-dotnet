@@ -2578,9 +2578,41 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 object? dispatched = DispatchSchemaMember(innerThis, placement.schemaKey, ctx, cgp);
                 if (Dispatched(dispatched))
-                    return dispatched;
+                    return ReadDispatchedGetterValue(dispatched, cgp, innerThis, ctx);
             }
             return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
+        }
+
+        /// <summary>A stored override reads as the getter contract at this call site.</summary>
+        private static object? ReadDispatchedGetterValue(
+            object? value, CallGetterPointer site, object? receiver, Context ctx)
+        {
+            if (value is not NSSlotReference reference)
+                return value;
+            ResolveGetterMember(site, ctx);
+            if (site.getterMemberSite?.returnTypeInfo is not { } expected)
+                return value;
+            if (NeoNSFunctionRuntime.ContainsGeneric(expected))
+            {
+                expected = NeoGenericResolution.SubstituteTypeInfo(ctx.client, expected,
+                    NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, receiver, ctx, "A getter contract"));
+            }
+            int readLayers = 1;
+            TypeInfo? actualTarget = reference.Target;
+            while (actualTarget is ReferenceTypeInfo actualReference)
+            {
+                readLayers++;
+                actualTarget = actualReference.targetTypeInfo;
+            }
+            while (expected is ReferenceTypeInfo expectedReference)
+            {
+                readLayers--;
+                expected = expectedReference.targetTypeInfo;
+            }
+            // Retain the reference layers and identity promised by the getter.
+            while (readLayers-- > 0 && value is NSSlotReference)
+                value = ReadThroughReference(value, ctx);
+            return value;
         }
 
         /// <summary>
@@ -2594,10 +2626,21 @@ namespace NeoCompose.Runtime.NeoScript
             if (cached is not null && ReferenceEquals(cached.schemaResolution, client.SchemaResolution))
                 return cached.member;
             client.TryGetMember(site.memberId, out JsonMember? member);
-            site.getterMemberSite = new GetterMemberSite(client.SchemaResolution, member);
+            site.getterMemberSite = new GetterMemberSite(
+                client.SchemaResolution, member, ResolveGetterReturnTypeInfo(member, client));
             client.RememberSchemaResolutionSite(site);
             return member;
         }
+
+        // Keep the captured lookup delegate outside the allocation-free cache-hit path.
+        private static TypeInfo? ResolveGetterReturnTypeInfo(JsonMember? member, NeoClient client)
+            => member is NSPropertyMember property
+                ? property.returnTypeInfo ?? NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                    property.id,
+                    id => client.TryGetMember(id, out JsonMember? ancestor) ? ancestor : null,
+                    ancestor => ancestor is NSPropertyMember inherited ? inherited.returnTypeInfo : null,
+                    requireKind: MemberKind.NSProperty)
+                : null;
 
         /// <summary>
         /// The member a setter write through <paramref name="site"/> runs:
@@ -2636,11 +2679,13 @@ namespace NeoCompose.Runtime.NeoScript
         {
             internal readonly object schemaResolution;
             internal readonly JsonMember? member;
+            internal readonly TypeInfo? returnTypeInfo;
 
-            internal GetterMemberSite(object schemaResolution, JsonMember? member)
+            internal GetterMemberSite(object schemaResolution, JsonMember? member, TypeInfo? returnTypeInfo)
             {
                 this.schemaResolution = schemaResolution;
                 this.member = member;
+                this.returnTypeInfo = returnTypeInfo;
             }
         }
 
