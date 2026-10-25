@@ -232,8 +232,8 @@ namespace NeoCompose.Runtime
                             }
                         if (obj.constructorArgs != null)
                             foreach (JToken? argument in obj.constructorArgs.Values)
-                                if (argument?.Type == JTokenType.String)
-                                    Add(argument.Value<string>(), pair);
+                                if (ConstructorArgumentRowId(argument) is string argumentId)
+                                    Add(argumentId, pair);
                     }
                     else if (pair.Value is ArrayMemberValue array && array.value != null)
                         foreach (string childId in array.value)

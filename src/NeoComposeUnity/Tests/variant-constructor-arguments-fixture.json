@@ -1,0 +1,14 @@
+{
+  "source": "\nclass Box : NeoObject { }\nclass Made(NeoVariant<Box> v) {\n  public NeoVariant<Box> V = v;\n}\nclass Kid<T> : NeoObject { }\nclass GenericMade(NeoVariant<Kid<int>> v) { public NeoVariant<Kid<int>> V = v; }\nclass NullableMade(NeoVariant<Box>? v) { public NeoVariant<Box>? V = v; }\nNeoVariant<Box> Named = new(initialize: () => { return new Box(); });\nclass Seed { public int Amount = 7; }\nclass Catalog { @id(\"41ada34f-6c84-47bd-9b80-f2279af04c12\") public static List<Seed> Seeds = [@id(\"614d83e9-40f2-4a4d-9d43-8109f2279a01\") new()];\n  public static Selection Selection = new(); }\nclass Selection { public NeoVariant<Box> Bound = Box.Variants.Seeds.BySeed.Bind(Reference(id: \"614d83e9-40f2-4a4d-9d43-8109f2279a01\")); }\nNeoLookupVariantFolder<Box, Seed> Seeds = new(path: \"Seeds\", collection: Catalog.Seeds, collectionValue: Reference(id: \"987bf4b7-3da9-54a0-b4ff-89722c60d177\"));\n@settings(folder: Seeds)\nNeoLookupVariant<Box, Seed> BySeed = new(initialize: (seed) => { return new Box(); });\nclass LookupMade(NeoLookupVariant<Box, Seed> v) { public NeoLookupVariant<Box, Seed> V = v; }\nclass Probe {\n  public static LookupMade LookupStored = new(Box.Variants.Seeds.BySeed);\n  public static Made BoundStored = new(Box.Variants.Seeds.BySeed.Bind(Reference(id: \"614d83e9-40f2-4a4d-9d43-8109f2279a01\")));\n  public static bool LookupReplay() { return LookupStored.V == Box.Variants.Seeds.BySeed; }\n  public static bool BoundReplay() { return BoundStored.V == Catalog.Selection.Bound; }\n  public static bool BoundRuntime() { return new Made(Box.Variants.Seeds.BySeed.Bind(Reference<Seed>(id: \"614d83e9-40f2-4a4d-9d43-8109f2279a01\"))).V == Catalog.Selection.Bound; }\n  public static GenericMade GenericStored = new(Kid<int>.Variants.Base);\n  public static NullableMade NullStored = new(null);\n  public static Made NamedStored = new(Box.Variants.Named);\n  public static Made Stored = new(Box.Variants.Base);\n  public static bool Runtime() {\n    return new Made(Box.Variants.Base).V == Box.Variants.Base;\n  }\n  public static bool GenericRuntime() { return new GenericMade(Kid<int>.Variants.Base).V == Kid<int>.Variants.Base; }\n  public static bool GenericReplay() { return GenericStored.V == Kid<int>.Variants.Base; }\n  public static bool NullReplay() { return NullStored.V == null; }\n  public static bool NamedReplay() { return NamedStored.V == Box.Variants.Named; }\n  public static bool Replay() { return Stored.V == Box.Variants.Base; }\n}\n",
+  "returns": {
+    "Runtime": true,
+    "Replay": true,
+    "GenericRuntime": true,
+    "GenericReplay": true,
+    "NullReplay": true,
+    "NamedReplay": true,
+    "LookupReplay": true,
+    "BoundReplay": true,
+    "BoundRuntime": true
+  }
+}

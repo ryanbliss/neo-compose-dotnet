@@ -2030,7 +2030,7 @@ namespace NeoCompose.Runtime
                     return NormalizeRewritten(
                         client, ownership, value, typeInfo, ctx, subject, resolvedIdentity);
             }
-            ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateRuntimeValue(client, value, typeInfo, subject);
             if (resolvedIdentity)
                 ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
             return value;
@@ -2182,7 +2182,7 @@ namespace NeoCompose.Runtime
                     break;
             }
 
-            ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateRuntimeValue(client, value, typeInfo, subject);
             if (resolvedIdentity)
                 ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
             return value;
@@ -2211,6 +2211,7 @@ namespace NeoCompose.Runtime
         }
 
         internal static void ValidateRuntimeValue(
+            NeoClient client,
             object? value,
             TypeInfo typeInfo,
             ValueSubject subject)
@@ -2240,6 +2241,8 @@ namespace NeoCompose.Runtime
                 MemberKind.Enum => value is string
                     || value is IEnumerable
                     || EnumOptionId(value) is not null,
+                MemberKind.Class when value is NeoVariantReference =>
+                    NeoReferenceTypes.VariantSelectionMatches(client, value, typeInfo),
                 MemberKind.Class or MemberKind.Interface =>
                     value is IDictionary<string, object?>
                     || value is INeoValueReference,
@@ -2299,7 +2302,7 @@ namespace NeoCompose.Runtime
         {
             if (NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx))
                 return;
-            ValidateRuntimeValue(value, typeInfo, subject);
+            ValidateRuntimeValue(client, value, typeInfo, subject);
             ValidateResolvedIdentity(client, value, typeInfo, ctx, subject);
         }
 
@@ -2349,6 +2352,8 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"{subject} is missing its declared Class id.");
                         }
+                        if (NeoReferenceTypes.VariantSelectionMatches(client, value, typeInfo))
+                            return;
                         if (!NSGetterEvaluator.RuntimeClassExtends(value, expectedClassId!, ctx))
                         {
                             string? actualClassId =

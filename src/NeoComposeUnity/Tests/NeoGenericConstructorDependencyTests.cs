@@ -36,22 +36,58 @@ namespace NeoCompose.Tests
         private const string WatcherValueId = "watcher-row";
         private const string ModifierValueId = "watcher-modifier-row";
 
-        [Test]
-        public void SaveSweep_TypesAGenericInstancesConstructorArgumentsThroughItsPlacement()
+        [TestCase(false, false, false)]
+        [TestCase(true, false, false)]
+        [TestCase(true, true, false)]
+        [TestCase(true, false, true)]
+        public void SaveSweep_TypesAGenericInstancesConstructorArgumentsThroughItsPlacement(
+            bool variantArgument, bool sourceInSession, bool cloneToSession)
         {
-            NeoClient client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var data = BuildProjectData();
+            if (variantArgument)
+            {
+                data.classes["variant-class"] = new NeoSchemaClass
+                {
+                    id = "variant-class",
+                    projectId = ProjectId,
+                    name = "NeoVariant",
+                    schema = new Dictionary<string, string>(),
+                    system = new JObject { ["worldKind"] = "variant" },
+                    genericParams = new List<GenericParamDeclaration> { new() { id = "target", name = "TObject" } },
+                };
+                data.constructors["watcher-constructor"].argumentTypes = new[]
+                {
+                    new FunctionArgumentTypeInfo { name = "initial", type = MemberKind.Class, required = true,
+                        classId = "variant-class", typeArguments = new Dictionary<string, TypeInfo>
+                        { ["target"] = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "modifier-class" } } },
+                };
+            }
+            data.constructors["watcher-constructor"].action.parameters[2].typeInfo =
+                data.constructors["watcher-constructor"].argumentTypes[0];
+            data.classes["modifier-class"].schema["Amount"] = "modifier-amount";
+            data.members["modifier-amount"] = new IntMember
+            {
+                id = "modifier-amount",
+                projectId = ProjectId,
+                name = "Amount",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var sourceOwnership = sourceInSession ? NeoValueOwnership.Session : NeoValueOwnership.Save;
+            client.SetWritableValue(sourceOwnership, new NumberMemberValue { id = "modifier-amount-row", value = 7 });
 
             // The live graph: the save root holds a Watcher<Modifier> whose
             // constructor replays a Save-owned Modifier. The watcher row is
             // written last so its placement is already linked -- exactly the
             // state the sweep walks after a save loads.
             client.SetWritableValue(
-                NeoValueOwnership.Save,
+                sourceOwnership,
                 new ObjectMemberValue
                 {
                     id = ModifierValueId,
                     classId = "modifier-class",
-                    value = new Dictionary<string, string>(),
+                    value = new Dictionary<string, string> { ["Amount"] = "modifier-amount-row" },
                 });
             client.SetWritableValue(
                 NeoValueOwnership.Save,
@@ -70,10 +106,23 @@ namespace NeoCompose.Tests
                     instanceConstructorId = "watcher-constructor",
                     constructorArgs = new Dictionary<string, JToken?>
                     {
-                        ["__arg_0__"] = new JValue(ModifierValueId),
+                        ["__arg_0__"] = variantArgument
+                            ? JObject.FromObject(new VariantRefValue { classId = "modifier-class", variantId = "named-variant", rowValueId = ModifierValueId })
+                            : new JValue(ModifierValueId),
                     },
                     value = new Dictionary<string, string>(),
                 });
+
+            Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, ModifierValueId, out MemberValue? retained));
+            Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Save, "modifier-amount-row", out MemberValue? retainedChild));
+            Assert.AreEqual(7, ((NumberMemberValue)retainedChild!).value);
+            if (cloneToSession)
+            {
+                client.CloneOwnedValueReferenceForNewParent(NeoValueOwnership.Session, NeoValueOwnership.Save,
+                    WatcherValueId, data.members["member-quantity"]);
+                Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Session, ModifierValueId, out _));
+                Assert.IsTrue(client.TryGetWritableValue(NeoValueOwnership.Session, "modifier-amount-row", out _));
+            }
 
             IReadOnlyList<string> unlinked = client.FindUnlinkedSaveValueIds();
 

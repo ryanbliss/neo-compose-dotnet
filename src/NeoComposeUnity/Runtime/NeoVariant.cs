@@ -194,6 +194,13 @@ namespace NeoCompose.Runtime
             this.rowValueId = rowValueId;
         }
 
+        internal VariantRefValue ToStoredValue() => new VariantRefValue
+        {
+            classId = classId,
+            variantId = variantId,
+            rowValueId = rowValueId,
+        };
+
         public bool Equals(NeoVariantReference? other) =>
             other is not null
             && classId == other.classId

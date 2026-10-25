@@ -357,6 +357,8 @@ namespace NeoCompose.Runtime
                     return new JValue(text);
                 case bool flag:
                     return new JValue(flag);
+                case NeoVariantReference variant:
+                    return JToken.FromObject(variant.ToStoredValue());
                 case NeoMember member:
                     return member.value is null
                         ? JValue.CreateNull()
@@ -1761,6 +1763,20 @@ namespace NeoCompose.Runtime
             if (token is null || token.Type is JTokenType.Null or JTokenType.Undefined)
             {
                 return null;
+            }
+            if (typeInfo is ClassTypeInfo variantType
+                && NeoReferenceTypes.IsVariantClass(this, variantType.classId))
+            {
+                VariantRefValue? selection = token.ToObject<VariantRefValue>();
+                if (selection is null)
+                {
+                    throw new InvalidOperationException("Constructor variant argument has no selection.");
+                }
+                if (string.IsNullOrEmpty(selection.classId))
+                {
+                    throw new InvalidOperationException("Constructor variant argument has no target class id.");
+                }
+                return new NeoVariantReference(selection.classId, selection.variantId, selection.rowValueId);
             }
             if (token.Type == JTokenType.String
                 && typeInfo.type is MemberKind.Class
