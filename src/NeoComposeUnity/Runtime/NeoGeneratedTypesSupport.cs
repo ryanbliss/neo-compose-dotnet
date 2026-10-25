@@ -8108,6 +8108,10 @@ namespace NeoCompose.Runtime
                 // entries) so list positions and dictionary keys are stable.
                 payload = null;
             }
+            else if (member is VariantMember && suppliedValue is NeoVariantReference variant)
+            {
+                payload = variant.ToStoredValue();
+            }
             else if (member is TupleMember tupleMember)
             {
                 int count = suppliedValue switch
@@ -9753,6 +9757,13 @@ namespace NeoCompose.Runtime
                     string parameterId = NeoClient.ConstructorParameterId(
                         constructor,
                         index);
+                    if (constructorArgs.TryGetValue(parameterId, out JToken? selectionToken)
+                        && selectionToken is JObject selection
+                        && parameter.classId is string variantClassId
+                        && NeoReferenceTypes.IsVariantClass(client, variantClassId)
+                        && NeoClient.ConstructorArgumentRowId(selection) is string boundRowId
+                        && clonedIdsBySourceId.TryGetValue(boundRowId, out string copiedRowId))
+                        selection["rowValueId"] = copiedRowId;
                     if (!constructorArgs.TryGetValue(parameterId, out JToken? token)
                         || token?.Type != JTokenType.String
                         || token.Value<string>() is not string sourceValueId

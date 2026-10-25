@@ -4255,7 +4255,7 @@ namespace NeoCompose.Runtime
                 return false;
             foreach (JToken? token in obj.constructorArgs.Values)
             {
-                if (token?.Type == JTokenType.String && token.Value<string>() == valueId)
+                if (ConstructorArgumentRowId(token) == valueId)
                     return true;
             }
             return false;
@@ -7864,6 +7864,7 @@ namespace NeoCompose.Runtime
                         continue;
                     }
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
+                        this,
                         source,
                         argument,
                         subject);
@@ -7876,6 +7877,7 @@ namespace NeoCompose.Runtime
                     if (!ReferenceEquals(prepared, source))
                     {
                         NeoScriptValueMarshaller.ValidateRuntimeValue(
+                            this,
                             prepared,
                             argument,
                             subject);

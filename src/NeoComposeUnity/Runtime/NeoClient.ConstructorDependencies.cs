@@ -29,7 +29,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership = target ?? PersistedOwnership;
             var sourceOwnership = targetOwnership == PersistedOwnership ? NeoValueOwnership.Session : PersistedOwnership;
             var pending = new Queue<(string id, Member? member)>();
-            foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership))
+            foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership, plan))
                 pending.Enqueue(link);
             if (pending.Count == 0)
                 return;
@@ -61,7 +61,7 @@ namespace NeoCompose.Runtime
                     foreach (var childId in EnumerateContainerMemberValueIds(owner, id))
                         pending.Enqueue((childId, entry));
                 }
-                foreach (var dependency in EnumerateConstructorDependencyLinks(row, targetOwnership))
+                foreach (var dependency in EnumerateConstructorDependencyLinks(row, targetOwnership, plan))
                     pending.Enqueue(dependency);
             }
 
@@ -162,10 +162,22 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal static string? ConstructorArgumentRowId(JToken? token)
+        {
+            if (token?.Type == JTokenType.String)
+                return token.Value<string>();
+            if (token is JObject selection && selection.Count == 3
+                && selection["classId"]?.Type == JTokenType.String
+                && selection["variantId"]?.Type == JTokenType.String
+                && selection["rowValueId"]?.Type == JTokenType.String)
+                return selection["rowValueId"]!.Value<string>();
+            return null;
+        }
+
         private static bool NamesRowIn(ObjectMemberValue recipe, Dictionary<string, MemberValue> values)
         {
             foreach (JToken? token in recipe.constructorArgs!.Values)
-                if (token?.Type == JTokenType.String && values.ContainsKey(token.Value<string>()!))
+                if (ConstructorArgumentRowId(token) is string id && values.ContainsKey(id))
                     return true;
             return false;
         }
@@ -188,14 +200,14 @@ namespace NeoCompose.Runtime
         }
 
         private IEnumerable<(string id, Member? member)> EnumerateConstructorDependencyLinks(
-            MemberValue value, NeoValueOwnership ownership)
+            MemberValue value, NeoValueOwnership ownership, NeoWritePlan? plan = null)
         {
-            foreach (var (id, _) in EnumerateTypedConstructorReferences(value, ownership))
+            foreach (var (id, _) in EnumerateTypedConstructorReferences(value, ownership, plan))
                 yield return (id, TryInferMemberForValueId(id, out Member? member) ? member : null);
         }
 
         private IEnumerable<(string id, TypeInfo type)> EnumerateTypedConstructorReferences(
-            MemberValue value, NeoValueOwnership ownership)
+            MemberValue value, NeoValueOwnership ownership, NeoWritePlan? plan = null)
         {
             if (value is not ObjectMemberValue { constructorArgs: { Count: > 0 } } row
                 || row.instanceConstructorId is not string constructorId
@@ -218,14 +230,27 @@ namespace NeoCompose.Runtime
                 // Scalar arguments cannot retain another row. Some detached
                 // authored frames have no closed placement until instantiated.
                 if (!row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
-                    || token?.Type != JTokenType.String)
+                    || ConstructorArgumentRowId(token) is not string argumentId)
                     continue;
                 var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
+                if (token is JObject)
+                {
+                    if (parameter is not ClassTypeInfo variantType || !NeoReferenceTypes.IsVariantClass(this, variantType.classId))
+                        continue;
+                    var sourceOwnership = ownership == PersistedOwnership ? NeoValueOwnership.Session : PersistedOwnership;
+                    MemberValue? boundRow;
+                    bool found = plan is not null
+                        ? plan.TryGet(ownership, argumentId, out boundRow) || plan.TryGet(sourceOwnership, argumentId, out boundRow)
+                        : TryGetValue(ownership, argumentId, out boundRow) || TryGetValue(sourceOwnership, argumentId, out boundRow);
+                    if (found && boundRow?.classId is string boundClassId)
+                        yield return (argumentId, new ClassTypeInfo { type = MemberKind.Class, required = true, classId = boundClassId });
+                    continue;
+                }
                 if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
                     continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
-                pending.Enqueue((token.Value<string>()!, parameter));
+                pending.Enqueue((argumentId, parameter));
                 while (pending.Count > 0)
                 {
                     var (id, type) = pending.Dequeue();

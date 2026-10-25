@@ -284,6 +284,7 @@ namespace NeoCompose.Runtime
                 DecimalMember member => member.defaultValue,
                 DelegateMember member => member.defaultValue,
                 ActionMember member => member.defaultValue,
+                VariantMember member => member.defaultValue,
                 _ => null,
             };
         }

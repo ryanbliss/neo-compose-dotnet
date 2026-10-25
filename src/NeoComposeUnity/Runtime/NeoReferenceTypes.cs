@@ -87,6 +87,24 @@ namespace NeoCompose.Runtime
             return worldKind == VariantWorldKind || worldKind == LookupVariantWorldKind;
         }
 
+        internal static bool VariantSelectionMatches(NeoClient client, object? value, TypeInfo typeInfo)
+        {
+            if (value is not NeoVariantReference variant)
+                return false;
+            string? classId = ClassIdOf(typeInfo);
+            if (classId is null || !IsVariantClass(client, classId))
+                return false;
+            if (!client.TryGetClass(classId, out NeoSchemaClass? schema))
+                return false;
+            if (schema.genericParams is not { Count: > 0 })
+                return false;
+            Dictionary<string, TypeInfo>? arguments = TypeArgumentsOf(typeInfo);
+            if (arguments is null || !arguments.TryGetValue(schema.genericParams[0].id, out TypeInfo target))
+                return true;
+            string? targetClassId = ClassIdOf(target);
+            return targetClassId is null || client.ClassChainContains(variant.classId, targetClassId);
+        }
+
         /// <summary>
         /// The type a member slot stores, as its declaration spells it
         /// (P112 §4.3): a Lookup is <c>Reference&lt;…&gt;</c>, a multi-select

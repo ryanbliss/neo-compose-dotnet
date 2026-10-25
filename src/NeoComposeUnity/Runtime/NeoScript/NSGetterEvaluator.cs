@@ -9431,6 +9431,12 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case MemberKind.Class:
                     {
+                        if (checkType is ClassTypeInfo variantType
+                            && NeoReferenceTypes.IsVariantClass(ctx.client, variantType.classId))
+                        {
+                            return NeoReferenceTypes.VariantSelectionMatches(
+                                ctx.client, value, CloseContextType(variantType, ctx));
+                        }
                         if (value is not IDictionary<string, object?>)
                             return false;
                         if (checkType is not ClassTypeInfo classType || !RuntimeClassExtends(value, classType.classId, ctx))
