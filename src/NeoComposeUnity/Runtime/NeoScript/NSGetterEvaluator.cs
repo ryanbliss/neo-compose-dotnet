@@ -3354,9 +3354,8 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <param name="ownerReceiver">
-        /// The row that owns the NSAction being fanned out, when this call is
-        /// one of its listeners. Only an action passes it: a delegate holds
-        /// exactly one target and always spells its own receiver.
+        /// Receiver for declaration-bound action listeners and selectors.
+        /// Explicitly bound delegate targets keep their own receiver.
         /// </param>
         // The stack holds ids; names are only spelled out for an error.
         private static string DescribeDelegateCallStack(

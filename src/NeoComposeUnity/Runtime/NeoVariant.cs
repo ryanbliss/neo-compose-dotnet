@@ -516,7 +516,7 @@ namespace NeoCompose.Runtime
             // here and what settles to "skip".
             if (!graph.TryGet(ApplyKey, out NeoMemberDelegate? apply))
                 return;
-            if (apply.value?.value is null && apply.member.defaultValue is null)
+            if (apply.value?.value is null)
                 return;
             string? sourceValueId = node.overrideValueId ?? node.value?.id;
             if (string.IsNullOrEmpty(sourceValueId))

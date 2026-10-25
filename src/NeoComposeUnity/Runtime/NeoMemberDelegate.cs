@@ -62,8 +62,9 @@ namespace NeoCompose.Runtime
             }
             var ctx = client.CreateGetterContext(ownership);
             ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
-            ctx.BindThis(NSGetterEvaluator.UnwrapRow(row, ctx, ownership));
-            return NSGetterEvaluator.ResolveHostCollection(InvokeCore(args, ctx).result, ctx);
+            object? receiver = NSGetterEvaluator.UnwrapRow(row, ctx, ownership);
+            ctx.BindThis(receiver);
+            return NSGetterEvaluator.ResolveHostCollection(InvokeCore(args, ctx, receiver).result, ctx);
         }
 
         /// <summary>
@@ -106,7 +107,8 @@ namespace NeoCompose.Runtime
                 args = invocationArgs;
             }
             ctx.BindThis(passReceiverArgument ? null : receiver);
-            (object? result, NSGetterEvaluator.Context invocationContext) = InvokeCore(args, ctx);
+            (object? result, NSGetterEvaluator.Context invocationContext) = InvokeCore(
+                args, ctx, passReceiverArgument ? null : receiver);
             return NSGetterEvaluator.ConstructorReferenceOf(
                 result,
                 invocationContext);
@@ -114,14 +116,16 @@ namespace NeoCompose.Runtime
 
         private (object? result, NSGetterEvaluator.Context context) InvokeCore(
             object?[]? args,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            object? ownerReceiver = null)
         {
             NeoDelegateValue delegateValue = ResolveDelegateValue();
             return (
                 NSGetterEvaluator.InvokeDelegate(
                     delegateValue,
                     args ?? Array.Empty<object?>(),
-                    ctx),
+                    ctx,
+                    ownerReceiver),
                 ctx);
         }
 
