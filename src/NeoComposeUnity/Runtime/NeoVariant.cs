@@ -693,6 +693,7 @@ namespace NeoCompose.Runtime
             NeoMemberClassWritable node,
             NeoValueOwnership ownership)
         {
+            using var capture = client.CaptureDeclarativeAnswers(node);
             foreach (NeoAnimationCompiledWrite write in CompileDeclarativeHalves(
                 client,
                 record,

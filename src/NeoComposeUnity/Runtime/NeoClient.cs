@@ -3585,7 +3585,8 @@ namespace NeoCompose.Runtime
             Member? sourceMember, ListenerCopyIntent intent = ListenerCopyIntent.IndependentCopy,
             Dictionary<string, string>? clonedValueIds = null)
         {
-            EnsureVirtualReplayArgumentReady(sourceValueId);
+            if (sourceMember is not ClassMember { Payload: NeoMemberPayloadKind.Partial })
+                EnsureVirtualReplayArgumentReady(sourceValueId);
             if (EnclosingWritePlan is { } candidate)
             {
                 var checkpoint = candidate.Open();
@@ -3662,13 +3663,16 @@ namespace NeoCompose.Runtime
             ClonedValueOccurrence copies,
             HashSet<string> path,
             ref List<ClonedValueOccurrence>? repeatedCopies,
-            string? clonedContainerId)
+            string? clonedContainerId,
+            bool partial = false)
         {
+            partial |= sourceMember is ClassMember { Payload: NeoMemberPayloadKind.Partial }
+                || IsAuthoredPartialValue(sourceValueId);
             if (copies.Values.ContainsKey((sourceOwnership, sourceValueId)) && !path.Contains(sourceValueId))
             {
                 var occurrence = new ClonedValueOccurrence(copies);
                 string repeated = CloneOwnedValueGraphWithFreshIds(plan, targetOwnership, sourceOwnership, sourceValueId,
-                    sourceMember, occurrence, path, ref repeatedCopies, clonedContainerId);
+                    sourceMember, occurrence, path, ref repeatedCopies, clonedContainerId, partial);
                 (repeatedCopies ??= new()).Add(occurrence);
                 return repeated;
             }
@@ -3706,7 +3710,7 @@ namespace NeoCompose.Runtime
                             obj.classId ??= (sourceMember as ClassMember)?.defaultValue?.classId
                                 ?? (sourceMember as ClassMember)?.DeclaredClassId;
                             var effectiveFields = new Dictionary<string, string>(obj.value);
-                            if (sourceRow is ObjectMemberValue sourceObject)
+                            if (!partial && sourceRow is ObjectMemberValue sourceObject)
                             {
                                 // A constructor can clone a sparse shared value
                                 // before its ordinary load-order replay has run.
@@ -3749,7 +3753,8 @@ namespace NeoCompose.Runtime
                                             childMember,
                                             copies,
                                             path, ref repeatedCopies,
-                                            null)
+                                            null,
+                                            partial && childMember is ClassMember)
                                         : pair.Value;
                             }
                             obj.value = remapped;
@@ -3767,12 +3772,16 @@ namespace NeoCompose.Runtime
                             // are reference edges and must retain their target ids.
                             if (sourceMember is LookupMember)
                                 break;
-                            Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
-                            if (entryMember is null)
+                            Member? collectionEntry = TryResolveCollectionEntryMember(sourceMember);
+                            var tuple = sourceMember as TupleMember;
+                            if (collectionEntry is null && tuple is null)
                                 break;
                             var remapped = new string[arr.value.Length];
                             for (int i = 0; i < arr.value.Length; i++)
                             {
+                                Member entryMember = collectionEntry
+                                    ?? TryResolveTupleElementMember(tuple!, sourceRow, i)
+                                    ?? throw new InvalidOperationException($"Cannot clone tuple element {i} of '{sourceValueId}': its declaration is missing.");
                                 NeoValueOwnership entryOwnership =
                                     ChildOwnership(entryMember, sourceOwnership);
                                 remapped[i] = plan.TryGet(entryOwnership, arr.value[i], out MemberValue? _)

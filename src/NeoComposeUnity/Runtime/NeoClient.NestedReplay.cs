@@ -21,8 +21,8 @@ namespace NeoCompose.Runtime
         private void InstallNestedReplayBoundary(NestedReplayBoundary boundary)
         {
             nestedReplayBoundaries[boundary.Root.id] = boundary;
-            if (!nestedReplayRootsByOwner.TryGetValue(boundary.NamespaceRoot.id, out var children))
-                nestedReplayRootsByOwner[boundary.NamespaceRoot.id] = children = new();
+            if (!nestedReplayRootsByOwner.TryGetValue(boundary.OwnerRootId, out var children))
+                nestedReplayRootsByOwner[boundary.OwnerRootId] = children = new();
             children.Add(boundary.Root.id);
         }
 
@@ -32,11 +32,11 @@ namespace NeoCompose.Runtime
                 foreach (string child in children.ToArray())
                     ClearVirtualInstanceRoot(child);
             if (nestedReplayBoundaries.Remove(rootId, out var boundary)
-                && nestedReplayRootsByOwner.TryGetValue(boundary.NamespaceRoot.id, out var siblings))
+                && nestedReplayRootsByOwner.TryGetValue(boundary.OwnerRootId, out var siblings))
             {
                 siblings.Remove(rootId);
                 if (siblings.Count == 0)
-                    nestedReplayRootsByOwner.Remove(boundary.NamespaceRoot.id);
+                    nestedReplayRootsByOwner.Remove(boundary.OwnerRootId);
             }
         }
 
@@ -142,6 +142,10 @@ namespace NeoCompose.Runtime
 
         private IDisposable BeginNestedReplay()
         {
+            var answers = declarativeReplayWrites;
+            var receiver = declarativeReplayReceiver;
+            declarativeReplayWrites = new();
+            declarativeReplayReceiver = null;
             var roots = nestedConstructedRoots;
             var rows = nestedConstructedRows;
             var scope = nestedConstructorCapture;
@@ -150,6 +154,8 @@ namespace NeoCompose.Runtime
             nestedConstructorCapture = null;
             return new NeoDisposableAction(() =>
             {
+                declarativeReplayWrites = answers;
+                declarativeReplayReceiver = receiver;
                 nestedConstructedRoots = roots;
                 nestedConstructedRows = rows;
                 nestedConstructorCapture = scope;
@@ -239,6 +245,8 @@ namespace NeoCompose.Runtime
         {
             internal ObjectMemberValue Root = null!;
             internal ObjectMemberValue NamespaceRoot = null!;
+            internal string OwnerRootId = null!;
+            internal IncomingDeclarativeAnswers? IncomingAnswers;
             internal NeoValueOwnership Ownership;
             internal string Path = null!;
             internal readonly Dictionary<string, NestedCallSiteField> Fields = new();
@@ -316,6 +324,7 @@ namespace NeoCompose.Runtime
                     {
                         Root = root,
                         NamespaceRoot = instanceRoot,
+                        OwnerRootId = instanceRoot.id,
                         Path = node.path,
                         Ownership = expansion.Ownership[effectiveId]
                     };

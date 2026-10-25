@@ -702,6 +702,36 @@ namespace NeoCompose.Runtime
                 later.frameIndex);
         }
 
+        internal NeoMemberClass ReplayParent => writableParent;
+        internal string ReplayKey => writableKey;
+        internal ReplayOperation CaptureReplayOperation() => new(this);
+
+        internal sealed class ReplayOperation
+        {
+            private readonly NeoValueWritePayload? payload;
+            private readonly NeoAnimationLeafKind kind;
+            private readonly List<NeoAnimationLeafFieldValue>? fields;
+            private readonly string clipKey;
+            private readonly int frameIndex;
+
+            internal ReplayOperation(NeoAnimationCompiledWrite write)
+            {
+                payload = write.payload;
+                kind = write.fieldKind;
+                fields = write.fields is null ? null : new(write.fields);
+                clipKey = write.clipKey;
+                frameIndex = write.frameIndex;
+            }
+
+            internal void Apply(NeoClient client, NeoMemberClass target, string key)
+            {
+                var write = fields is null
+                    ? new NeoAnimationCompiledWrite(client, target, new[] { key }, payload!, clipKey, frameIndex)
+                    : new NeoAnimationCompiledWrite(client, target, new[] { key }, kind, fields, clipKey, frameIndex);
+                write.Apply();
+            }
+        }
+
         internal void Apply()
         {
             if (writableParent.value is null)
@@ -709,6 +739,7 @@ namespace NeoCompose.Runtime
             if (fields is null)
             {
                 NeoAnimationCompiler.WriteMember(client, writableParent, writableKey, payload);
+                client.RecordDeclarativeAnswer(this);
                 return;
             }
             object? composed = ComposeFieldValue(out string? skipReason);
@@ -722,6 +753,7 @@ namespace NeoCompose.Runtime
                 writableParent,
                 writableKey,
                 NeoValueWritePayload.FromValue(composed));
+            client.RecordDeclarativeAnswer(this);
         }
 
         /// <summary>
@@ -2783,20 +2815,49 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"{label} cannot resolve a selector because the animation owner has no Children list.");
             }
+            NeoClient client = target.Client;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
             foreach (NeoMember item in children)
+                if (Find(item) is { } selected)
+                    return selected;
+
+            NeoMemberClass? Find(NeoMember node)
             {
-                if (item is NeoMemberClass child
-                    && (string.Equals(
-                            child.value?.id,
-                            selectedValueId,
-                            StringComparison.Ordinal)
-                        || string.Equals(
-                            child.overrideValueId,
-                            selectedValueId,
-                            StringComparison.Ordinal)))
+                string? id = node.overrideValueId ?? node.value?.id;
+                if (id is null || !visited.Add(id))
+                    return null;
+                if (node is NeoMemberClass selected && id == selectedValueId)
+                    return selected;
+                if (node is NeoMemberClass obj)
                 {
-                    return child;
+                    foreach (var field in obj)
+                        if (Find(field.Value) is { } found)
+                            return found;
                 }
+                else if (node is NeoMemberList list)
+                {
+                    foreach (NeoMember entry in list)
+                        if (Find(entry) is { } found)
+                            return found;
+                }
+                else if (node is NeoMemberDictionary dictionary)
+                {
+                    foreach (var entry in dictionary)
+                        if (Find(entry.Value) is { } found)
+                            return found;
+                }
+                else if (node is NeoMemberTuple tuple && tuple.value is { value: not null } row)
+                {
+                    for (int index = 0; index < row.value.Length; index++)
+                    {
+                        var member = client.TryResolveTupleElementMember(tuple.member, row, index)
+                            ?? throw new InvalidOperationException($"{label} tuple element {index} has no declaration.");
+                        var entry = NeoMember.CreateWritable(client, member, row.value[index], client.ChildOwnership(member, tuple.ownership));
+                        if (Find(entry) is { } found)
+                            return found;
+                    }
+                }
+                return null;
             }
             throw new InvalidOperationException(
                 $"{label} selector returned child '{selectedValueId}' outside the animation owner's Children graph.");

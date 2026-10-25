@@ -388,7 +388,7 @@ namespace NeoCompose.Runtime
             if (candidate.RetainedRoots.Contains(rootId) || candidate.Expansions.ContainsKey(rootId))
                 return;
             nestedReplayBoundaries.TryGetValue(rootId, out var boundary);
-            string? ownerRoot = boundary?.NamespaceRoot.id
+            string? ownerRoot = boundary?.OwnerRootId
                 ?? (virtualRootByFootprintId.TryGetValue(rootId, out var owner) ? owner : null);
             if (ownerRoot is not null && ownerRoot != rootId && candidate.AffectedRoots.Contains(ownerRoot)
                 && !replayingVirtualRootIds.Contains(ownerRoot))
@@ -905,6 +905,8 @@ namespace NeoCompose.Runtime
             {
                 if (!Expansions.Remove(rootId, out var previous))
                     return;
+                foreach (var nested in previous.Nested)
+                    Remove(nested.Root.id);
                 foreach (var key in previous.ListenerDefaults.Keys)
                     ListenerDefaults.Remove(key);
                 foreach (string id in previous.Values.Keys)

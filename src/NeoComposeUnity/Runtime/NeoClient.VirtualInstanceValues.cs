@@ -262,6 +262,7 @@ namespace NeoCompose.Runtime
             internal string? effectiveId;
             internal NeoValueOwnership effectiveOwnership;
             internal VirtualExpansionNode? parent;
+            internal ObjectMemberValue? independentRoot;
             internal readonly Dictionary<string, VirtualExpansionNode> classChildren = new();
             internal readonly List<VirtualExpansionNode> listChildren = new();
             internal readonly Dictionary<string, VirtualExpansionNode> dictionaryChildren = new();
@@ -790,6 +791,8 @@ namespace NeoCompose.Runtime
                     return;
                 if (!IsVirtualInstanceRoot(root))
                 {
+                    if (IsAuthoredPartialValue(root.id))
+                        return;
                     if (!virtualFootprintByRoot.ContainsKey(root.id)
                         && ResolveInstanceSurfaceSchema(root.classId!).All(entry => root.value!.ContainsKey(entry.schemaKey)))
                         return;
@@ -1395,7 +1398,7 @@ namespace NeoCompose.Runtime
             private set;
         }
 
-        private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null)
+        private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null, NestedReplayBoundary? preparedBoundary = null)
         {
             using var randomFrame = Random.EnterIdentity(instanceRoot.id);
 #if NEO_COMPOSE_PROFILING
@@ -1403,7 +1406,9 @@ namespace NeoCompose.Runtime
 #endif
             VirtualReplayCount++;
             using var nestedReplay = BeginNestedReplay();
-            nestedReplayBoundaries.TryGetValue(instanceRoot.id, out var replayBoundary);
+            var replayBoundary = preparedBoundary;
+            if (replayBoundary is null)
+                nestedReplayBoundaries.TryGetValue(instanceRoot.id, out replayBoundary);
             if (replayBoundary is not null
                 && !NeoSemanticJson.MemberRowsEqual(replayBoundary.Root, instanceRoot, ignoreObjectFields: true))
             {
@@ -1413,6 +1418,8 @@ namespace NeoCompose.Runtime
                 {
                     Root = instanceRoot,
                     NamespaceRoot = replayBoundary.NamespaceRoot,
+                    OwnerRootId = replayBoundary.OwnerRootId,
+                    IncomingAnswers = replayBoundary.IncomingAnswers,
                     Path = replayBoundary.Path,
                     Ownership = replayOwnership ?? replayBoundary.Ownership,
                 };
@@ -1478,6 +1485,15 @@ namespace NeoCompose.Runtime
                 else
                 {
                     NeoMemberClassWritable replayed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments);
+                    if (replayBoundary?.IncomingAnswers is { } incoming)
+                    {
+                        declarativeReplayReceiver = replayBoundary.OwnerRootId;
+                        try
+                        {
+                            incoming.Apply(this, replayed);
+                        }
+                        finally { declarativeReplayReceiver = null; }
+                    }
                     constructed = new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(replayed.value!, replayed.member);
                 }
             }
@@ -1562,6 +1578,7 @@ namespace NeoCompose.Runtime
                 if (allocations.ExistingListenerProjections is { Count: > 0 } projections)
                     ResolveConstructedListenerProjections(projections, () => graph);
                 RemapVirtualReplayIdentities(graph, expansion, allocations.ExistingListenerDefaults);
+                ComposeIndependentDeclarativeAnswers(graph, expansion);
                 if (replayBoundary is not null)
                     expansion.Boundary = replayBoundary;
                 else
@@ -2270,6 +2287,7 @@ namespace NeoCompose.Runtime
                 && IsVirtualInstanceRoot(nestedRoot)
                 && !IsMaterializedSpine(nestedRoot, node))
             {
+                node.independentRoot = nestedRoot;
                 // A nested construction owns its own UUID namespace and is
                 // replayed independently. Do not retain an unreachable copy
                 // of its virtual remainder in the outer root's namespace.
