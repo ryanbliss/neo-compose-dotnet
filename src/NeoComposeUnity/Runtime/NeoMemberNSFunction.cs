@@ -589,6 +589,7 @@ namespace NeoCompose.Runtime
     internal static class NeoNSFunctionRuntime
     {
         private const int MaxCallableDepth = 64;
+        private const int MaxCachedSignatures = 16;
 
         /// <summary>
         /// Calls immediate instance NSFunction <paramref name="schemaKey"/>
@@ -928,6 +929,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             TypeInfo[]? written = typeArguments ?? site?.typeArguments;
+            bool forwardsClass = written is not null && Array.Exists(written, ContainsGeneric);
             // A NeoScript site that writes type arguments keeps its own short
             // chain: one binding per callee, and per caller frame table when
             // it forwards. Any other call binds on the function by its table.
@@ -936,11 +938,18 @@ namespace NeoCompose.Runtime
             TypeInfo[]? callerTable = forwards ? ctx.functionTypeArguments : null;
             TypeInfo[]? key = bindingSite is null ? written : callerTable;
             NeoBoundNSFunctionSignature? chain = bindingSite is null ? function.BoundSignatures : bindingSite.BoundSignatures;
+            if (forwardsClass)
+                chain = null;
+            int bindingCount = 0;
             for (NeoBoundNSFunctionSignature? bound = chain; bound is not null; bound = bound.Next)
             {
                 if (bound.Binds(function, key))
                     return bound;
+                bindingCount++;
             }
+            // Forwarded caller tables may be transient. Keep retention and
+            // lookup work bounded at each site, as for receiver targets.
+            bool cacheBinding = !forwardsClass && bindingCount < MaxCachedSignatures;
             TypeInfo[] table = written is null && function.DefaultTypeArguments is { } defaults
                 ? defaults
                 : NeoFunctionTypeArguments.ForCall(
@@ -949,20 +958,31 @@ namespace NeoCompose.Runtime
                     function.GenericParams,
                     function.Member.name,
                     callerTable)!;
+            if (forwardsClass)
+            {
+                table = (TypeInfo[])table.Clone();
+                for (int i = 0; i < table.Length; i++)
+                    table[i] = NSGetterEvaluator.CloseContextType(table[i], ctx);
+            }
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
                 argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
             var created = new NeoBoundNSFunctionSignature(
                 function,
                 key,
-                chain,
+                cacheBinding ? chain : null,
                 table,
                 NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, table),
                 argumentTypes);
-            if (bindingSite is null)
-                function.BoundSignatures = created;
-            else
-                bindingSite.BoundSignatures = created;
+            // A class-forwarding call varies with the caller's receiver, not
+            // just its function type-argument table.
+            if (cacheBinding)
+            {
+                if (bindingSite is null)
+                    function.BoundSignatures = created;
+                else
+                    bindingSite.BoundSignatures = created;
+            }
             return created;
         }
 

@@ -34,6 +34,25 @@ namespace NeoCompose.Tests
             Assert.AreEqual(Fixture()["returns"]![probe]!.ToObject<object>(), InvokeProbe(client, probe));
         }
 
+        [Test]
+        public void ClassForwarding_KeepsDownstreamSignatureRetentionBounded()
+        {
+            using NeoClient client = Client();
+            Member forward = client.members.Values.Single(member => member.name == "ForwardConstruction");
+            FunctionWithReturnType action = NeoNSFunctionRuntime.ResolveSignature(client, forward.id).Action;
+            var instruction = (ReturnInstruction)action.instructions.Single();
+            var site = (CallFunctionPointer)instruction.pointer!;
+            for (int i = 0; i < 128; i++)
+            {
+                Assert.AreEqual(7, InvokeProbe(client, "ChainedInt"));
+                Assert.AreEqual("chain", InvokeProbe(client, "ChainedString"));
+                int retained = 0;
+                for (NeoBoundNSFunctionSignature? bound = site.BoundSignatures; bound is not null; bound = bound.Next)
+                    retained++;
+                Assert.That(retained, Is.InRange(1, 16));
+            }
+        }
+
         private static NeoClient Client()
         {
             ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "generic-base-constructor-parity-export.json")));

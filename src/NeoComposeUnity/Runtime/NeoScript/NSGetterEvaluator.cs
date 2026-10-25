@@ -6055,6 +6055,7 @@ namespace NeoCompose.Runtime.NeoScript
             IReadOnlyList<NeoGeneratedTypesSupport.RuntimeConstructorField> fields =
                 buffers?.Fields(info.fields)
                 ?? NeoGeneratedTypesSupport.ConstructionSiteBuffers.NewFields(info.fields);
+            ClassTypeInfo classInfo = CloseConstructionFunctionArguments(info.schemaClassInfo, ctx);
             ctx.TryGetConstructionClassContext(
                 info.schemaClassInfo.classId,
                 out IReadOnlyDictionary<string, GenericBinding>?
@@ -6063,11 +6064,12 @@ namespace NeoCompose.Runtime.NeoScript
                     replayGenericBindings);
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
                 replayClassArguments is null
-                    ? EnclosingGenericEnv(info.schemaClassInfo, ctx)
+                    ? EnclosingGenericEnv(classInfo, ctx)
                     : null;
             bool cacheable = replayClassArguments is null
                 && replayGenericBindings is null
-                && enclosingEnv is null;
+                && enclosingEnv is null
+                && ReferenceEquals(classInfo, info.schemaClassInfo);
             if (!cacheable
                 || !NeoGeneratedTypesSupport.TryGetResolvedSite(
                     ctx.client, info, ref info.resolvedSite, out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved)
@@ -6082,7 +6084,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(
                         ctx.client,
-                        info.schemaClassInfo,
+                        classInfo,
                         info.constructorId,
                         argumentNames,
                         fields,
@@ -6562,6 +6564,11 @@ namespace NeoCompose.Runtime.NeoScript
             };
         }
 
+        private static ClassTypeInfo CloseConstructionFunctionArguments(ClassTypeInfo classInfo, Context ctx) =>
+            ctx.functionTypeArguments is { } arguments
+                ? (ClassTypeInfo)NeoFunctionTypeArguments.Bind(classInfo, arguments)
+                : classInfo;
+
         /// <summary>
         /// `new Box<T>()` inside a generic class closes <c>T</c> through its
         /// receiver, or in a member initializer, through the instance being
@@ -6639,6 +6646,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
+            ClassTypeInfo classInfo = CloseConstructionFunctionArguments(constructor.info.schemaClassInfo, ctx);
             ctx.TryGetConstructionClassContext(
                 constructor.info.schemaClassInfo.classId,
                 out IReadOnlyDictionary<string, GenericBinding>?
@@ -6647,9 +6655,10 @@ namespace NeoCompose.Runtime.NeoScript
                     replayGenericBindings);
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
                 replayClassArguments is null
-                    ? EnclosingGenericEnv(constructor.info.schemaClassInfo, ctx)
+                    ? EnclosingGenericEnv(classInfo, ctx)
                     : null;
-            bool cacheable = replayClassArguments is null && enclosingEnv is null;
+            bool cacheable = replayClassArguments is null && enclosingEnv is null
+                && ReferenceEquals(classInfo, constructor.info.schemaClassInfo);
             if (!cacheable
                 || !NeoGeneratedTypesSupport.TryGetResolvedSite(
                     ctx.client,
@@ -6663,7 +6672,7 @@ namespace NeoCompose.Runtime.NeoScript
                     metadata = NeoGeneratedTypesSupport
                         .ValidateRuntimeClassConstructorMetadata(
                         ctx.client,
-                        constructor.info.schemaClassInfo,
+                        classInfo,
                         fields,
                         replayClassArguments,
                         enclosingEnv,
@@ -6727,7 +6736,7 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoGeneratedTypesSupport.RuntimeConstructedClassValue node =
                         NeoGeneratedTypesSupport.CreateRuntimeClassValue(
                             ctx.client,
-                            constructor.info.schemaClassInfo,
+                            classInfo,
                             fields,
                             metadata,
                             ConstructorReferences(ctx),
