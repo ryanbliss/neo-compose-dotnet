@@ -2236,6 +2236,15 @@ namespace NeoCompose.Tests
         },
         ""valueId"": ""1454090d-35f9-594e-b134-05cb3f6c1d60""
       },
+      ""c270bcb4-8e8b-5b60-ab25-98aba7f3600a"": {
+        ""id"": ""c270bcb4-8e8b-5b60-ab25-98aba7f3600a"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""name"": ""Type argument"",
+        ""kind"": 2,
+        ""requirement"": 1
+      },
       ""root-assets-member-id"": {
         ""createdAt"": 0,
         ""updatedAt"": 0,
