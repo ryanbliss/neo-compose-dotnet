@@ -183,12 +183,37 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        // Partial class fields stay partial recursively. Collection entries
+        // are complete replacements and therefore stop this inheritance.
+        private bool IsAuthoredPartialValue(string id)
+        {
+            if (!data.values.TryGetValue(id, out var row) || row is not ObjectMemberValue { classId: not null })
+                return false;
+            var index = ValueInferenceIndex;
+            if (index.Partials.TryGetValue(id, out bool partial))
+                return partial;
+            // A malformed ownership cycle must not recurse indefinitely.
+            index.Partials[id] = false;
+            partial = TryInferMemberForValueId(id, out var member)
+                && member is ClassMember { Payload: NeoMemberPayloadKind.Partial };
+            if (!partial && index.Parents.TryGetValue(id, out var parents))
+                foreach (var parent in parents)
+                    if (parent.Value is ObjectMemberValue { classId: not null } && IsAuthoredPartialValue(parent.Key))
+                    {
+                        partial = true;
+                        break;
+                    }
+            index.Partials[id] = partial;
+            return partial;
+        }
+
         private sealed class AuthoredValueInferenceIndex
         {
             internal readonly Dictionary<string, HashSet<string>> SchemaKeysByMember = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<ObjectMemberValue>> ObjectRowsByField = new(StringComparer.Ordinal);
             internal readonly List<Member> StaticMembers = new();
             internal readonly Dictionary<string, Member> Members = new(StringComparer.Ordinal);
+            internal readonly Dictionary<string, bool> Partials = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<Member>> MembersByValueId = new(StringComparer.Ordinal);
             internal readonly Dictionary<string, List<KeyValuePair<string, MemberValue>>> Parents =
                 new(StringComparer.Ordinal);
