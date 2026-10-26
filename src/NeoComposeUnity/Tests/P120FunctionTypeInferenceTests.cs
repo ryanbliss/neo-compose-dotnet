@@ -19,6 +19,9 @@ namespace NeoCompose.Tests
         [TestCase("Once", 3)]
         [TestCase("Order", 2)]
         [TestCase("Combined", 20)]
+        [TestCase("TypeNamedCapture", 5)]
+        [TestCase("NarrowedCapture", 5)]
+        [TestCase("NestedCapture", 5)]
         public void EvaluatesCompilerInferredCalls(string name, int expected)
         {
             var fixture = JObject.Parse(NeoScriptFunctionTypeInferenceParityFixture.Json);

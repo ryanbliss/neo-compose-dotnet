@@ -7,7 +7,7 @@ namespace NeoCompose.Tests
     public static class NeoScriptFunctionTypeInferenceParityFixture
     {
         public const string Json = @"{
-  ""source"": ""@id(\""12000000-0000-4000-8000-000000000001\"")\nclass Inference {\n @id(\""12000000-0000-4000-8000-000000000002\"")\n public static T Identity<T>(T value) => value;\n @id(\""12000000-0000-4000-8000-000000000003\"")\n public static R Map<T, R>(T value, NeoDelegate<R, T> project) => project(value);\n @id(\""12000000-0000-4000-8000-000000000004\"")\n public static T Forward<T>(T value) => Inference.Identity(value);\n @id(\""12000000-0000-4000-8000-000000000005\"")\n public int Nested { get { return Inference.Identity(Inference.Forward(7)); } }\n @id(\""12000000-0000-4000-8000-000000000006\"")\n public int Captured { get { int offset = 4; return Inference.Map(3, (value) => Inference.Identity(value + offset)); } }\n @id(\""12000000-0000-4000-8000-000000000007\"")\n public int Typed { get { NeoDelegate<int, int> project = (value) => value * 2; return Inference.Map(5, project); } }\n @id(\""12000000-0000-4000-8000-000000000008\"")\n public int Once { get { return Inference.Map(Inference.Identity(2), (value) => { Debug.Log(value); return value + 1; }); } }\n @id(\""12000000-0000-4000-8000-000000000009\"")\n public static T Pair<T>(T left, T right) => left;\n @id(\""12000000-0000-4000-8000-000000000010\"")\n public static int Mark(int value) { Debug.Log(value); return value; }\n @id(\""12000000-0000-4000-8000-000000000011\"")\n public int Order { get { return Inference.Pair(Inference.Mark(2), Inference.Mark(3)); } }\n @id(\""12000000-0000-4000-8000-000000000012\"")\n public int Combined { get { return Inference.Map(5, (value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }); } }\n}"",
+  ""source"": ""@id(\""12000000-0000-4000-8000-000000000001\"")\nclass Inference {\n @id(\""12000000-0000-4000-8000-000000000002\"")\n public static T Identity<T>(T value) => value;\n @id(\""12000000-0000-4000-8000-000000000003\"")\n public static R Map<T, R>(T value, NeoDelegate<R, T> project) => project(value);\n @id(\""12000000-0000-4000-8000-000000000004\"")\n public static T Forward<T>(T value) => Inference.Identity(value);\n @id(\""12000000-0000-4000-8000-000000000005\"")\n public int Nested { get { return Inference.Identity(Inference.Forward(7)); } }\n @id(\""12000000-0000-4000-8000-000000000006\"")\n public int Captured { get { int offset = 4; return Inference.Map(3, (value) => Inference.Identity(value + offset)); } }\n @id(\""12000000-0000-4000-8000-000000000007\"")\n public int Typed { get { NeoDelegate<int, int> project = (value) => value * 2; return Inference.Map(5, project); } }\n @id(\""12000000-0000-4000-8000-000000000008\"")\n public int Once { get { return Inference.Map(Inference.Identity(2), (value) => { Debug.Log(value); return value + 1; }); } }\n @id(\""12000000-0000-4000-8000-000000000009\"")\n public static T Pair<T>(T left, T right) => left;\n @id(\""12000000-0000-4000-8000-000000000010\"")\n public static int Mark(int value) { Debug.Log(value); return value; }\n @id(\""12000000-0000-4000-8000-000000000011\"")\n public int Order { get { return Inference.Pair(Inference.Mark(2), Inference.Mark(3)); } }\n @id(\""12000000-0000-4000-8000-000000000012\"")\n public int Combined { get { return Inference.Map(5, (value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }); } }\n @id(\""12000000-0000-4000-8000-000000000013\"")\n @settings(format: .Plain)\n public string Label = \""hello\"";\n @id(\""12000000-0000-4000-8000-000000000014\"")\n public int TypeNamedCapture { get { Inference Inference = new(); NeoDelegate<int> read = () => Inference.Label.Length; return read(); } }\n @id(\""12000000-0000-4000-8000-000000000015\"")\n public int NarrowedCapture { get { string? value = Inference.Maybe(\""hello\""); if (value == null) return 0; NeoDelegate<int> read = () => value.Length; value = null; return read(); } }\n @id(\""12000000-0000-4000-8000-000000000016\"")\n public int NestedCapture { get { string? value = Inference.Maybe(\""hello\""); if (value == null) return 0; NeoDelegate<NeoDelegate<int>> make = () => () => value.Length; value = null; return make()(); } }\n @id(\""12000000-0000-4000-8000-000000000017\"")\n public static string? Maybe(string? value) => value;\n}"",
   ""document"": {
     ""metadata"": {
       ""schemaVersion"": 46,
@@ -2221,6 +2221,1201 @@ namespace NeoCompose.Tests
           }
         }
       },
+      ""12000000-0000-4000-8000-000000000013"": {
+        ""id"": ""12000000-0000-4000-8000-000000000013"",
+        ""name"": ""Label"",
+        ""kind"": 3,
+        ""requirement"": 1,
+        ""modifier"": 1,
+        ""defaultValue"": {
+          ""value"": ""hello""
+        },
+        ""format"": 1,
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000
+      },
+      ""12000000-0000-4000-8000-000000000014"": {
+        ""id"": ""12000000-0000-4000-8000-000000000014"",
+        ""name"": ""TypeNamedCapture"",
+        ""kind"": 10,
+        ""requirement"": 1,
+        ""modifier"": 1,
+        ""returnTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""code"": ""Inference Inference = new(); NeoDelegate<int> read = () => Inference.Label.Length; return read();"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""getter"": {
+          ""compilerRevision"": 18,
+          ""source"": {
+            ""name"": ""Inference.TypeNamedCapture"",
+            ""uri"": ""Inference.neo"",
+            ""coordinateSpace"": ""file""
+          },
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""12000000-0000-4000-8000-000000000001""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""12000000-0000-4000-8000-000000000001""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""Inference"",
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""12000000-0000-4000-8000-000000000001""
+                },
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""classConstructor"",
+                    ""info"": {
+                      ""schemaClassInfo"": {
+                        ""type"": 7,
+                        ""required"": true,
+                        ""classId"": ""12000000-0000-4000-8000-000000000001""
+                      },
+                      ""fields"": []
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 29,
+                    ""column"": 60
+                  }
+                }
+              },
+              ""source"": {
+                ""line"": 29,
+                ""column"": 38
+              }
+            },
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""read"",
+                ""typeInfo"": {
+                  ""type"": 25,
+                  ""required"": true,
+                  ""returnTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""argumentTypes"": []
+                },
+                ""pointer"": {
+                  ""type"": ""delegateClosure"",
+                  ""typeInfo"": {
+                    ""type"": 25,
+                    ""required"": true,
+                    ""returnTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""argumentTypes"": []
+                  },
+                  ""action"": {
+                    ""compilerRevision"": 18,
+                    ""source"": {
+                      ""uri"": ""Inference.neo"",
+                      ""coordinateSpace"": ""file"",
+                      ""name"": ""Inference.TypeNamedCapture <delegate>""
+                    },
+                    ""parameters"": [
+                      {
+                        ""id"": ""__this__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""12000000-0000-4000-8000-000000000001""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""12000000-0000-4000-8000-000000000001""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__root__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""__root__""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""__root__""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__capture_0_0__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""12000000-0000-4000-8000-000000000001""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""12000000-0000-4000-8000-000000000001""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""textOp"",
+                            ""info"": {
+                              ""op"": ""length"",
+                              ""argPointers"": [
+                                {
+                                  ""type"": ""keyOf"",
+                                  ""memberId"": ""12000000-0000-4000-8000-000000000013"",
+                                  ""keyOf"": {
+                                    ""pointer"": {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""__capture_0_0__""
+                                    },
+                                    ""key"": {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 3,
+                                          ""required"": true
+                                        },
+                                        ""value"": ""Label""
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 29,
+                            ""column"": 112
+                          }
+                        },
+                        ""source"": {
+                          ""line"": 29,
+                          ""column"": 97
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
+                  },
+                  ""captures"": [
+                    {
+                      ""type"": ""variable"",
+                      ""variableId"": ""Inference""
+                    }
+                  ],
+                  ""code"": ""() => Inference.Label.Length""
+                }
+              },
+              ""source"": {
+                ""line"": 29,
+                ""column"": 67
+              }
+            },
+            {
+              ""type"": ""return"",
+              ""pointer"": {
+                ""type"": ""callDelegate"",
+                ""delegate"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""read""
+                },
+                ""args"": [],
+                ""callSiteId"": ""1:95:0"",
+                ""source"": {
+                  ""line"": 29,
+                  ""column"": 132
+                }
+              },
+              ""source"": {
+                ""line"": 29,
+                ""column"": 121
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""12000000-0000-4000-8000-000000000015"": {
+        ""id"": ""12000000-0000-4000-8000-000000000015"",
+        ""name"": ""NarrowedCapture"",
+        ""kind"": 10,
+        ""requirement"": 1,
+        ""modifier"": 1,
+        ""returnTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""code"": ""string? value = Inference.Maybe(\""hello\""); if (value == null) return 0; NeoDelegate<int> read = () => value.Length; value = null; return read();"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""getter"": {
+          ""compilerRevision"": 18,
+          ""source"": {
+            ""name"": ""Inference.NarrowedCapture"",
+            ""uri"": ""Inference.neo"",
+            ""coordinateSpace"": ""file""
+          },
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""12000000-0000-4000-8000-000000000001""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""12000000-0000-4000-8000-000000000001""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""value"",
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": false
+                },
+                ""pointer"": {
+                  ""type"": ""callFunction"",
+                  ""memberId"": ""12000000-0000-4000-8000-000000000017"",
+                  ""receiver"": {
+                    ""kind"": ""static"",
+                    ""memberId"": ""12000000-0000-4000-8000-000000000017""
+                  },
+                  ""args"": [
+                    {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""hello""
+                      }
+                    }
+                  ],
+                  ""callSiteId"": ""1:32:0"",
+                  ""source"": {
+                    ""line"": 31,
+                    ""column"": 68
+                  }
+                }
+              },
+              ""source"": {
+                ""line"": 31,
+                ""column"": 37
+              }
+            },
+            {
+              ""type"": ""if"",
+              ""branches"": [
+                {
+                  ""expression"": {
+                    ""condition"": {
+                      ""type"": ""equalTo"",
+                      ""operand1"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""value""
+                      },
+                      ""operand2"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": false
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  },
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": 0
+                        }
+                      },
+                      ""source"": {
+                        ""line"": 31,
+                        ""column"": 98
+                      }
+                    }
+                  ]
+                }
+              ],
+              ""else"": null,
+              ""source"": {
+                ""line"": 31,
+                ""column"": 79
+              }
+            },
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""read"",
+                ""typeInfo"": {
+                  ""type"": 25,
+                  ""required"": true,
+                  ""returnTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""argumentTypes"": []
+                },
+                ""pointer"": {
+                  ""type"": ""delegateClosure"",
+                  ""typeInfo"": {
+                    ""type"": 25,
+                    ""required"": true,
+                    ""returnTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""argumentTypes"": []
+                  },
+                  ""action"": {
+                    ""compilerRevision"": 18,
+                    ""source"": {
+                      ""uri"": ""Inference.neo"",
+                      ""coordinateSpace"": ""file"",
+                      ""name"": ""Inference.NarrowedCapture <delegate>""
+                    },
+                    ""parameters"": [
+                      {
+                        ""id"": ""__this__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""12000000-0000-4000-8000-000000000001""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""12000000-0000-4000-8000-000000000001""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__root__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""__root__""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""__root__""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__capture_0_0__"",
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 3,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""textOp"",
+                            ""info"": {
+                              ""op"": ""length"",
+                              ""argPointers"": [
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""__capture_0_0__""
+                                }
+                              ]
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 31,
+                            ""column"": 143
+                          }
+                        },
+                        ""source"": {
+                          ""line"": 31,
+                          ""column"": 138
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
+                  },
+                  ""captures"": [
+                    {
+                      ""type"": ""variable"",
+                      ""variableId"": ""value""
+                    }
+                  ],
+                  ""code"": ""() => value.Length""
+                }
+              },
+              ""source"": {
+                ""line"": 31,
+                ""column"": 108
+              }
+            },
+            {
+              ""type"": ""assign"",
+              ""target"": {
+                ""pointer"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""value""
+                },
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": false
+                },
+                ""writability"": ""local""
+              },
+              ""operator"": ""="",
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": false
+                  },
+                  ""value"": null
+                }
+              },
+              ""source"": {
+                ""line"": 31,
+                ""column"": 152
+              }
+            },
+            {
+              ""type"": ""return"",
+              ""pointer"": {
+                ""type"": ""callDelegate"",
+                ""delegate"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""read""
+                },
+                ""args"": [],
+                ""callSiteId"": ""1:141:1"",
+                ""source"": {
+                  ""line"": 31,
+                  ""column"": 177
+                }
+              },
+              ""source"": {
+                ""line"": 31,
+                ""column"": 166
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""12000000-0000-4000-8000-000000000016"": {
+        ""id"": ""12000000-0000-4000-8000-000000000016"",
+        ""name"": ""NestedCapture"",
+        ""kind"": 10,
+        ""requirement"": 1,
+        ""modifier"": 1,
+        ""returnTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        },
+        ""code"": ""string? value = Inference.Maybe(\""hello\""); if (value == null) return 0; NeoDelegate<NeoDelegate<int>> make = () => () => value.Length; value = null; return make()();"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""getter"": {
+          ""compilerRevision"": 18,
+          ""source"": {
+            ""name"": ""Inference.NestedCapture"",
+            ""uri"": ""Inference.neo"",
+            ""coordinateSpace"": ""file""
+          },
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""12000000-0000-4000-8000-000000000001""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""12000000-0000-4000-8000-000000000001""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""value"",
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": false
+                },
+                ""pointer"": {
+                  ""type"": ""callFunction"",
+                  ""memberId"": ""12000000-0000-4000-8000-000000000017"",
+                  ""receiver"": {
+                    ""kind"": ""static"",
+                    ""memberId"": ""12000000-0000-4000-8000-000000000017""
+                  },
+                  ""args"": [
+                    {
+                      ""type"": ""value"",
+                      ""value"": {
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""value"": ""hello""
+                      }
+                    }
+                  ],
+                  ""callSiteId"": ""1:32:0"",
+                  ""source"": {
+                    ""line"": 33,
+                    ""column"": 66
+                  }
+                }
+              },
+              ""source"": {
+                ""line"": 33,
+                ""column"": 35
+              }
+            },
+            {
+              ""type"": ""if"",
+              ""branches"": [
+                {
+                  ""expression"": {
+                    ""condition"": {
+                      ""type"": ""equalTo"",
+                      ""operand1"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""value""
+                      },
+                      ""operand2"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": false
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  },
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": 0
+                        }
+                      },
+                      ""source"": {
+                        ""line"": 33,
+                        ""column"": 96
+                      }
+                    }
+                  ]
+                }
+              ],
+              ""else"": null,
+              ""source"": {
+                ""line"": 33,
+                ""column"": 77
+              }
+            },
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""make"",
+                ""typeInfo"": {
+                  ""type"": 25,
+                  ""required"": true,
+                  ""returnTypeInfo"": {
+                    ""type"": 25,
+                    ""required"": true,
+                    ""returnTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""argumentTypes"": []
+                  },
+                  ""argumentTypes"": []
+                },
+                ""pointer"": {
+                  ""type"": ""delegateClosure"",
+                  ""typeInfo"": {
+                    ""type"": 25,
+                    ""required"": true,
+                    ""returnTypeInfo"": {
+                      ""type"": 25,
+                      ""required"": true,
+                      ""returnTypeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""argumentTypes"": []
+                    },
+                    ""argumentTypes"": []
+                  },
+                  ""action"": {
+                    ""compilerRevision"": 18,
+                    ""source"": {
+                      ""uri"": ""Inference.neo"",
+                      ""coordinateSpace"": ""file"",
+                      ""name"": ""Inference.NestedCapture <delegate>""
+                    },
+                    ""parameters"": [
+                      {
+                        ""id"": ""__this__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""12000000-0000-4000-8000-000000000001""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""12000000-0000-4000-8000-000000000001""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__root__"",
+                        ""typeInfo"": {
+                          ""type"": 7,
+                          ""required"": true,
+                          ""classId"": ""__root__""
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 7,
+                              ""required"": true,
+                              ""classId"": ""__root__""
+                            },
+                            ""value"": null
+                          }
+                        }
+                      },
+                      {
+                        ""id"": ""__capture_0_0__"",
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 3,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""delegateClosure"",
+                          ""typeInfo"": {
+                            ""type"": 25,
+                            ""required"": true,
+                            ""returnTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""argumentTypes"": []
+                          },
+                          ""action"": {
+                            ""compilerRevision"": 18,
+                            ""source"": {
+                              ""uri"": ""Inference.neo"",
+                              ""coordinateSpace"": ""file"",
+                              ""name"": ""Inference.NestedCapture <delegate>""
+                            },
+                            ""parameters"": [
+                              {
+                                ""id"": ""__this__"",
+                                ""typeInfo"": {
+                                  ""type"": 7,
+                                  ""required"": true,
+                                  ""classId"": ""12000000-0000-4000-8000-000000000001""
+                                },
+                                ""pointer"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 7,
+                                      ""required"": true,
+                                      ""classId"": ""12000000-0000-4000-8000-000000000001""
+                                    },
+                                    ""value"": null
+                                  }
+                                }
+                              },
+                              {
+                                ""id"": ""__root__"",
+                                ""typeInfo"": {
+                                  ""type"": 7,
+                                  ""required"": true,
+                                  ""classId"": ""__root__""
+                                },
+                                ""pointer"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 7,
+                                      ""required"": true,
+                                      ""classId"": ""__root__""
+                                    },
+                                    ""value"": null
+                                  }
+                                }
+                              },
+                              {
+                                ""id"": ""__capture_1_0__"",
+                                ""typeInfo"": {
+                                  ""type"": 3,
+                                  ""required"": true
+                                },
+                                ""pointer"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 3,
+                                      ""required"": true
+                                    },
+                                    ""value"": null
+                                  }
+                                }
+                              }
+                            ],
+                            ""instructions"": [
+                              {
+                                ""type"": ""return"",
+                                ""pointer"": {
+                                  ""type"": ""function"",
+                                  ""function"": {
+                                    ""type"": ""textOp"",
+                                    ""info"": {
+                                      ""op"": ""length"",
+                                      ""argPointers"": [
+                                        {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""__capture_1_0__""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  ""source"": {
+                                    ""line"": 33,
+                                    ""column"": 160
+                                  }
+                                },
+                                ""source"": {
+                                  ""line"": 33,
+                                  ""column"": 155
+                                }
+                              }
+                            ],
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""captures"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""__capture_0_0__""
+                            }
+                          ],
+                          ""code"": ""() => value.Length""
+                        },
+                        ""source"": {
+                          ""line"": 33,
+                          ""column"": 149
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 25,
+                      ""required"": true,
+                      ""returnTypeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""argumentTypes"": []
+                    }
+                  },
+                  ""captures"": [
+                    {
+                      ""type"": ""variable"",
+                      ""variableId"": ""value""
+                    }
+                  ],
+                  ""code"": ""() => () => value.Length""
+                }
+              },
+              ""source"": {
+                ""line"": 33,
+                ""column"": 106
+              }
+            },
+            {
+              ""type"": ""assign"",
+              ""target"": {
+                ""pointer"": {
+                  ""type"": ""variable"",
+                  ""variableId"": ""value""
+                },
+                ""typeInfo"": {
+                  ""type"": 3,
+                  ""required"": false
+                },
+                ""writability"": ""local""
+              },
+              ""operator"": ""="",
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": false
+                  },
+                  ""value"": null
+                }
+              },
+              ""source"": {
+                ""line"": 33,
+                ""column"": 169
+              }
+            },
+            {
+              ""type"": ""return"",
+              ""pointer"": {
+                ""type"": ""callDelegate"",
+                ""delegate"": {
+                  ""type"": ""callDelegate"",
+                  ""delegate"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""make""
+                  },
+                  ""args"": [],
+                  ""callSiteId"": ""1:160:1"",
+                  ""source"": {
+                    ""line"": 33,
+                    ""column"": 194
+                  }
+                },
+                ""args"": [],
+                ""callSiteId"": ""1:162:2"",
+                ""source"": {
+                  ""line"": 33,
+                  ""column"": 196
+                }
+              },
+              ""source"": {
+                ""line"": 33,
+                ""column"": 183
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""12000000-0000-4000-8000-000000000017"": {
+        ""id"": ""12000000-0000-4000-8000-000000000017"",
+        ""name"": ""Maybe"",
+        ""kind"": 23,
+        ""modifier"": 3,
+        ""returnTypeInfo"": {
+          ""type"": 3,
+          ""required"": false
+        },
+        ""argumentTypes"": [
+          {
+            ""name"": ""value"",
+            ""type"": 3,
+            ""required"": false
+          }
+        ],
+        ""code"": ""return value;"",
+        ""projectId"": ""project-id"",
+        ""createdAt"": 1700000000000,
+        ""updatedAt"": 1700000000000,
+        ""action"": {
+          ""compilerRevision"": 18,
+          ""source"": {
+            ""name"": ""Inference.Maybe"",
+            ""uri"": ""Inference.neo"",
+            ""coordinateSpace"": ""file""
+          },
+          ""parameters"": [
+            {
+              ""id"": ""__this__"",
+              ""typeInfo"": {
+                ""type"": ""Unknown"",
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": ""Unknown"",
+                    ""required"": true
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__root__"",
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""__root__""
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 7,
+                    ""required"": true,
+                    ""classId"": ""__root__""
+                  },
+                  ""value"": null
+                }
+              }
+            },
+            {
+              ""id"": ""__arg_0__"",
+              ""typeInfo"": {
+                ""type"": 3,
+                ""required"": false
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": false
+                  },
+                  ""value"": null
+                }
+              }
+            }
+          ],
+          ""instructions"": [
+            {
+              ""type"": ""return"",
+              ""pointer"": {
+                ""type"": ""variable"",
+                ""variableId"": ""__arg_0__""
+              },
+              ""source"": {
+                ""line"": 35,
+                ""column"": 48
+              }
+            }
+          ],
+          ""typeInfo"": {
+            ""type"": 3,
+            ""required"": false
+          }
+        }
+      },
       ""4ed69bfa-b85a-5778-8f83-ae7723e75bad"": {
         ""createdAt"": 0,
         ""updatedAt"": 0,
@@ -2305,12 +3500,17 @@ namespace NeoCompose.Tests
           ""Combined"": ""12000000-0000-4000-8000-000000000012"",
           ""Forward"": ""12000000-0000-4000-8000-000000000004"",
           ""Identity"": ""12000000-0000-4000-8000-000000000002"",
+          ""Label"": ""12000000-0000-4000-8000-000000000013"",
           ""Map"": ""12000000-0000-4000-8000-000000000003"",
           ""Mark"": ""12000000-0000-4000-8000-000000000010"",
+          ""Maybe"": ""12000000-0000-4000-8000-000000000017"",
+          ""NarrowedCapture"": ""12000000-0000-4000-8000-000000000015"",
           ""Nested"": ""12000000-0000-4000-8000-000000000005"",
+          ""NestedCapture"": ""12000000-0000-4000-8000-000000000016"",
           ""Once"": ""12000000-0000-4000-8000-000000000008"",
           ""Order"": ""12000000-0000-4000-8000-000000000011"",
           ""Pair"": ""12000000-0000-4000-8000-000000000009"",
+          ""TypeNamedCapture"": ""12000000-0000-4000-8000-000000000014"",
           ""Typed"": ""12000000-0000-4000-8000-000000000007""
         },
         ""schemaKeyOrder"": [
@@ -2324,7 +3524,12 @@ namespace NeoCompose.Tests
           ""Pair"",
           ""Mark"",
           ""Order"",
-          ""Combined""
+          ""Combined"",
+          ""Label"",
+          ""TypeNamedCapture"",
+          ""NarrowedCapture"",
+          ""NestedCapture"",
+          ""Maybe""
         ],
         ""projectId"": ""project-id"",
         ""createdAt"": 1700000000000,
@@ -2438,6 +3643,18 @@ namespace NeoCompose.Tests
     {
       ""name"": ""Combined"",
       ""expected"": 20
+    },
+    {
+      ""name"": ""TypeNamedCapture"",
+      ""expected"": 5
+    },
+    {
+      ""name"": ""NarrowedCapture"",
+      ""expected"": 5
+    },
+    {
+      ""name"": ""NestedCapture"",
+      ""expected"": 5
     }
   ]
 }";
