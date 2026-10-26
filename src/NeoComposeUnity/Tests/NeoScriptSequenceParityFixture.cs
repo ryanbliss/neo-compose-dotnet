@@ -2343,13 +2343,26 @@ namespace NeoCompose.Tests
               ""finallyInstructions"": [
                 {
                   ""type"": ""assign"",
+                  ""bindings"": [
+                    {
+                      ""id"": ""$assignment_0"",
+                      ""typeInfo"": {
+                        ""type"": ""Unknown"",
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""__arg_0__""
+                      }
+                    }
+                  ],
                   ""target"": {
                     ""pointer"": {
                       ""type"": ""keyOf"",
                       ""keyOf"": {
                         ""pointer"": {
                           ""type"": ""variable"",
-                          ""variableId"": ""__arg_0__""
+                          ""variableId"": ""$assignment_0""
                         },
                         ""key"": {
                           ""type"": ""value"",
@@ -2450,13 +2463,26 @@ namespace NeoCompose.Tests
           ""finallyInstructions"": [
             {
               ""type"": ""assign"",
+              ""bindings"": [
+                {
+                  ""id"": ""$assignment_1"",
+                  ""typeInfo"": {
+                    ""type"": ""Unknown"",
+                    ""required"": true
+                  },
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  }
+                }
+              ],
               ""target"": {
                 ""pointer"": {
                   ""type"": ""keyOf"",
                   ""keyOf"": {
                     ""pointer"": {
                       ""type"": ""variable"",
-                      ""variableId"": ""__arg_0__""
+                      ""variableId"": ""$assignment_1""
                     },
                     ""key"": {
                       ""type"": ""value"",
@@ -3647,13 +3673,26 @@ namespace NeoCompose.Tests
         },
         {
           ""type"": ""assign"",
+          ""bindings"": [
+            {
+              ""id"": ""$assignment_0"",
+              ""typeInfo"": {
+                ""type"": ""Unknown"",
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""variable"",
+                ""variableId"": ""dict""
+              }
+            }
+          ],
           ""target"": {
             ""pointer"": {
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
                   ""type"": ""variable"",
-                  ""variableId"": ""dict""
+                  ""variableId"": ""$assignment_0""
                 },
                 ""key"": {
                   ""type"": ""value"",
@@ -9098,13 +9137,26 @@ namespace NeoCompose.Tests
         },
         {
           ""type"": ""assign"",
+          ""bindings"": [
+            {
+              ""id"": ""$assignment_0"",
+              ""typeInfo"": {
+                ""type"": ""Unknown"",
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""variable"",
+                ""variableId"": ""lists""
+              }
+            }
+          ],
           ""target"": {
             ""pointer"": {
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
                   ""type"": ""variable"",
-                  ""variableId"": ""lists""
+                  ""variableId"": ""$assignment_0""
                 },
                 ""key"": {
                   ""type"": ""value"",
@@ -9199,13 +9251,26 @@ namespace NeoCompose.Tests
         },
         {
           ""type"": ""assign"",
+          ""bindings"": [
+            {
+              ""id"": ""$assignment_1"",
+              ""typeInfo"": {
+                ""type"": ""Unknown"",
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""variable"",
+                ""variableId"": ""map""
+              }
+            }
+          ],
           ""target"": {
             ""pointer"": {
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
                   ""type"": ""variable"",
-                  ""variableId"": ""map""
+                  ""variableId"": ""$assignment_1""
                 },
                 ""key"": {
                   ""type"": ""value"",

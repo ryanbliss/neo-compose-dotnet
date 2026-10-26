@@ -324,6 +324,19 @@
         "instructions": [
           {
             "type": "assign",
+            "bindings": [
+              {
+                "id": "$assignment_0",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                }
+              }
+            ],
             "target": {
               "pointer": {
                 "type": "keyOf",
@@ -331,7 +344,7 @@
                 "keyOf": {
                   "pointer": {
                     "type": "variable",
-                    "variableId": "__this__"
+                    "variableId": "$assignment_0"
                   },
                   "key": {
                     "type": "value",
@@ -3010,13 +3023,26 @@
                       "finallyInstructions": [
                         {
                           "type": "assign",
+                          "bindings": [
+                            {
+                              "id": "$assignment_0",
+                              "typeInfo": {
+                                "type": "Unknown",
+                                "required": true
+                              },
+                              "pointer": {
+                                "type": "variable",
+                                "variableId": "__capture_0_0__"
+                              }
+                            }
+                          ],
                           "target": {
                             "pointer": {
                               "type": "keyOf",
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
-                                  "variableId": "__capture_0_0__"
+                                  "variableId": "$assignment_0"
                                 },
                                 "key": {
                                   "type": "value",
@@ -3049,7 +3075,7 @@
                                     "keyOf": {
                                       "pointer": {
                                         "type": "variable",
-                                        "variableId": "__capture_0_0__"
+                                        "variableId": "$assignment_0"
                                       },
                                       "key": {
                                         "type": "value",
@@ -3186,13 +3212,26 @@
                 "instructions": [
                   {
                     "type": "assign",
+                    "bindings": [
+                      {
+                        "id": "$assignment_1",
+                        "typeInfo": {
+                          "type": "Unknown",
+                          "required": true
+                        },
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "trace"
+                        }
+                      }
+                    ],
                     "target": {
                       "pointer": {
                         "type": "keyOf",
                         "keyOf": {
                           "pointer": {
                             "type": "variable",
-                            "variableId": "trace"
+                            "variableId": "$assignment_1"
                           },
                           "key": {
                             "type": "value",
@@ -3225,7 +3264,7 @@
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
-                                  "variableId": "trace"
+                                  "variableId": "$assignment_1"
                                 },
                                 "key": {
                                   "type": "value",
@@ -3503,13 +3542,26 @@
                   "instructions": [
                     {
                       "type": "assign",
+                      "bindings": [
+                        {
+                          "id": "$assignment_0",
+                          "typeInfo": {
+                            "type": "Unknown",
+                            "required": true
+                          },
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__capture_0_0__"
+                          }
+                        }
+                      ],
                       "target": {
                         "pointer": {
                           "type": "keyOf",
                           "keyOf": {
                             "pointer": {
                               "type": "variable",
-                              "variableId": "__capture_0_0__"
+                              "variableId": "$assignment_0"
                             },
                             "key": {
                               "type": "value",
@@ -3542,7 +3594,7 @@
                                 "keyOf": {
                                   "pointer": {
                                     "type": "variable",
-                                    "variableId": "__capture_0_0__"
+                                    "variableId": "$assignment_0"
                                   },
                                   "key": {
                                     "type": "value",
@@ -3640,13 +3692,26 @@
                 "finallyInstructions": [
                   {
                     "type": "assign",
+                    "bindings": [
+                      {
+                        "id": "$assignment_1",
+                        "typeInfo": {
+                          "type": "Unknown",
+                          "required": true
+                        },
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "trace"
+                        }
+                      }
+                    ],
                     "target": {
                       "pointer": {
                         "type": "keyOf",
                         "keyOf": {
                           "pointer": {
                             "type": "variable",
-                            "variableId": "trace"
+                            "variableId": "$assignment_1"
                           },
                           "key": {
                             "type": "value",
@@ -3679,7 +3744,7 @@
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
-                                  "variableId": "trace"
+                                  "variableId": "$assignment_1"
                                 },
                                 "key": {
                                   "type": "value",
@@ -3823,13 +3888,26 @@
                 "instructions": [
                   {
                     "type": "assign",
+                    "bindings": [
+                      {
+                        "id": "$assignment_2",
+                        "typeInfo": {
+                          "type": "Unknown",
+                          "required": true
+                        },
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "trace"
+                        }
+                      }
+                    ],
                     "target": {
                       "pointer": {
                         "type": "keyOf",
                         "keyOf": {
                           "pointer": {
                             "type": "variable",
-                            "variableId": "trace"
+                            "variableId": "$assignment_2"
                           },
                           "key": {
                             "type": "value",
@@ -3862,7 +3940,7 @@
                               "keyOf": {
                                 "pointer": {
                                   "type": "variable",
-                                  "variableId": "trace"
+                                  "variableId": "$assignment_2"
                                 },
                                 "key": {
                                   "type": "value",

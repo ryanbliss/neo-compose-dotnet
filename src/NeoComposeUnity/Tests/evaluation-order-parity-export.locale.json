@@ -1,0 +1,13 @@
+{
+    "schemaVersion": 1,
+    "projectId": "project-id",
+    "versionId": "version-id",
+    "locale": "en-US",
+    "sourceLocale": null,
+    "formattingSyntax": "smart-format",
+    "values": {
+        "27020534-e03d-5294-b9db-30ed9c80017f": "some-file",
+        "5dcdf038-506a-52dd-9634-4a38238d5ebd": "abc",
+        "911733ed-f882-56fa-bf66-5dd38ad317f9": "authored"
+    }
+}
