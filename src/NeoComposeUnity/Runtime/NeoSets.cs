@@ -121,6 +121,9 @@ namespace NeoCompose.Runtime
                 if (key is null)
                 {
                     set.Add(item);
+                    // Adding the first entry can resolve an open generic slot.
+                    if (set.KeyOf(item) is { } addedKey)
+                        seen.Add(addedKey);
                     continue;
                 }
                 if (!seen.Add(key))
@@ -248,7 +251,7 @@ namespace NeoCompose.Runtime
                 return payload.valueId;
             // An empty generic Set has no stamp, so its entry member is
             // still the unbound slot; nothing can match an empty Set anyway.
-            if (node.Count == 0)
+            if (node.Count == 0 && node.EntryMember is GenericMember)
                 return null;
             if (node.EntryMember is ClassMember)
                 return null;

@@ -920,6 +920,7 @@ namespace NeoCompose.Runtime
             // A shadow of a stamped nested-collection entry keeps the
             // immutable stamp (spec Decision 9/16).
             next.genericBindings = existing.genericBindings;
+            next.mapKey = existing.mapKey;
             NeoGenericResolution.StampGenericBindings(
                 client,
                 entryMember,
@@ -1408,7 +1409,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Returns the list's own array row guaranteed writable (a
         /// clone-on-write shadow at the stable id), minting + binding a
-        /// fresh empty array through the parent when nothing is bound yet.
+        /// fresh array seeded from the visible defaults when nothing is bound yet.
         /// </summary>
         /// <param name="replacesEntries">The caller assigns a new entries array rather than editing this one.</param>
         private ArrayMemberValue EnsureWritableArray(NeoWritePlan plan, NeoTimestamp nowIso, bool replacesEntries)
@@ -1424,7 +1425,7 @@ namespace NeoCompose.Runtime
                 id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = System.Array.Empty<string>(),
+                value = value?.value is { } defaults ? (string[])defaults.Clone() : System.Array.Empty<string>(),
             };
             // SDK-created rows carry the Decision-9 stamp from the wrapper
             // tree's enclosing context (spec §9).
