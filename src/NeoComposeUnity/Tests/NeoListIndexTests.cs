@@ -20,6 +20,25 @@ namespace NeoCompose.Tests
     public class NeoListIndexTests
     {
         [Test]
+        public void RetiredEntryIsReboundWithoutChangingMembership()
+        {
+            var node = LoadItems(3, out NeoClient client);
+            using (client)
+            {
+                var list = Wrap(client, node);
+                Assert.That(list.ContainsId("item-1"), Is.True);
+                var before = node[1];
+                before.Dispose();
+                var after = (NeoMemberClass)node[1];
+                Assert.That(after.isDisposed, Is.False);
+                Assert.That(after, Is.Not.SameAs(before));
+                Assert.That(after.Get<NeoMemberString>("Slug").value!.value, Is.EqualTo("slug-1"));
+                Assert.That(list["item-1"].Node, Is.SameAs(after));
+                Assert.That(node.Count, Is.EqualTo(3));
+            }
+        }
+
+        [Test]
         public void DescendantNotificationsRetainImmutableIdsAndRestoreOuterReentrantEvent()
         {
             var node = LoadItems(3, out NeoClient client);

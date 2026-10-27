@@ -39,6 +39,68 @@ namespace NeoCompose.Tests
             return member;
         }
 
+        [Test]
+        public void DictionaryClassEntryEditBubblesToItsOwningClass()
+        {
+            using var client = LoadClient(out _);
+            var data = client.ProjectDataForRuntime;
+            data.classes["audit-entry-class"] = new NeoSchemaClass
+            {
+                id = "audit-entry-class",
+                name = "Entry",
+                schema = new Dictionary<string, string> { ["Name"] = "member-name" },
+            };
+            data.members["audit-entry"] = new ClassMember
+            {
+                id = "audit-entry",
+                name = "Entry",
+                kind = MemberKind.Class,
+                DeclaredClassId = "audit-entry-class",
+            };
+            data.members["audit-entries"] = new DictionaryMember
+            {
+                id = "audit-entries",
+                name = "Entries",
+                kind = MemberKind.Dictionary,
+                entryMemberId = "audit-entry",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
+            };
+            data.classes["audit-owner"] = new NeoSchemaClass
+            {
+                id = "audit-owner",
+                name = "Owner",
+                schema = new Dictionary<string, string> { ["Entries"] = "audit-entries" },
+            };
+            using var owner = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "audit-owner");
+            var entry = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "audit-entry-class",
+                new NeoGeneratedConstructorValue("Name", "member-name", "before"));
+            var dictionary = owner.Get<NeoMemberDictionaryWritable>("Entries");
+            dictionary.SetSerialized("entry", NeoValueWritePayload.FromValueReference(entry.value!.id));
+            int dictionaryChanges = 0, ownerChanges = 0;
+            dictionary.OnChanged += _ => dictionaryChanges++;
+            owner.OnChanged += _ => ownerChanges++;
+            ((NeoMemberClassWritable)dictionary["entry"]).Get<NeoMemberStringWritable>("Name").Set("after");
+            Assert.That(dictionaryChanges, Is.EqualTo(1));
+            Assert.That(ownerChanges, Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DictionaryDirectEntryEditNotifiesItsSubscribers()
+        {
+            using var client = LoadClient(out _);
+            var member = RequireMember<DictionaryMember>(client, "member-inventory");
+            using var node = (NeoMemberDictionaryWritable)NeoMember.CreateWritable(client, member, null, NeoValueOwnership.Save);
+            node.SetSerialized("runtime", NeoGeneratedTypesSupport.Value("before"));
+            var dictionary = new NeoDictionary<string>(client, node,
+                (_, child) => ((NeoMemberString)child).value!.value!, NeoGeneratedTypesSupport.Value);
+            int changes = 0;
+            using var subscription = dictionary.OnChanged((_, _) => changes++);
+            ((NeoMemberStringWritable)node["runtime"]).Set("after");
+            Assert.That(dictionary["runtime"], Is.EqualTo("after"));
+            Assert.That(changes, Is.EqualTo(1));
+        }
+
         [TestCase("Add")]
         [TestCase("Remove")]
         [TestCase("Clear")]

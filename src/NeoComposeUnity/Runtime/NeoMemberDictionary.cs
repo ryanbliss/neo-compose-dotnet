@@ -23,6 +23,31 @@ namespace NeoCompose.Runtime
     {
         protected Member entryMember;
         protected Dictionary<string, NeoMember> childMembers = new();
+        private bool childrenNeedRefresh;
+        private System.Action<NeoMember>? childDisposedHandler;
+
+        private protected void ObserveChildren()
+        {
+            ObserveScriptWrites();
+            if (childrenNeedRefresh)
+                ReinitializeChildren();
+        }
+
+        private protected void HoldChild(NeoMember child)
+        {
+            child.Hold(this);
+            child.OnDisposed += childDisposedHandler ??= ChildDisposed;
+        }
+
+        private protected void ReleaseChild(NeoMember child)
+        {
+            child.OnDisposed -= childDisposedHandler;
+            child.Release(this);
+        }
+
+        private void ChildDisposed(NeoMember child) => childrenNeedRefresh = true;
+
+        protected internal override void HandleChildChanged(NeoMember child) => NotifyChanged();
 
         /// <summary>
         /// The (stamp-substituted) entry member children are constructed
@@ -57,7 +82,7 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                ObserveScriptWrites();
+                ObserveChildren();
                 return childMembers[key];
             }
         }
@@ -66,21 +91,21 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                ObserveScriptWrites();
+                ObserveChildren();
                 return childMembers.Count;
             }
         }
 
         public bool ContainsKey(string key)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             return childMembers.ContainsKey(key);
         }
 
         public bool TryGet<TNeoMember>(string key, [NotNullWhen(true)] out TNeoMember? outMember)
             where TNeoMember : NeoMember
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (childMembers.TryGetValue(key, out NeoMember? check) && check is TNeoMember match)
             {
                 outMember = match;
@@ -92,13 +117,13 @@ namespace NeoCompose.Runtime
 
         public IEnumerator<KeyValuePair<string, NeoMember>> GetEnumerator()
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             return childMembers.GetEnumerator();
         }
 
         internal Dictionary<string, NeoMember>.Enumerator ChildEnumerator()
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             return childMembers.GetEnumerator();
         }
 
@@ -135,6 +160,7 @@ namespace NeoCompose.Runtime
 
         protected void ReinitializeChildren()
         {
+            childrenNeedRefresh = false;
             var previousChildren = childMembers;
             childMembers = new();
             if (value?.value is null)
@@ -145,6 +171,7 @@ namespace NeoCompose.Runtime
             foreach (var kvp in value.value)
             {
                 if (previousChildren.TryGetValue(kvp.Key, out NeoMember? existing)
+                    && !existing.isDisposed
                     && existing.member.id == entryMember.id
                     && (existing.overrideValueId == kvp.Value
                         || existing.value?.id == kvp.Value))
@@ -153,16 +180,18 @@ namespace NeoCompose.Runtime
                     previousChildren.Remove(kvp.Key);
                     continue;
                 }
-                childMembers[kvp.Key] = CreateChild(client, entryMember, kvp.Value);
+                var child = CreateChild(client, entryMember, kvp.Value);
+                HoldChild(child);
+                childMembers[kvp.Key] = child;
             }
             DisposeChildren(previousChildren);
         }
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.
-        private static void DisposeChildren(Dictionary<string, NeoMember> children)
+        private void DisposeChildren(Dictionary<string, NeoMember> children)
         {
             foreach (var pair in children)
-                pair.Value.Dispose();
+                ReleaseChild(pair.Value);
         }
 
         protected Member ResolveEntryMember()
@@ -219,7 +248,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
             client.RequireInterfaceSlotAdmits(entryMember, null, member.name, setValue);
@@ -256,14 +285,16 @@ namespace NeoCompose.Runtime
             CommitOwnChange(plan);
             value = parentRow;
             if (childMembers.TryGetValue(key, out NeoMember? previousChild))
-                previousChild.Dispose();
-            childMembers[key] = CreateChild(client, entryMember, nextId);
+                ReleaseChild(previousChild);
+            var nextChild = CreateChild(client, entryMember, nextId);
+            HoldChild(nextChild);
+            childMembers[key] = nextChild;
             NotifyChanged();
         }
 
         public void Remove(string key)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (value?.value is null)
                 return;
             if (!value.value.ContainsKey(key))
@@ -287,7 +318,7 @@ namespace NeoCompose.Runtime
             // disposes any grandchildren) and drop our reference.
             if (childMembers.TryGetValue(key, out NeoMember? child))
             {
-                child.Dispose();
+                ReleaseChild(child);
                 childMembers.Remove(key);
             }
 

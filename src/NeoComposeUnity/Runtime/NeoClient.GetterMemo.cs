@@ -1419,6 +1419,7 @@ namespace NeoCompose.Runtime
             pendingGetterChanges = spareGetterChanges ?? new();
             spareGetterChanges = null;
             pendingGetterChangeSet.Clear();
+            BeginChangeBatch();
             try
             {
                 foreach (var (node, getter) in draining)
@@ -1429,6 +1430,7 @@ namespace NeoCompose.Runtime
             {
                 draining.Clear();
                 spareGetterChanges = draining;
+                EndChangeBatch();
             }
         }
 

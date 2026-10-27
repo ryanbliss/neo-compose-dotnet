@@ -34,6 +34,7 @@ namespace NeoCompose.Runtime
         private bool isDisposed;
         // Most views never subscribe; the list comes with the first.
         private List<IDisposable>? subscriptions;
+        private Action? retargetSubscriptions;
         private NeoMemberClassWritable? writableNodeCache;
         // A view's member views, by key and view type. A class has few and
         // generated accessors read them by literal key, so a scan by
@@ -589,6 +590,7 @@ namespace NeoCompose.Runtime
             writableNodeCache = next;
             node.OnDisposed += HandleNodeDisposed;
             client.RegisterGeneratedClassValue(this, node);
+            retargetSubscriptions?.Invoke();
 
             if (previous is not null && !ReferenceEquals(previous, next))
             {
@@ -646,19 +648,23 @@ namespace NeoCompose.Runtime
         {
             if (handler is null)
                 throw new ArgumentNullException(nameof(handler));
-            void Handle(NeoMember changed)
+            return TrackRetargetableSubscription(() =>
             {
-                handler(this, changed, client.CurrentChangeSource);
-            }
-            node.OnChanged += Handle;
-            // A handler that hears every change reads what it needs itself,
-            // which records the reads its getters will be heard by.
-            IDisposable? getters = WatchGetters();
-            return TrackSubscription(new NeoDisposableSubscription(() =>
-            {
-                node.OnChanged -= Handle;
-                getters?.Dispose();
-            }));
+                NeoMemberClass watchedNode = node;
+                void Handle(NeoMember changed)
+                {
+                    handler(this, changed, client.CurrentChangeSource);
+                }
+                watchedNode.OnChanged += Handle;
+                // A handler that hears every change reads what it needs itself,
+                // which records the reads its getters will be heard by.
+                IDisposable? getters = WatchGetters();
+                return new NeoDisposableSubscription(() =>
+                {
+                    watchedNode.OnChanged -= Handle;
+                    getters?.Dispose();
+                });
+            });
         }
 
         protected IDisposable WatchField<T>(
@@ -670,104 +676,116 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(handler));
             if (typeof(NeoReference).IsAssignableFrom(typeof(T)))
                 return WatchReferenceField(field, handler, readValue);
-            void Handle(NeoMember changed)
+            return TrackRetargetableSubscription(() =>
             {
-                if (!CanReadChange())
-                    return;
-                if (node.HoldsChildAt(field.Key, changed))
+                NeoMemberClass watchedNode = node;
+                void Handle(NeoMember changed)
                 {
-                    handler((T)readValue()!, client.CurrentChangeSource);
+                    if (!CanReadChange())
+                        return;
+                    if (node.HoldsChildAt(field.Key, changed))
+                    {
+                        handler((T)readValue()!, client.CurrentChangeSource);
+                    }
                 }
-            }
 #if ENABLE_MONO
-            // Prepare the typed callback when it is bound, without reading or
-            // invoking user code. Mono otherwise JITs its generic trampoline
-            // on the first gameplay notification (about 18 ms in Neowyn).
-            Action<NeoMember> callback = Handle;
-            _ = callback.Method.MethodHandle.GetFunctionPointer();
+                // Prepare the typed callback when it is bound, without reading or
+                // invoking user code. Mono otherwise JITs its generic trampoline
+                // on the first gameplay notification (about 18 ms in Neowyn).
+                Action<NeoMember> callback = Handle;
+                _ = callback.Method.MethodHandle.GetFunctionPointer();
 #endif
-            node.OnChanged += Handle;
-            IDisposable? getters = WatchGetters();
-            if (getters is not null)
-                ReadGetter(field.Key);
-            return TrackSubscription(new NeoDisposableSubscription(() =>
+                watchedNode.OnChanged += Handle;
+                IDisposable? getters = WatchGetters();
+                if (getters is not null)
+                    ReadGetter(field.Key);
+                return new NeoDisposableSubscription(() =>
+                {
+                    watchedNode.OnChanged -= Handle;
+                    getters?.Dispose();
+                });
+            }, changed =>
             {
-                node.OnChanged -= Handle;
-                getters?.Dispose();
-            }));
+                if (node.HoldsChildAt(field.Key, changed))
+                    ReadGetter(field.Key);
+            });
         }
 
         private IDisposable WatchReferenceField<T>(
             NeoField<T> field, Action<T, NeoChangeSource> handler, Func<object?> readValue)
         {
-            bool disposed = false;
-            string? targetId = null;
-            IDisposable? target = null;
-            IDisposable? getters = null;
-            Action deliver = null!;
-            deliver = Deliver;
-
-            T ReadAndFollowTarget()
+            return TrackRetargetableSubscription(() =>
             {
-                object? value = readValue();
-                string? nextId = (value as NeoReference)?.TargetId;
-                if (nextId != targetId)
+                NeoMemberClass watchedNode = node;
+                bool disposed = false;
+                string? targetId = null;
+                IDisposable? target = null;
+                IDisposable? getters = null;
+                Action deliver = null!;
+                deliver = Deliver;
+
+                T ReadAndFollowTarget()
                 {
-                    target?.Dispose();
-                    targetId = nextId;
-                    target = nextId is null ? null : client.SubscribeWritableValue(nextId, TargetChanged);
+                    object? value = readValue();
+                    string? nextId = (value as NeoReference)?.TargetId;
+                    if (nextId != targetId)
+                    {
+                        target?.Dispose();
+                        targetId = nextId;
+                        target = nextId is null ? null : client.SubscribeWritableValue(nextId, TargetChanged);
+                    }
+                    return (T)value!;
                 }
-                return (T)value!;
-            }
 
-            void Deliver()
-            {
-                if (!disposed && CanReadChange())
-                    handler(ReadAndFollowTarget(), client.CurrentChangeSource);
-            }
+                void Deliver()
+                {
+                    if (!disposed && CanReadChange())
+                        handler(ReadAndFollowTarget(), client.CurrentChangeSource);
+                }
 
-            void TargetChanged(NeoValueOwnership ownership, string id)
-            {
-                if (!disposed && id == targetId)
-                    client.QueueFieldChange(deliver);
-            }
+                void TargetChanged(NeoValueOwnership ownership, string id)
+                {
+                    if (!disposed && id == targetId)
+                        client.QueueFieldChange(deliver);
+                }
 
-            void Handle(NeoMember changed)
-            {
-                if (disposed || !CanReadChange())
-                    return;
-                bool fieldChanged = node.HoldsChildAt(field.Key, changed);
-                if (!fieldChanged && !ReferenceEquals(node, changed))
-                    return;
-                // A new binding publishes the owner row before its specific
-                // child notification. Maintain the target during that first phase.
-                ReadAndFollowTarget();
-                if (fieldChanged)
-                    client.QueueFieldChange(deliver);
-            }
+                void Handle(NeoMember changed)
+                {
+                    if (disposed || !CanReadChange())
+                        return;
+                    bool fieldChanged = node.HoldsChildAt(field.Key, changed);
+                    if (!fieldChanged && !ReferenceEquals(node, changed))
+                        return;
+                    // A new binding publishes the owner row before its specific
+                    // child notification. Maintain the target during that first phase.
+                    ReadAndFollowTarget();
+                    if (fieldChanged)
+                        client.QueueFieldChange(deliver);
+                }
 
-            void Unsubscribe()
-            {
-                disposed = true;
-                node.PrepareChanged -= Handle;
-                target?.Dispose();
-                getters?.Dispose();
-            }
+                void Unsubscribe()
+                {
+                    disposed = true;
+                    watchedNode.PrepareChanged -= Handle;
+                    target?.Dispose();
+                    getters?.Dispose();
+                }
 
-            node.PrepareChanged += Handle;
-            try
-            {
-                getters = WatchGetters();
-                if (getters is not null)
-                    ReadGetter(field.Key);
-                ReadAndFollowTarget();
-                return TrackSubscription(new NeoDisposableSubscription(Unsubscribe));
-            }
-            catch
-            {
-                Unsubscribe();
-                throw;
-            }
+                watchedNode.PrepareChanged += Handle;
+                try
+                {
+                    getters = WatchGetters();
+                    if (getters is not null)
+                        ReadGetter(field.Key);
+                    ReadAndFollowTarget();
+                    return new NeoDisposableSubscription(Unsubscribe);
+                }
+                catch
+                {
+                    Unsubscribe();
+                    throw;
+                }
+            });
         }
 
         protected IDisposable WatchChanges<TFields>(
@@ -787,32 +805,40 @@ namespace NeoCompose.Runtime
                 if (!readersByKey.ContainsKey(pair.Key.Key))
                     readersByKey.Add(pair.Key.Key, pair);
             }
-            void Handle(NeoMember changed)
+            return TrackRetargetableSubscription(() =>
             {
-                if (!CanReadChange())
-                    return;
-                if (node.TryGetSchemaKeyForChild(changed, out string? key)
-                    && readersByKey.TryGetValue(key, out var reader))
+                NeoMemberClass watchedNode = node;
+                void Handle(NeoMember changed)
                 {
-                    handler(new NeoChangedArgs<TFields>(reader.Key, reader.Value(), client.CurrentChangeSource));
-                    return;
+                    if (!CanReadChange())
+                        return;
+                    if (node.TryGetSchemaKeyForChild(changed, out string? key)
+                        && readersByKey.TryGetValue(key, out var reader))
+                    {
+                        handler(new NeoChangedArgs<TFields>(reader.Key, reader.Value(), client.CurrentChangeSource));
+                        return;
+                    }
+                    var changes = new Dictionary<INeoField, object?>();
+                    if (key is null)
+                        foreach (var pair in orderedReaders)
+                            changes[pair.Key] = pair.Value();
+                    handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
                 }
-                var changes = new Dictionary<INeoField, object?>();
-                if (key is null)
+                watchedNode.OnChanged += Handle;
+                IDisposable? getters = WatchGetters();
+                if (getters is not null)
                     foreach (var pair in orderedReaders)
-                        changes[pair.Key] = pair.Value();
-                handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
-            }
-            node.OnChanged += Handle;
-            IDisposable? getters = WatchGetters();
-            if (getters is not null)
-                foreach (var pair in orderedReaders)
-                    ReadGetter(pair.Key.Key);
-            return TrackSubscription(new NeoDisposableSubscription(() =>
+                        ReadGetter(pair.Key.Key);
+                return new NeoDisposableSubscription(() =>
+                {
+                    watchedNode.OnChanged -= Handle;
+                    getters?.Dispose();
+                });
+            }, changed =>
             {
-                node.OnChanged -= Handle;
-                getters?.Dispose();
-            }));
+                if (node.TryGetSchemaKeyForChild(changed, out string? key) && readersByKey.ContainsKey(key))
+                    ReadGetter(key);
+            });
         }
 
         /// <summary>
@@ -851,6 +877,35 @@ namespace NeoCompose.Runtime
             // view/listener has been retired. Never evaluate a dead receiver.
             return !isDisposed && (node.overrideValueId is not string id
                 || client.TryGetValue(node.ownership, id, out MemberValue? _));
+        }
+
+        private IDisposable TrackRetargetableSubscription(Func<IDisposable> subscribe, Action<NeoMember>? prepare = null)
+        {
+            NeoMemberClass watchedNode = node;
+            IDisposable current = subscribe();
+            void Prepare(NeoMember changed)
+            {
+                if (changed is NeoMemberNSProperty && CanReadChange())
+                    prepare?.Invoke(changed);
+            }
+            if (prepare is not null)
+                watchedNode.PrepareChanged += Prepare;
+            void Rebind()
+            {
+                watchedNode.PrepareChanged -= Prepare;
+                current.Dispose();
+                watchedNode = node;
+                current = subscribe();
+                if (prepare is not null)
+                    watchedNode.PrepareChanged += Prepare;
+            }
+            retargetSubscriptions += Rebind;
+            return TrackSubscription(new NeoDisposableSubscription(() =>
+            {
+                retargetSubscriptions -= Rebind;
+                watchedNode.PrepareChanged -= Prepare;
+                current.Dispose();
+            }));
         }
 
         private IDisposable TrackSubscription(IDisposable subscription)

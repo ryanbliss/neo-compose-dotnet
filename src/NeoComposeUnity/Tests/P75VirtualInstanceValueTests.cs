@@ -5147,6 +5147,33 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void VariantWritingChildRetiresItsWrapperWithoutPoisoningRetainedList()
+        {
+            var data = BuildConstructedUnorderedChildrenProjectData();
+            AddThingVariant(data);
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var retained = thing.Get<NeoMemberList>("Children");
+            var before = (NeoMemberClassWritable)retained.Single();
+            string id = before.value!.id;
+            Assert.That(client.TryGetVariant("thing-variant", out VariantRecord? variant), Is.True);
+            client.PrepareVariantApply(thing, scoped =>
+            {
+                NeoVariantSupport.ApplyToNode(client, variant, scoped, NeoValueOwnership.Save);
+                var child = (NeoMemberClassWritable)scoped.Get<NeoMemberList>("Children").Single();
+                child.Get<NeoMemberStringWritable>("Tag").Set("during-variant");
+            });
+            foreach (var list in new[] { retained, thing.Get<NeoMemberList>("Children") })
+            {
+                var child = (NeoMemberClassWritable)list.Single();
+                Assert.That(child.isDisposed, Is.False);
+                Assert.That(child.value!.id, Is.EqualTo(id));
+                Assert.That(child.Get<NeoMemberStringWritable>("Tag").value!.value, Is.EqualTo("during-variant"));
+                Assert.That(child.Get<NeoMemberStringWritable>("Name").value!.value, Is.EqualTo("Sprite"));
+            }
+        }
+
         /// <summary>
         /// Applying a variant replays its sparse root twice inside one
         /// candidate: once for the new selection, once after its declarative

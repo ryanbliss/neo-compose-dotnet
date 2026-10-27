@@ -31,6 +31,36 @@ namespace NeoCompose.Runtime
         // the same array and declaration has nothing to rebuild.
         private IReadOnlyList<string>? childrenEntryIds;
         private Member? childrenEntryMember;
+        private bool childrenNeedRefresh;
+        private System.Action<NeoMember>? childDisposedHandler;
+
+        private protected void ObserveChildren()
+        {
+            ObserveScriptWrites();
+            if (childrenNeedRefresh)
+                ReinitializeChildren();
+        }
+
+        private protected void HoldChild(NeoMember child)
+        {
+            child.Hold(this);
+            child.OnDisposed += childDisposedHandler ??= ChildDisposed;
+        }
+
+        private protected void ReleaseChild(NeoMember child)
+        {
+            child.OnDisposed -= childDisposedHandler;
+            child.Release(this);
+        }
+
+        private void ChildDisposed(NeoMember child)
+        {
+            if (childrenNeedRefresh)
+                return;
+            childrenNeedRefresh = true;
+            ForgetChildrenSource();
+            InvalidateAllIndexes();
+        }
 
         private protected void ForgetChildrenSource() => childrenEntryIds = null;
         private Dictionary<string, NeoMember>? childrenByValueId;
@@ -98,7 +128,7 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                ObserveScriptWrites();
+                ObserveChildren();
                 return childMembers[index];
             }
         }
@@ -107,7 +137,7 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                ObserveScriptWrites();
+                ObserveChildren();
                 return childMembers.Count;
             }
         }
@@ -140,13 +170,13 @@ namespace NeoCompose.Runtime
 
         public IEnumerator<NeoMember> GetEnumerator()
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             return childMembers.GetEnumerator();
         }
 
         internal List<NeoMember>.Enumerator ChildEnumerator()
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             return childMembers.GetEnumerator();
         }
 
@@ -183,7 +213,7 @@ namespace NeoCompose.Runtime
             client.UnwatchValuePartitions(this);
             foreach (var child in childMembers)
             {
-                child.Release(this);
+                ReleaseChild(child);
             }
             childMembers.Clear();
             childrenEntryIds = null;
@@ -204,7 +234,7 @@ namespace NeoCompose.Runtime
             // child nodes so indexed fields cannot retain unloaded values.
             foreach (NeoMember child in childMembers)
             {
-                child.Release(this);
+                ReleaseChild(child);
                 // Retired even while another container holds it.
                 child.Dispose();
             }
@@ -226,7 +256,7 @@ namespace NeoCompose.Runtime
         {
             if (valueId is null)
                 throw new ArgumentNullException(nameof(valueId));
-            ObserveScriptWrites();
+            ObserveChildren();
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.TryGetValue(valueId, out child);
@@ -236,7 +266,7 @@ namespace NeoCompose.Runtime
         {
             if (valueId is null)
                 throw new ArgumentNullException(nameof(valueId));
-            ObserveScriptWrites();
+            ObserveChildren();
             EnsureIdentityIndex();
             IndexDiagnostics.IdentityLookupCount += 1;
             return childrenByValueId!.ContainsKey(valueId);
@@ -251,7 +281,7 @@ namespace NeoCompose.Runtime
         {
             if (key is null)
                 throw new ArgumentNullException(nameof(key));
-            ObserveScriptWrites();
+            ObserveChildren();
             if (childMembers.Count == 0)
                 return null;
             if (entryMember is ClassMember)
@@ -425,6 +455,7 @@ namespace NeoCompose.Runtime
 
         protected void ReinitializeChildren()
         {
+            childrenNeedRefresh = false;
             var previousChildren = childMembers;
             var entryValueIds = ResolveEntryValueIds();
             if (value?.value is not null
@@ -440,7 +471,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var child in previousChildren)
                 {
-                    child.Release(this);
+                    ReleaseChild(child);
                 }
                 return;
             }
@@ -463,6 +494,7 @@ namespace NeoCompose.Runtime
             {
                 while (prefix < previousChildren.Count
                     && prefix < entryValueIds.Count
+                    && !previousChildren[prefix].isDisposed
                     && previousChildren[prefix].member.id == entryMember.id
                     && EntryValueId(previousChildren[prefix]) == entryValueIds[prefix])
                     prefix++;
@@ -487,6 +519,7 @@ namespace NeoCompose.Runtime
                 string entryValueId = entryValueIds[i];
                 if (previousById is not null
                     && previousById.TryGetValue(entryValueId, out NeoMember existing)
+                    && !existing.isDisposed
                     && existing.member.id == entryMember.id)
                 {
                     childMembers.Add(existing);
@@ -494,7 +527,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 NeoMember child = CreateChild(client, entryMember, entryValueId);
-                child.Hold(this);
+                HoldChild(child);
                 childMembers.Add(child);
                 // A changed member declaration can replace the wrapper at
                 // an existing id. New ids enter the index through the change
@@ -510,7 +543,7 @@ namespace NeoCompose.Runtime
                 NeoMember child = previousChildren[i];
                 if (retained?.Contains(child) != true)
                 {
-                    child.Release(this);
+                    ReleaseChild(child);
                 }
             }
             childrenEntryIds = entryValueIds;
@@ -729,7 +762,7 @@ namespace NeoCompose.Runtime
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
             // Commits a held script batch before the plan takes its base revision.
-            ObserveScriptWrites();
+            ObserveChildren();
             var plan = new NeoWritePlan(client);
             PrepareAddSerialized(plan, entryValue);
             plan.Commit();
@@ -750,7 +783,7 @@ namespace NeoCompose.Runtime
 
         internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             string id = PrepareAddSerializedCore(plan, entryValue);
             plan.ReportsOwnChange(this);
             plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
@@ -842,7 +875,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void SetSerialized(int index, NeoValueWritePayload? entryValue)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (IsUnordered)
             {
                 throw new System.InvalidOperationException(
@@ -890,10 +923,10 @@ namespace NeoCompose.Runtime
                 {
                     value = parentRow;
                     NeoMember previousChild = childMembers[index];
-                    previousChild.Release(this);
+                    ReleaseChild(previousChild);
                     NeoMember replacementChild = CreateChild(
                         client, entryMember, importedValueId);
-                    replacementChild.Hold(this);
+                    HoldChild(replacementChild);
                     childMembers[index] = replacementChild;
                     ForgetChildrenSource();
                     NotifyListChanged(new NeoListChangedArgs(
@@ -932,9 +965,9 @@ namespace NeoCompose.Runtime
             plan.AfterNotifications(() =>
             {
                 NeoMember replacedChild = childMembers[index];
-                replacedChild.Release(this);
+                ReleaseChild(replacedChild);
                 NeoMember newChild = CreateChild(client, entryMember, entryValueId);
-                newChild.Hold(this);
+                HoldChild(newChild);
                 childMembers[index] = newChild;
                 NotifyListChanged(new NeoListChangedArgs(
                     NeoListChangeKind.Set,
@@ -952,7 +985,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void RemoveAt(int index)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (IsUnordered)
             {
                 var entryIds = ResolveEntryValueIds();
@@ -1001,7 +1034,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void RemoveByIds(HashSet<string> entryValueIds)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (IsUnordered)
             {
                 throw new System.InvalidOperationException(
@@ -1044,7 +1077,7 @@ namespace NeoCompose.Runtime
 
         internal void ClearSerialized()
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (IsUnordered)
             {
                 ClearSerializedUnordered();
@@ -1073,7 +1106,7 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childMembers)
             {
-                child.Release(this);
+                ReleaseChild(child);
             }
             childMembers.Clear();
             ForgetChildrenSource();
@@ -1090,7 +1123,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Remove(NeoMember entry)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (entry is null)
                 throw new System.ArgumentNullException(nameof(entry));
             string? entryValueId = entry.value?.id;
@@ -1110,7 +1143,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void RemoveById(string entryValueId)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (!IsUnordered)
             {
                 var orderedIds = ResolveEntryValueIds();
@@ -1233,7 +1266,7 @@ namespace NeoCompose.Runtime
         internal void AssignSerialized(NeoValueWritePayload? setValue)
         {
             // Commits a held script batch before the plan takes its base revision.
-            ObserveScriptWrites();
+            ObserveChildren();
             var plan = new NeoWritePlan(client);
             PrepareAssignSerialized(plan, setValue);
             plan.Commit();
@@ -1241,7 +1274,7 @@ namespace NeoCompose.Runtime
 
         internal void PrepareAssignSerialized(NeoWritePlan plan, NeoValueWritePayload? setValue)
         {
-            ObserveScriptWrites();
+            ObserveChildren();
             if (!IsUnordered)
                 throw new System.InvalidOperationException($"List '{member.id}' is ordered.");
             bool isNull = setValue is null || setValue.isNull;
