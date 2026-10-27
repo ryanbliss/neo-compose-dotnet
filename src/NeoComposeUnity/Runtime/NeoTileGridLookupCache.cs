@@ -122,6 +122,16 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoTilePlacementRecord> TileRecords(string layerId) =>
             GetTileLayerIndex(layerId).Records;
 
+        internal NeoTilePlacementRecord? TileRecord(string layerId, string placementValueId)
+        {
+            var index = GetTileLayerIndex(layerId);
+            if (!index.FirstRecordIndexByPlacementId.TryGetValue(placementValueId, out int slot))
+                return null;
+            if (index.AdditionalRecordIndicesByPlacementId.ContainsKey(placementValueId))
+                throw new NeoScript.NSGetterRuntimeError($"Placed tile '{placementValueId}' has ambiguous grid ownership.");
+            return index.Records[slot];
+        }
+
         public IReadOnlyList<List<NeoTilePlacementRecord>> TileCandidatesInCellOrder(
             string layerId) =>
             GetTileLayerIndex(layerId).CandidatesInCellOrder;

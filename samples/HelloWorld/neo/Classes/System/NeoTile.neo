@@ -1,23 +1,6 @@
 @id("system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0")
 @system(kind: .WorldAuthoring, worldKind: .Tile)
 abstract class NeoTile {
-  @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
-  @storage(allowed: .Immutable)
-  @distribution(kind: .Packed)
-  @settings(format: .Plain)
-  @system(kind: .WorldAuthoring)
-  public virtual readonly string Name = "";
-
-  @id("system_cbd6db9a-f473-44b5-b913-7cdc06452f35")
-  @storage(allowed: .Immutable)
-  @system(kind: .WorldAuthoring)
-  public virtual readonly SpriteInfo Sprite = SpriteInfo.Empty;
-
-  @id("system_96cda8f5-3100-45b5-adcb-0552d21504dd")
-  @storage(allowed: .Immutable)
-  @system(kind: .WorldAuthoring)
-  public virtual readonly NeoSmartTile? SmartTile = null;
-
   @id("system_f4be2707-74f5-4833-9784-e81bb2474330")
   @system(kind: .WorldAuthoring)
   public virtual Vector2Int Cell = new(0, 0);
@@ -26,6 +9,38 @@ abstract class NeoTile {
   @id("system_a92b0911-8e7e-48ef-a12e-f3c55c33f64b")
   @system(kind: .WorldAuthoring)
   native public virtual T? GetArea<T extends NeoTileGrid = NeoTileGrid>();
+
+  /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
+  @id("system_bf87a1b7-b1ff-48dc-bbf0-286bd2739a9b")
+  @system(kind: .WorldAuthoring)
+  native public virtual List<T> GetObjects<T extends NeoObject = NeoObject>(NeoCellPattern pattern, Vector2Int? offset = null);
+
+  /// The first tile of type T found in pattern order around this tile, shifted by offset, or null. Each cell uses the grid layer precedence.
+  @id("system_2c92a799-5733-418c-af70-31d7fe22956f")
+  @system(kind: .WorldAuthoring)
+  native public virtual T? GetTile<T extends NeoTile = NeoTile>(NeoCellPattern pattern, Vector2Int? offset = null);
+
+  /// The tiles of type T at the cells around this tile, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
+  @id("system_7aac6739-41ad-4d7f-88d0-15b5f0416e67")
+  @system(kind: .WorldAuthoring)
+  native public virtual List<T> GetTiles<T extends NeoTile = NeoTile>(NeoCellPattern pattern, Vector2Int? offset = null);
+
+  @id("system_3b02422f-1ef2-4a50-8386-155d5001082b")
+  @storage(allowed: .Immutable)
+  @distribution(kind: .Packed)
+  @settings(format: .Plain)
+  @system(kind: .WorldAuthoring)
+  public virtual readonly string Name = "";
+
+  @id("system_96cda8f5-3100-45b5-adcb-0552d21504dd")
+  @storage(allowed: .Immutable)
+  @system(kind: .WorldAuthoring)
+  public virtual readonly NeoSmartTile? SmartTile = null;
+
+  @id("system_cbd6db9a-f473-44b5-b913-7cdc06452f35")
+  @storage(allowed: .Immutable)
+  @system(kind: .WorldAuthoring)
+  public virtual readonly SpriteInfo Sprite = SpriteInfo.Empty;
 
   /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert<T>() when the target class is known statically.
   @id("system_54ecc5a7-874d-54ed-92f4-38100a4b7465")
