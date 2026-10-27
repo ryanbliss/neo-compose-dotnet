@@ -372,13 +372,16 @@ namespace NeoCompose.Runtime
                     // write bubbles to the placement, so it is passed on.
                     if (changed is NeoMemberNSProperty)
                         instanceChanged(owner, changed);
-                    // Descendant writes bubble to composition owners. Only the
-                    // owner's Position or Size (or replacement of the owner) can move it,
-                    // and only its group's own writes can move the sort point.
+                    // Descendant writes bubble to composition owners. Refresh for
+                    // the owner's position or sprite geometry, or its replacement.
+                    // Only the group's own writes can move the sort point.
                     if (ReferenceEquals(changed, owner.BackingNode)
                         || (sortPoint is not null && sortPoint.IsGroupChange(changed))
                         || owner.BackingNode.HoldsChildAt("Position", changed)
-                        || owner.BackingNode.HoldsChildAt("Size", changed))
+                        || owner.BackingNode.HoldsChildAt("Size", changed)
+                        || (centeredSprite is not null && (owner.BackingNode.HoldsChildAt("Sprite", changed)
+                            || owner.BackingNode.HoldsChildAt("FlipX", changed)
+                            || owner.BackingNode.HoldsChildAt("FlipY", changed))))
                         generated.Client.RefreshAnimationRendering(refresh);
                 });
             }
@@ -389,7 +392,7 @@ namespace NeoCompose.Runtime
             private Vector3 Pivot() =>
                 renderer.CellOffsetToLocalPosition(value.Position) + (sortPoint?.Point ?? Vector3.zero)
                 + (centeredSprite is not null
-                    ? renderer.CellSpanCenterOffset(CellSpanFromSize(centeredSprite.Size)) : Vector3.zero);
+                    ? SpritePlacementOffset(centeredSprite, renderer.cellSize) : Vector3.zero);
 
             public void Refresh()
             {
@@ -564,7 +567,7 @@ namespace NeoCompose.Runtime
                     ? resolved
                     : null;
                 var currentOrigin = centeredSprite is null ? origin
-                    : -(Vector2)CellSpanFromSize(centeredSprite.Size) * (cellSize * .5f);
+                    : -(Vector2)SpritePlacementOffset(centeredSprite, cellSize);
                 if (host == null)
                     return;
                 Vector2 scale = centeredSprite is null ? Vector2.one : (Vector2)host.transform.localScale;
@@ -1769,11 +1772,7 @@ namespace NeoCompose.Runtime
                 var cellSpan = CellSpanFromSize(binding.Value.Size);
                 bool sizeChanged = binding.CellSpan != cellSpan;
                 if (sizeChanged)
-                {
                     binding.CellSpan = cellSpan;
-                    renderer.transform.localPosition = CellSpanCenterOffset(cellSpan)
-                        + (binding.FollowsPosition ? CellOffsetToLocalPosition(binding.Value.Position) : Vector3.zero);
-                }
                 bool geometryChanged = sizeChanged || !ReferenceEquals(renderer.sprite, sprite)
                     || renderer.flipX != binding.Value.FlipX
                     || renderer.flipY != binding.Value.FlipY
@@ -1789,7 +1788,11 @@ namespace NeoCompose.Runtime
                 if (renderer.sortingOrder != sortingOrder)
                     renderer.sortingOrder = sortingOrder;
                 if (geometryChanged)
+                {
+                    renderer.transform.localPosition = SpritePlacementOffset(binding.Value, cellSize)
+                        + (binding.FollowsPosition ? CellOffsetToLocalPosition(binding.Value.Position) : Vector3.zero);
                     ApplySpriteGeometry(renderer, binding.CellSpan, binding.BoundsCollider);
+                }
             }
         }
 
@@ -1799,7 +1802,8 @@ namespace NeoCompose.Runtime
         /// descendant's collider.
         /// </summary>
         private static bool ChangeCanCarryCollider(string? leafKey) =>
-            leafKey is null or "Size" || string.Equals(leafKey, ColliderMemberKey, StringComparison.Ordinal);
+            leafKey is null or "Size" or "Sprite" or "FlipX" or "FlipY"
+                || string.Equals(leafKey, ColliderMemberKey, StringComparison.Ordinal);
 
         /// <summary>Re-reads every collider an instance rendered from the value that governs it.</summary>
         private void SyncObjectColliders(NeoObjectInstanceId instanceId)
@@ -2544,7 +2548,7 @@ namespace NeoCompose.Runtime
             var go = new GameObject(
                 string.IsNullOrWhiteSpace(name) ? (sprite != null ? sprite.name : "Sprite") : name);
             go.transform.SetParent(parent, false);
-            var centerOffset = CellSpanCenterOffset(cellSpan);
+            var centerOffset = SpritePlacementOffset(spriteObject, cellSize);
             go.transform.localPosition = localPosition + centerOffset;
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sprite = sprite != null ? sprite : null;
@@ -2554,7 +2558,8 @@ namespace NeoCompose.Runtime
             // Recorded so a later Sprite / FlipX / FlipY write on the same
             // value reaches this renderer (SyncObjectSprites).
             sprites.Add(new RenderedObjectSprite(spriteObject, renderer, cellSpan, boundsCollider, sortingOrder, followsPosition));
-            // A sprite sits at its center, so its collider is measured back to the corner.
+            // The pivot offset places sprite bounds at the authored cell corner.
+            // Physical colliders measure from that corner rather than the art pivot.
             if (colliders != null && spriteObject is INeoColliderSource colliderSource)
                 AddColliderBinding(colliders, go, colliderSource, -(Vector2)centerOffset, sortPoint: null, centeredSprite: spriteObject);
             // The authored order is an offset on the order derived from the
@@ -2633,11 +2638,20 @@ namespace NeoCompose.Runtime
                 cells.z);
         }
 
-        private Vector3 CellSpanCenterOffset(Vector3 cellSpan) =>
-            new(
-                PositiveOrFallback(cellSpan.x, 1f) * cellSize * 0.5f,
-                PositiveOrFallback(cellSpan.y, 1f) * cellSize * 0.5f,
-                0f);
+        private static Vector3 SpritePlacementOffset(INeoSpriteObjectValue value, float cellSize)
+        {
+            var span = CellSpanFromSize(value.Size);
+            var offset = new Vector3(span.x * cellSize * .5f, span.y * cellSize * .5f, 0f);
+            if (value.Sprite is { } sprite && sprite != null)
+            {
+                var bounds = sprite.bounds;
+                offset.x -= (value.FlipX ? -bounds.center.x : bounds.center.x)
+                    * span.x * cellSize / PositiveOrFallback(bounds.size.x, 1f);
+                offset.y -= (value.FlipY ? -bounds.center.y : bounds.center.y)
+                    * span.y * cellSize / PositiveOrFallback(bounds.size.y, 1f);
+            }
+            return offset;
+        }
 
         private void ApplySpriteGeometry(SpriteRenderer renderer, Vector3 cellSpan, BoxCollider2D? boundsCollider)
         {

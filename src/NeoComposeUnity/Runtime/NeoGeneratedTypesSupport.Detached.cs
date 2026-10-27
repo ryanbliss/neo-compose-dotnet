@@ -428,7 +428,8 @@ namespace NeoCompose.Runtime
 
         internal static bool AssignedLocalList(DetachedSlot slot, object? value, NSGetterEvaluator.Context ctx) =>
             slot.kind == DetachedSlotKind.List
-            && NSGetterEvaluator.AssignedListIdentity(value, (ListMember)slot.member, ctx) is not null;
+            && (NSGetterEvaluator.AssignedListIdentity(value, (ListMember)slot.member, ctx) is not null
+                || NSGetterEvaluator.IsUnboundMutableCollection(value, ctx));
 
         /// <summary>
         /// Writes <paramref name="value"/> into a slot when it can stay

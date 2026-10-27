@@ -305,6 +305,9 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             var tagsMember = RequireMember<ListMember>(client, "member-tags");
             var tags = (NeoMemberListWritable)NeoMember.CreateWritable(client, tagsMember, null);
+            // This test owns the entries it removes. Declaration defaults are
+            // preserved on first mutation and are not these new writable rows.
+            tags.ClearSerialized();
             NeoGeneratedTypesSupport.AddValue(
                 tags,
                 NeoGeneratedTypesSupport.Value("first"));

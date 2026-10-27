@@ -6624,11 +6624,63 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private readonly struct TupleAssignment
+        {
+            private readonly NeoWritePlan plan;
+            private readonly NeoScript.NSGetterEvaluator.Context context;
+            private readonly NeoValueOwnership ownership;
+            private readonly string? destinationId;
+
+            internal TupleAssignment(NeoWritePlan plan, NeoScript.NSGetterEvaluator.Context context,
+                NeoValueOwnership ownership, string? destinationId)
+            {
+                this.plan = plan;
+                this.context = context;
+                this.ownership = ownership;
+                this.destinationId = destinationId;
+            }
+
+            internal TupleAssignment Element(int index)
+            {
+                string? childId = destinationId is not null
+                    && plan.Resolve(ownership, destinationId) is ArrayMemberValue { value: { } ids }
+                    && index < ids.Length ? ids[index] : null;
+                return new TupleAssignment(plan, context, ownership, childId);
+            }
+
+            internal string? ExistingTupleId => destinationId is not null
+                && plan.Resolve(ownership, destinationId) is ArrayMemberValue ? destinationId : null;
+
+            internal MemberValue ReplaceTuple(MemberValue row, Member member)
+            {
+                var writePlan = plan;
+                var ctx = context;
+                var store = ownership;
+                var replacement = (ArrayMemberValue)ctx.client.CloneRowForWrite(writePlan.Resolve(store, destinationId!)!);
+                replacement.value = ((ArrayMemberValue)row).value;
+                replacement.updatedAt = row.updatedAt;
+                ctx.client.StageInPlaceReplacement(writePlan, store, replacement, member,
+                    beforeRemovals: removed => NeoScript.NSGetterEvaluator.RetainRemovedClassAliases(writePlan, ctx, store, removed));
+                return replacement;
+            }
+
+            internal NeoConstructorValueReference? Reference(object? value)
+            {
+                var source = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, context);
+                if (source is null)
+                    return null;
+                string imported = NeoScriptExecutor.ImportClassValueReference(plan, context.client, ownership,
+                    source.Value.valueId, context, destinationId);
+                return new NeoConstructorValueReference(imported, ownership);
+            }
+        }
+
         internal static object? MaterializeCollectionAssignment(
             NeoClient client, Member member, object? value, NeoValueOwnership ownership,
             NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
-            CollectionInsertion? insertion = null)
+            CollectionInsertion? insertion = null,
+            string? currentDestinationValueId = null)
         {
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
@@ -6653,7 +6705,9 @@ namespace NeoCompose.Runtime
                         insertion?.Imported(item);
                     return new NeoConstructorValueReference(imported, ownership);
                 }, env, member.name, scope: null, insertion,
-                selections: plan is null ? null : new NeoScript.LocalCollectionSelections.Materialization(plan, ctx, ownership));
+                selections: plan is null ? null : new NeoScript.LocalCollectionSelections.Materialization(plan, ctx, ownership),
+                tupleAssignment: member is TupleMember && plan is not null && currentDestinationValueId is not null
+                    ? new TupleAssignment(plan, ctx, ownership, currentDestinationValueId) : null);
             return CallSiteWritePayload(payload, rows);
         }
 
@@ -7977,7 +8031,8 @@ namespace NeoCompose.Runtime
             NeoConstructionScope? scope,
             bool preserveOptionalNull = false,
             CollectionInsertion? insertion = null,
-            NeoScript.LocalCollectionSelections.Materialization? selections = null)
+            NeoScript.LocalCollectionSelections.Materialization? selections = null,
+            TupleAssignment? tupleAssignment = null)
         {
             if (insertion?.Existing(member, runtimeValue) is { } existing)
                 return existing;
@@ -7994,7 +8049,8 @@ namespace NeoCompose.Runtime
 
             if (runtimeValue is not null && member is ClassMember)
             {
-                NeoConstructorValueReference? source = valueReference(runtimeValue);
+                NeoConstructorValueReference? source = tupleAssignment is { } assignment
+                    ? assignment.Reference(runtimeValue) : valueReference(runtimeValue);
                 if (source is null || string.IsNullOrEmpty(source.Value.valueId))
                 {
                     throw new InvalidOperationException(
@@ -8024,7 +8080,8 @@ namespace NeoCompose.Runtime
                 return source.Value.valueId;
             }
 
-            string valueId = Guid.NewGuid().ToString();
+            string? retainedTupleId = member is TupleMember ? tupleAssignment?.ExistingTupleId : null;
+            string valueId = retainedTupleId ?? Guid.NewGuid().ToString();
             insertion?.Reserve(member, runtimeValue, valueId);
             NeoScript.LocalCollectionSelections.Occurrence? occurrence = member is LookupMember lookup && runtimeValue is not null && selections is not null
                 ? NeoScript.LocalCollectionSelections.Capture(selections.Plan, selections.Ownership, valueId,
@@ -8039,7 +8096,7 @@ namespace NeoCompose.Runtime
                 genericEnv,
                 path,
                 scope,
-                insertion, selections);
+                insertion, selections, member is TupleMember ? tupleAssignment : null);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -8051,6 +8108,8 @@ namespace NeoCompose.Runtime
                 member,
                 row,
                 genericEnv);
+            if (retainedTupleId is not null)
+                row = tupleAssignment!.Value.ReplaceTuple(row, member);
             rows.Add(row);
             if (occurrence is not null)
                 occurrence.Row = (ArrayMemberValue)row;
@@ -8085,7 +8144,8 @@ namespace NeoCompose.Runtime
             string path,
             NeoConstructionScope? scope,
             CollectionInsertion? insertion = null,
-            NeoScript.LocalCollectionSelections.Materialization? selections = null)
+            NeoScript.LocalCollectionSelections.Materialization? selections = null,
+            TupleAssignment? tupleAssignment = null)
         {
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
@@ -8132,7 +8192,8 @@ namespace NeoCompose.Runtime
                     object? item = suppliedValue is NeoScript.RuntimeTuple runtimeTuple
                         ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
                     ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
-                        $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections)
+                        $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections,
+                        tupleAssignment?.Element(index))
                         ?? throw new InvalidOperationException($"Tuple field '{path}' did not materialize element {index + 1}.");
                 }
                 payload = ids;

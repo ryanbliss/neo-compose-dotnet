@@ -2386,6 +2386,8 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string? unboundChildId = null)
         {
+            bool detachedCollection = NSGetterEvaluator.IsDetachedCollectionAlias(receiver);
+            receiver = NSGetterEvaluator.RuntimeCollection(receiver, ctx);
             NSGetterEvaluator.InvalidateCollectionOrdering(receiver);
             ctx.allocationTracker.ActiveGeneratorRetention?.Mutation(receiver, assigned);
             if (receiver is object?[] local && FindValueId(receiver, ctx) is null)
@@ -2422,11 +2424,13 @@ namespace NeoCompose.Runtime
                 array[index] = assigned;
                 return;
             }
-            if (writeTarget.writability is WritabilityKind.Local or WritabilityKind.Runtime
+            if ((writeTarget.writability is WritabilityKind.Local or WritabilityKind.Runtime || detachedCollection)
                 && receiver is not NeoScriptObject
                 && receiver is IDictionary<string, object?> dictionary
                 && FindValueId(receiver, ctx) is null)
             {
+                if (writeTarget.writability is WritabilityKind.ReadOnly or WritabilityKind.Immutable)
+                    throw new NSGetterRuntimeError("Cannot assign an entry of a read-only collection.");
                 string dictionaryKey = ToStringKey(Eval(keyOfPointer.keyOf.key, scope, ctx), "Dictionary assignment key");
                 if (writeTarget.typeInfo.type == MemberKind.List && assigned is object?[] list)
                     NSGetterEvaluator.CaptureRuntimeList(list);
@@ -2918,7 +2922,7 @@ namespace NeoCompose.Runtime
                     NSGetterEvaluator.ForwardDetached(owner, ctx);
                     local = Eval(variablePointer, scope, ctx);
                 }
-                if (local is not (object?[] or IDictionary<string, object?>) || FindValueId(local, ctx) is null)
+                if (local is not (object?[] or RuntimeSet or IDictionary<string, object?>) || FindValueId(local, ctx) is null)
                     return CollectionMutation.Local(local);
                 return CollectionMutation.Target(ResolveCollectionTarget(client, new WriteTarget
                 {
@@ -4390,7 +4394,8 @@ namespace NeoCompose.Runtime
                     rowValueId = variant.rowValueId,
                 };
             }
-            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv, insertion);
+            value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv, insertion,
+                currentDestinationValueId: id);
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
@@ -5143,10 +5148,9 @@ namespace NeoCompose.Runtime
                             if (TryGetValueReferenceId(value, ctx, out string? sourceId) && sourceId == valueId)
                                 return;
                             var member = client.members[binding.MemberId];
-                            if (member is ListMember listMember)
-                                NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, binding.Ownership, valueId, listMember, value);
+                            NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, binding.Ownership, valueId, member, value);
                             object? payload = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
-                                client, member, value, binding.Ownership, ctx, plan);
+                                client, member, value, binding.Ownership, ctx, plan, currentDestinationValueId: valueId);
                             string updatedId = binding.PreparePayload(plan, payload,
                                 removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, binding.Ownership, removed));
                             plan.AfterCommit(() =>
@@ -5486,8 +5490,8 @@ namespace NeoCompose.Runtime
                         && TryGetValueReferenceId(value, ctx, out string? sameCollectionId) && sameCollectionId == existingId)
                         return;
                     object? assignedCollection = value;
-                    if (bound && member is ListMember assignedList)
-                        NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, existingId, assignedList, assignedCollection, targetEnv);
+                    if (bound)
+                        NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, ownership, existingId, member, assignedCollection, targetEnv);
                     // P112 §4.1. A collection slot that holds a row keeps it,
                     // so references to it survive; another row's contents are copied in.
                     if (bound
@@ -5498,7 +5502,8 @@ namespace NeoCompose.Runtime
                     {
                         value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
                     }
-                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv);
+                    value = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(client, member, value, ownership, ctx, plan, targetEnv,
+                        currentDestinationValueId: bound ? existingId : null);
                     if (bound)
                     {
                         if (TryGetClassValueReferenceId(
@@ -5575,8 +5580,7 @@ namespace NeoCompose.Runtime
                     else
                     {
                         var childId = unboundChildId ?? Guid.NewGuid().ToString();
-                        if (member is ListMember assignedListMember)
-                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, ownership, childId, assignedListMember, assignedCollection, targetEnv);
+                        NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, ownership, childId, member, assignedCollection, targetEnv);
                         var next = CreateValueRow(plan, client, ownership, member, value, childId, now, now, ctx, targetEnv);
                         StoreWritableRow(plan, ownership, next, ctx);
                         linked.value![key] = childId;

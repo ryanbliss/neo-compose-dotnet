@@ -9967,6 +9967,78 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Render_NoncenteredSpritesKeepBoundsAcrossFlipsAndPositionWrites()
+        {
+            var data = BuildPlacementAnimationProjectData();
+            foreach (string key in new[] { "FlipX", "FlipY" })
+            {
+                string id = "audit-" + key;
+                data.members[id] = new BoolMember
+                {
+                    id = id,
+                    kind = MemberKind.Bool,
+                    name = key,
+                    defaultValue = new BoolMemberValueBase { value = false }
+                };
+                data.classes[ObjectClassId].schema[key] = id;
+            }
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var root = (TestComposedObject)SpawnAnimationTestObject(client).Info;
+            var part = (TestComposedObject)SpawnAnimationTestObject(client, new Vector2Int(5, 5)).Info;
+            var texture = new Texture2D(2, 4);
+            var art = Sprite.Create(texture, new Rect(0, 0, 2, 4), Vector2.zero);
+            var child = new TestSpriteObject(client, part.BackingNode)
+            {
+                Name = "Art",
+                Position = new(1, 2, 0),
+                Size = new(2, 3, 0),
+                Sprite = art,
+            };
+            root.Children = new INeoWorldObjectValue[] { child };
+            var go = new GameObject("Noncentered sprite position");
+            try
+            {
+                var gridRenderer = go.AddComponent<NeoTileGridRenderer>();
+                gridRenderer.CellSize = 2;
+                gridRenderer.Render(NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(), new[] { ObjectLayerWithSingleInstance(root, "Default", 12) });
+                var drawn = go.GetComponentInChildren<SpriteRenderer>();
+                void Check()
+                {
+                    var center = drawn.transform.parent.InverseTransformPoint(drawn.bounds.center);
+                    var expected = (Vector3)child.Position.Value * 2 + new Vector3(2, 3, 0);
+                    Assert.That(Vector3.Distance(center, expected), Is.LessThan(.001f));
+                    Assert.That(drawn.bounds.size.x, Is.EqualTo(4).Within(.001f));
+                    Assert.That(drawn.bounds.size.y, Is.EqualTo(6).Within(.001f));
+                }
+                Check();
+                // These test adapters expose Children as a CLR array, so notify
+                // the root as well as the nested node, as a stored child write does.
+                child.FlipX = true;
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode), "FlipX", NeoValueWritePayload.FromValue(true));
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(root.BackingNode), "FlipX", NeoValueWritePayload.FromValue(true));
+                Check();
+                child.Position = new(-1, 2, 0);
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode), "Position", NeoValueWritePayload.FromValue(child.Position.Value));
+                Check();
+                child.FlipY = true;
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode), "FlipY", NeoValueWritePayload.FromValue(true));
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(root.BackingNode), "FlipY", NeoValueWritePayload.FromValue(true));
+                Check();
+                child.FlipX = false;
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(part.BackingNode), "FlipX", NeoValueWritePayload.FromValue(false));
+                NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(root.BackingNode), "FlipX", NeoValueWritePayload.FromValue(false));
+                Check();
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(art);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
         public void Render_SpriteChangesRefreshGeometryAndKeepEmptyBinding()
         {
             var data = BuildPlacementAnimationProjectData();
@@ -9980,7 +10052,11 @@ namespace NeoCompose.Tests
             data.classes[ObjectClassId].schema["FlipX"] = "sprite-notification";
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var obj = (TestComposedObject)SpawnAnimationTestObject(client).Info;
-            var child = new TestSpriteChild { Size = new NeoReadOnlyVector3(2f, 3f, 0f) };
+            var child = new TestSpriteChild
+            {
+                Size = new NeoReadOnlyVector3(2f, 3f, 0f),
+                Collider = new TestObjectCollider { Size = new(.5f, .25f), Offset = new(.25f, .5f) }
+            };
             obj.Children = new INeoWorldObjectValue[] { child };
             var go = new GameObject("Sprite lifecycle test");
             var texture = new Texture2D(2, 4);
@@ -10014,10 +10090,24 @@ namespace NeoCompose.Tests
                     Assert.That(drawn.transform.localScale.x, Is.EqualTo(2f / art.bounds.size.x).Within(.001f));
                     Assert.That(drawn.transform.localScale.y, Is.EqualTo(3f / art.bounds.size.y).Within(.001f));
                     Assert.AreEqual((Vector2)art.bounds.size, collider.size);
+                    var drawnCenter = drawn.transform.parent.InverseTransformPoint(drawn.bounds.center);
+                    Assert.That(drawnCenter.x, Is.EqualTo(1f).Within(.001f));
+                    Assert.That(drawnCenter.y, Is.EqualTo(1.5f).Within(.001f));
+                    var physical = drawn.GetComponents<BoxCollider2D>()[1];
+                    var physicalCenter = drawn.transform.parent.InverseTransformPoint(physical.transform.TransformPoint(physical.offset));
+                    Assert.That(physicalCenter.x, Is.EqualTo(.25f).Within(.001f));
+                    Assert.That(physicalCenter.y, Is.EqualTo(.5f).Within(.001f));
                 }
                 child.FlipX = child.FlipY = true;
                 Notify();
                 Assert.AreEqual(-(Vector2)sprite.bounds.center, drawn.GetComponent<BoxCollider2D>().offset);
+                var flippedCenter = drawn.transform.parent.InverseTransformPoint(drawn.bounds.center);
+                Assert.That(flippedCenter.x, Is.EqualTo(1f).Within(.001f));
+                Assert.That(flippedCenter.y, Is.EqualTo(1.5f).Within(.001f));
+                var physicalFlipped = drawn.GetComponents<BoxCollider2D>()[1];
+                var physicalFlippedCenter = drawn.transform.parent.InverseTransformPoint(physicalFlipped.transform.TransformPoint(physicalFlipped.offset));
+                Assert.That(physicalFlippedCenter.x, Is.EqualTo(.25f).Within(.001f));
+                Assert.That(physicalFlippedCenter.y, Is.EqualTo(.5f).Within(.001f));
                 UnityEngine.Object.DestroyImmediate(sprite);
                 Notify();
                 Assert.IsFalse(drawn.GetComponent<BoxCollider2D>().enabled);

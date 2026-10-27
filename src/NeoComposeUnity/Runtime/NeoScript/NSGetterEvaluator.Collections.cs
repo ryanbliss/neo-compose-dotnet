@@ -31,16 +31,28 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object?[], RuntimeListIdentity> runtimeLists = new();
 
+        internal static bool IsDetachedCollectionAlias(object? value) =>
+            value is not null && detachedCollectionAliases.TryGetValue(value, out _);
+
         internal static object? RuntimeCollection(object? value, Context ctx)
         {
             if (value is RuntimeSet or object?[] or IDictionary<string, object?>)
             {
+                if (detachedCollectionAliases.TryGetValue(value, out var original))
+                    value = original;
                 ctx.client.CommitRemovedScriptAlias(value, ctx);
                 ctx.client.CommitScriptAttachment(value);
             }
             if (value is RuntimeSet && FindRowReference(value, ctx) is { } setReference
                 && ctx.client.ReadValue(setReference.ownership, setReference.valueId, ref setReference.node) is ArrayMemberValue setRow)
+            {
+                // Keep a local set's identity when another local captures it.
+                // Row publication refreshes its entries; reading the row above
+                // also publishes any pending write before Count/Contains reads.
+                if (assignedCollections.TryGetValue(value, out var index) && ReferenceEquals(index, ctx.rowReverseIndex))
+                    return value;
                 return UnwrapCached(setRow, ctx, setReference.ownership, setReference.member, setReference.node);
+            }
             if (value is not object?[] array)
                 return value;
             if (runtimeSets.TryGetValue(array, out var set))
@@ -88,6 +100,92 @@ namespace NeoCompose.Runtime.NeoScript
                 || ctx.ArrayDetachedOrigin(array) is not null)
                 return null;
             return runtimeLists.TryGetValue(array, out var identity) && identity.captured ? identity : null;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> assignedCollections = new();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> detachedCollectionAliases = new();
+
+        internal static bool IsUnboundMutableCollection(object? value, Context ctx) =>
+            value is RuntimeSet or Dictionary<string, object?> && FindRowReference(value, ctx) is null;
+
+        internal static void PrepareAssignedCollectionAlias(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership,
+            string valueId, Member member, object? assigned,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
+        {
+            if (member is ListMember list)
+                PrepareAssignedListAlias(plan, ctx, ownership, valueId, list, assigned, targetEnv);
+            if (member is not (SetMember or DictionaryMember))
+                return;
+            object? incoming = IsUnboundMutableCollection(assigned, ctx) ? assigned : null;
+            var aliases = new List<object>();
+            ctx.rowAliases.GetInto(ownership, valueId, aliases);
+            object? outgoing = null;
+            RowReference? outgoingReference = null;
+            foreach (object alias in aliases)
+            {
+                if (!ReferenceEquals(alias, incoming)
+                    && assignedCollections.TryGetValue(alias, out var index)
+                    && ReferenceEquals(index, ctx.rowReverseIndex)
+                    && FindRowReference(alias, ctx) is { } reference
+                    && reference.valueId == valueId && reference.ownership == ownership)
+                {
+                    outgoing = alias;
+                    outgoingReference = reference;
+                    break;
+                }
+            }
+            if (outgoing is not null && outgoingReference is { } previous
+                && ctx.client.ReadValue(ownership, valueId, ref previous.node) is { } previousRow)
+            {
+                object snapshot = CopiedCollectionContents(UnwrapCached(previousRow, ctx, ownership, member, previous.node)!, ctx);
+                plan.AfterCommit(() =>
+                {
+                    foreach (object alias in aliases)
+                    {
+                        if (alias is not (RuntimeSet or object?[] or Dictionary<string, object?>)
+                            || FindRowReference(alias, ctx) is not { } reference
+                            || reference.valueId != valueId || reference.ownership != ownership)
+                            continue;
+                        ctx.rowAliases.Remove(alias, reference);
+                        RemoveRowReference(ctx, alias);
+                        if (!ReferenceEquals(alias, outgoing))
+                            detachedCollectionAliases.AddOrUpdate(alias, outgoing);
+                    }
+                    // Mark the canonical local too: evaluating a captured alias
+                    // normalizes it before a later write checks its provenance.
+                    detachedCollectionAliases.AddOrUpdate(outgoing, outgoing);
+                    assignedCollections.Remove(outgoing);
+                    InvalidateCachedCollection(valueId, ownership, ctx);
+                    if (outgoing is Dictionary<string, object?> dictionary
+                        && snapshot is Dictionary<string, object?> values)
+                    {
+                        dictionary.Clear();
+                        foreach (var pair in values)
+                            dictionary.Add(pair.Key, pair.Value);
+                        KeepDerived(dictionary, null, values: true);
+                    }
+                    else if (outgoing is RuntimeSet set && snapshot is object?[] entries)
+                    {
+                        set.Clear();
+                        foreach (object? entry in entries)
+                            set.Add(RuntimeSetKey(entry, set, ctx), entry);
+                    }
+                    NoteCollectionAlias();
+                });
+            }
+            if (incoming is null)
+                return;
+            plan.AfterCommit(() =>
+            {
+                var reference = new RowReference(valueId, ownership, null, member);
+                if (ctx.client.ReadValue(ownership, valueId, ref reference.node) is not { } row)
+                    return;
+                assignedCollections.AddOrUpdate(incoming, ctx.rowReverseIndex);
+                SetRowReference(ctx, incoming, reference);
+                PatchCachedShape(row, incoming, ctx);
+                NoteCollectionAlias();
+            });
         }
 
         // An assigned local list follows its destination until that field is
