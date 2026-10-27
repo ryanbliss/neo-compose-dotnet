@@ -106,6 +106,45 @@ namespace NeoCompose.Tests
                 "variant-lookup");
         }
 
+        [TestCase("base")]
+        [TestCase("variant")]
+        [TestCase("lookup")]
+        [TestCase("bound")]
+        public void CSharpConstructorAcceptsVariantHandles(string kind)
+        {
+            using var client = LoadClient();
+            Hero row = RequireHero(client);
+            var lookup = RegisterLookupVariant(client, row);
+            client.ProjectDataForRuntime.variants["variant-oak"] = Variant("variant-oak", "Oak", null);
+            object handle = kind switch
+            {
+                "base" => NeoGeneratedTypesSupport.ResolveBaseVariant<Hero>(client, HeroClassId),
+                "variant" => NeoGeneratedTypesSupport.ResolveVariant<Hero>(client, "variant-oak"),
+                "lookup" => lookup,
+                _ => lookup.Bind(row),
+            };
+            client.ProjectDataForRuntime.members["host-variant"] = new VariantMember
+            {
+                id = "host-variant",
+                name = "Variant",
+                kind = MemberKind.Variant,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            client.ProjectDataForRuntime.classes["variant-host"] = new NeoSchemaClass
+            {
+                id = "variant-host",
+                name = "VariantHost",
+                projectId = "synth",
+                schema = new Dictionary<string, string> { ["Variant"] = "host-variant" },
+            };
+            using var node = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "variant-host",
+                new NeoGeneratedConstructorValue("Variant", "host-variant", handle));
+            var stored = node.Get<NeoMemberVariant>("Variant").value!.value!;
+            Assert.That(stored.classId, Is.EqualTo(HeroClassId));
+            Assert.That(stored.variantId, Is.EqualTo(kind == "base" ? null : kind == "variant" ? "variant-oak" : "variant-lookup"));
+            Assert.That(stored.rowValueId, Is.EqualTo(kind == "bound" ? row.valueId : null));
+        }
+
         // -------------------------------------------------------------------
         // §9 — the collection and the schema handshake.
         // -------------------------------------------------------------------

@@ -33,6 +33,37 @@ namespace NeoCompose.Tests
             return new TestProjectNeo(NeoTestSaveStack.LoadSynchronously(stack.Synchronizer));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SymmetricDifferenceDeduplicatesInputAcrossEmptySet(bool initiallyPopulated)
+        {
+            using var app = LoadGeneratedClient();
+            var set = app.Save.Lucky;
+            set.Clear();
+            if (initiallyPopulated)
+                set.Add(1);
+            set.SymmetricExceptWith(initiallyPopulated ? new[] { 1, 2, 2 } : new[] { 2, 2 });
+            CollectionAssert.AreEquivalent(new[] { 2 }, set);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GenericSymmetricDifferenceDeduplicatesInputAcrossEmptySet(bool initiallyPopulated)
+        {
+            using var app = LoadGeneratedClient();
+            var set = app.Save.VectorBag.Tags;
+            set.Clear();
+            var first = new NeoVector2(1f, 2f);
+            var second = new NeoVector2(3f, 4f);
+            if (initiallyPopulated)
+                set.Add(first);
+            set.SymmetricExceptWith(initiallyPopulated
+                ? new[] { first, second, new NeoVector2(3f, 4f) }
+                : new[] { second, new NeoVector2(3f, 4f) });
+            Assert.That(set.Count, Is.EqualTo(1));
+            Assert.That(set.Single().Value, Is.EqualTo(new Vector2(3f, 4f)));
+        }
+
         [Test]
         public void NeoSet_AddReturnsFalseOnADuplicateAndWritesNothing()
         {

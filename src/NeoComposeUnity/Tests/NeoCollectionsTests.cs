@@ -39,6 +39,70 @@ namespace NeoCompose.Tests
             return member;
         }
 
+        [TestCase("Add")]
+        [TestCase("Remove")]
+        [TestCase("Clear")]
+        public void UnboundListFirstMutationPreservesVisibleDefaults(string operation)
+        {
+            using var client = LoadClient(out _);
+            client.ProjectDataForRuntime.values["v-a"] = new StringMemberValue { id = "v-a", value = "first" };
+            client.ProjectDataForRuntime.values["v-b"] = new StringMemberValue { id = "v-b", value = "second" };
+            var member = RequireMember<ListMember>(client, "member-tags");
+            using var node = (NeoMemberListWritable)NeoMember.CreateWritable(client, member, null, NeoValueOwnership.Save);
+            var list = new NeoList<string>(client, node,
+                (_, child) => ((NeoMemberString)child).value!.value!, NeoGeneratedTypesSupport.Value);
+            var first = list[0];
+            var second = list[1];
+            Assert.That(list.Count, Is.EqualTo(2));
+            if (operation == "Add")
+            {
+                list.Add("third");
+                CollectionAssert.AreEqual(new[] { first, second, "third" }, list);
+            }
+            else if (operation == "Remove")
+            {
+                list.RemoveAt(0);
+                CollectionAssert.AreEqual(new[] { second }, list);
+            }
+            else
+            {
+                list.Clear();
+                Assert.That(list, Is.Empty);
+            }
+        }
+
+        [Test]
+        public void DictionaryAddRejectsDuplicateWithoutWriting()
+        {
+            using var client = LoadClient(out _);
+            var dictionary = LoadDefaultOnlyInventory(client);
+            dictionary.Add("new", "original");
+            var before = client.SerializeSaveData();
+            var notifications = 0;
+            using var subscription = dictionary.OnChanged((_, _) => notifications++);
+            Assert.Throws<System.ArgumentException>(() => dictionary.Add("new", "replacement"));
+            Assert.That(dictionary["new"], Is.EqualTo("original"));
+            Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
+            Assert.That(notifications, Is.Zero);
+        }
+
+        [TestCase(NeoValueOwnership.Save)]
+        [TestCase(NeoValueOwnership.Session)]
+        public void ReplacingRuntimeListEntryPreservesPartition(NeoValueOwnership ownership)
+        {
+            using var client = LoadClient(out _);
+            var member = RequireMember<ListMember>(client, "member-tags");
+            using var node = (NeoMemberListWritable)NeoMember.CreateWritable(client, member, null, ownership);
+            node.AddSerialized(NeoGeneratedTypesSupport.Value("original"));
+            string id = node[node.Count - 1].value!.id;
+            Assert.That(client.TryGetWritableValue(ownership, id, out MemberValue? row), Is.True);
+            row!.mapKey = "map-a";
+            node.SetSerialized(node.Count - 1, NeoGeneratedTypesSupport.Value("replacement"));
+            Assert.That(client.TryGetWritableValue(ownership, id, out row), Is.True);
+            Assert.That(row!.mapKey, Is.EqualTo("map-a"));
+            Assert.That(((StringMemberValue)row).value, Is.EqualTo("replacement"));
+        }
+
         [Test]
         public void NeoList_AddSetRemove_TracksUnderlyingSavedList()
         {
@@ -51,6 +115,7 @@ namespace NeoCompose.Tests
                 (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
 
+            tags.Clear();
             int changed = 0;
             using var tagsSubscription = tags.OnChanged((_, _) => changed++);
 
@@ -81,6 +146,7 @@ namespace NeoCompose.Tests
                 (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
 
+            tags.Clear();
             tags.Add("first");
             tags.Add("second");
             var removedIds = new[]
@@ -126,7 +192,7 @@ namespace NeoCompose.Tests
             using var inventorySubscription = inventory.OnChanged((_, _) => changed++);
 
             inventory["sword"] = "Excalibur";
-            inventory.Add("shield", "Aegis");
+            inventory["shield"] = "Aegis";
 
             Assert.AreEqual(2, inventory.Count);
             Assert.IsTrue(inventory.ContainsKey("sword"));

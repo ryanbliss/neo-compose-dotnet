@@ -661,8 +661,12 @@ namespace NeoCompose.Runtime
 
         public bool IsReadOnly => isReadOnly?.Invoke() ?? false;
 
-        public void Add(string key, T value) =>
+        public void Add(string key, T value)
+        {
+            if (ContainsKey(key))
+                throw new ArgumentException($"An entry with key '{key}' already exists.", nameof(key));
             RequireWritableNode().SetSerialized(key, serializeItem(value));
+        }
 
         public void Add(KeyValuePair<string, T> item) => Add(item.Key, item.Value);
 

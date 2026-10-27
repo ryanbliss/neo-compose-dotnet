@@ -24,7 +24,7 @@ namespace NeoCompose.Runtime
     /// and every read below treats null exactly as an empty partial and an
     /// empty list. There is no separate "unset" behaviour to reason about.</para>
     /// </summary>
-    public sealed class NeoVariant<T> where T : NeoGeneratedClassValue
+    public sealed class NeoVariant<T> : INeoValuePayloadProvider where T : NeoGeneratedClassValue
     {
         private readonly NeoClient client;
 
@@ -58,6 +58,9 @@ namespace NeoCompose.Runtime
         /// member stores exactly this alongside <see cref="ClassId"/>.
         /// </summary>
         public string? VariantId => record?.id;
+
+        NeoValuePayload INeoValuePayloadProvider.ToNeoValuePayload() =>
+            new(NeoGeneratedTypesSupport.VariantValue(this)!.value);
 
         /// <summary>The target class this variant configures.</summary>
         public string ClassId
@@ -127,7 +130,7 @@ namespace NeoCompose.Runtime
     /// collection. <see cref="Bind"/> erases that argument into a plain
     /// <see cref="NeoVariant{T}"/> handle for storage in a Variant member.
     /// </summary>
-    public sealed class NeoLookupVariant<T, TValue>
+    public sealed class NeoLookupVariant<T, TValue> : INeoValuePayloadProvider
         where T : NeoGeneratedClassValue
         where TValue : NeoGeneratedClassValue
     {
@@ -141,6 +144,9 @@ namespace NeoCompose.Runtime
         }
 
         public string VariantId => record.id;
+
+        NeoValuePayload INeoValuePayloadProvider.ToNeoValuePayload() =>
+            new(NeoGeneratedTypesSupport.VariantValue(this)!.value);
         public string ClassId => record.classId;
         public string Name => record.name;
         public string? Folder => record.folder;
