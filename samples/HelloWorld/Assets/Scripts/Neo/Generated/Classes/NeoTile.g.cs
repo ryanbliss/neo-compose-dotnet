@@ -21,7 +21,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTile writable);
 
+        string Name { get; }
+
+        NeoReadOnlySprite Sprite { get; }
+
+        new IReadOnlyNeoSmartTile? SmartTile { get; }
+
         NeoReadOnlyVector2Int Cell { get; }
+
+
+        /// <summary>
+        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
+        /// </summary>
+        bool TryConvert(IReadOnlyNeoTile target);
 
 
         /// <summary>
@@ -75,23 +87,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
-
-        /// <summary>
-        /// The cell in the owning grid, or null when this tile is not in a grid.
-        /// </summary>
         Vector2Int? GridCell { get; }
-
-        string Name { get; }
-
-        new IReadOnlyNeoSmartTile? SmartTile { get; }
-
-        NeoReadOnlySprite Sprite { get; }
-
-
-        /// <summary>
-        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
-        /// </summary>
-        bool TryConvert(IReadOnlyNeoTile target);
     }
 
     public abstract partial class NeoTile : NeoGeneratedTileValue, IReadOnlyNeoTile, INeoSmartTileSource
@@ -159,6 +155,33 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
 
+        public virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public virtual NeoReadOnlySprite Sprite
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
+            }
+        }
+
+        public virtual IReadOnlyNeoSmartTile? SmartTile
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("SmartTile");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+            }
+        }
+
         public virtual NeoVector2Int Cell
         {
             get
@@ -189,9 +212,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
-        /// <summary>
-        /// The cell in the owning grid, or null when this tile is not in a grid.
-        /// </summary>
         public virtual Vector2Int? GridCell
         {
             get
@@ -204,33 +224,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-        }
 
-        public virtual IReadOnlyNeoSmartTile? SmartTile
+        /// <summary>
+        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
+        /// </summary>
+        public virtual bool TryConvert(IReadOnlyNeoTile target)
         {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("SmartTile");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
-            }
+            return base.TryConvert(target);
         }
-
-        public virtual NeoReadOnlySprite Sprite
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberSprite>("Sprite");
-                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
-                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
-            }
-        }
-
 
         /// <summary>
         /// The nearest tile grid that owns this tile, or null when no grid owns it or that grid is not a T. A tile in an object's tile layer answers with the object's grid.
@@ -247,21 +248,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         public IReadOnlyNeoTileGrid? GetArea()
             => GetArea<IReadOnlyNeoTileGrid>();
 
-        private Vector2Int? GetGridCell()
-        {
-            var result = client.ScriptGridQueries.Invoke("system_223292cc-c600-57b6-a927-69bee647d82a", this, new object?[] { });
-            if (result is null) return null;
-            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
-            return resolvedVector;
-        }
-
         /// <summary>
         /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
         public virtual global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
         {
             var result = client.ScriptGridQueries.Invoke("system_bf87a1b7-b1ff-48dc-bbf0-286bd2739a9b", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
@@ -291,7 +284,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
             var result = client.ScriptGridQueries.Invoke("system_7aac6739-41ad-4d7f-88d0-15b5f0416e67", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
@@ -300,38 +293,38 @@ namespace HelloWorld.Assets.Scripts.Neo
         public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetTiles<IReadOnlyNeoTile>(pattern, offset);
 
-        /// <summary>
-        /// Converts this placement to the target's concrete tile class, preserving its identity and Cell. Use TryConvert&lt;T&gt;() when the target class is known statically.
-        /// </summary>
-        public virtual bool TryConvert(IReadOnlyNeoTile target)
+        private Vector2Int? GetGridCell()
         {
-            return base.TryConvert(target);
+            var result = client.ScriptGridQueries.Invoke("system_223292cc-c600-57b6-a927-69bee647d82a", this, new object?[] { });
+            if (result is null) return null;
+            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
+            return resolvedVector;
         }
 
         public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
-
-            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
-
             public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
 
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
                 [Fields.GridCell] = () => null,
-                [Fields.Name] = () => null,
-                [Fields.SmartTile] = () => null,
-                [Fields.Sprite] = () => null,
             };
         }
 
@@ -349,11 +342,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
                 [Fields.GridCell] = () => GridCell,
-                [Fields.Name] = () => Name,
-                [Fields.SmartTile] = () => SmartTile,
-                [Fields.Sprite] = () => Sprite,
             };
         }
 

@@ -195,6 +195,7 @@ namespace NeoCompose.Runtime
                     Clear();
                 return;
             }
+            client.RequireNoGenericStaticTargets(member, null, member.name, payload);
             WritePayload(payload.value);
         }
 
@@ -295,10 +296,6 @@ namespace NeoCompose.Runtime
             {
                 row.containerId = previous.containerId;
                 row.mapKey = previous.mapKey;
-                row.genericBindings = previous.genericBindings is null
-                    ? null
-                    : new System.Collections.Generic.Dictionary<string, string>(
-                        previous.genericBindings);
             }
             else
             {
@@ -312,6 +309,7 @@ namespace NeoCompose.Runtime
             client.StageInPlaceReplacement(plan, Ownership, row, member, beforeRemovals: beforeRemovals);
             if (currentValueId is null)
                 plan.Bind(Ownership, member.id, true, valueId);
+            NeoTypeSources.PlaceCreatedRoot(client, plan, valueId, member);
             return valueId;
         }
 
@@ -331,12 +329,12 @@ namespace NeoCompose.Runtime
                     $"Cannot bind static member '{member.name}' to missing Class value '{sourceValueId}'.");
             }
             string actualClassId = classMember.RowClassId(sourceRow.classId);
-            if (!client.SlotAdmitsClass(classMember, actualClassId))
+            if (!client.SlotNamesClass(classMember, actualClassId))
             {
                 throw new System.InvalidOperationException(
                     $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
             }
-            client.RequireInterfaceSlotAdmits(classMember, null, member.name, payload);
+            client.RequireSlotAdmits(classMember, null, member.name, payload, NeoGenericResolution.EmptyEnv);
 
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
@@ -375,6 +373,7 @@ namespace NeoCompose.Runtime
                 plan.Set(Ownership, stamped);
             }
             plan.Bind(Ownership, member.id, true, importedValueId);
+            NeoTypeSources.PlaceCreatedRoot(client, plan, importedValueId, member);
             if (movedValueIds is not null)
             {
                 plan.AfterCommit(() => payload.RetargetMovedReference(

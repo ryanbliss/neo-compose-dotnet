@@ -38,12 +38,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public OldConsoleLandingGrid(string DisplayName, NeoVector3? CellSize = null, IEnumerable<NeoLayerGroupBase>? Children = null, int? PixelsPerUnit = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, CellSize, Children, PixelsPerUnit), false, NeoValueOwnership.Session)
+        public OldConsoleLandingGrid(string DisplayName, NeoVector3? CellSize = null, int? PixelsPerUnit = null, IEnumerable<NeoLayerGroupBase>? Children = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, CellSize, PixelsPerUnit, Children), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string DisplayName, NeoVector3? CellSize = null, IEnumerable<NeoLayerGroupBase>? Children = null, int? PixelsPerUnit = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string DisplayName, NeoVector3? CellSize = null, int? PixelsPerUnit = null, IEnumerable<NeoLayerGroupBase>? Children = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -51,8 +51,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 "b44d80a9-7760-4919-8844-0cb71d08b788",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DisplayName", "f7493cd5-3da1-44ef-a275-5997d765b640", DisplayName),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CellSize", "system_3b523230-a851-4ab5-a6f2-c2d0745c116f", CellSize),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_98578ba3-a70e-4397-9283-996a898d44c8", Children),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PixelsPerUnit", "system_8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0", PixelsPerUnit)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PixelsPerUnit", "system_8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0", PixelsPerUnit),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_98578ba3-a70e-4397-9283-996a898d44c8", Children)
             );
         }
 
@@ -142,9 +142,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> CellSize = new("CellSize");
 
-            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
-
             public static readonly NeoField<int> PixelsPerUnit = new("PixelsPerUnit");
+
+            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
 
             public static readonly NeoField<string> DisplayName = new("DisplayName");
         }
@@ -154,8 +154,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.CellSize] = () => null,
-                [Fields.Children] = () => null,
                 [Fields.PixelsPerUnit] = () => null,
+                [Fields.Children] = () => null,
                 [Fields.DisplayName] = () => null,
             };
         }
@@ -175,8 +175,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.CellSize] = () => CellSize,
-                [Fields.Children] = () => Children,
                 [Fields.PixelsPerUnit] = () => PixelsPerUnit,
+                [Fields.Children] = () => Children,
                 [Fields.DisplayName] = () => DisplayName,
             };
         }

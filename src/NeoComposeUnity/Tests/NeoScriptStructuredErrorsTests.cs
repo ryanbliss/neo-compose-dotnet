@@ -181,9 +181,9 @@ namespace NeoCompose.Tests
         public void ClosedConstructorRejectsDifferentTupleBinding()
         {
             using NeoClient client = Client();
-            var bindings = new Dictionary<string, GenericBinding>
+            var bindings = new Dictionary<string, TypeBinding>
             {
-                ["p122-error-type"] = new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = "p223-error-int-tuple-type" }
+                ["p122-error-type"] = TestTypeBindings.Tuple(TestTypeBindings.Of(MemberKind.Int), TestTypeBindings.Of(MemberKind.Int)),
             };
             var closed = new ClassTypeInfo
             {
@@ -227,7 +227,8 @@ namespace NeoCompose.Tests
             {
                 var closed = (TupleTypeInfo)NeoNSFunctionRuntime.ResolveInvocationTypeInfo(client, input, env);
                 Assert.AreEqual(MemberKind.Int, closed.elements[0].typeInfo.type);
-                Assert.IsFalse(closed.elements[0].typeInfo.required);
+                // P127 §4.2: `T?` bound to `int` closes to `int`.
+                Assert.IsTrue(closed.elements[0].typeInfo.required);
                 Assert.AreEqual("First", closed.elements[0].name);
                 Assert.IsFalse(NeoNSFunctionRuntime.ContainsGeneric(closed));
             }

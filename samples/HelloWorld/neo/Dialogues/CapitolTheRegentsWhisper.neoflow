@@ -32,9 +32,9 @@ sealed class CapitolTheRegentsWhisper : NeoDialogue {
     group: Visits.Urgent,
     order: 0,
     when: [
-    @id("9b3cd709-3dab-5795-9ad0-2595985a2626")
-    Condition1,
-  ],
+      @id("9b3cd709-3dab-5795-9ad0-2595985a2626")
+      Condition1,
+    ],
     limit: 1,
   ) => R1;
 

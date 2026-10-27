@@ -130,9 +130,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""pending:interface:Probe.neo:ICapability""
         ],
-        ""typeNames"": [
-          ""ICapability""
-        ]
+        ""typeNames"": [""ICapability""]
       }
     },
     ""Powers"": {
@@ -2209,10 +2207,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     },
@@ -5703,9 +5698,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""InspectGeneric"": {
@@ -5823,9 +5816,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""InspectNested"": {
@@ -6045,9 +6036,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""Relay"": {
@@ -6672,9 +6661,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""InspectInner"": {
@@ -6815,9 +6802,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""InspectTuple"": {
@@ -7053,10 +7038,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable"",
-          ""T""
-        ]
+        ""typeNames"": [""IEnumerable"", ""T""]
       }
     },
     ""InspectSwitch"": {
@@ -7237,9 +7219,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""WidenedMerges"": {
@@ -7891,9 +7871,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""WidenedReturn"": {
@@ -8396,9 +8374,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""WidenedTuple"": {
@@ -9028,9 +9004,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""LocalSequenceSlots"": {
@@ -9490,9 +9464,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""TypedBindings"": {
@@ -11627,9 +11599,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""ListGenerator"": {
@@ -12014,9 +11984,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""TypedSequenceLoop"": {
@@ -12356,9 +12324,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""ConstraintSum"": {
@@ -14002,10 +13968,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     },
@@ -14249,9 +14212,7 @@ namespace NeoCompose.Tests
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
         ],
-        ""typeNames"": [
-          ""IEnumerable""
-        ]
+        ""typeNames"": [""IEnumerable""]
       }
     },
     ""QueryList"": {
@@ -14452,10 +14413,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     },
@@ -15197,10 +15155,7 @@ namespace NeoCompose.Tests
         }
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     }

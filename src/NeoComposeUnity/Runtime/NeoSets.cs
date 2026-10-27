@@ -245,9 +245,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private protected string? KeyOf(NeoValueWritePayload? payload)
         {
-            if (payload is null || payload.isNull)
-                return null;
-            if (payload.isValueReference)
+            if (payload is { isValueReference: true })
                 return payload.valueId;
             // An empty generic Set has no stamp, so its entry member is
             // still the unbound slot; nothing can match an empty Set anyway.
@@ -255,6 +253,9 @@ namespace NeoCompose.Runtime
                 return null;
             if (node.EntryMember is ClassMember)
                 return null;
+            // P127 §9.5: every null is one key, so a Set holds at most one null.
+            if (payload is null || payload.isNull)
+                return NeoSetEntryKey.NullEntryKey;
             return node.SetEntryKeyOf(payload);
         }
     }

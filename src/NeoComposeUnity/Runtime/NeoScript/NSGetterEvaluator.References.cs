@@ -359,7 +359,11 @@ namespace NeoCompose.Runtime.NeoScript
             return null;
         }
 
-        /// <summary>§4.3. A reference whose target row is the wrong type is refused on use.</summary>
+        /// <summary>
+        /// §4.3. A reference whose target row is the wrong type is refused on
+        /// use. An object handle reads its row unjudged, so a reference may
+        /// name a row of a derived construction (P127).
+        /// </summary>
         internal static void AssertReferenceFits(NSSlotReference reference, Context ctx)
         {
             TypeInfo? target = reference.Target;
@@ -368,6 +372,9 @@ namespace NeoCompose.Runtime.NeoScript
             // §4.4. No slot holds a removed entry's row, though the row lingers.
             if (!ctx.client.TryInferMemberForValueId(reference.TargetId, out JsonMember? member))
                 throw DanglingReferenceError(reference.MemberId, reference.TargetId, ctx);
+            if (target.type is MemberKind.Class or MemberKind.Interface
+                && NeoReferenceTypes.Category(target, ctx.client) == NeoReferenceCategory.Handle)
+                return;
             TypeInfo stored = StoredSlotType(reference, member, reference.Place, ctx);
             if (NeoReferenceTypes.SlotFits(stored, target))
                 return;
@@ -406,14 +413,15 @@ namespace NeoCompose.Runtime.NeoScript
         {
             TypeInfo? stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member);
             // A nested or retained collection carries its closed placement on
-            // its own row. That stamp takes precedence over an enclosing class.
+            // its own row: its stamp, or its typeSource one hop away (P127
+            // §12.1). That takes precedence over an enclosing class.
             if (stored is not null && NeoNSFunctionRuntime.ContainsGeneric(stored)
                 && member is ListMember or DictionaryMember
                 && ctx.client.TryGetValue(ResolveOwnershipForValueId(ctx, reference.TargetId), reference.TargetId, out MemberValue? row)
-                && row.genericBindings is not null)
+                && NeoTypeSources.EntryStamp(ctx.client, row, member) is { } stamp)
             {
                 stored = NeoReferenceTypes.SlotTypeInfo(ctx.client, member,
-                    NeoGenericResolution.EnvFromStamp(row.genericBindings));
+                    NeoGenericResolution.EnvFromStamp(ctx.client, stamp));
             }
             // §3.5. A `T` slot's stored type is its owner's binding.
             if (stored is null || NeoNSFunctionRuntime.ContainsGeneric(stored))

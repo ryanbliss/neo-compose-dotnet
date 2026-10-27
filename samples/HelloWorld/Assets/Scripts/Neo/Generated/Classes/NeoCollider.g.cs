@@ -21,7 +21,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoCollider writable);
 
-        new bool? IsTrigger { get; }
+        new NeoReadOnlyVector2 Size { get; }
 
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         new NeoReadOnlyVector2? Offset { get; }
 
-        new NeoReadOnlyVector2 Size { get; }
+        new bool? IsTrigger { get; }
     }
 
     public partial class NeoCollider : NeoGeneratedClassValue, IReadOnlyNeoCollider, INeoCollider
@@ -113,15 +113,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyVector2 INeoCollider.Size => Size;
         NeoReadOnlyVector2? INeoCollider.Offset => Offset;
 
-        public virtual bool? IsTrigger
+        public virtual NeoReadOnlyVector2 Size
         {
             get
             {
-                if (TryReadDetached("IsTrigger", out object? detachedValue))
-                {
-                    return detachedValue is null ? (bool?)null : (bool)detachedValue!;
-                }
-                return node.Get<NeoMemberBool>("IsTrigger").value?.value;
+                var memberNode = node.Get<NeoMemberVector2>("Size");
+                if (TryGetStoredView<NeoReadOnlyVector2>("Size", memberNode, out var cached)) return cached;
+                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector2(memberNode));
             }
         }
 
@@ -139,13 +137,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual NeoReadOnlyVector2 Size
+        public virtual bool? IsTrigger
         {
             get
             {
-                var memberNode = node.Get<NeoMemberVector2>("Size");
-                if (TryGetStoredView<NeoReadOnlyVector2>("Size", memberNode, out var cached)) return cached;
-                return CacheStoredView("Size", memberNode, new NeoReadOnlyVector2(memberNode));
+                if (TryReadDetached("IsTrigger", out object? detachedValue))
+                {
+                    return detachedValue is null ? (bool?)null : (bool)detachedValue!;
+                }
+                return node.Get<NeoMemberBool>("IsTrigger").value?.value;
             }
         }
 

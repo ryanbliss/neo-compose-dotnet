@@ -202,7 +202,8 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""staticBindings"": {}
+  ""staticBindings"": {},
+  ""requiredSaveFormatRevision"": 3
 }";
             var client = LoadLocalizedStringClient(localized: true, saveBuffer);
 
@@ -220,7 +221,8 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""staticBindings"": {}
+  ""staticBindings"": {},
+  ""requiredSaveFormatRevision"": 3
 }";
             var client = LoadLocalizedStringClient(localized: true, saveBuffer);
 
@@ -246,7 +248,8 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""staticBindings"": {}
+  ""staticBindings"": {},
+  ""requiredSaveFormatRevision"": 3
 }");
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
@@ -270,7 +273,8 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""staticBindings"": {}
+  ""staticBindings"": {},
+  ""requiredSaveFormatRevision"": 3
 }");
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Session);
@@ -300,7 +304,7 @@ namespace NeoCompose.Tests
             var data = NeoTestExport.Read(
                 @"{
   ""metadata"": {
-    ""schemaVersion"": 46,
+    ""schemaVersion"": 47,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   },
@@ -697,7 +701,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 46,
+    ""schemaVersion"": 47,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},

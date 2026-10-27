@@ -69,7 +69,7 @@ namespace NeoCompose.Tests
                     : new ClassTypeInfo { type = MemberKind.Class, required = true, classId = classId },
             });
             corpus["interfaces"] = new JObject { ["ifoo"] = new JObject { ["id"] = "ifoo", ["name"] = "IFoo", ["projectId"] = "project-1", ["members"] = new JObject() } };
-            corpus["classes"]!["class-user"]!["implementsInterfaceIds"] = new JArray("ifoo");
+            corpus["classes"]!["class-user"]!["implementsInterfaces"] = new JArray(new JObject { ["interfaceId"] = "ifoo" });
             corpus["classes"]!["class-user"]!["allowedStorage"] = (int)NeoMemberStorage.User;
             corpus["members"]!["extension-read"] = extension;
             using var store = await LoadStoreAsync(new NeoInMemoryLocalSaveStore(), corpus: corpus.ToString());

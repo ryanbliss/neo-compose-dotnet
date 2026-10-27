@@ -13,15 +13,15 @@ namespace NeoCompose.Runtime
         // caller changing its map or a binding cannot change the cache key.
         private readonly struct GenericBindingsKey : IEquatable<GenericBindingsKey>
         {
-            internal readonly IReadOnlyDictionary<string, GenericBinding>? Bindings;
-            internal GenericBindingsKey(IReadOnlyDictionary<string, GenericBinding>? bindings) => Bindings = bindings;
+            internal readonly IReadOnlyDictionary<string, TypeBinding>? Bindings;
+            internal GenericBindingsKey(IReadOnlyDictionary<string, TypeBinding>? bindings) => Bindings = bindings;
             internal GenericBindingsKey Snapshot()
             {
                 if (Bindings is null || Bindings.Count == 0)
                     return default;
-                var copy = new Dictionary<string, GenericBinding>(Bindings.Count, StringComparer.Ordinal);
+                var copy = new Dictionary<string, TypeBinding>(Bindings.Count, StringComparer.Ordinal);
                 foreach (var pair in Bindings)
-                    copy.Add(pair.Key, new GenericBinding { kind = pair.Value.kind, memberId = pair.Value.memberId, genericParamId = pair.Value.genericParamId });
+                    copy.Add(pair.Key, pair.Value);
                 return new GenericBindingsKey(copy);
             }
             public bool Equals(GenericBindingsKey other)
@@ -34,8 +34,7 @@ namespace NeoCompose.Runtime
                     return true;
                 foreach (var pair in Bindings)
                     if (!other.Bindings!.TryGetValue(pair.Key, out var value)
-                        || pair.Value.kind != value.kind || pair.Value.memberId != value.memberId
-                        || pair.Value.genericParamId != value.genericParamId)
+                        || !pair.Value.Equals(value))
                         return false;
                 return true;
             }
@@ -45,7 +44,7 @@ namespace NeoCompose.Runtime
                 int hash = Bindings?.Count ?? 0;
                 if (Bindings is not null)
                     foreach (var pair in Bindings)
-                        hash ^= HashCode.Combine(pair.Key, pair.Value.kind, pair.Value.memberId, pair.Value.genericParamId);
+                        hash ^= HashCode.Combine(pair.Key, pair.Value);
                 return hash;
             }
         }

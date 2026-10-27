@@ -296,7 +296,7 @@ namespace NeoCompose.Runtime
         /// <summary>The P108 §3 key a value-kind entry built from <paramref name="payload"/> would hold.</summary>
         internal string SetEntryKeyOf(NeoValueWritePayload? payload) =>
             NeoSetEntryKey.OfPayload(entryMember, payload?.value, client,
-                contextRow: entryMember is TupleMember ? value : null);
+                contextRow: entryMember is TupleMember && value is not null ? (value, member) : null);
 
         /// <summary>The P108 §3 key of one of this list's entries.</summary>
         internal string SetEntryKeyOfEntry(NeoMember child)
@@ -726,14 +726,15 @@ namespace NeoCompose.Runtime
                     $"No member for {nameof(member)}.{nameof(member.entryMemberId)} {member.entryMemberId}");
             }
             // Entry substitution is lazy via the row's genericBindings stamp
+            // over the collection's owner environment
             // (specs/class-generics.md Decision 9), or the declaring class's
             // environment for a declaration default. An open entry with
             // neither keeps the raw record until a stamped row binds, at
             // which point OnValueIdChainChanged re-substitutes.
-            var env = NeoGenericResolution.CollectionEntryEnv(client, member, value, valueId is null);
-            if (env is null)
-                return match;
-            return NeoGenericResolution.SubstituteMember(client, match, env);
+            return NeoGenericResolution.SubstituteEntryMember(
+                client,
+                match,
+                NeoGenericResolution.CollectionEntryEnv(client, member, value, valueId is null));
         }
     }
 
@@ -814,7 +815,8 @@ namespace NeoCompose.Runtime
                     nameof(entryValue),
                     "Cannot be null when entry member is required");
             }
-            client.RequireInterfaceSlotAdmits(entryMember, null, member.name, entryValue);
+            client.RequireSlotAdmits(entryMember, null, member.name, entryValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
+            client.RequireNoGenericStaticTargets(entryMember, null, member.name, entryValue);
             if (IsUnordered)
             {
                 return PrepareAddSerializedUnordered(plan, entryValue);
@@ -846,13 +848,6 @@ namespace NeoCompose.Runtime
                     entryMember,
                     parentRow.mapKey,
                     parentRow.classId);
-                // A nested collection entry (e.g. List<List<T>>) carries its
-                // own Decision-9 stamp, resolved through this row's stamp.
-                NeoGenericResolution.StampGenericBindings(
-                    client,
-                    entryMember,
-                    newValueRow,
-                    NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
                 client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
                 plan.Set(entryOwnership, newValueRow);
             }
@@ -864,6 +859,7 @@ namespace NeoCompose.Runtime
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, newValueId);
             return newValueId;
         }
 
@@ -887,7 +883,8 @@ namespace NeoCompose.Runtime
                     nameof(entryValue),
                     "Cannot be null when entry member is required");
             }
-            client.RequireInterfaceSlotAdmits(entryMember, null, member.name, entryValue);
+            client.RequireSlotAdmits(entryMember, null, member.name, entryValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
+            client.RequireNoGenericStaticTargets(entryMember, null, member.name, entryValue);
             if (value?.value is null || index < 0 || index >= value.value.Length)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));
@@ -910,6 +907,7 @@ namespace NeoCompose.Runtime
                     RetargetMovedReferenceAfterCommit(plan, entryValue, importedValueId, entryOwnership);
                 if (importedValueId == entryValueId)
                 {
+                    NeoTypeSources.PlaceCreatedUnder(client, plan, value.id, value, member, importedValueId);
                     plan.Commit();
                     return;
                 }
@@ -917,6 +915,7 @@ namespace NeoCompose.Runtime
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
+                NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, importedValueId);
                 client.StageUnlinkedRemovals(plan, entryOwnership, entryValueId, entryMember);
                 // Inside the commit, so it merges with what the old entry heard.
                 plan.AfterNotifications(() =>
@@ -950,17 +949,13 @@ namespace NeoCompose.Runtime
                 entryValueId,
                 existing.createdAt,
                 nowIso);
-            // A shadow of a stamped nested-collection entry keeps the
-            // immutable stamp (spec Decision 9/16).
+            // A binding node keeps its stamp; the rest of its placement is
+            // derived again once it is staged.
             next.genericBindings = existing.genericBindings;
             next.mapKey = existing.mapKey;
-            NeoGenericResolution.StampGenericBindings(
-                client,
-                entryMember,
-                next,
-                NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
             client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, value.id, value, member, entryValueId);
             // Inside the commit, so it merges with the Set the entry bubbled.
             plan.AfterNotifications(() =>
             {
@@ -1217,6 +1212,7 @@ namespace NeoCompose.Runtime
                     entryValue.valueId!,
                     out bool sourceMoved);
                 StampContainerId(plan, entryOwnership, newValueId, containerValueId);
+                NeoTypeSources.PlaceCreatedUnder(client, plan, containerValueId, containerRow, member, newValueId);
                 if (sourceMoved)
                 {
                     RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
@@ -1228,15 +1224,9 @@ namespace NeoCompose.Runtime
                 MemberValue newValueRow = MemberValueFactory.Create(
                     entryMember, entryValue?.value, newValueId, nowIso, nowIso);
                 newValueRow.containerId = containerValueId;
-                // Nested collection members carry their own Decision-9
-                // stamp, resolved through the container row's stamp.
-                NeoGenericResolution.StampGenericBindings(
-                    client,
-                    entryMember,
-                    newValueRow,
-                    NeoGenericResolution.EnvFromStamp(containerRow.genericBindings));
                 client.StageWritablePayloadRows(plan, entryOwnership, entryValue?.value);
                 plan.Set(entryOwnership, newValueRow);
+                NeoTypeSources.PlaceCreatedUnder(client, plan, containerValueId, containerRow, member, newValueId);
             }
 
             return newValueId;
@@ -1435,13 +1425,8 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = System.Array.Empty<string>(),
             };
-            // SDK-created rows carry the Decision-9 stamp from the wrapper
-            // tree's enclosing context (the parent Class node's env or an
-            // enclosing collection row's own stamp).
-            NeoGenericResolution.StampGenericBindings(
-                client, member, minted, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(plan, minted);
-            // The freshly-stamped row may close generic entry references
+            // The freshly placed row may close generic entry references
             // the construction-time (row-less) resolution left raw.
             plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return minted;
@@ -1468,12 +1453,8 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = value?.value is { } defaults ? (string[])defaults.Clone() : System.Array.Empty<string>(),
             };
-            // SDK-created rows carry the Decision-9 stamp from the wrapper
-            // tree's enclosing context (spec §9).
-            NeoGenericResolution.StampGenericBindings(
-                client, member, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(plan, parentRow);
-            // The freshly-stamped row may close generic entry references
+            // The freshly placed row may close generic entry references
             // the construction-time (row-less) resolution left raw.
             plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return parentRow;

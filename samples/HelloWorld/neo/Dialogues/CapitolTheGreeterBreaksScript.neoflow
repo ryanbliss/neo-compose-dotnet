@@ -27,9 +27,9 @@ sealed class CapitolTheGreeterBreaksScript : NeoDialogue {
     group: Visits.High,
     order: 5,
     when: [
-    @id("0da625ab-4500-555b-bf3c-5dec9630748b")
-    Condition1,
-  ],
+      @id("0da625ab-4500-555b-bf3c-5dec9630748b")
+      Condition1,
+    ],
     limit: 1,
   ) => G1;
 

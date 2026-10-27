@@ -368,8 +368,8 @@ namespace NeoCompose.Runtime.NeoScript
                 error = $"decimal.Parse input has more than {NeoDecimalValues.MaxScale} fractional digits.";
                 return null;
             }
-            BigInteger coefficient = match.Groups[1].Value == "-" ? -magnitude : magnitude;
-            return NeoDecimalMath.FormatParts(new NeoDecimalMath.DecimalParts(coefficient, fraction.Length));
+            bool negative = match.Groups[1].Value == "-";
+            return NeoDecimalMath.FormatParts(new NeoDecimalMath.DecimalParts(negative ? -magnitude : magnitude, fraction.Length, negative));
         }
 
         private static object? ParseText(string number, string text, out string? error)

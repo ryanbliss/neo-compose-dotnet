@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "56151cfe-c6f1-4e7d-996b-17b2fd850a11",
+                "4809822a-06bf-4e71-9185-8732a251e6a9",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Age", "a668e570-c96f-401d-a4a2-3ddde3fa1c44", Age)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Age", "bbd1dad0-f8f8-4a17-ba74-49fa5bd7e5af", Age)
             );
         }
 
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests.ReferenceParity
             return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
-        public static NeoClassRef<Critter> Definition { get; } = new NeoClassRef<Critter>("56151cfe-c6f1-4e7d-996b-17b2fd850a11");
+        public static NeoClassRef<Critter> Definition { get; } = new NeoClassRef<Critter>("4809822a-06bf-4e71-9185-8732a251e6a9");
 
         public int Age
         {
@@ -130,16 +130,6 @@ namespace NeoCompose.Tests.ReferenceParity
                 var memberNode = node.Get<NeoMemberList>("PlacementTiles");
                 if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoPlacementTile>>("PlacementTiles", memberNode, out var cached)) return cached;
                 return CacheStoredView("PlacementTiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoPlacementTile>(client, memberNode, (client, child) => global::NeoCompose.Tests.ReferenceParity.NeoPlacementTile.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::NeoCompose.Tests.ReferenceParity.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -183,9 +173,13 @@ namespace NeoCompose.Tests.ReferenceParity
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<int> Count = new("Count");
 
             public static readonly NeoField<int> Age = new("Age");
         }
@@ -202,6 +196,8 @@ namespace NeoCompose.Tests.ReferenceParity
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.Age] = () => null,
             };
         }
@@ -228,6 +224,8 @@ namespace NeoCompose.Tests.ReferenceParity
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Children] = () => Children,
                 [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
                 [Fields.Age] = () => Age,
             };
         }

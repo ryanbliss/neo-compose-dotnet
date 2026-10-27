@@ -47,9 +47,9 @@ sealed class UrsaMajorTheStarsDontMove : NeoDialogue {
     group: Visits.Urgent,
     order: 0,
     when: [
-    @id("f9ecd70b-0e09-50e9-9f6f-91602ad8af8d")
-    Condition1,
-  ],
+      @id("f9ecd70b-0e09-50e9-9f6f-91602ad8af8d")
+      Condition1,
+    ],
     limit: 1,
   ) => U1;
 
@@ -212,9 +212,9 @@ sealed class UrsaMajorTheStarsDontMove : NeoDialogue {
     @id("b305fc58-9b44-44c9-a744-858a57d9057d")
     Option Rig = new(
       selectableWhen: [
-      @id("2b7cd2cd-9cec-5dc2-ba85-a287e3f06873")
-      Condition2,
-    ],
+        @id("2b7cd2cd-9cec-5dc2-ba85-a287e3f06873")
+        Condition2,
+      ],
     ) {
       """
       Leave your Low-G Pitons rigged on the high scope

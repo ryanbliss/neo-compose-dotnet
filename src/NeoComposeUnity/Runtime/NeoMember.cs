@@ -488,6 +488,7 @@ namespace NeoCompose.Runtime
                 Vector3IntMember v3i => new NeoMemberVector3Int(client, v3i, overrideValueId),
                 ColorMember col => new NeoMemberColor(client, col, overrideValueId),
                 DecimalMember dec => new NeoMemberDecimal(client, dec, overrideValueId),
+                ObjectMember obj => new NeoMemberObject(client, obj, overrideValueId),
                 GenericMember g => throw new System.InvalidOperationException(
                     $"Member '{g.id}' ({g.name}) is Generic-typed (param '{g.genericParamId}') — Generic slots must be substituted to their binding member (NeoGenericResolution.SubstituteMember) before node construction."),
                 _ => throw new System.ArgumentException(
@@ -564,6 +565,7 @@ namespace NeoCompose.Runtime
                 Vector3IntMember v3i => new NeoMemberVector3IntWritable(client, v3i, overrideValueId, ownership),
                 ColorMember col => new NeoMemberColorWritable(client, col, overrideValueId, ownership),
                 DecimalMember dec => new NeoMemberDecimalWritable(client, dec, overrideValueId, ownership),
+                ObjectMember obj => new NeoMemberObjectWritable(client, obj, overrideValueId, ownership),
                 GenericMember g => throw new System.InvalidOperationException(
                     $"Member '{g.id}' ({g.name}) is Generic-typed (param '{g.genericParamId}') — Generic slots must be substituted to their binding member (NeoGenericResolution.SubstituteMember) before writable node construction."),
                 _ => throw new System.ArgumentException(
@@ -602,6 +604,7 @@ namespace NeoCompose.Runtime
                 Vector3IntMember => existing is NeoMemberVector3IntWritable,
                 ColorMember => existing is NeoMemberColorWritable,
                 DecimalMember => existing is NeoMemberDecimalWritable,
+                ObjectMember => existing is NeoMemberObjectWritable,
                 GenericMember => false,
                 _ => false,
             };
@@ -708,11 +711,14 @@ namespace NeoCompose.Runtime
                 var resolvedValueId = valueId;
                 if (resolvedValueId is null)
                 {
-                    return MemberValueFactory.CreateFromDefault(
+                    MemberValue? row = MemberValueFactory.CreateFromDefault(
                         member,
                         DefaultValueId(member.id),
                         member.createdAt,
-                        member.updatedAt) as TValue;
+                        member.updatedAt);
+                    if (row is not null)
+                        row.typeSource = NeoTypeSources.DefaultRootTypeSource(client, member, row);
+                    return row as TValue;
                 }
 
                 // The untyped read, cast once: this body is shared across
@@ -1025,7 +1031,10 @@ namespace NeoCompose.Runtime
                 boundValueId = newRow.id;
                 SubscribeToValueChanges();
             });
-            parent?.BindChildValueId(plan, this, newRow.id);
+            if (parent is not null)
+                parent.BindChildValueId(plan, this, newRow.id);
+            else
+                NeoTypeSources.PlaceCreatedRoot(client, plan, newRow.id, member);
         }
 
         /// <summary>

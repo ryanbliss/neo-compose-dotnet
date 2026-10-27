@@ -2381,14 +2381,6 @@ namespace NeoCompose.Tests
             itemClass.genericParams = new List<GenericParamDeclaration> { new() { id = "item-t", name = "T" } };
             itemClass.schema["Count"] = "item-count";
             data.classes[itemClass.id] = itemClass;
-            data.members["int-binding"] = new IntMember
-            {
-                id = "int-binding",
-                name = "IntBinding",
-                kind = MemberKind.Int,
-                Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new NumberMemberValueBase { value = 5 }
-            };
             data.members["item-count"] = new GenericMember
             {
                 id = "item-count",
@@ -2404,7 +2396,7 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 DeclaredClassId = itemClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
-                classArguments = new Dictionary<string, GenericBinding> { ["item-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "int-binding" } }
+                classArguments = new Dictionary<string, TypeBinding> { ["item-t"] = TestTypeBindings.Of(MemberKind.Int) }
             };
             var entry = ObjectValue("entry", itemClass.id);
             data.values[entry.id] = entry;
@@ -2412,7 +2404,7 @@ namespace NeoCompose.Tests
             var list = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Items");
             var child = list.Cast<NeoMemberClassWritable>().Single();
             Assert.IsTrue(client.TryInferMemberForValueId(child.value!.id, out Member? placement));
-            Assert.That(((ClassMember)placement!).classArguments!["item-t"].memberId, Is.EqualTo("int-binding"));
+            Assert.That(((ClassMember)placement!).classArguments!["item-t"], Is.EqualTo(TestTypeBindings.Of(MemberKind.Int)));
             Assert.That(child.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5d));
         }
 
@@ -2428,16 +2420,9 @@ namespace NeoCompose.Tests
             var thingClass = data.classes["thing-class"];
             thingClass.schema.Clear();
             thingClass.extendsClassId = genericBase.id;
-            thingClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            thingClass.extendsGenericBindings = new Dictionary<string, TypeBinding>
             {
-                ["container-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "int-binding" },
-            };
-            data.members["int-binding"] = new IntMember
-            {
-                id = "int-binding",
-                name = "Int",
-                kind = MemberKind.Int,
-                Requirement = NeoMemberRequirementKind.Required,
+                ["container-t"] = TestTypeBindings.Of(MemberKind.Int),
             };
             var itemClass = SchemaClass("item-class", "Item", NeoMemberStorage.Save);
             itemClass.genericParams = new List<GenericParamDeclaration> { new() { id = "item-t", name = "T" } };
@@ -2457,9 +2442,9 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 DeclaredClassId = itemClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    ["item-t"] = new() { genericParamId = "container-t" },
+                    ["item-t"] = TestTypeBindings.Open("generic-base", "container-t"),
                 },
             };
             ((ListMember)data.members["thing-items"]).ListKind = NeoListKind.Ordered;
@@ -2477,7 +2462,7 @@ namespace NeoCompose.Tests
             {
                 id = "stored-items",
                 value = new[] { "stored-entry" },
-                genericBindings = new() { ["container-t"] = "int-binding" },
+                genericBindings = TestTypeBindings.Stamp(("container-t", TestTypeBindings.Of(MemberKind.Int))),
             };
             var thingRow = (ObjectMemberValue)data.values["thing-instance"];
             thingRow.value!["Items"] = "stored-items";
@@ -3410,7 +3395,7 @@ namespace NeoCompose.Tests
                     {
                         baseline, JObject.Parse(saved)["values"], null,
                         new Dictionary<string, string?>(), new Dictionary<string, string?>(),
-                        stack.Synchronizer.TakeDirtyRecords(), null, null, null,
+                        stack.Synchronizer.TakeDirtyRecords(), null, null, null, null, null,
                     })!;
                     Assert.IsTrue(patch.changes.OfType<GameSaveValueReplaceChange>().Any(change => change.valueId == configId),
                         "Tracked live patches must include retained constructor inputs.");
@@ -3937,84 +3922,6 @@ namespace NeoCompose.Tests
                 payload.Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void GenericLookupInitializerKeepsTheSelectionWrapperAndCatalogOwnership(bool placementOnly)
-        {
-            ProjectData data = BuildGenericConstructorProjectData();
-            if (placementOnly)
-                UsePlacementGenericBinding(data);
-            data.classes["payload-class"].allowedStorage = NeoMemberStorage.Immutable;
-            data.members["catalog-entry"] = new ClassMember
-            {
-                id = "catalog-entry",
-                projectId = "p75-project",
-                name = "CatalogEntry",
-                kind = MemberKind.Class,
-                DeclaredClassId = "payload-class",
-                Requirement = NeoMemberRequirementKind.Required,
-                Storage = NeoMemberStorage.Immutable,
-            };
-            data.members["catalog"] = new ListMember
-            {
-                id = "catalog",
-                projectId = "p75-project",
-                name = "Catalog",
-                kind = MemberKind.List,
-                entryMemberId = "catalog-entry",
-                ListKind = NeoListKind.Ordered,
-                Requirement = NeoMemberRequirementKind.Required,
-                Storage = NeoMemberStorage.Immutable,
-                valueId = "catalog-values",
-            };
-            data.values["catalog-values"] = new ArrayMemberValue
-            {
-                id = "catalog-values",
-                value = new[] { "constructor-payload" },
-            };
-            data.classes["assets-root-class"].schema["Catalog"] = "catalog";
-            ((ObjectMemberValue)data.values["value-assets"]).value!["Catalog"] = "catalog-values";
-            data.members["payload-binding"] = new LookupMember
-            {
-                id = "payload-binding",
-                projectId = "p75-project",
-                name = "PayloadBinding",
-                kind = MemberKind.Lookup,
-                collectionMemberId = "catalog",
-                collectionValueId = "catalog-values",
-                Selection = NeoMemberSelectionKind.Single,
-                Requirement = NeoMemberRequirementKind.Required,
-            };
-            ConstructorRecord constructor = data.constructors["thing-ctor"];
-            var argument = new FunctionArgumentTypeInfo
-            {
-                name = "InitialItem",
-                type = MemberKind.Class,
-                classId = "payload-class",
-                required = true,
-            };
-            constructor.argumentTypes = new[] { argument };
-            constructor.action!.parameters[2].typeInfo = argument;
-            ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
-            {
-                init = ReturnVariableInitializer("InitialItem", argument,
-                    constructor.action.parameters, "__arg_0__"),
-            };
-
-            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
-            var root = (ObjectMemberValue)data.values["thing-instance"];
-            Assert.IsFalse(root.value!.ContainsKey("Payload"));
-            MemberValue? resolved = client.ResolveClassChildRow(root, "Payload");
-            Assert.IsInstanceOf<ArrayMemberValue>(resolved);
-            CollectionAssert.AreEqual(new[] { "constructor-payload" }, ((ArrayMemberValue)resolved!).value);
-            Assert.AreNotEqual("constructor-payload", resolved.id);
-            CollectionAssert.AreEqual(new[] { "constructor-payload" }, client.save
-                .Get<NeoMemberClassWritable>("Thing").Get<NeoMemberLookup>("Payload").Selected());
-            Assert.IsTrue(client.TryGetValueOwnership("constructor-payload", out NeoValueOwnership ownership));
-            Assert.AreEqual(NeoValueOwnership.Asset, ownership);
-            Assert.IsFalse(client.TryFindOwnedParent(NeoValueOwnership.Save, "constructor-payload", out _));
-        }
-
         [Test]
         public void OmittedNestedClassWaitsForItsComputedDefaultDuringRootReplay()
         {
@@ -4388,17 +4295,11 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Generic,
                 genericParamId = parameterId,
             };
-            var binding = (ClassMember)data.members["payload-binding"];
-            binding.classArguments = new Dictionary<string, GenericBinding>
-            {
-                [parameterId] = new()
-                {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = "placement-string-binding",
-                },
-            };
             ((ObjectMemberValue)data.values["constructor-payload"]).genericBindings =
-                new Dictionary<string, string> { [parameterId] = "placement-string-binding" };
+                TestTypeBindings.Stamp((parameterId, TestTypeBindings.Of(MemberKind.String)));
+            ((ObjectMemberValue)data.values["thing-instance"]).genericBindings = TestTypeBindings.Stamp((
+                "thing-param-t",
+                TestTypeBindings.Class("payload-class", true, (parameterId, TestTypeBindings.Of(MemberKind.String)))));
             var stringType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
             var payloadType = ClassType("payload-class");
             payloadType.typeArguments = new Dictionary<string, TypeInfo> { [parameterId] = stringType };
@@ -4465,7 +4366,7 @@ namespace NeoCompose.Tests
             var fields = new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField
                 { schemaKey = "Name", memberId = "payload-name", value = "runtime" } };
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client, payloadType,
-                null, Array.Empty<string>(), fields, binding.classArguments);
+                null, Array.Empty<string>(), fields, TestTypeBindings.Arguments((parameterId, TestTypeBindings.Of(MemberKind.String))));
             var constructed = NeoGeneratedTypesSupport.ConstructDeclaredClassValue(resolved,
                 resolved.NewArgumentValues(), fields, new NSGetterEvaluator.Context(client, null, null));
             Assert.AreEqual("runtime", constructed.Get<NeoMemberStringWritable>("Name").value!.value);
@@ -4701,9 +4602,6 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Generic,
                 genericParamId = "box-t",
             };
-            data.members["reward-binding"] = JToken.Parse(
-                "{'id':'reward-binding','projectId':'p75-project','name':'T','kind':7,"
-                    + "'interfaceId':'reward-interface','createdAt':'x','updatedAt':'x'}").ToObject<JsonMember>()!;
             data.members["thing-boxed"] = new ClassMember
             {
                 id = "thing-boxed",
@@ -4712,9 +4610,9 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 DeclaredClassId = boxClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    ["box-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "reward-binding" },
+                    ["box-t"] = TestTypeBindings.Interface("reward-interface"),
                 },
                 defaultValue = new ObjectMemberValueBase
                 {
@@ -4761,15 +4659,14 @@ namespace NeoCompose.Tests
             NeoSchemaClass crateClass = SchemaClass("crate-class", "Crate", NeoMemberStorage.Save);
             crateClass.genericParams = new List<GenericParamDeclaration> { new() { id = "crate-t", name = "T" } };
             crateClass.schema["Contents"] = "crate-contents";
-            crateClass.implementsInterfaceIds = new List<string> { "container" };
-            crateClass.implementsInterfaceArguments = new Dictionary<string, Dictionary<string, GenericBinding>>
+            crateClass.implementsInterfaces = new List<InterfaceConstruction>
             {
-                ["container"] = new()
+                new()
                 {
-                    ["container-t"] = new()
+                    interfaceId = "container",
+                    arguments = new Dictionary<string, TypeBinding>
                     {
-                        kind = NeoGenericBindingKind.Generic,
-                        genericParamId = "crate-t"
+                        ["container-t"] = TestTypeBindings.Open("crate-class", "crate-t"),
                     },
                 },
             };
@@ -4813,33 +4710,10 @@ namespace NeoCompose.Tests
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase { value = "unnamed" },
             };
-            data.members["seed-binding"] = new ClassMember
-            {
-                id = "seed-binding",
-                projectId = "p75-project",
-                name = "T",
-                kind = MemberKind.Class,
-                DeclaredClassId = seedClass.id,
-                Requirement = NeoMemberRequirementKind.Required,
-            };
-            data.members["value-binding"] = interfaceBinding
-                ? JToken.Parse(
-                    "{'id':'value-binding','projectId':'p75-project','name':'T','kind':7,"
-                        + "'interfaceId':'container','interfaceArguments':{'container-t':{'kind':1,'memberId':'seed-binding'}},"
-                        + "'createdAt':'x','updatedAt':'x'}").ToObject<JsonMember>()!
-                : new ClassMember
-                {
-                    id = "value-binding",
-                    projectId = "p75-project",
-                    name = "T",
-                    kind = MemberKind.Class,
-                    DeclaredClassId = crateClass.id,
-                    Requirement = NeoMemberRequirementKind.Required,
-                    classArguments = new Dictionary<string, GenericBinding>
-                    {
-                        ["crate-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "seed-binding" },
-                    },
-                };
+            (string, TypeBinding) seedArgument = ("crate-t", TestTypeBindings.Class(seedClass.id));
+            TypeBinding boxArgument = interfaceBinding
+                ? TestTypeBindings.Interface("container", true, ("container-t", seedArgument.Item2))
+                : TestTypeBindings.Class(crateClass.id, true, seedArgument);
             data.members["thing-boxed"] = new ClassMember
             {
                 id = "thing-boxed",
@@ -4848,9 +4722,9 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 DeclaredClassId = boxClass.id,
                 Requirement = NeoMemberRequirementKind.Required,
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    ["box-t"] = new() { kind = NeoGenericBindingKind.Member, memberId = "value-binding" },
+                    ["box-t"] = boxArgument,
                 },
                 defaultValue = new ObjectMemberValueBase
                 {
@@ -4862,12 +4736,15 @@ namespace NeoCompose.Tests
                 "boxed-crate",
                 crateClass.id,
                 new Dictionary<string, string> { ["Contents"] = "boxed-contents" });
+            // P127 §12.1: the crate in the type-parameter slot is the binding
+            // node; its list reads the crate's T one hop away.
+            crate.genericBindings = TestTypeBindings.Stamp(("crate-t", TestTypeBindings.Class(seedClass.id)));
             data.values[crate.id] = crate;
             data.values["boxed-contents"] = new ArrayMemberValue
             {
                 id = "boxed-contents",
                 value = new[] { "boxed-seed" },
-                genericBindings = new Dictionary<string, string> { ["crate-t"] = "seed-binding" },
+                typeSource = NeoTypeSource.OfType(TestTypeBindings.List(TestTypeBindings.Open(crateClass.id, "crate-t")), crate.id),
             };
             var seed = ObjectValue(
                 "boxed-seed",
@@ -6952,7 +6829,10 @@ namespace NeoCompose.Tests
                 genericParamId = paramT,
             };
             ((DictionaryMember)data.members["thing-lists-member"]).entryMemberId = "generic-lists-entry";
-            data.values["thing-lists"].genericBindings = new Dictionary<string, string> { [paramT] = "thing-list-entry" };
+            // P127 §12.1: a dictionary is never a binding node; it stores its closed type.
+            data.values["thing-lists"].typeSource = NeoTypeSource.OfType(TestTypeBindings.Dictionary(
+                TestTypeBindings.Of(MemberKind.String),
+                TestTypeBindings.List(TestTypeBindings.Class("thing-class", required: false))));
             var listsType = new CollectionTypeInfo
             {
                 type = MemberKind.Dictionary,
@@ -7456,7 +7336,7 @@ namespace NeoCompose.Tests
             {
                 ["__arg_0__"] = "alternate-payload",
             };
-            retargetedThing.genericBindings = new Dictionary<string, string>(
+            retargetedThing.genericBindings = new Dictionary<string, TypeBinding>(
                 ((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
             ((JObject)incoming["values"]!)[retargetedThing.id] =
                 JObject.FromObject(retargetedThing);
@@ -7569,7 +7449,7 @@ namespace NeoCompose.Tests
             {
                 ["__arg_0__"] = "constructor-payload",
             };
-            other.genericBindings = new Dictionary<string, string>(
+            other.genericBindings = new Dictionary<string, TypeBinding>(
                 ((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
             data.values[other.id] = other;
             ((ObjectMemberValue)data.values["value-save"]).value!["Other"] =
@@ -7612,18 +7492,6 @@ namespace NeoCompose.Tests
             });
         }
 
-        private static void UsePlacementGenericBinding(ProjectData data)
-        {
-            var root = (ObjectMemberValue)data.values["thing-instance"];
-            ((ClassMember)data.members["thing-member"]).classArguments = root.genericBindings!
-                .ToDictionary(pair => pair.Key, pair => new GenericBinding
-                {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = pair.Value,
-                });
-            root.genericBindings = null;
-        }
-
         private static ProjectData BuildGenericConstructorProjectData()
         {
             const string paramT = "thing-param-t";
@@ -7661,31 +7529,10 @@ namespace NeoCompose.Tests
                 Requirement = NeoMemberRequirementKind.Required,
                 defaultValue = new StringMemberValueBase { value = "default" },
             };
-            data.members["payload-binding"] = new ClassMember
-            {
-                id = "payload-binding",
-                projectId = "p75-project",
-                name = "PayloadBinding",
-                kind = MemberKind.Class,
-                DeclaredClassId = payloadClass.id,
-                Requirement = NeoMemberRequirementKind.Required,
-            };
             ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
             {
                 classId = payloadClass.id,
                 value = new Dictionary<string, string> { ["Name"] = "payload-default-name" },
-            };
-            data.members["placement-string-binding"] = new StringMember
-            {
-                id = "placement-string-binding",
-                projectId = "p75-project",
-                name = "PlacementStringBinding",
-                kind = MemberKind.String,
-                Requirement = NeoMemberRequirementKind.Required,
-                defaultValue = new StringMemberValueBase
-                {
-                    value = "placement fallback",
-                },
             };
             data.values["payload-default-name"] = new StringMemberValue
             {
@@ -7706,19 +7553,12 @@ namespace NeoCompose.Tests
             };
 
             var placement = (ClassMember)data.members["thing-member"];
-            placement.classArguments = new Dictionary<string, GenericBinding>
+            placement.classArguments = new Dictionary<string, TypeBinding>
             {
-                [paramT] = new()
-                {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = "placement-string-binding",
-                },
+                [paramT] = TestTypeBindings.Of(MemberKind.String),
             };
             var root = (ObjectMemberValue)data.values["thing-instance"];
-            root.genericBindings = new Dictionary<string, string>
-            {
-                [paramT] = "payload-binding",
-            };
+            root.genericBindings = TestTypeBindings.Stamp((paramT, TestTypeBindings.Class(payloadClass.id)));
             root.instanceConstructorId = "thing-ctor";
             root.constructorArgs = new Dictionary<string, JToken?>
             {
@@ -7945,7 +7785,7 @@ namespace NeoCompose.Tests
             void AddReward(string classId, string name, params (string Field, double Value)[] fields)
             {
                 NeoSchemaClass rewardClass = SchemaClass(classId, name, NeoMemberStorage.Save);
-                rewardClass.implementsInterfaceIds = new List<string> { "reward-interface" };
+                rewardClass.implementsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = "reward-interface" } };
                 foreach (var (field, value) in fields)
                 {
                     string memberId = $"{classId}-{field}";
@@ -9034,7 +8874,7 @@ namespace NeoCompose.Tests
                 new NeoColorValue { r = 0.25f, g = 0.5f, b = 1, a = 0.75f },
             })
             {
-                var token = NeoClient.ConstructorArgumentToken(value, "leaf");
+                var token = NeoClient.ConstructorArgumentToken(value, null, "leaf");
                 Assert.That(JToken.DeepEquals(token, JToken.FromObject(value)), Is.True);
             }
         }
@@ -9050,6 +8890,7 @@ namespace NeoCompose.Tests
         {
             JToken? token = NeoClient.ConstructorArgumentToken(
                 new NeoDelegateValue { memberId = "member-select" },
+                null,
                 "'selector' of constructor 'constructor-track'");
 
             Assert.AreEqual(JTokenType.Null, token!["valueId"]!.Type);

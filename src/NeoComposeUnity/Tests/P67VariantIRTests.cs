@@ -1206,30 +1206,10 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Generic,
                 genericParamId = paramT,
             };
-            data.members["widget-string-binding"] = new StringMember
-            {
-                id = "widget-string-binding",
-                projectId = ProjectId,
-                name = "StringBinding",
-                kind = MemberKind.String,
-                Requirement = NeoMemberRequirementKind.Optional,
-            };
-            data.members["widget-int-binding"] = new IntMember
-            {
-                id = "widget-int-binding",
-                projectId = ProjectId,
-                name = "IntBinding",
-                kind = MemberKind.Int,
-                Requirement = NeoMemberRequirementKind.Optional,
-            };
             ((ClassMember)data.members["lookup-entry"]).classArguments =
-                new Dictionary<string, GenericBinding>
+                new Dictionary<string, TypeBinding>
                 {
-                    [paramT] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = "widget-string-binding",
-                    },
+                    [paramT] = TestTypeBindings.Of(MemberKind.String, required: false),
                 };
 
             data.classes["root-class"].schema["Stored"] = "stored-widget";
@@ -1242,25 +1222,22 @@ namespace NeoCompose.Tests
                 DeclaredClassId = WidgetClassId,
                 Requirement = NeoMemberRequirementKind.Optional,
                 Storage = NeoMemberStorage.Save,
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    [paramT] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = "widget-int-binding",
-                    },
+                    [paramT] = TestTypeBindings.Of(MemberKind.Int, required: false),
                 },
             };
             var stored = ObjectValue("stored-widget-value", WidgetClassId);
             stored.value!["Payload"] = "stored-payload";
             data.values["stored-payload"] = new StringMemberValue { id = "stored-payload", value = "from stamp" };
             stored.instanceVariantId = "variant-up";
-            stored.genericBindings = new Dictionary<string, string>
-            {
-                [paramT] = "widget-string-binding",
-            };
+            stored.genericBindings = TestTypeBindings.Stamp((paramT, TestTypeBindings.Of(MemberKind.String, required: false)));
             data.values[stored.id] = stored;
             ((ObjectMemberValue)data.values["value-save"]).value!["Stored"] = stored.id;
+            // P127 §4.9: each variant of the generic Widget closes it.
+            foreach (VariantRecord variant in data.variants.Values)
+                variant.typeArguments = stored.genericBindings;
+            data.variantFolders[LookupFolderId].typeArguments = stored.genericBindings;
 
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
             NeoMemberClassWritable replayed = client.save
@@ -1271,6 +1248,293 @@ namespace NeoCompose.Tests
                 "from stamp",
                 replayed.Get<NeoMemberStringWritable>("Payload").value!.value);
         }
+
+        // -------------------------------------------------------------------
+        // P127 §4.9 — a generic class's variant targets one closed
+        // construction, which its record stores.
+        // -------------------------------------------------------------------
+
+        private const string WidgetParamT = "widget-param-t";
+        private const string VariantTargetParam = "variant-param-target";
+
+        [Test]
+        public void GenericVariantAndFolderRecordsReadTheirClosedTarget()
+        {
+            const string variantJson = "{\"id\":\"v\",\"projectId\":\"p\",\"classId\":\"box\",\"typeArguments\":{\"box-t\":{\"kind\":0,\"type\":{\"type\":2,\"required\":true}}},\"name\":\"Small\",\"folder\":\"Trees\",\"valueId\":\"value-v\"}";
+            const string folderJson = "{\"id\":\"f\",\"classId\":\"box\",\"typeArguments\":{\"box-t\":{\"kind\":0,\"type\":{\"type\":2,\"required\":true}}},\"path\":\"Trees\"}";
+
+            VariantRecord variant = Newtonsoft.Json.JsonConvert.DeserializeObject<VariantRecord>(variantJson)!;
+            VariantFolderRecord folder = Newtonsoft.Json.JsonConvert.DeserializeObject<VariantFolderRecord>(folderJson)!;
+
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.Int), variant.typeArguments!["box-t"]);
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.Int), folder.typeArguments!["box-t"]);
+            StringAssert.Contains(
+                "\"typeArguments\":{\"box-t\":{\"kind\":0,\"type\":{\"type\":2,\"required\":true}}}",
+                Newtonsoft.Json.JsonConvert.SerializeObject(variant));
+            Assert.IsNull(Newtonsoft.Json.JsonConvert.DeserializeObject<VariantRecord>(
+                "{\"id\":\"v\",\"classId\":\"box\",\"name\":\"Small\",\"valueId\":\"value-v\"}")!.typeArguments);
+            var open = Assert.Catch<Newtonsoft.Json.JsonSerializationException>(() =>
+                Newtonsoft.Json.JsonConvert.DeserializeObject<VariantRecord>(
+                    "{\"id\":\"v\",\"classId\":\"box\",\"typeArguments\":{\"box-t\":{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"box-t\"}},\"name\":\"Small\",\"valueId\":\"value-v\"}"))!;
+            StringAssert.Contains("a stamp can't hold yet", open.Message);
+        }
+
+        [Test]
+        public void GenericVariantInitializeBuildsItsClosedTarget()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData());
+
+            NeoMemberClassWritable node = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-up"]);
+
+            Assert.AreEqual("up", ReadLabel(client, node));
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.Int), ClosedArgument(client, node));
+            // The graph's TObject is the record's Widget<int>, not a stamp.
+            Assert.AreEqual(
+                TestTypeBindings.Of(MemberKind.Int),
+                NeoClient.VariantTarget(client.variants["variant-up"]).Bindings![WidgetParamT]);
+        }
+
+        [Test]
+        public void GenericVariantAppliesToItsClosedTarget()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData());
+            string targetId = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]).value!.id;
+
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-up")))),
+                Context(client));
+
+            Assert.AreEqual("up", ReadRowLabel(client, targetId));
+            Assert.AreEqual("apply-ran", ReadRowMember(client, targetId, "Trace"));
+        }
+
+        [Test]
+        public void GenericVariantRefusesAnotherConstructionOfItsClass()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData());
+
+            Exception error = Assert.Catch(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantApplyPointer(
+                        WidgetConstructor(new PrimitiveTypeInfo { type = MemberKind.String, required = true }),
+                        VariantRef(WidgetClassId, "variant-up")))),
+                    Context(client)))!;
+
+            StringAssert.Contains("binding param 'widget-param-t' of class 'widget-class' to 'int', but the instance binds it to 'string'", error.Message);
+        }
+
+        /// <summary>
+        /// A construction records every closed parameter, including one no
+        /// member reads, so variant admission checks that parameter too.
+        /// </summary>
+        [Test]
+        public void GenericVariantRefusesAnotherConstructionWhoseParamNoMemberReads()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData(payload: false));
+
+            Exception error = Assert.Catch(() =>
+                NSGetterEvaluator.Evaluate(
+                    Getter(Return(VariantApplyPointer(
+                        WidgetConstructor(new PrimitiveTypeInfo { type = MemberKind.String, required = true }, payload: false),
+                        VariantRef(WidgetClassId, "variant-up")))),
+                    Context(client)))!;
+
+            StringAssert.Contains("but the instance binds it to 'string'", error.Message);
+        }
+
+        [Test]
+        public void GenericVariantRefusesAnInitializeThatBuildsAnotherConstruction()
+        {
+            ProjectData data = GenericWidgetProjectData();
+            data.values["value-up-initialize"] = Closure(
+                "value-up-initialize",
+                Return(WidgetConstructor(new PrimitiveTypeInfo { type = MemberKind.String, required = true })));
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+
+            Exception error = Assert.Catch(() => NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-up"]))!;
+
+            StringAssert.Contains("but the instance binds it to 'string'", error.Message);
+        }
+
+        [Test]
+        public void GenericLookupVariantThreadsItsRowThroughTheClosedTarget()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData());
+            NSGetterEvaluator.Context ctx = Context(client);
+
+            object? made = NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantInitializePointer(
+                    VariantRef(WidgetClassId, "variant-lookup"),
+                    Reference("value-target")))),
+                ctx);
+            string targetId = NeoVariantSupport.InitializeNode(
+                client, WidgetClassId, client.variants["variant-plain"]).value!.id;
+            NSGetterEvaluator.Evaluate(
+                Getter(Return(VariantApplyPointer(
+                    Reference(targetId),
+                    VariantRef(WidgetClassId, "variant-lookup"),
+                    Reference("value-target")))),
+                ctx);
+
+            Assert.IsNotNull(made);
+            Assert.AreEqual("target", ReadRowLabel(client, targetId));
+        }
+
+        [Test]
+        public void GenericVariantClosesOverATypeNoMemberDeclares()
+        {
+            // A type argument is a binding (P127 §12.1), so it needs no member to describe it.
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(GenericWidgetProjectData(TestTypeBindings.Of(MemberKind.Decimal)));
+
+            Assert.AreEqual(
+                TestTypeBindings.Of(MemberKind.Decimal),
+                NeoClient.VariantTarget(client.variants["variant-lookup"]).Bindings![WidgetParamT]);
+        }
+
+        [TestCase("missing", "has no typeArguments, but class 'Widget' is generic")]
+        [TestCase("extra", "binds 'stray', which class 'Widget' doesn't declare")]
+        [TestCase("unbound", "leaves param 'T' (widget-param-t) of class 'Widget' unbound")]
+        [TestCase("folder", "closes class 'widget-class' unlike its folder 'lookup-folder'")]
+        [TestCase("plain", "carries typeArguments, but class 'Root' declares no params")]
+        public void VariantTypeArgumentsMustCloseTheirClass(string defect, string message)
+        {
+            ProjectData data = GenericWidgetProjectData();
+            VariantRecord lookup = data.variants["variant-lookup"];
+            switch (defect)
+            {
+                case "missing":
+                    lookup.typeArguments = null;
+                    break;
+                case "extra":
+                    lookup.typeArguments = new Dictionary<string, TypeBinding>(lookup.typeArguments!)
+                    {
+                        ["stray"] = TestTypeBindings.Of(MemberKind.Int),
+                    };
+                    break;
+                case "unbound":
+                    lookup.typeArguments = new Dictionary<string, TypeBinding>
+                    {
+                        ["stray"] = TestTypeBindings.Of(MemberKind.Int),
+                    };
+                    break;
+                case "folder":
+                    lookup.typeArguments = new Dictionary<string, TypeBinding>
+                    {
+                        [WidgetParamT] = TestTypeBindings.Of(MemberKind.String),
+                    };
+                    break;
+                case "plain":
+                    lookup.classId = "root-class";
+                    break;
+            }
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(data).Dispose())!;
+
+            StringAssert.Contains(message, error.Message);
+        }
+
+        /// <summary>
+        /// The variant fixture with Widget made <c>Widget&lt;T&gt;</c>, every
+        /// variant and folder closing it with <paramref name="argument"/>
+        /// (<c>int</c> by default), and the seeded <c>NeoVariant&lt;TObject&gt;</c>
+        /// typing its Overrides by TObject so the record's target closes the graph.
+        /// </summary>
+        private static ProjectData GenericWidgetProjectData(TypeBinding? argument = null, bool payload = true)
+        {
+            argument ??= TestTypeBindings.Of(MemberKind.Int);
+            ProjectData data = BuildVariantProjectData();
+            NeoSchemaClass widget = data.classes[WidgetClassId];
+            widget.genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = WidgetParamT, name = "T" },
+            };
+            if (payload)
+            {
+                widget.schema["Payload"] = "widget-payload";
+                data.members["widget-payload"] = new GenericMember
+                {
+                    id = "widget-payload",
+                    projectId = ProjectId,
+                    name = "Payload",
+                    kind = MemberKind.Generic,
+                    genericParamId = WidgetParamT,
+                    Requirement = NeoMemberRequirementKind.Optional,
+                };
+            }
+            ((ClassMember)data.members["lookup-entry"]).classArguments = new Dictionary<string, TypeBinding>
+            {
+                [WidgetParamT] = TestTypeBindings.Of(MemberKind.Int),
+            };
+            data.classes[VariantClassId].genericParams = new List<GenericParamDeclaration>
+            {
+                new() { id = VariantTargetParam, name = "TObject" },
+            };
+            data.members["variant-overrides"] = new GenericMember
+            {
+                id = "variant-overrides",
+                projectId = ProjectId,
+                name = "Overrides",
+                kind = MemberKind.Generic,
+                genericParamId = VariantTargetParam,
+                Payload = NeoMemberPayloadKind.Partial,
+            };
+            foreach (VariantRecord variant in data.variants.Values)
+                variant.typeArguments = new Dictionary<string, TypeBinding> { [WidgetParamT] = argument };
+            data.variantFolders[LookupFolderId].typeArguments =
+                new Dictionary<string, TypeBinding> { [WidgetParamT] = argument };
+            TypeInfo closed = NeoTypeBindings.ToTypeInfo(argument);
+            data.values["value-up-initialize"] = Closure(
+                "value-up-initialize",
+                Return(WidgetConstructor(closed, payload)));
+            data.values["value-plain-initialize"] = Closure(
+                "value-plain-initialize",
+                Return(WidgetConstructor(closed, payload)));
+            data.values["value-lookup-initialize"] = LookupClosure(
+                "value-lookup-initialize",
+                Return(WidgetConstructor(closed, payload)));
+            return data;
+        }
+
+        /// <summary><c>new Widget&lt;argument&gt;(Payload: …)</c>, for an int or string argument; without Payload when the fixture has none.</summary>
+        private static FunctionPointer WidgetConstructor(TypeInfo argument, bool payload = true)
+        {
+            ValuePointer payloadValue = argument.type == MemberKind.Int ? IntLiteral(7) : Literal("seven");
+            ClassTypeInfo widget = ClassType(WidgetClassId);
+            widget.typeArguments = new Dictionary<string, TypeInfo> { [WidgetParamT] = argument };
+            return new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ClassConstructorFunction
+                {
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
+                    {
+                        schemaClassInfo = widget,
+                        fields = payload
+                            ? new[]
+                            {
+                                new FunctionClassConstructorField
+                                {
+                                    schemaKey = "Payload",
+                                    memberId = "widget-payload",
+                                    valuePointer = payloadValue,
+                                },
+                            }
+                            : Array.Empty<FunctionClassConstructorField>(),
+                    },
+                },
+            };
+        }
+
+        /// <summary>The closed type an instance's construction binds Widget's T to.</summary>
+        private static TypeBinding ClosedArgument(NeoClient client, NeoMemberClass node) =>
+            NeoTypeBindings.OfEntry(client, node.GenericEnv[WidgetParamT], node.GenericEnv);
 
         // -------------------------------------------------------------------
         // Revision handshake.
@@ -1691,7 +1955,7 @@ namespace NeoCompose.Tests
                     ["variant-apply"] = DelegateField(
                         "variant-apply",
                         "Apply",
-                        new PrimitiveTypeInfo { type = MemberKind.Null, required = true }),
+                        new VoidTypeInfo { type = MemberKind.Void, required = true }),
                     ["variant-overrides"] = PartialField("variant-overrides", "Overrides"),
                 },
                 values = values,
@@ -1860,14 +2124,14 @@ namespace NeoCompose.Tests
                     members = new Dictionary<string, InterfaceMember>(),
                 },
             };
-            data.classes[BoxClassId].implementsInterfaceIds = new List<string> { RewardInterfaceId };
+            data.classes[BoxClassId].implementsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = RewardInterfaceId } };
             data.classes[TagClassId] = new NeoSchemaClass
             {
                 id = TagClassId,
                 projectId = ProjectId,
                 name = "Tag",
                 schema = new Dictionary<string, string> { ["Points"] = "tag-points" },
-                implementsInterfaceIds = new List<string> { RewardInterfaceId },
+                implementsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = RewardInterfaceId } },
             };
             data.members["tag-points"] = new IntMember
             {

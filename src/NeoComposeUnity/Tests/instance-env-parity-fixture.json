@@ -1,0 +1,914 @@
+{
+  "description": "P127 \u00a71.2. resolveInstanceEnv for a derived row in a base slot: the slot's arguments close the row's own params through forwards, wrapped bindings, and forward chains, reading the owner's environment for the owner's params. An argument naming the owner's params binds with the owner's entries for them in `bindings`. Types are P127 \u00a712.1 type bindings; a bound entry names its type, not a member. Shared with the SDK's NeoGenericResolution.ResolveInstanceEnv; keep both in step.",
+  "classes": [
+    {
+      "id": "seed",
+      "projectId": "p",
+      "name": "Seed",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "box",
+      "projectId": "p",
+      "name": "Box",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "box-t",
+          "name": "T"
+        }
+      ]
+    },
+    {
+      "id": "dbox",
+      "projectId": "p",
+      "name": "DerivedBox",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "dbox-d",
+          "name": "D"
+        }
+      ],
+      "extendsClassId": "box",
+      "extendsGenericBindings": {
+        "box-t": {
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "dbox"
+          },
+          "param": "dbox-d"
+        }
+      }
+    },
+    {
+      "id": "lb",
+      "projectId": "p",
+      "name": "ListBox",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "lb-l",
+          "name": "L"
+        }
+      ],
+      "extendsClassId": "box",
+      "extendsGenericBindings": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "lb"
+              },
+              "param": "lb-l"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "mid",
+      "projectId": "p",
+      "name": "Mid",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "mid-x",
+          "name": "X"
+        }
+      ],
+      "extendsClassId": "box",
+      "extendsGenericBindings": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "mid"
+              },
+              "param": "mid-x"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "leaf",
+      "projectId": "p",
+      "name": "Leaf",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "leaf-l",
+          "name": "L"
+        }
+      ],
+      "extendsClassId": "mid",
+      "extendsGenericBindings": {
+        "mid-x": {
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "leaf"
+          },
+          "param": "leaf-l"
+        }
+      }
+    },
+    {
+      "id": "hold",
+      "projectId": "p",
+      "name": "Hold",
+      "schema": {},
+      "createdAt": 1,
+      "updatedAt": 1,
+      "genericParams": [
+        {
+          "id": "hold-t",
+          "name": "T"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "name": "DerivedBox<D> : Box<D> in Box<Seed>",
+      "classId": "dbox",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "seed"
+          }
+        }
+      },
+      "ownerEnv": {},
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        },
+        "dbox-d": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "ListBox<L> : Box<List<L>> in Box<List<Seed>>",
+      "classId": "lb",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "seed"
+              }
+            }
+          }
+        }
+      },
+      "ownerEnv": {},
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "lb"
+                },
+                "param": "lb-l"
+              }
+            }
+          }
+        },
+        "lb-l": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Leaf<L> : Mid<L>, Mid<X> : Box<List<X>> in Box<List<Seed>>",
+      "classId": "leaf",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "seed"
+              }
+            }
+          }
+        }
+      },
+      "ownerEnv": {},
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "mid"
+                },
+                "param": "mid-x"
+              }
+            }
+          }
+        },
+        "mid-x": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        },
+        "leaf-l": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "ListBox<L> in Hold<Seed>.Listed: Box<List<T>>",
+      "classId": "lb",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        }
+      },
+      "ownerEnv": {
+        "hold-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      },
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "lb"
+                },
+                "param": "lb-l"
+              }
+            }
+          }
+        },
+        "lb-l": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "ListBox<L> in an open Hold<T>.Listed: Box<List<T>>",
+      "classId": "lb",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        }
+      },
+      "ownerEnv": {
+        "hold-t": {
+          "kind": "unbound",
+          "paramId": "hold-t"
+        }
+      },
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "lb"
+                },
+                "param": "lb-l"
+              }
+            }
+          }
+        },
+        "lb-l": {
+          "kind": "unbound",
+          "paramId": "lb-l"
+        }
+      }
+    },
+    {
+      "name": "DerivedBox<D> in Hold<Seed>.Listed: Box<List<T>>: D is List<T> under {T: Seed}",
+      "classId": "dbox",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        }
+      },
+      "ownerEnv": {
+        "hold-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      },
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "seed"
+                }
+              }
+            }
+          }
+        },
+        "dbox-d": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "seed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Leaf<L> : Mid<L>, Mid<X> : Box<List<X>> in Hold<Seed>.Listed: Box<List<T>>",
+      "classId": "leaf",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        }
+      },
+      "ownerEnv": {
+        "hold-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      },
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "mid"
+                },
+                "param": "mid-x"
+              }
+            }
+          }
+        },
+        "mid-x": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        },
+        "leaf-l": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "DerivedBox<D> in Hold<List<Seed>>.Listed: Box<List<T>>, where the owner's T is itself carried",
+      "classId": "dbox",
+      "classArguments": {
+        "box-t": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        }
+      },
+      "ownerEnv": {
+        "hold-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "seed"
+                }
+              }
+            }
+          }
+        }
+      },
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 6,
+                  "required": true
+                },
+                "bindings": {
+                  "0": {
+                    "kind": 1,
+                    "owner": {
+                      "type": 7,
+                      "classId": "hold"
+                    },
+                    "param": "hold-t"
+                  }
+                }
+              },
+              "bindings": {
+                "hold-t": {
+                  "kind": "member",
+                  "type": {
+                    "kind": 0,
+                    "type": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "seed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "dbox-d": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 6,
+                  "required": true
+                },
+                "bindings": {
+                  "0": {
+                    "kind": 1,
+                    "owner": {
+                      "type": 7,
+                      "classId": "hold"
+                    },
+                    "param": "hold-t"
+                  }
+                }
+              },
+              "bindings": {
+                "hold-t": {
+                  "kind": "member",
+                  "type": {
+                    "kind": 0,
+                    "type": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "seed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "DerivedBox<D> read standalone from its stamp {D: List<T>, T: Seed}: the stamp's T carries",
+      "classId": "dbox",
+      "classArguments": {
+        "dbox-d": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "hold"
+              },
+              "param": "hold-t"
+            }
+          }
+        },
+        "hold-t": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "seed"
+          }
+        }
+      },
+      "ownerEnv": {},
+      "expected": {
+        "box-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "seed"
+                }
+              }
+            }
+          }
+        },
+        "dbox-d": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 6,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 1,
+                "owner": {
+                  "type": 7,
+                  "classId": "hold"
+                },
+                "param": "hold-t"
+              }
+            }
+          },
+          "bindings": {
+            "hold-t": {
+              "kind": "member",
+              "type": {
+                "kind": 0,
+                "type": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "seed"
+                }
+              }
+            }
+          }
+        },
+        "hold-t": {
+          "kind": "member",
+          "type": {
+            "kind": 0,
+            "type": {
+              "type": 7,
+              "required": true,
+              "classId": "seed"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -78,10 +78,23 @@ namespace NeoCompose.Tests
                         memberId = "member-1",
                         valueId = null,
                     },
+                    new GameSaveStaticBindingRestoreToAuthoredChange
+                    {
+                        memberId = "member-2",
+                        baseRecordStateId = "state-2",
+                        baseRecordRevisionToken = "token-2",
+                    },
                 },
             };
 
             var json = JsonConvert.SerializeObject(patch);
+            // The wire names the static's member id; a plain static has no construction.
+            var wire = JObject.Parse(json)["changes"]!;
+            Assert.That((string?)wire[1]!["memberId"], Is.EqualTo("member-1"));
+            Assert.That((string?)wire[2]!["memberId"], Is.EqualTo("member-2"));
+            Assert.That(wire[1]!["bindingKey"], Is.Null);
+            Assert.That(wire[1]!["construction"], Is.Null);
+            Assert.That(wire[2]!["construction"], Is.Null);
             var roundTrip = JsonConvert.DeserializeObject<NeoSavePatch>(json)!;
 
             Assert.That(roundTrip.changes[0], Is.TypeOf<GameSaveValuePatchChange>());
@@ -93,6 +106,9 @@ namespace NeoCompose.Tests
                 ((GameSaveStaticBindingSetChange)roundTrip.changes[1]).valueId,
                 Is.Null,
                 "null is a semantic static-binding tombstone, not a restore");
+            Assert.That(
+                ((GameSaveStaticBindingRestoreToAuthoredChange)roundTrip.changes[2]).memberId,
+                Is.EqualTo("member-2"));
         }
 
         [Test]
@@ -310,6 +326,133 @@ namespace NeoCompose.Tests
             Assert.That(values.ContainsKey("value-1"), Is.False);
             Assert.That(bindings.ContainsKey("member-1"), Is.False);
         }
+
+        [Test]
+        public void ConstructionChangesCarryTheirClosedConstruction()
+        {
+            TypeBinding boxOfInt = BoxOf(MemberKind.Int);
+            var patch = new NeoSavePatch
+            {
+                changes = new List<GameSaveRecordChange>
+                {
+                    new GameSaveStaticBindingSetChange { memberId = "box-count", construction = boxOfInt, valueId = "count-row" },
+                    new GameSaveStaticBindingRestoreToAuthoredChange { memberId = "box-count", construction = boxOfInt, baseRecordStateId = "s", baseRecordRevisionToken = "t" },
+                },
+            };
+
+            var json = JsonConvert.SerializeObject(patch);
+            var wire = JObject.Parse(json)["changes"]!;
+            Assert.That(JToken.DeepEquals(wire[0]!["construction"], JObject.FromObject(boxOfInt)), Is.True, wire.ToString());
+            var roundTrip = JsonConvert.DeserializeObject<NeoSavePatch>(json)!;
+            Assert.That(((GameSaveStaticBindingSetChange)roundTrip.changes[0]).construction, Is.EqualTo(boxOfInt));
+            Assert.That(((GameSaveStaticBindingRestoreToAuthoredChange)roundTrip.changes[1]).construction, Is.EqualTo(boxOfInt));
+        }
+
+        [Test]
+        public void ConstructionRecordsLoadByRecordIdAndDeleteByRecordId()
+        {
+            var cache = new GameSaveRecordCache();
+            var intRecord = ConstructionDescriptor("record-int", "token-1");
+            var floatRecord = ConstructionDescriptor("record-float", "token-1");
+            cache.StoreStates(
+                new[] { intRecord, floatRecord },
+                new[]
+                {
+                    ConstructionState(intRecord, BoxOf(MemberKind.Int), "int-row"),
+                    ConstructionState(floatRecord, BoxOf(MemberKind.Float), null),
+                });
+            var constructions = new Dictionary<string, NeoStaticConstruction>();
+            cache.ApplyDescriptors(new[] { intRecord, floatRecord }, new JObject(), new Dictionary<string, string?>(), staticConstructions: constructions);
+
+            Assert.That(constructions["record-int"].construction, Is.EqualTo(BoxOf(MemberKind.Int)));
+            Assert.That(constructions["record-int"].value, Is.EqualTo("int-row"));
+            Assert.That(constructions["record-float"].value, Is.Null, "null is the tombstone");
+
+            // A delta starts from the cached records, so a deleted descriptor
+            // with no data still finds its construction.
+            var delta = cache.StaticConstructions();
+            cache.ApplyDescriptors(
+                new[] { new GameSaveRecordDescriptor { recordKind = NeoGameSaveRecordKinds.StaticConstruction, recordId = "record-int", deleted = true } },
+                new JObject(),
+                new Dictionary<string, string?>(),
+                staticConstructions: delta);
+            Assert.That(delta.Keys, Is.EquivalentTo(new[] { "record-float" }));
+
+            var error = Assert.Throws<JsonSerializationException>(() => cache.ApplyDescriptors(new[] { floatRecord }, new JObject(), new Dictionary<string, string?>()));
+            Assert.That(error!.Message, Is.EqualTo("Static construction records require a construction map."));
+        }
+
+        [Test]
+        public void ConstructionPatchesSetChangedAndRestoreDroppedConstructions()
+        {
+            var cache = new GameSaveRecordCache();
+            var intRecord = ConstructionDescriptor("record-int", "token-1");
+            var floatRecord = ConstructionDescriptor("record-float", "token-2");
+            cache.StoreStates(
+                new[] { intRecord, floatRecord },
+                new[]
+                {
+                    ConstructionState(intRecord, BoxOf(MemberKind.Int), "int-row"),
+                    ConstructionState(floatRecord, BoxOf(MemberKind.Float), "float-row"),
+                });
+            cache.ApplyDescriptors(new[] { intRecord, floatRecord }, new JObject(), new Dictionary<string, string?>(), staticConstructions: new Dictionary<string, NeoStaticConstruction>());
+            var baseline = new List<NeoStaticConstruction>
+            {
+                Construction(BoxOf(MemberKind.Int), "int-row"),
+                Construction(BoxOf(MemberKind.Float), "float-row"),
+                Construction(BoxOf(MemberKind.Bool), "bool-row"),
+            };
+            var staged = new List<NeoStaticConstruction>
+            {
+                Construction(BoxOf(MemberKind.Int), "int-row-2"),
+                Construction(BoxOf(MemberKind.Bool), "bool-row"),
+                Construction(BoxOf(MemberKind.String), null),
+            };
+
+            var changes = NeoSaveSynchronizer.BuildLivePatch(new JObject(), new JObject(), cache, baselineConstructions: baseline, stagedConstructions: staged).changes;
+
+            Assert.That(changes, Has.Count.EqualTo(3));
+            var changed = (GameSaveStaticBindingSetChange)changes[0];
+            Assert.That(changed.construction, Is.EqualTo(BoxOf(MemberKind.Int)));
+            Assert.That(changed.valueId, Is.EqualTo("int-row-2"));
+            Assert.That(changed.baseRecordStateId, Is.EqualTo("state-record-int"));
+            Assert.That(changed.baseRecordRevisionToken, Is.EqualTo("token-1"));
+            var added = (GameSaveStaticBindingSetChange)changes[1];
+            Assert.That(added.construction, Is.EqualTo(BoxOf(MemberKind.String)));
+            Assert.That(added.valueId, Is.Null);
+            Assert.That(added.baseRecordStateId, Is.Null);
+            var dropped = (GameSaveStaticBindingRestoreToAuthoredChange)changes[2];
+            Assert.That(dropped.construction, Is.EqualTo(BoxOf(MemberKind.Float)));
+            Assert.That(dropped.baseRecordRevisionToken, Is.EqualTo("token-2"));
+        }
+
+        private static TypeBinding BoxOf(MemberKind kind) =>
+            TestTypeBindings.Class("box-class", true, ("box-t", TestTypeBindings.Of(kind)));
+
+        private static NeoStaticConstruction Construction(TypeBinding construction, string? value) =>
+            new NeoStaticConstruction { memberId = "box-count", construction = construction, value = value };
+
+        private static GameSaveRecordDescriptor ConstructionDescriptor(string recordId, string token) => new()
+        {
+            recordKind = NeoGameSaveRecordKinds.StaticConstruction,
+            recordId = recordId,
+            recordStateId = $"state-{recordId}",
+            recordRevisionToken = token,
+            contentHash = $"hash-{recordId}",
+        };
+
+        private static GameSaveRecordState ConstructionState(GameSaveRecordDescriptor descriptor, TypeBinding construction, string? valueId) => new()
+        {
+            id = descriptor.recordStateId!,
+            recordKind = descriptor.recordKind,
+            recordId = descriptor.recordId,
+            dataJson = new JObject
+            {
+                ["memberId"] = "box-count",
+                ["construction"] = JObject.FromObject(construction),
+                ["valueId"] = valueId is null ? JValue.CreateNull() : valueId,
+            }.ToString(Formatting.None),
+        };
 
         private static GameSaveRecordDescriptor Descriptor(string token, string hash) => new()
         {

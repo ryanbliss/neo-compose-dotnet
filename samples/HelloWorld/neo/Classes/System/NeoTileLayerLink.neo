@@ -1,8 +1,50 @@
 @id("system_c45e7270-954c-4eb5-8cf1-709e877d4d59")
 @system(kind: .WorldAuthoring, worldKind: .TileLayerLink)
-abstract class NeoTileLayerLink : NeoLayerGroupBase {
+abstract class NeoTileLayerLink : NeoLayerGroupBase, IEnumerable<NeoTile> {
+  @id("system_a71f3e71-0cab-587d-9c57-32e69cf8cd48")
+  @system(kind: .WorldAuthoring)
+  public virtual void Clear() {
+    Tiles.Clear();
+  }
+
+  @id("system_cd844400-5942-53d4-9cc4-dc428532cbd1")
+  @system(kind: .WorldAuthoring)
+  public virtual bool Contains(NeoTile obj) => Tiles.Contains(obj);
+
+  @id("system_bfdd3a1e-9e81-55ca-911d-e004560ce99a")
+  @system(kind: .WorldAuthoring)
+  public virtual int Count => Tiles.Count;
+
+  @id("system_700e8f5a-5634-53ec-90e4-d4e75335e61c")
+  @system(kind: .WorldAuthoring)
+  public virtual IEnumerator<NeoTile> GetEnumerator() => Tiles.GetEnumerator();
+
+  @id("system_96db0020-5d58-572d-a5f4-97d33fd73dee")
+  @system(kind: .WorldAuthoring)
+  public virtual int IndexOf(NeoTile obj) => Tiles.IndexOf(obj);
+
+  @id("system_56704561-a4d9-5c0e-b1c9-ae5413f057c7")
+  @system(kind: .WorldAuthoring)
+  public virtual bool Remove(NeoTile obj) {
+    int index = Tiles.IndexOf(obj);
+    if (index < 0) return false;
+    Tiles.RemoveAt(index);
+    return true;
+  }
+
+  @id("system_0fee15ff-d775-5740-a1ea-feda8a4836db")
+  @system(kind: .WorldAuthoring)
+  public virtual void RemoveAt(int index) {
+    Tiles.RemoveAt(index);
+  }
+
   @id("system_98655d2b-ad0b-45e2-a901-62600b4d3a22")
   @settings(kind: .Unordered)
   @system(kind: .WorldAuthoring)
-  public virtual List<NeoTile> Tiles = [];
+  protected virtual List<NeoTile> Tiles = [];
+
+  /// Validates against the owning grid and writes to this link. Cells are grid-relative when attached and link-local when detached. Failure leaves the link and object unchanged.
+  @id("system_5728d83c-cd44-5c7d-a43f-61bf83ca2b91")
+  @system(kind: .WorldAuthoring)
+  native public virtual NeoPlacementResult TrySet(Vector2Int cell, NeoTile obj);
 }

@@ -78,11 +78,11 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal sealed class NeoInterfaceImplementers
     {
-        private static readonly IReadOnlyDictionary<string, GenericBinding> EmptyConstruction =
-            new Dictionary<string, GenericBinding>();
+        private static readonly IReadOnlyDictionary<string, TypeBinding> EmptyConstruction =
+            new Dictionary<string, TypeBinding>();
 
-        private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> EmptyMap =
-            new Dictionary<string, IReadOnlyDictionary<string, GenericBinding>>();
+        private static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>> EmptyMap =
+            new Dictionary<string, IReadOnlyDictionary<string, TypeBinding>>();
 
         private static readonly IReadOnlyList<string> EmptyIds = new List<string>();
 
@@ -90,13 +90,13 @@ namespace NeoCompose.Runtime
 
         private readonly NeoClient client;
         private readonly ProjectData data;
-        private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>>>
+        private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>>>
             closureByInterfaceId = new();
-        private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>>>
+        private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>>>
             mapByClassId = new();
         private readonly Dictionary<(string, string), NeoInterfaceDetermination> determinationByKey = new();
         private readonly Dictionary<string, List<GenericParamDeclaration>> scopeByClassId = new();
-        private readonly Dictionary<(ClassMember, string), IReadOnlyDictionary<string, GenericBinding>?>
+        private readonly Dictionary<(ClassMember, string), IReadOnlyDictionary<string, TypeBinding>?>
             slotArgumentsByKey = new();
         private readonly HashSet<string> visiting = new();
         private Dictionary<string, List<string>>? implementersByInterfaceId;
@@ -108,7 +108,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Every interface <paramref name="interfaceId"/> is or extends, with its arguments.</summary>
-        internal IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> InterfaceClosure(
+        internal IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>> InterfaceClosure(
             string interfaceId)
         {
             if (closureByInterfaceId.TryGetValue(interfaceId, out var cached))
@@ -119,18 +119,20 @@ namespace NeoCompose.Runtime
             // A cyclic `extends` is refused by document validation; here it ends.
             if (!visiting.Add(key))
                 return EmptyMap;
-            var closure = new Dictionary<string, IReadOnlyDictionary<string, GenericBinding>>
+            var closure = new Dictionary<string, IReadOnlyDictionary<string, TypeBinding>>
             {
-                [interfaceId] = IdentityConstruction(declaration.genericParams),
+                [interfaceId] = IdentityConstruction(interfaceId, declaration.genericParams),
             };
-            if (declaration.extendsInterfaceIds is not null)
+            // P127 §4.7 lets a list hold several constructions of one
+            // interface. This index keeps each interface's first construction;
+            // per-construction dispatch reads the lists themselves.
+            if (declaration.extendsInterfaces is not null)
             {
-                foreach (string parentId in declaration.extendsInterfaceIds)
+                foreach (InterfaceConstruction parent in declaration.extendsInterfaces)
                 {
-                    IReadOnlyDictionary<string, GenericBinding> parentArguments = EmptyConstruction;
-                    if (declaration.extendsInterfaceArguments?.TryGetValue(parentId, out var declared) == true)
-                        parentArguments = declared;
-                    foreach (var pair in InterfaceClosure(parentId))
+                    IReadOnlyDictionary<string, TypeBinding> parentArguments =
+                        parent.arguments ?? EmptyConstruction;
+                    foreach (var pair in InterfaceClosure(parent.interfaceId))
                         closure.TryAdd(pair.Key, Substitute(pair.Value, parentArguments));
                 }
             }
@@ -140,7 +142,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Every interface <paramref name="classId"/> implements, with its arguments.</summary>
-        internal IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> Constructions(
+        internal IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>> Constructions(
             string classId)
         {
             if (mapByClassId.TryGetValue(classId, out var cached))
@@ -155,19 +157,18 @@ namespace NeoCompose.Runtime
                 : Constructions(schemaClass.extendsClassId);
             var bindings = schemaClass.extendsGenericBindings;
             var result = parentMap;
-            if (schemaClass.implementsInterfaceIds is { Count: > 0 } || ForwardsAnyBoundParam(parentMap, bindings))
+            if (schemaClass.implementsInterfaces is { Count: > 0 } || ForwardsAnyBoundParam(parentMap, bindings))
             {
-                var map = new Dictionary<string, IReadOnlyDictionary<string, GenericBinding>>(parentMap.Count);
+                var map = new Dictionary<string, IReadOnlyDictionary<string, TypeBinding>>(parentMap.Count);
                 foreach (var pair in parentMap)
                     map[pair.Key] = bindings is null ? pair.Value : Substitute(pair.Value, bindings);
-                if (schemaClass.implementsInterfaceIds is not null)
+                if (schemaClass.implementsInterfaces is not null)
                 {
-                    foreach (string implementedId in schemaClass.implementsInterfaceIds)
+                    foreach (InterfaceConstruction implemented in schemaClass.implementsInterfaces)
                     {
-                        IReadOnlyDictionary<string, GenericBinding> implementedArguments = EmptyConstruction;
-                        if (schemaClass.implementsInterfaceArguments?.TryGetValue(implementedId, out var declared) == true)
-                            implementedArguments = declared;
-                        foreach (var pair in InterfaceClosure(implementedId))
+                        IReadOnlyDictionary<string, TypeBinding> implementedArguments =
+                            implemented.arguments ?? EmptyConstruction;
+                        foreach (var pair in InterfaceClosure(implemented.interfaceId))
                             map.TryAdd(pair.Key, Substitute(pair.Value, implementedArguments));
                     }
                 }
@@ -182,7 +183,7 @@ namespace NeoCompose.Runtime
         internal bool TryGetConstruction(
             string classId,
             string interfaceId,
-            out IReadOnlyDictionary<string, GenericBinding> construction) =>
+            out IReadOnlyDictionary<string, TypeBinding> construction) =>
             Constructions(classId).TryGetValue(interfaceId, out construction!);
 
         internal bool Implements(string classId, string interfaceId) =>
@@ -218,7 +219,7 @@ namespace NeoCompose.Runtime
         /// the slot's interface arguments read by position for a row its
         /// interface determines, and none for a closed row.
         /// </summary>
-        internal IReadOnlyDictionary<string, GenericBinding>? SlotClassArguments(
+        internal IReadOnlyDictionary<string, TypeBinding>? SlotClassArguments(
             ClassMember slot,
             string rowClassId)
         {
@@ -229,13 +230,13 @@ namespace NeoCompose.Runtime
             var key = (slot, rowClassId);
             if (slotArgumentsByKey.TryGetValue(key, out var cached))
                 return cached;
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null;
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null;
             if (Determination(rowClassId, interfaceId).paramByPosition is { } paramByPosition)
             {
-                var byClassParam = new Dictionary<string, GenericBinding>(paramByPosition.Count);
+                var byClassParam = new Dictionary<string, TypeBinding>(paramByPosition.Count);
                 foreach (var pair in paramByPosition)
                 {
-                    if (slotArguments.TryGetValue(pair.Key, out GenericBinding? binding))
+                    if (slotArguments.TryGetValue(pair.Key, out TypeBinding? binding))
                         byClassParam[pair.Value] = binding;
                 }
                 classArguments = byClassParam;
@@ -256,6 +257,239 @@ namespace NeoCompose.Runtime
                 return null;
             string rowName = ClassName(rowClassId);
             return $"{slotLabel} can't hold a {rowName}, because {Reason(determination, rowName, interfaceId)}.";
+        }
+
+        /// <summary>
+        /// P113 §3.2 rule 1. Null when a row of <paramref name="rowClassId"/>
+        /// fits <paramref name="slot"/>: its interface closes or determines the
+        /// class, and the class implements it with the slot's arguments. An
+        /// argument the row's class fills with its own param comes from the
+        /// slot, and one <paramref name="contextEnv"/> leaves open at any depth
+        /// fits every row. Mirrors the server's <c>interfaceSlotRefusal</c>.
+        /// The slot's label, <paramref name="ownerName"/>.<paramref name="key"/>
+        /// or a bare <paramref name="key"/>, is built only for a refusal.
+        /// </summary>
+        internal string? SlotRefusal(
+            ClassMember slot,
+            string? ownerName,
+            string key,
+            string rowClassId,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> contextEnv)
+        {
+            string interfaceId = slot.DeclaredInterfaceId!;
+            if (!Determination(rowClassId, interfaceId).Admits)
+                return UndeterminedRowMessage(SlotLabel(ownerName, key), rowClassId, interfaceId);
+            if (slot.interfaceArguments is not { Count: > 0 } slotArguments)
+                return null;
+            if (!TryGetConstruction(rowClassId, interfaceId, out var construction))
+                return null;
+            foreach (var pair in slotArguments)
+            {
+                if (!construction.TryGetValue(pair.Key, out TypeBinding? rowBinding))
+                    continue;
+                if (rowBinding.IsOpen)
+                    continue;
+                if (client.TypeRules.BindingText(pair.Value, contextEnv) is null)
+                    continue;
+                var slotSignature = NeoGenericResolution.SignatureOfBinding(client, pair.Value, contextEnv);
+                var rowSignature = NeoGenericResolution.SignatureOfBinding(client, rowBinding, NeoGenericResolution.EmptyEnv);
+                if (NeoGenericResolution.SignaturesEqual(slotSignature, rowSignature))
+                    continue;
+                string rowName = ClassName(rowClassId);
+                string implemented = ConstructionLabel(interfaceId, construction, NeoGenericResolution.EmptyEnv);
+                string wanted = ConstructionLabel(interfaceId, slotArguments, contextEnv);
+                return $"{SlotLabel(ownerName, key)} can't hold a {rowName}, because {rowName} implements {implemented}, not {wanted}.";
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// P113 §3.6. Why <paramref name="label"/>, a reference typed
+        /// <paramref name="target"/>, can't reference <paramref name="targetId"/>,
+        /// a row of <paramref name="rowClassId"/>; null when it can. Positions
+        /// the row's class fills with its own params read
+        /// <paramref name="rowArguments"/>, and are skipped without them. The
+        /// server's Lookup refusal, word for word.
+        /// </summary>
+        internal string? TargetRefusal(
+            string label,
+            string targetId,
+            string rowClassId,
+            InterfaceTypeInfo target,
+            IReadOnlyDictionary<string, TypeInfo>? rowArguments)
+        {
+            if (TargetMismatch(target, rowClassId, rowArguments) is not { } mismatch)
+                return null;
+            string refusal = $"{label} can't reference '{targetId}', because {mismatch}.";
+            NeoInterfaceDeterminationKind kind = Determination(rowClassId, target.interfaceId).kind;
+            if (kind is NeoInterfaceDeterminationKind.Closed
+                or NeoInterfaceDeterminationKind.Determined
+                or NeoInterfaceDeterminationKind.NotImplemented)
+            {
+                return refusal;
+            }
+            return ClosedImplementerExample(rowClassId, target) is { } example
+                ? $"{refusal} Reference a class that binds it, such as {example}."
+                : refusal;
+        }
+
+        /// <summary>
+        /// Null when a row of <paramref name="rowClassId"/> fits a reference
+        /// typed <paramref name="target"/>, else the clause saying why not.
+        /// The server's <c>interfaceTargetMismatch</c>.
+        /// </summary>
+        internal string? TargetMismatch(
+            InterfaceTypeInfo target,
+            string rowClassId,
+            IReadOnlyDictionary<string, TypeInfo>? rowArguments)
+        {
+            NeoInterfaceDetermination determination = Determination(rowClassId, target.interfaceId);
+            if (!determination.Admits)
+                return Reason(determination, ClassName(rowClassId), target.interfaceId);
+            if (!TryGetConstruction(rowClassId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
+                return null;
+            if (ConstructionMatches(construction, target, rowArguments))
+                return null;
+            string implemented = rowArguments is null
+                ? ConstructionLabel(target.interfaceId, construction, NeoGenericResolution.EmptyEnv)
+                : NeoReferenceTypes.Format(client, new InterfaceTypeInfo
+                {
+                    type = MemberKind.Interface,
+                    required = true,
+                    interfaceId = target.interfaceId,
+                    typeArguments = ConstructionTypeArguments(construction, rowArguments),
+                });
+            string wanted = NeoReferenceTypes.Format(client, new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                required = true,
+                interfaceId = target.interfaceId,
+                typeArguments = target.typeArguments,
+            });
+            return $"{ClassName(rowClassId)} implements {implemented}, not {wanted}";
+        }
+
+        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; a forwarded one without <paramref name="rowArguments"/> is skipped.</summary>
+        private bool ConstructionMatches(
+            IReadOnlyDictionary<string, TypeBinding> construction,
+            InterfaceTypeInfo target,
+            IReadOnlyDictionary<string, TypeInfo>? rowArguments)
+        {
+            if (target.typeArguments is not { } expected)
+                return true;
+            foreach (KeyValuePair<string, TypeBinding> position in construction)
+            {
+                if (!expected.TryGetValue(position.Key, out TypeInfo? argument))
+                    return false;
+                if (ConstructionArgument(position.Value, rowArguments) is not { } actual)
+                {
+                    if (position.Value.IsOpen)
+                        continue;
+                    return false;
+                }
+                if (!NeoReferenceTypes.InvariantlyEqual(actual, argument))
+                    return false;
+            }
+            return true;
+        }
+
+        private Dictionary<string, TypeInfo> ConstructionTypeArguments(
+            IReadOnlyDictionary<string, TypeBinding> construction,
+            IReadOnlyDictionary<string, TypeInfo> rowArguments)
+        {
+            var typeArguments = new Dictionary<string, TypeInfo>(construction.Count);
+            foreach (KeyValuePair<string, TypeBinding> position in construction)
+            {
+                if (ConstructionArgument(position.Value, rowArguments) is { } actual)
+                    typeArguments[position.Key] = actual;
+            }
+            return typeArguments;
+        }
+
+        private TypeInfo? ConstructionArgument(TypeBinding binding, IReadOnlyDictionary<string, TypeInfo>? rowArguments)
+        {
+            if (binding.IsOpen)
+                return rowArguments is not null && rowArguments.TryGetValue(binding.Param!, out TypeInfo? argument) ? argument : null;
+            return NeoTypeBindingViews.TryView(binding, out _) is Member member ? NeoReferenceTypes.SlotTypeInfo(client, member) : null;
+        }
+
+        /// <summary>
+        /// A concrete class the interface closes, under <paramref name="rowClassId"/>,
+        /// that a reference typed <paramref name="target"/> accepts: the
+        /// "such as" in a refusal. Runs only on an error path.
+        /// </summary>
+        private string? ClosedImplementerExample(string rowClassId, InterfaceTypeInfo target)
+        {
+            foreach (string classId in Implementers(target.interfaceId))
+            {
+                if (Determination(classId, target.interfaceId).kind != NeoInterfaceDeterminationKind.Closed)
+                    continue;
+                if (!client.ClassChainContains(classId, rowClassId))
+                    continue;
+                if (!TryGetConstruction(classId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
+                    continue;
+                if (ConstructionMatches(construction, target, null))
+                    return ClassName(classId);
+            }
+            return null;
+        }
+
+        private static string SlotLabel(string? ownerName, string key) =>
+            ownerName is null ? key : $"{ownerName}.{key}";
+
+        /// <summary><c>IContainer&lt;Seed&gt;</c> for a construction under <paramref name="env"/>.</summary>
+        private string ConstructionLabel(
+            string interfaceId,
+            IReadOnlyDictionary<string, TypeBinding> construction,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            string name = InterfaceName(interfaceId);
+            if (!data.interfaces.TryGetValue(interfaceId, out Interface? declaration)
+                || declaration.genericParams is not { Count: > 0 } parameters)
+            {
+                return name;
+            }
+            var labels = new string[parameters.Count];
+            for (int index = 0; index < parameters.Count; index++)
+            {
+                GenericParamDeclaration parameter = parameters[index];
+                if (!construction.TryGetValue(parameter.id, out TypeBinding? binding))
+                {
+                    labels[index] = parameter.name;
+                    continue;
+                }
+                if (!binding.IsOpen)
+                {
+                    labels[index] = client.TypeRules.BindingText(binding, env) ?? NeoTypeNames.Of(binding, data);
+                    continue;
+                }
+                labels[index] = env.TryGetValue(binding.Param!, out NeoGenericEnvEntry? entry) && entry.IsBound
+                    ? EntryLabel(entry, env)
+                    : ParamName(binding.Param!);
+            }
+            return $"{name}<{string.Join(", ", labels)}>";
+        }
+
+        private string EntryLabel(NeoGenericEnvEntry entry, IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+        {
+            TypeBinding binding = NeoTypeBindings.ArgumentOfEntry(client, entry, env);
+            return client.TypeRules.BindingText(binding, env) ?? NeoTypeNames.Of(binding, data);
+        }
+
+        /// <summary>A class or interface param's name. Runs only on an error path.</summary>
+        private string ParamName(string paramId)
+        {
+            foreach (NeoSchemaClass schemaClass in data.classes.Values)
+            {
+                if (schemaClass.genericParams?.Find(param => param.id == paramId) is { } classParam)
+                    return classParam.name;
+            }
+            foreach (Interface declaration in data.interfaces.Values)
+            {
+                if (declaration.genericParams?.Find(param => param.id == paramId) is { } interfaceParam)
+                    return interfaceParam.name;
+            }
+            return paramId;
         }
 
         internal string InterfaceName(string interfaceId) =>
@@ -282,20 +516,26 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>"T extends Item &amp; IComparable", or "T is unconstrained".</summary>
         private string ConstraintClause(GenericParamDeclaration param)
         {
-            GenericParamConstraint? constraint = param.constraint;
-            if (constraint is null)
+            if (param.constraints is not { Count: > 0 } constraints)
                 return $"{param.name} is unconstrained";
-            switch (constraint.kind)
+            var names = new string[constraints.Count];
+            for (int index = 0; index < constraints.Count; index++)
             {
-                case NeoGenericParamConstraintKind.Enum:
-                    return $"{param.name} extends {(data.enums.TryGetValue(constraint.enumId!, out Enum? declared) ? declared.name : constraint.enumId)}";
-                case NeoGenericParamConstraintKind.Interface:
-                    return $"{param.name} extends {InterfaceName(constraint.interfaceId!)}";
-                default:
-                    return $"{param.name} extends {ClassName(constraint.classId!)}";
+                GenericParamConstraint constraint = constraints[index];
+                string suffix = constraint.nullable == true ? "?" : "";
+                names[index] = constraint.kind switch
+                {
+                    NeoGenericParamConstraintKind.AnyEnum => "Enum",
+                    NeoGenericParamConstraintKind.Enum =>
+                        data.enums.TryGetValue(constraint.enumId!, out Enum? declared) ? declared.name : constraint.enumId!,
+                    NeoGenericParamConstraintKind.Interface => InterfaceName(constraint.interfaceId!) + suffix,
+                    _ => ClassName(constraint.classId!) + suffix,
+                };
             }
+            return $"{param.name} extends {string.Join(" & ", names)}";
         }
 
         private Dictionary<string, List<string>> BuildImplementers()
@@ -337,9 +577,9 @@ namespace NeoCompose.Runtime
             var positionByParam = new Dictionary<string, string>();
             foreach (var pair in construction)
             {
-                if (!pair.Value.IsForward)
+                if (!pair.Value.IsOpen)
                     continue;
-                string paramId = pair.Value.genericParamId!;
+                string paramId = pair.Value.Param!;
                 if (positionByParam.ContainsKey(paramId)
                     && scope.Find(param => param.id == paramId) is { } repeated)
                 {
@@ -355,7 +595,7 @@ namespace NeoCompose.Runtime
                 {
                     return new NeoInterfaceDetermination(NeoInterfaceDeterminationKind.UnboundParam, param);
                 }
-                if (!ConstraintsEqual(param.constraint, position.constraint, positionByParam))
+                if (!ConstraintListsEqual(param.constraints, position.constraints, positionByParam))
                 {
                     return new NeoInterfaceDetermination(
                         NeoInterfaceDeterminationKind.NarrowedConstraint,
@@ -410,19 +650,51 @@ namespace NeoCompose.Runtime
             return scope;
         }
 
-        private bool ConstraintsEqual(
-            GenericParamConstraint? classConstraint,
-            GenericParamConstraint? positionConstraint,
+        /// <summary>
+        /// P113 §1: a class param's constraints equal the interface position's,
+        /// once each class param is read as the position it fills. Order
+        /// doesn't matter (P127 §4.7: the closure is their union).
+        /// </summary>
+        private static readonly List<GenericParamConstraint> EmptyConstraints = new List<GenericParamConstraint>();
+
+        private bool ConstraintListsEqual(
+            List<GenericParamConstraint>? classConstraints,
+            List<GenericParamConstraint>? positionConstraints,
             IReadOnlyDictionary<string, string> positionByParam)
         {
-            if (classConstraint is null)
-                return positionConstraint is null;
-            if (positionConstraint is null)
+            int count = classConstraints?.Count ?? 0;
+            if (count != (positionConstraints?.Count ?? 0))
                 return false;
+            foreach (GenericParamConstraint classConstraint in classConstraints ?? EmptyConstraints)
+            {
+                bool matched = false;
+                foreach (GenericParamConstraint position in positionConstraints!)
+                {
+                    if (ConstraintsEqual(classConstraint, position, positionByParam))
+                    {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched)
+                    return false;
+            }
+            return true;
+        }
+
+        private bool ConstraintsEqual(
+            GenericParamConstraint classConstraint,
+            GenericParamConstraint positionConstraint,
+            IReadOnlyDictionary<string, string> positionByParam)
+        {
             if (classConstraint.kind != positionConstraint.kind)
+                return false;
+            if (classConstraint.nullable != positionConstraint.nullable)
                 return false;
             switch (classConstraint.kind)
             {
+                case NeoGenericParamConstraintKind.AnyEnum:
+                    return true;
                 case NeoGenericParamConstraintKind.Enum:
                     return classConstraint.enumId == positionConstraint.enumId;
                 case NeoGenericParamConstraintKind.Interface:
@@ -441,8 +713,8 @@ namespace NeoCompose.Runtime
         }
 
         private bool ArgumentsEqual(
-            IReadOnlyDictionary<string, GenericBinding>? classArguments,
-            IReadOnlyDictionary<string, GenericBinding>? positionArguments,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            IReadOnlyDictionary<string, TypeBinding>? positionArguments,
             IReadOnlyDictionary<string, string> positionByParam)
         {
             classArguments ??= EmptyConstruction;
@@ -451,22 +723,22 @@ namespace NeoCompose.Runtime
                 return false;
             foreach (var pair in classArguments)
             {
-                if (!positionArguments.TryGetValue(pair.Key, out GenericBinding? other))
+                if (!positionArguments.TryGetValue(pair.Key, out TypeBinding? other))
                     return false;
-                if (pair.Value.IsForward)
+                if (pair.Value.IsOpen)
                 {
-                    if (!other.IsForward)
+                    if (!other.IsOpen)
                         return false;
-                    if (!positionByParam.TryGetValue(pair.Value.genericParamId!, out string? positionId)
-                        || positionId != other.genericParamId)
+                    if (!positionByParam.TryGetValue(pair.Value.Param!, out string? positionId)
+                        || positionId != other.Param)
                     {
                         return false;
                     }
                     continue;
                 }
-                if (other.IsForward)
+                if (other.IsOpen)
                     return false;
-                if (pair.Value.memberId == other.memberId)
+                if (pair.Value.Equals(other))
                     continue;
                 var a = NeoGenericResolution.SignatureOfBinding(client, pair.Value, NeoGenericResolution.EmptyEnv);
                 var b = NeoGenericResolution.SignatureOfBinding(client, other, NeoGenericResolution.EmptyEnv);
@@ -476,20 +748,16 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static IReadOnlyDictionary<string, GenericBinding> IdentityConstruction(
+        private static IReadOnlyDictionary<string, TypeBinding> IdentityConstruction(
+            string interfaceId,
             List<GenericParamDeclaration>? genericParams)
         {
             if (genericParams is not { Count: > 0 })
                 return EmptyConstruction;
-            var construction = new Dictionary<string, GenericBinding>(genericParams.Count);
+            var owner = new TypeDefinition(MemberKind.Interface, interfaceId: interfaceId);
+            var construction = new Dictionary<string, TypeBinding>(genericParams.Count);
             foreach (GenericParamDeclaration param in genericParams)
-            {
-                construction[param.id] = new GenericBinding
-                {
-                    kind = NeoGenericBindingKind.Generic,
-                    genericParamId = param.id,
-                };
-            }
+                construction[param.id] = TypeBinding.Open(owner, param.id);
             return construction;
         }
 
@@ -497,20 +765,20 @@ namespace NeoCompose.Runtime
         /// Rewrites a construction's forwards through <paramref name="bindings"/>,
         /// which bind the params of the scope it was built in.
         /// </summary>
-        private static IReadOnlyDictionary<string, GenericBinding> Substitute(
-            IReadOnlyDictionary<string, GenericBinding> construction,
-            IReadOnlyDictionary<string, GenericBinding> bindings)
+        private static IReadOnlyDictionary<string, TypeBinding> Substitute(
+            IReadOnlyDictionary<string, TypeBinding> construction,
+            IReadOnlyDictionary<string, TypeBinding> bindings)
         {
-            Dictionary<string, GenericBinding>? result = null;
+            Dictionary<string, TypeBinding>? result = null;
             foreach (var pair in construction)
             {
-                if (!pair.Value.IsForward)
+                if (!pair.Value.IsOpen)
                     continue;
-                if (!bindings.TryGetValue(pair.Value.genericParamId!, out GenericBinding? replacement))
+                if (!bindings.TryGetValue(pair.Value.Param!, out TypeBinding? replacement))
                     continue;
                 if (result is null)
                 {
-                    result = new Dictionary<string, GenericBinding>(construction.Count);
+                    result = new Dictionary<string, TypeBinding>(construction.Count);
                     foreach (var copy in construction)
                         result[copy.Key] = copy.Value;
                 }
@@ -520,16 +788,16 @@ namespace NeoCompose.Runtime
         }
 
         private static bool ForwardsAnyBoundParam(
-            IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> map,
-            IReadOnlyDictionary<string, GenericBinding>? bindings)
+            IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>> map,
+            IReadOnlyDictionary<string, TypeBinding>? bindings)
         {
             if (bindings is null)
                 return false;
             foreach (var construction in map.Values)
             {
-                foreach (GenericBinding binding in construction.Values)
+                foreach (TypeBinding binding in construction.Values)
                 {
-                    if (binding.IsForward && bindings.ContainsKey(binding.genericParamId!))
+                    if (binding.IsOpen && bindings.ContainsKey(binding.Param!))
                         return true;
                 }
             }

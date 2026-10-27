@@ -95,19 +95,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
-
-            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
-
-            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
-
-            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
 
             public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
 
-            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
-
             public static readonly NeoField<int> StartFrame = new("StartFrame");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
 
             public static readonly NeoField<NeoAnimationSegment<Sprite>> Segment = new("Segment");
         }
@@ -116,13 +116,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.BaseDuration] = () => null,
-                [Fields.Direction] = () => null,
-                [Fields.OffsetEndIndex] = () => null,
-                [Fields.OffsetStartIndex] = () => null,
-                [Fields.Refresh] = () => null,
                 [Fields.Selector] = () => null,
+                [Fields.Refresh] = () => null,
                 [Fields.StartFrame] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.BaseDuration] = () => null,
                 [Fields.Segment] = () => null,
             };
         }
@@ -141,13 +141,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.BaseDuration] = () => BaseDuration,
-                [Fields.Direction] = () => Direction,
-                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
-                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
-                [Fields.Refresh] = () => Refresh,
                 [Fields.Selector] = () => Selector,
+                [Fields.Refresh] = () => Refresh,
                 [Fields.StartFrame] = () => StartFrame,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.BaseDuration] = () => BaseDuration,
                 [Fields.Segment] = () => Segment,
             };
         }

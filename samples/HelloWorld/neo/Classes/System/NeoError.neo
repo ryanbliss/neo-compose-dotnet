@@ -1,0 +1,13 @@
+@id("system_791c90d0-8414-5971-8c1c-680f933ab42c")
+@system(kind: .ScriptRuntime)
+class NeoError {
+  @id("system_691a0a22-9c6b-5046-a617-a0176c2f6f5d")
+  @settings(format: .Plain)
+  @system(kind: .ScriptRuntime)
+  public virtual readonly string Message;
+
+  @id("system_5749aebc-8464-5186-b995-7f5a69e702b4")
+  public NeoError(string message) {
+    this.Message = message;
+  }
+}

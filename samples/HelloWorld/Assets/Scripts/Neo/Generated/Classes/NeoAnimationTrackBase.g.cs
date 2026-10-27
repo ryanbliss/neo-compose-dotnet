@@ -27,6 +27,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoAnimationTrackBase writable);
 
+        NeoDelegate<IReadOnlyNeoObjectBase> Selector { get; }
+
+        NeoSelectorRefreshKind Refresh { get; }
+
+        int StartFrame { get; }
+
 
         /// <summary>
         /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
@@ -35,21 +41,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
-        /// </summary>
-        int? OffsetEndIndex { get; }
-
-
-        /// <summary>
         /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
         /// </summary>
         int? OffsetStartIndex { get; }
 
-        NeoSelectorRefreshKind Refresh { get; }
 
-        NeoDelegate<IReadOnlyNeoObjectBase> Selector { get; }
-
-        int StartFrame { get; }
+        /// <summary>
+        /// Where to stop, counted in the scheduled content's own frames. The frame at this index is not played. Leave it empty to run to the end. Dragging the right edge of a lane edits this.
+        /// </summary>
+        int? OffsetEndIndex { get; }
     }
 
     /// <summary>
@@ -119,10 +119,54 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoAnimationTrackBase>(out writable);
         }
 
-        /// <summary>
-        /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
-        /// </summary>
-        protected abstract int BaseDuration { get; }
+        public virtual NeoDelegate<IReadOnlyNeoObjectBase> Selector
+        {
+            get
+            {
+                var child = node.Get<NeoMemberDelegate>("Selector");
+                return child.Bind<IReadOnlyNeoObjectBase>(result => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyNeoObjectBase>(client, result, true, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories, "Selector delegate result"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Selector");
+                writableNode.Get<NeoMemberDelegateWritable>("Selector").Set(value);
+            }
+        }
+
+        public virtual NeoSelectorRefreshKind Refresh
+        {
+            get
+            {
+                if (TryReadDetached("Refresh", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSelectorRefreshKindOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.");
+                }
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Refresh"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKindOptions.FromOptionId(selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.Refresh");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Refresh", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
+            }
+        }
+
+        public virtual int StartFrame
+        {
+            get
+            {
+                if (TryReadDetached("StartFrame", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("StartFrame")) ?? throw new InvalidOperationException("Required int 'StartFrame' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.StartFrame");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "StartFrame", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
 
         /// <summary>
         /// Which way the scheduled content plays: forward, or last frame first. This is playback order, not a direction in the world.
@@ -142,6 +186,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ThrowIfReadOnly("NeoAnimationTrackBase.Direction");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Direction", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
+            }
+        }
+
+        /// <summary>
+        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
+        /// </summary>
+        public virtual int? OffsetStartIndex
+        {
+            get
+            {
+                if (TryReadDetached("OffsetStartIndex", out object? detachedValue))
+                {
+                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
+                }
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetStartIndex"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoAnimationTrackBase.OffsetStartIndex");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "OffsetStartIndex", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -166,104 +230,40 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// The first frame of the scheduled content to play, counted in that content's own frames. Dragging the left edge of a lane edits this.
+        /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
         /// </summary>
-        public virtual int? OffsetStartIndex
-        {
-            get
-            {
-                if (TryReadDetached("OffsetStartIndex", out object? detachedValue))
-                {
-                    return detachedValue is null ? (int?)null : Convert.ToInt32(detachedValue);
-                }
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("OffsetStartIndex"));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoAnimationTrackBase.OffsetStartIndex");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "OffsetStartIndex", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public virtual NeoSelectorRefreshKind Refresh
-        {
-            get
-            {
-                if (TryReadDetached("Refresh", out object? detachedValue))
-                {
-                    return NeoGeneratedTypesSupport.ReadEnumSingle(detachedValue, static (factoryOptionId) => NeoSelectorRefreshKindOptions.FromOptionId(factoryOptionId)) ?? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.");
-                }
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoMemberEnum>("Refresh"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Refresh' has no selected option.") : NeoSelectorRefreshKindOptions.FromOptionId(selected);
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoAnimationTrackBase.Refresh");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Refresh", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
-            }
-        }
-
-        public virtual NeoDelegate<IReadOnlyNeoObjectBase> Selector
-        {
-            get
-            {
-                var child = node.Get<NeoMemberDelegate>("Selector");
-                return child.Bind<IReadOnlyNeoObjectBase>(result => NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyNeoObjectBase>(client, result, true, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories, "Selector delegate result"));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoAnimationTrackBase.Selector");
-                writableNode.Get<NeoMemberDelegateWritable>("Selector").Set(value);
-            }
-        }
-
-        public virtual int StartFrame
-        {
-            get
-            {
-                if (TryReadDetached("StartFrame", out object? detachedValue))
-                {
-                    return Convert.ToInt32(detachedValue);
-                }
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("StartFrame")) ?? throw new InvalidOperationException("Required int 'StartFrame' has no value.");
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoAnimationTrackBase.StartFrame");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "StartFrame", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
+        protected abstract int BaseDuration { get; }
 
         public sealed class Fields
         {
             private Fields() {}
 
-            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
-
-            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
-
-            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
-
-            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+            public static readonly NeoField<NeoDelegate<IReadOnlyNeoObjectBase>> Selector = new("Selector");
 
             public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
 
-            public static readonly NeoField<NeoDelegate<IReadOnlyNeoObjectBase>> Selector = new("Selector");
-
             public static readonly NeoField<int> StartFrame = new("StartFrame");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.BaseDuration] = () => null,
-                [Fields.Direction] = () => null,
-                [Fields.OffsetEndIndex] = () => null,
-                [Fields.OffsetStartIndex] = () => null,
-                [Fields.Refresh] = () => null,
                 [Fields.Selector] = () => null,
+                [Fields.Refresh] = () => null,
                 [Fields.StartFrame] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.BaseDuration] = () => null,
             };
         }
 
@@ -281,13 +281,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.BaseDuration] = () => BaseDuration,
-                [Fields.Direction] = () => Direction,
-                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
-                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
-                [Fields.Refresh] = () => Refresh,
                 [Fields.Selector] = () => Selector,
+                [Fields.Refresh] = () => Refresh,
                 [Fields.StartFrame] = () => StartFrame,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.BaseDuration] = () => BaseDuration,
             };
         }
 

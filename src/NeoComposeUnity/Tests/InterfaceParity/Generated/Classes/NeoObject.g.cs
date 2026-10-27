@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace NeoCompose.Tests.InterfaceParity
 {
-    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, INeoObjectCompositionSource
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase, global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase>, INeoObjectCompositionSource
     {
         new bool IsReadOnly { get; }
 
@@ -35,11 +35,9 @@ namespace NeoCompose.Tests.InterfaceParity
         /// </summary>
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
-
 
         /// <summary>
-        /// The origin cell of this object's current placement. Detached objects have no cell.
+        /// The object's local Position rounded to a cell, including when detached.
         /// </summary>
         Vector2Int Cell { get; }
 
@@ -47,14 +45,14 @@ namespace NeoCompose.Tests.InterfaceParity
         /// <summary>
         /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject;
+        global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject;
 
 
 
         /// <summary>
         /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
 
         /// <summary>
@@ -73,14 +71,40 @@ namespace NeoCompose.Tests.InterfaceParity
         /// <summary>
         /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
+        global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
 
 
 
         /// <summary>
         /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+
+
+        /// <summary>
+        /// The origin cell in the owning grid, or null when this object is not in a grid.
+        /// </summary>
+        Vector2Int? GridCell { get; }
+
+
+        /// <summary>
+        /// Adds a composition child with no placement tiles. Cells are grid-relative when attached and local when detached; failure leaves both objects unchanged.
+        /// </summary>
+        IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj);
+
+        int Count { get; }
+
+        bool Contains(IReadOnlyNeoObjectBase obj);
+
+        int IndexOf(IReadOnlyNeoObjectBase obj);
+
+        bool Remove(IReadOnlyNeoObjectBase obj);
+
+        void RemoveAt(int index);
+
+        void Clear();
+
+        new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator();
     }
 
     public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoObjectSpawnHooks
@@ -214,7 +238,7 @@ namespace NeoCompose.Tests.InterfaceParity
             }
         }
 
-        public virtual NeoList<NeoObjectBase> Children
+        protected virtual NeoList<NeoObjectBase> Children
         {
             get
             {
@@ -224,29 +248,52 @@ namespace NeoCompose.Tests.InterfaceParity
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::NeoCompose.Tests.InterfaceParity.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         /// <summary>
-        /// The origin cell of this object's current placement. Detached objects have no cell.
+        /// The object's local Position rounded to a cell, including when detached.
         /// </summary>
         public virtual Vector2Int Cell
         {
             get
             {
                 var result = ComputeProperty("Cell");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
                 return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
             }
         }
+
+
+
+
+
+        /// <summary>
+        /// The origin cell in the owning grid, or null when this object is not in a grid.
+        /// </summary>
+        public virtual Vector2Int? GridCell
+        {
+            get
+            {
+                var result = ComputeProperty("GridCell");
+                result.ThrowIfFailed();
+                if (result.value is null) return null;
+                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
+                return resolvedVector;
+            }
+        }
+
+
+
+        public virtual int Count
+        {
+            get
+            {
+                var result = ComputeProperty("Count");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+
 
 
 
@@ -262,16 +309,16 @@ namespace NeoCompose.Tests.InterfaceParity
         /// <summary>
         /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        public virtual IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
         {
             var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); });
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
         /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        public IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetObjects<IReadOnlyNeoObject>(pattern, offset);
 
         /// <summary>
@@ -292,17 +339,70 @@ namespace NeoCompose.Tests.InterfaceParity
         /// <summary>
         /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        public virtual IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
             var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); });
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
         /// The tiles of type T at the cells around this placement, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        public IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetTiles<IReadOnlyNeoTile>(pattern, offset);
+
+        private Vector2Int? GetGridCell()
+        {
+            var result = client.ScriptGridQueries.Invoke("system_a7c3197e-e672-5f58-a82e-39db2d864a78", this, new object?[] { });
+            if (result is null) return null;
+            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
+            return resolvedVector;
+        }
+
+        /// <summary>
+        /// Adds a composition child with no placement tiles. Cells are grid-relative when attached and local when detached; failure leaves both objects unchanged.
+        /// </summary>
+        public virtual IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_767acaf4-4f8c-5fdf-b562-a2e910ad489e", this, new object?[] { cell, obj });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoPlacementResult.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoPlacementResult.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoPlacementResult.CreateDetached(factoryClient, factoryValue, factorySaved));
+        }
+
+        public virtual bool Contains(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("Contains", (object?)(obj));
+            return (bool)result!;
+        }
+
+        public virtual int IndexOf(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("IndexOf", (object?)(obj));
+            return Convert.ToInt32(result);
+        }
+
+        public virtual bool Remove(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("Remove", (object?)(obj));
+            return (bool)result!;
+        }
+
+        [NeoMemberMethod("system_544d7482-d735-5752-ae2c-b6ce9ee4348c")]
+        public virtual void RemoveAt(int index)
+        {
+            InvokeFunction("RemoveAt", (object?)(index));
+        }
+
+        [NeoMemberMethod("system_1a3fe1f5-4ee8-5934-9fc6-0a40a8aa106e")]
+        public virtual void Clear()
+        {
+            InvokeFunction("Clear");
+        }
+
+        public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator()
+        {
+            var result = InvokeFunction("GetEnumerator");
+            return NeoSequences.ReadEnumerator<IReadOnlyNeoObjectBase>(client, result, NeoSequences.ElementType<IReadOnlyNeoObjectBase>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
 
         NeoReadOnlyVector3 IReadOnlyNeoObjectBase.Position
         {
@@ -328,6 +428,9 @@ namespace NeoCompose.Tests.InterfaceParity
             }
         }
 
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase>)this).GetEnumerator();
+
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -344,9 +447,13 @@ namespace NeoCompose.Tests.InterfaceParity
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -361,6 +468,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -386,6 +495,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Children] = () => Children,
                 [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
             };
         }
 

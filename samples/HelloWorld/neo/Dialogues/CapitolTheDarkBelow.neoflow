@@ -17,9 +17,9 @@ sealed class CapitolTheDarkBelow : NeoDialogue {
     group: Visits.Low,
     order: 1,
     when: [
-    @id("659bde4f-8eee-5b40-89a0-794f329da92b")
-    Condition1,
-  ],
+      @id("659bde4f-8eee-5b40-89a0-794f329da92b")
+      Condition1,
+    ],
   ) => D1;
 
   @id("1f16db6a-d375-43b8-8ef1-046e3ad138b7")

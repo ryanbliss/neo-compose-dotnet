@@ -135,6 +135,16 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// P127 §1.3. An <c>object</c>-kind type, narrowed by
+    /// <see cref="objectType"/>: absent means <c>object</c>.
+    /// </summary>
+    public sealed class ObjectTypeInfo : TypeInfo
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoObjectTypeKind? objectType;
+    }
+
+    /// <summary>
     /// List / Dictionary collection type info. Carries the recursive
     /// entry type. Mirrors the TS-side <c>ITypeInfoCollection</c>.
     /// </summary>
@@ -251,6 +261,9 @@ namespace NeoCompose.Runtime.Json
                 TupleTypeInfo.ValidateElements(tuple.elements);
         }
 
+        protected override void ValidateObjectBeforeDiscriminator(JObject obj) =>
+            StrictRecordShapeEnums.ValidateOptional<NeoObjectTypeKind>(obj, "objectType", "Object type info");
+
         protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
             FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
 
@@ -312,6 +325,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ReferenceTypeInfo);
                 case MemberKind.Tuple:
                     return typeof(TupleTypeInfo);
+                case MemberKind.Object:
+                    return typeof(ObjectTypeInfo);
                 default:
                     return null;
             }
@@ -325,6 +340,9 @@ namespace NeoCompose.Runtime.Json
             if (instance is TupleTypeInfo tuple)
                 TupleTypeInfo.ValidateElements(tuple.elements);
         }
+
+        protected override void ValidateObjectBeforeDiscriminator(JObject obj) =>
+            StrictRecordShapeEnums.ValidateOptional<NeoObjectTypeKind>(obj, "objectType", "Object type info");
 
         protected override Type? ResolveSubclass(JObject obj, JToken discriminator) =>
             TypeInfoConverter.FunctionGenericTypeInfoArm(obj, ResolveSubclass(discriminator));
@@ -383,6 +401,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ReferenceTypeInfo);
                 case MemberKind.Tuple:
                     return typeof(TupleTypeInfo);
+                case MemberKind.Object:
+                    return typeof(ObjectTypeInfo);
                 // MemberKind.NSAction is deliberately absent: an action is
                 // statement-only and can never be a return type (P62 §3.1),
                 // so an NSAction discriminator in return position is invalid

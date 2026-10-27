@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
@@ -1991,7 +1992,7 @@ namespace NeoCompose.Runtime
                         out Member? inferredMember)
                     && inferredMember is ClassMember inferredClassMember
                     ? inferredClassMember
-                    : UnplacedClassMember(classId, null, value);
+                    : UnplacedClassMember(client, classId, null, value);
             }
 
             // Generated factories memoize by declaration, placement and storage.
@@ -2069,24 +2070,45 @@ namespace NeoCompose.Runtime
 
         private static readonly Dictionary<Type, string> CSharpKeywords = new()
         {
+            [typeof(object)] = "object",
             [typeof(bool)] = "bool",
+            [typeof(byte)] = "byte",
+            [typeof(sbyte)] = "sbyte",
+            [typeof(char)] = "char",
+            [typeof(short)] = "short",
+            [typeof(ushort)] = "ushort",
             [typeof(int)] = "int",
+            [typeof(uint)] = "uint",
+            [typeof(long)] = "long",
+            [typeof(ulong)] = "ulong",
             [typeof(float)] = "float",
+            [typeof(double)] = "double",
             [typeof(decimal)] = "decimal",
             [typeof(string)] = "string",
+            [typeof(void)] = "void",
         };
 
-        /// <summary><paramref name="type"/> as C# spells it, such as <c>IKeyed&lt;string, Seed&gt;</c>.</summary>
-        private static string CSharpTypeName(Type type)
+        /// <summary>
+        /// <paramref name="type"/> as C# spells it, such as
+        /// <c>IKeyed&lt;string, Seed&gt;</c>, <c>int?</c>, <c>long[]</c> or
+        /// <c>(int, string)</c>.
+        /// </summary>
+        internal static string CSharpTypeName(Type type)
         {
             if (CSharpKeywords.TryGetValue(type, out string? keyword))
                 return keyword;
+            if (type.IsArray)
+                return CSharpTypeName(type.GetElementType()!) + "[" + new string(',', type.GetArrayRank() - 1) + "]";
+            if (Nullable.GetUnderlyingType(type) is Type underlying)
+                return CSharpTypeName(underlying) + "?";
             if (!type.IsGenericType)
                 return type.Name;
             Type[] arguments = type.GetGenericArguments();
             var names = new string[arguments.Length];
             for (int i = 0; i < arguments.Length; i++)
                 names[i] = CSharpTypeName(arguments[i]);
+            if (arguments.Length > 1 && !type.IsGenericTypeDefinition && type.IsValueType && typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(type))
+                return "(" + string.Join(", ", names) + ")";
             string name = type.Name.Substring(0, type.Name.IndexOf('`'));
             return $"{name}<{string.Join(", ", names)}>";
         }
@@ -2202,6 +2224,22 @@ namespace NeoCompose.Runtime
             }
             return typeArgument.classId;
         }
+
+        /// <summary>
+        /// P127 §4.2. Whether a generic slot closed over
+        /// <typeparamref name="T"/> refuses null. A slot declared <c>T</c>
+        /// takes <typeparamref name="T"/>'s own nullability. A slot declared
+        /// <c>T?</c> is nullable, unless <typeparamref name="T"/> is a
+        /// non-nullable value type: <c>T?</c> over <c>int</c> holds an
+        /// <c>int</c>, and <c>int?</c> is <c>Nullable&lt;int&gt;</c>, which
+        /// is optional either way.
+        /// </summary>
+        public static bool ClosedSlotRequired<T>(NeoClient client, bool declaredNullable) =>
+            ClosedSlotRequired(client.TypeArguments.Of<T>(), declaredNullable);
+
+        /// <inheritdoc cref="ClosedSlotRequired{T}(NeoClient, bool)"/>
+        public static bool ClosedSlotRequired(TypeInfo bound, bool declaredNullable) =>
+            bound.required && (!declaredNullable || NeoTypeRules.IsValueKind(bound.type));
 
         /// <summary>
         /// P110 §7.1. Narrows a generic function's result to its type argument
@@ -2436,6 +2474,8 @@ namespace NeoCompose.Runtime
 
         internal static T ReadStoredTuple<T>(NeoClient client, NeoMemberTuple node)
         {
+            if (HoldsObjectElement(client, node.member))
+                return (T)ReadObjectTuple(client, node.member, node.value as ArrayMemberValue, node.ownership, typeof(T))!;
             if (TryConvertValue<T>(client, node.ReadTuple(), null, null, out T result))
                 return result;
             throw new NeoTypeArgumentException($"Tuple member '{node.member.name}' cannot convert to {typeof(T).Name}.");
@@ -3020,7 +3060,7 @@ namespace NeoCompose.Runtime
             }
             return new NeoMemberClassWritable(
                 client,
-                UnplacedClassMember(clonedClassId!, null, clone),
+                UnplacedClassMember(client, clonedClassId!, null, clone),
                 clonedValueId,
                 NeoValueOwnership.Session);
         }
@@ -3257,7 +3297,7 @@ namespace NeoCompose.Runtime
             bool trustedRuntimeRows = false,
             RuntimeClassPlan? trustedRootPlan = null,
             (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null,
-            Dictionary<string, string>? genericBindings = null)
+            Dictionary<string, TypeBinding>? genericBindings = null)
         {
             using var listenerCapture = client.BeginConstructionListeners(onlyIfNeeded: true);
             if (!trustedRuntimeRows)
@@ -3293,7 +3333,7 @@ namespace NeoCompose.Runtime
             parentRow.genericBindings ??= genericBindings;
             rows.Add(parentRow);
 
-            PrepareConstructedGraph(
+            List<MemberValue>? placedImports = PrepareConstructedGraph(
                 client,
                 parentRow,
                 rows,
@@ -3302,10 +3342,12 @@ namespace NeoCompose.Runtime
                 trustedRuntimeRows,
                 trustedRootPlan);
             client.PublishConstructedSessionRows(rows);
+            if (placedImports is not null)
+                client.SetWritableValues(NeoValueOwnership.Session, placedImports);
             ClassMember factoryMember = trustedRuntimeRows
                 ? (trustedRootPlan ?? ResolveRuntimeClassPlan(client, classId))
                     .factoryMember
-                : UnplacedClassMember(classId, null, parentRow);
+                : UnplacedClassMember(client, classId, null, parentRow);
             client.ResolveConstructedListenerDefaults(parentRow, factoryMember);
             listenerCapture?.Complete(parentRow.id);
             // An unfinished root (a declared constructor's member
@@ -3494,9 +3536,10 @@ namespace NeoCompose.Runtime
         /// Validates and normalizes the complete generated/runtime constructor
         /// graph before publication. Existing owned Class references use the
         /// ordinary Session import funnel, while every freshly staged row is
-        /// schema-shaped, singly owned, and partition-stamped first.
+        /// schema-shaped, singly owned, partition-stamped and placed (P127
+        /// §12.1) first.
         /// </summary>
-        private static void PrepareConstructedGraph(
+        private static List<MemberValue>? PrepareConstructedGraph(
             NeoClient client,
             ObjectMemberValue root,
             List<MemberValue> rows,
@@ -3522,6 +3565,7 @@ namespace NeoCompose.Runtime
             {
                 ConstructedGraphScratch.Return(scratch);
             }
+            return NeoTypeSources.PlaceConstructed(client, root, rows);
         }
 
         /// <summary>
@@ -3574,12 +3618,14 @@ namespace NeoCompose.Runtime
         private static void PrepareConstructedGraph(
             ConstructedGraphScratch scratch,
             NeoClient client,
-            ObjectMemberValue root,
+            MemberValue root,
             List<MemberValue> rows,
             NeoConstructionScope scope,
             bool requireCompleteRoot,
             bool trustedMaterialization,
-            RuntimeClassPlan? trustedRootPlan)
+            RuntimeClassPlan? trustedRootPlan,
+            Member? argumentMember = null,
+            string? argumentPath = null)
         {
             IReadOnlyDictionary<string, NeoValueOwnership>
                 referenceOwnershipByPath = scope.referenceOwnershipByPath;
@@ -3615,23 +3661,33 @@ namespace NeoCompose.Runtime
             Dictionary<string, string> ownedByPath = scratch.ownedByPath;
             Dictionary<string, string> parentByChildId = scratch.parentByChildId;
             List<PendingConstructorReference> pending = scratch.pending;
-            ValidateConstructedClassRow(
-                client,
-                root,
-                root.classId
-                    ?? throw new InvalidOperationException(
-                        "Constructed Class root has no runtime classId."),
-                stagedById,
-                reachableStagedIds,
-                ownedByPath,
-                parentByChildId,
-                pending,
-                path: root.classId!,
-                scratch.traversal,
-                referenceOwnershipByPath,
-                requireCompleteRoot,
-                trustedMaterialization,
-                trustedRootPlan);
+            if (argumentMember is not null)
+            {
+                ValidateConstructedValueLink(client, argumentMember, root.id, null, null, null,
+                    stagedById, reachableStagedIds, ownedByPath, parentByChildId, pending,
+                    null, argumentPath!, scratch.traversal, NeoGenericResolution.EmptyEnv,
+                    referenceOwnershipByPath);
+            }
+            else
+            {
+                ValidateConstructedClassRow(
+                    client,
+                    (ObjectMemberValue)root,
+                    root.classId
+                        ?? throw new InvalidOperationException(
+                            "Constructed Class root has no runtime classId."),
+                    stagedById,
+                    reachableStagedIds,
+                    ownedByPath,
+                    parentByChildId,
+                    pending,
+                    path: root.classId!,
+                    scratch.traversal,
+                    referenceOwnershipByPath,
+                    requireCompleteRoot,
+                    trustedMaterialization,
+                    trustedRootPlan);
+            }
 
             if (!trustedMaterialization)
             {
@@ -3991,7 +4047,7 @@ namespace NeoCompose.Runtime
                             ? path
                             : $"{path}.{key}",
                         traversal,
-                        env,
+                        member.ownerEnvironment ?? env,
                         referenceOwnershipByPath,
                         trustedMaterialization,
                         requireNonNull: requireRequiredMembers);
@@ -4016,7 +4072,7 @@ namespace NeoCompose.Runtime
             Dictionary<string, string> ownedByPath,
             Dictionary<string, string> parentByChildId,
             List<PendingConstructorReference> pending,
-            string parentValueId,
+            string? parentValueId,
             string path,
             HashSet<string> traversal,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
@@ -4039,7 +4095,8 @@ namespace NeoCompose.Runtime
             {
                 ownedByPath[valueId] = path;
             }
-            parentByChildId[valueId] = parentValueId;
+            if (parentValueId is not null)
+                parentByChildId[valueId] = parentValueId;
             string? expectedMapKey = client.ResolveCreatedValueMapKey(
                 member,
                 parentMapKey,
@@ -4047,7 +4104,8 @@ namespace NeoCompose.Runtime
 
             if (!isStaged)
             {
-                if (member is not (ClassMember or ListMember or DictionaryMember))
+                // An object slot holds an existing class value as a class field does.
+                if (member is not (ClassMember or ListMember or DictionaryMember or ObjectMember))
                 {
                     throw new InvalidOperationException(
                         $"Constructed field '{path}' references unstaged value '{valueId}' for non-aggregate member '{member.id}'.");
@@ -4068,7 +4126,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Constructed field '{path}' references missing aggregate value '{valueId}'.");
                 }
-                ValidateConstructedRowShape(client, member, source!, path, requireNonNull);
+                ValidateConstructedRowShape(client, member, source!, path, requireNonNull, env);
                 if (!MapKeyCanMoveTo(source.mapKey, expectedMapKey))
                 {
                     throw new InvalidOperationException(
@@ -4081,7 +4139,9 @@ namespace NeoCompose.Runtime
                     path = path,
                     expectedMapKey = expectedMapKey,
                     expectedContainerId = expectedContainerId,
-                    parentValueId = parentValueId,
+                    parentValueId = parentValueId
+                        ?? throw new InvalidOperationException(
+                            $"Constructed external Class field '{path}' has no parent."),
                     replaceValueId = replaceValueId
                         ?? throw new InvalidOperationException(
                             $"Constructed external Class field '{path}' has no replacement target."),
@@ -4113,27 +4173,35 @@ namespace NeoCompose.Runtime
             }
             if (!trustedMaterialization)
             {
-                ValidateConstructedRowShape(client, member, row, path, requireNonNull);
+                ValidateConstructedRowShape(client, member, row, path, requireNonNull, env);
             }
             else if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
             {
                 throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
 
+            // A box's payload is walked as a field of its held type (P127 §1.3).
+            if (member is ObjectMember && row.valueType is TypeBinding boxed && client.TypeRules.Box(boxed).Member is Member held)
+                member = held;
             switch (member)
             {
                 case ClassMember classMember
                     when row is ObjectMemberValue classRow
                     && classRow.value is not null:
                     {
+                        // ValidateConstructedRowShape judged the class.
                         string actualClassId = classMember.RowClassId(classRow.classId);
-                        if (!trustedMaterialization
-                            && !client.SlotAdmitsClass(classMember, actualClassId))
-                        {
-                            throw new InvalidOperationException(
-                                $"Constructed Class field '{path}' expects '{classMember.DeclaredTypeId}' but staged row '{valueId}' has runtime class '{actualClassId}'.");
-                        }
                         classRow.classId = actualClassId;
+                        IReadOnlyDictionary<string, TypeBinding>? classArguments =
+                            NeoGenericResolution.CloseClassArgumentsFromStamp(
+                                client,
+                                classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
+                        // A slot whose arguments name its owner's params
+                        // (Box<List<T>> in a Hold<T>) reads them in the
+                        // owner's environment, as the owned-member walk does.
+                        IReadOnlyDictionary<string, NeoGenericEnvEntry>? classEnv = classArguments is null
+                            ? null
+                            : NeoGenericResolution.SlotRowEnv(client, classMember, env, classRow.genericBindings, actualClassId);
                         ValidateConstructedClassRow(
                             client,
                             classRow,
@@ -4147,9 +4215,7 @@ namespace NeoCompose.Runtime
                             traversal,
                             referenceOwnershipByPath,
                             trustedMaterialization: trustedMaterialization,
-                            knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId,
-                                classArguments: NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                    classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId))));
+                            knownClassPlan: ResolveRuntimeClassPlan(client, actualClassId, classEnv, classArguments));
                         break;
                     }
                 case TupleMember tupleMember
@@ -4162,9 +4228,7 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException($"Constructed Tuple field '{path}' contains an ownership cycle.");
                         try
                         {
-                            var elementEnv = tupleRow.genericBindings is null
-                                ? env
-                                : NeoGenericResolution.EnvFromStamp(tupleRow.genericBindings);
+                            var elementEnv = NeoGenericResolution.RowEnvOr(client, tupleRow, tupleMember, env);
                             for (int index = 0; index < tupleRow.value.Length; index++)
                             {
                                 if (!client.TryGetMember(tupleMember.elementMemberIds[index], out Member? element))
@@ -4330,12 +4394,18 @@ namespace NeoCompose.Runtime
         private static Action<string> ReplaceEntryValueId(ArrayMemberValue row, int index) =>
             replacement => row.value[index] = replacement;
 
+        /// <summary>The name of class <paramref name="classId"/>, or its id when it's missing.</summary>
+        private static string ClassName(NeoClient client, string classId) =>
+            client.TryGetClass(classId, out NeoSchemaClass? schemaClass) ? schemaClass.name : classId;
+
+        /// <param name="env">The environment <paramref name="member"/> was read in.</param>
         private static void ValidateConstructedRowShape(
             NeoClient client,
             Member member,
             MemberValue row,
             string path,
-            bool requireNonNull)
+            bool requireNonNull,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             bool shapeMatches = member switch
             {
@@ -4357,6 +4427,10 @@ namespace NeoCompose.Runtime
                 VariantMember => row is VariantMemberValue,
                 DelegateMember => row is DelegateMemberValue,
                 ActionMember => row is ActionMemberValue,
+                // A box stores as its held type's member, and a Type,
+                // CultureInfo or NumberFormatInfo slot as its payload (P127 §1.3).
+                ObjectMember => row.valueType is not null
+                    || row is ObjectMemberValue or NullMemberValue or PayloadMemberValue,
                 _ => false,
             };
             if (!shapeMatches)
@@ -4382,10 +4456,23 @@ namespace NeoCompose.Runtime
                 && row is ObjectMemberValue classRow)
             {
                 string actualClassId = classMember.RowClassId(classRow.classId);
-                if (!client.SlotAdmitsClass(classMember, actualClassId))
+                if (!client.SlotNamesClass(classMember, actualClassId))
                 {
                     throw new InvalidOperationException(
                         $"Constructed Class field '{path}' has incompatible runtime class '{actualClassId}'.");
+                }
+                // A constructed slot admits the row as the server's
+                // stored-value graph does, which passes a null row.
+                if (classRow.value is not null
+                    && classMember.DeclaredInterfaceId is null
+                    && classMember.classArguments is { Count: > 0 })
+                {
+                    NeoSlotAdmission admission = NeoGenericResolution.ConstructedSlotAccepts(client, classMember, actualClassId, env);
+                    if (!admission.ok)
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Class field '{path}' rejects class \"{ClassName(client, actualClassId)}\": {admission.reason}.");
+                    }
                 }
             }
         }
@@ -4400,6 +4487,7 @@ namespace NeoCompose.Runtime
                 StringMemberValue value => value.value is null,
                 ArrayMemberValue value => value.value is null,
                 ObjectMemberValue value => value.value is null,
+                PayloadMemberValue value => value.value is null,
                 SpriteMemberValue value => value.value is null,
                 FileMemberValue value => value.value is null,
                 Vector2MemberValue value => value.value is null,
@@ -4490,6 +4578,7 @@ namespace NeoCompose.Runtime
                     {
                         string actualClassId = classMember.RowClassId(classRow.classId);
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                            client,
                             classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
                         IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                             client,
@@ -4614,7 +4703,9 @@ namespace NeoCompose.Runtime
         /// Materializes a constructor whose immutable schema/field metadata was
         /// already validated before its value expressions ran. Keeping the plan
         /// avoids resolving and validating the same merged schema a second time
-        /// for every eager nested constructor.
+        /// for every eager nested constructor. <paramref name="rootGenericBindings"/>
+        /// is a replayed instance's stamp, which the root stores in place of
+        /// the one its construction closes.
         /// </summary>
         internal static RuntimeConstructedClassValue CreateRuntimeClassValue(
             NeoClient client,
@@ -4622,7 +4713,8 @@ namespace NeoCompose.Runtime
             IReadOnlyList<RuntimeConstructorField> fields,
             RuntimeConstructorMetadata metadata,
             Func<object?, NeoConstructorValueReference?> valueReference,
-            NeoScript.NSGetterEvaluator.Context constructionCtx)
+            NeoScript.NSGetterEvaluator.Context constructionCtx,
+            IReadOnlyDictionary<string, TypeBinding>? rootGenericBindings = null)
         {
             return CreateSuppliedClassValueData(
                 client,
@@ -4631,7 +4723,8 @@ namespace NeoCompose.Runtime
                 valueReference,
                 new NeoConstructionScope(client, constructionCtx),
                 validatedMetadata: metadata,
-                trustedRuntimeRows: true);
+                trustedRuntimeRows: true,
+                rootGenericBindings: rootGenericBindings);
         }
 
         /// <summary>
@@ -4724,7 +4817,8 @@ namespace NeoCompose.Runtime
             bool requireSuppliedRequiredFields = true,
             bool requireCompleteRoot = true,
             RuntimeConstructorMetadata? validatedMetadata = null,
-            bool trustedRuntimeRows = false)
+            bool trustedRuntimeRows = false,
+            IReadOnlyDictionary<string, TypeBinding>? rootGenericBindings = null)
         {
             using var listenerCapture = client.BeginConstructionListeners(onlyIfNeeded: true);
             RuntimeConstructorMetadata metadata = validatedMetadata
@@ -4760,7 +4854,7 @@ namespace NeoCompose.Runtime
                         ? fieldContext.allocationTracker.ConstructionTimestamp
                         : NeoTimestamp.Now(),
                     valueReference,
-                    metadata.genericEnv,
+                    member.ownerEnvironment ?? metadata.genericEnv,
                     $"{classTypeInfo.classId}.{field.schemaKey}",
                     scope);
                 if (fieldValueId is not null)
@@ -4777,10 +4871,9 @@ namespace NeoCompose.Runtime
                 requireCompleteRoot,
                 trustedRuntimeRows,
                 trustedRuntimeRows ? metadata.classPlan : null,
-                genericBindings: ConstructedRootGenericBindings(
-                    client,
-                    classTypeInfo.classId,
-                    metadata.genericEnv));
+                genericBindings: rootGenericBindings is null
+                    ? ConstructedRootGenericBindings(client, classTypeInfo.classId, metadata.genericEnv)
+                    : new Dictionary<string, TypeBinding>(rootGenericBindings, StringComparer.Ordinal));
             listenerCapture?.Complete(constructed.value.id);
             return constructed;
         }
@@ -4791,7 +4884,7 @@ namespace NeoCompose.Runtime
         /// carrying classArguments, so its methods close <c>T</c> through this
         /// stamp. Mirrors the web's <c>stampConstructedRootGenericBindings</c>.
         /// </summary>
-        private static Dictionary<string, string>? ConstructedRootGenericBindings(
+        private static Dictionary<string, TypeBinding>? ConstructedRootGenericBindings(
             NeoClient client,
             string classId,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv)
@@ -4802,13 +4895,13 @@ namespace NeoCompose.Runtime
             {
                 return null;
             }
-            Dictionary<string, string>? stamp = null;
+            List<KeyValuePair<string, NeoGenericEnvEntry>>? entries = null;
             foreach (GenericParamDeclaration parameter in schemaClass.genericParams)
             {
                 if (genericEnv.TryGetValue(parameter.id, out NeoGenericEnvEntry? binding) && binding.IsBound)
-                    (stamp ??= new Dictionary<string, string>(StringComparer.Ordinal))[parameter.id] = binding.memberId!;
+                    (entries ??= new List<KeyValuePair<string, NeoGenericEnvEntry>>()).Add(new(parameter.id, binding));
             }
-            return stamp;
+            return entries is null ? null : NeoGenericResolution.GenericBindingsStamp(client, entries, genericEnv);
         }
 
         // -------------------------------------------------------------------
@@ -4845,7 +4938,7 @@ namespace NeoCompose.Runtime
             internal NeoResolvedConstructorLink link = null!;
             internal Dictionary<string, Member> membersBySchemaKey = null!;
             internal RuntimeConstructorMetadata metadata = null!;
-            internal IReadOnlyDictionary<string, string>? storedGenericBindings;
+            internal IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings;
             /// <summary>
             /// The class's closed generic environment, carried so a value
             /// supplied by generated C# can be expanded against the same
@@ -4891,10 +4984,11 @@ namespace NeoCompose.Runtime
             string? constructorId,
             IReadOnlyList<string> argumentNames,
             IReadOnlyList<RuntimeConstructorField> fields,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
-            IReadOnlyDictionary<string, string>? storedGenericBindings = null,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
+            IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings = null,
             bool replayStoredInstance = false,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? slotOwnerEnv = null)
         {
             RuntimeConstructorMetadata metadata =
                 ValidateRuntimeClassConstructorMetadataCore(
@@ -4904,7 +4998,8 @@ namespace NeoCompose.Runtime
                     requireSuppliedRequiredFields: false,
                     classArguments: classArguments,
                     replayStoredInstance: replayStoredInstance,
-                    enclosingEnv: enclosingEnv);
+                    enclosingEnv: enclosingEnv,
+                    slotOwnerEnv: slotOwnerEnv);
             if (!client.TryGetClass(classTypeInfo.classId, out NeoSchemaClass? schemaClass))
             {
                 throw new InvalidOperationException(
@@ -5467,14 +5562,9 @@ namespace NeoCompose.Runtime
                     requireSuppliedRequiredFields: false,
                     requireCompleteRoot: false,
                     validatedMetadata: resolved.metadata,
-                    trustedRuntimeRows: true);
+                    trustedRuntimeRows: true,
+                    rootGenericBindings: resolved.storedGenericBindings);
                 ObjectMemberValue root = constructed.value;
-                if (resolved.storedGenericBindings is not null)
-                {
-                    root.genericBindings = new Dictionary<string, string>(
-                        resolved.storedGenericBindings,
-                        StringComparer.Ordinal);
-                }
 
                 // `CreateSuppliedClassValueData` PUBLISHES the whole graph, and every
                 // step below can throw — a constructor body may `throw` outright.
@@ -5578,6 +5668,7 @@ namespace NeoCompose.Runtime
                 live,
                 resolved.link.record?.id,
                 SerializeConstructionProvenanceArgs(
+                    client,
                     resolved.link.record,
                     CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false)));
         }
@@ -5594,9 +5685,9 @@ namespace NeoCompose.Runtime
         /// position: a finished token, a value
         /// <see cref="NeoClient.ConstructorArgumentToken"/> serializes as is,
         /// or <see cref="OmittedArgument"/>. With
-        /// <paramref name="deferLiterals"/>, a local array of immutable leaves
-        /// is recorded as a copy, so a construction that never becomes rows
-        /// never pays for its JSON.
+        /// <paramref name="deferLiterals"/>, a local array or tuple of literal
+        /// leaves is recorded as a copy, so a construction that never attaches
+        /// never publishes argument rows or serializes its literals.
         /// </summary>
         private static object?[] CollectConstructionProvenanceArgs(
             NeoClient client,
@@ -5627,25 +5718,58 @@ namespace NeoCompose.Runtime
                 // vector, a colour — is reference-identified too, so
                 // without this narrowing it would be recorded as its row's
                 // id and replayed as a JSON literal. Resolving the id may
-                // attach the argument, which must happen now. Resolution
-                // keeps every kind but Generic, so only a generic resolves.
-                MemberKind declaredKind = argument.type == MemberKind.Generic
+                // attach the argument, which must happen now. Close nested
+                // parameters too, since tuple and collection entries write
+                // using the same closed type as fields (P127 §12.1).
+                TypeInfo argumentType = NeoNSFunctionRuntime.ContainsGeneric(argument)
                     ? NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
                         client,
                         argument,
-                        resolved.genericEnv).type
-                    : argument.type;
-                string? rowId = declaredKind is MemberKind.Class
-                    or MemberKind.Interface
-                    or MemberKind.List
-                    or MemberKind.Set
-                    or MemberKind.Dictionary
+                        resolved.genericEnv)
+                    : argument;
+                MemberKind declaredKind = argumentType.type;
+                string? rowId = NeoTypeSources.ConstructorArgumentStoresRow(declaredKind)
                     ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
                     : null;
+                // A variant selection records as its {classId, variantId, rowValueId} token.
+                if (rowId is null && value is not (null or NeoVariantReference)
+                    && declaredKind is MemberKind.Class or MemberKind.Interface or MemberKind.Object)
+                {
+                    throw new NeoScript.NSGetterRuntimeError(
+                        $"Constructor aggregate argument '{NeoClient.ConstructorParameterId(record, index)}' has no backing value row.");
+                }
+                if (rowId is null && declaredKind is MemberKind.Tuple or MemberKind.List or MemberKind.Set or MemberKind.Dictionary && value is not null)
+                {
+                    object?[]? leaves = deferLiterals && value is NeoScript.RuntimeTuple tuple ? tuple.ToArray() : value as object?[];
+                    if (deferLiterals && leaves is not null && IsLiteralLeafArray(leaves))
+                    {
+                        object snapshot = value is NeoScript.RuntimeTuple runtimeTuple
+                            ? new NeoScript.RuntimeTuple(CloneLiteralLeafArray(leaves), runtimeTuple.TypeInfo)
+                            : CloneLiteralLeafArray(leaves);
+                        recorded[index] = new RecordedConstructorCollection(argumentType, snapshot);
+                        continue;
+                    }
+                    var rows = new List<MemberValue>();
+                    Member member = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(argumentType)));
+                    var scope = new NeoConstructionScope(client, ctx);
+                    rowId = MaterializeRuntimeConstructorValue(client, member, value, rows, NeoTimestamp.Now(),
+                        item => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx),
+                        resolved.genericEnv, argument.name, scope);
+                    PublishConstructorArgumentRows(client, member, rowId!, rows, scope, argument.name);
+                }
                 if (!string.IsNullOrEmpty(rowId))
                 {
                     // A row id serializes exactly as the string it is.
                     recorded[index] = rowId;
+                }
+                else if (!ReferenceEquals(argumentType, argument)
+                    && NeoStoredNumberJsonConverter.MayHoldStoredNumber(argumentType))
+                {
+                    // Serialization later sees only the open parameter type.
+                    recorded[index] = NeoClient.ConstructorArgumentToken(
+                        value,
+                        argumentType,
+                        $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
                 }
                 else if (value is null or string or bool or sbyte or byte or short or ushort
                     or int or uint or long or float or double or decimal)
@@ -5660,16 +5784,53 @@ namespace NeoCompose.Runtime
                 {
                     recorded[index] = NeoClient.ConstructorArgumentToken(
                         value,
+                        argumentType,
                         $"'{argument.name}' of constructor '{record.id}' on class '{resolved.schemaClass.name}'");
                 }
             }
             return recorded;
         }
 
+        private static void PublishConstructorArgumentRows(
+            NeoClient client, Member member, string rootId, List<MemberValue> rows, NeoConstructionScope scope, string path)
+        {
+            MemberValue root = rows.First(row => row.id == rootId);
+            ConstructedGraphScratch scratch = ConstructedGraphScratch.Rent();
+            try
+            {
+                PrepareConstructedGraph(scratch, client, root, rows, scope,
+                    requireCompleteRoot: true, trustedMaterialization: false, trustedRootPlan: null,
+                    argumentMember: member, argumentPath: path);
+            }
+            finally
+            {
+                ConstructedGraphScratch.Return(scratch);
+            }
+            List<MemberValue>? imports = NeoTypeSources.PlaceConstructedArgument(client, rootId, member, rows);
+            client.PublishConstructedSessionRows(rows);
+            if (imports is not null)
+                client.SetWritableValues(NeoValueOwnership.Session, imports);
+        }
+
+        /// <summary>A detached literal collection or tuple snapshot, materialized only when its construction attaches.</summary>
+        private sealed class RecordedConstructorCollection
+        {
+            internal readonly TypeInfo Type;
+            internal readonly object Value;
+
+            internal RecordedConstructorCollection(TypeInfo type, object value)
+            {
+                Type = type;
+                Value = value;
+            }
+        }
+
         /// <summary>The recorded arguments as the row's <c>constructorArgs</c>, keyed by parameter id.</summary>
         private static Dictionary<string, JToken?> SerializeConstructionProvenanceArgs(
+            NeoClient client,
             ConstructorRecord? record,
-            object?[] recorded)
+            object?[] recorded,
+            List<MemberValue>? stagedRows = null)
         {
             var constructorArgs = new Dictionary<string, JToken?>(StringComparer.Ordinal);
             for (int index = 0; index < recorded.Length; index++)
@@ -5678,18 +5839,19 @@ namespace NeoCompose.Runtime
                 if (ReferenceEquals(value, OmittedArgument))
                     continue;
                 string parameterId = NeoClient.ConstructorParameterId(record!, index);
-                if (value is object?[] entries && IsLiteralLeafArray(entries))
+                if (value is RecordedConstructorCollection collection)
                 {
-                    var array = new JArray();
-                    foreach (object? entry in entries)
-                        array.Add(NeoClient.ConstructorArgumentToken(entry, parameterId));
-                    constructorArgs[parameterId] = array;
+                    var rows = stagedRows ?? new List<MemberValue>();
+                    Member member = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(collection.Type)));
+                    var scope = new NeoConstructionScope(client, null);
+                    string rowId = MaterializeRuntimeConstructorValue(client, member, collection.Value,
+                        rows, NeoTimestamp.Now(), NoValueReference, NeoGenericResolution.EmptyEnv, parameterId, scope)!;
+                    value = rowId;
+                    if (stagedRows is null)
+                        PublishConstructorArgumentRows(client, member, rowId, rows, scope, parameterId);
                 }
-                else
-                {
-                    constructorArgs[parameterId] = value as JToken
-                        ?? NeoClient.ConstructorArgumentToken(value, parameterId);
-                }
+                constructorArgs[parameterId] = value as JToken
+                    ?? NeoClient.ConstructorArgumentToken(value, record!.argumentTypes[index], parameterId);
             }
             return constructorArgs;
         }
@@ -6188,63 +6350,7 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership.Session,
                     field.value,
                     ctx);
-                StampConstructedCollectionRow(
-                    client,
-                    resolved,
-                    rootValueId,
-                    field.schemaKey,
-                    member);
             }
-        }
-
-        /// <summary>
-        /// A List or Dictionary row minted by the write path carries no
-        /// <c>genericBindings</c> stamp, because a write target has no view of
-        /// the class's type environment — and reading that row's entries back
-        /// resolves them through exactly that stamp. It is applied here, the
-        /// one place where the written member and the resolved construction's
-        /// environment are both in hand.
-        ///
-        /// <para>A no-op for a non-collection member, for an entry subtree that
-        /// references no generic parameter, and for a row that already carries
-        /// a stamp — the stamp is immutable.</para>
-        /// </summary>
-        private static void StampConstructedCollectionRow(
-            NeoClient client,
-            NeoResolvedDeclaredConstructor resolved,
-            string rootValueId,
-            string schemaKey,
-            Member member)
-        {
-            if (member is not ListMember && member is not DictionaryMember)
-            {
-                return;
-            }
-            if (!client.TryGetValue(
-                    NeoValueOwnership.Session,
-                    rootValueId,
-                    out ObjectMemberValue? root))
-            {
-                return;
-            }
-            if (root!.value is null)
-                return;
-            if (!root.value.TryGetValue(schemaKey, out string childValueId))
-            {
-                return;
-            }
-            if (!client.TryGetValue(
-                    NeoValueOwnership.Session,
-                    childValueId,
-                    out MemberValue? row))
-            {
-                return;
-            }
-            NeoGenericResolution.StampGenericBindings(
-                client,
-                member,
-                row!,
-                resolved.genericEnv);
         }
 
         /// <summary>
@@ -6346,12 +6452,20 @@ namespace NeoCompose.Runtime
                     $"Stored instance '{storedRoot.id}' has no authored Class default to replay.");
             }
             string classId = placementMember.RowClassId(placementMember.defaultValue.classId);
-            IReadOnlyDictionary<string, GenericBinding>? classArguments =
+            IReadOnlyDictionary<string, TypeBinding>? classArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    client,
                     storedRoot.genericBindings,
                     client.SlotClassArguments(placementMember, classId));
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
-                ResolveRuntimeInstanceEnv(client, classId, classArguments);
+            // The placement reads its arguments in its owner's environment.
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = classArguments is null
+                ? ResolveRuntimeInstanceEnv(client, classId, null)
+                : NeoGenericResolution.SlotRowEnv(
+                    client,
+                    placementMember,
+                    placementMember.ownerEnvironment,
+                    storedRoot.genericBindings,
+                    classId);
             RuntimeClassPlan classPlan = ResolveRuntimeClassPlan(
                 client,
                 classId,
@@ -6370,7 +6484,8 @@ namespace NeoCompose.Runtime
                 scope,
                 classId,
                 classArguments,
-                clonedIds);
+                clonedIds,
+                genericEnv);
             scope.ReplayDefaultRoot = true;
             RuntimeConstructedClassValue constructed =
                 CreateWritableClassValueDataCore(
@@ -6382,12 +6497,14 @@ namespace NeoCompose.Runtime
                     requireCompleteRoot: !declarationOnly,
                     trustedRuntimeRows: true,
                     trustedRootPlan: classPlan,
-                    declarationRoot: declarationOnly ? (storedRoot, storedRoot.id == placementMember.valueId) : null);
-            constructed.value.genericBindings = storedRoot.genericBindings is null
-                ? null
-                : new Dictionary<string, string>(
-                    storedRoot.genericBindings,
-                    StringComparer.Ordinal);
+                    declarationRoot: declarationOnly ? (storedRoot, storedRoot.id == placementMember.valueId) : null,
+                    // The Session root is ownerless, so it stores the type
+                    // the stored root's placement closed (P127 §12.1).
+                    genericBindings: storedRoot.genericBindings is null
+                        ? ConstructedRootGenericBindings(client, classId, genericEnv)
+                        : new Dictionary<string, TypeBinding>(
+                            storedRoot.genericBindings,
+                            StringComparer.Ordinal));
             client.CaptureClonedListenerDefaults(clonedIds, placementMember, constructed.value);
             client.CaptureAuthoredListenerDefaults(placementMember.defaultValue.changeListeners, placementMember.defaultValue.changeListenerEndpoints, clonedIds, placementMember, constructed.value);
             listenerCapture?.Complete(constructed.value.id);
@@ -6404,8 +6521,8 @@ namespace NeoCompose.Runtime
             string classId,
             string? constructorId,
             NeoDeclaredConstructorArgument[] arguments,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments,
-            IReadOnlyDictionary<string, string>? storedGenericBindings)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings)
         {
             return EvaluateDeclaredConstructorCore(
                 client,
@@ -6460,8 +6577,8 @@ namespace NeoCompose.Runtime
             string? constructorId,
             NeoDeclaredConstructorArgument[] arguments,
             NeoGeneratedConstructorValue[] suppliedValues,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments,
-            IReadOnlyDictionary<string, string>? storedGenericBindings,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings,
             out NeoScript.NSGetterEvaluator.Context ctx,
             bool replayStoredInstance = false)
         {
@@ -6565,8 +6682,9 @@ namespace NeoCompose.Runtime
             var rows = new List<MemberValue>();
             var row = node.value;
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env;
-            if (row?.genericBindings is { } stamp)
-                env = NeoGenericResolution.EnvFromStamp(stamp);
+            // The node's row reads its stamp as its own member, a set's or a tuple's.
+            if (NeoTypeSources.EntryStamp(client, row, node.member) is { } stamp)
+                env = NeoGenericResolution.EnvFromStamp(client, stamp);
             else if (node.parent is NeoMemberClass parentClass)
                 env = parentClass.GenericEnv;
             else
@@ -6755,7 +6873,7 @@ namespace NeoCompose.Runtime
                     stagedRows,
                     nowIso,
                     value => ImportedConstructorReferenceOf(client, value, ctx),
-                    resolved.genericEnv,
+                    member.ownerEnvironment ?? resolved.genericEnv,
                     $"{resolved.classTypeInfo.classId}.{field.schemaKey}",
                     // Deferred-ownership bookkeeping is for
                     // PrepareConstructedGraph's preflight, which only runs on
@@ -6938,7 +7056,7 @@ namespace NeoCompose.Runtime
                             $"Stored {subject} value '{valueId}' has no declared collection entry member.");
                     if (entryMember is not null)
                         entryMember = NeoGenericResolution.SubstituteMember(
-                            client, entryMember, NeoGenericResolution.EnvFromStamp(row.genericBindings));
+                            client, entryMember, NeoGenericResolution.RowEnv(client, row, sourceMember!));
                     NeoValueOwnership entryStorage = client.ChildOwnership(entryMember, storage);
 
                     // Constructor-only collections use their declared argument
@@ -6996,9 +7114,10 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ClassTypeInfo classTypeInfo,
             IReadOnlyList<RuntimeConstructorField> fields,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null,
-            bool replayStoredInstance = false)
+            bool replayStoredInstance = false,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? slotOwnerEnv = null)
         {
             AssertMemberWiseConstructionIsAvailable(
                 client,
@@ -7009,7 +7128,8 @@ namespace NeoCompose.Runtime
                 fields,
                 classArguments: classArguments,
                 replayStoredInstance: replayStoredInstance,
-                enclosingEnv: enclosingEnv);
+                enclosingEnv: enclosingEnv,
+                slotOwnerEnv: slotOwnerEnv);
         }
 
         private static RuntimeConstructorMetadata
@@ -7018,9 +7138,10 @@ namespace NeoCompose.Runtime
                 ClassTypeInfo classTypeInfo,
                 IReadOnlyList<RuntimeConstructorField> fields,
                 bool requireSuppliedRequiredFields = true,
-                IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+                IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
                 bool replayStoredInstance = false,
-                IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null)
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv = null,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>? slotOwnerEnv = null)
         {
             ConstructorSchemaCache? constructorCache = null;
             ConstructorMetadataCacheKey cacheKey = default;
@@ -7069,11 +7190,13 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot construct immutable-only class '{schemaClass.name}'.");
             }
+            // The slot's arguments read the owner's params where it was read (P127 §1.2).
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 ResolveRuntimeInstanceEnv(
                     client,
                     classTypeInfo.classId,
-                    classArguments);
+                    classArguments,
+                    slotOwnerEnv);
             string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
                 genericEnv);
             if (unboundParamId is not null
@@ -7088,7 +7211,8 @@ namespace NeoCompose.Runtime
                 genericEnv = ResolveRuntimeInstanceEnv(
                     client,
                     classTypeInfo.classId,
-                    classArguments);
+                    classArguments,
+                    ConstructionArgumentEnv(classTypeInfo.typeArguments, enclosingEnv));
                 unboundParamId = NeoGenericResolution.FirstUnboundParamId(
                     genericEnv);
             }
@@ -7188,33 +7312,111 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The class arguments a construction's type arguments name: the
-        /// descriptor member the export interns for a closed type, or for an
-        /// enclosing <c>T</c>, its binding in <paramref name="enclosingEnv"/>.
+        /// Whether a slot of base class <paramref name="slotClassId"/>, its
+        /// <paramref name="slotArguments"/> read in <paramref name="ownerEnv"/>,
+        /// closes <paramref name="construction"/>'s own params as its type
+        /// arguments do (P127 §1.2: <c>new ListBox&lt;T&gt;()</c> in
+        /// <c>Box&lt;List&lt;T&gt;&gt;</c>), so the construction reads them
+        /// through the slot. Only a construction naming type arguments can be
+        /// checked.
         /// </summary>
-        private static Dictionary<string, GenericBinding>
+        internal static bool BaseSlotCloses(
+            NeoClient client,
+            string? slotClassId,
+            IReadOnlyDictionary<string, TypeBinding> slotArguments,
+            ClassTypeInfo construction,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? ownerEnv)
+        {
+            if (construction.typeArguments is null || slotClassId is null)
+                return false;
+            IList<NeoSchemaClass> chain = client.ResolveClassInheritanceChain(construction.classId);
+            bool derives = false;
+            foreach (NeoSchemaClass ancestor in chain)
+            {
+                if (ancestor.id == slotClassId)
+                {
+                    derives = true;
+                    break;
+                }
+            }
+            if (!derives)
+                return false;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
+                NeoGenericResolution.ResolveInstanceEnv(chain, slotArguments, client, ownerEnv);
+            foreach (var pair in construction.typeArguments)
+            {
+                if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry? entry)
+                    || !entry.IsBound
+                    || !client.TryGetMember(entry.memberId!, out Member? binding))
+                {
+                    return false;
+                }
+                TypeInfo slotType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    client,
+                    binding,
+                    NeoGenericResolution.BindingEnv(env, entry),
+                    new HashSet<string>());
+                TypeInfo argument = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+                    client,
+                    pair.Value,
+                    ownerEnv ?? NeoGenericResolution.EmptyEnv);
+                if (!NeoClient.TypeInfoMatches(slotType, argument))
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// The class arguments a construction's type arguments name: a closed
+        /// type's own binding, or for an enclosing <c>T</c>, the type its
+        /// binding in <paramref name="enclosingEnv"/> stands for.
+        /// </summary>
+        private static Dictionary<string, TypeBinding>
             ResolveConstructionTypeArguments(
                 NeoClient client,
                 IReadOnlyDictionary<string, TypeInfo> typeArguments,
                 IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv)
         {
-            var classArguments = new Dictionary<string, GenericBinding>(
+            var classArguments = new Dictionary<string, TypeBinding>(
                 typeArguments.Count,
                 StringComparer.Ordinal);
             foreach (var pair in typeArguments)
             {
-                classArguments[pair.Key] = new GenericBinding
-                {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = pair.Value is GenericTypeInfo parameter
-                        ? EnclosingBindingMemberId(pair.Key, parameter, enclosingEnv)
-                        : DescriptorMemberId(client, pair.Key, pair.Value),
-                };
+                classArguments[pair.Key] = pair.Value is GenericTypeInfo parameter
+                    ? EnclosingBinding(client, pair.Key, parameter, enclosingEnv)
+                    : NeoTypeBindings.FromTypeInfo(NeoTypeRules.Declared(pair.Value));
             }
             return classArguments;
         }
 
-        private static string EnclosingBindingMemberId(
+        /// <summary>
+        /// The environment a construction's arguments read the owner's
+        /// params in: <paramref name="enclosingEnv"/>, overlaid with the
+        /// owner entries each enclosing <c>T</c> it names carries, so
+        /// <c>new Bag&lt;T&gt;()</c> with <c>T</c> bound to
+        /// <c>List&lt;U&gt;</c> under <c>{U: Seed}</c> reads <c>U</c> there
+        /// (P127 §1.2).
+        /// </summary>
+        private static IReadOnlyDictionary<string, NeoGenericEnvEntry>? ConstructionArgumentEnv(
+            IReadOnlyDictionary<string, TypeInfo> typeArguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv)
+        {
+            if (enclosingEnv is null)
+                return null;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env = enclosingEnv;
+            foreach (TypeInfo typeArgument in typeArguments.Values)
+            {
+                if (typeArgument is GenericTypeInfo parameter
+                    && enclosingEnv.TryGetValue(parameter.genericParamId, out NeoGenericEnvEntry? entry))
+                {
+                    env = NeoGenericResolution.BindingEnv(env, entry);
+                }
+            }
+            return env;
+        }
+
+        private static TypeBinding EnclosingBinding(
+            NeoClient client,
             string parameterId,
             GenericTypeInfo parameter,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv)
@@ -7231,79 +7433,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Class constructor type argument '{parameterId}' names generic param '{parameter.genericParamId}', which the enclosing instance leaves unbound.");
             }
-            return entry.memberId!;
-        }
-
-        /// <summary>
-        /// Construction IR is immutable, so a closed type argument resolves
-        /// once per client: by scanning for the member it describes.
-        /// </summary>
-        private static string DescriptorMemberId(
-            NeoClient client,
-            string parameterId,
-            TypeInfo typeArgument)
-        {
-            ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
-                client);
-            lock (cache.gate)
-            {
-                if (cache.descriptorMemberIds.TryGetValue(typeArgument, out string? cached))
-                    return cached;
-            }
-            string? memberId = null;
-            // P112 §5.1. A reference is stored as the Lookup naming its target.
-            MemberKind storedKind = typeArgument.type == MemberKind.Reference
-                ? MemberKind.Lookup
-                : typeArgument.type;
-            foreach (Member member in client.members.Values)
-            {
-                if (member.kind != storedKind)
-                    continue;
-                TypeInfo described;
-                try
-                {
-                    described = NeoNSFunctionRuntime.TypeInfoFromBindingMember(
-                        client,
-                        member,
-                        NeoGenericResolution.EmptyEnv,
-                        new HashSet<string>(),
-                        NeoNSFunctionRuntime.BindingTypeProjection.Stored);
-                }
-                catch (NeoScript.NSGetterRuntimeError)
-                {
-                    // Open types and non-type members describe no closed type.
-                    continue;
-                }
-                if (!NeoClient.TypeInfoMatches(described, typeArgument))
-                    continue;
-                memberId = member.id;
-                break;
-            }
-            if (memberId is null)
-            {
-                throw new InvalidOperationException(
-                    $"Class constructor type argument '{GenericParameterName(client, parameterId)}' ({typeArgument.type}) has no matching type descriptor in the export. Run `neo pull` and `neo export`.");
-            }
-            lock (cache.gate)
-            {
-                cache.descriptorMemberIds[typeArgument] = memberId;
-            }
-            return memberId;
-        }
-
-        private static string GenericParameterName(NeoClient client, string parameterId)
-        {
-            foreach (NeoSchemaClass schemaClass in client.classes.Values)
-            {
-                if (schemaClass.genericParams is null)
-                    continue;
-                foreach (GenericParamDeclaration parameter in schemaClass.genericParams)
-                {
-                    if (parameter.id == parameterId)
-                        return parameter.name;
-                }
-            }
-            return parameterId;
+            return NeoTypeBindings.ArgumentOfEntry(client, entry, enclosingEnv);
         }
 
         private static void ValidateRuntimeConstructorTypeArguments(
@@ -7328,8 +7458,9 @@ namespace NeoCompose.Runtime
                         $"Class constructor type argument '{pair.Key}' references missing binding member '{binding.memberId}'.");
                 }
                 // `Holder<T>`'s `Bag<T> C = new Bag<T> { N = 3 }` names the
-                // instance's `T`, which the slot being initialized closes.
-                if (pair.Value is GenericTypeInfo)
+                // instance's `T`, which the slot being initialized closes, as
+                // `new() { Own = [] }` in `Cell<List<U>>` does inside one.
+                if (NeoNSFunctionRuntime.ContainsGeneric(pair.Value))
                     continue;
                 if (!RuntimeConstructorTypeMatchesMember(
                         client,
@@ -8063,7 +8194,15 @@ namespace NeoCompose.Runtime
                     return null;
             }
 
-            if (runtimeValue is not null && member is ClassMember)
+            // An object slot boxes a value, and holds a class value by
+            // reference as a class field does (P127 §1.2).
+            if (member is ObjectMember objectSlot && runtimeValue is not null)
+            {
+                if (runtimeValue is not NeoGeneratedClassValue held)
+                    return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path);
+                RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = held.classId }, new NeoSlotContext(client));
+            }
+            if (runtimeValue is not null && member is ClassMember or ObjectMember)
             {
                 NeoConstructorValueReference? source = tupleAssignment is { } assignment
                     ? assignment.Reference(runtimeValue) : valueReference(runtimeValue);
@@ -8119,11 +8258,6 @@ namespace NeoCompose.Runtime
                 valueId,
                 nowIso,
                 nowIso);
-            NeoGenericResolution.StampGenericBindings(
-                client,
-                member,
-                row,
-                genericEnv);
             if (retainedTupleId is not null)
                 row = tupleAssignment!.Value.ReplaceTuple(row, member);
             rows.Add(row);
@@ -8531,18 +8665,14 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        internal static Member LocalSelectionDescriptor(NeoClient client, TypeInfo target)
+        internal static Member LocalSelectionDescriptor(TypeInfo target)
         {
-            // Scalar Sets use a Lookup read type and a Set storage descriptor.
-            // Reuse constructor descriptor matching, then verify the complete
-            // slot contract so bound selections cannot become owned Sets.
-            TypeInfo stored = target is LookupTypeInfo lookup
-                ? new CollectionTypeInfo { type = MemberKind.Set, required = target.required, entryTypeInfo = lookup.entryTypeInfo }
-                : target;
-            Member member = client.members[DescriptorMemberId(client, "local Reference", stored)];
-            TypeInfo? described = NeoReferenceTypes.SlotTypeInfo(client, member, NeoGenericResolution.EmptyEnv);
-            if (member is not (ListMember or DictionaryMember) || described is null
-                || !NeoReferenceTypes.InvariantlyEqual(described, target))
+            // P127 §12.1: the descriptor is the target's own interned view, so it
+            // is exact by construction; a Lookup bound to a collection declares no
+            // type (Declared throws) and an open target has no closed binding
+            // (FromTypeInfo throws), as main's exported-descriptor lookup refused both.
+            Member member = NeoTypeBindingViews.View(NeoTypeBindings.FromTypeInfo(NeoTypeRules.Declared(target)));
+            if (member is not (ListMember or DictionaryMember))
                 throw new InvalidOperationException("Local Reference target has no exact collection descriptor in the export.");
             return member;
         }
@@ -8560,8 +8690,15 @@ namespace NeoCompose.Runtime
                             source.Value.valueId, context), NeoValueOwnership.Session);
                 }, NeoGenericResolution.EmptyEnv, member.name, null)
                 ?? throw new InvalidOperationException("A local collection Reference requires a non-null target.");
+            // P127 §12.1: the target is a root its descriptor types, placed like a constructor argument's.
+            List<MemberValue>? imports = NeoTypeSources.PlaceConstructedArgument(context.client, id, member, rows);
             foreach (MemberValue row in rows)
                 plan.Set(NeoValueOwnership.Session, row);
+            if (imports is not null)
+            {
+                foreach (MemberValue import in imports)
+                    plan.Set(NeoValueOwnership.Session, import);
+            }
             return id;
         }
 
@@ -8720,7 +8857,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
             RuntimeClassPlan? classPlan = null,
             bool requireCompleteDefault = false,
             (ObjectMemberValue row, bool usesOwnBindings)? declarationRoot = null)
@@ -8779,13 +8916,19 @@ namespace NeoCompose.Runtime
                     }
                     // Substitute the type before checking requirements. Defaults
                     // remain owned by the member declaration.
+                    // The member's own type reads its params where its binding
+                    // does (P127 §1.2); a plan's closed members carry it.
+                    IReadOnlyDictionary<string, NeoGenericEnvEntry> memberEnv;
                     if (resolvedClassPlan is null)
                     {
+                        memberEnv = NeoGenericResolution.SubstitutedMemberEnv(member, env);
                         member = NeoGenericResolution.SubstituteMember(
                             client,
                             member,
                             env);
                     }
+                    else
+                        memberEnv = member.ownerEnvironment ?? env;
                     if (!IsStoredConstructorMember(member))
                         continue;
                     // A declaration's own root keeps direct authored bindings.
@@ -8829,7 +8972,7 @@ namespace NeoCompose.Runtime
                             rows,
                             nowIso,
                             scope,
-                            env,
+                            memberEnv,
                             $"{path}.{entry.schemaKey}");
                         if (defaultRow is not null)
                         {
@@ -8865,7 +9008,8 @@ namespace NeoCompose.Runtime
         private static IList<MergedSchemaEntry> ResolveMergedSchema(
             NeoClient client,
             string classId,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv = null)
         {
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
                 client);
@@ -8896,7 +9040,7 @@ namespace NeoCompose.Runtime
             // instantiable even though the named class is open
             // (specs/class-generics.md §3.4).
             string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
-                ResolveRuntimeInstanceEnv(client, classId, classArguments));
+                genericEnv ?? ResolveRuntimeInstanceEnv(client, classId, classArguments));
             if (unboundParamId is not null)
             {
                 throw new InvalidOperationException(
@@ -8922,14 +9066,16 @@ namespace NeoCompose.Runtime
             ResolveRuntimeInstanceEnv(
             NeoClient client,
             string classId,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? ownerEnv = null)
         {
             if (classArguments is not null)
             {
                 return NeoGenericResolution.ResolveInstanceEnv(
                     client,
                     classId,
-                    classArguments);
+                    classArguments,
+                    ownerEnv);
             }
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
                 client);
@@ -8959,7 +9105,7 @@ namespace NeoCompose.Runtime
             string classId,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>?
                 knownGenericEnv = null,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null)
         {
             if (classArguments?.Count == 0)
                 classArguments = null;
@@ -8996,10 +9142,13 @@ namespace NeoCompose.Runtime
             IList<MergedSchemaEntry> schema = ResolveMergedSchema(
                 client,
                 classId,
-                classArguments);
+                classArguments,
+                genericEnv);
             var schemaByKey = new Dictionary<string, MergedSchemaEntry>(
                 schema.Count);
             var membersBySchemaKey = new Dictionary<string, Member>(schema.Count);
+            bool closed = genericEnv.Count > 0
+                && NeoGenericResolution.FirstUnboundParamId(genericEnv) is null;
             foreach (MergedSchemaEntry entry in schema)
             {
                 if (!schemaByKey.TryAdd(entry.schemaKey, entry))
@@ -9012,11 +9161,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Class constructor schema field '{entry.schemaKey}' references missing member '{entry.memberId}'.");
                 }
-                membersBySchemaKey[entry.schemaKey] =
-                    NeoGenericResolution.SubstituteMember(
-                        client,
-                        member,
-                        genericEnv);
+                // A closed instance's members carry the env their types read
+                // params in, as the server's field `memberEnv` (P127 §1.2).
+                membersBySchemaKey[entry.schemaKey] = closed
+                    ? NeoGenericResolution.SubstituteOwnedMember(client, member, genericEnv)
+                    : NeoGenericResolution.SubstituteMember(client, member, genericEnv);
             }
             var resolved = new RuntimeClassPlan
             {
@@ -9024,7 +9173,7 @@ namespace NeoCompose.Runtime
                 genericEnv = genericEnv,
                 schemaByKey = schemaByKey,
                 membersBySchemaKey = membersBySchemaKey,
-                factoryMember = UnplacedClassMember(classId, classArguments),
+                factoryMember = UnplacedClassMember(client, classId, classArguments),
             };
             if (classArguments is null)
             {
@@ -9221,6 +9370,7 @@ namespace NeoCompose.Runtime
                         rows,
                         nowIso,
                         scope,
+                        env,
                         path);
                 case TupleMember member:
                     if (member.defaultValue is null)
@@ -9250,6 +9400,8 @@ namespace NeoCompose.Runtime
                         scope,
                         env,
                         path);
+                case ObjectMember member:
+                    return MemberValueFactory.CreateFromDefault(member, Guid.NewGuid().ToString(), nowIso, nowIso);
                 default:
                     return null;
             }
@@ -9261,6 +9413,7 @@ namespace NeoCompose.Runtime
             List<MemberValue> rows,
             NeoTimestamp nowIso,
             NeoConstructionScope scope,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
         {
             if (member.defaultValue is null || member.defaultValue.value is null)
@@ -9272,7 +9425,27 @@ namespace NeoCompose.Runtime
             // The slot's constructed arguments travel with every descent
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
-            // §4.1).
+            // §4.1) — read in the environment of the slot's owner.
+            IReadOnlyDictionary<string, TypeBinding>? classArguments =
+                client.SlotClassArguments(member, effectiveClassId);
+            RuntimeClassPlan classPlan = classArguments is null
+                ? ResolveRuntimeClassPlan(client, effectiveClassId)
+                : ResolveRuntimeClassPlan(
+                    client,
+                    effectiveClassId,
+                    NeoGenericResolution.SlotRowEnv(client, member, env, null, effectiveClassId),
+                    classArguments);
+            // A constructed slot admits the default's class as the server's
+            // default construction does, once its params are known bound.
+            if (member.DeclaredInterfaceId is null && member.classArguments is { Count: > 0 })
+            {
+                NeoSlotAdmission admission = NeoGenericResolution.ConstructedSlotAccepts(client, member, effectiveClassId, env);
+                if (!admission.ok)
+                {
+                    throw new InvalidOperationException(
+                        $"Cannot create a value of class \"{ClassName(client, effectiveClassId)}\" in constructed slot \"{member.name}\": {admission.reason}.");
+                }
+            }
             var clonedIds = new Dictionary<string, string>(StringComparer.Ordinal);
             var provided = CloneDefaultClassChildren(
                 client,
@@ -9282,8 +9455,9 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                client.SlotClassArguments(member, effectiveClassId),
-                clonedIds);
+                classArguments,
+                clonedIds,
+                classPlan.genericEnv);
             var row = CreateWritableClassValueRow(
                 client,
                 effectiveClassId,
@@ -9292,7 +9466,8 @@ namespace NeoCompose.Runtime
                 nowIso,
                 scope,
                 path,
-                client.SlotClassArguments(member, effectiveClassId),
+                classArguments,
+                classPlan,
                 requireCompleteDefault: true);
             client.CaptureClonedListenerDefaults(clonedIds, member, row);
             client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
@@ -9307,23 +9482,26 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments = null,
-            Dictionary<string, string>? clonedIdsBySourceId = null)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = null,
+            Dictionary<string, string>? clonedIdsBySourceId = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv = null)
         {
             var result = new Dictionary<string, string>();
             if (source is null || source.Count == 0)
                 return result;
             clonedIdsBySourceId ??= new Dictionary<string, string>(StringComparer.Ordinal);
 
-            var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
-            foreach (var entry in ResolveMergedSchema(client, classId, classArguments))
-            {
-                schemaByKey[entry.schemaKey] = entry;
-            }
-            var env = ResolveRuntimeInstanceEnv(
+            // The caller's genericEnv is the row's own, read through its
+            // slot's owner; without one the class and arguments alone close it.
+            var env = genericEnv ?? ResolveRuntimeInstanceEnv(
                 client,
                 classId,
                 classArguments);
+            var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
+            foreach (var entry in ResolveMergedSchema(client, classId, classArguments, env))
+            {
+                schemaByKey[entry.schemaKey] = entry;
+            }
 
             foreach (var pair in source)
             {
@@ -9367,7 +9545,8 @@ namespace NeoCompose.Runtime
                     rows,
                     nowIso,
                     scope,
-                    env,
+                    // The member's own type reads its params where its binding does.
+                    NeoGenericResolution.SubstitutedMemberEnv(member, env),
                     $"{path}.{pair.Key}",
                     clonedIdsBySourceId);
 
@@ -9392,15 +9571,16 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso,
             NeoConstructionScope scope,
             string path,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             Dictionary<string, string> clonedIdsBySourceId)
         {
             var result = new Dictionary<string, string>();
-            var env = ResolveRuntimeInstanceEnv(client, classId, classArguments);
             foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                 client,
                 classId,
-                classArguments))
+                classArguments,
+                env))
             {
                 if (!client.TryGetMember(entry.memberId, out Member? member))
                     continue;
@@ -9441,7 +9621,8 @@ namespace NeoCompose.Runtime
                     rows,
                     nowIso,
                     scope,
-                    env,
+                    // The member's own type reads its params where its binding does.
+                    NeoGenericResolution.SubstitutedMemberEnv(member, env),
                     $"{path}.{entry.schemaKey}",
                     clonedIdsBySourceId);
                 rows.Add(cloned);
@@ -9743,7 +9924,17 @@ namespace NeoCompose.Runtime
                             }
                         }
                         var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                            client,
                             sourceValue.genericBindings, client.SlotClassArguments(classMember, classId));
+                        // The clone's environment reads the slot's arguments
+                        // in the owner's (env), as the server clone does.
+                        RuntimeClassPlan classPlan = classArguments is null
+                            ? ResolveRuntimeClassPlan(client, classId)
+                            : ResolveRuntimeClassPlan(
+                                client,
+                                classId,
+                                NeoGenericResolution.SlotRowEnv(client, classMember, env, sourceValue.genericBindings, classId),
+                                classArguments);
                         ObjectMemberValue clone = CreateWritableClassValueRow(
                             client,
                             classId,
@@ -9756,18 +9947,21 @@ namespace NeoCompose.Runtime
                                 scope,
                                 path,
                                 classArguments,
+                                classPlan.genericEnv,
                                 clonedIdsBySourceId),
                             rows,
                             nowIso,
                             scope,
                             path,
                             classArguments,
+                            classPlan,
                             requireCompleteDefault: true);
                         CopyDefaultConstructionProvenance(
                             client,
                             sourceValue,
                             clone,
-                            clonedIdsBySourceId);
+                            clonedIdsBySourceId,
+                            classPlan.genericEnv);
                         return clone;
                     }
                 case TupleMember tupleMember when source is ArrayMemberValue sourceValue:
@@ -9806,11 +10000,12 @@ namespace NeoCompose.Runtime
             NeoClient client,
             ObjectMemberValue source,
             ObjectMemberValue clone,
-            IReadOnlyDictionary<string, string> clonedIdsBySourceId)
+            IReadOnlyDictionary<string, string> clonedIdsBySourceId,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             clone.genericBindings = source.genericBindings is null
                 ? null
-                : new Dictionary<string, string>(source.genericBindings);
+                : new Dictionary<string, TypeBinding>(source.genericBindings);
             clone.instanceVariantId = source.instanceVariantId;
             clone.instanceVariantRowValueId = source.instanceVariantRowValueId;
             if (source.hasInstanceAppliedVariant)
@@ -9838,13 +10033,10 @@ namespace NeoCompose.Runtime
                 for (int index = 0; index < constructor.argumentTypes.Length; index++)
                 {
                     FunctionArgumentTypeInfo parameter = constructor.argumentTypes[index];
-                    if (parameter.type is not (
-                        MemberKind.Class
-                        or MemberKind.Interface
-                        or MemberKind.List
-                        or MemberKind.Set
-                        or MemberKind.Dictionary
-                        or MemberKind.Generic))
+                    TypeInfo closed = NeoNSFunctionRuntime.ContainsGeneric(parameter)
+                        ? NeoGenericResolution.SubstituteTypeInfo(client, parameter, env)
+                        : parameter;
+                    if (closed.type != MemberKind.Generic && !NeoTypeSources.ConstructorArgumentStoresRow(closed.type))
                     {
                         continue;
                     }
@@ -9898,13 +10090,10 @@ namespace NeoCompose.Runtime
             string path,
             Dictionary<string, string> clonedIdsBySourceId)
         {
-            // The clone keeps the source row's immutable Decision-9 stamp
-            // (falling back to a fresh computation from the creation env
-            // for pre-stamp authored rows), and entries substitute their
-            // member through it.
-            var entryEnv = source.genericBindings is null
-                ? env
-                : NeoGenericResolution.EnvFromStamp(source.genericBindings);
+            // Entries substitute their member through the source row's
+            // placed type, or the creation env for a template default. The
+            // clone's own typeSource is placed when the construction publishes.
+            var entryEnv = NeoGenericResolution.RowEnvOr(client, source, member, env);
             var value = new Dictionary<string, string>();
             if (source.value is not null)
             {
@@ -9967,11 +10156,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = value,
                 classId = source.classId,
-                genericBindings = source.genericBindings is null
-                    ? null
-                    : new Dictionary<string, string>(source.genericBindings),
             };
-            NeoGenericResolution.StampGenericBindings(client, member, row, env);
             return row;
         }
 
@@ -9980,7 +10165,7 @@ namespace NeoCompose.Runtime
             NeoTimestamp nowIso, NeoConstructionScope scope, IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path, Dictionary<string, string> clonedIdsBySourceId)
         {
-            var elementEnv = source.genericBindings is null ? env : NeoGenericResolution.EnvFromStamp(source.genericBindings);
+            var elementEnv = NeoGenericResolution.RowEnvOr(client, source, member, env);
             string[]? ids = source.value is null ? null : new string[member.elementMemberIds.Length];
             if (source.value is not null)
             {
@@ -10012,9 +10197,7 @@ namespace NeoCompose.Runtime
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = ids,
-                genericBindings = source.genericBindings is null ? null : new Dictionary<string, string>(source.genericBindings)
             };
-            NeoGenericResolution.StampGenericBindings(client, member, row, env);
             return row;
         }
 
@@ -10029,10 +10212,8 @@ namespace NeoCompose.Runtime
             string path,
             Dictionary<string, string> clonedIdsBySourceId)
         {
-            // Same stamp semantics as CloneDictionaryValueRow.
-            var entryEnv = source.genericBindings is null
-                ? env
-                : NeoGenericResolution.EnvFromStamp(source.genericBindings);
+            // Same entry environment as CloneDictionaryValueRow.
+            var entryEnv = NeoGenericResolution.RowEnvOr(client, source, member, env);
             var value = new List<string>();
             if (source.value is not null)
             {
@@ -10108,11 +10289,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = value.ToArray(),
                 classId = source.classId,
-                genericBindings = source.genericBindings is null
-                    ? null
-                    : new Dictionary<string, string>(source.genericBindings),
             };
-            NeoGenericResolution.StampGenericBindings(client, member, row, env);
             return row;
         }
 
@@ -10636,7 +10813,7 @@ namespace NeoCompose.Runtime
             string classId)
         {
             client.TryInferMemberForValueId(valueId, out Member? placement);
-            return UnplacedClassMember(classId, client.SlotClassArguments(placement as ClassMember, classId), row);
+            return UnplacedClassMember(client, classId, client.SlotClassArguments(placement as ClassMember, classId), row);
         }
 
         // One id per class, so a repeated class-value read allocates none.
@@ -10657,8 +10834,9 @@ namespace NeoCompose.Runtime
         /// arguments, so whichever view registers first agrees with the rest.
         /// </summary>
         internal static ClassMember UnplacedClassMember(
+            NeoClient client,
             string classId,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            IReadOnlyDictionary<string, TypeBinding>? classArguments,
             MemberValue? row = null)
         {
             return new ClassMember
@@ -10668,8 +10846,9 @@ namespace NeoCompose.Runtime
                 kind = MemberKind.Class,
                 DeclaredClassId = classId,
                 classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    client,
                     row?.genericBindings, classArguments)
-                    is { } arguments ? new Dictionary<string, GenericBinding>(arguments) : null,
+                    is { } arguments ? new Dictionary<string, TypeBinding>(arguments) : null,
                 unplaced = true,
                 createdAt = row?.createdAt ?? default,
                 updatedAt = row?.updatedAt ?? default,

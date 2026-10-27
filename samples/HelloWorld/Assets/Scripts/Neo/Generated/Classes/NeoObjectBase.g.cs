@@ -21,17 +21,23 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObjectBase writable);
 
+        new string Name { get; }
 
-        /// <summary>
-        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
-        /// </summary>
-        new IReadOnlyNeoCollider? Collider { get; }
+        new NeoReadOnlyVector3 Position { get; }
+
+        new NeoReadOnlyVector3 Size { get; }
 
 
         /// <summary>
         /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
         /// </summary>
         new bool Enabled { get; }
+
+
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
+        new IReadOnlyNeoCollider? Collider { get; }
 
 
         /// <summary>
@@ -45,12 +51,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
         /// </summary>
         IReadOnlyNeoTileGrid? GetArea();
-
-        new string Name { get; }
-
-        new NeoReadOnlyVector3 Position { get; }
-
-        new NeoReadOnlyVector3 Size { get; }
     }
 
     public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue, INeoColliderSource
@@ -130,30 +130,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyVector3 INeoWorldObjectValue.Size => Size;
         INeoCollider? INeoColliderSource.Collider => Collider;
 
-        /// <summary>
-        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
-        /// </summary>
-        public virtual IReadOnlyNeoCollider? Collider
-        {
-            get
-            {
-                var child = node.Get<NeoMemberClass>("Collider");
-                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
-            }
-        }
-
-        /// <summary>
-        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
-        /// </summary>
-        public virtual bool Enabled
-        {
-            get
-            {
-                return node.Get<NeoMemberBool>("Enabled").value?.value ?? throw new InvalidOperationException("Required bool 'Enabled' has no value.");
-            }
-        }
-
-
         public virtual string Name
         {
             get
@@ -183,6 +159,30 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
+        /// When false, this object and its children are neither rendered nor collided with. The value stays live: member writes still apply and a running animation clip keeps playing. Disabling an object hides its whole subtree regardless of each child's own value, and re-enabling it restores exactly what was there.
+        /// </summary>
+        public virtual bool Enabled
+        {
+            get
+            {
+                return node.Get<NeoMemberBool>("Enabled").value?.value ?? throw new InvalidOperationException("Required bool 'Enabled' has no value.");
+            }
+        }
+
+        /// <summary>
+        /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
+        /// </summary>
+        public virtual IReadOnlyNeoCollider? Collider
+        {
+            get
+            {
+                var child = node.Get<NeoMemberClass>("Collider");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+            }
+        }
+
+
+        /// <summary>
         /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
         /// </summary>
         public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
@@ -201,26 +201,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
             };
         }
 
@@ -238,11 +238,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
             };
         }
 

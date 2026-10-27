@@ -24,20 +24,20 @@
 sealed class NeoVariant<
   @id("system_ad79e72f-bf98-4e50-810f-ad1c946ffe1a")
   TObject extends NeoObject
->(NeoDelegate<TObject> initialize, NeoDelegate<void, TObject>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
-  @id("system_17458a32-1ce0-4548-bf0e-a6a2ee0b9c72")
-  @system(kind: .WorldAuthoring)
-  public virtual NeoDelegate<void, TObject>? Apply = apply;
+  >(NeoDelegate<TObject> initialize, NeoDelegate<void, TObject>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
+    @id("system_17458a32-1ce0-4548-bf0e-a6a2ee0b9c72")
+    @system(kind: .WorldAuthoring)
+    public virtual NeoDelegate<void, TObject>? Apply = apply;
 
-  @id("system_45ef9e9e-5a3a-4194-b79d-aeaaf7d76a3a")
-  @system(kind: .WorldAuthoring)
-  public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
+    @id("system_45ef9e9e-5a3a-4194-b79d-aeaaf7d76a3a")
+    @system(kind: .WorldAuthoring)
+    public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
 
-  @id("system_ad161739-c451-4f12-bebb-a65564f2d27c")
-  @system(kind: .WorldAuthoring)
-  public virtual NeoDelegate<TObject> Initialize = initialize;
+    @id("system_ad161739-c451-4f12-bebb-a65564f2d27c")
+    @system(kind: .WorldAuthoring)
+    public virtual NeoDelegate<TObject> Initialize = initialize;
 
-  @id("system_5bf10566-025f-4e42-854e-e88f98ea8110")
-  @system(kind: .WorldAuthoring)
-  public virtual Partial<TObject> Overrides = overrides;
-}
+    @id("system_5bf10566-025f-4e42-854e-e88f98ea8110")
+    @system(kind: .WorldAuthoring)
+    public virtual Partial<TObject>? Overrides = overrides;
+  }

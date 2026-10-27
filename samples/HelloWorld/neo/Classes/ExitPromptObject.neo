@@ -19,7 +19,9 @@ abstract class ExitPromptObject : ConsoleObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.ExitPromptObject.Slice(0),
+      Children = [],
       Enabled = true,
+      PlacementTiles = [],
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     },

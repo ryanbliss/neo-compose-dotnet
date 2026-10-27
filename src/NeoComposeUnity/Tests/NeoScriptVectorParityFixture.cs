@@ -4411,7 +4411,6 @@ namespace NeoCompose.Tests
       ""expected"": ""Infinity""
     }
   ]
-}
-";
+}";
     }
 }

@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.OverloadParity
     public partial class TallyWatch : NeoGeneratedClassValue, IReadOnlyTallyWatch
     {
         internal TallyWatch(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "21790efb-573e-4f45-9c3a-0480c6145cc5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "12843e83-a6dd-4dd6-ad2e-38cb88a6b5aa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,9 +52,9 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "21790efb-573e-4f45-9c3a-0480c6145cc5",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LocalCalls", "52420b30-e8b2-40fc-9282-46e22f397b24", LocalCalls),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnTally", "3085c856-15f3-4584-b179-d6ec729185a4", OnTally)
+                "12843e83-a6dd-4dd6-ad2e-38cb88a6b5aa",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LocalCalls", "353d5956-1ef3-4411-a3f8-e629ba148cd9", LocalCalls),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnTally", "2af8a42a-4e1d-4f5f-9974-b7214fc2ef8f", OnTally)
             );
         }
 
@@ -137,13 +137,13 @@ namespace NeoCompose.Tests.OverloadParity
             }
         }
 
-        [NeoMemberMethod("50cd1812-e93c-4147-b915-6a7c0bd04c81")]
+        [NeoMemberMethod("7aae9287-411d-45b4-b21d-502c4df4f5f8")]
         public void Fire()
         {
             InvokeFunction("Fire");
         }
 
-        [NeoMemberMethod("0b06947a-028f-4d02-8756-2ecbf5df244f")]
+        [NeoMemberMethod("4cc4d50f-861f-46f1-b218-2553457b8f77")]
         public void Handle(IReadOnlyTally item)
         {
             InvokeFunction("Handle", (object?)(item));

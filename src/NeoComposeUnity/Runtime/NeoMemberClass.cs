@@ -342,11 +342,12 @@ namespace NeoCompose.Runtime
         /// a closed instance resolves to its binding member BEFORE the
         /// child node kind is dispatched, so it constructs the concrete
         /// wrapper (e.g. <see cref="NeoMemberFloat"/>). Identity for
-        /// non-generic records.
+        /// non-generic records. A child slot whose arguments name this
+        /// node's params keeps its environment for the row in it.
         /// </summary>
         protected Member SubstituteChildMember(Member childMember)
         {
-            return NeoGenericResolution.SubstituteMember(client, childMember, GenericEnv);
+            return NeoGenericResolution.SubstituteOwnedMember(client, childMember, GenericEnv);
         }
 
         /// <summary>
@@ -581,7 +582,18 @@ namespace NeoCompose.Runtime
             bool recordRebound,
             bool committed)
         {
-            Member childMember = SubstituteChildMember(entry.member!);
+            Member childMember;
+            try
+            {
+                childMember = SubstituteChildMember(entry.member!);
+            }
+            catch (NeoOpenTypeArgumentException)
+            {
+                // A child naming a param this node leaves open has no type,
+                // so no node, as the server's owner walk places its row open
+                // and reads no further (P127 §1.2).
+                return;
+            }
             if (member.useDeclarationDefaults)
             {
                 // Class references and sparse layer settings inherit declaration
@@ -775,15 +787,16 @@ namespace NeoCompose.Runtime
                 // subclass's chain (specs/class-generics.md §4.1).
                 // The value stamp is the durable environment the instance was
                 // authored under, so it wins over a stale or forwarding usage-
-                // site argument. Concrete documents pay nothing: both overlays
-                // are skipped when they carry no arguments.
-                IReadOnlyDictionary<string, GenericBinding>? classArguments =
-                    NeoGenericResolution.CloseClassArgumentsFromStamp(
-                        value?.genericBindings,
-                        client.SlotClassArguments(member, schemaClass.id));
-                GenericEnv = NeoGenericResolution.ResolveInstanceEnv(
-                    inheritanceChain,
-                    classArguments);
+                // site argument, and the slot reads its arguments in its
+                // owner's environment. Concrete documents pay nothing: both
+                // overlays are skipped when they carry no arguments.
+                GenericEnv = NeoGenericResolution.SlotRowEnv(
+                    client,
+                    member,
+                    member.ownerEnvironment,
+                    value?.genericBindings,
+                    schemaClass.id,
+                    inheritanceChain);
             }
             catch (CircularInheritanceError ex)
             {
@@ -1089,7 +1102,8 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Cannot set '{schemaClass.name}.{key}': Variant target '{variant.classId}' must derive from '{target.classId}'.");
             }
-            client.RequireInterfaceSlotAdmits(childMember, schemaClass.name, key, setValue);
+            client.RequireSlotAdmits(childMember, schemaClass.name, key, setValue, GenericEnv);
+            client.RequireNoGenericStaticTargets(childMember, schemaClass.name, key, setValue);
 
             // Per-placement storage (specs/member-storage.md): a declared
             // storage stamp on the child pins which writable store the leaf
@@ -1141,6 +1155,8 @@ namespace NeoCompose.Runtime
                             out _);
                         if (shadowed == NeoShadowImport.Moved)
                             RetargetMovedReferenceAfterCommit(plan, setValue, childMember, existingValueId, childOwnership);
+                        if (shadowed != NeoShadowImport.Unchanged)
+                            NeoTypeSources.PlaceCreatedUnder(client, plan, value!.id, value, member, existingValueId);
                         plan.Commit();
                         if (shadowed == NeoShadowImport.Unchanged)
                             return;
@@ -1159,6 +1175,7 @@ namespace NeoCompose.Runtime
                         RetargetMovedReferenceAfterCommit(plan, setValue, childMember, importedValueId, childOwnership);
                     if (importedValueId == existingValueId)
                     {
+                        NeoTypeSources.PlaceCreatedUnder(client, plan, value!.id, value, member, importedValueId);
                         plan.Commit();
                         return;
                     }
@@ -1166,6 +1183,7 @@ namespace NeoCompose.Runtime
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;
                     plan.Set(ownership, record);
+                    NeoTypeSources.PlaceCreatedUnder(client, plan, record.id, record, member, importedValueId);
                     client.StageUnlinkedRemovals(plan, childOwnership, existingValueId, childMember);
                     plan.Commit();
                     value = record;
@@ -1184,17 +1202,16 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                // A shadow of a stamped collection row keeps the immutable
-                // stamp (spec Decision 9/16); a row that predates the stamp
-                // recomputes the identical value from this record's env.
+                // A binding node keeps its stamp; the rest of its placement
+                // is derived again once it is staged.
                 next.mapKey = existing.mapKey;
                 next.genericBindings = existing.genericBindings;
-                NeoGenericResolution.StampGenericBindings(client, childMember, next, GenericEnv);
                 // A leaf replacement with no payload rows stores in place or
                 // joins a held script plan. Only committed writes notify.
                 NeoWritePlan? pendingLeaf = null;
                 bool storedLeaf = false;
-                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } })
+                // An object field's row can change shape, so it replaces whole.
+                if (setValue?.value is not NeoValuePayload { valueRows: { Count: > 0 } } && childMember is not ObjectMember)
                 {
                     if (placement)
                         storedLeaf = value is not null && client.TryWritePlacement(childOwnership, value, key, next, childMember);
@@ -1223,15 +1240,16 @@ namespace NeoCompose.Runtime
                     childOwnership,
                     next,
                     childMember,
-                    childMember is ClassMember or ListMember or DictionaryMember
+                    childMember is ClassMember or ListMember or DictionaryMember or ObjectMember
                         ? null
                         : "value");
+                NeoTypeSources.PlaceCreatedUnder(client, plan, value!.id, value, member, existingValueId);
                 plan.Commit();
                 // A scalar replacement keeps the same field binding and its
                 // node receives the value change directly. Rebuild only for a
                 // missing node or a potentially changed container shape.
                 if (existingChild is null || existingChild.isDisposed
-                    || childMember is ClassMember or ListMember or DictionaryMember)
+                    || childMember is ClassMember or ListMember or DictionaryMember or ObjectMember)
                     ReinitializeChildren();
                 if (!ChildBubbledOwnChange(key, existingChild))
                 {
@@ -1272,10 +1290,6 @@ namespace NeoCompose.Runtime
                     childMember,
                     value?.mapKey,
                     value?.classId);
-                // Freshly-minted collection rows carry the Decision-9 stamp
-                // computed from this record's env (the SDK walks top-down
-                // with the document in memory).
-                NeoGenericResolution.StampGenericBindings(client, childMember, newValueRow, GenericEnv);
                 client.StageWritablePayloadRows(plan, childOwnership, setValue?.value);
                 plan.Set(childOwnership, newValueRow);
             }
@@ -1284,6 +1298,7 @@ namespace NeoCompose.Runtime
             keyedRecord.value![key] = newValueId;
             keyedRecord.updatedAt = nowIso;
             plan.Set(ownership, keyedRecord);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, keyedRecord.id, keyedRecord, member, newValueId);
             plan.Commit();
             value = keyedRecord;
 
@@ -1325,6 +1340,7 @@ namespace NeoCompose.Runtime
             record.value![key] = childValueId;
             record.updatedAt = nowIso;
             plan.Set(ownership, record);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, record.id, record, member, childValueId);
             plan.AfterCommit(() =>
             {
                 value = record;
@@ -1342,7 +1358,8 @@ namespace NeoCompose.Runtime
                     client,
                     new ClassTypeInfo { type = MemberKind.Class, classId = schemaClass.id, required = true },
                     System.Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(),
-                    client.SlotClassArguments(member, schemaClass.id));
+                    client.SlotClassArguments(member, schemaClass.id),
+                    slotOwnerEnv: member.ownerEnvironment);
             }
             catch (System.InvalidOperationException error)
             {

@@ -10,7 +10,7 @@ class BackgroundTileLayer : ConsoleTileLayer {
   public override string Name = "Background";
 
   @id("neo-tile-grid-record-relations-v1-member-05518aaa5d34a1a6a242fe8e0f6b6134")
-  @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
+  @settings(collection: Assets.SortingLayers, collectionValue: root.Assets.SortingLayers)
   @system(kind: .WorldAuthoring)
   public override Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 

@@ -88,6 +88,13 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         Reference = 29,
         Tuple = 30,
+        /// <summary>
+        /// P127 §1.3. An <c>object</c>, <c>ValueType</c>, <c>Enum</c>,
+        /// <c>Type</c>, <c>CultureInfo</c> or <c>NumberFormatInfo</c> slot,
+        /// narrowed by <c>objectType</c>. A held non-row value stores its
+        /// payload with the value row's <c>valueType</c>.
+        /// </summary>
+        Object = 31,
         Unknown = -1,
         Void = -2,
     }
