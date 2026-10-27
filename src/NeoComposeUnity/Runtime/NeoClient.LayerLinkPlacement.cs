@@ -16,8 +16,6 @@ namespace NeoCompose.Runtime
         {
             if (!ReferenceEquals(link.Client, this) || !ReferenceEquals(entry.Client, this))
                 throw new ArgumentException("The layer link and placement must belong to the same client.");
-            if (link.IsReadOnly)
-                throw new InvalidOperationException("Cannot place content through a readonly layer link.");
             string linkId = link.valueId ?? throw new InvalidOperationException("Layer link has no backing row.");
             if (!HasWorldKind(link.classId, tile ? "tileLayerLink" : "objectLayerLink"))
                 throw new ArgumentException("Placement receiver has the wrong layer link kind.", nameof(link));
@@ -36,8 +34,13 @@ namespace NeoCompose.Runtime
                     }
                 if (!compatible)
                     return NeoPlacementOutcome.Error("placement-layer-incompatible", $"Class '{entry.classId}' is not compatible with layer '{layerId}'.");
-                var list = NeoGeneratedTypesSupport.AsWritable(link.BackingNode, link.StorageOwnership)
-                    .Get<NeoMemberListWritable>(tile ? "Tiles" : "Objects");
+                string collectionKey = tile ? "Tiles" : "Objects";
+                var collection = NeoGeneratedTypesSupport.AsWritable(link.BackingNode, link.StorageOwnership)
+                    .Get<NeoMemberList>(collectionKey);
+                if (collection.ownership == NeoValueOwnership.Asset)
+                    throw new InvalidOperationException($"Cannot place content into immutable layer-link collection '{collectionKey}'.");
+                if (collection is not NeoMemberListWritable list)
+                    throw new InvalidOperationException($"Layer-link collection '{collectionKey}' has no writable storage view.");
                 AssertConstructedValueAdoptable(list.ownership, entry);
                 (string? gridId, Vector2Int origin) = LayerLinkPlacementOrigin(link);
                 long localX = (long)cell.x - origin.x;
