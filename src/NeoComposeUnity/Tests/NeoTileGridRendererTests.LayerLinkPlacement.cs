@@ -17,6 +17,85 @@ namespace NeoCompose.Tests
     public partial class NeoTileGridRendererTests
     {
         [Test]
+        public void LayerLinkPlacementUsesEffectiveCollectionStorage(
+            [Values(false, true)] bool tile, [Values(false, true)] bool native,
+            [Values(NeoMemberStorage.Save, NeoMemberStorage.Session, NeoMemberStorage.Immutable, NeoMemberStorage.Inherit)] NeoMemberStorage storage)
+        {
+            ProjectData data = BuildClassBackedTileGridProjectData();
+            if (native)
+                AddPlacementResultSchema(data);
+            string classId = tile ? TileLayerLinkClassId : ObjectLayerLinkClassId;
+            string memberId = tile ? "tile-layer-link-tiles-member" : "object-layer-link-objects-member";
+            string key = tile ? "Tiles" : "Objects";
+            string linkId = tile ? "background-link" : "objects-link";
+            var inherited = (ListMember)data.members[memberId];
+            inherited.Storage = NeoMemberStorage.Immutable;
+            var field = (ListMember)inherited.ShallowClone();
+            field.id = "placement-storage-override";
+            field.extendsMemberId = inherited.id;
+            field.Storage = storage;
+            field.ListKind = NeoListKind.Unordered;
+            data.members[field.id] = field;
+            data.classes[classId].schema[key] = field.id;
+            data.classes[classId].allowedStorage = NeoMemberStorage.Immutable;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var grid = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var node = (NeoMemberClass)NeoMember.Create(client,
+                new ClassMember { id = "asset-link-view", kind = MemberKind.Class, DeclaredClassId = classId }, linkId);
+            NeoGeneratedClassValue entry = tile
+                ? new TestTile(client, NeoGeneratedTypesSupport.CreateWritableClassValue(client, TileClassId, Array.Empty<NeoGeneratedConstructorValue>()), false)
+                : ClonePlacementObject(client);
+            string entryId = entry.valueId!;
+            var cell = new Vector2Int(80, 90);
+            var tileLink = tile ? new TestTileLayerLink(client, node) : null;
+            var objectLink = tile ? null : new TestObjectLayerLink(client, node);
+            NeoGeneratedClassValue link = tile ? tileLink! : objectLink!;
+            Assert.IsTrue(link.IsReadOnly, "The immutable link wrapper does not determine its collection's storage.");
+            Assert.AreEqual(NeoValueOwnership.Asset, link.ValueOwnership);
+            void Place()
+            {
+                if (native)
+                {
+                    var context = client.CreateGetterContext(NeoValueOwnership.Asset);
+                    object? receiver = NSGetterEvaluator.EvaluatePointer(new ReferencePointer
+                    {
+                        type = PointerKind.Reference,
+                        valueId = linkId,
+                    }, new NeoScriptScope(0), context);
+                    Assert.IsTrue(NeoLayerLinkRuntime.TryInvoke(tile ? NeoLayerLinkRuntime.TrySetId : NeoLayerLinkRuntime.TrySpawnId,
+                        receiver, new object?[] { cell, entry }, context, out object? result));
+                    Assert.IsNotNull(result);
+                }
+                else
+                {
+                    var result = tile ? tileLink!.TrySet(cell, entry) : objectLink!.TrySpawn(cell, entry);
+                    Assert.IsTrue(result.Ok, result.Message);
+                }
+            }
+
+            if (storage == NeoMemberStorage.Immutable || storage == NeoMemberStorage.Inherit)
+            {
+                Assert.Throws<InvalidOperationException>(() => Place());
+                Assert.IsNull(client.ResolveValueRow(entryId)!.containerId);
+                Assert.AreEqual(NeoValueOwnership.Session, entry.ValueOwnership);
+                Assert.IsEmpty(client.saveValues);
+                return;
+            }
+
+            Place();
+            NeoValueOwnership expected = storage == NeoMemberStorage.Save ? NeoValueOwnership.Save : NeoValueOwnership.Session;
+            Assert.AreEqual(expected, entry.ValueOwnership);
+            Assert.IsTrue(client.TryGetValue(expected, entryId, out ObjectMemberValue? placed));
+            Assert.AreEqual(tile ? "background-link-tiles" : "objects-link-objects", placed!.containerId);
+            Assert.IsFalse(data.values.ContainsKey(entryId), "Placement must preserve authored values.");
+            if (tile)
+                Assert.IsTrue(grid.BuildTileLayerRecords(BackgroundLayerClassId).Records.Any(row => row.PlacementValueId == entryId));
+            else
+                Assert.IsTrue(grid.BuildObjectLayerRecords(ObjectsLayerClassId, null).Any(row => row.InstanceId == entryId));
+        }
+
+        [Test]
         public void LayerLinkSpawnValidatesSiblingContentAndWritesToTheCalledLink()
         {
             ProjectData data = BuildClassBackedTileGridProjectData();
@@ -115,23 +194,7 @@ namespace NeoCompose.Tests
         public void LayerLinkNativeUsesTheSdkPlacementAndReturnsTheSchemaResult()
         {
             ProjectData data = BuildClassBackedTileGridProjectData();
-            var seed = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/layer-link-result-seed.json"));
-            foreach (var item in seed["classes"]!)
-            {
-                var value = item.ToObject<NeoSchemaClass>()!;
-                data.classes[value.id] = value;
-            }
-            foreach (var item in seed["members"]!)
-            {
-                var value = item.ToObject<Member>()!;
-                data.members[value.id] = value;
-            }
-            data.constructors ??= new Dictionary<string, ConstructorRecord>();
-            foreach (var item in seed["constructors"]!)
-            {
-                var value = item.ToObject<ConstructorRecord>()!;
-                data.constructors[value.id] = value;
-            }
+            AddPlacementResultSchema(data);
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             client.RegisterGeneratedClassFactories(BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
             var link = WritableObjectLink(client, "objects-link");
@@ -178,6 +241,27 @@ namespace NeoCompose.Tests
             Assert.That(client.ResolveValueRow(entry.valueId!)!.containerId, Is.Null);
             grid.Lifecycle = null;
             Assert.That(link.TrySpawn(new Vector2Int(80, 90), entry).Ok, Is.True);
+        }
+
+        private static void AddPlacementResultSchema(ProjectData data)
+        {
+            var seed = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/layer-link-result-seed.json"));
+            foreach (var item in seed["classes"]!)
+            {
+                var value = item.ToObject<NeoSchemaClass>()!;
+                data.classes[value.id] = value;
+            }
+            foreach (var item in seed["members"]!)
+            {
+                var value = item.ToObject<Member>()!;
+                data.members[value.id] = value;
+            }
+            data.constructors ??= new Dictionary<string, ConstructorRecord>();
+            foreach (var item in seed["constructors"]!)
+            {
+                var value = item.ToObject<ConstructorRecord>()!;
+                data.constructors[value.id] = value;
+            }
         }
 
         private sealed class RejectLinkSpawn : NeoTileGridLifecycle
