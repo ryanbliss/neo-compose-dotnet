@@ -630,6 +630,62 @@ namespace NeoCompose.Tests
             Assert.IsFalse(MemoizeTileQuery());
         }
 
+        [TestCase("class-backed-placement", 2, 3)]
+        [TestCase("floor-local", 9, 22)]
+        public void NeoTileQueries_UseGridCellAndSharePatternFiltering(string receiverId, int x, int y)
+        {
+            ProjectData data = BuildCellPatternTileGridProjectData();
+            data.values["town-grid"].classId = null;
+            data.members["query-grid"] = RootMember("query-grid", "town-grid", GridClassId);
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            client.ScriptGridQueries.RegisterFactories(new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>
+            {
+                [GridClassId] = (_, _) => new TestTileGridContent(primitive,
+                    new[] { primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(BackgroundLayerClassId, new[] { TileClassId }) },
+                    new[] { primitive.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId }) })
+            });
+            var ctx = client.CreateGetterContext(NeoValueOwnership.Asset);
+            object? receiver = NSGetterEvaluator.UnwrapRow(client.ResolveValueRow(receiverId)!, ctx, NeoValueOwnership.Asset);
+            object? Query(string memberId, object pattern, Vector2Int? offset = null, string? type = null)
+            {
+                TypeInfo[]? types = type is null ? null : new TypeInfo[] { new ClassTypeInfo { type = MemberKind.Class, classId = type, required = true } };
+                Assert.IsTrue(client.ScriptGridQueries.TryInvoke(memberId, receiver, new object?[] { pattern, offset }, types, ctx, out object? result));
+                return result;
+            }
+            const string objectsId = "system_bf87a1b7-b1ff-48dc-bbf0-286bd2739a9b";
+            const string tileId = "system_2c92a799-5733-418c-af70-31d7fe22956f";
+            const string tilesId = "system_7aac6739-41ad-4d7f-88d0-15b5f0416e67";
+            object center = NeoCellPatternRuntimeTests.Construct(client, Vector2Int.zero);
+            Assert.AreEqual(receiverId, NSGetterEvaluator.FindRowIdByReference(Query(tileId, center), ctx));
+            object pattern = NeoCellPatternRuntimeTests.Construct(client, new Vector2Int(2 - x, 3 - y), new Vector2Int(100, 100), new Vector2Int(9 - x, 22 - y));
+            var tiles = (object?[])Query(tilesId, pattern)!;
+            Assert.AreEqual(2, tiles.Length);
+            Assert.AreEqual("class-backed-placement", NSGetterEvaluator.FindRowIdByReference(tiles[0], ctx));
+            Assert.AreEqual("floor-local", NSGetterEvaluator.FindRowIdByReference(tiles[1], ctx));
+            var objects = (object?[])Query(objectsId, center, new Vector2Int(10 - x, 20 - y), ObjectClassId)!;
+            Assert.AreEqual("shop-1", NSGetterEvaluator.FindRowIdByReference(objects[0], ctx));
+            Assert.IsNull(Query(tileId, center, type: OtherTileClassId));
+            CollectionAssert.IsEmpty((object?[])Query(tilesId, center, new Vector2Int(100, 100))!);
+            Assert.IsTrue(NeoScriptGridQueries.ReturnsFreshList(objectsId));
+            Assert.IsTrue(NeoScriptGridQueries.ReturnsFreshList(tilesId));
+
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Asset, receiverId, "tile-query", NeoValueOwnership.Asset);
+            NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+            Query(objectsId, center, new Vector2Int(100, 100));
+            client.MemoizeGetter(key, 0, null, client.EndGetterReadCapture(enclosing));
+            Assert.IsNotNull(client.FindMemoizedGetter(key));
+            client.SetWritableValue(NeoValueOwnership.Save, new Vector2MemberValue
+            {
+                id = receiverId + "-cell",
+                value = new NeoVector2Value { x = 30, y = 40 }
+            });
+            Assert.IsNull(client.FindMemoizedGetter(key), "Moving the origin invalidates a query that excludes the center.");
+            Assert.AreEqual(receiverId, NSGetterEvaluator.FindRowIdByReference(Query(tileId, center), ctx), "The next query uses the moved tile's grid cell.");
+            Assert.IsNull(Query(tileId, center, new Vector2Int(-1, 0)));
+        }
+
         [Test]
         public void NeoScriptGridQuery_ReadsEachOccupiedCellsTileInPatternOrderAndShiftsByTheOffset()
         {

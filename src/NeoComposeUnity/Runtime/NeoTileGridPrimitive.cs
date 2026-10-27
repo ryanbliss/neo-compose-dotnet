@@ -1373,18 +1373,18 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool DeclaresLayer(string layerClassId, bool isTileLayer)
         {
-            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow
-                || string.IsNullOrEmpty(gridRow.classId))
-            {
+            if (client.ResolveValueRow(GridValueId) is not ObjectMemberValue gridRow)
                 return false;
-            }
+            string? gridClassId = NeoGeneratedTypesSupport.ResolveClassValueClassId(client, GridValueId, gridRow);
+            if (gridClassId is null)
+                return false;
             string relationKind = isTileLayer
                 ? InternalRecordRelationKinds.WorldGridTileLayer
                 : InternalRecordRelationKinds.WorldGridObjectLayer;
             foreach (string declared in
                      client.InternalRecordRelations.ResolveTargetIds(
                          relationKind,
-                         gridRow.classId!))
+                         gridClassId))
             {
                 if (string.Equals(declared, layerClassId, StringComparison.Ordinal))
                 {
@@ -1967,9 +1967,10 @@ namespace NeoCompose.Runtime
                 return Array.Empty<string>();
             if (gridRow.IsRemoved)
                 return Array.Empty<string>();
-            if (string.IsNullOrEmpty(gridRow.classId))
+            string? gridClassId = NeoGeneratedTypesSupport.ResolveClassValueClassId(client, GridValueId, gridRow);
+            if (gridClassId is null)
                 return Array.Empty<string>();
-            string? childrenKey = FindSchemaKey(gridRow.classId!, ChildrenKeyCandidates);
+            string? childrenKey = FindSchemaKey(gridClassId, ChildrenKeyCandidates);
             if (childrenKey is null)
                 return Array.Empty<string>();
             if (client.ResolveClassChildRow(gridRow, childrenKey)

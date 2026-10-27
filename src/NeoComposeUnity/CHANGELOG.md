@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.80.0] - 2026-10-26
+
+- Add `NeoTile.GetObjects<T>`, `GetTile<T>`, and `GetTiles<T>` pattern queries with optional offsets. Tile queries share the object query implementation and use the tile's position in the owning grid, including its carrying object's position.
+- Preserve pattern order, repeated object footprint matches, generic filtering, and tile layer precedence. Queries track origin movement and empty cells.
+- Regenerate Unity exports with a CLI containing the new NeoTile declarations. Compiler revision 18 and Unity export schema 46 are unchanged.
+
 ## [0.79.2] - 2026-10-24
 
 - Preserve class-list aliases through assignment and replacement, restore surviving field-handle provenance after sparse-owner replay, and keep dictionary self-assignment a no-op.
