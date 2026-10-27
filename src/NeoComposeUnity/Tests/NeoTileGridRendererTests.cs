@@ -5523,6 +5523,7 @@ namespace NeoCompose.Tests
             var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveClassValue(client, "shop-object",
                 factories, new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>())!;
             var sprite = CreateTestSprite("art");
+            var largerArt = Sprite.Create(sprite.texture, sprite.rect, new Vector2(.5f, .5f), 50f);
             var art = new TestSpriteChild { Name = "Art", Sprite = sprite, Size = new NeoReadOnlyVector3(new Vector3(2, 1, 0)) };
             obj.Children = new INeoWorldObjectValue[] { art };
             var go = new GameObject("Collider update test");
@@ -5548,9 +5549,12 @@ namespace NeoCompose.Tests
                 var drawn = original.GetComponentInChildren<SpriteRenderer>();
                 var collider = drawn.GetComponent<BoxCollider2D>();
                 Assert.IsTrue(collider.enabled);
-                Assert.AreEqual(new Vector2(.5f, .25f), collider.size);
-                Assert.AreEqual(new Vector2(-.75f, 0), collider.offset);
+                Assert.That((Vector2)Vector3.Scale(collider.size, drawn.transform.localScale), Is.EqualTo(new Vector2(.5f, .25f)));
+                Assert.That((Vector2)Vector3.Scale(collider.offset, drawn.transform.localScale), Is.EqualTo(new Vector2(-.75f, 0)));
                 Assert.IsTrue(collider.isTrigger);
+                Physics2D.SyncTransforms();
+                Assert.That(collider.bounds.size.x, Is.EqualTo(.5f).Within(.001f));
+                Assert.That(collider.bounds.size.y, Is.EqualTo(.25f).Within(.001f));
 
                 // A resize moves the sprite's center even when its collider spec is unchanged.
                 art.Size = new NeoReadOnlyVector3(4, 3, 0);
@@ -5558,9 +5562,19 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out updated));
                 Assert.AreSame(original, updated);
                 Assert.AreSame(collider, drawn.GetComponent<BoxCollider2D>());
-                Assert.AreEqual(new Vector2(.5f, .25f), collider.size);
-                Assert.AreEqual(new Vector2(-1.75f, -1), collider.offset);
+                Assert.That((Vector2)Vector3.Scale(collider.size, drawn.transform.localScale), Is.EqualTo(new Vector2(.5f, .25f)));
+                Assert.That((Vector2)Vector3.Scale(collider.offset, drawn.transform.localScale), Is.EqualTo(new Vector2(-1.75f, -1)));
                 Assert.AreEqual(new Vector3(2, 1.5f, 0), drawn.transform.localPosition);
+
+                // Art changes its scale even when the collider and cell span stay fixed.
+                art.Sprite = largerArt;
+                Changed();
+                Physics2D.SyncTransforms();
+                Assert.That(collider.bounds.size.x, Is.EqualTo(.5f).Within(.001f));
+                Assert.That(collider.bounds.size.y, Is.EqualTo(.25f).Within(.001f));
+                var localCenter = drawn.transform.parent.InverseTransformPoint(collider.transform.TransformPoint(collider.offset));
+                Assert.That(localCenter.x, Is.EqualTo(.25f).Within(.001f));
+                Assert.That(localCenter.y, Is.EqualTo(.5f).Within(.001f));
 
                 // Clearing it disables the same component.
                 art.Collider = null;
@@ -5581,6 +5595,7 @@ namespace NeoCompose.Tests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(largerArt);
                 DestroyTestSprite(sprite);
             }
         }

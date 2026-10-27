@@ -529,6 +529,7 @@ namespace NeoCompose.Runtime
             private readonly Vector2 origin;
             private readonly INeoSpriteObjectValue? centeredSprite;
             private Vector2 appliedOrigin;
+            private Vector2 appliedScale;
             private readonly SortPointPair? sortPoint;
             private BoxCollider2D? collider;
             private NeoBoxColliderSpec? applied;
@@ -564,10 +565,14 @@ namespace NeoCompose.Runtime
                     : null;
                 var currentOrigin = centeredSprite is null ? origin
                     : -(Vector2)CellSpanFromSize(centeredSprite.Size) * (cellSize * .5f);
-                if ((Nullable.Equals(spec, applied) && currentOrigin == appliedOrigin) || host == null)
+                if (host == null)
+                    return;
+                Vector2 scale = centeredSprite is null ? Vector2.one : (Vector2)host.transform.localScale;
+                if (Nullable.Equals(spec, applied) && currentOrigin == appliedOrigin && scale == appliedScale)
                     return;
                 applied = spec;
                 appliedOrigin = currentOrigin;
+                appliedScale = scale;
                 if (spec is not { } next)
                 {
                     if (collider != null)
@@ -576,8 +581,10 @@ namespace NeoCompose.Runtime
                 }
                 if (collider == null)
                     collider = host.AddComponent<BoxCollider2D>();
-                collider.size = next.Size * cellSize;
-                collider.offset = next.Offset * cellSize + currentOrigin;
+                // Sprite geometry scales the host to fit its cell span. Collider
+                // dimensions are already in cell units, so cancel that art scale.
+                collider.size = next.Size * cellSize / scale;
+                collider.offset = (next.Offset * cellSize + currentOrigin) / scale;
                 collider.isTrigger = next.IsTrigger;
                 collider.enabled = true;
                 // Grouped content sits under the sort point, so the point cancels the offset.

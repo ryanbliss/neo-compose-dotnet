@@ -684,7 +684,7 @@ namespace NeoCompose.Runtime
 
         private bool HoldsObjectRow(Member childMember, string? childValueId) =>
             childValueId is not null
-            && client.TryGetValue(client.ChildOwnership(childMember, ownership), childValueId, out ObjectMemberValue? row)
+            && client.TryGetValue(client.ChildValueOwnership(childMember, ownership, childValueId), childValueId, out ObjectMemberValue? row)
             && !row.IsRemoved;
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.
@@ -1094,8 +1094,9 @@ namespace NeoCompose.Runtime
             // storage stamp on the child pins which writable store the leaf
             // shadows into, independent of this record's own ownership — the
             // headline case being a Save-stamped field on a static record.
+            string? existingValueId = ChildValueId(key);
             NeoValueOwnership childOwnership =
-                client.ChildOwnership(childMember, ownership);
+                client.ChildValueOwnership(childMember, ownership, existingValueId);
             if (childOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
@@ -1118,7 +1119,6 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            string? existingValueId = ChildValueId(key);
             // One node answers every read of the entry's row, and the leaf
             // write. The entry's live child already holds it.
             NeoMember? existingChild = existingValueId is null ? null : FindChild(key);
@@ -1428,7 +1428,7 @@ namespace NeoCompose.Runtime
             record.updatedAt = nowIso;
             plan.Set(ownership, record);
             NeoValueOwnership removedOwnership =
-                client.ChildOwnership(removedMember, ownership);
+                client.ChildValueOwnership(removedMember, ownership, removedValueId);
             client.StageUnlinkedRemovals(plan, removedOwnership, removedValueId, removedMember);
             plan.Commit();
             value = record;
@@ -1472,6 +1472,7 @@ namespace NeoCompose.Runtime
             }
             // The tombstone lands where a write would: a storage-stamped
             // field on a static record shadows into its own writable store.
+            string? childValueId = ChildValueId(key);
             NeoValueOwnership childOwnership = ownership;
             if (client.TryGetMember(memberId, out Member? childMember))
             {
@@ -1482,9 +1483,8 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Cannot unset required field '{key}'.");
                 }
-                childOwnership = client.ChildOwnership(childMember, ownership);
+                childOwnership = client.ChildValueOwnership(childMember, ownership, childValueId);
             }
-            string? childValueId = ChildValueId(key);
             if (childValueId is null)
             {
                 return;

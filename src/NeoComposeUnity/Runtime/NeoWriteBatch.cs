@@ -60,6 +60,9 @@ namespace NeoCompose.Runtime
             (retainedRootOwners ??= new(StringComparer.Ordinal)).Add(id, tracker);
         }
 
+        internal void PreserveRetainedAlias(NeoScriptObject value, NSGetterEvaluator.Context context) =>
+            context.allocationTracker.MarkEscaped(value, context, retainedRootOwners);
+
         private int publicationDrainState;
         private int completionState;
         private bool publicationHookRegistered;

@@ -1459,6 +1459,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ConstructedSaveFieldsRemainUsableBeforeAdoption()
+        {
+            var app = LoadGeneratedClient(out _);
+            var value = new StorageA(SaveChild: new StorageB(InheritChild: new StorageC(Value: 42)));
+            Assert.AreEqual(42, value.SaveChild!.InheritChild!.Value);
+            value.SaveChild.InheritChild.Value = 43;
+            Assert.AreEqual(43, value.SaveChild.InheritChild.Value);
+            var absent = new StorageA();
+            absent.SaveChild = new StorageB(InheritChild: new StorageC(Value: 55));
+            Assert.AreEqual(55, absent.SaveChild!.InheritChild!.Value);
+            ((Root)app.Save).StorageInherit = value;
+            Assert.AreEqual(43, value.SaveChild!.InheritChild!.Value);
+            value.SaveChild.InheritChild.Value = 44;
+            StringAssert.Contains("44", app.SerializeSaveData());
+        }
+
+        [Test]
         public void GeneratedInheritedStorage_AttachingConstructedValuesRetargetsHeldReferencesToSave()
         {
             var app = LoadGeneratedClient(out _);

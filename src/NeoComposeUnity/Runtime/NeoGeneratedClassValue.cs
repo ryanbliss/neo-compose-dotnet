@@ -156,6 +156,7 @@ namespace NeoCompose.Runtime
             : base(client)
         {
             detached = (NeoScriptObject)value;
+            detached.hasHostReference = true;
             fallbackClassId = detached.plan.classId;
             IsReadOnly = isReadOnly;
             InheritedStorageOwnership = NeoValueOwnership.Session;

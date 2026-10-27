@@ -1,0 +1,16 @@
+class SavedFields {@storage(allowed: .Save) public int N=1;}
+class Item {public int V=0;}
+class Holder {public (Item,int) Pair=(new Item(),0);public ((Item,int),int) Nested=((new Item(),0),0);public List<Item> Items=[];}
+class Statics {public static (Item,int) Pair=(new Item(),0);public static (int,int) Numbers=(1,2);public static ((Item,int),int) Nested=((new Item(),0),0);public static Dictionary<string,Item> Map={};}
+class Probe {public static Item CreateItem(){return new Item();}public static List<Item> CreateItems(){return [new Item()];}public static bool AcceptItems(List<Item> items){Item a=items[0];Holder h=new Holder();h.Items.Add(a);h.Items.RemoveAt(0);a.V=9;return h.Items.IndexOf(a)==-1&&a.V==9;}public static int ReadItem(Item a){return a.V;}public static bool AcceptItem(Item a){Holder h=new Holder();h.Items.Add(a);h.Items.RemoveAt(0);a.V=9;return h.Items.IndexOf(a)==-1&&a.V==9;}
+public static bool StaticPrimitive(){Statics.Numbers=(3,4);return Statics.Numbers.Item1==3&&Statics.Numbers.Item2==4;}
+public static bool StaticClass(){Statics.Pair=(new Item(),1);Item a=Statics.Pair.Item1;Statics.Pair=(new Item(),2);a.V=7;return a.V==7&&Statics.Pair.Item1.V==0;}
+public static bool RemovedIndex(){Holder h=new Holder();Item a=new Item();h.Items.Add(a);h.Items.RemoveAt(0);return h.Items.IndexOf(a)==-1;}
+public static bool RemoveReadd(){Holder h=new Holder();Item a=new Item(){V=7};h.Items.Add(a);h.Items.RemoveAt(0);h.Items.Add(a);return h.Items[0]==a&&h.Items[0].V==7;}
+public static bool NoEscape(){Holder h=new Holder();Item a=new Item();h.Items.Add(a);h.Items.RemoveAt(0);return true;}
+public static bool StaticNested(){Statics.Nested=((new Item(){V=5},1),2);return Statics.Nested.Item1.Item1.V==5&&Statics.Nested.Item2==2;}
+public static bool StaticDictionary(){Statics.Map={"a":new Item(){V=5}};Item a=Statics.Map["a"];Statics.Map={"b":new Item()};a.V=7;return a.V==7&&Statics.Map["b"].V==0;}
+public static bool RemovedWrite(){Holder h=new Holder();Item a=new Item();h.Items.Add(a);h.Items.RemoveAt(0);a.V=9;return a.V==9&&h.Items.Count==0;}
+public static bool ClearAlias(){Holder h=new Holder();Item a=new Item();h.Items.Add(a);h.Items.Clear();return !h.Items.Contains(a)&&a.V==0;}
+public static bool DetachedSaveField(){SavedFields s=new SavedFields();if(s.N!=1)return false;s.N=7;return s.N==7;}
+}

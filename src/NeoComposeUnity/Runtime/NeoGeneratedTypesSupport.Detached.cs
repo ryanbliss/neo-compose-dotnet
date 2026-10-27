@@ -841,7 +841,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static string MaterializeDetached(
             NeoScriptObject root,
-            NSGetterEvaluator.Context? scopeCtx)
+            NSGetterEvaluator.Context? scopeCtx,
+            NSGetterEvaluator.Context? aliasContext)
         {
             NeoClient client = root.client;
             DetachedStaging staging = DetachedStaging.Rent(
@@ -865,8 +866,14 @@ namespace NeoCompose.Runtime
                     foreach (MemberValue row in staging.rows)
                         client.ValueNode(row.id)!.sharedGetterResult = true;
                 foreach ((NeoScriptObject value, ObjectMemberValue row) in staging.children)
+                {
                     value.attachedId = row.id;
+                    if (aliasContext is not null)
+                        NSGetterEvaluator.RememberAttachedObject(value, row.id, aliasContext);
+                }
                 root.attachedId = rootRow.id;
+                if (aliasContext is not null)
+                    NSGetterEvaluator.RememberAttachedObject(root, rootRow.id, aliasContext);
                 return rootRow.id;
             }
             finally

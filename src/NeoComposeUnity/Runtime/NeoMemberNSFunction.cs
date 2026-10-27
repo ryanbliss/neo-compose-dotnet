@@ -742,7 +742,7 @@ namespace NeoCompose.Runtime
             int inPlaceFrame = -1;
             try
             {
-                BindParameters(client, function, scope, receiver, args, site, siteScope, ctx, effectiveArgumentTypes);
+                BindParameters(client, function, scope, receiver, args, site, siteScope, ctx, effectiveArgumentTypes, ownsContext);
 
                 NSGetterEvaluator.Context nestedCtx;
                 if (ownsContext)
@@ -1007,8 +1007,11 @@ namespace NeoCompose.Runtime
             CallFunctionPointer? site,
             NeoScriptScope? siteScope,
             NSGetterEvaluator.Context ctx,
-            TypeInfo[] argumentTypes)
+            TypeInfo[] argumentTypes,
+            bool hostBoundary)
         {
+            if (hostBoundary)
+                NSGetterEvaluator.MarkHostArgument(receiver, receiver, ctx);
             const int rootParameterIndex = 1;
             const int argumentParameterOffset = 2;
             scope.SetParameter(0, receiver);
@@ -1039,6 +1042,8 @@ namespace NeoCompose.Runtime
                         argumentTypes[i],
                         ctx,
                         in subjects[i + 1]);
+                    if (hostBoundary && i < argumentCount)
+                        NSGetterEvaluator.MarkHostArgument(value, normalized, ctx);
                     // The effective signature already closed receiver and function
                     // parameters. Preserve only the collection erased by a bare T.
                     if (argument.type == MemberKind.Generic && normalized is not null)
@@ -2480,9 +2485,13 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             ValueSubject subject)
         {
-            // A detached temporary passes by reference, like the row it
-            // stands in for; nothing about it needs a row here.
-            if (value is NeoScriptObject { attachedId: null } || string.IsNullOrEmpty(reference.valueId))
+            // Preserve the original alias when a host caller already requested
+            // the detached object's id, including objects inside argument arrays.
+            NeoScriptObject? detached = value as NeoScriptObject
+                ?? (value as NeoGeneratedClassValue)?.PendingValue as NeoScriptObject;
+            if (detached is not null)
+                return detached.attachedId is null ? detached : NSGetterEvaluator.ForwardDetached(detached, ctx)!;
+            if (string.IsNullOrEmpty(reference.valueId))
                 return value;
             // A record this context unwrapped from a row is already
             // canonical: unwrapping it again would only read its row.
