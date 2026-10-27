@@ -183,6 +183,7 @@ namespace NeoCompose.Tests
             var placed = primitive.BuildTileLayerRecords(BackgroundLayerClassId).Records.Single(row => row.PlacementValueId == tile.valueId);
             Assert.That(placed.Cell, Is.EqualTo(cell));
             Assert.That(placed.SourceTileLayerLinkId, Is.EqualTo("shop-floor-link"));
+            Assert.That(link.GetTile(cell)?.valueId, Is.EqualTo(tile.valueId), "A carried link query uses the same grid cell as TrySet.");
             Assert.That(primitive.BuildTileLayerRecords(BackgroundLayerClassId).Records.Any(row => row.PlacementValueId == "floor-local"), Is.False);
             var value = (ObjectMemberValue)client.ResolveValueRow(tile.valueId!)!;
             var local = (Vector2MemberValue)client.ResolveClassChildRow(value, "Cell")!;

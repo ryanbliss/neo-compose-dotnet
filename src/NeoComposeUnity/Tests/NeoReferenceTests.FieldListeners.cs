@@ -15,6 +15,26 @@ namespace NeoCompose.Tests
 {
     public partial class NeoReferenceTests
     {
+        [Test]
+        public void ReferenceSubscriptionSurvivesAdoptionAndRebinding()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            var g = Parity.Probe.G;
+            using var board = new Parity.Pinboard(g.ReferenceTo(Parity.Gauge.Fields.Count));
+            var heard = new List<int?>();
+            var subscription = board.OnChanged(Parity.Pinboard.Fields.Note, (value, _) => heard.Add(value?.Value));
+            Parity.Probe.Board = board;
+            heard.Clear();
+            g.Count = 7;
+            board.Note = g.ReferenceTo(Parity.Gauge.Fields.Other);
+            g.Count = 8;
+            g.Other = 12;
+            CollectionAssert.AreEqual(new int?[] { 7, 10, 12 }, heard);
+            subscription.Dispose();
+            g.Other = 13;
+            Assert.That(heard.Count, Is.EqualTo(3));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void GeneratedReferenceFieldHearsEnumTargetWrites(bool virtualReference)

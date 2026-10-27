@@ -31,8 +31,8 @@ namespace NeoCompose.Runtime
 
     /// <summary>
     /// Grid-space lookups over a layer link's own authored content: the link's
-    /// <c>Position</c> is the projection origin, so cells here line up with the
-    /// cells the link contributes to its target layer. Single-result overloads
+    /// owning grid supplies the projection origin, including containing objects.
+    /// Detached links use link-local cells, matching their placement APIs. Single-result overloads
     /// with an <see cref="INeoCellPattern"/> return the first match in pattern
     /// order (nearest first for center-out patterns).
     /// </summary>
@@ -325,7 +325,7 @@ namespace NeoCompose.Runtime
                 linkRow!,
                 isTileLink: true);
             var order = 0;
-            var origin = ReadRowOrigin(client!, linkRow!);
+            var origin = client!.LayerLinkPlacementOrigin((NeoGeneratedClassValue)link).origin;
             var ownership = ((NeoGeneratedClassValue)link).BackingNode.Get<NeoMemberList>("Tiles").ownership;
             foreach (var instanceValueId in ReadRowListIds(client!, linkRow!, "Tiles"))
             {
@@ -386,7 +386,7 @@ namespace NeoCompose.Runtime
                 (NeoGeneratedClassValue)link,
                 linkRow!,
                 isTileLink: false);
-            var origin = ReadRowOrigin(client!, linkRow!);
+            var origin = client!.LayerLinkPlacementOrigin((NeoGeneratedClassValue)link).origin;
             var order = 0;
             var ownership = ((NeoGeneratedClassValue)link).BackingNode.Get<NeoMemberList>("Objects").ownership;
 
@@ -496,20 +496,6 @@ namespace NeoCompose.Runtime
                 ids.Add(joinedId);
             }
             return ids;
-        }
-
-        private static Vector2Int ReadRowOrigin(NeoClient client, ObjectMemberValue linkRow)
-        {
-            if (client.ResolveClassChildRow(linkRow, "Position")
-                    is not Vector3MemberValue positionRow ||
-                positionRow?.value is null)
-            {
-                return Vector2Int.zero;
-            }
-
-            return new Vector2Int(
-                Mathf.RoundToInt((float)positionRow.value.x),
-                Mathf.RoundToInt((float)positionRow.value.y));
         }
 
         private static Vector3 ReadRowPosition(

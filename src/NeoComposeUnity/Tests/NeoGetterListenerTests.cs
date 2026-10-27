@@ -33,6 +33,55 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoGetterListenerTests
     {
+        [Test]
+        public void WatchingOneGetterDoesNotEvaluateAnUnwatchedInvalidatedGetter()
+        {
+            using var fixture = Build();
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(fixture.client, node);
+            var heard = new List<int>();
+            using var subscription = view.Watch("Value", value => heard.Add(value));
+            node.Get<NeoMemberNSProperty>("Boom").Compute("value-watcher");
+            fixture.explode = true;
+            Assert.DoesNotThrow(() => fixture.Write("watcher-left", "member-left", 2));
+            CollectionAssert.AreEqual(new[] { 2 }, heard);
+        }
+
+        [Test]
+        public void ComputedGetterSubscriptionSurvivesAdoption()
+        {
+            using var fixture = Build();
+            var constructed = NeoGeneratedTypesSupport.CreateWritableClassValue(fixture.client, "class-watcher",
+                new NeoGeneratedConstructorValue("Left", "member-left", 0),
+                new NeoGeneratedConstructorValue("Right", "member-right", 0));
+            using var view = new GetterWatchView(fixture.client, constructed);
+            var heard = new List<int>();
+            var subscription = view.Watch("Sum", value => heard.Add(value));
+            fixture.client.save.SetSerializedValue("Watcher", NeoValueWritePayload.FromValueReference(view.valueId!, view));
+            heard.Clear();
+            view.WritableBackingNode.Get<NeoMemberIntWritable>("Left").Set(3);
+            CollectionAssert.AreEqual(new[] { 3 }, heard);
+            subscription.Dispose();
+            view.WritableBackingNode.Get<NeoMemberIntWritable>("Left").Set(4);
+            CollectionAssert.AreEqual(new[] { 3 }, heard);
+        }
+
+        [Test]
+        public void ThrowingGetterSubscriberDoesNotDisarmAnotherGetter()
+        {
+            using var fixture = Build();
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(fixture.client, node);
+            var heard = new List<int>();
+            var failing = view.Watch("Value", _ => throw new InvalidOperationException("subscriber failed"));
+            using var surviving = view.Watch("Sum", value => heard.Add(value));
+            Assert.Throws<InvalidOperationException>(() => fixture.Write("watcher-left", "member-left", 2));
+            failing.Dispose();
+            heard.Clear();
+            fixture.Write("watcher-left", "member-left", 3);
+            Assert.That(heard, Is.Not.Empty);
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void CSharpWatchCreatedDuringScriptCommitArmsAfterTheBatch(bool disposeBeforeExit)
@@ -75,6 +124,8 @@ namespace NeoCompose.Tests
         private sealed class GetterWatchView : NeoGeneratedClassValue
         {
             public GetterWatchView(NeoClient client, NeoMemberClass node) : base(client, node, "class-watcher", false, node.ownership) { }
+            public IDisposable Watch(string key, Action<int> handler) => WatchField(new NeoField<int>(key),
+                (value, _) => handler(value), () => Convert.ToInt32(ComputeProperty(key).value));
             public IDisposable WatchEcho(Action<int> handler) => WatchField(new NeoField<int>("Echo"),
                 (value, _) => handler(value), () => Convert.ToInt32(ComputeProperty("Echo").value));
         }

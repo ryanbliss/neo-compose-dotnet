@@ -1316,6 +1316,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ConstructedValueSubscriptionsSurviveAdoptionAndCanBeRemoved()
+        {
+            using var app = LoadGeneratedClient(out _);
+            var blocked = (SampleBlockedPath)((Root)app.Assets).SampleLayerGroup!;
+            var tile = new SampleTileInstance(Value: 1);
+            int fieldChanges = 0, allChanges = 0, anyChanges = 0;
+            var field = tile.OnChanged(SampleTileInstance.Fields.Value, (_, _) => fieldChanges++);
+            var all = tile.OnChanged(_ => allChanges++);
+            var any = tile.WatchAnyChange((_, _, _) => anyChanges++);
+            blocked.Tiles.Add(tile);
+            fieldChanges = allChanges = anyChanges = 0;
+            tile.Value = 2;
+            Assert.That(fieldChanges, Is.EqualTo(1));
+            Assert.That(allChanges, Is.EqualTo(1));
+            Assert.That(anyChanges, Is.EqualTo(1));
+            field.Dispose();
+            all.Dispose();
+            any.Dispose();
+            tile.Value = 3;
+            Assert.That(fieldChanges + allChanges + anyChanges, Is.EqualTo(3));
+        }
+
+        [Test]
         public void GeneratedInheritedStorage_AttachingConstructedListEntriesRetargetsHeldReferencesToSave()
         {
             var app = LoadGeneratedClient(out _);
