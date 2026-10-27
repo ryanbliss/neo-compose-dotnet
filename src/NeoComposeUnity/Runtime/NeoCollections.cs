@@ -11,6 +11,19 @@ using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
+    internal static class NeoCollectionValueEquality<T>
+    {
+        private static readonly bool CanHaveClassIdentity = !typeof(T).IsValueType;
+
+        internal static bool Equal(T left, T right)
+        {
+            if (CanHaveClassIdentity && left is NeoGeneratedClassValue a && right is NeoGeneratedClassValue b)
+                return ReferenceEquals(a, b)
+                    || (ReferenceEquals(a.Client, b.Client) && a.valueId is { } id && id == b.valueId);
+            return EqualityComparer<T>.Default.Equals(left, right);
+        }
+    }
+
     public enum NeoListChangeKind
     {
         Unknown = 0,
@@ -223,6 +236,20 @@ namespace NeoCompose.Runtime
             return node.ContainsValueId(valueId);
         }
 
+        /// <summary>Whether this list contains the value. Class views compare by client and row identity.</summary>
+        public bool Contains(T item) => IndexOf(item) >= 0;
+
+        /// <summary>The first matching value's index, or -1. Class views compare by client and row identity.</summary>
+        public int IndexOf(T item)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                if (NeoCollectionValueEquality<T>.Equal(this[i], item))
+                    return i;
+            }
+            return -1;
+        }
+
         public int Count => DetachedEntries() is { } entries ? entries.Length : node.Count;
 
         NeoClient INeoCollectionView.CollectionClient => client;
@@ -389,8 +416,6 @@ namespace NeoCompose.Runtime
             RequireWritableNode().ClearSerialized();
         }
 
-        public bool Contains(T item) => IndexOf(item) >= 0;
-
         public void CopyTo(T[] array, int arrayIndex)
         {
             if (array is null)
@@ -399,17 +424,6 @@ namespace NeoCompose.Runtime
             {
                 array[arrayIndex + i] = this[i];
             }
-        }
-
-        public int IndexOf(T item)
-        {
-            var comparer = EqualityComparer<T>.Default;
-            for (int i = 0; i < Count; i++)
-            {
-                if (comparer.Equals(this[i], item))
-                    return i;
-            }
-            return -1;
         }
 
         public void Insert(int index, T item)
@@ -684,7 +698,7 @@ namespace NeoCompose.Runtime
         {
             if (!TryGetValue(item.Key, out T existing))
                 return false;
-            return EqualityComparer<T>.Default.Equals(existing, item.Value);
+            return NeoCollectionValueEquality<T>.Equal(existing, item.Value);
         }
 
         public void CopyTo(KeyValuePair<string, T>[] array, int arrayIndex)

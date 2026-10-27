@@ -40,6 +40,79 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ListSearchUsesClassValueIdentityAcrossViews()
+        {
+            using var client = LoadClient(out _);
+            var data = client.ProjectDataForRuntime;
+            data.classes["audit-entry-class"] = new NeoSchemaClass
+            {
+                id = "audit-entry-class",
+                name = "Entry",
+                schema = new Dictionary<string, string>(),
+            };
+            data.members["audit-entry"] = new ClassMember
+            {
+                id = "audit-entry",
+                name = "Entry",
+                kind = MemberKind.Class,
+                DeclaredClassId = "audit-entry-class",
+            };
+            data.members["audit-list"] = new ListMember
+            {
+                id = "audit-list",
+                name = "Entries",
+                kind = MemberKind.List,
+                entryMemberId = "audit-entry",
+                defaultValue = new ArrayMemberValueBase { value = System.Array.Empty<string>() },
+            };
+            var entry = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "audit-entry-class");
+            using var listNode = new NeoMemberListWritable(client, (ListMember)data.members["audit-list"], null, NeoValueOwnership.Session);
+            var list = new NeoList<IdentityView>(client, listNode,
+                (c, n) => new IdentityView(c, (NeoMemberClass)n),
+                value => NeoValueWritePayload.FromValueReference(value.valueId!));
+            list.Add(new IdentityView(client, entry));
+            var first = list[0];
+            Assert.AreNotSame(first, list[0], "Different views of the same row are valid.");
+            Assert.That(list.IndexOf(first), Is.EqualTo(0));
+            Assert.That(((NeoReadOnlyList<IdentityView>)list).Contains(first), Is.True);
+            using var foreignClient = NeoTestSaveStack.ClientFromSchema(data);
+            foreignClient.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = first.valueId!,
+                classId = "audit-entry-class",
+                value = new Dictionary<string, string>(),
+            });
+            using var foreignNode = new NeoMemberClassWritable(foreignClient, (ClassMember)data.members["audit-entry"], first.valueId, NeoValueOwnership.Session);
+            Assert.That(list.Contains(new IdentityView(foreignClient, foreignNode)), Is.False, "Matching ids in another client are different objects.");
+            Assert.That(list.Contains(first), Is.True);
+            Assert.That(list.Remove(first), Is.True);
+            Assert.That(list.Contains(first), Is.False);
+            data.members["audit-map"] = new DictionaryMember
+            {
+                id = "audit-map",
+                name = "Entries",
+                kind = MemberKind.Dictionary,
+                entryMemberId = "audit-entry",
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
+            };
+            using var mapNode = new NeoMemberDictionaryWritable(client, (DictionaryMember)data.members["audit-map"], null, NeoValueOwnership.Session);
+            var map = new NeoDictionary<IdentityView>(client, mapNode,
+                (c, n) => new IdentityView(c, (NeoMemberClass)n),
+                value => NeoValueWritePayload.FromValueReference(value.valueId!));
+            map.Add("a", new IdentityView(client, NeoGeneratedTypesSupport.CreateWritableClassValue(client, "audit-entry-class")));
+            var pair = new KeyValuePair<string, IdentityView>("a", map["a"]);
+            Assert.That(map.Contains(pair), Is.True);
+            Assert.That(map.Remove(pair), Is.True);
+            Assert.That(map.Count, Is.Zero);
+        }
+
+        private sealed class IdentityView : NeoGeneratedClassValue
+        {
+            internal IdentityView(NeoClient client, NeoMemberClass node)
+                : base(client, node, "audit-entry-class", false, node.ownership) { }
+        }
+
+        [Test]
         public void DictionaryClassEntryEditBubblesToItsOwningClass()
         {
             using var client = LoadClient(out _);

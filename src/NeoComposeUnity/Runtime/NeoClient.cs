@@ -1771,6 +1771,29 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Fresh constructor graphs live wholly in Session until adoption.
+        /// A stored or authored row still follows its declared placement storage.
+        /// </summary>
+        internal NeoValueOwnership ChildValueOwnership(Member? member, NeoValueOwnership parent, string? valueId)
+        {
+            NeoValueOwnership declared = ChildOwnership(member, parent);
+            return parent == NeoValueOwnership.Session ? ConstructionOwnership(declared, valueId) : declared;
+        }
+
+        internal NeoValueOwnership ConstructionOwnership(NeoValueOwnership declared, string? valueId)
+        {
+            if (declared is NeoValueOwnership.Session or NeoValueOwnership.Asset || valueId is null)
+                return declared;
+            if (candidateReplay?.Allocations.ContainsKey(valueId) == true)
+                return NeoValueOwnership.Session;
+            var node = ValueNode(valueId);
+            return node is { live: true, session: not null, save: null, user: null, virtualRow: null }
+                && node.Asset(data) is null
+                    ? NeoValueOwnership.Session
+                    : declared;
+        }
+
+        /// <summary>
         /// Ownership a declared storage pins, or null when the placement
         /// parent decides (Inherit and Writable).
         /// </summary>

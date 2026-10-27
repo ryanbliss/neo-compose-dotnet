@@ -28,6 +28,39 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-p93";
 
         [Test]
+        public void SessionOverlayDoesNotRedirectAnAuthoredSaveFieldOrReviveItsTombstone()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Build(NeoMemberStorage.Save));
+            var parent = client.session.Get<NeoMemberClassWritable>("Thing");
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "x-size", value = 99 });
+            var size = parent.Get<NeoMemberIntWritable>("Size");
+            Assert.AreEqual(NeoValueOwnership.Save, size.ownership);
+            Assert.AreEqual(1, size.value!.value);
+            size.Set(7);
+            Assert.AreEqual(7, parent.Get<NeoMemberInt>("Size").value!.value);
+            parent.Unset("Size");
+            Assert.IsNull(parent.Get<NeoMemberInt>("Size").value?.value);
+            Assert.That(client.TryGetValue(NeoValueOwnership.Session, "x-size", out NumberMemberValue? shadow), Is.True);
+            Assert.AreEqual(99, shadow!.value);
+        }
+
+        [TestCase(NeoMemberStorage.Save)]
+        [TestCase(NeoMemberStorage.User)]
+        public void FreshConstructionReadsWritesAndUnsetsExplicitStorageInSession(NeoMemberStorage storage)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(Build(storage));
+            using var value = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "part-class",
+                new NeoGeneratedConstructorValue("Size", "size-member", 7));
+            var size = value.Get<NeoMemberIntWritable>("Size");
+            Assert.AreEqual(NeoValueOwnership.Session, size.ownership);
+            Assert.AreEqual(7, size.value!.value);
+            value.SetSerializedValue("Size", NeoValueWritePayload.FromValue(8));
+            Assert.AreEqual(8, value.Get<NeoMemberInt>("Size").value!.value);
+            value.Unset("Size");
+            Assert.IsNull(value.Get<NeoMemberInt>("Size").value?.value);
+        }
+
+        [Test]
         public void ForceUnwrappedWritableListOfAssetRowMutatesSession()
         {
             ProjectData data = Build();

@@ -255,7 +255,8 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
-        internal string PreparePayload(NeoWritePlan plan, object? payload)
+        internal string PreparePayload(NeoWritePlan plan, object? payload,
+            System.Action<System.Collections.Generic.IReadOnlyList<string>>? beforeRemovals = null)
         {
             EnsureWritable();
             NeoTimestamp nowIso = NeoTimestamp.Now();
@@ -308,7 +309,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' resolves to storage partition '{declaredMapKey ?? "main"}', but its existing value '{valueId}' is stamped '{row.mapKey ?? "main"}'.");
             }
-            client.StageInPlaceReplacement(plan, Ownership, row, member);
+            client.StageInPlaceReplacement(plan, Ownership, row, member, beforeRemovals: beforeRemovals);
             if (currentValueId is null)
                 plan.Bind(Ownership, member.id, true, valueId);
             return valueId;

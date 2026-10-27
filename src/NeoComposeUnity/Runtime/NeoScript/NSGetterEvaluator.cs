@@ -9675,7 +9675,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             ctx.client.ReadNestedConstructorResult(id);
             NeoValueOwnership ownership = preferredOwnership is NeoValueOwnership parent
-                ? ctx.client.ChildOwnership(member, parent)
+                ? ctx.client.ChildValueOwnership(member, parent, id)
                 : declaredOwnership ?? ResolveOwnershipForValueId(ctx, id, ref node);
             if (ctx.client.ReadReplayReference(id, ref node, ownership) is not { } row)
                 return id;
@@ -9810,8 +9810,10 @@ namespace NeoCompose.Runtime.NeoScript
                 : ctx.valueOwnership;
         }
 
-        private static string? ValueIdOf(object? value, Context ctx)
+        internal static string? ValueIdOf(object? value, Context ctx)
         {
+            if (value is NeoScriptObject detached)
+                return AttachDetached(detached, ctx);
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -10250,6 +10252,10 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool PatchCachedShape(MemberValue row, object? cached, Context ctx)
         {
+            // Attached temporaries forward reads to their row; their original
+            // slots are not a mutable row snapshot.
+            if (cached is NeoScriptObject { attachedId: not null })
+                return true;
             if (row is ObjectMemberValue { value: not null } objectRow
                 && cached is IDictionary<string, object?> record)
             {
@@ -10379,6 +10385,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        private static bool ExternallyHeldAlias(object alias, out NeoScriptObject? value)
+        {
+            value = alias as NeoScriptObject;
+            return value?.hasHostReference == true;
+        }
+
         // A removed owned aggregate survives only through ordinary evaluator aliases.
         // Its stored identity still retires, so explicit References do not follow it.
         internal static void RetainRemovedCollectionAlias(
@@ -10423,11 +10435,16 @@ namespace NeoCompose.Runtime.NeoScript
             // Commit eviction removes provenance. Capture only this graph's
             // reverse-indexed aliases, and restore them after full success.
             var aliases = new List<(object alias, RowReference reference, string target)>();
+            NeoScriptObject? escapedAlias = null;
             foreach (var pair in remapped)
                 foreach (object alias in ctx.rowAliases.Get(pair.Key.scope, pair.Key.id))
                     if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference reference)
                         && reference.ownership == pair.Key.scope && reference.valueId == pair.Key.id)
+                    {
                         aliases.Add((alias, reference, pair.Value));
+                        if (escapedAlias is null && ExternallyHeldAlias(alias, out var escaped))
+                            escapedAlias = escaped;
+                    }
             var insertedAliases = new List<(NeoWriteBatch.Attachment attachment, string target)>();
             foreach (var pair in remapped)
                 if (batch.AttachmentForRow(pair.Key.scope, pair.Key.id) is { } attachment
@@ -10459,6 +10476,8 @@ namespace NeoCompose.Runtime.NeoScript
                     if (captured.alias is NeoScriptObject detached && detached.attachedId == captured.reference.valueId)
                         detached.attachedId = captured.target;
                 }
+                if (escapedAlias is not null)
+                    batch.PreserveRetainedAlias(escapedAlias, ctx);
                 foreach (var pair in remapped)
                     if (plan.Resolve(NeoValueOwnership.Session, pair.Value) is { } retainedRow)
                         RefreshCachedRowAfterWrite(retainedRow, ctx, NeoValueOwnership.Session);
@@ -10491,13 +10510,23 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
                 var aliases = new List<object>();
+                NeoScriptObject? escapedAlias = null;
                 foreach (var pair in remapped)
                 {
                     RetargetCachedRowAfterShadow(ctx, null, pair.Key.scope, pair.Key.id,
                         NeoValueOwnership.Session, pair.Value, aliases);
+                    if (escapedAlias is null)
+                        foreach (object alias in aliases)
+                            if (ExternallyHeldAlias(alias, out var escaped))
+                            {
+                                escapedAlias = escaped;
+                                break;
+                            }
                     if (plan.Resolve(NeoValueOwnership.Session, pair.Value) is { } row)
                         RefreshCachedRowAfterWrite(row, ctx, NeoValueOwnership.Session);
                 }
+                if (escapedAlias is not null)
+                    ctx.allocationTracker.MarkEscaped(escapedAlias, ctx);
             }
             // Held collection writes are already visible to this invocation.
             // Its aliases and allocation tracker must follow the same boundary.
@@ -10583,6 +10612,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // A record names its row by id, which a shadow changes.
                 if (alias is NeoObjectRecord record && record.valueId == sourceId)
                     record.Rebind(targetId, targetOwnership);
+                if (alias is NeoScriptObject detached && detached.attachedId == sourceId)
+                    detached.attachedId = targetId;
             }
             RetargetCachedRow(ctx, sourceOwnership, sourceId, targetOwnership, targetId);
             return moved;

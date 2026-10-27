@@ -415,7 +415,7 @@ namespace NeoCompose.Runtime
                         client,
                         childMember,
                         overrideValueId,
-                        client.ChildOwnership(childMember, ownership),
+                        client.ChildValueOwnership(childMember, ownership, overrideValueId),
                         bindsOnRead);
             child.parent = this;
             if (!bindsOnRead && child is NeoMemberClass { BindsOnRead: true } onRead)

@@ -3713,6 +3713,7 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
             }
+            ownership = client.ConstructionOwnership(ownership, rowId);
             if (preparedPlan is null && client.PendingScriptWrites?.Target(ownership, rowId) is NeoResolvedCollectionTarget pending)
                 return pending;
             if (member is null && target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Lookup)
@@ -3841,7 +3842,11 @@ namespace NeoCompose.Runtime
                     {
                         memberMember = NeoGenericResolution.SubstituteMember(client, memberMember, targetEnv!);
                     }
-                    NeoValueOwnership fieldOwnership = client.ChildOwnership(memberMember, receiverOwnership);
+                    string? childValueId = objectRow.value is not null && objectRow.value.TryGetValue(keyString, out string? childId)
+                        ? childId : null;
+                    NeoValueOwnership fieldOwnership = client.ChildValueOwnership(memberMember, receiverOwnership, childValueId);
+                    if (ownership == client.ChildOwnership(memberMember, receiverOwnership))
+                        ownership = fieldOwnership;
                     if (fieldOwnership != ownership || fieldOwnership == NeoValueOwnership.Asset)
                         throw new NSGetterRuntimeError($"Member '{memberMember!.name}' is not {ownership}-owned.");
                     NeoValueNode? childNode = NSGetterEvaluator.RememberedChildNode(receiver, entry!);
@@ -3979,9 +3984,9 @@ namespace NeoCompose.Runtime
             // resolves Session rather than the receiver's Asset.
             if (pointer is KeyOfPointer keyed
                 && rowId is not null
-                && TryResolveKeyedClassMember(client, keyed.keyOf, rowId, ownership, scope, ctx, out JsonMember? classMember))
+                && TryResolveKeyedClassMember(client, keyed.keyOf, rowId, ownership, scope, ctx, out JsonMember? classMember, out string? childValueId))
             {
-                ownership = client.ChildOwnership(classMember, ownership);
+                ownership = client.ChildValueOwnership(classMember, ownership, childValueId);
             }
             return true;
         }
@@ -3993,15 +3998,19 @@ namespace NeoCompose.Runtime
             NeoValueOwnership receiverOwnership,
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx,
-            out JsonMember? member)
+            out JsonMember? member, out string? childValueId)
         {
             member = null;
+            childValueId = null;
             // A class member key compiles to a string literal, so the key
             // eval is a cached primitive read; it runs only for class rows.
-            return client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
-                && row is ObjectMemberValue { classId: string classId } && classId.Length > 0
-                && Eval(keyOf.key, scope, ctx) is string key
-                && NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member, out _);
+            if (!client.TryGetValue(receiverOwnership, receiverRowId, out MemberValue? row)
+                || row is not ObjectMemberValue { classId: string classId } record || classId.Length == 0
+                || Eval(keyOf.key, scope, ctx) is not string key
+                || !NSGetterEvaluator.TryResolveSurfaceMember(keyOf, null, classId, key, ctx, out member, out _))
+                return false;
+            record.value?.TryGetValue(key, out childValueId);
+            return true;
         }
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
@@ -4022,12 +4031,7 @@ namespace NeoCompose.Runtime
             object? value,
             NSGetterEvaluator.Context ctx)
         {
-            if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId))
-            {
-                return reference.valueId;
-            }
-            return NSGetterEvaluator.FindRowIdByReference(value, ctx);
+            return NSGetterEvaluator.ValueIdOf(value, ctx);
         }
 
         /// <summary>
@@ -4172,12 +4176,6 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             out string? valueId)
         {
-            if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId))
-            {
-                valueId = reference.valueId;
-                return true;
-            }
             valueId = FindValueId(value, ctx);
             return !string.IsNullOrEmpty(valueId);
         }
@@ -5136,7 +5134,7 @@ namespace NeoCompose.Runtime
                                 movedIds);
                         }
                     }
-                    else if (client.members[binding.MemberId] is ListMember listMember
+                    else if (client.members[binding.MemberId] is ListMember or DictionaryMember or TupleMember
                         && (value is not null || binding.ValueId is not null))
                     {
                         PrepareWrite(client, plan =>
@@ -5144,10 +5142,13 @@ namespace NeoCompose.Runtime
                             string valueId = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
                             if (TryGetValueReferenceId(value, ctx, out string? sourceId) && sourceId == valueId)
                                 return;
-                            NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, binding.Ownership, valueId, listMember, value);
+                            var member = client.members[binding.MemberId];
+                            if (member is ListMember listMember)
+                                NSGetterEvaluator.PrepareAssignedListAlias(plan, ctx, binding.Ownership, valueId, listMember, value);
                             object? payload = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
-                                client, listMember, value, binding.Ownership, ctx, plan);
-                            string updatedId = binding.PreparePayload(plan, payload);
+                                client, member, value, binding.Ownership, ctx, plan);
+                            string updatedId = binding.PreparePayload(plan, payload,
+                                removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, binding.Ownership, removed));
                             plan.AfterCommit(() =>
                             {
                                 if (client.TryGetOverlaidValue(binding.Ownership, updatedId, out MemberValue? updatedRow))

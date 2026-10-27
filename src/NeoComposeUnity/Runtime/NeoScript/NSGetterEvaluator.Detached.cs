@@ -38,7 +38,11 @@ namespace NeoCompose.Runtime.NeoScript
         internal static string AttachDetached(NeoScriptObject value, Context? ctx)
         {
             if (value.attachedId is string attached)
+            {
+                if (ctx is not null)
+                    RememberAttachedObject(value, attached, ctx);
                 return attached;
+            }
             NeoScriptObject root = value;
             while (root.owner is not null)
                 root = root.owner;
@@ -49,7 +53,7 @@ namespace NeoCompose.Runtime.NeoScript
             string rootId;
             try
             {
-                rootId = NeoGeneratedTypesSupport.MaterializeDetached(root, scopeCtx);
+                rootId = NeoGeneratedTypesSupport.MaterializeDetached(root, scopeCtx, ctx);
             }
             catch (Exception error)
                 when (error is InvalidOperationException || error is ArgumentException)
@@ -59,6 +63,51 @@ namespace NeoCompose.Runtime.NeoScript
             if (live)
                 tracker.RegisterSessionRoot(rootId);
             return value.attachedId!;
+        }
+
+        internal static void RememberAttachedObject(NeoScriptObject value, string id, Context ctx)
+        {
+            var ownership = ctx.client.TryGetValueOwnership(id, out var stored) ? stored : NeoValueOwnership.Session;
+            if (ctx.rowReverseIndex.TryGetValue(value, out var existing)
+                && existing.valueId == id && existing.ownership == ownership)
+                return;
+            SetRowReference(ctx, value, new RowReference(id, ownership,
+                value.plan.classId, value.plan.runtimePlan.factoryMember));
+        }
+
+        private static NeoScriptObject? HostObject(object? value) => value switch
+        {
+            NeoScriptObject detached => detached,
+            NeoGeneratedClassValue { PendingValue: NeoScriptObject pending } => pending,
+            NeoObjectRecord record => record.attachedObject,
+            _ => null,
+        };
+
+        internal static void MarkHostArgument(object? supplied, object? normalized, Context ctx)
+        {
+            if (HostObject(supplied) is { } original)
+                original.hasHostReference = true;
+            MarkHostArgumentValues(normalized, ctx);
+        }
+
+        private static void MarkHostArgumentValues(object? value, Context ctx)
+        {
+            if (HostObject(value) is { } detached)
+                detached.hasHostReference = true;
+            // A class or a stored collection is one host handle. Its owned
+            // children do not become independent host references.
+            if (value is not (RuntimeTuple or object?[] or Dictionary<string, object?>)
+                || ctx.rowReverseIndex.TryGetValue(value, out _))
+                return;
+            if (value is RuntimeTuple tuple)
+                foreach (object? entry in tuple)
+                    MarkHostArgumentValues(entry, ctx);
+            else if (value is object?[] entries)
+                foreach (object? entry in entries)
+                    MarkHostArgumentValues(entry, ctx);
+            else if (value is Dictionary<string, object?> map)
+                foreach (object? entry in map.Values)
+                    MarkHostArgumentValues(entry, ctx);
         }
 
         /// <summary>

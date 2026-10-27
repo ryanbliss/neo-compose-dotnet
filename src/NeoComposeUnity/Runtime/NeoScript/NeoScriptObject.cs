@@ -126,6 +126,8 @@ namespace NeoCompose.Runtime.NeoScript
         internal bool constructing;
         internal readonly NeoScriptAllocationTracker tracker;
         internal readonly int trackerGeneration;
+        /// <summary>A host caller explicitly holds this object, rather than only its owning graph.</summary>
+        internal bool hasHostReference;
         /// <summary>The generated C# view handed out for this object, so C# sees one identity.</summary>
         internal NeoGeneratedClassValue? view;
         /// <summary>
