@@ -8916,6 +8916,8 @@ namespace NeoCompose.Runtime.NeoScript
             private NeoValueOwnership[]? ownerships;
             private JsonMember? entryMember;
             private bool values;
+            private LookupMember? slotLookup;
+            private TypeInfo? slotTarget;
 
             /// <summary>The entries in use; -1 when no snapshot is taken.</summary>
             internal int Count { get; private set; } = -1;
@@ -8939,6 +8941,9 @@ namespace NeoCompose.Runtime.NeoScript
                 values |= collectionRef is null && HoldsValues(collection);
                 JsonMember? collectionMember = collectionRef?.CollectionMember(ctx.client);
                 entryMember = CollectionEntryMember(collectionRef, collection, ctx);
+                slotLookup = collectionMember as LookupMember;
+                slotTarget = slotLookup is { Selection: NeoMemberSelectionKind.Multi }
+                    ? LookupSlotTarget(slotLookup, ctx, collectionRef?.valueId) : null;
                 NeoValueOwnership? collectionOwnership = collectionMember is LookupMember
                     ? null
                     : FindRowOwnershipByReference(collection, ctx);
@@ -8960,7 +8965,7 @@ namespace NeoCompose.Runtime.NeoScript
                         raws[count++] = entry.Raw;
                     }
                 }
-                for (int index = 0; index < count && !values; index++)
+                for (int index = 0; index < count && !values && slotTarget is null; index++)
                 {
                     if (raws[index] is not string id)
                         continue;
@@ -9020,6 +9025,10 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     return raws[index];
                 }
+                // A lookup of scalar slots snapshots references, never their
+                // values. Dereferencing still validates the live target's owner.
+                if (slotTarget is not null)
+                    return SlotReferenceOf(id, slotLookup!, slotTarget);
                 NeoValueOwnership resolvedOwnership = ownerships![index];
                 ref NeoValueNode? node = ref nodes![index];
                 if (ctx.client.ReadOwnRow(resolvedOwnership, id, ref node) is { } currentRow)
@@ -9043,6 +9052,8 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 }
                 entryMember = null;
+                slotLookup = null;
+                slotTarget = null;
                 Count = -1;
             }
         }
@@ -10256,6 +10267,24 @@ namespace NeoCompose.Runtime.NeoScript
             // slots are not a mutable row snapshot.
             if (cached is NeoScriptObject { attachedId: not null })
                 return true;
+            if (row is ArrayMemberValue && cached is RuntimeSet set
+                && ctx.rowReverseIndex.TryGetValue(set, out var setReference))
+            {
+                var contents = UnwrapCached(row, ctx, setReference.ownership, setReference.member, setReference.node);
+                var cursor = new CollectionCursor(contents, ctx);
+                try
+                {
+                    set.Clear();
+                    while (cursor.MoveNextUnresolved())
+                    {
+                        object? entry = cursor.ResolveEntry(ctx);
+                        set.Add(RuntimeSetKey(entry, set, ctx), entry);
+                    }
+                }
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally { cursor.Dispose(); }
+                return true;
+            }
             if (row is ObjectMemberValue { value: not null } objectRow
                 && cached is IDictionary<string, object?> record)
             {

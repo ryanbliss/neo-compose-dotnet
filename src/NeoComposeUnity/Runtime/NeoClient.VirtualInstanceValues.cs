@@ -2345,6 +2345,22 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            if (node.member is ListMember orderedList && !IsUnorderedList(orderedList)
+                && (materialized is null || materialized.id == node.virtualId))
+            {
+                // Sparse lists retain their virtual entry identities after removals
+                // and insertions. Replaying by index would apply another entry's defaults.
+                string[]? stored = (materialized as ArrayMemberValue)?.value;
+                var membership = stored is null ? null : new HashSet<string>(stored, StringComparer.Ordinal);
+                foreach (var child in node.listChildren)
+                {
+                    if (membership is null || membership.Contains(child.virtualId))
+                        OverlaySparseInstance(expansion, child, membership is null ? null : child.virtualId, ownership, instanceRoot);
+                }
+                return;
+            }
+            // Fully materialized constructor lists have fresh row IDs. Their
+            // authored child overrides still correspond by constructor position.
             if (node.member is TupleMember || node.member is ListMember list && !IsUnorderedList(list))
             {
                 string[]? stored = (materialized as ArrayMemberValue)?.value;

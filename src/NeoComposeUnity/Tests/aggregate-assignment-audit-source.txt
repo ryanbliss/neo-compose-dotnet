@@ -1,0 +1,39 @@
+enum Key { A, B, C }
+class Item {public int V=0;}
+class Plain(int n){public int N=n;}
+class Shelf {public List<Plain> Items=[new Plain(1),new Plain(2),new Plain(3)];}
+class Holder {public Dictionary<Key,int> EnumNumbers={};public (Item,Item) Double=(new Item(){V=1},new Item(){V=2});public List<(Item,int)> Pairs=[];public Dictionary<string,(Item,int)> PairMap={};public Dictionary<string,int>? Maybe=null;public Set<int> Tags=[0].ToSet();public Set<int>? MaybeTags=null;public (Item,int) Pair=(new Item(),0);public ((Item,int),int) Nested=((new Item(),0),0);public List<Item> Items=[];public Dictionary<string,Item> Map={};public Dictionary<string,int> Numbers={};public List<int> Ints=[];}
+class Statics {public static Set<int> Tags=[0].ToSet();public static Dictionary<string,int> Numbers={};public static List<int> Ints=[];public static Dictionary<string,Item> Map={};public static List<Item> Items=[];}
+class Probe {@storage(allowed: .Save) public static Shelf Saved=new();@storage(allowed: .Session) public static Shelf Stored=new();
+public static void RemoveSavedFirst(){Saved.Items.RemoveAt(0);}public static bool ReadSavedSurvivors(){return Saved.Items.Count==2&&Saved.Items[0].N==2&&Saved.Items[1].N==3;}public static Holder CreateHolder(){return new Holder();}public static void RejectDuplicate(Holder h){h.Double=(h.Double.Item1,h.Double.Item1);}public static void RejectOtherSlot(Holder h){h.Double=(h.Double.Item2,new Item());}public static void RejectOtherOwner(Holder h){Holder other=new();other.Pair=(h.Pair.Item1,1);}public static bool HolderUnchanged(Holder h){return h.Double.Item1.V==1&&h.Double.Item2.V==2&&h.Pair.Item2==0;}
+public static bool SameSlot(){Holder h=new Holder();Item a=h.Pair.Item1;h.Pair=(a,1);return h.Pair.Item1==a&&h.Pair.Item2==1;}
+public static bool NestedSameSlot(){Holder h=new Holder();Item a=h.Nested.Item1.Item1;h.Nested=((a,1),2);return h.Nested.Item1.Item1==a&&h.Nested.Item2==2;}
+public static bool SparseRemove(){Shelf s=Probe.Stored;s.Items.RemoveAt(0);return s.Items[0].N==2&&s.Items[1].N==3;}
+public static bool SparseRemoveMiddle(){Shelf s=Probe.Stored;s.Items.RemoveAt(1);return s.Items[0].N==1&&s.Items[1].N==3;}
+public static bool StaticStoredMap(){Holder h=new Holder();h.Numbers={"a":7};Statics.Numbers=h.Numbers;h.Numbers["a"]=8;return Statics.Numbers["a"]==7&&h.Numbers["a"]==8;}
+public static bool StaticStoredList(){Holder h=new Holder();h.Ints=[7];Statics.Ints=h.Ints;h.Ints[0]=8;return Statics.Ints[0]==7&&h.Ints[0]==8;}
+public static bool DictAlias(){Dictionary<string,int> d={};Holder h=new Holder();h.Numbers=d;d["a"]=1;return h.Numbers.Count==1;}
+public static bool SameSlotList(){Holder h=new();h.Pairs=[(new Item(){V=7},0)];Item a=h.Pairs[0].Item1;h.Pairs[0]=(a,1);return h.Pairs[0].Item1==a&&a.V==7&&h.Pairs[0].Item2==1;}
+public static bool SameSlotMap(){Holder h=new();h.PairMap={"a":(new Item(){V=7},0)};Item a=h.PairMap["a"].Item1;h.PairMap["a"]=(a,1);return h.PairMap["a"].Item1==a&&a.V==7&&h.PairMap["a"].Item2==1;}
+public static bool SparseOverride(){Shelf s=Probe.Stored;s.Items[1].N=20;s.Items.RemoveAt(0);return s.Items[0].N==20&&s.Items[1].N==3;}
+public static bool SparseClear(){Shelf s=Probe.Stored;s.Items.Clear();return s.Items.Count==0;}
+public static bool SparseInsert(){Shelf s=Probe.Stored;s.Items.Insert(0,new Plain(9));return s.Items[0].N==9&&s.Items[1].N==1&&s.Items[2].N==2&&s.Items[3].N==3;}
+public static bool DictReverse(){Dictionary<string,int> d={};Holder h=new();h.Numbers=d;h.Numbers["a"]=2;return d["a"]==2;}
+public static bool DictReplacement(){Dictionary<string,int> d={"a":1};Holder h=new();h.Numbers=d;h.Numbers={"b":2};d["c"]=3;return d.Count==2&&d["a"]==1&&h.Numbers.Count==1&&h.Numbers["b"]==2;}
+public static bool DictNull(){Dictionary<string,int> d={"a":1};Holder h=new();h.Maybe=d;h.Maybe=null;d["b"]=2;return h.Maybe==null&&d.Count==2&&d["a"]==1;}
+public static bool DictClass(){Dictionary<string,Item> d={"a":new Item(){V=7}};Holder h=new();h.Map=d;d["a"].V=8;if(h.Map["a"].V!=8)return false;h.Map={};d["a"].V=9;return h.Map.Count==0&&d["a"].V==9;}
+public static bool SetAlias(){Set<int> s=[1].ToSet();Holder h=new();h.Tags=s;s.Add(2);return h.Tags.Count==2&&h.Tags.Contains(2);}
+public static bool SetReverse(){Set<int> s=[1].ToSet();Holder h=new();h.Tags=s;h.Tags.Add(2);return s.Count==2&&s.Contains(2);}
+public static bool SetReplacement(){Set<int> s=[1].ToSet();Holder h=new();h.Tags=s;h.Tags=[9].ToSet();s.Add(2);return s.Count==2&&s.Contains(1)&&h.Tags.Count==1&&h.Tags.Contains(9);}
+public static bool SetAliasOfAlias(){Set<int> s=[1].ToSet();Holder h=new();h.Tags=s;Set<int> t=s;h.Tags=[2].ToSet();return s.Contains(1)&&t.Contains(1)&&!t.Contains(2);}
+public static bool SetNull(){Set<int> s=[1].ToSet();Holder h=new();h.MaybeTags=s;h.MaybeTags=null;s.Add(2);return h.MaybeTags==null&&s.Count==2&&s.Contains(1);}
+public static bool StaticDictAlias(){Dictionary<string,int> d={};Statics.Numbers=d;d["a"]=2;return Statics.Numbers["a"]==2;}
+public static bool StaticSetAlias(){Set<int> s=[1].ToSet();Statics.Tags=s;s.Add(2);return Statics.Tags.Contains(2);}
+public static bool SetFieldHandle(){Set<int> s=[1].ToSet();Holder h=new();h.Tags=s;Set<int> t=h.Tags;h.Tags=[2].ToSet();s.Add(3);return s.Contains(1)&&t.Contains(1)&&t.Contains(3)&&!t.Contains(2);}
+public static bool DictFieldHandle(){Dictionary<string,int> d={"a":1};Holder h=new();h.Numbers=d;Dictionary<string,int> t=h.Numbers;h.Numbers={"b":2};d["c"]=3;return d["a"]==1&&t["a"]==1&&t["c"]==3&&t.Count==2;}
+public static bool NestedTupleSnapshot(){Holder h=new();((Item,int),int) old=h.Nested;Item a=h.Nested.Item1.Item1;h.Nested=((a,7),8);return old.Item1.Item2==0&&old.Item2==0&&h.Nested.Item1.Item2==7&&h.Nested.Item2==8;}
+public static bool FreshRemove(){Shelf s=new();s.Items.RemoveAt(0);return s.Items[0].N==2&&s.Items[1].N==3;}
+public static bool CopiedRemove(){Shelf s=Probe.Stored.Clone();s.Items.RemoveAt(0);return s.Items[0].N==2&&s.Items[1].N==3;}
+public static bool FreshInsert(){Shelf s=new();s.Items.Insert(0,new Plain(9));s.Items.RemoveAt(2);return s.Items[0].N==9&&s.Items[1].N==1&&s.Items[2].N==3;}
+public static bool EnumDictAlias(){Dictionary<Key,int> d={.A:1};Holder h=new();h.EnumNumbers=d;Dictionary<Key,int> t=h.EnumNumbers;h.EnumNumbers={.B:2};d[.C]=3;t[.A]=4;return d[.A]==4&&t[.C]==3&&h.EnumNumbers.Count==1&&h.EnumNumbers[.B]==2;}
+}

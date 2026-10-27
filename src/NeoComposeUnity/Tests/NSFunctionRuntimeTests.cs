@@ -5653,9 +5653,15 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_ForEachLookupUsesAndRetainsSessionShadowAfterRemoval()
+        public void Invoke_ForEachLookupReadsLiveTargetAfterSessionShadowRemoval()
         {
-            LookupTypeInfo lookupType = LookupType(IntType());
+            var entryReference = new ReferenceTypeInfo
+            {
+                type = MemberKind.Reference,
+                required = true,
+                targetTypeInfo = IntType(),
+            };
+            LookupTypeInfo lookupType = LookupType(entryReference);
             FunctionMember removeShadow = NativeFunction(
                 "fn-remove-lookup-shadow",
                 "RemoveLookupShadow",
@@ -5668,7 +5674,7 @@ namespace NeoCompose.Tests
                     binding = new LoopBinding
                     {
                         id = "item",
-                        typeInfo = IntType(),
+                        typeInfo = entryReference,
                         isReadonly = true,
                         writability = WritabilityKind.ReadOnly,
                     },
@@ -5680,7 +5686,7 @@ namespace NeoCompose.Tests
                             "seen",
                             Add(
                                 Multiply(Variable("seen"), Number(10)),
-                                Variable("item")),
+                                new DerefPointer { type = PointerKind.Deref, pointer = Variable("item") }),
                             IntType()),
                         new FunctionCallInstruction
                         {
@@ -5720,7 +5726,9 @@ namespace NeoCompose.Tests
             object? result = new NeoMemberNSFunction(client, function, null)
                 .Invoke("receiver-value", Array.Empty<object?>());
 
-            Assert.AreEqual(99L, Convert.ToInt64(result));
+            // P112 lookups snapshot references, whose reads follow the live row.
+            // Removing the Session shadow exposes the still-owned authored value.
+            Assert.AreEqual(91L, Convert.ToInt64(result));
             Assert.AreEqual(2, removalCalls);
             Assert.IsFalse(client.HasWritableValue(
                 NeoValueOwnership.Session,
@@ -5744,21 +5752,30 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2L, Convert.ToInt64(result));
         }
 
-        [Test]
-        public void Invoke_LookupReferenceDanglesOnceTheSessionListDropsItsEntry()
+        [TestCase(NeoValueOwnership.Session, true)]
+        [TestCase(NeoValueOwnership.Save, true)]
+        [TestCase(NeoValueOwnership.Session, false)]
+        [TestCase(NeoValueOwnership.Save, false)]
+        public void Invoke_LookupReferenceRequiresLiveSourceMembership(NeoValueOwnership ownership, bool remove)
         {
             NSFunctionMember function = LookupWhereOverlayFunction();
             NeoClient client = BuildLookupOverlayClient(function);
             client.SetWritableValue(
-                NeoValueOwnership.Session,
+                ownership,
                 new ArrayMemberValue
                 {
                     id = LookupSourceListValueId,
-                    value = Array.Empty<string>(),
+                    value = remove ? Array.Empty<string>() : new[] { LookupTargetValueId },
                     createdAt = "x",
                     updatedAt = "x",
                 });
 
+            if (!remove)
+            {
+                Assert.AreEqual(2L, Convert.ToInt64(new NeoMemberNSFunction(client, function, null)
+                    .Invoke("receiver-value", Array.Empty<object?>())));
+                return;
+            }
             var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 new NeoMemberNSFunction(client, function, null)
                     .Invoke("receiver-value", Array.Empty<object?>()));
