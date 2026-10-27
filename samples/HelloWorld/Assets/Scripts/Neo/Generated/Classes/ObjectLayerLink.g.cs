@@ -93,14 +93,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ObjectLayerLink>(out writable);
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObjectLayerLink.Objects
+        public NeoPlacementResult TrySpawn(Vector2Int cell, IDefaultObjectLayerCompatibleObject obj)
         {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Objects");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Objects", memberNode, out var cached)) return cached;
-                return CacheStoredView("Objects", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
+            return NeoPlacementResult.FromOutcome(client, TryPlaceLayerEntry(cell, obj, tile: false));
         }
 
         public new sealed class Fields
@@ -117,7 +112,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
+            public static readonly NeoField<int> Count = new("Count");
+
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -129,6 +126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.Objects] = () => null,
             };
         }
@@ -152,6 +150,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Count] = () => Count,
                 [Fields.Objects] = () => Objects,
             };
         }

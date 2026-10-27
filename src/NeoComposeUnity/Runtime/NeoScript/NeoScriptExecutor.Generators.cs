@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime
                     }
                     else
                     {
-                        if (conversion.operation is not ("getEnumerator" or "collectEnumerator" or "collectEnumerable"))
+                        if (conversion.operation is not ("getEnumerator" or "collectEnumerator" or "collectEnumerable" or "queryEnumerable"))
                             throw new NeoScriptPreExecutionValidationError("Unknown sequence conversion operation.");
                         if (conversion.elementType is null)
                             throw new NeoScriptPreExecutionValidationError("Sequence conversion requires an element type.");

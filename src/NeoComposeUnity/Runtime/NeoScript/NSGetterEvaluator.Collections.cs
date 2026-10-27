@@ -264,18 +264,26 @@ namespace NeoCompose.Runtime.NeoScript
             var set = new RuntimeSet(source, reference, enumEntries, decimalEntries,
                 reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
             var cursor = new CollectionCursor(source, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                object? entry = cursor.ResolveEntry(ctx);
-                object? key = RuntimeSetKey(entry, set, ctx);
-                set.Add(key, enumEntries ? key : entry);
+                while (cursor.MoveNextUnresolved())
+                {
+                    object? entry = cursor.ResolveEntry(ctx);
+                    object? key = RuntimeSetKey(entry, set, ctx);
+                    set.Add(key, enumEntries ? key : entry);
+                }
+                KeepDerived(set, CollectionEntryMember(source, ctx), false);
+                if (orderedResults.TryGetValue(source, out var ordering))
+                    orderedResults.Add(set, ordering);
+                if (cache)
+                    sets.Add(source, set);
+                return set;
             }
-            KeepDerived(set, CollectionEntryMember(source, ctx), false);
-            if (orderedResults.TryGetValue(source, out var ordering))
-                orderedResults.Add(set, ordering);
-            if (cache)
-                sets.Add(source, set);
-            return set;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         internal static object? DeclaredRuntimeSet(object? value, TypeInfo type, Context ctx)
@@ -367,7 +375,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            object? collection = EvalPointer(info.collectionPointer, scope, ctx);
+            object? collection = ListQueryReceiver(EvalPointer(info.collectionPointer, scope, ctx), ctx);
             bool isList = CollectionIsList(collection);
             if (info.op is "Aggregate" or "Zip")
                 return EvalPairQuery(info, collection, scope, ctx);
@@ -386,7 +394,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (info.otherPointer is null)
                     throw new NSGetterRuntimeError("Concat requires another collection.");
-                other = EvalPointer(info.otherPointer, scope, ctx);
+                other = ListQueryReceiver(EvalPointer(info.otherPointer, scope, ctx), ctx);
                 CollectionIsList(other);
             }
             if (info.op == "Take" && count <= 0)
@@ -424,124 +432,149 @@ namespace NeoCompose.Runtime.NeoScript
                 object? selected = null;
                 HashSet<object?>? seenSetKeys = null;
                 var cursor = new CollectionCursor(collection, ctx);
-                while (cursor.MoveNextUnresolved())
+                try
                 {
-                    object? entry = cursor.ResolveEntry(ctx);
+                    while (cursor.MoveNextUnresolved())
+                    {
+                        object? entry = cursor.ResolveEntry(ctx);
+                        switch (info.op)
+                        {
+                            case "Any":
+                            case "All":
+                            case "Last":
+                            case "LastOrDefault":
+                            case "Single":
+                            case "SingleOrDefault":
+                                bool matched = !hasCallback || callback.Test(in cursor, entry);
+                                if (info.op == "All")
+                                {
+                                    if (!matched)
+                                    {
+                                        all = false;
+                                        goto Finished;
+                                    }
+                                    break;
+                                }
+                                if (!matched)
+                                    break;
+                                matches++;
+                                selected = QueryEntry(entry, info.enumEntries);
+                                if (info.op == "Any")
+                                    goto Finished;
+                                if (matches == 2 && info.op is "Single" or "SingleOrDefault")
+                                    throw new NSGetterRuntimeError($"{info.op}() found more than one matching entry.");
+                                break;
+                            case "SelectMany":
+                                {
+                                    object? inner = callback.Project(in cursor, entry);
+                                    var innerCursor = new CollectionCursor(QueryEnumerable(inner, ctx), ctx);
+                                    try
+                                    {
+                                        while (innerCursor.MoveNextUnresolved())
+                                            AppendResult(ref values, ref produced, QueryEntry(innerCursor.ResolveEntry(ctx), info.enumEntries));
+                                        break;
+                                    }
+                                    catch (Exception error) when (innerCursor.CaptureFailure(error)) { throw; }
+                                    finally
+                                    {
+                                        innerCursor.Dispose();
+                                    }
+                                }
+                            case "Skip":
+                                if (cursor.Index >= count)
+                                    AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                                break;
+                            case "Take":
+                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                                if (produced >= count)
+                                    goto Finished;
+                                break;
+                            case "SkipWhile":
+                            case "TakeWhile":
+                                if (skipping && !callback.Test(in cursor, entry))
+                                    skipping = false;
+                                if (info.op == "TakeWhile" && !skipping)
+                                    goto Finished;
+                                if (info.op == "SkipWhile" && skipping)
+                                    break;
+                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                                break;
+                            case "Keys":
+                                AppendResult(ref values, ref produced, cursor.Key);
+                                break;
+                            case "Values":
+                            case "Reverse":
+                            case "Concat":
+                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                                break;
+                            case "Distinct":
+                            case "ToSet":
+                                seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
+                                object? setKey = info.reference && entry is not null
+                                    ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
+                                    : entry;
+                                if (info.decimalEntries && entry is not null)
+                                    setKey = NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(entry, "Distinct entry"));
+                                if (seenSetKeys.Add(setKey))
+                                    AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                                break;
+                            default:
+                                throw new NSGetterRuntimeError($"Unsupported collection query '{info.op}'.");
+                        }
+                    }
+                Finished:
                     switch (info.op)
                     {
                         case "Any":
+                            result = matches != 0;
+                            break;
                         case "All":
+                            result = all;
+                            break;
                         case "Last":
-                        case "LastOrDefault":
                         case "Single":
+                            if (matches == 0)
+                                throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
+                            result = selected;
+                            break;
+                        case "LastOrDefault":
                         case "SingleOrDefault":
-                            bool matched = !hasCallback || callback.Test(in cursor, entry);
-                            if (info.op == "All")
-                            {
-                                if (!matched)
-                                {
-                                    all = false;
-                                    goto Finished;
-                                }
-                                break;
-                            }
-                            if (!matched)
-                                break;
-                            matches++;
-                            selected = QueryEntry(entry, info.enumEntries);
-                            if (info.op == "Any")
-                                goto Finished;
-                            if (matches == 2 && info.op is "Single" or "SingleOrDefault")
-                                throw new NSGetterRuntimeError($"{info.op}() found more than one matching entry.");
-                            break;
-                        case "SelectMany":
-                            object? inner = callback.Project(in cursor, entry);
-                            CollectionIsList(inner);
-                            var innerCursor = new CollectionCursor(inner, ctx);
-                            while (innerCursor.MoveNextUnresolved())
-                                AppendResult(ref values, ref produced, QueryEntry(innerCursor.ResolveEntry(ctx), info.enumEntries));
-                            break;
-                        case "Skip":
-                            if (cursor.Index >= count)
-                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
-                            break;
-                        case "Take":
-                            AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
-                            if (produced >= count)
-                                goto Finished;
-                            break;
-                        case "SkipWhile":
-                        case "TakeWhile":
-                            if (skipping && !callback.Test(in cursor, entry))
-                                skipping = false;
-                            if (info.op == "TakeWhile" && !skipping)
-                                goto Finished;
-                            if (info.op == "SkipWhile" && skipping)
-                                break;
-                            AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
-                            break;
-                        case "Keys":
-                            AppendResult(ref values, ref produced, cursor.Key);
-                            break;
-                        case "Values":
-                        case "Reverse":
-                        case "Concat":
-                            AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
-                            break;
-                        case "Distinct":
-                        case "ToSet":
-                            seenSetKeys ??= new HashSet<object?>(info.reference ? EqualityComparer<object?>.Default : new JsValueComparer(ctx));
-                            object? setKey = info.reference && entry is not null
-                                ? cursor.ValueId ?? ReferenceKeyOf(entry, ctx) ?? entry
-                                : entry;
-                            if (info.decimalEntries && entry is not null)
-                                setKey = NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(entry, "Distinct entry"));
-                            if (seenSetKeys.Add(setKey))
-                                AppendResult(ref values, ref produced, QueryEntry(entry, info.enumEntries));
+                            result = selected;
                             break;
                         default:
-                            throw new NSGetterRuntimeError($"Unsupported collection query '{info.op}'.");
+                            if (info.op == "Concat")
+                            {
+                                var otherCursor = new CollectionCursor(other, ctx);
+                                try
+                                {
+                                    while (otherCursor.MoveNextUnresolved())
+                                        AppendResult(ref values, ref produced, QueryEntry(otherCursor.ResolveEntry(ctx), info.enumEntries));
+                                }
+                                catch (Exception error) when (otherCursor.CaptureFailure(error)) { throw; }
+                                finally
+                                {
+                                    otherCursor.Dispose();
+                                }
+                            }
+                            if (info.op == "Reverse")
+                                Array.Reverse(values, 0, produced);
+                            object?[] trimmed = TrimResult(values, produced);
+                            // Each entry was resolved, so a string there is a value.
+                            result = KeepDerived(
+                                trimmed,
+                                info.op is "SelectMany" or "Concat" ? null : CollectionEntryMember(collection, ctx),
+                                HasString(trimmed));
+                            break;
                     }
+                    if (info.op == "ToSet" && result is object?[] setEntries)
+                        return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries);
+                    return result;
                 }
-            Finished:
-                switch (info.op)
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
                 {
-                    case "Any":
-                        result = matches != 0;
-                        break;
-                    case "All":
-                        result = all;
-                        break;
-                    case "Last":
-                    case "Single":
-                        if (matches == 0)
-                            throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
-                        result = selected;
-                        break;
-                    case "LastOrDefault":
-                    case "SingleOrDefault":
-                        result = selected;
-                        break;
-                    default:
-                        if (info.op == "Concat")
-                        {
-                            var otherCursor = new CollectionCursor(other, ctx);
-                            while (otherCursor.MoveNextUnresolved())
-                                AppendResult(ref values, ref produced, QueryEntry(otherCursor.ResolveEntry(ctx), info.enumEntries));
-                        }
-                        if (info.op == "Reverse")
-                            Array.Reverse(values, 0, produced);
-                        object?[] trimmed = TrimResult(values, produced);
-                        // Each entry was resolved, so a string there is a value.
-                        result = KeepDerived(
-                            trimmed,
-                            info.op is "SelectMany" or "Concat" ? null : CollectionEntryMember(collection, ctx),
-                            HasString(trimmed));
-                        break;
+                    cursor.Dispose();
                 }
-                if (info.op == "ToSet" && result is object?[] setEntries)
-                    return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries);
-                return result;
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
@@ -625,40 +658,48 @@ namespace NeoCompose.Runtime.NeoScript
         {
             bool secondary = info.op is "ThenBy" or "ThenByDescending";
             OrderedResult? previous = null;
-            if (secondary && (collection is null || !orderedResults.TryGetValue(collection, out previous)))
+            if (secondary && (collection is null || !orderedResults.TryGetValue(collection is EnumerableQuery query ? query.Source! : collection, out previous)))
                 throw new NSGetterRuntimeError($"{info.op} requires an ordered result.");
             var levels = previous is null ? new List<(string? type, bool descending)>() : new(previous.Levels);
             levels.Add((info.keyType, info.op.EndsWith("Descending", StringComparison.Ordinal)));
             var entries = new List<(object? value, object?[] keys)>();
             var cursor = new CollectionCursor(collection, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                object? entry = cursor.ResolveEntry(ctx);
-                var keys = new object?[levels.Count];
-                if (previous is not null)
-                    Array.Copy(previous.Keys[cursor.Index], keys, levels.Count - 1);
-                keys[levels.Count - 1] = callback.Project(in cursor, entry);
-                entries.Add((QueryEntry(entry, info.enumEntries), keys));
-            }
-            var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
-            {
-                for (int level = 0; level < levels.Count; level++)
+                while (cursor.MoveNextUnresolved())
                 {
-                    int order = CompareCollectionKeys(a.keys[level], b.keys[level], levels[level].type);
-                    if (order != 0)
-                        return levels[level].descending ? -order : order;
+                    object? entry = cursor.ResolveEntry(ctx);
+                    var keys = new object?[levels.Count];
+                    if (previous is not null)
+                        Array.Copy(previous.Keys[cursor.Index], keys, levels.Count - 1);
+                    keys[levels.Count - 1] = callback.Project(in cursor, entry);
+                    entries.Add((QueryEntry(entry, info.enumEntries), keys));
                 }
-                return 0;
-            });
-            var result = new object?[sorted.Length];
-            var resultKeys = new object?[sorted.Length][];
-            for (int index = 0; index < sorted.Length; index++)
-            {
-                result[index] = sorted[index].value;
-                resultKeys[index] = sorted[index].keys;
+                var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
+                {
+                    for (int level = 0; level < levels.Count; level++)
+                    {
+                        int order = CompareCollectionKeys(a.keys[level], b.keys[level], levels[level].type);
+                        if (order != 0)
+                            return levels[level].descending ? -order : order;
+                    }
+                    return 0;
+                });
+                var result = new object?[sorted.Length];
+                var resultKeys = new object?[sorted.Length][];
+                for (int index = 0; index < sorted.Length; index++)
+                {
+                    result[index] = sorted[index].value;
+                    resultKeys[index] = sorted[index].keys;
+                }
+                orderedResults.Add(result, new OrderedResult { Keys = resultKeys, Levels = levels });
+                return result;
             }
-            orderedResults.Add(result, new OrderedResult { Keys = resultKeys, Levels = levels });
-            return result;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         private static T[] StableCollectionSort<T>(T[] entries, Comparison<T> compare)

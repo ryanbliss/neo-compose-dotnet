@@ -36,6 +36,44 @@ namespace NeoCompose.Tests
             NSGetterEvaluator.Evaluate(bodies[name]!.ToObject<FunctionWithReturnType>()!, context, arguments);
 
         [Test]
+        public void EnumerableQueriesPreserveListAndDictionaryCalls()
+        {
+            object? left = Run("Powers", 3d);
+            object? right = Run("Powers", 2d);
+            Assert.That(Run("QueryZip", left, right), Is.EqualTo(new[] { 2d, 4d }));
+            Assert.That(Run("QueryConcat", left, right), Is.EqualTo(new[] { 1d, 2d, 4d, 1d, 2d }));
+            Assert.That(Run("QueryFlatten", new object[] { new[] { left, right } }), Is.EqualTo(new[] { 1d, 2d, 4d, 1d, 2d }));
+            Assert.That(Run("QueryCount", left), Is.EqualTo(3d));
+            Assert.That(Run("QueryOrdered", left), Is.EqualTo(new[] { 4d, 2d, 1d }));
+            Assert.That(Run("QueryList", new object[] { new object[] { 1d, 2d, 4d } }), Is.EqualTo(6d));
+            var dictionary = new Dictionary<string, object?> { ["a"] = 3d, ["b"] = 7d };
+            Assert.That(Run("QueryDictionary", dictionary), Is.EqualTo(3d));
+            Assert.That(Run("QueryDictionarySequence", dictionary), Is.EqualTo(10d));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void QueryMutationSnapshotsOldAndNewIr(bool oldQueryIr)
+        {
+            var body = (JObject)bodies["QueryMutation"]!.DeepClone();
+            if (oldQueryIr)
+                foreach (var pointer in body.Descendants().OfType<JObject>()
+                    .Where(value => (string?)value["operation"] == "queryEnumerable").ToArray())
+                    pointer.Replace(pointer["pointer"]!.DeepClone());
+            Assert.That(NSGetterEvaluator.Evaluate(body.ToObject<FunctionWithReturnType>()!, context),
+                Is.EqualTo(new[] { 1d, 2d, 3d }));
+        }
+
+        [Test]
+        public void QueryShortCircuitDisposesEnteredGenerators()
+        {
+            Assert.That(Run("QueryAny", Run("QueryShortCircuit")), Is.True);
+            Assert.That(Run("QueryFirst", Run("QueryShortCircuit")), Is.EqualTo(1d));
+            Assert.That(() => Run("QueryAny", Run("QueryCleanup")), Throws.Exception.With.Message.Contains("query cleanup"));
+            Assert.That(() => Run("QueryZip", Run("QueryCleanup"), Array.Empty<object>()), Throws.Exception.With.Message.Contains("query cleanup"));
+        }
+
+        [Test]
         public void CollectionTypesSurviveInterfaceGenericAndTypeTestBoundaries()
         {
             Assert.That(Run("EmptyAliases"), Is.True);

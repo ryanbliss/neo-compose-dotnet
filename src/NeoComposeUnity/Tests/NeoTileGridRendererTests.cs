@@ -142,7 +142,7 @@ namespace NeoCompose.Tests
 
             // A new placement is a structural write; the ids are re-resolved
             // and still match the primitive.
-            Assert.IsTrue(primitive.TrySetTile(BackgroundLayerClassId, new Vector2Int(40, 40), TileClassId, new[] { TileClassId }).Ok);
+            Assert.IsTrue(primitive.TrySet(BackgroundLayerClassId, new Vector2Int(40, 40), TileClassId, new[] { TileClassId }).Ok);
             CollectionAssert.AreEqual(primitive.ResolveObjectLayerIds(), cache.ObjectLayerIds);
             CollectionAssert.AreEqual(primitive.ResolveTileLayerIds(), cache.TileLayerIds);
         }
@@ -161,12 +161,12 @@ namespace NeoCompose.Tests
                 var renderer = go.AddComponent<NeoTileGridRenderer>();
                 renderer.Render(new TestTileGridContent(primitive, new[] { new TestGeneratedTileLayerRuntime(primitive) }));
                 var cell = new Vector2Int(40, 40);
-                Assert.IsTrue(primitive.TrySetTile(BackgroundLayerClassId, cell, TileClassId, new[] { TileClassId }).Ok);
+                Assert.IsTrue(primitive.TrySet(BackgroundLayerClassId, cell, TileClassId, new[] { TileClassId }).Ok);
                 var tile = primitive.ResolveTile(BackgroundLayerClassId, cell, TileClassId);
                 Assert.IsNotNull(tile);
                 var map = go.GetComponentInChildren<Tilemap>();
                 Assert.IsTrue(map.HasTile(new Vector3Int(40, 40, 0)));
-                Assert.IsTrue(primitive.TryRemoveTile(tile!.InstanceId).Ok);
+                Assert.IsTrue(primitive.TryRemove(tile!.InstanceId).Ok);
                 Assert.IsNull(primitive.ResolveTile(BackgroundLayerClassId, cell, TileClassId));
                 Assert.IsFalse(map.HasTile(new Vector3Int(40, 40, 0)));
             }
@@ -2323,7 +2323,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(layer.LayerOverrideValueId);
             Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
 
-            NeoPlacementResult write = primitive.TrySetTile(
+            NeoPlacementOutcome write = primitive.TrySet(
                 BackgroundLayerClassId,
                 new Vector2Int(2, 3),
                 TileClassId,
@@ -2619,7 +2619,7 @@ namespace NeoCompose.Tests
             using var activeSubscription = activeView.OnChanged(_ => activeChanges++);
             disposedSubscription.Dispose();
 
-            NeoPlacementResult result = writerLayer.Place<TestTile>(
+            NeoPlacementOutcome result = writerLayer.Place<TestTile>(
                 new Vector2Int(30, 40));
 
             Assert.IsTrue(result.Ok, result.Message);
@@ -2914,7 +2914,7 @@ namespace NeoCompose.Tests
                 readOnlyFactories,
                 writableFactories)!;
 
-            NeoPlacementResult result = useClassDefault
+            NeoPlacementOutcome result = useClassDefault
                 ? layer.SpawnConstructed(new Vector2Int(8, 20))
                 : layer.SpawnClone(new Vector2Int(8, 20), asset);
 
@@ -8902,8 +8902,8 @@ namespace NeoCompose.Tests
 
         private sealed class TestTile : NeoGeneratedClassValue, INeoSmartTileSource
         {
-            public TestTile(NeoClient client, NeoMemberClass node)
-                : base(client, node, TileClassId)
+            public TestTile(NeoClient client, NeoMemberClass node, bool isReadOnly = true)
+                : base(client, node, TileClassId, isReadOnly)
             {
             }
 
@@ -9031,6 +9031,9 @@ namespace NeoCompose.Tests
                     () => ThrowIfReadOnly("TestTileLayerLink.Tiles"),
                     () => IsReadOnly);
 
+            public NeoPlacementOutcome TrySet(Vector2Int cell, NeoGeneratedClassValue tile) =>
+                TryPlaceLayerEntry(cell, tile, true);
+
             public void ClearTiles()
             {
                 Tiles.Clear();
@@ -9043,10 +9046,13 @@ namespace NeoCompose.Tests
               INeoObjectLayerLinkValue,
               INeoWorldObjectValue
         {
-            public TestObjectLayerLink(NeoClient client, NeoMemberClass node)
-                : base(client, node, ObjectLayerLinkClassId)
+            public TestObjectLayerLink(NeoClient client, NeoMemberClass node, bool isReadOnly = true)
+                : base(client, node, ObjectLayerLinkClassId, isReadOnly)
             {
             }
+
+            public NeoPlacementOutcome TrySpawn(Vector2Int cell, NeoGeneratedClassValue value) =>
+                TryPlaceLayerEntry(cell, value, false);
 
             public string Name => "";
             public NeoReadOnlyVector3 Position => new(Vector3.zero);
@@ -9072,8 +9078,8 @@ namespace NeoCompose.Tests
             public void SetDescription(string value) =>
                 writableNode.Get<NeoMemberStringWritable>("Description").Set(value);
 
-            public NeoPlacementResult Place<TAsset>(Vector2Int cell)
-                where TAsset : class => TrySetTileClass<TAsset>(cell);
+            public NeoPlacementOutcome Place<TAsset>(Vector2Int cell)
+                where TAsset : class => TrySetClass<TAsset>(cell);
         }
 
         private sealed class TestAuthoredObjectLayer : NeoGeneratedObjectLayerValue
@@ -9086,17 +9092,17 @@ namespace NeoCompose.Tests
             {
             }
 
-            public NeoPlacementResult SpawnConstructed(Vector2Int cell)
+            public NeoPlacementOutcome SpawnConstructed(Vector2Int cell)
             {
                 var constructed = NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client, ObjectClassId, Array.Empty<NeoGeneratedConstructorValue>());
                 return TrySpawnConstructedObject(cell, new TestComposedObject(client, constructed, false));
             }
 
-            public NeoPlacementResult Spawn(Vector2Int cell, NeoGeneratedClassValue value) =>
+            public NeoPlacementOutcome Spawn(Vector2Int cell, NeoGeneratedClassValue value) =>
                 TrySpawnConstructedObject(cell, value);
 
-            public NeoPlacementResult SpawnClone(Vector2Int cell, INeoValueReference asset)
+            public NeoPlacementOutcome SpawnClone(Vector2Int cell, INeoValueReference asset)
             {
                 string cloneId = client.CloneValueReference(asset.valueId!);
                 var clone = (NeoGeneratedClassValue)NeoGeneratedTypesSupport.ResolveClassValue(

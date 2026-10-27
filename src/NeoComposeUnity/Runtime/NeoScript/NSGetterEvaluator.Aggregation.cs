@@ -33,45 +33,53 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Sort requires an ordered list.");
             var entries = new List<(object? raw, object? value)>();
             var cursor = new CollectionCursor(collection, ctx);
-            while (cursor.MoveNextUnresolved())
-                entries.Add((cursor.Raw, cursor.ResolveEntry(ctx)));
-            PreparedCollectionCallback callback = default;
-            if (instruction.comparison is not null)
-                callback = new PreparedCollectionCallback(instruction.comparison, scope, ctx, false, CollectionCallbackReturnContract.Projection);
-            var active = activeSorts.GetOrCreateValue(ctx.allocationTracker);
-            string? id = FindRowReference(collection, ctx)?.valueId;
-            // Parameter normalization can copy an array without changing its list identity.
-            object identity = SequenceCollectionIdentity(collection);
-            active.Add(identity);
-            if (id is not null)
-                active.Add(id);
-            object?[]? result = null;
             try
             {
-                var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
+                while (cursor.MoveNextUnresolved())
+                    entries.Add((cursor.Raw, cursor.ResolveEntry(ctx)));
+                PreparedCollectionCallback callback = default;
+                if (instruction.comparison is not null)
+                    callback = new PreparedCollectionCallback(instruction.comparison, scope, ctx, false, CollectionCallbackReturnContract.Projection);
+                var active = activeSorts.GetOrCreateValue(ctx.allocationTracker);
+                string? id = FindRowReference(collection, ctx)?.valueId;
+                // Parameter normalization can copy an array without changing its list identity.
+                object identity = SequenceCollectionIdentity(collection);
+                active.Add(identity);
+                if (id is not null)
+                    active.Add(id);
+                object?[]? result = null;
+                try
                 {
-                    if (instruction.comparison is null)
-                        return CompareCollectionKeys(a.value, b.value, instruction.keyType);
-                    object? compared = callback.ProjectPair(a.value, b.value);
-                    if (!TryAsDouble(compared, out double number) || !NeoNumbers.IsWhole(number))
-                        throw new NSGetterRuntimeError("Sort comparison must return a finite int.");
-                    return number.CompareTo(0d);
-                });
-                result = new object?[sorted.Length];
-                for (int index = 0; index < result.Length; index++)
-                    result[index] = sorted[index].raw;
-                return result;
+                    var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
+                    {
+                        if (instruction.comparison is null)
+                            return CompareCollectionKeys(a.value, b.value, instruction.keyType);
+                        object? compared = callback.ProjectPair(a.value, b.value);
+                        if (!TryAsDouble(compared, out double number) || !NeoNumbers.IsWhole(number))
+                            throw new NSGetterRuntimeError("Sort comparison must return a finite int.");
+                        return number.CompareTo(0d);
+                    });
+                    result = new object?[sorted.Length];
+                    for (int index = 0; index < result.Length; index++)
+                        result[index] = sorted[index].raw;
+                    return result;
+                }
+                finally
+                {
+                    active.Remove(identity);
+                    if (id is not null)
+                        active.Remove(id);
+                    if (instruction.comparison is not null)
+                    {
+                        callback.CompleteOperator(result);
+                        callback.Dispose();
+                    }
+                }
             }
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
             finally
             {
-                active.Remove(identity);
-                if (id is not null)
-                    active.Remove(id);
-                if (instruction.comparison is not null)
-                {
-                    callback.CompleteOperator(result);
-                    callback.Dispose();
-                }
+                cursor.Dispose();
             }
         }
 
@@ -84,63 +92,71 @@ namespace NeoCompose.Runtime.NeoScript
             bool visited = false;
             bool by = info.op is "MinBy" or "MaxBy";
             var cursor = new CollectionCursor(collection, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                object? entry = cursor.ResolveEntry(ctx);
-                if (!visited)
-                    first = QueryEntry(entry, info.enumEntries);
-                visited = true;
-                object? value = info.function is null ? entry : callback.Project(in cursor, entry);
-                if (value is null)
-                    continue;
-                count++;
-                if (info.op is "Sum" or "Average")
+                while (cursor.MoveNextUnresolved())
                 {
-                    if (info.keyType == "decimal")
-                        decimalTotal = NeoDecimalMath.Add(decimalTotal, CoerceDecimalOperand(value, info.op));
-                    else
+                    object? entry = cursor.ResolveEntry(ctx);
+                    if (!visited)
+                        first = QueryEntry(entry, info.enumEntries);
+                    visited = true;
+                    object? value = info.function is null ? entry : callback.Project(in cursor, entry);
+                    if (value is null)
+                        continue;
+                    count++;
+                    if (info.op is "Sum" or "Average")
                     {
-                        if (!TryAsDouble(value, out double number))
-                            throw new NSGetterRuntimeError($"{info.op} value must be numeric.");
-                        total += number;
+                        if (info.keyType == "decimal")
+                            decimalTotal = NeoDecimalMath.Add(decimalTotal, CoerceDecimalOperand(value, info.op));
+                        else
+                        {
+                            if (!TryAsDouble(value, out double number))
+                                throw new NSGetterRuntimeError($"{info.op} value must be numeric.");
+                            total += number;
+                        }
+                        if (info.keyType == "int" && (double.IsNaN(total) || double.IsInfinity(total)))
+                            throw new NSGetterRuntimeError($"{info.op} integer total must be finite.");
+                        continue;
                     }
-                    if (info.keyType == "int" && (double.IsNaN(total) || double.IsInfinity(total)))
-                        throw new NSGetterRuntimeError($"{info.op} integer total must be finite.");
-                    continue;
-                }
-                int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType);
-                if (count == 1 || (info.op is "Min" or "MinBy" ? order < 0 : order > 0))
-                {
-                    bestKey = value;
-                    selected = by ? QueryEntry(entry, info.enumEntries) : value;
-                }
-                if (info.op == "Min" && TryAsDouble(value, out double candidate) && double.IsNaN(candidate))
-                    break;
-            }
-            if (info.op == "Sum")
-                return info.keyType == "decimal" ? decimalTotal : Box(info.keyType == "float" ? (double)(float)total : total);
-            if (count == 0)
-            {
-                if (by && visited)
-                    return first;
-                if (info.nullable)
-                    return null;
-                throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
-            }
-            if (info.op == "Average")
-            {
-                if (info.keyType != "decimal")
-                    return Box((double)(float)(total / count));
-                for (int digits = 28; digits >= 0; digits--)
-                {
-                    try
+                    int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType);
+                    if (count == 1 || (info.op is "Min" or "MinBy" ? order < 0 : order > 0))
                     {
-                        return NeoDecimalMath.Divide(decimalTotal, count.ToString(CultureInfo.InvariantCulture), digits);
+                        bestKey = value;
+                        selected = by ? QueryEntry(entry, info.enumEntries) : value;
                     }
-                    catch (DecimalOverflowException) when (digits > 0) { }
+                    if (info.op == "Min" && TryAsDouble(value, out double candidate) && double.IsNaN(candidate))
+                        break;
                 }
+                if (info.op == "Sum")
+                    return info.keyType == "decimal" ? decimalTotal : Box(info.keyType == "float" ? (double)(float)total : total);
+                if (count == 0)
+                {
+                    if (by && visited)
+                        return first;
+                    if (info.nullable)
+                        return null;
+                    throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
+                }
+                if (info.op == "Average")
+                {
+                    if (info.keyType != "decimal")
+                        return Box((double)(float)(total / count));
+                    for (int digits = 28; digits >= 0; digits--)
+                    {
+                        try
+                        {
+                            return NeoDecimalMath.Divide(decimalTotal, count.ToString(CultureInfo.InvariantCulture), digits);
+                        }
+                        catch (DecimalOverflowException) when (digits > 0) { }
+                    }
+                }
+                return selected;
             }
-            return selected;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         private static object DictionaryQuery(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback keySelector, NeoScriptScope scope, Context ctx)
@@ -153,32 +169,40 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(collection, ctx);
-                while (cursor.MoveNextUnresolved())
+                try
                 {
-                    object? entry = cursor.ResolveEntry(ctx);
-                    object? key = keySelector.Project(in cursor, entry);
-                    if (info.enumKey && key is object?[] { Length: 1 } options)
-                        key = options[0];
-                    if (key is not string text)
-                        throw new NSGetterRuntimeError($"{info.op} key must be a non-null string or enum.");
-                    object? value = info.valueFunction is null ? QueryEntry(entry, info.enumEntries) : valueSelector.Project(in cursor, entry);
-                    if (info.op == "ToDictionary")
+                    while (cursor.MoveNextUnresolved())
                     {
-                        if (result.ContainsKey(text))
-                            throw new NSGetterRuntimeError($"ToDictionary() found duplicate key '{text}'.");
-                        result.Add(text, value);
+                        object? entry = cursor.ResolveEntry(ctx);
+                        object? key = keySelector.Project(in cursor, entry);
+                        if (info.enumKey && key is object?[] { Length: 1 } options)
+                            key = options[0];
+                        if (key is not string text)
+                            throw new NSGetterRuntimeError($"{info.op} key must be a non-null string or enum.");
+                        object? value = info.valueFunction is null ? QueryEntry(entry, info.enumEntries) : valueSelector.Project(in cursor, entry);
+                        if (info.op == "ToDictionary")
+                        {
+                            if (result.ContainsKey(text))
+                                throw new NSGetterRuntimeError($"ToDictionary() found duplicate key '{text}'.");
+                            result.Add(text, value);
+                        }
+                        else
+                        {
+                            if (!groups.TryGetValue(text, out var group))
+                                groups.Add(text, group = new List<object?>());
+                            group.Add(value);
+                        }
                     }
-                    else
-                    {
-                        if (!groups.TryGetValue(text, out var group))
-                            groups.Add(text, group = new List<object?>());
-                        group.Add(value);
-                    }
+                    if (info.op == "GroupBy")
+                        foreach (var group in groups)
+                            result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
+                    return KeepDerived(result, CollectionEntryMember(collection, ctx), true);
                 }
-                if (info.op == "GroupBy")
-                    foreach (var group in groups)
-                        result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
-                return KeepDerived(result, CollectionEntryMember(collection, ctx), true);
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    cursor.Dispose();
+                }
             }
             finally
             {
@@ -201,31 +225,47 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(collection, ctx);
-                if (info.op == "Aggregate")
+                try
                 {
-                    result = initial;
-                    bool started = info.seedPointer is not null;
-                    while (cursor.MoveNextUnresolved())
+                    if (info.op == "Aggregate")
                     {
-                        object? entry = cursor.ResolveEntry(ctx);
-                        result = started ? callback.ProjectPair(result, entry) : QueryEntry(entry, info.enumEntries);
-                        started = true;
+                        result = initial;
+                        bool started = info.seedPointer is not null;
+                        while (cursor.MoveNextUnresolved())
+                        {
+                            object? entry = cursor.ResolveEntry(ctx);
+                            result = started ? callback.ProjectPair(result, entry) : QueryEntry(entry, info.enumEntries);
+                            started = true;
+                        }
+                        if (!started)
+                            throw new NSGetterRuntimeError("Aggregate() found no matching entry.");
                     }
-                    if (!started)
-                        throw new NSGetterRuntimeError("Aggregate() found no matching entry.");
+                    else
+                    {
+                        var right = new CollectionCursor(other, ctx);
+                        try
+                        {
+                            var values = new List<object?>();
+                            while (cursor.MoveNextUnresolved() && right.MoveNextUnresolved())
+                                values.Add(callback.ProjectPair(cursor.ResolveEntry(ctx), right.ResolveEntry(ctx)));
+                            // Empty lists need distinct identities, too.
+                            var entries = new object?[values.Count];
+                            values.CopyTo(entries);
+                            result = KeepDerived(entries, null, true);
+                        }
+                        catch (Exception error) when (right.CaptureFailure(error)) { throw; }
+                        finally
+                        {
+                            right.Dispose();
+                        }
+                    }
+                    return result;
                 }
-                else
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
                 {
-                    var right = new CollectionCursor(other, ctx);
-                    var values = new List<object?>();
-                    while (cursor.MoveNextUnresolved() && right.MoveNextUnresolved())
-                        values.Add(callback.ProjectPair(cursor.ResolveEntry(ctx), right.ResolveEntry(ctx)));
-                    // Empty lists need distinct identities, too.
-                    var entries = new object?[values.Count];
-                    values.CopyTo(entries);
-                    result = KeepDerived(entries, null, true);
+                    cursor.Dispose();
                 }
-                return result;
             }
             finally { callback.CompleteOperator(result); callback.Dispose(); }
         }

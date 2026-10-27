@@ -320,13 +320,13 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerable<T> Generate()
         {
             var result = InvokeFunction("Generate");
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return resultSequenceElement is null || resultSequenceElement is T ? (T)resultSequenceElement! : (T)Convert.ChangeType(resultSequenceElement, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), System.Globalization.CultureInfo.InvariantCulture)!; }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public global::System.Collections.Generic.IEnumerator<T> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return resultSequenceElement is null || resultSequenceElement is T ? (T)resultSequenceElement! : (T)Convert.ChangeType(resultSequenceElement, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), System.Globalization.CultureInfo.InvariantCulture)!; }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public bool IsSequence(T candidate)
@@ -624,7 +624,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, true, null, static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         IReadOnlyGenericSequenceValue<IReadOnlySequenceItem> IReadOnlyGenericSequenceValue<IReadOnlySequenceItem>.Clone()
@@ -989,7 +989,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, true, null, static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>)this).GetEnumerator();

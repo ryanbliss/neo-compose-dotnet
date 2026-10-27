@@ -6,7 +6,7 @@ namespace NeoCompose.Tests
     internal static class NeoScriptSequenceParityFixture
     {
         internal const string Json = @"{
-  ""source"": ""interface ICapability { int Count { get; } }\nclass Probe {\n public bool CapabilityGuard<T>(List<T> values) => values[0] is ICapability;\n public IEnumerable<int> Powers(int count) { int value = 1; foreach (var i in 0..count) { yield return value; value *= 2; } }\n public int Sum(IEnumerable<int> values) { int sum = 0; foreach (var value in values) sum += value; return sum; }\n public IEnumerator<int> Cleanup() { try { yield return 1; yield return 2; } finally { throw \""cleanup\""; } }\n public int Unstarted(IEnumerator<int> cursor) { cursor.Dispose(); cursor.Dispose(); return 7; }\n public int Started(IEnumerator<int> cursor) { cursor.MoveNext(); cursor.Dispose(); return 0; }\n public List<int> Collect(IEnumerable<int> values) => values;\n public List<int> Remaining(IEnumerator<int> values) => values;\n public IEnumerator<int> Cursor(IEnumerable<int> values) => values;\n public IEnumerable<int> Range(int start, int end) => start..end;\n public IEnumerable<int> Flow() { int i = 0; while (i < 5) { i++; if (i == 2) continue; switch (i) { case 3: yield return 30; break; default: yield return i; break; } if (i == 4) break; } yield break; }\n public int DirectRange(int start, int end) { int sum = 0; foreach (var value in start..end) sum += value; return sum; }\n \n public IEnumerable<int> CleanupOrder(Dictionary<string, int> log) { try { try { yield return 1; yield return 2; } finally { log[\""value\""] = log[\""value\""] * 10 + 2; } } finally { log[\""value\""] = log[\""value\""] * 10 + 3; } }\n public int First(IEnumerable<int> values) { foreach (var value in values) return value; return -1; }\n public int Break(IEnumerable<int> values) { foreach (var value in values) break; return 0; }\n public IEnumerable<int> Nested(IEnumerable<int> values) { foreach (var value in values) foreach (var offset in 0..2) yield return value * 10 + offset; }\n public IEnumerable<T> One<T>(T value) { yield return value; }\n public int Boundaries(IEnumerable<int> source) { List<int> local = source; local = source; List<List<int>> lists = [source]; lists.Add(source); Dictionary<string, List<int>> dict = {\""a\"": source}; dict[\""b\""] = source; (List<int> Values, int Tag) pair = (source, 1); return local.Count() + lists[0].Count() + lists[1].Count() + dict[\""a\""].Count() + dict[\""b\""].Count() + pair.Values.Count(); }\n public IEnumerable<int> Coalesce(IEnumerable<int>? left, IEnumerable<int> right) { var value = left ?? right; return value; }\n public List<int> CoalesceList(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n public IEnumerator<int> CoalesceCursor(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n \n public IEnumerable<int> InterfaceDefault() => 0..2;\n public List<IEnumerable<int>> ListDefault() => [0..2];\n public Dictionary<string, IEnumerable<int>> DictionaryDefault() => {\""a\"": 0..2};\n \n public IEnumerable<int> Graph(int count) { List<int> values = List.Repeat(1, count); foreach (var value in values) yield return value; }\n public IEnumerable<int> Growing(int count) { List<List<int>> graph = []; foreach (var i in 0..count) { graph.Add([i]); yield return i; } yield return graph.Last().First(); }\n  public bool Inspect(List<int> values) { IEnumerable<int> alias = values; return values is IEnumerable<int> && alias is IEnumerable<int>; }\n public bool InspectGeneric<T>(T values) => values is IEnumerable<int>;\n public int InspectNested(List<List<int>> values) => values.Where((v) => v is IEnumerable<int>).Count();\n public IEnumerable<T> Relay<T>(List<T> values) { foreach (var value in values) yield return value; }\n public bool EmptyAliases() { List<int> first = [1].Take(0); List<int> second = [1].Skip(1); List<int> third = 0..0; IEnumerable<int> a = first; IEnumerable<int> b = second; IEnumerable<int> c = third; return first == a && second == b && third == c; }\n\n public bool InspectInner<T>(List<T> values) => values[0] is IEnumerable<int>;\n public bool InspectTuple<T>(List<T> values) { (T Value, int Tag) pair = (values[0], 0); return pair.Value is IEnumerable<int>; }\n public bool InspectSwitch<T>(List<T> values) => values[0] switch { IEnumerable<int> sequence => true, _ => false };\n\n public bool WidenedMerges(bool chooseLeft, int key) {\n   IEnumerable<int>? absent = null;\n   IEnumerable<int> present = 4..6;\n   List<int> values = [1, 2];\n   var coalesced = absent ?? values;\n   var conditional = chooseLeft ? present : values;\n   var switched = key switch { 1 => present, _ => values };\n   IEnumerable<int> assigned = absent ?? [3];\n   return coalesced is IEnumerable<int> && conditional is IEnumerable<int> && switched is IEnumerable<int> && assigned is IEnumerable<int>;\n }\n public IEnumerable<int> WidenedReturn(IEnumerable<int>? absent, List<int> values) => absent ?? values;\n public bool WidenedAlias() {\n   List<int> values = [1]; IEnumerable<int> alias = values;\n   values.Add(2); values.Add(3);\n   if (!(alias is IEnumerable<int>)) throw \""List alias lost collection type\"";\n   List<int> collected = alias;\n   return collected.Count() == 3;\n }\n public bool WidenedTuple() {\n   List<int> values = [1];\n   var source = (A: 1, B: (Values: values, Tag: 2));\n   (int A, (IEnumerable<int> Values, int Tag) B) destination = source;\n   values.Add(2);\n   List<int> alias = destination.B.Values;\n   if (!(destination.B.Values is IEnumerable<int>)) throw \""Widened tuple lost collection type\""; if (alias.Count() != 2) throw \""Widened tuple lost list mutation\""; return true;\n }\n public bool LocalSequenceSlots() {\n   List<int> values = [1];\n   List<IEnumerable<int>> lists = [values]; lists[0] = values;\n   Dictionary<string, IEnumerable<int>> map = {}; map[\""a\""] = values;\n   return lists[0] is IEnumerable<int> && map[\""a\""] is IEnumerable<int>;\n }\n\n public bool TypedBindings() {\n   List<List<int>> nested = [[1], [2]];\n   int count = 0;\n   foreach (IEnumerable<int> item in nested) { if (!(item is IEnumerable<int>)) return false; count++; }\n   Dictionary<string, List<int>> map = {\""a\"": [3]};\n   foreach (IEnumerable<int> item in map.Values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   foreach ((string key, IEnumerable<int> item) in map) { if (!(item is IEnumerable<int>)) return false; count++; }\n   List<(int A, List<int> B)> tuples = [(1, [4])];\n   foreach ((int A, IEnumerable<int> B) pair in tuples) { if (!(pair.B is IEnumerable<int>)) return false; count++; }\n   return count == 5 && nested.Where((IEnumerable<int> item) => item is IEnumerable<int>).Count() == 2\n     && nested.Select((IEnumerable<int> item) => item is IEnumerable<int>).All((item) => item)\n     && tuples.Where(((int A, IEnumerable<int> B) pair) => pair.B is IEnumerable<int>).Count() == 1;\n }\n public IEnumerable<List<int>> ListGenerator() { yield return [1]; yield return [2]; }\n public IEnumerable<int> TypedYield(IEnumerable<List<int>> values) { foreach (IEnumerable<int> item in values) yield return item is IEnumerable<int> ? 1 : 0; }\n public bool TypedSequenceLoop(IEnumerable<List<int>> values) {\n   int count = 0;\n   foreach (IEnumerable<int> item in values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   return count == 2;\n }\n public int ConstraintSum<T extends IEnumerable<int>>(T values) { int sum = 0; foreach (var item in values) sum += item; return sum; }\n}\n"",
+  ""source"": ""interface ICapability { int Count { get; } }\nclass Probe {\n public bool CapabilityGuard<T>(List<T> values) => values[0] is ICapability;\n public IEnumerable<int> Powers(int count) { int value = 1; foreach (var i in 0..count) { yield return value; value *= 2; } }\n public int Sum(IEnumerable<int> values) { int sum = 0; foreach (var value in values) sum += value; return sum; }\n public IEnumerator<int> Cleanup() { try { yield return 1; yield return 2; } finally { throw \""cleanup\""; } }\n public int Unstarted(IEnumerator<int> cursor) { cursor.Dispose(); cursor.Dispose(); return 7; }\n public int Started(IEnumerator<int> cursor) { cursor.MoveNext(); cursor.Dispose(); return 0; }\n public List<int> Collect(IEnumerable<int> values) => values;\n public List<int> Remaining(IEnumerator<int> values) => values;\n public IEnumerator<int> Cursor(IEnumerable<int> values) => values;\n public IEnumerable<int> Range(int start, int end) => start..end;\n public IEnumerable<int> Flow() { int i = 0; while (i < 5) { i++; if (i == 2) continue; switch (i) { case 3: yield return 30; break; default: yield return i; break; } if (i == 4) break; } yield break; }\n public int DirectRange(int start, int end) { int sum = 0; foreach (var value in start..end) sum += value; return sum; }\n \n public IEnumerable<int> CleanupOrder(Dictionary<string, int> log) { try { try { yield return 1; yield return 2; } finally { log[\""value\""] = log[\""value\""] * 10 + 2; } } finally { log[\""value\""] = log[\""value\""] * 10 + 3; } }\n public int First(IEnumerable<int> values) { foreach (var value in values) return value; return -1; }\n public int Break(IEnumerable<int> values) { foreach (var value in values) break; return 0; }\n public IEnumerable<int> Nested(IEnumerable<int> values) { foreach (var value in values) foreach (var offset in 0..2) yield return value * 10 + offset; }\n public IEnumerable<T> One<T>(T value) { yield return value; }\n public int Boundaries(IEnumerable<int> source) { List<int> local = source; local = source; List<List<int>> lists = [source]; lists.Add(source); Dictionary<string, List<int>> dict = {\""a\"": source}; dict[\""b\""] = source; (List<int> Values, int Tag) pair = (source, 1); return local.Count() + lists[0].Count() + lists[1].Count() + dict[\""a\""].Count() + dict[\""b\""].Count() + pair.Values.Count(); }\n public IEnumerable<int> Coalesce(IEnumerable<int>? left, IEnumerable<int> right) { var value = left ?? right; return value; }\n public List<int> CoalesceList(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n public IEnumerator<int> CoalesceCursor(IEnumerable<int>? left, IEnumerable<int> right) => left ?? right;\n \n public IEnumerable<int> InterfaceDefault() => 0..2;\n public List<IEnumerable<int>> ListDefault() => [0..2];\n public Dictionary<string, IEnumerable<int>> DictionaryDefault() => {\""a\"": 0..2};\n \n public IEnumerable<int> Graph(int count) { List<int> values = List.Repeat(1, count); foreach (var value in values) yield return value; }\n public IEnumerable<int> Growing(int count) { List<List<int>> graph = []; foreach (var i in 0..count) { graph.Add([i]); yield return i; } yield return graph.Last().First(); }\n  public bool Inspect(List<int> values) { IEnumerable<int> alias = values; return values is IEnumerable<int> && alias is IEnumerable<int>; }\n public bool InspectGeneric<T>(T values) => values is IEnumerable<int>;\n public int InspectNested(List<List<int>> values) => values.Where((v) => v is IEnumerable<int>).Count();\n public IEnumerable<T> Relay<T>(List<T> values) { foreach (var value in values) yield return value; }\n public bool EmptyAliases() { List<int> first = [1].Take(0); List<int> second = [1].Skip(1); List<int> third = 0..0; IEnumerable<int> a = first; IEnumerable<int> b = second; IEnumerable<int> c = third; return first == a && second == b && third == c; }\n\n public bool InspectInner<T>(List<T> values) => values[0] is IEnumerable<int>;\n public bool InspectTuple<T>(List<T> values) { (T Value, int Tag) pair = (values[0], 0); return pair.Value is IEnumerable<int>; }\n public bool InspectSwitch<T>(List<T> values) => values[0] switch { IEnumerable<int> sequence => true, _ => false };\n\n public bool WidenedMerges(bool chooseLeft, int key) {\n   IEnumerable<int>? absent = null;\n   IEnumerable<int> present = 4..6;\n   List<int> values = [1, 2];\n   var coalesced = absent ?? values;\n   var conditional = chooseLeft ? present : values;\n   var switched = key switch { 1 => present, _ => values };\n   IEnumerable<int> assigned = absent ?? [3];\n   return coalesced is IEnumerable<int> && conditional is IEnumerable<int> && switched is IEnumerable<int> && assigned is IEnumerable<int>;\n }\n public IEnumerable<int> WidenedReturn(IEnumerable<int>? absent, List<int> values) => absent ?? values;\n public bool WidenedAlias() {\n   List<int> values = [1]; IEnumerable<int> alias = values;\n   values.Add(2); values.Add(3);\n   if (!(alias is IEnumerable<int>)) throw \""List alias lost collection type\"";\n   List<int> collected = alias;\n   return collected.Count() == 3;\n }\n public bool WidenedTuple() {\n   List<int> values = [1];\n   var source = (A: 1, B: (Values: values, Tag: 2));\n   (int A, (IEnumerable<int> Values, int Tag) B) destination = source;\n   values.Add(2);\n   List<int> alias = destination.B.Values;\n   if (!(destination.B.Values is IEnumerable<int>)) throw \""Widened tuple lost collection type\""; if (alias.Count() != 2) throw \""Widened tuple lost list mutation\""; return true;\n }\n public bool LocalSequenceSlots() {\n   List<int> values = [1];\n   List<IEnumerable<int>> lists = [values]; lists[0] = values;\n   Dictionary<string, IEnumerable<int>> map = {}; map[\""a\""] = values;\n   return lists[0] is IEnumerable<int> && map[\""a\""] is IEnumerable<int>;\n }\n\n public bool TypedBindings() {\n   List<List<int>> nested = [[1], [2]];\n   int count = 0;\n   foreach (IEnumerable<int> item in nested) { if (!(item is IEnumerable<int>)) return false; count++; }\n   Dictionary<string, List<int>> map = {\""a\"": [3]};\n   foreach (IEnumerable<int> item in map.Values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   foreach ((string key, IEnumerable<int> item) in map) { if (!(item is IEnumerable<int>)) return false; count++; }\n   List<(int A, List<int> B)> tuples = [(1, [4])];\n   foreach ((int A, IEnumerable<int> B) pair in tuples) { if (!(pair.B is IEnumerable<int>)) return false; count++; }\n   return count == 5 && nested.Where((IEnumerable<int> item) => item is IEnumerable<int>).Count() == 2\n     && nested.Select((IEnumerable<int> item) => item is IEnumerable<int>).All((item) => item)\n     && tuples.Where(((int A, IEnumerable<int> B) pair) => pair.B is IEnumerable<int>).Count() == 1;\n }\n public IEnumerable<List<int>> ListGenerator() { yield return [1]; yield return [2]; }\n public IEnumerable<int> TypedYield(IEnumerable<List<int>> values) { foreach (IEnumerable<int> item in values) yield return item is IEnumerable<int> ? 1 : 0; }\n public bool TypedSequenceLoop(IEnumerable<List<int>> values) {\n   int count = 0;\n   foreach (IEnumerable<int> item in values) { if (!(item is IEnumerable<int>)) return false; count++; }\n   return count == 2;\n }\n public int ConstraintSum<T extends IEnumerable<int>>(T values) { int sum = 0; foreach (var item in values) sum += item; return sum; }\n\n public List<int> QueryZip(IEnumerable<int> left, IEnumerable<int> right) => left.Zip(right, (a, b) => a + b);\n public List<int> QueryConcat(IEnumerable<int> left, IEnumerable<int> right) => left.Concat(right);\n public List<int> QueryFlatten(IEnumerable<IEnumerable<int>> sources) => sources.SelectMany((source) => source);\n public bool QueryAny(IEnumerable<int> source) => source.Any((n) => n > 0);\n public int QueryCount(IEnumerable<int> source) => source.Count();\n public int QueryFirst(IEnumerable<int> source) => source.First();\n public int QueryConstrained<T extends IEnumerable<int>>(T source) => source.Sum();\n public int QueryDictionary(Dictionary<string, int> source) => source.Where((key, value) => key == \""a\"").Sum((key, value) => value);\n public int QueryDictionarySequence(Dictionary<string, int> source) { IEnumerable<int> values = source; return values.Where((n) => n > 0).Sum(); }\n public int QueryList(List<int> source) => source.Where((n) => n > 1).Sum();\n public IEnumerable<int> QueryShortCircuit() { yield return 1; throw \""resumed\""; }\n public IEnumerable<int> QueryCleanup() { try { yield return 1; yield return 2; } finally { throw \""query cleanup\""; } }\n public List<int> QueryOrdered(IEnumerable<int> source) => source.OrderBy((n) => n % 2).ThenByDescending((n) => n);\n public List<int> QueryMutation() { List<int> items = [1, 2, 3]; return items.Select((item) => { items.Remove(item); return item; }); }\n}\n"",
   ""bodies"": {
     ""CapabilityGuard"": {
       ""compilerRevision"": 18,
@@ -5418,20 +5418,40 @@ namespace NeoCompose.Tests
               ""type"": ""first"",
               ""info"": {
                 ""collectionPointer"": {
-                  ""type"": ""function"",
-                  ""function"": {
-                    ""type"": ""collectionQuery"",
-                    ""info"": {
-                      ""collectionPointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""graph""
-                      },
-                      ""op"": ""Last""
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""collectionQuery"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""graph""
+                          },
+                          ""elementType"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          }
+                        },
+                        ""op"": ""Last""
+                      }
+                    },
+                    ""source"": {
+                      ""line"": 51,
+                      ""column"": 162
                     }
                   },
-                  ""source"": {
-                    ""line"": 51,
-                    ""column"": 162
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
                   }
                 }
               }
@@ -5902,8 +5922,20 @@ namespace NeoCompose.Tests
                     ""type"": ""where"",
                     ""info"": {
                       ""collectionPointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""__arg_0__""
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""__arg_0__""
+                        },
+                        ""elementType"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
                       },
                       ""function"": {
                         ""compilerRevision"": 18,
@@ -6240,27 +6272,35 @@ namespace NeoCompose.Tests
                 ""type"": ""collectionQuery"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""listLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 6,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""type"": ""value"",
-                        ""value"": {
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""value"": 1
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""listLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      }
-                    ]
+                      },
+                      ""entries"": [
+                        {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""value"": 1
+                          }
+                        }
+                      ]
+                    },
+                    ""elementType"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
                   },
                   ""op"": ""Take"",
                   ""countPointer"": {
@@ -6304,27 +6344,35 @@ namespace NeoCompose.Tests
                 ""type"": ""collectionQuery"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""listLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 6,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""type"": ""value"",
-                        ""value"": {
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""value"": 1
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""listLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      }
-                    ]
+                      },
+                      ""entries"": [
+                        {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""value"": 1
+                          }
+                        }
+                      ]
+                    },
+                    ""elementType"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
                   },
                   ""op"": ""Skip"",
                   ""countPointer"": {
@@ -10931,8 +10979,20 @@ namespace NeoCompose.Tests
                                                 ""type"": ""where"",
                                                 ""info"": {
                                                   ""collectionPointer"": {
-                                                    ""type"": ""variable"",
-                                                    ""variableId"": ""nested""
+                                                    ""type"": ""sequenceConversion"",
+                                                    ""operation"": ""queryEnumerable"",
+                                                    ""pointer"": {
+                                                      ""type"": ""variable"",
+                                                      ""variableId"": ""nested""
+                                                    },
+                                                    ""elementType"": {
+                                                      ""type"": 6,
+                                                      ""required"": true,
+                                                      ""entryTypeInfo"": {
+                                                        ""type"": 2,
+                                                        ""required"": true
+                                                      }
+                                                    }
                                                   },
                                                   ""function"": {
                                                     ""compilerRevision"": 18,
@@ -11085,118 +11145,138 @@ namespace NeoCompose.Tests
                                   ""type"": ""collectionQuery"",
                                   ""info"": {
                                     ""collectionPointer"": {
-                                      ""type"": ""function"",
-                                      ""function"": {
-                                        ""type"": ""select"",
-                                        ""info"": {
-                                          ""collectionPointer"": {
-                                            ""type"": ""variable"",
-                                            ""variableId"": ""nested""
-                                          },
-                                          ""function"": {
-                                            ""compilerRevision"": 18,
-                                            ""source"": {
-                                              ""uri"": ""Probe.neo"",
-                                              ""coordinateSpace"": ""file"",
-                                              ""name"": ""Probe.TypedBindings <callback>""
-                                            },
-                                            ""parameters"": [
-                                              {
-                                                ""id"": ""__sequence:item"",
-                                                ""typeInfo"": {
-                                                  ""type"": 6,
-                                                  ""required"": true,
-                                                  ""entryTypeInfo"": {
-                                                    ""type"": 2,
-                                                    ""required"": true
-                                                  }
-                                                },
-                                                ""pointer"": {
-                                                  ""type"": ""value"",
-                                                  ""value"": {
-                                                    ""typeInfo"": {
-                                                      ""type"": 6,
-                                                      ""required"": true,
-                                                      ""entryTypeInfo"": {
-                                                        ""type"": 2,
-                                                        ""required"": true
-                                                      }
-                                                    },
-                                                    ""value"": null
-                                                  }
+                                      ""type"": ""sequenceConversion"",
+                                      ""operation"": ""queryEnumerable"",
+                                      ""pointer"": {
+                                        ""type"": ""function"",
+                                        ""function"": {
+                                          ""type"": ""select"",
+                                          ""info"": {
+                                            ""collectionPointer"": {
+                                              ""type"": ""sequenceConversion"",
+                                              ""operation"": ""queryEnumerable"",
+                                              ""pointer"": {
+                                                ""type"": ""variable"",
+                                                ""variableId"": ""nested""
+                                              },
+                                              ""elementType"": {
+                                                ""type"": 6,
+                                                ""required"": true,
+                                                ""entryTypeInfo"": {
+                                                  ""type"": 2,
+                                                  ""required"": true
                                                 }
                                               }
-                                            ],
-                                            ""instructions"": [
-                                              {
-                                                ""type"": ""variable"",
-                                                ""variable"": {
-                                                  ""id"": ""item"",
+                                            },
+                                            ""function"": {
+                                              ""compilerRevision"": 18,
+                                              ""source"": {
+                                                ""uri"": ""Probe.neo"",
+                                                ""coordinateSpace"": ""file"",
+                                                ""name"": ""Probe.TypedBindings <callback>""
+                                              },
+                                              ""parameters"": [
+                                                {
+                                                  ""id"": ""__sequence:item"",
                                                   ""typeInfo"": {
-                                                    ""type"": 22,
+                                                    ""type"": 6,
                                                     ""required"": true,
-                                                    ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
-                                                    ""typeArguments"": {
-                                                      ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
-                                                        ""type"": 2,
-                                                        ""required"": true
-                                                      }
+                                                    ""entryTypeInfo"": {
+                                                      ""type"": 2,
+                                                      ""required"": true
                                                     }
                                                   },
                                                   ""pointer"": {
-                                                    ""type"": ""sequenceConversion"",
-                                                    ""operation"": ""retainCollectionType"",
+                                                    ""type"": ""value"",
+                                                    ""value"": {
+                                                      ""typeInfo"": {
+                                                        ""type"": 6,
+                                                        ""required"": true,
+                                                        ""entryTypeInfo"": {
+                                                          ""type"": 2,
+                                                          ""required"": true
+                                                        }
+                                                      },
+                                                      ""value"": null
+                                                    }
+                                                  }
+                                                }
+                                              ],
+                                              ""instructions"": [
+                                                {
+                                                  ""type"": ""variable"",
+                                                  ""variable"": {
+                                                    ""id"": ""item"",
+                                                    ""typeInfo"": {
+                                                      ""type"": 22,
+                                                      ""required"": true,
+                                                      ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                                                      ""typeArguments"": {
+                                                        ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                                                          ""type"": 2,
+                                                          ""required"": true
+                                                        }
+                                                      }
+                                                    },
+                                                    ""pointer"": {
+                                                      ""type"": ""sequenceConversion"",
+                                                      ""operation"": ""retainCollectionType"",
+                                                      ""pointer"": {
+                                                        ""type"": ""variable"",
+                                                        ""variableId"": ""__sequence:item""
+                                                      },
+                                                      ""collectionType"": {
+                                                        ""type"": 6,
+                                                        ""required"": true,
+                                                        ""entryTypeInfo"": {
+                                                          ""type"": 2,
+                                                          ""required"": true
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                },
+                                                {
+                                                  ""type"": ""return"",
+                                                  ""pointer"": {
+                                                    ""type"": ""isCheck"",
                                                     ""pointer"": {
                                                       ""type"": ""variable"",
-                                                      ""variableId"": ""__sequence:item""
+                                                      ""variableId"": ""item""
                                                     },
-                                                    ""collectionType"": {
-                                                      ""type"": 6,
+                                                    ""checkType"": {
+                                                      ""type"": 22,
                                                       ""required"": true,
-                                                      ""entryTypeInfo"": {
-                                                        ""type"": 2,
-                                                        ""required"": true
+                                                      ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                                                      ""typeArguments"": {
+                                                        ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                                                          ""type"": 2,
+                                                          ""required"": true
+                                                        }
                                                       }
                                                     }
-                                                  }
-                                                }
-                                              },
-                                              {
-                                                ""type"": ""return"",
-                                                ""pointer"": {
-                                                  ""type"": ""isCheck"",
-                                                  ""pointer"": {
-                                                    ""type"": ""variable"",
-                                                    ""variableId"": ""item""
                                                   },
-                                                  ""checkType"": {
-                                                    ""type"": 22,
-                                                    ""required"": true,
-                                                    ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
-                                                    ""typeArguments"": {
-                                                      ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
-                                                        ""type"": 2,
-                                                        ""required"": true
-                                                      }
-                                                    }
+                                                  ""source"": {
+                                                    ""line"": 105,
+                                                    ""column"": 50
                                                   }
-                                                },
-                                                ""source"": {
-                                                  ""line"": 105,
-                                                  ""column"": 50
                                                 }
+                                              ],
+                                              ""typeInfo"": {
+                                                ""type"": 1,
+                                                ""required"": true
                                               }
-                                            ],
-                                            ""typeInfo"": {
-                                              ""type"": 1,
-                                              ""required"": true
                                             }
                                           }
+                                        },
+                                        ""source"": {
+                                          ""line"": 105,
+                                          ""column"": 22
                                         }
                                       },
-                                      ""source"": {
-                                        ""line"": 105,
-                                        ""column"": 22
+                                      ""elementType"": {
+                                        ""type"": 1,
+                                        ""required"": true
                                       }
                                     },
                                     ""op"": ""All"",
@@ -11294,8 +11374,36 @@ namespace NeoCompose.Tests
                                 ""type"": ""where"",
                                 ""info"": {
                                   ""collectionPointer"": {
-                                    ""type"": ""variable"",
-                                    ""variableId"": ""tuples""
+                                    ""type"": ""sequenceConversion"",
+                                    ""operation"": ""queryEnumerable"",
+                                    ""pointer"": {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""tuples""
+                                    },
+                                    ""elementType"": {
+                                      ""type"": 30,
+                                      ""required"": true,
+                                      ""elements"": [
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""name"": ""A""
+                                        },
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 6,
+                                            ""required"": true,
+                                            ""entryTypeInfo"": {
+                                              ""type"": 2,
+                                              ""required"": true
+                                            }
+                                          },
+                                          ""name"": ""B""
+                                        }
+                                      ]
+                                    }
                                   },
                                   ""function"": {
                                     ""compilerRevision"": 18,
@@ -12439,6 +12547,2659 @@ namespace NeoCompose.Tests
           ""builtin:Root"",
           ""pending:class:Probe.neo:Probe"",
           ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryZip"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryZip"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_1__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Zip"",
+                ""otherPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_1__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryZip <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""a"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    },
+                    {
+                      ""id"": ""b"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""operation"",
+                        ""operation"": {
+                          ""type"": ""arithmetic"",
+                          ""arithmetic"": {
+                            ""type"": ""+"",
+                            ""pointers"": [
+                              {
+                                ""type"": ""variable"",
+                                ""variableId"": ""a""
+                              },
+                              {
+                                ""type"": ""variable"",
+                                ""variableId"": ""b""
+                              }
+                            ],
+                            ""numeric"": ""int""
+                          }
+                        }
+                      },
+                      ""source"": {
+                        ""line"": 117,
+                        ""column"": 104
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 117,
+              ""column"": 86
+            }
+          },
+          ""source"": {
+            ""line"": 117,
+            ""column"": 78
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 6,
+        ""required"": true,
+        ""entryTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryConcat"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryConcat"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_1__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Concat"",
+                ""otherPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_1__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 118,
+              ""column"": 92
+            }
+          },
+          ""source"": {
+            ""line"": 118,
+            ""column"": 81
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 6,
+        ""required"": true,
+        ""entryTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryFlatten"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryFlatten"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 22,
+                    ""required"": true,
+                    ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                    ""typeArguments"": {
+                      ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    }
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 22,
+                    ""required"": true,
+                    ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                    ""typeArguments"": {
+                      ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    }
+                  }
+                },
+                ""op"": ""SelectMany"",
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryFlatten <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""source"",
+                      ""typeInfo"": {
+                        ""type"": 22,
+                        ""required"": true,
+                        ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                        ""typeArguments"": {
+                          ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 22,
+                            ""required"": true,
+                            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                            ""typeArguments"": {
+                              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            }
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""source""
+                      },
+                      ""source"": {
+                        ""line"": 119,
+                        ""column"": 105
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 22,
+                    ""required"": true,
+                    ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                    ""typeArguments"": {
+                      ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 119,
+              ""column"": 92
+            }
+          },
+          ""source"": {
+            ""line"": 119,
+            ""column"": 74
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 6,
+        ""required"": true,
+        ""entryTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryAny"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryAny"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Any"",
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryAny <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""n"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""operation"",
+                        ""operation"": {
+                          ""type"": ""boolean"",
+                          ""expression"": {
+                            ""condition"": {
+                              ""type"": ""greaterThan"",
+                              ""operand1"": {
+                                ""type"": ""variable"",
+                                ""variableId"": ""n""
+                              },
+                              ""operand2"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 0
+                                }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      ""source"": {
+                        ""line"": 120,
+                        ""column"": 69
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 1,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 120,
+              ""column"": 61
+            }
+          },
+          ""source"": {
+            ""line"": 120,
+            ""column"": 51
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 1,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryCount"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryCount"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""count"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 121,
+              ""column"": 64
+            }
+          },
+          ""source"": {
+            ""line"": 121,
+            ""column"": 52
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryFirst"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryFirst"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""first"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 122,
+              ""column"": 64
+            }
+          },
+          ""source"": {
+            ""line"": 122,
+            ""column"": 52
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryConstrained"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryConstrained"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 21,
+            ""required"": true,
+            ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:QueryConstrained"",
+            ""index"": 0
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 21,
+                ""required"": true,
+                ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:QueryConstrained"",
+                ""index"": 0
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__arg_0__""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Sum"",
+                ""keyType"": ""int"",
+                ""nullable"": false
+              }
+            },
+            ""source"": {
+              ""line"": 123,
+              ""column"": 81
+            }
+          },
+          ""source"": {
+            ""line"": 123,
+            ""column"": 71
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryDictionary"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryDictionary"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 5,
+            ""required"": true,
+            ""entryTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""where"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""__arg_0__""
+                      },
+                      ""function"": {
+                        ""compilerRevision"": 18,
+                        ""source"": {
+                          ""uri"": ""Probe.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Probe.QueryDictionary <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""key"",
+                            ""typeInfo"": {
+                              ""type"": 3,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 3,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          },
+                          {
+                            ""id"": ""value"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""operation"",
+                              ""operation"": {
+                                ""type"": ""boolean"",
+                                ""expression"": {
+                                  ""condition"": {
+                                    ""type"": ""equalTo"",
+                                    ""operand1"": {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""key""
+                                    },
+                                    ""operand2"": {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 3,
+                                          ""required"": true
+                                        },
+                                        ""value"": ""a""
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 124,
+                              ""column"": 93
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 1,
+                          ""required"": true
+                        }
+                      }
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 124,
+                    ""column"": 76
+                  }
+                },
+                ""op"": ""Sum"",
+                ""keyType"": ""int"",
+                ""nullable"": false,
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryDictionary <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""key"",
+                      ""typeInfo"": {
+                        ""type"": 3,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    },
+                    {
+                      ""id"": ""value"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""value""
+                      },
+                      ""source"": {
+                        ""line"": 124,
+                        ""column"": 125
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 124,
+              ""column"": 108
+            }
+          },
+          ""source"": {
+            ""line"": 124,
+            ""column"": 64
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryDictionarySequence"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryDictionarySequence"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 5,
+            ""required"": true,
+            ""entryTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""variable"",
+          ""variable"": {
+            ""id"": ""values"",
+            ""typeInfo"": {
+              ""type"": 22,
+              ""required"": true,
+              ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+              ""typeArguments"": {
+                ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              }
+            },
+            ""pointer"": {
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""variable"",
+                ""variableId"": ""__arg_0__""
+              },
+              ""collectionType"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              }
+            }
+          },
+          ""source"": {
+            ""line"": 125,
+            ""column"": 71
+          }
+        },
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""where"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""values""
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""function"": {
+                          ""compilerRevision"": 18,
+                          ""source"": {
+                            ""uri"": ""Probe.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Probe.QueryDictionarySequence <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""boolean"",
+                                  ""expression"": {
+                                    ""condition"": {
+                                      ""type"": ""greaterThan"",
+                                      ""operand1"": {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""n""
+                                      },
+                                      ""operand2"": {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 0
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 125,
+                                ""column"": 132
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 1,
+                            ""required"": true
+                          }
+                        }
+                      }
+                    },
+                    ""source"": {
+                      ""line"": 125,
+                      ""column"": 124
+                    }
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Sum"",
+                ""keyType"": ""int"",
+                ""nullable"": false
+              }
+            },
+            ""source"": {
+              ""line"": 125,
+              ""column"": 142
+            }
+          },
+          ""source"": {
+            ""line"": 125,
+            ""column"": 105
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": [
+          ""IEnumerable""
+        ]
+      }
+    },
+    ""QueryList"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryList"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 6,
+            ""required"": true,
+            ""entryTypeInfo"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""where"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__arg_0__""
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""function"": {
+                          ""compilerRevision"": 18,
+                          ""source"": {
+                            ""uri"": ""Probe.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Probe.QueryList <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""boolean"",
+                                  ""expression"": {
+                                    ""condition"": {
+                                      ""type"": ""greaterThan"",
+                                      ""operand1"": {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""n""
+                                      },
+                                      ""operand2"": {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 1
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 126,
+                                ""column"": 64
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 1,
+                            ""required"": true
+                          }
+                        }
+                      }
+                    },
+                    ""source"": {
+                      ""line"": 126,
+                      ""column"": 56
+                    }
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""Sum"",
+                ""keyType"": ""int"",
+                ""nullable"": false
+              }
+            },
+            ""source"": {
+              ""line"": 126,
+              ""column"": 74
+            }
+          },
+          ""source"": {
+            ""line"": 126,
+            ""column"": 44
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 2,
+        ""required"": true
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryShortCircuit"": {
+      ""compilerRevision"": 18,
+      ""generator"": {
+        ""kind"": ""enumerable"",
+        ""elementType"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""source"": {
+        ""name"": ""Probe.QueryShortCircuit"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""yieldReturn"",
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""value"": 1
+            }
+          },
+          ""yields"": true,
+          ""source"": {
+            ""line"": 127,
+            ""column"": 48
+          }
+        },
+        {
+          ""type"": ""throw"",
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 3,
+                ""required"": true
+              },
+              ""value"": ""resumed""
+            }
+          },
+          ""source"": {
+            ""line"": 127,
+            ""column"": 64
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 22,
+        ""required"": true,
+        ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+        ""typeArguments"": {
+          ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryCleanup"": {
+      ""compilerRevision"": 18,
+      ""generator"": {
+        ""kind"": ""enumerable"",
+        ""elementType"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""source"": {
+        ""name"": ""Probe.QueryCleanup"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""try"",
+          ""instructions"": [
+            {
+              ""type"": ""yieldReturn"",
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 1
+                }
+              },
+              ""yields"": true,
+              ""source"": {
+                ""line"": 128,
+                ""column"": 49
+              }
+            },
+            {
+              ""type"": ""yieldReturn"",
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""value"": 2
+                }
+              },
+              ""yields"": true,
+              ""source"": {
+                ""line"": 128,
+                ""column"": 65
+              }
+            }
+          ],
+          ""catches"": [],
+          ""finallyInstructions"": [
+            {
+              ""type"": ""throw"",
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": ""query cleanup""
+                }
+              },
+              ""source"": {
+                ""line"": 128,
+                ""column"": 93
+              }
+            }
+          ],
+          ""yields"": true,
+          ""source"": {
+            ""line"": 128,
+            ""column"": 43
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 22,
+        ""required"": true,
+        ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+        ""typeArguments"": {
+          ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryOrdered"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryOrdered"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__arg_0__"",
+          ""typeInfo"": {
+            ""type"": 22,
+            ""required"": true,
+            ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+            ""typeArguments"": {
+              ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 22,
+                ""required"": true,
+                ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                ""typeArguments"": {
+                  ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""collectionQuery"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""collectionQuery"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__arg_0__""
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""op"": ""OrderBy"",
+                        ""function"": {
+                          ""compilerRevision"": 18,
+                          ""source"": {
+                            ""uri"": ""Probe.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Probe.QueryOrdered <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""arithmetic"",
+                                  ""arithmetic"": {
+                                    ""type"": ""%"",
+                                    ""pointers"": [
+                                      {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""n""
+                                      },
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 2
+                                        }
+                                      }
+                                    ],
+                                    ""numeric"": ""int""
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 129,
+                                ""column"": 82
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""keyType"": ""int""
+                      }
+                    },
+                    ""source"": {
+                      ""line"": 129,
+                      ""column"": 74
+                    }
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""op"": ""ThenByDescending"",
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryOrdered <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""n"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""n""
+                      },
+                      ""source"": {
+                        ""line"": 129,
+                        ""column"": 113
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""keyType"": ""int""
+              }
+            },
+            ""source"": {
+              ""line"": 129,
+              ""column"": 105
+            }
+          },
+          ""source"": {
+            ""line"": 129,
+            ""column"": 60
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 6,
+        ""required"": true,
+        ""entryTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe"",
+          ""system_d1413390-a2a6-4137-a8f8-e931da847345""
+        ],
+        ""typeNames"": []
+      }
+    },
+    ""QueryMutation"": {
+      ""compilerRevision"": 18,
+      ""source"": {
+        ""name"": ""Probe.QueryMutation"",
+        ""uri"": ""Probe.neo"",
+        ""coordinateSpace"": ""file""
+      },
+      ""parameters"": [
+        {
+          ""id"": ""__this__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""pending:class:Probe.neo:Probe""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""pending:class:Probe.neo:Probe""
+              },
+              ""value"": null
+            }
+          }
+        },
+        {
+          ""id"": ""__root__"",
+          ""typeInfo"": {
+            ""type"": 7,
+            ""required"": true,
+            ""classId"": ""builtin:Root""
+          },
+          ""pointer"": {
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 7,
+                ""required"": true,
+                ""classId"": ""builtin:Root""
+              },
+              ""value"": null
+            }
+          }
+        }
+      ],
+      ""instructions"": [
+        {
+          ""type"": ""variable"",
+          ""variable"": {
+            ""id"": ""items"",
+            ""typeInfo"": {
+              ""type"": 6,
+              ""required"": true,
+              ""entryTypeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            },
+            ""pointer"": {
+              ""type"": ""listLiteral"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""entries"": [
+                {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 1
+                  }
+                },
+                {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 2
+                  }
+                },
+                {
+                  ""type"": ""value"",
+                  ""value"": {
+                    ""typeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""value"": 3
+                  }
+                }
+              ]
+            }
+          },
+          ""source"": {
+            ""line"": 130,
+            ""column"": 37
+          }
+        },
+        {
+          ""type"": ""return"",
+          ""pointer"": {
+            ""type"": ""function"",
+            ""function"": {
+              ""type"": ""select"",
+              ""info"": {
+                ""collectionPointer"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""items""
+                  },
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                },
+                ""function"": {
+                  ""compilerRevision"": 18,
+                  ""source"": {
+                    ""uri"": ""Probe.neo"",
+                    ""coordinateSpace"": ""file"",
+                    ""name"": ""Probe.QueryMutation <callback>""
+                  },
+                  ""parameters"": [
+                    {
+                      ""id"": ""item"",
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""value"": null
+                        }
+                      }
+                    }
+                  ],
+                  ""instructions"": [
+                    {
+                      ""type"": ""collectionCall"",
+                      ""target"": {
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""items""
+                        },
+                        ""typeInfo"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""writability"": ""local""
+                      },
+                      ""mutation"": ""Remove"",
+                      ""args"": [
+                        {
+                          ""type"": ""variable"",
+                          ""variableId"": ""item""
+                        }
+                      ],
+                      ""source"": {
+                        ""line"": 130,
+                        ""column"": 98
+                      }
+                    },
+                    {
+                      ""type"": ""return"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""item""
+                      },
+                      ""source"": {
+                        ""line"": 130,
+                        ""column"": 118
+                      }
+                    }
+                  ],
+                  ""typeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 130,
+              ""column"": 85
+            }
+          },
+          ""source"": {
+            ""line"": 130,
+            ""column"": 66
+          }
+        }
+      ],
+      ""typeInfo"": {
+        ""type"": 6,
+        ""required"": true,
+        ""entryTypeInfo"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""dependencies"": {
+        ""recordIds"": [
+          ""builtin:Root"",
+          ""pending:class:Probe.neo:Probe""
         ],
         ""typeNames"": []
       }

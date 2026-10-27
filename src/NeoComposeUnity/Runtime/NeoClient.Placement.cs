@@ -112,7 +112,7 @@ namespace NeoCompose.Runtime
             if (next.value is not { } value || !Finite(value.x) || !Finite(value.y) || !Finite(value.z))
                 throw PlacementError("object-position-invalid", $"Object '{owner.id}' requires a finite Position.");
             // Same rounding as the layer builders (ReadObjectOrigin).
-            var cell = new Vector2Int(Mathf.RoundToInt((float)value.x), Mathf.RoundToInt((float)value.y));
+            var cell = NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(value.x, value.y);
             List<ObjectMove> moves = objectMoveScratch;
             if (moves.Count != 0)
                 moves = new List<ObjectMove>();

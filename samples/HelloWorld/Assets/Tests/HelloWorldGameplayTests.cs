@@ -274,7 +274,7 @@ namespace HelloWorld.Assets.Tests
                 InvokeLandingUpdatePrompt(landing);
                 StringAssert.Contains("vault seal", landing.PromptText);
 
-                blocked.Tiles.Clear();
+                blocked.Clear();
                 yield return null;
 
                 Assert.IsFalse(

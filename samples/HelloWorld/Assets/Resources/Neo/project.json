@@ -5257,6 +5257,129 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792824570388
         },
+        "system_0595b60c-f1ad-51fd-a893-f215ffc08a25": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "elementType": {
+                                "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                "required": true,
+                                "type": 7
+                            },
+                            "operation": "getEnumerator",
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Objects"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "type": "keyOf"
+                            },
+                            "type": "sequenceConversion"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "GetEnumerator"
+                },
+                "typeInfo": {
+                    "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+                    "required": true,
+                    "type": 22,
+                    "typeArguments": {
+                        "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                }
+            },
+            "argumentTypes": [],
+            "code": "return Objects.GetEnumerator();",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "GetEnumerator",
+            "returnTypeInfo": {
+                "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+                "required": true,
+                "type": 22,
+                "typeArguments": {
+                    "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+                        "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                        "required": true,
+                        "type": 7
+                    }
+                }
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_0595b60c-f1ad-51fd-a893-f215ffc08a25",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
+        },
         "system_070ae22a-7603-48cf-94e2-528d88b72825": {
             "createdAt": 1786761990330,
             "defaultValue": {
@@ -5581,6 +5704,147 @@
             "id": "system_0dbdd0f9-9dd2-4b4b-9403-50180c1500dd",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_0fee15ff-d775-5740-a1ea-feda8a4836db": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "args": [
+                            {
+                                "type": "variable",
+                                "variableId": "__arg_0__"
+                            }
+                        ],
+                        "mutation": "RemoveAt",
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Tiles"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 2
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "required": true,
+                            "type": 2
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "RemoveAt"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 0
+                }
+            },
+            "argumentTypes": [
+                {
+                    "name": "index",
+                    "required": true,
+                    "type": 2
+                }
+            ],
+            "code": "Tiles.RemoveAt(index);",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "RemoveAt",
+            "returnTypeInfo": {
+                "required": true,
+                "type": "Void"
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_0fee15ff-d775-5740-a1ea-feda8a4836db",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
         "system_135e16a9-1996-5e5b-9c2a-730b2896a2cd": {
             "argumentTypes": [],
             "createdAt": 1792373516054,
@@ -5852,6 +6116,19 @@
             "id": "system_17458a32-1ce0-4548-bf0e-a6a2ee0b9c72",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792824570388
+        },
+        "system_19a5845c-e77a-5df0-b6eb-074cec1ffe87": {
+            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+            "createdAt": 1793083500434,
+            "kind": 7,
+            "name": "__EnumerableEntry",
+            "requirement": 1,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_19a5845c-e77a-5df0-b6eb-074cec1ffe87",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
         },
         "system_1bf8d3fd-7725-577f-9692-b1a9c8ee3942": {
             "classId": "system_663d4d74-035e-4412-871a-24bd114b4686",
@@ -6407,6 +6684,137 @@
             "updatedAt": 1788081175744,
             "id": "system_330602f7-bbc0-4be4-9dc3-d33e9dbdbab9",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae": {
+            "createdAt": 1793083500434,
+            "defaultValue": {
+                "init": {
+                    "code": "ok",
+                    "compiled": {
+                        "compilerRevision": 18,
+                        "instructions": [
+                            {
+                                "pointer": {
+                                    "type": "variable",
+                                    "variableId": "__arg_0__"
+                                },
+                                "source": {
+                                    "column": 1,
+                                    "line": 1
+                                },
+                                "type": "return"
+                            }
+                        ],
+                        "parameters": [
+                            {
+                                "id": "__this__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": "Unknown"
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": "Unknown"
+                                }
+                            },
+                            {
+                                "id": "__root__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "classId": "__root__",
+                                            "required": true,
+                                            "type": 7
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                }
+                            },
+                            {
+                                "id": "__arg_0__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": 1
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                }
+                            },
+                            {
+                                "id": "__arg_1__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            },
+                            {
+                                "id": "__arg_2__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            }
+                        ],
+                        "source": {
+                            "coordinateSpace": "body",
+                            "name": "Ok"
+                        },
+                        "typeInfo": {
+                            "required": true,
+                            "type": 1
+                        }
+                    }
+                }
+            },
+            "kind": 1,
+            "mutability": 1,
+            "name": "Ok",
+            "requirement": 1,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
         },
         "system_3b02422f-1ef2-4a50-8386-155d5001082b": {
             "name": "Name",
@@ -7360,6 +7768,298 @@
             "id": "system_557a29b1-a12b-5610-9990-aa422af28269",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_56704561-a4d9-5c0e-b1c9-ae5413f057c7": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "variable",
+                        "variable": {
+                            "id": "index",
+                            "pointer": {
+                                "function": {
+                                    "info": {
+                                        "collectionPointer": {
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
+                                                        },
+                                                        "value": "Tiles"
+                                                    }
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
+                                            },
+                                            "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                            "type": "keyOf"
+                                        },
+                                        "reference": true,
+                                        "valuePointer": {
+                                            "type": "variable",
+                                            "variableId": "__arg_0__"
+                                        }
+                                    },
+                                    "type": "indexOf"
+                                },
+                                "source": {
+                                    "column": 26,
+                                    "line": 1
+                                },
+                                "type": "function"
+                            },
+                            "typeInfo": {
+                                "required": true,
+                                "type": 2
+                            }
+                        }
+                    },
+                    {
+                        "branches": [
+                            {
+                                "expression": {
+                                    "condition": {
+                                        "operand1": {
+                                            "type": "variable",
+                                            "variableId": "index"
+                                        },
+                                        "operand2": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "required": true,
+                                                    "type": 2
+                                                },
+                                                "value": 0
+                                            }
+                                        },
+                                        "type": "lessThan"
+                                    }
+                                },
+                                "instructions": [
+                                    {
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "required": true,
+                                                    "type": 1
+                                                },
+                                                "value": false
+                                            }
+                                        },
+                                        "source": {
+                                            "column": 16,
+                                            "line": 2
+                                        },
+                                        "type": "return"
+                                    }
+                                ]
+                            }
+                        ],
+                        "else": null,
+                        "source": {
+                            "column": 1,
+                            "line": 2
+                        },
+                        "type": "if"
+                    },
+                    {
+                        "args": [
+                            {
+                                "type": "variable",
+                                "variableId": "index"
+                            }
+                        ],
+                        "mutation": "RemoveAt",
+                        "source": {
+                            "column": 1,
+                            "line": 3
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Tiles"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    },
+                    {
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                },
+                                "value": true
+                            }
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 4
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Remove"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 1
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "int index = Tiles.IndexOf(obj);\nif (index < 0) return false;\nTiles.RemoveAt(index);\nreturn true;",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Remove",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 1
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_56704561-a4d9-5c0e-b1c9-ae5413f057c7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
+        "system_5728d83c-cd44-5c7d-a43f-61bf83ca2b91": {
+            "argumentTypes": [
+                {
+                    "name": "cell",
+                    "required": true,
+                    "type": 15
+                },
+                {
+                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 13,
+            "name": "TrySet",
+            "returnTypeInfo": {
+                "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+                "required": true,
+                "type": 7
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_5728d83c-cd44-5c7d-a43f-61bf83ca2b91",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
         "system_57290d57-16dd-54d6-ad1e-81a72bd7f457": {
             "name": "FourNeighbors",
             "kind": 7,
@@ -7925,6 +8625,129 @@
             "id": "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_700e8f5a-5634-53ec-90e4-d4e75335e61c": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "elementType": {
+                                "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                "required": true,
+                                "type": 7
+                            },
+                            "operation": "getEnumerator",
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Tiles"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "type": "keyOf"
+                            },
+                            "type": "sequenceConversion"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "GetEnumerator"
+                },
+                "typeInfo": {
+                    "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+                    "required": true,
+                    "type": 22,
+                    "typeArguments": {
+                        "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+                            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                }
+            },
+            "argumentTypes": [],
+            "code": "return Tiles.GetEnumerator();",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "GetEnumerator",
+            "returnTypeInfo": {
+                "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+                "required": true,
+                "type": 22,
+                "typeArguments": {
+                    "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+                        "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                        "required": true,
+                        "type": 7
+                    }
+                }
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_700e8f5a-5634-53ec-90e4-d4e75335e61c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
         "system_7202cfb6-9cc4-49d3-b3fb-e44a23915b40": {
             "createdAt": 1782971224672,
             "defaultValue": {
@@ -7976,6 +8799,119 @@
             "updatedAt": 1788081175744,
             "id": "system_75a314b5-c799-4af6-9e64-4cde6eae1b30",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_7604a328-0fbc-5e13-afaf-772fe49d52bd": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "args": [],
+                        "mutation": "Clear",
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Objects"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Clear"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 0
+                }
+            },
+            "argumentTypes": [],
+            "code": "Objects.Clear();",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Clear",
+            "returnTypeInfo": {
+                "required": true,
+                "type": "Void"
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_7604a328-0fbc-5e13-afaf-772fe49d52bd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         },
         "system_77b14581-e34c-5eb1-a820-788618276e46": {
             "argumentTypes": [
@@ -8769,6 +9705,147 @@
             "id": "system_96cda8f5-3100-45b5-adcb-0552d21504dd",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_96db0020-5d58-572d-a5f4-97d33fd73dee": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "keyOf": {
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 3
+                                                    },
+                                                    "value": "Tiles"
+                                                }
+                                            },
+                                            "pointer": {
+                                                "type": "variable",
+                                                "variableId": "__this__"
+                                            }
+                                        },
+                                        "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                        "type": "keyOf"
+                                    },
+                                    "reference": true,
+                                    "valuePointer": {
+                                        "type": "variable",
+                                        "variableId": "__arg_0__"
+                                    }
+                                },
+                                "type": "indexOf"
+                            },
+                            "source": {
+                                "column": 21,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "IndexOf"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 2
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "return Tiles.IndexOf(obj);",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "IndexOf",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 2
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_96db0020-5d58-572d-a5f4-97d33fd73dee",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
         "system_97cb9d95-2d54-4809-ae88-0b0ba7859248": {
             "createdAt": 1782971224672,
             "defaultValue": {
@@ -8803,6 +9880,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "system_98655d2b-ad0b-45e2-a901-62600b4d3a22": {
+            "access": 1,
             "createdAt": 1782012571783,
             "defaultValue": {
                 "value": []
@@ -8811,13 +9889,13 @@
             "kind": 6,
             "listKind": 1,
             "name": "Tiles",
+            "requirement": 1,
             "system": {
                 "kind": "worldAuthoring"
             },
-            "requirement": 1,
-            "updatedAt": 1788081167516,
             "id": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
         },
         "system_98d035f6-9f7d-5d2b-ae01-70ce90621333": {
             "name": "Empty",
@@ -8869,6 +9947,147 @@
             "id": "system_9b22d8df-ea41-4c76-9d2e-a6c64c95a64a",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_9ca87cf0-f742-509a-8dbc-9bdeda85e9f9": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "keyOf": {
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 3
+                                                    },
+                                                    "value": "Objects"
+                                                }
+                                            },
+                                            "pointer": {
+                                                "type": "variable",
+                                                "variableId": "__this__"
+                                            }
+                                        },
+                                        "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                        "type": "keyOf"
+                                    },
+                                    "reference": true,
+                                    "valuePointer": {
+                                        "type": "variable",
+                                        "variableId": "__arg_0__"
+                                    }
+                                },
+                                "type": "indexOf"
+                            },
+                            "source": {
+                                "column": 23,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "IndexOf"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 2
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "return Objects.IndexOf(obj);",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "IndexOf",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 2
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_9ca87cf0-f742-509a-8dbc-9bdeda85e9f9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
+        },
         "system_9d442bde-25e8-51af-baab-08e99947edcd": {
             "access": 2,
             "argumentTypes": [],
@@ -8887,6 +10106,147 @@
             "id": "system_9d442bde-25e8-51af-baab-08e99947edcd",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792373516054
+        },
+        "system_9fb7f58b-8e13-5ea7-88db-8fa506ba93e6": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "args": [
+                            {
+                                "type": "variable",
+                                "variableId": "__arg_0__"
+                            }
+                        ],
+                        "mutation": "RemoveAt",
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Objects"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 2
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "required": true,
+                            "type": 2
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "RemoveAt"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 0
+                }
+            },
+            "argumentTypes": [
+                {
+                    "name": "index",
+                    "required": true,
+                    "type": 2
+                }
+            ],
+            "code": "Objects.RemoveAt(index);",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "RemoveAt",
+            "returnTypeInfo": {
+                "required": true,
+                "type": "Void"
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_9fb7f58b-8e13-5ea7-88db-8fa506ba93e6",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         },
         "system_9fcab37a-9743-4e35-8eee-80cb560f1433": {
             "createdAt": 1785139228609,
@@ -8949,6 +10309,119 @@
             "updatedAt": 1788081167516,
             "id": "system_a70a9115-390c-508c-863a-aa5f45b0d533",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_a71f3e71-0cab-587d-9c57-32e69cf8cd48": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "args": [],
+                        "mutation": "Clear",
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Tiles"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Clear"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 0
+                }
+            },
+            "argumentTypes": [],
+            "code": "Tiles.Clear();",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Clear",
+            "returnTypeInfo": {
+                "required": true,
+                "type": "Void"
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_a71f3e71-0cab-587d-9c57-32e69cf8cd48",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
         },
         "system_a8f2f798-7988-5df8-8294-decdd4316c7e": {
             "name": "EightNeighbors",
@@ -10358,6 +11831,395 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1793061841689
         },
+        "system_bfdd3a1e-9e81-55ca-911d-e004560ce99a": {
+            "code": "return Tiles.Count;",
+            "createdAt": 1793083501495,
+            "getter": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "keyOf": {
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 3
+                                                    },
+                                                    "value": "Tiles"
+                                                }
+                                            },
+                                            "pointer": {
+                                                "type": "variable",
+                                                "variableId": "__this__"
+                                            }
+                                        },
+                                        "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                        "type": "keyOf"
+                                    }
+                                },
+                                "type": "count"
+                            },
+                            "source": {
+                                "column": 13,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "NeoTileLayerLink.Count.getter"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 2
+                }
+            },
+            "kind": 10,
+            "name": "Count",
+            "requirement": 1,
+            "returnTypeInfo": {
+                "required": true,
+                "type": 2
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_bfdd3a1e-9e81-55ca-911d-e004560ce99a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
+        "system_c12faebb-e7f3-5b4d-8745-812cfcabf565": {
+            "createdAt": 1793083500434,
+            "defaultValue": {
+                "init": {
+                    "code": "errorCode",
+                    "compiled": {
+                        "compilerRevision": 18,
+                        "instructions": [
+                            {
+                                "pointer": {
+                                    "type": "variable",
+                                    "variableId": "__arg_1__"
+                                },
+                                "source": {
+                                    "column": 1,
+                                    "line": 1
+                                },
+                                "type": "return"
+                            }
+                        ],
+                        "parameters": [
+                            {
+                                "id": "__this__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": "Unknown"
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": "Unknown"
+                                }
+                            },
+                            {
+                                "id": "__root__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "classId": "__root__",
+                                            "required": true,
+                                            "type": 7
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                }
+                            },
+                            {
+                                "id": "__arg_0__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": 1
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                }
+                            },
+                            {
+                                "id": "__arg_1__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            },
+                            {
+                                "id": "__arg_2__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            }
+                        ],
+                        "source": {
+                            "coordinateSpace": "body",
+                            "name": "ErrorCode"
+                        },
+                        "typeInfo": {
+                            "required": false,
+                            "type": 3
+                        }
+                    }
+                }
+            },
+            "kind": 3,
+            "mutability": 1,
+            "name": "ErrorCode",
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_c12faebb-e7f3-5b4d-8745-812cfcabf565",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
+        },
+        "system_c23d33dd-0a6f-55d7-9618-764d0dc9b342": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "elementType": {
+                                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                            "required": true,
+                                            "type": 7
+                                        },
+                                        "operation": "queryEnumerable",
+                                        "pointer": {
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
+                                                        },
+                                                        "value": "Objects"
+                                                    }
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
+                                            },
+                                            "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                            "type": "keyOf"
+                                        },
+                                        "type": "sequenceConversion"
+                                    },
+                                    "reference": true,
+                                    "valuePointer": {
+                                        "type": "variable",
+                                        "variableId": "__arg_0__"
+                                    }
+                                },
+                                "type": "contains"
+                            },
+                            "source": {
+                                "column": 24,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Contains"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 1
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "return Objects.Contains(obj);",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Contains",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 1
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_c23d33dd-0a6f-55d7-9618-764d0dc9b342",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
+        },
         "system_c3acfb82-b797-525f-b416-818eaadeb5f4": {
             "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
             "createdAt": 1782514300374,
@@ -10717,6 +12579,169 @@
             "updatedAt": 1789611407442,
             "id": "system_cbd6db9a-f473-44b5-b913-7cdc06452f35",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_cd844400-5942-53d4-9cc4-dc428532cbd1": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "elementType": {
+                                            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                            "required": true,
+                                            "type": 7
+                                        },
+                                        "operation": "queryEnumerable",
+                                        "pointer": {
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
+                                                        },
+                                                        "value": "Tiles"
+                                                    }
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
+                                            },
+                                            "memberId": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                                            "type": "keyOf"
+                                        },
+                                        "type": "sequenceConversion"
+                                    },
+                                    "reference": true,
+                                    "valuePointer": {
+                                        "type": "variable",
+                                        "variableId": "__arg_0__"
+                                    }
+                                },
+                                "type": "contains"
+                            },
+                            "source": {
+                                "column": 22,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Contains"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 1
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "return Tiles.Contains(obj);",
+            "createdAt": 1793083501495,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Contains",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 1
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_cd844400-5942-53d4-9cc4-dc428532cbd1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
+        },
+        "system_cf9c8aaa-7ff5-5563-be89-b38f6bd006b7": {
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+            "createdAt": 1793083500434,
+            "kind": 7,
+            "name": "__EnumerableEntry",
+            "requirement": 1,
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_cf9c8aaa-7ff5-5563-be89-b38f6bd006b7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
         },
         "system_d29ff4e5-f8e2-4c18-a7c6-c83053fa5e70": {
             "createdAt": 1778021394040,
@@ -12864,6 +14889,268 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792824570388
         },
+        "system_e856d561-6715-5e66-80cb-0e27fb2f98d5": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "variable",
+                        "variable": {
+                            "id": "index",
+                            "pointer": {
+                                "function": {
+                                    "info": {
+                                        "collectionPointer": {
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
+                                                        },
+                                                        "value": "Objects"
+                                                    }
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
+                                            },
+                                            "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                            "type": "keyOf"
+                                        },
+                                        "reference": true,
+                                        "valuePointer": {
+                                            "type": "variable",
+                                            "variableId": "__arg_0__"
+                                        }
+                                    },
+                                    "type": "indexOf"
+                                },
+                                "source": {
+                                    "column": 28,
+                                    "line": 1
+                                },
+                                "type": "function"
+                            },
+                            "typeInfo": {
+                                "required": true,
+                                "type": 2
+                            }
+                        }
+                    },
+                    {
+                        "branches": [
+                            {
+                                "expression": {
+                                    "condition": {
+                                        "operand1": {
+                                            "type": "variable",
+                                            "variableId": "index"
+                                        },
+                                        "operand2": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "required": true,
+                                                    "type": 2
+                                                },
+                                                "value": 0
+                                            }
+                                        },
+                                        "type": "lessThan"
+                                    }
+                                },
+                                "instructions": [
+                                    {
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "required": true,
+                                                    "type": 1
+                                                },
+                                                "value": false
+                                            }
+                                        },
+                                        "source": {
+                                            "column": 16,
+                                            "line": 2
+                                        },
+                                        "type": "return"
+                                    }
+                                ]
+                            }
+                        ],
+                        "else": null,
+                        "source": {
+                            "column": 1,
+                            "line": 2
+                        },
+                        "type": "if"
+                    },
+                    {
+                        "args": [
+                            {
+                                "type": "variable",
+                                "variableId": "index"
+                            }
+                        ],
+                        "mutation": "RemoveAt",
+                        "source": {
+                            "column": 1,
+                            "line": 3
+                        },
+                        "target": {
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Objects"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
+                                },
+                                "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "type": "keyOf"
+                            },
+                            "typeInfo": {
+                                "entryTypeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "listMemberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                "required": true,
+                                "type": 6
+                            },
+                            "writability": "runtime"
+                        },
+                        "type": "collectionCall"
+                    },
+                    {
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                },
+                                "value": true
+                            }
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 4
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "Remove"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 1
+                }
+            },
+            "argumentTypes": [
+                {
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "code": "int index = Objects.IndexOf(obj);\nif (index < 0) return false;\nObjects.RemoveAt(index);\nreturn true;",
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 23,
+            "name": "Remove",
+            "returnTypeInfo": {
+                "required": true,
+                "type": 1
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_e856d561-6715-5e66-80cb-0e27fb2f98d5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
+        },
         "system_e9288ba9-f5a2-4485-8443-6afb155b31e0": {
             "createdAt": 1782012571783,
             "defaultValue": {
@@ -12899,6 +15186,136 @@
             "id": "system_e963862e-6228-4594-8220-8ef06098c253",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
+        "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f": {
+            "createdAt": 1793083500434,
+            "defaultValue": {
+                "init": {
+                    "code": "message",
+                    "compiled": {
+                        "compilerRevision": 18,
+                        "instructions": [
+                            {
+                                "pointer": {
+                                    "type": "variable",
+                                    "variableId": "__arg_2__"
+                                },
+                                "source": {
+                                    "column": 1,
+                                    "line": 1
+                                },
+                                "type": "return"
+                            }
+                        ],
+                        "parameters": [
+                            {
+                                "id": "__this__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": "Unknown"
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": "Unknown"
+                                }
+                            },
+                            {
+                                "id": "__root__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "classId": "__root__",
+                                            "required": true,
+                                            "type": 7
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                }
+                            },
+                            {
+                                "id": "__arg_0__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": true,
+                                            "type": 1
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                }
+                            },
+                            {
+                                "id": "__arg_1__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            },
+                            {
+                                "id": "__arg_2__",
+                                "pointer": {
+                                    "type": "value",
+                                    "value": {
+                                        "typeInfo": {
+                                            "required": false,
+                                            "type": 3
+                                        },
+                                        "value": null
+                                    }
+                                },
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                }
+                            }
+                        ],
+                        "source": {
+                            "coordinateSpace": "body",
+                            "name": "Message"
+                        },
+                        "typeInfo": {
+                            "required": false,
+                            "type": 3
+                        }
+                    }
+                }
+            },
+            "kind": 3,
+            "mutability": 1,
+            "name": "Message",
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
+        },
         "system_eb602654-04a9-4766-860f-300b443be86e": {
             "createdAt": 1785064719279,
             "defaultValue": {
@@ -12914,6 +15331,115 @@
             "updatedAt": 1788081175744,
             "id": "system_eb602654-04a9-4766-860f-300b443be86e",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_ebaddc47-73f4-5772-9f44-22e1bce73920": {
+            "code": "return Objects.Count;",
+            "createdAt": 1793083502625,
+            "getter": {
+                "compilerRevision": 18,
+                "instructions": [
+                    {
+                        "pointer": {
+                            "function": {
+                                "info": {
+                                    "collectionPointer": {
+                                        "keyOf": {
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 3
+                                                    },
+                                                    "value": "Objects"
+                                                }
+                                            },
+                                            "pointer": {
+                                                "type": "variable",
+                                                "variableId": "__this__"
+                                            }
+                                        },
+                                        "memberId": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                                        "type": "keyOf"
+                                    }
+                                },
+                                "type": "count"
+                            },
+                            "source": {
+                                "column": 15,
+                                "line": 1
+                            },
+                            "type": "function"
+                        },
+                        "source": {
+                            "column": 1,
+                            "line": 1
+                        },
+                        "type": "return"
+                    }
+                ],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_04ef83b0-3171-4299-9580-902708690750",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "NeoObjectLayerLink.Count.getter"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 2
+                }
+            },
+            "kind": 10,
+            "name": "Count",
+            "requirement": 1,
+            "returnTypeInfo": {
+                "required": true,
+                "type": 2
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_ebaddc47-73f4-5772-9f44-22e1bce73920",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         },
         "system_ec5b5d5e-7053-4378-87d1-9cceec30ff1a": {
             "createdAt": 1781855034923,
@@ -13784,6 +16310,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2": {
+            "access": 1,
             "createdAt": 1782514300374,
             "defaultValue": {
                 "value": []
@@ -13792,13 +16319,13 @@
             "kind": 6,
             "listKind": 1,
             "name": "Objects",
+            "requirement": 1,
             "system": {
                 "kind": "worldAuthoring"
             },
-            "requirement": 1,
-            "updatedAt": 1788081167516,
             "id": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         },
         "system_faf10f4f-f5c2-47d8-b4e2-8f196c756668": {
             "access": 2,
@@ -15631,6 +18158,36 @@
             "updatedAt": 1788081167516,
             "id": "system_fd3a7f0f-cff8-4069-9b19-004015a6aca1",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7": {
+            "argumentTypes": [
+                {
+                    "name": "cell",
+                    "required": true,
+                    "type": 15
+                },
+                {
+                    "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+                    "name": "obj",
+                    "required": true,
+                    "type": 7
+                }
+            ],
+            "createdAt": 1793083502625,
+            "dispatch": 0,
+            "kind": 13,
+            "name": "TrySpawn",
+            "returnTypeInfo": {
+                "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+                "required": true,
+                "type": 7
+            },
+            "system": {
+                "kind": "worldAuthoring"
+            },
+            "id": "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         }
     },
     "enums": {
@@ -17435,18 +19992,37 @@
         "system_04ef83b0-3171-4299-9580-902708690750": {
             "createdAt": 1784693473163,
             "extendsClassId": "system_bf076e9b-c8da-47dc-bae3-7527d0c307a8",
+            "implementsInterfaceArguments": {
+                "system_d1413390-a2a6-4137-a8f8-e931da847345": {
+                    "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                        "kind": 1,
+                        "memberId": "system_cf9c8aaa-7ff5-5563-be89-b38f6bd006b7"
+                    }
+                }
+            },
+            "implementsInterfaceIds": [
+                "system_d1413390-a2a6-4137-a8f8-e931da847345"
+            ],
+            "modifier": 1,
             "name": "NeoObjectLayerLink",
             "schema": {
-                "Objects": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2"
+                "Clear": "system_7604a328-0fbc-5e13-afaf-772fe49d52bd",
+                "Contains": "system_c23d33dd-0a6f-55d7-9618-764d0dc9b342",
+                "Count": "system_ebaddc47-73f4-5772-9f44-22e1bce73920",
+                "GetEnumerator": "system_0595b60c-f1ad-51fd-a893-f215ffc08a25",
+                "IndexOf": "system_9ca87cf0-f742-509a-8dbc-9bdeda85e9f9",
+                "Objects": "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2",
+                "Remove": "system_e856d561-6715-5e66-80cb-0e27fb2f98d5",
+                "RemoveAt": "system_9fb7f58b-8e13-5ea7-88db-8fa506ba93e6",
+                "TrySpawn": "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7"
             },
             "system": {
                 "kind": "worldAuthoring",
                 "worldKind": "objectLayerLink"
             },
-            "modifier": 1,
-            "updatedAt": 1788081185682,
             "id": "system_04ef83b0-3171-4299-9580-902708690750",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083502625
         },
         "system_0f2970bc-bd11-5173-847c-713e88b47a44": {
             "constructorIds": [
@@ -17799,6 +20375,24 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792328072015
         },
+        "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09": {
+            "createdAt": 1793083500434,
+            "modifier": 2,
+            "name": "NeoPlacementResult",
+            "requiredConstructorId": "system_62070d17-25e9-5cca-96a6-da2e97cb15aa",
+            "schema": {
+                "ErrorCode": "system_c12faebb-e7f3-5b4d-8745-812cfcabf565",
+                "Message": "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f",
+                "Ok": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae"
+            },
+            "system": {
+                "kind": "worldAuthoring",
+                "worldKind": "placementResult"
+            },
+            "id": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
+        },
         "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183": {
             "constructorIds": [
                 "system_0adaa530-dae1-5bc9-a498-de27d719b0c2"
@@ -18077,18 +20671,37 @@
         "system_c45e7270-954c-4eb5-8cf1-709e877d4d59": {
             "createdAt": 1781759686435,
             "extendsClassId": "system_bf076e9b-c8da-47dc-bae3-7527d0c307a8",
+            "implementsInterfaceArguments": {
+                "system_d1413390-a2a6-4137-a8f8-e931da847345": {
+                    "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                        "kind": 1,
+                        "memberId": "system_19a5845c-e77a-5df0-b6eb-074cec1ffe87"
+                    }
+                }
+            },
+            "implementsInterfaceIds": [
+                "system_d1413390-a2a6-4137-a8f8-e931da847345"
+            ],
+            "modifier": 1,
             "name": "NeoTileLayerLink",
             "schema": {
-                "Tiles": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22"
+                "Clear": "system_a71f3e71-0cab-587d-9c57-32e69cf8cd48",
+                "Contains": "system_cd844400-5942-53d4-9cc4-dc428532cbd1",
+                "Count": "system_bfdd3a1e-9e81-55ca-911d-e004560ce99a",
+                "GetEnumerator": "system_700e8f5a-5634-53ec-90e4-d4e75335e61c",
+                "IndexOf": "system_96db0020-5d58-572d-a5f4-97d33fd73dee",
+                "Remove": "system_56704561-a4d9-5c0e-b1c9-ae5413f057c7",
+                "RemoveAt": "system_0fee15ff-d775-5740-a1ea-feda8a4836db",
+                "Tiles": "system_98655d2b-ad0b-45e2-a901-62600b4d3a22",
+                "TrySet": "system_5728d83c-cd44-5c7d-a43f-61bf83ca2b91"
             },
             "system": {
                 "kind": "worldAuthoring",
                 "worldKind": "tileLayerLink"
             },
-            "modifier": 1,
-            "updatedAt": 1788081185682,
             "id": "system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083501495
         },
         "system_c97b988a-0aae-4490-956c-5a9f74a84934": {
             "allowedStorage": 1,
@@ -20034,6 +22647,140 @@
             "id": "system_5749aebc-8464-5186-b995-7f5a69e702b4",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "updatedAt": 1792824570388
+        },
+        "system_62070d17-25e9-5cca-96a6-da2e97cb15aa": {
+            "action": {
+                "compilerRevision": 18,
+                "instructions": [],
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "classId": "__root__",
+                                    "required": true,
+                                    "type": 7
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "classId": "__root__",
+                            "required": true,
+                            "type": 7
+                        }
+                    },
+                    {
+                        "id": "__arg_0__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 1
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "required": true,
+                            "type": 1
+                        }
+                    },
+                    {
+                        "id": "__arg_1__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "required": false,
+                            "type": 3
+                        }
+                    },
+                    {
+                        "id": "__arg_2__",
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "required": false,
+                                    "type": 3
+                                },
+                                "value": null
+                            }
+                        },
+                        "typeInfo": {
+                            "required": false,
+                            "type": 3
+                        }
+                    }
+                ],
+                "source": {
+                    "coordinateSpace": "body",
+                    "name": "NeoPlacementResult"
+                },
+                "typeInfo": {
+                    "required": true,
+                    "type": 0
+                }
+            },
+            "argumentTypes": [
+                {
+                    "name": "ok",
+                    "required": true,
+                    "type": 1
+                },
+                {
+                    "defaultValue": {
+                        "value": null
+                    },
+                    "name": "errorCode",
+                    "required": false,
+                    "type": 3
+                },
+                {
+                    "defaultValue": {
+                        "value": null
+                    },
+                    "name": "message",
+                    "required": false,
+                    "type": 3
+                }
+            ],
+            "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+            "code": null,
+            "createdAt": 1793083500434,
+            "id": "system_62070d17-25e9-5cca-96a6-da2e97cb15aa",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1793083500434
         },
         "system_62be2a68-1c61-5be7-ac2e-13fa8e77eb26": {
             "action": {

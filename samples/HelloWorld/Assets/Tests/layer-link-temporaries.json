@@ -1,0 +1,501 @@
+{
+  "code": "ObjectLayerLink link = new ObjectLayerLink();\n NeoObjectBase obj = new VaultPlaqueObject();\n NeoPlacementResult result = link.TrySpawn(Vector2Int(20, 30), obj);\n NeoPlacementResult collision = link.TrySpawn(Vector2Int(20, 30), new VaultPlaqueObject());\n return result.Ok && !collision.Ok && link.Any() && link.Count == 1;",
+  "body": {
+    "compilerRevision": 18,
+    "source": {
+      "name": "function",
+      "coordinateSpace": "body"
+    },
+    "parameters": [
+      {
+        "id": "__this__",
+        "typeInfo": {
+          "type": "Unknown",
+          "required": true
+        },
+        "pointer": {
+          "type": "value",
+          "value": {
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "value": null
+          }
+        }
+      },
+      {
+        "id": "__root__",
+        "typeInfo": {
+          "type": 7,
+          "required": true,
+          "classId": "__root__"
+        },
+        "pointer": {
+          "type": "value",
+          "value": {
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "value": null
+          }
+        }
+      }
+    ],
+    "instructions": [
+      {
+        "type": "variable",
+        "variable": {
+          "id": "link",
+          "typeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "f1b08825-2ad0-4666-acf1-3df7ffbda64e"
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "classConstructor",
+              "info": {
+                "schemaClassInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "f1b08825-2ad0-4666-acf1-3df7ffbda64e"
+                },
+                "fields": []
+              }
+            },
+            "source": {
+              "line": 1,
+              "column": 24
+            }
+          }
+        },
+        "source": {
+          "line": 1,
+          "column": 1
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "obj",
+          "typeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+          },
+          "pointer": {
+            "type": "function",
+            "function": {
+              "type": "classConstructor",
+              "info": {
+                "schemaClassInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "cacf06dd-db1d-4f48-99c7-f3cea5a6961f"
+                },
+                "fields": []
+              }
+            },
+            "source": {
+              "line": 2,
+              "column": 22
+            }
+          }
+        },
+        "source": {
+          "line": 2,
+          "column": 2
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "result",
+          "typeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+          },
+          "pointer": {
+            "type": "callFunction",
+            "memberId": "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7",
+            "receiver": {
+              "kind": "instance",
+              "pointer": {
+                "type": "variable",
+                "variableId": "link"
+              }
+            },
+            "args": [
+              {
+                "type": "function",
+                "function": {
+                  "type": "vectorConstructor",
+                  "info": {
+                    "vectorType": 15,
+                    "componentPointers": [
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 20
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 30
+                        }
+                      }
+                    ]
+                  }
+                },
+                "source": {
+                  "line": 3,
+                  "column": 54
+                }
+              },
+              {
+                "type": "variable",
+                "variableId": "obj"
+              }
+            ],
+            "callSiteId": "3:43:0",
+            "source": {
+              "line": 3,
+              "column": 43
+            }
+          }
+        },
+        "source": {
+          "line": 3,
+          "column": 2
+        }
+      },
+      {
+        "type": "variable",
+        "variable": {
+          "id": "collision",
+          "typeInfo": {
+            "type": 7,
+            "required": true,
+            "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+          },
+          "pointer": {
+            "type": "callFunction",
+            "memberId": "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7",
+            "receiver": {
+              "kind": "instance",
+              "pointer": {
+                "type": "variable",
+                "variableId": "link"
+              }
+            },
+            "args": [
+              {
+                "type": "function",
+                "function": {
+                  "type": "vectorConstructor",
+                  "info": {
+                    "vectorType": 15,
+                    "componentPointers": [
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 20
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 30
+                        }
+                      }
+                    ]
+                  }
+                },
+                "source": {
+                  "line": 4,
+                  "column": 57
+                }
+              },
+              {
+                "type": "function",
+                "function": {
+                  "type": "classConstructor",
+                  "info": {
+                    "schemaClassInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "cacf06dd-db1d-4f48-99c7-f3cea5a6961f"
+                    },
+                    "fields": []
+                  }
+                },
+                "source": {
+                  "line": 4,
+                  "column": 67
+                }
+              }
+            ],
+            "callSiteId": "4:46:1",
+            "source": {
+              "line": 4,
+              "column": 46
+            }
+          }
+        },
+        "source": {
+          "line": 4,
+          "column": 2
+        }
+      },
+      {
+        "type": "return",
+        "pointer": {
+          "type": "operation",
+          "operation": {
+            "type": "boolean",
+            "expression": {
+              "condition": {
+                "type": "equalTo",
+                "operand1": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "boolean",
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "operation",
+                          "operation": {
+                            "type": "boolean",
+                            "expression": {
+                              "condition": {
+                                "type": "equalTo",
+                                "operand1": {
+                                  "type": "keyOf",
+                                  "memberId": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+                                  "keyOf": {
+                                    "pointer": {
+                                      "type": "variable",
+                                      "variableId": "result"
+                                    },
+                                    "key": {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 3,
+                                          "required": true
+                                        },
+                                        "value": "Ok"
+                                      }
+                                    }
+                                  }
+                                },
+                                "operand2": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 1,
+                                      "required": true
+                                    },
+                                    "value": true
+                                  }
+                                }
+                              },
+                              "connective": {
+                                "type": "&&",
+                                "to": {
+                                  "condition": {
+                                    "type": "equalTo",
+                                    "operand1": {
+                                      "type": "keyOf",
+                                      "memberId": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+                                      "keyOf": {
+                                        "pointer": {
+                                          "type": "variable",
+                                          "variableId": "collision"
+                                        },
+                                        "key": {
+                                          "type": "value",
+                                          "value": {
+                                            "typeInfo": {
+                                              "type": 3,
+                                              "required": true
+                                            },
+                                            "value": "Ok"
+                                          }
+                                        }
+                                      }
+                                    },
+                                    "operand2": {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 1,
+                                          "required": true
+                                        },
+                                        "value": false
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 1,
+                              "required": true
+                            },
+                            "value": true
+                          }
+                        }
+                      },
+                      "connective": {
+                        "type": "&&",
+                        "to": {
+                          "condition": {
+                            "type": "equalTo",
+                            "operand1": {
+                              "type": "function",
+                              "function": {
+                                "type": "collectionQuery",
+                                "info": {
+                                  "collectionPointer": {
+                                    "type": "sequenceConversion",
+                                    "operation": "queryEnumerable",
+                                    "pointer": {
+                                      "type": "variable",
+                                      "variableId": "link"
+                                    },
+                                    "elementType": {
+                                      "type": 7,
+                                      "required": true,
+                                      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+                                    }
+                                  },
+                                  "op": "Any"
+                                }
+                              },
+                              "source": {
+                                "line": 5,
+                                "column": 47
+                              }
+                            },
+                            "operand2": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 1,
+                                  "required": true
+                                },
+                                "value": true
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "operand2": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 1,
+                      "required": true
+                    },
+                    "value": true
+                  }
+                }
+              },
+              "connective": {
+                "type": "&&",
+                "to": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "callGetter",
+                      "memberId": "system_ebaddc47-73f4-5772-9f44-22e1bce73920",
+                      "receiver": {
+                        "kind": "instance",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "link"
+                        }
+                      },
+                      "source": {
+                        "line": 5,
+                        "column": 57
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "value": 1
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "source": {
+          "line": 5,
+          "column": 2
+        }
+      }
+    ],
+    "typeInfo": {
+      "type": 1,
+      "required": true
+    },
+    "dependencies": {
+      "recordIds": [
+        "__root__",
+        "cacf06dd-db1d-4f48-99c7-f3cea5a6961f",
+        "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
+        "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+        "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+        "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+        "system_ebaddc47-73f4-5772-9f44-22e1bce73920",
+        "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7"
+      ],
+      "typeNames": [
+        "NeoObjectBase",
+        "NeoPlacementResult",
+        "ObjectLayerLink",
+        "VaultPlaqueObject"
+      ]
+    }
+  }
+}

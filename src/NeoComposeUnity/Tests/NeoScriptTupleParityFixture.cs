@@ -183,8 +183,30 @@ namespace NeoCompose.Tests
                     ""type"": ""collectionQuery"",
                     ""info"": {
                       ""collectionPointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""values""
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""values""
+                        },
+                        ""elementType"": {
+                          ""type"": 30,
+                          ""required"": true,
+                          ""elements"": [
+                            {
+                              ""typeInfo"": {
+                                ""type"": 4,
+                                ""required"": true
+                              }
+                            },
+                            {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            }
+                          ]
+                        }
                       },
                       ""op"": ""ToSet""
                     }
@@ -356,135 +378,157 @@ namespace NeoCompose.Tests
                 ""type"": ""collectionQuery"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""listLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 6,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 30,
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""listLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 6,
                         ""required"": true,
-                        ""elements"": [
-                          {
-                            ""typeInfo"": {
-                              ""type"": 4,
-                              ""required"": true
-                            }
-                          },
-                          {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 4,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 2
-                                }
+                        ""entryTypeInfo"": {
+                          ""type"": 30,
+                          ""required"": true,
+                          ""elements"": [
+                            {
+                              ""typeInfo"": {
+                                ""type"": 4,
+                                ""required"": true
                               }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 4,
-                                    ""required"": true
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
+                            },
+                            {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
                             }
-                          }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 15
+                          ]
                         }
                       },
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 4,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 2
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
+                      ""entries"": [
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
                                 {
-                                  ""typeInfo"": {
-                                    ""type"": 4,
-                                    ""required"": true
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 4,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
                                   }
                                 },
                                 {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 2
                                   }
                                 }
-                              ]
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 4,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
                             }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 15
                           }
                         },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 26
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 4,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
+                                  }
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 2
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 4,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 26
+                          }
                         }
-                      }
-                    ]
+                      ]
+                    },
+                    ""elementType"": {
+                      ""type"": 30,
+                      ""required"": true,
+                      ""elements"": [
+                        {
+                          ""typeInfo"": {
+                            ""type"": 4,
+                            ""required"": true
+                          }
+                        },
+                        {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      ]
+                    }
                   },
                   ""op"": ""ToSet""
                 }
@@ -2534,16 +2578,148 @@ namespace NeoCompose.Tests
               ""type"": ""collectionQuery"",
               ""info"": {
                 ""collectionPointer"": {
-                  ""type"": ""function"",
-                  ""function"": {
-                    ""type"": ""select"",
-                    ""info"": {
-                      ""collectionPointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""queryEnumerable"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""select"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""listLiteral"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            },
+                            ""entries"": [
+                              {
+                                ""type"": ""function"",
+                                ""function"": {
+                                  ""type"": ""tupleCreate"",
+                                  ""info"": {
+                                    ""elementPointers"": [
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 1
+                                        }
+                                      },
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 2
+                                        }
+                                      }
+                                    ],
+                                    ""typeInfo"": {
+                                      ""type"": 30,
+                                      ""required"": true,
+                                      ""elements"": [
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          }
+                                        },
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                ""source"": {
+                                  ""line"": 1,
+                                  ""column"": 9
+                                }
+                              },
+                              {
+                                ""type"": ""function"",
+                                ""function"": {
+                                  ""type"": ""tupleCreate"",
+                                  ""info"": {
+                                    ""elementPointers"": [
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 3
+                                        }
+                                      },
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 4
+                                        }
+                                      }
+                                    ],
+                                    ""typeInfo"": {
+                                      ""type"": 30,
+                                      ""required"": true,
+                                      ""elements"": [
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          }
+                                        },
+                                        {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          }
+                                        }
+                                      ]
+                                    }
+                                  }
+                                },
+                                ""source"": {
+                                  ""line"": 1,
+                                  ""column"": 17
+                                }
+                              }
+                            ]
+                          },
+                          ""elementType"": {
                             ""type"": 30,
                             ""required"": true,
                             ""elements"": [
@@ -2562,171 +2738,15 @@ namespace NeoCompose.Tests
                             ]
                           }
                         },
-                        ""entries"": [
-                          {
-                            ""type"": ""function"",
-                            ""function"": {
-                              ""type"": ""tupleCreate"",
-                              ""info"": {
-                                ""elementPointers"": [
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 1
-                                    }
-                                  },
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 2
-                                    }
-                                  }
-                                ],
-                                ""typeInfo"": {
-                                  ""type"": 30,
-                                  ""required"": true,
-                                  ""elements"": [
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    },
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 9
-                            }
+                        ""function"": {
+                          ""compilerRevision"": 18,
+                          ""source"": {
+                            ""coordinateSpace"": ""body"",
+                            ""name"": ""getter <callback>""
                           },
-                          {
-                            ""type"": ""function"",
-                            ""function"": {
-                              ""type"": ""tupleCreate"",
-                              ""info"": {
-                                ""elementPointers"": [
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 3
-                                    }
-                                  },
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 4
-                                    }
-                                  }
-                                ],
-                                ""typeInfo"": {
-                                  ""type"": 30,
-                                  ""required"": true,
-                                  ""elements"": [
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    },
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 17
-                            }
-                          }
-                        ]
-                      },
-                      ""function"": {
-                        ""compilerRevision"": 18,
-                        ""source"": {
-                          ""coordinateSpace"": ""body"",
-                          ""name"": ""getter <callback>""
-                        },
-                        ""parameters"": [
-                          {
-                            ""id"": ""#lambda23"",
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            },
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 30,
-                                  ""required"": true,
-                                  ""elements"": [
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    },
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    }
-                                  ]
-                                },
-                                ""value"": null
-                              }
-                            }
-                          }
-                        ],
-                        ""instructions"": [
-                          {
-                            ""type"": ""variable"",
-                            ""variable"": {
-                              ""id"": ""#lambda23#pattern"",
+                          ""parameters"": [
+                            {
+                              ""id"": ""#lambda23"",
                               ""typeInfo"": {
                                 ""type"": 30,
                                 ""required"": true,
@@ -2746,115 +2766,169 @@ namespace NeoCompose.Tests
                                 ]
                               },
                               ""pointer"": {
-                                ""type"": ""variable"",
-                                ""variableId"": ""#lambda23""
-                              }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 33
-                            }
-                          },
-                          {
-                            ""type"": ""variable"",
-                            ""variable"": {
-                              ""id"": ""a"",
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""pointer"": {
-                                ""type"": ""function"",
-                                ""function"": {
-                                  ""type"": ""tupleElement"",
-                                  ""info"": {
-                                    ""tuplePointer"": {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""#lambda23#pattern""
-                                    },
-                                    ""index"": 0
-                                  }
-                                },
-                                ""source"": {
-                                  ""line"": 1,
-                                  ""column"": 34
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 30,
+                                    ""required"": true,
+                                    ""elements"": [
+                                      {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        }
+                                      },
+                                      {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        }
+                                      }
+                                    ]
+                                  },
+                                  ""value"": null
                                 }
                               }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 34
                             }
-                          },
-                          {
-                            ""type"": ""variable"",
-                            ""variable"": {
-                              ""id"": ""b"",
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""pointer"": {
-                                ""type"": ""function"",
-                                ""function"": {
-                                  ""type"": ""tupleElement"",
-                                  ""info"": {
-                                    ""tuplePointer"": {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""#lambda23#pattern""
-                                    },
-                                    ""index"": 1
-                                  }
-                                },
-                                ""source"": {
-                                  ""line"": 1,
-                                  ""column"": 37
-                                }
-                              }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 37
-                            }
-                          },
-                          {
-                            ""type"": ""return"",
-                            ""pointer"": {
-                              ""type"": ""operation"",
-                              ""operation"": {
-                                ""type"": ""arithmetic"",
-                                ""arithmetic"": {
-                                  ""type"": ""+"",
-                                  ""pointers"": [
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variable"": {
+                                ""id"": ""#lambda23#pattern"",
+                                ""typeInfo"": {
+                                  ""type"": 30,
+                                  ""required"": true,
+                                  ""elements"": [
                                     {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""a""
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      }
                                     },
                                     {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""b""
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      }
                                     }
-                                  ],
-                                  ""numeric"": ""int""
+                                  ]
+                                },
+                                ""pointer"": {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""#lambda23""
                                 }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 33
                               }
                             },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 44
+                            {
+                              ""type"": ""variable"",
+                              ""variable"": {
+                                ""id"": ""a"",
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""pointer"": {
+                                  ""type"": ""function"",
+                                  ""function"": {
+                                    ""type"": ""tupleElement"",
+                                    ""info"": {
+                                      ""tuplePointer"": {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""#lambda23#pattern""
+                                      },
+                                      ""index"": 0
+                                    }
+                                  },
+                                  ""source"": {
+                                    ""line"": 1,
+                                    ""column"": 34
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 34
+                              }
+                            },
+                            {
+                              ""type"": ""variable"",
+                              ""variable"": {
+                                ""id"": ""b"",
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""pointer"": {
+                                  ""type"": ""function"",
+                                  ""function"": {
+                                    ""type"": ""tupleElement"",
+                                    ""info"": {
+                                      ""tuplePointer"": {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""#lambda23#pattern""
+                                      },
+                                      ""index"": 1
+                                    }
+                                  },
+                                  ""source"": {
+                                    ""line"": 1,
+                                    ""column"": 37
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 37
+                              }
+                            },
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""arithmetic"",
+                                  ""arithmetic"": {
+                                    ""type"": ""+"",
+                                    ""pointers"": [
+                                      {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""a""
+                                      },
+                                      {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""b""
+                                      }
+                                    ],
+                                    ""numeric"": ""int""
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 44
+                              }
                             }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        ],
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
                         }
                       }
+                    },
+                    ""source"": {
+                      ""line"": 1,
+                      ""column"": 31
                     }
                   },
-                  ""source"": {
-                    ""line"": 1,
-                    ""column"": 31
+                  ""elementType"": {
+                    ""type"": 2,
+                    ""required"": true
                   }
                 },
                 ""op"": ""Sum"",
@@ -4457,8 +4531,30 @@ namespace NeoCompose.Tests
                       ""type"": ""contains"",
                       ""info"": {
                         ""collectionPointer"": {
-                          ""type"": ""variable"",
-                          ""variableId"": ""values""
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""values""
+                          },
+                          ""elementType"": {
+                            ""type"": 30,
+                            ""required"": true,
+                            ""elements"": [
+                              {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                }
+                              },
+                              {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                }
+                              }
+                            ]
+                          }
                         },
                         ""valuePointer"": {
                           ""type"": ""function"",
@@ -4722,187 +4818,209 @@ namespace NeoCompose.Tests
                 ""type"": ""collectionQuery"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""listLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 6,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 30,
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""listLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 6,
                         ""required"": true,
-                        ""elements"": [
-                          {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
+                        ""entryTypeInfo"": {
+                          ""type"": 30,
+                          ""required"": true,
+                          ""elements"": [
+                            {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      ""entries"": [
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
+                                  }
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 2
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
                             }
                           },
-                          {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 15
                           }
-                        ]
-                      }
+                        },
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
+                                  }
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 2
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 23
+                          }
+                        },
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 3
+                                  }
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 4
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 31
+                          }
+                        }
+                      ]
                     },
-                    ""entries"": [
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 2
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            }
+                    ""elementType"": {
+                      ""type"": 30,
+                      ""required"": true,
+                      ""elements"": [
+                        {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
                         },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 15
-                        }
-                      },
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 2
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            }
+                        {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 23
                         }
-                      },
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 3
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 4
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 31
-                        }
-                      }
-                    ]
+                      ]
+                    }
                   },
                   ""op"": ""ToSet""
                 }
@@ -5906,135 +6024,161 @@ namespace NeoCompose.Tests
                 ""type"": ""collectionQuery"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""listLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 6,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 30,
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""listLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 6,
                         ""required"": true,
-                        ""elements"": [
-                          {
-                            ""typeInfo"": {
-                              ""type"": 6,
-                              ""required"": true,
-                              ""entryTypeInfo"": {
+                        ""entryTypeInfo"": {
+                          ""type"": 30,
+                          ""required"": true,
+                          ""elements"": [
+                            {
+                              ""typeInfo"": {
+                                ""type"": 6,
+                                ""required"": true,
+                                ""entryTypeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                }
+                              }
+                            },
+                            {
+                              ""typeInfo"": {
                                 ""type"": 2,
                                 ""required"": true
                               }
                             }
+                          ]
+                        }
+                      },
+                      ""entries"": [
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""a""
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 6,
+                                      ""required"": true,
+                                      ""entryTypeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      }
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            }
                           },
-                          {
-                            ""typeInfo"": {
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 28
+                          }
+                        },
+                        {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""tupleCreate"",
+                            ""info"": {
+                              ""elementPointers"": [
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""a""
+                                },
+                                {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    },
+                                    ""value"": 1
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 30,
+                                ""required"": true,
+                                ""elements"": [
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 6,
+                                      ""required"": true,
+                                      ""entryTypeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      }
+                                    }
+                                  },
+                                  {
+                                    ""typeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 36
+                          }
+                        }
+                      ]
+                    },
+                    ""elementType"": {
+                      ""type"": 30,
+                      ""required"": true,
+                      ""elements"": [
+                        {
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
                               ""type"": 2,
                               ""required"": true
                             }
                           }
-                        ]
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""variable"",
-                                ""variableId"": ""a""
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 6,
-                                    ""required"": true,
-                                    ""entryTypeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    }
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            }
-                          }
                         },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 28
-                        }
-                      },
-                      {
-                        ""type"": ""function"",
-                        ""function"": {
-                          ""type"": ""tupleCreate"",
-                          ""info"": {
-                            ""elementPointers"": [
-                              {
-                                ""type"": ""variable"",
-                                ""variableId"": ""a""
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 30,
-                              ""required"": true,
-                              ""elements"": [
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 6,
-                                    ""required"": true,
-                                    ""entryTypeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    }
-                                  }
-                                },
-                                {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
-                                }
-                              ]
-                            }
+                        {
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 36
                         }
-                      }
-                    ]
+                      ]
+                    }
                   },
                   ""op"": ""ToSet""
                 }
@@ -8208,7 +8352,6 @@ namespace NeoCompose.Tests
       }
     }
   }
-]
-";
+]";
     }
 }

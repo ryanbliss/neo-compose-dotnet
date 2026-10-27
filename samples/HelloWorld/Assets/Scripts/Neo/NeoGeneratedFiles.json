@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "codegenRevision": "bd2e6bec83d785a766b6333e05dabc7f37bc1bc05ba1ccb7daf60b85781def0d",
+  "codegenRevision": "e9fc89d96aa0f96aae9e9822c38d20678e6eb31ae534cd9dc5b8c770c9e4920a",
   "files": [
     {
       "id": "class:11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -26,17 +26,17 @@
     {
       "id": "class:neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19",
       "path": "Generated/Classes/BackgroundTileLayer.g.cs",
-      "hash": "2161be2af2d8bf164db62f7a28fddf88d15c66b79691798986fb2dce745f241b"
+      "hash": "9eba70ea3d9749bdab5ab3c518beae865a91d16c5b59b2de2e9fb1b0be1e6618"
     },
     {
       "id": "class:neo-tile-grid-record-relations-v1-class-67cc76a0b44ac0bc49a91ded3b573152",
       "path": "Generated/Classes/BackgroundTileLayerLink.g.cs",
-      "hash": "809d526aeeb935905a8798e6d3b3b860d630580b3c006e015e9947180968c738"
+      "hash": "a75c80b01a9032421a0538e39a1fb647f75c2fbf4c609c98137c8dec893335a3"
     },
     {
       "id": "class:47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
       "path": "Generated/Classes/BlockedPath.g.cs",
-      "hash": "aeb0425300c58dea81211f0e4167abfd8415f4734d7f7187d1e85dd6216933c8"
+      "hash": "3eab390dbbe7052d5eb51860c3bce96c2d46b93993556c3c038c718c62bee6b6"
     },
     {
       "id": "class:07db44f3-8cc5-4164-aace-098ca68460f4",
@@ -46,12 +46,12 @@
     {
       "id": "class:neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa",
       "path": "Generated/Classes/CollisionTileLayer.g.cs",
-      "hash": "5a601a358f2e23b5b6d7f90f0100ee8713b7abeae605ea0a602b626e1500f3fe"
+      "hash": "ab166d23401f723ea982518c56e69dc6d63e5a8f01f4d58e0b05282d3ef97dc0"
     },
     {
       "id": "class:neo-tile-grid-record-relations-v1-class-c0ae01529031e2de38dc078687d59140",
       "path": "Generated/Classes/CollisionsTileLayerLink.g.cs",
-      "hash": "9d3478c436b6cd3c9dfa759edbf3b563218d8f0792528711c97d3225d0000fd1"
+      "hash": "e9060e032a053f565750cdff532a940ca1a1c1803f0d89e8fe0e80e8e8dae2ba"
     },
     {
       "id": "class:2ab1bc07-da0b-47fc-b77b-54cc511575bb",
@@ -81,7 +81,7 @@
     {
       "id": "class:neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f",
       "path": "Generated/Classes/DefaultObjectLayer.g.cs",
-      "hash": "423c8b1df2ca18a37eb9b3e349bdacfc2a8d0ff7db1f3620e7872ab40891af62"
+      "hash": "e3be136a483c0321a5190834c22b4af7755f67eefd0f6e28de3878841ebc2e59"
     },
     {
       "id": "class:5c65b156-e83a-41c5-bef0-ee375798bdc2",
@@ -246,7 +246,12 @@
     {
       "id": "class:system_04ef83b0-3171-4299-9580-902708690750",
       "path": "Generated/Classes/NeoObjectLayerLink.g.cs",
-      "hash": "acd1677970869bf62993392df7970e715f08f2ee921238e5533f0ffc11d6f56c"
+      "hash": "b113c9cacdaa69c0f3f56667887b8f099a246710df210ea6732d050289cb93c5"
+    },
+    {
+      "id": "class:system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+      "path": "Generated/Classes/NeoPlacementResult.g.cs",
+      "hash": "ee8ddfee9ad0536720cc4e3a1a75ea63edb301d6119e8f7d31a4977227a320bc"
     },
     {
       "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
@@ -321,12 +326,12 @@
     {
       "id": "class:system_c45e7270-954c-4eb5-8cf1-709e877d4d59",
       "path": "Generated/Classes/NeoTileLayerLink.g.cs",
-      "hash": "63d9ce7897cae4c5577e0e914819ee4bd901465877e7b6294fe8c1f5485cc6c2"
+      "hash": "dbd4c05cf9f8a17f8a83b69a234fccf893bfdca5427213a57592d44881625134"
     },
     {
       "id": "class:f1b08825-2ad0-4666-acf1-3df7ffbda64e",
       "path": "Generated/Classes/ObjectLayerLink.g.cs",
-      "hash": "29f10d3feb86d16187bf96a4de2acb3f5de2bee1c8f8c360e5dba4990f064cc8"
+      "hash": "d2622aabf656d9735d741a83d7b2ff9b0576c9254eb5192f3e4d3fc104f472b2"
     },
     {
       "id": "class:b44d80a9-7760-4919-8844-0cb71d08b788",
@@ -496,7 +501,7 @@
     {
       "id": "project:factories",
       "path": "Generated/HelloWorldNeo.Factories.g.cs",
-      "hash": "ff926dce04b606559178f67752b744d62162a14fb4662ad27afc6c3738faa961"
+      "hash": "5f1de4e74a037bbb51db0e79d84d31fd34f59bfeb4545550905fa735650cef54"
     },
     {
       "id": "project:functions",

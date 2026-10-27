@@ -1300,7 +1300,7 @@ namespace NeoCompose.Runtime
             value = valueData;
         }
 
-        private void PrepareRemoveUnorderedEntry(NeoWritePlan plan, string entryValueId)
+        internal void PrepareRemoveUnorderedEntry(NeoWritePlan plan, string entryValueId)
         {
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             MemberValue? row = plan.Resolve(entryValueId);

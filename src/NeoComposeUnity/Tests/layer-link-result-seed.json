@@ -1,0 +1,579 @@
+{
+  "classes": [
+    {
+      "id": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+      "projectId": "layer-link-project",
+      "name": "NeoPlacementResult",
+      "schema": {
+        "Ok": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+        "ErrorCode": "system_c12faebb-e7f3-5b4d-8745-812cfcabf565",
+        "Message": "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f"
+      },
+      "modifier": 2,
+      "system": {
+        "kind": "worldAuthoring",
+        "worldKind": "placementResult"
+      },
+      "requiredConstructorId": "system_62070d17-25e9-5cca-96a6-da2e97cb15aa",
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ],
+  "members": [
+    {
+      "id": "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae",
+      "projectId": "layer-link-project",
+      "name": "Ok",
+      "kind": 1,
+      "requirement": 1,
+      "mutability": 1,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "defaultValue": {
+        "init": {
+          "code": "ok",
+          "compiled": {
+            "compilerRevision": 18,
+            "source": {
+              "name": "Ok",
+              "coordinateSpace": "body"
+            },
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 1,
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_2__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_0__"
+                },
+                "source": {
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 1,
+              "required": true
+            },
+            "dependencies": {
+              "recordIds": [
+                "__root__",
+                "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+              ],
+              "typeNames": []
+            }
+          }
+        }
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    {
+      "id": "system_c12faebb-e7f3-5b4d-8745-812cfcabf565",
+      "projectId": "layer-link-project",
+      "name": "ErrorCode",
+      "kind": 3,
+      "mutability": 1,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "defaultValue": {
+        "init": {
+          "code": "errorCode",
+          "compiled": {
+            "compilerRevision": 18,
+            "source": {
+              "name": "ErrorCode",
+              "coordinateSpace": "body"
+            },
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 1,
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_2__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_1__"
+                },
+                "source": {
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 3,
+              "required": false
+            },
+            "dependencies": {
+              "recordIds": [
+                "__root__",
+                "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+              ],
+              "typeNames": []
+            }
+          }
+        }
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    {
+      "id": "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f",
+      "projectId": "layer-link-project",
+      "name": "Message",
+      "kind": 3,
+      "mutability": 1,
+      "system": {
+        "kind": "worldAuthoring"
+      },
+      "defaultValue": {
+        "init": {
+          "code": "message",
+          "compiled": {
+            "compilerRevision": 18,
+            "source": {
+              "name": "Message",
+              "coordinateSpace": "body"
+            },
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_0__",
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 1,
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_1__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__arg_2__",
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": false
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "variable",
+                  "variableId": "__arg_2__"
+                },
+                "source": {
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 3,
+              "required": false
+            },
+            "dependencies": {
+              "recordIds": [
+                "__root__",
+                "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+              ],
+              "typeNames": []
+            }
+          }
+        }
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  ],
+  "constructors": [
+    {
+      "argumentTypes": [
+        {
+          "name": "ok",
+          "type": 1,
+          "required": true
+        },
+        {
+          "name": "errorCode",
+          "type": 3,
+          "required": false,
+          "defaultValue": {
+            "value": null
+          }
+        },
+        {
+          "name": "message",
+          "type": 3,
+          "required": false,
+          "defaultValue": {
+            "value": null
+          }
+        }
+      ],
+      "code": null,
+      "id": "system_62070d17-25e9-5cca-96a6-da2e97cb15aa",
+      "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+      "projectId": "layer-link-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "action": {
+        "compilerRevision": 18,
+        "source": {
+          "name": "NeoPlacementResult",
+          "coordinateSpace": "body"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 1,
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_1__",
+            "typeInfo": {
+              "type": 3,
+              "required": false
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_2__",
+            "typeInfo": {
+              "type": 3,
+              "required": false
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 3,
+                  "required": false
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "dependencies": {
+          "recordIds": [
+            "__root__",
+            "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09"
+          ],
+          "typeNames": []
+        }
+      }
+    }
+  ]
+}

@@ -2895,6 +2895,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (TryInvokeRandom(memberId, site?.receiver.kind ?? receiverKind, receiver, args, ctx, out object? result))
                     return result;
+                if (NeoLayerLinkRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
+                    return result;
                 if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
                     return result;
                 if (ctx.client.ScriptGridQueries.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
@@ -6829,7 +6831,23 @@ namespace NeoCompose.Runtime.NeoScript
             else
                 c = EvalPointer(cf.info.collectionPointer, scope, ctx);
             if (inner is null)
-                return Box(CollectionLength(c));
+            {
+                if (c is not EnumerableQuery)
+                    return Box(CollectionLength(c));
+                int length = 0;
+                var sequence = new CollectionCursor(c, ctx);
+                try
+                {
+                    while (sequence.MoveNextUnresolved())
+                        length++;
+                    return Box(length);
+                }
+                catch (Exception error) when (sequence.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    sequence.Dispose();
+                }
+            }
 
             bool isList = CollectionIsList(c);
             int count = 0;
@@ -6841,15 +6859,23 @@ namespace NeoCompose.Runtime.NeoScript
                 CollectionCallbackReturnContract.Predicate);
             try
             {
-                var cursor = new CollectionCursor(c, ctx);
-                while (cursor.MoveNextUnresolved())
+                var cursor = new CollectionCursor(ListQueryReceiver(c, ctx), ctx);
+                try
                 {
-                    if (callback.Test(in cursor, cursor.ResolveEntry(ctx)))
-                        count++;
+                    while (cursor.MoveNextUnresolved())
+                    {
+                        if (callback.Test(in cursor, cursor.ResolveEntry(ctx)))
+                            count++;
+                    }
+                    object boxedCount = Box(count);
+                    callback.CompleteOperator(boxedCount);
+                    return boxedCount;
                 }
-                object boxedCount = Box(count);
-                callback.CompleteOperator(boxedCount);
-                return boxedCount;
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    cursor.Dispose();
+                }
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
@@ -6990,23 +7016,39 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 }
                 var listCursor = new CollectionCursor(c, ctx);
-                while (listCursor.MoveNextUnresolved())
+                try
                 {
-                    if (CollectionValueEqual(listCursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
+                    while (listCursor.MoveNextUnresolved())
+                    {
+                        if (CollectionValueEqual(listCursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
+                            return BoxedTrue;
+                    }
+                    return BoxedFalse;
+                }
+                catch (Exception error) when (listCursor.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    listCursor.Dispose();
+                }
+            }
+            var cursor = new CollectionCursor(c, ctx);
+            try
+            {
+                while (cursor.MoveNextUnresolved())
+                {
+                    if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
+                        || CollectionValueEqual(cursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
+                    {
                         return BoxedTrue;
+                    }
                 }
                 return BoxedFalse;
             }
-            var cursor = new CollectionCursor(c, ctx);
-            while (cursor.MoveNextUnresolved())
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
             {
-                if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, cnf.info.@decimal, ctx))
-                {
-                    return BoxedTrue;
-                }
+                cursor.Dispose();
             }
-            return BoxedFalse;
         }
 
         /// <summary>
@@ -7106,19 +7148,27 @@ namespace NeoCompose.Runtime.NeoScript
         private static HashSet<string> ReadSetKeys(object? set, JsonMember entryMember, Context ctx, HashSet<string> keys)
         {
             var cursor = new CollectionCursor(set, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                if (entryMember is ClassMember)
+                while (cursor.MoveNextUnresolved())
                 {
-                    if (cursor.ValueId is { } valueId)
-                        keys.Add(valueId);
+                    if (entryMember is ClassMember)
+                    {
+                        if (cursor.ValueId is { } valueId)
+                            keys.Add(valueId);
+                    }
+                    else
+                    {
+                        keys.Add(NeoSetEntryKey.Of(entryMember, cursor.ReadEntryRow(ctx), ctx.client));
+                    }
                 }
-                else
-                {
-                    keys.Add(NeoSetEntryKey.Of(entryMember, cursor.ReadEntryRow(ctx), ctx.client));
-                }
+                return keys;
             }
-            return keys;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         /// <summary>
@@ -7152,15 +7202,23 @@ namespace NeoCompose.Runtime.NeoScript
                 return Box(ReferenceIndexOf(c, target, ctx));
             string? targetReferenceId = ValueIdOf(target, ctx);
             var cursor = new CollectionCursor(c, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
-                    || CollectionValueEqual(cursor.ResolveEntry(ctx), target, iof.info.@decimal, ctx))
+                while (cursor.MoveNextUnresolved())
                 {
-                    return Box(cursor.Index);
+                    if ((cursor.ValueId is { } valueId && valueId == targetReferenceId)
+                        || CollectionValueEqual(cursor.ResolveEntry(ctx), target, iof.info.@decimal, ctx))
+                    {
+                        return Box(cursor.Index);
+                    }
                 }
+                return Box(-1);
             }
-            return Box(-1);
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         private static object? EvalWhere(
@@ -7168,7 +7226,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(wf.info.collectionPointer, scope, ctx);
+            var c = ListQueryReceiver(EvalPointer(wf.info.collectionPointer, scope, ctx), ctx);
             var inner = wf.info.function;
             bool isList = CollectionIsList(c);
             int capacity = CollectionEntryCount(c);
@@ -7193,42 +7251,50 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
-                JsonMember? entryMember = CollectionEntryMember(c, ctx);
-                // A string entry is kept as its value, so a later local Add of
-                // a string cannot pass for a value id.
-                bool values = cursor.Values || entryMember is StringMember or DecimalMember;
-                while (cursor.MoveNextUnresolved())
+                try
                 {
-                    object? entry = cursor.ResolveEntry(ctx);
-                    if (callback.Test(in cursor, entry))
+                    JsonMember? entryMember = CollectionEntryMember(c, ctx);
+                    // A string entry is kept as its value, so a later local Add of
+                    // a string cannot pass for a value id.
+                    bool values = cursor.Values || entryMember is StringMember or DecimalMember;
+                    while (cursor.MoveNextUnresolved())
                     {
-                        // Re-emit valueId references rather than dereferenced
-                        // entries when we have them — matches TS semantic.
-                        object? emit = values ? entry : cursor.ValueId ?? entry;
-                        if (matches is not null)
-                            AppendResult(ref matches, ref matchCount, emit);
-                        else
-                            matchedEntries![cursor.Key.ToString()!] = emit;
+                        object? entry = cursor.ResolveEntry(ctx);
+                        if (callback.Test(in cursor, entry))
+                        {
+                            // Re-emit valueId references rather than dereferenced
+                            // entries when we have them — matches TS semantic.
+                            object? emit = values ? entry : cursor.ValueId ?? entry;
+                            if (matches is not null)
+                                AppendResult(ref matches, ref matchCount, emit);
+                            else
+                                matchedEntries![cursor.Key.ToString()!] = emit;
+                        }
                     }
+                    object result;
+                    if (matches is not null)
+                    {
+                        object?[] list = TrimResult(matches, matchCount);
+                        if (inPlace && !ReferenceEquals(list, c))
+                            TemporaryLists.Return((object?[])c!);
+                        ctx.NoteFreshList(list);
+                        result = list;
+                    }
+                    else
+                    {
+                        result = matchedEntries!;
+                    }
+                    // The source compacted in place already carries its entry member.
+                    if (values || !ReferenceEquals(result, c))
+                        KeepDerived(result, entryMember, values);
+                    callback.CompleteOperator(result);
+                    return result;
                 }
-                object result;
-                if (matches is not null)
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
                 {
-                    object?[] list = TrimResult(matches, matchCount);
-                    if (inPlace && !ReferenceEquals(list, c))
-                        TemporaryLists.Return((object?[])c!);
-                    ctx.NoteFreshList(list);
-                    result = list;
+                    cursor.Dispose();
                 }
-                else
-                {
-                    result = matchedEntries!;
-                }
-                // The source compacted in place already carries its entry member.
-                if (values || !ReferenceEquals(result, c))
-                    KeepDerived(result, entryMember, values);
-                callback.CompleteOperator(result);
-                return result;
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
@@ -7263,7 +7329,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             bool enumeration = collection is RuntimeSet set
                 ? set.EnumEntries
-                : FindRowReference(collection, ctx)?.CollectionMember(ctx.client) is EnumMember or DialogueLookupMember;
+                : FindRowReference(collection is EnumerableQuery query ? query.Source : collection, ctx)?.CollectionMember(ctx.client) is EnumMember or DialogueLookupMember;
             return enumeration ? new object?[] { value } : value;
         }
 
@@ -7278,14 +7344,22 @@ namespace NeoCompose.Runtime.NeoScript
             FunctionCollectionOptionalBoolInfo info = isFirst
                 ? ((FirstFunction)fn).info
                 : ((FirstOrDefaultFunction)fn).info;
-            var c = EvalPointer(info.collectionPointer, scope, ctx);
+            var c = ListQueryReceiver(EvalPointer(info.collectionPointer, scope, ctx), ctx);
             var inner = info.function;
             bool isList = CollectionIsList(c);
             if (inner is null)
             {
                 var cursor = new CollectionCursor(c, ctx);
-                if (cursor.MoveNextUnresolved())
-                    return FirstEntryValue(c, cursor.ResolveEntry(ctx), ctx);
+                try
+                {
+                    if (cursor.MoveNextUnresolved())
+                        return FirstEntryValue(c, cursor.ResolveEntry(ctx), ctx);
+                }
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    cursor.Dispose();
+                }
             }
             else
             {
@@ -7298,14 +7372,22 @@ namespace NeoCompose.Runtime.NeoScript
                 try
                 {
                     var cursor = new CollectionCursor(c, ctx);
-                    while (cursor.MoveNextUnresolved())
+                    try
                     {
-                        object? foundValue = cursor.ResolveEntry(ctx);
-                        if (callback.Test(in cursor, foundValue))
+                        while (cursor.MoveNextUnresolved())
                         {
-                            callback.CompleteOperator(foundValue);
-                            return FirstEntryValue(c, foundValue, ctx);
+                            object? foundValue = cursor.ResolveEntry(ctx);
+                            if (callback.Test(in cursor, foundValue))
+                            {
+                                callback.CompleteOperator(foundValue);
+                                return FirstEntryValue(c, foundValue, ctx);
+                            }
                         }
+                    }
+                    catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                    finally
+                    {
+                        cursor.Dispose();
                     }
                 }
                 catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
@@ -7329,7 +7411,7 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            var c = EvalPointer(sf.info.collectionPointer, scope, ctx);
+            var c = ListQueryReceiver(EvalPointer(sf.info.collectionPointer, scope, ctx), ctx);
             var inner = sf.info.function;
             bool isList = CollectionIsList(c);
             var results = new object?[CollectionEntryCount(c)];
@@ -7343,15 +7425,23 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 var cursor = new CollectionCursor(c, ctx);
-                while (cursor.MoveNextUnresolved())
+                try
                 {
-                    object? projected = callback.Project(in cursor, cursor.ResolveEntry(ctx));
-                    if (!ReferenceEquals(projected, PreparedCollectionCallback.NoProjection))
-                        AppendResult(ref results, ref count, projected);
+                    while (cursor.MoveNextUnresolved())
+                    {
+                        object? projected = callback.Project(in cursor, cursor.ResolveEntry(ctx));
+                        if (!ReferenceEquals(projected, PreparedCollectionCallback.NoProjection))
+                            AppendResult(ref results, ref count, projected);
+                    }
+                    object?[] result = TrimResult(results, count);
+                    callback.CompleteOperator(result);
+                    return result;
                 }
-                object?[] result = TrimResult(results, count);
-                callback.CompleteOperator(result);
-                return result;
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally
+                {
+                    cursor.Dispose();
+                }
             }
             catch (Exception error) when (ctx.trace.Attach(error)) { throw; }
             finally
@@ -8829,6 +8919,8 @@ namespace NeoCompose.Runtime.NeoScript
 
             /// <summary>The entries in use; -1 when no snapshot is taken.</summary>
             internal int Count { get; private set; } = -1;
+            internal bool Values => values;
+            internal object? Raw(int index) => raws[index];
 
             internal void Take(object? collection, Context ctx)
             {
@@ -9024,7 +9116,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool CollectionIsList(object? collection)
         {
-            if (collection is object?[] or RuntimeSet)
+            if (collection is object?[] or RuntimeSet or EnumerableQuery)
                 return true;
             if (collection is IDictionary<string, object?>)
                 return false;
@@ -9037,10 +9129,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// entry as it is reached. A struct with no callback, so an operator
         /// allocates nothing per entry; <see cref="Key"/> boxes only when read.
         /// </summary>
-        private struct CollectionCursor
+        private struct CollectionCursor : IDisposable
         {
             private readonly object?[]? array;
             private readonly List<OrderedRawCollectionEntry>? ordered;
+            private readonly Context? sequenceContext;
+            private object? sequenceCursor;
+            private object? current;
+            private bool abandon;
             private readonly RowReference? collectionRef;
             private readonly JsonMember? entryMember;
             // The entry member's, resolved once rather than per entry.
@@ -9059,6 +9155,14 @@ namespace NeoCompose.Runtime.NeoScript
                 // write barrier. The context comes back with each read
                 // instead of being kept for the same reason.
                 this = default;
+                Index = -1;
+                if (collection is EnumerableQuery query)
+                {
+                    sequenceContext = ctx;
+                    sequenceCursor = AcquireSequenceCursor(query.Source, query.ElementType, ctx);
+                    values = sequenceCursor is not ScriptCollectionCursor stored || stored.Values;
+                    return;
+                }
                 RowReference? collectionRef = FindRowReference(collection, ctx);
                 if (collectionRef is not null)
                     this.collectionRef = collectionRef;
@@ -9094,7 +9198,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; private set;
             }
-            internal readonly object Key => array is not null ? Index : ordered![Index].Key;
+            internal readonly object Key => sequenceContext is not null || array is not null ? Index : ordered![Index].Key;
             internal readonly string? ValueId => values ? null : Raw as string;
 
             /// <summary>Whether the collection holds values rather than value ids.</summary>
@@ -9102,7 +9206,7 @@ namespace NeoCompose.Runtime.NeoScript
 
             // The current entry's stored value, read again rather than kept:
             // a field store through the cursor's byref costs a write barrier.
-            internal readonly object? Raw => array is not null ? array[Index] : ordered![Index].Raw;
+            internal readonly object? Raw => sequenceContext is not null ? current : array is not null ? array[Index] : ordered![Index].Raw;
 
             /// <summary>
             /// Advances to the next entry's stored value; <see cref="ResolveEntry"/>
@@ -9110,7 +9214,35 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal bool MoveNextUnresolved()
             {
-                return ++Index < count;
+                ++Index;
+                if (sequenceContext is null)
+                    return Index < count;
+                if (!AdvanceSequenceCursor(sequenceCursor, sequenceContext))
+                    return false;
+                current = sequenceCursor is ScriptCollectionCursor stored
+                    ? stored.Raw
+                    : ReadSequenceCurrent(sequenceCursor, sequenceContext);
+                return true;
+            }
+
+            // An exception filter records fatal termination before finally runs.
+            internal bool CaptureFailure(Exception error)
+            {
+                abandon = !NeoScriptErrorClassification.IsAuthoredCatchable(error);
+                return false;
+            }
+
+            public void Dispose()
+            {
+                if (sequenceContext is null)
+                    return;
+                if (abandon)
+                {
+                    if (sequenceCursor is ScriptCursor runtime)
+                        runtime.Abandon();
+                }
+                else
+                    DisposeSequenceCursor(sequenceCursor, sequenceContext);
             }
 
             /// <summary>
@@ -9119,6 +9251,8 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             internal readonly object? ResolveEntry(Context ctx)
             {
+                if (sequenceContext is not null)
+                    return ReadSequenceCurrent(sequenceCursor, sequenceContext);
                 object? raw = Raw;
                 if (raw is not string id || values)
                     return raw;
@@ -9304,12 +9438,20 @@ namespace NeoCompose.Runtime.NeoScript
                 return -1;
             }
             var cursor = new CollectionCursor(collection, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                if (IsSameReference(cursor.Raw, target, targetKey, ctx))
-                    return cursor.Index;
+                while (cursor.MoveNextUnresolved())
+                {
+                    if (IsSameReference(cursor.Raw, target, targetKey, ctx))
+                        return cursor.Index;
+                }
+                return -1;
             }
-            return -1;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         private static bool IsSameReference(object? entry, object? target, object? targetKey, Context ctx) =>
@@ -11587,7 +11729,9 @@ namespace NeoCompose.Runtime.NeoScript
                 : DerivedEntryMember(collection);
 
         internal static JsonMember? CollectionEntryMember(object? collection, Context ctx) =>
-            CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
+            collection is EnumerableQuery query
+                ? CollectionEntryMember(query.Source, ctx)
+                : CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
 
         /// <summary>
         /// <paramref name="value"/> as C# reads it. A stored List or
