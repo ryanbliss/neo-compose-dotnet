@@ -93,7 +93,7 @@ namespace NeoCompose.Tests
         [Test]
         public void NeoScript_UnorderedReadsAndMutationsUseMembership(
             [Values(false, true)] bool alias, [Values(false, true)] bool primitive,
-            [Values(false, true)] bool sessionInline)
+            [Values(false, true)] bool sessionInline, [Values(false, true)] bool removeAt)
         {
             ProjectData data = BuildProjectData();
             TypeInfo entryType = new ClassTypeInfo
@@ -247,8 +247,47 @@ namespace NeoCompose.Tests
                     args = args,
                 }), scope, ctx);
             Pointer Entry(string id) => new ReferencePointer { type = PointerKind.Reference, valueId = id };
+            Pointer Index(int index) => new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    value = Newtonsoft.Json.Linq.JToken.FromObject(index),
+                },
+            };
+            void Remove(string id)
+            {
+                if (!removeAt)
+                {
+                    Mutate(CollectionMutationKind.Remove, Entry(id));
+                    return;
+                }
+                int index = (int)Eval(new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new IndexOfFunction
+                    {
+                        type = FunctionKind.IndexOf,
+                        info = new FunctionCollectionContainsInfo
+                        {
+                            collectionPointer = pointer,
+                            valuePointer = Entry(id),
+                            reference = !primitive,
+                        },
+                    },
+                })!;
+                Assert.GreaterOrEqual(index, 0);
+                Mutate(CollectionMutationKind.RemoveAt, Index(index));
+            }
             CheckCount(2);
-            Mutate(CollectionMutationKind.Remove, Entry("item-a"));
+            if (removeAt)
+            {
+                Assert.Throws<NeoScriptException>(() => Mutate(CollectionMutationKind.RemoveAt, Index(-1)));
+                Assert.Throws<NeoScriptException>(() => Mutate(CollectionMutationKind.RemoveAt, Index(2)));
+                CheckCount(2);
+            }
+            Remove("item-a");
             CheckCount(1);
             if (!sessionInline)
                 Assert.IsTrue(client.saveValues["item-a"].IsRemoved);
@@ -268,7 +307,7 @@ namespace NeoCompose.Tests
                 using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
                 Assert.AreEqual(2, ResolveItems(reloaded).Count);
             }
-            Mutate(CollectionMutationKind.Remove, Entry("new-item"));
+            Remove("new-item");
             CheckCount(1);
             var first = Eval(new FunctionPointer
             {
