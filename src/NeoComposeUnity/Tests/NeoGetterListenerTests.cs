@@ -33,6 +33,52 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoGetterListenerTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CSharpWatchCreatedDuringScriptCommitArmsAfterTheBatch(bool disposeBeforeExit)
+        {
+            using Fixture fixture = Build();
+            var client = fixture.client;
+            using var node = new NeoMemberClassWritable(client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(client, node);
+            IDisposable? subscription = null;
+            var heard = new List<int>();
+            client.OnWritableValuesChanged += _ =>
+            {
+                if (subscription is not null)
+                    return;
+                Assert.IsFalse(client.CanMemoizeGetters, "Reproduce a spawn hook under a committing script batch.");
+                subscription = view.WatchEcho(value => heard.Add(value));
+            };
+            client.EnterScriptWrites();
+            try
+            {
+                var plan = new NeoWritePlan(client);
+                plan.Set(NeoValueOwnership.Save, Number("watcher-left", 1));
+                Assert.IsNotNull(client.ScriptWriteBatch("unrelated-collection"));
+                plan.Commit();
+                Assert.IsNotNull(subscription);
+                if (disposeBeforeExit)
+                    view.Dispose();
+            }
+            finally
+            {
+                client.ExitScriptWrites();
+            }
+            Assert.IsEmpty(heard, "Arming is not a change notification.");
+            fixture.Write("value-other", "member-other", 3);
+            fixture.Write("value-other", "member-other", 5);
+            CollectionAssert.AreEqual(disposeBeforeExit ? Array.Empty<int>() : new[] { 3, 5 }, heard);
+            subscription!.Dispose();
+        }
+
+        private sealed class GetterWatchView : NeoGeneratedClassValue
+        {
+            public GetterWatchView(NeoClient client, NeoMemberClass node) : base(client, node, "class-watcher", false, node.ownership) { }
+            public IDisposable WatchEcho(Action<int> handler) => WatchField(new NeoField<int>("Echo"),
+                (value, _) => handler(value), () => Convert.ToInt32(ComputeProperty("Echo").value));
+        }
+
         private const string ProjectId = "project-getter-listeners";
         private const string BoxParam = "box-t";
 

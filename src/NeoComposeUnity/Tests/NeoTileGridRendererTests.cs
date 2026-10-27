@@ -5489,11 +5489,12 @@ namespace NeoCompose.Tests
                 Assert.AreNotSame(original, rebuilt);
                 Assert.AreEqual(2, rebuilt.GetComponentsInChildren<SpriteRenderer>().Length);
 
-                // So does resizing a sprite, whose cell span is built in.
+                // Resizing changes geometry in place, preserving the hierarchy.
                 art.Size = new NeoReadOnlyVector3(new Vector3(2, 2, 0));
                 Changed();
                 Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var resized));
-                Assert.AreNotSame(rebuilt, resized);
+                Assert.AreSame(rebuilt, resized);
+                Assert.That(resized.GetComponentsInChildren<SpriteRenderer>()[0].bounds.size.x, Is.EqualTo(2f).Within(.001f));
 
                 void Changed() =>
                     primitive.NotifyChanged(new NeoTileGridChangedArgs("town-grid", objectLayers: new[]
@@ -5550,6 +5551,16 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(new Vector2(.5f, .25f), collider.size);
                 Assert.AreEqual(new Vector2(-.75f, 0), collider.offset);
                 Assert.IsTrue(collider.isTrigger);
+
+                // A resize moves the sprite's center even when its collider spec is unchanged.
+                art.Size = new NeoReadOnlyVector3(4, 3, 0);
+                Changed();
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out updated));
+                Assert.AreSame(original, updated);
+                Assert.AreSame(collider, drawn.GetComponent<BoxCollider2D>());
+                Assert.AreEqual(new Vector2(.5f, .25f), collider.size);
+                Assert.AreEqual(new Vector2(-1.75f, -1), collider.offset);
+                Assert.AreEqual(new Vector3(2, 1.5f, 0), drawn.transform.localPosition);
 
                 // Clearing it disables the same component.
                 art.Collider = null;
