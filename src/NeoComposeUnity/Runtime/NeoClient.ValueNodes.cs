@@ -142,8 +142,10 @@ namespace NeoCompose.Runtime
         internal void RegisterRetainedRootContract(string id, Member member)
         {
             if (ValueNode(id) is { live: true, session: { IsRemoved: false } row } node)
-                node.retainedRoot = new NeoValueNode.RetainedRootContract(member, SchemaResolution, row);
+                node.retainedRoot = new NeoValueNode.RetainedRootContract(member, SchemaResolution, row, ReadRow);
         }
+
+        private MemberValueBase? ReadRow(string id) => TryGetValue(id, out MemberValue? found) ? found : null;
 
         private bool TryRetainedRootMember(string id, NeoValueOwnership? ownership, out Member? member)
         {
@@ -155,7 +157,7 @@ namespace NeoCompose.Runtime
             // Do not reinterpret an escaped root after its schema or binding
             // contract changed. Current typed placement was already tried.
             if (!ReferenceEquals(contract.schema, SchemaResolution)
-                || !contract.MatchesBindings(row)
+                || !contract.MatchesType(row, ReadRow)
                 || !(contract.member is ListMember && row is ArrayMemberValue
                     || contract.member is DictionaryMember && row is ObjectMemberValue { classId: null }))
                 throw new System.InvalidOperationException($"Retained collection '{id}' no longer has its validated schema contract.");

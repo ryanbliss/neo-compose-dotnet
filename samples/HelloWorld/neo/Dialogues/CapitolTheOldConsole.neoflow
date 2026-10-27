@@ -32,9 +32,9 @@ sealed class CapitolTheOldConsole : NeoDialogue {
     group: Visits.High,
     order: 1,
     when: [
-    @id("d8922469-b568-5854-a4f2-470b1c98c8a9")
-    Condition1,
-  ],
+      @id("d8922469-b568-5854-a4f2-470b1c98c8a9")
+      Condition1,
+    ],
     limit: 1,
   ) => O1;
 

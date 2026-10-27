@@ -5,8 +5,8 @@
     DefaultObjectLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-e522347208edbc469734ca718a426003")
-    DefaultObjectLayer
+  @id("neo-tile-grid-record-relations-v1-relation-e522347208edbc469734ca718a426003")
+  DefaultObjectLayer
 )
 class ExitPromptObject987403 : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-f5cbad50312ebc69397239b2f2035a87")
@@ -18,7 +18,9 @@ class ExitPromptObject987403 : ExitPromptObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.ExitPromptObject.Slice(0),
+      Children = [],
       Enabled = true,
+      PlacementTiles = [],
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     },

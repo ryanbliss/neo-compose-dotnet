@@ -123,7 +123,7 @@ namespace NeoCompose.Runtime.NeoScript
             bool added = origin is null;
             if (origin is null)
             {
-                Member descriptor = NeoGeneratedTypesSupport.LocalSelectionDescriptor(context.client, target);
+                Member descriptor = NeoGeneratedTypesSupport.LocalSelectionDescriptor(target);
                 origin = new Origin(state, value, descriptor, context);
                 state.origins.Add(origin.Identity, origin);
             }

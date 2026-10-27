@@ -22,9 +22,9 @@ sealed class CapitolRerun : NeoDialogue {
     group: Visits.Low,
     order: 0,
     when: [
-    @id("d8d80ede-e605-5304-8695-b9f8f6eda251")
-    Condition1,
-  ],
+      @id("d8d80ede-e605-5304-8695-b9f8f6eda251")
+      Condition1,
+    ],
   ) => Z1;
 
   @id("93a671ab-b8a4-4d1c-a604-2f1cf1954c1b")

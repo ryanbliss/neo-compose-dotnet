@@ -72,12 +72,14 @@ namespace NeoCompose.Tests
             string content = (await sync.LoadSaveContentAsync())!;
             var imported = JObject.Parse(content);
             imported["changeListeners"] = JObject.Parse("{\"save\":{\"save\":{\"field\":[{\"memberId\":\"handler\",\"valueId\":\"save\"}]}}}");
-            imported["requiredSaveFormatRevision"] = NeoSaveFormat.ListenerRevision;
+            imported["requiredSaveFormatRevision"] = NeoSaveFormat.P127Revision;
             using var client = new NeoClient(sync, imported.ToString(Formatting.None), saveOptions: new NeoSaveOptions { DiagnosticsEnabled = false });
             await client.CommitAsync();
             Assert.That(api.sparseCommits, Is.Empty, "The ordinary unchanged client commit remains a no-op.");
             var committed = imported.ToObject<RemoteGameSave>()!;
             committed.id = remote.id;
+            // The server stores the revision the client sent.
+            committed.requiredSaveFormatRevision = NeoSaveFormat.SupportedRevision;
             committed.snapshotId = "imported-snapshot";
             committed.snapshotName = "Snapshot 1791144000000";
             committed.recordCache.snapshotId = committed.snapshotId;
@@ -602,7 +604,7 @@ namespace NeoCompose.Tests
                 };
                 if (removedBinding)
                     ((ObjectMemberValue)data.values["save"]).genericBindings =
-                        new Dictionary<string, string> { ["stale-type"] = "removed-binding" };
+                        TestTypeBindings.Stamp(("stale-type", TestTypeBindings.Class("removed-class")));
             }, saved.ToString(Formatting.None));
             Assert.DoesNotThrow(() => WriteCount(client, 7));
             CollectionAssert.AreEqual(new[] { 7d }, heard);
@@ -1488,16 +1490,17 @@ namespace NeoCompose.Tests
         public void DurableListenerFormatPromotionSurvivesRemovingTheLastListener()
         {
             using var client = BuildClient();
-            Assert.That(JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.Null);
+            // P127 §15: every save this SDK writes carries revision 3.
+            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.P127Revision));
             var target = new NeoDelegateValue { memberId = "handler" };
             client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field", IntType(), target, true);
-            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.P127Revision));
             client.EditMemberChangeListener("save", NeoValueOwnership.Save, "field", IntType(), target, false);
             var saved = JObject.Parse(client.SerializeSaveData());
             Assert.That(saved["changeListeners"], Is.Null);
-            Assert.That((int?)saved["requiredSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That((int?)saved["requiredSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.P127Revision));
             using var reloaded = BuildClient(loadedSaveContent: saved.ToString(Formatting.None));
-            Assert.That((int?)JObject.Parse(reloaded.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That((int?)JObject.Parse(reloaded.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.P127Revision));
         }
 
         [Test]
@@ -1505,7 +1508,7 @@ namespace NeoCompose.Tests
         {
             using var client = BuildClient();
             var saved = JObject.Parse(client.SerializeSaveData());
-            saved["requiredSaveFormatRevision"] = 3;
+            saved["requiredSaveFormatRevision"] = NeoSaveFormat.SupportedRevision + 1;
             var error = Assert.Throws<NeoUnsupportedSaveFormatException>(() => BuildClient(loadedSaveContent: saved.ToString(Formatting.None)));
             StringAssert.Contains("Upgrade", error!.Message);
         }
@@ -1529,12 +1532,10 @@ namespace NeoCompose.Tests
         {
             using var client = BuildClient();
             var saved = JObject.Parse(client.SerializeSaveData());
-            saved["requiredSaveFormatRevision"] = 2;
+            Assert.That(saved["changeListeners"], Is.Null);
+            saved["requiredSaveFormatRevision"] = NeoSaveFormat.P127Revision;
             client.ApplyExternalSaveContent(saved.ToString(Formatting.None));
-            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(2));
-            saved.Remove("requiredSaveFormatRevision");
-            client.ApplyExternalSaveContent(saved.ToString(Formatting.None));
-            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That((int?)JObject.Parse(client.SerializeSaveData())["requiredSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.P127Revision));
         }
 
         [Test]
@@ -1550,7 +1551,7 @@ namespace NeoCompose.Tests
             });
             string before = client.SerializeSaveData();
             var incoming = JObject.Parse(before);
-            incoming["requiredSaveFormatRevision"] = 2;
+            incoming["requiredSaveFormatRevision"] = NeoSaveFormat.P127Revision;
             incoming["values"] = JObject.FromObject(new Dictionary<string, MemberValue>
             {
                 ["count"] = new NumberMemberValue { id = "count", value = 7 },
@@ -1567,6 +1568,7 @@ namespace NeoCompose.Tests
             });
             var error = Assert.Catch(() => client.ApplyExternalSaveContent(incoming.ToString(Formatting.None)));
             Assert.That(error!.Message, Does.Contain("save"));
+            Assert.That(error.Message, Does.Not.Contain("format revision"));
             Assert.That(client.SerializeSaveData(), Is.EqualTo(before));
         }
 

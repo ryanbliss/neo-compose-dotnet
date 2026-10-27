@@ -349,7 +349,10 @@ namespace NeoCompose.Tests
             string id = NSGetterEvaluator.FindRowIdByReference(source, ctx)!;
             Assert.IsTrue(client.TryGetValue(id, out ObjectMemberValue? row));
             JToken recorded = row!.constructorArgs!.Values.Single()!;
-            Assert.AreEqual(2, recorded[0]!["y"]!.Value<int>(), recorded.ToString());
+            Assert.That(recorded.Type, Is.EqualTo(JTokenType.String));
+            Assert.That(client.TryGetValue(recorded.Value<string>()!, out ArrayMemberValue? argument), Is.True);
+            Assert.That(client.TryGetValue(argument!.value![0], out Vector2MemberValue? element), Is.True);
+            Assert.AreEqual(2, element!.value!.y);
         }
 
         [Test]
@@ -627,7 +630,7 @@ namespace NeoCompose.Tests
                     new ArrayMemberValue { id = "patterns", value = new[] { "listed-a", "listed-b" } });
                 AddField("ByName", new DictionaryMember { id = "by-name-member", name = "ByName", kind = MemberKind.Dictionary, entryMemberId = "pattern-entry" },
                     new ObjectMemberValue { id = "by-name", value = new Dictionary<string, string> { ["near"] = "near" } });
-                var bindings = new Dictionary<string, string> { ["box-t"] = "box-binding" };
+                var bindings = TestTypeBindings.Stamp(("box-t", TestTypeBindings.Class(NeoCellPatternOffsets.ClassId, required: false)));
                 AddField("Box", new ClassMember { id = "box-member", name = "Box", kind = MemberKind.Class, DeclaredClassId = "pattern-box" },
                     new ObjectMemberValue
                     {

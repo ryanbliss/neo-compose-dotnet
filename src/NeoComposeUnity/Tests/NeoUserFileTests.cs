@@ -606,6 +606,7 @@ namespace NeoCompose.Tests
         {
             var remote = NeoSaveTestSupport.Remote("user-cloud", "snap-user");
             remote.name = NeoSaveSynchronizer.UserFileName;
+            remote.requiredSaveFormatRevision = NeoSaveFormat.P127Revision;
             remote.values = NeoSaveValues.FromTypedValues(new Dictionary<string, MemberValue>
             {
                 [VolumeId] = new NumberMemberValue { id = VolumeId, value = volume },
@@ -626,6 +627,7 @@ namespace NeoCompose.Tests
                 ["releaseChannelId"] = channel,
                 ["name"] = NeoSaveSynchronizer.UserFileName,
                 ["projectId"] = "project-1",
+                ["requiredSaveFormatRevision"] = NeoSaveFormat.P127Revision,
                 ["version"] = new JObject { ["id"] = "v1", ["label"] = "1.0" },
                 ["serverId"] = serverId,
                 ["snapshotId"] = serverId == null ? null : snapshotId,

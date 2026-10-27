@@ -11,9 +11,9 @@ using Newtonsoft.Json.Linq;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
-    /// One property or Function declaration in a class interface.
-    /// The <see cref="kind"/> discriminator determines which signature
-    /// fields are present.
+    /// One property, Function or static field declaration in a class
+    /// interface. The <see cref="kind"/> discriminator determines which
+    /// signature fields are present.
     /// </summary>
     [JsonConverter(typeof(InterfaceMemberConverter))]
     public class InterfaceMember
@@ -29,11 +29,35 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty("access", NullValueHandling = NullValueHandling.Ignore)]
         private NeoMemberAccessKind? access;
 
-        // Property signature.
+        /// <summary>P127 §5. Present only as <c>true</c>; absent means an instance member.</summary>
+        [JsonProperty("static", NullValueHandling = NullValueHandling.Ignore)]
+        private bool? isStatic;
+        /// <summary>P127 §5. Abstract, Virtual or Sealed; absent reads by body and staticness.</summary>
+        [JsonProperty("modifier", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberModifierKind? modifier;
+        /// <summary>
+        /// P127 §5. The interface-owned member record holding the body or the
+        /// static field's value; absent on a member with no body.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? implementationMemberId;
+        /// <summary>P127 §5. The base interface member this one overrides or reabstracts.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ExplicitInterfaceImplementation? explicitImplementation;
+        /// <summary>P127 §6. Present only as <c>true</c>, on a user-defined operator.</summary>
+        [JsonProperty("operator", NullValueHandling = NullValueHandling.Ignore)]
+        private bool? isOperator;
+
+        // Property signature (also a static field's type).
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? typeInfo;
         [JsonProperty("accessors", NullValueHandling = NullValueHandling.Ignore)]
         private NeoPropertyAccessorsKind? accessors;
+        /// <summary>P127 §5. Absent means the member's own <see cref="Access"/>.</summary>
+        [JsonProperty("getterAccess", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? getterAccess;
+        [JsonProperty("setterAccess", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? setterAccess;
 
         // Function signature.
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -69,7 +93,57 @@ namespace NeoCompose.Runtime.Json
         }
 
         [JsonIgnore]
+        public bool IsStatic
+        {
+            get => isStatic == true;
+            set => isStatic = value ? true : null;
+        }
+
+        [JsonIgnore]
+        public bool IsOperator
+        {
+            get => isOperator == true;
+            set => isOperator = value ? true : null;
+        }
+
+        /// <summary>
+        /// A property with a <c>set</c> accessor: <c>GetSet</c> or <c>Set</c>.
+        /// An <c>init</c> accessor (P127 §5) isn't one.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsSettable =>
+            kind == NeoInterfaceMemberKind.Property
+            && (Accessors == NeoPropertyAccessorsKind.GetSet || Accessors == NeoPropertyAccessorsKind.Set);
+
+        [JsonIgnore]
+        public NeoMemberAccessKind GetterAccess
+        {
+            get => getterAccess ?? Access;
+            set => getterAccess = value;
+        }
+
+        [JsonIgnore]
+        public NeoMemberAccessKind SetterAccess
+        {
+            get => setterAccess ?? Access;
+            set => setterAccess = value;
+        }
+
+        [JsonIgnore]
         internal NeoMemberAccessKind? DeclaredAccess => access;
+
+        [JsonIgnore]
+        internal NeoMemberModifierKind? DeclaredModifier
+        {
+            get => modifier;
+            set => modifier = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredGetterAccess => getterAccess;
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredSetterAccess => setterAccess;
 
         [JsonIgnore]
         internal NeoPropertyAccessorsKind? DeclaredAccessors => accessors;
@@ -89,13 +163,13 @@ namespace NeoCompose.Runtime.Json
         public string name = null!;
         public Dictionary<string, InterfaceMember> members = null!;
         public List<string>? memberKeyOrder;
-        public List<string>? extendsInterfaceIds;
         /// <summary>
-        /// P113 §4.4. For each generic interface in
-        /// <see cref="extendsInterfaceIds"/>, one binding per param: a forward
-        /// of this interface's own param, or a closed Member binding.
+        /// P127 §4.7. Each extended interface construction, in order. A
+        /// generic one binds every param: a forward of this interface's own
+        /// param, or a closed Member binding.
         /// </summary>
-        public Dictionary<string, Dictionary<string, GenericBinding>>? extendsInterfaceArguments;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<InterfaceConstruction>? extendsInterfaces;
         /// <summary>P113 §2.4. Ordered params, shaped like a class's.</summary>
         public List<GenericParamDeclaration>? genericParams;
         public NeoTimestamp createdAt;
@@ -135,6 +209,9 @@ namespace NeoCompose.Runtime.Json
                 case NeoInterfaceMemberKind.Function:
                     ValidateFunction(json);
                     break;
+                case NeoInterfaceMemberKind.Field:
+                    ValidateField(json);
+                    break;
                 default:
                     throw new JsonSerializationException(
                         $"Unknown interface member kind '{(int)kind}'.");
@@ -164,6 +241,7 @@ namespace NeoCompose.Runtime.Json
             RejectPresent(json, "returnTypeInfo", "Property interface member");
             RejectPresent(json, "argumentTypes", "Property interface member");
             RejectPresent(json, "dispatch", "Property interface member");
+            RejectPresent(json, "operator", "Property interface member");
         }
 
         private static void ValidateFunction(JObject json)
@@ -180,6 +258,23 @@ namespace NeoCompose.Runtime.Json
                 "Function interface member");
             RejectPresent(json, "typeInfo", "Function interface member");
             RejectPresent(json, "accessors", "Function interface member");
+            RejectPresent(json, "getterAccess", "Function interface member");
+            RejectPresent(json, "setterAccess", "Function interface member");
+        }
+
+        /// <summary>P127 §5. A static interface field: a type and a value-holding implementation.</summary>
+        private static void ValidateField(JObject json)
+        {
+            RequireNonNull(json, "typeInfo", "Field interface member");
+            if (json["static"]?.Type != JTokenType.Boolean || !json.Value<bool>("static"))
+            {
+                throw new JsonSerializationException(
+                    "Field interface member requires 'static: true'.");
+            }
+            foreach (string field in new[] { "accessors", "getterAccess", "setterAccess", "returnTypeInfo", "argumentTypes", "genericParams", "dispatch", "operator" })
+            {
+                RejectPresent(json, field, "Field interface member");
+            }
         }
 
         private static void RequireNonNull(
@@ -208,9 +303,9 @@ namespace NeoCompose.Runtime.Json
 
         private static void ValidateSupportedTypeInfos(InterfaceMember member)
         {
-            if (member.kind == NeoInterfaceMemberKind.Property)
+            if (member.kind == NeoInterfaceMemberKind.Property || member.kind == NeoInterfaceMemberKind.Field)
             {
-                RejectUnsupportedTypeInfo(member.typeInfo!, "Property interface member");
+                RejectUnsupportedTypeInfo(member.typeInfo!, $"{member.kind} interface member");
                 return;
             }
 

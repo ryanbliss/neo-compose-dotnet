@@ -31,22 +31,22 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ObjectLayerLink(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, Enabled, Name, Position, Size, Objects), false, NeoValueOwnership.Session)
+        public ObjectLayerLink(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoObjectBase>? Objects = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, Objects), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Objects = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoObjectBase>? Objects = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Objects", "system_f8e217b1-da89-4819-9c8d-e9c9da2bdfb2", Objects)
             );
         }
@@ -106,32 +106,32 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<int> Count = new("Count");
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             internal static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.Count] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.Objects] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -149,13 +149,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.Count] = () => Count,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.Objects] = () => Objects,
+                [Fields.Count] = () => Count,
             };
         }
 

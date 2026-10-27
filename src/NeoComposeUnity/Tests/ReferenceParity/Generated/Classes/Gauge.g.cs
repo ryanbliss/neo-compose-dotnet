@@ -95,7 +95,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Gauge : NeoGeneratedClassValue, IReadOnlyGauge
     {
         internal Gauge(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bc3ffedd-fe1c-426b-a0e3-6529c45abaac", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "50991f3c-c407-4864-bf30-154febc0bb7a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -105,7 +105,7 @@ namespace NeoCompose.Tests.ReferenceParity
         }
 
         public Gauge()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "bc3ffedd-fe1c-426b-a0e3-6529c45abaac", "d0e41df6-46cb-43d4-bd21-5fbbca9807a7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "50991f3c-c407-4864-bf30-154febc0bb7a", "fc067424-9f1a-4d53-a185-8aada7d5b65e", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -251,7 +251,7 @@ namespace NeoCompose.Tests.ReferenceParity
             get
             {
                 var result = ComputeProperty("Doubled");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
         }
@@ -640,7 +640,7 @@ namespace NeoCompose.Tests.ReferenceParity
             }
         }
 
-        [NeoMemberMethod("87e752d6-f28c-4c18-bea0-189dd62547b9")]
+        [NeoMemberMethod("584a3f47-8c06-4b12-be08-2408f52dce44")]
         public void Hear(int v)
         {
             InvokeFunction("Hear", (object?)(v));

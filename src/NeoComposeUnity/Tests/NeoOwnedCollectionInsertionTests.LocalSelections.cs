@@ -16,6 +16,13 @@ namespace NeoCompose.Tests
 {
     public partial class NeoOwnedCollectionInsertionTests
     {
+        /// <summary>
+        /// The Lookup a <c>Reference&lt;List&lt;int&gt;&gt;</c> type argument
+        /// reads as: its interned binding view (P127 §12.1).
+        /// </summary>
+        private static LookupMember ListIntReference() =>
+            (LookupMember)NeoTypeBindingViews.View(TestTypeBindings.Reference(TestTypeBindings.List(TestTypeBindings.Of(MemberKind.Int))));
+
         private static JObject SelectionInt(int value) => new()
         {
             ["type"] = "value",
@@ -176,8 +183,7 @@ namespace NeoCompose.Tests
                 // The Gain control needs an ordinary stored root. An unrooted
                 // local holder is deliberately eligible for orphan collection.
                 var holder = schema.classes.Values.Single(c => c.name == "Holder");
-                var entry = schema.members.Values.OfType<LookupMember>().First(m =>
-                    m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+                var entry = ListIntReference();
                 var root = JObject.FromObject(schema.members.Values.OfType<ClassMember>().First(m =>
                     m.TryGetDeclaredClassId(out string id) && id == holder.id));
                 root["id"] = "selection-held-root";
@@ -185,11 +191,10 @@ namespace NeoCompose.Tests
                 root.Remove("valueId");
                 root["modifier"] = (int)NeoMemberModifierKind.Static;
                 root["storage"] = (int)NeoMemberStorage.Session;
-                root["classArguments"] = new JObject
-                {
-                    [holder.genericParams![0].id] = new JObject { ["kind"] = 1, ["memberId"] = entry.id }
-                };
-                schema.members["selection-held-root"] = root.ToObject<ClassMember>()!;
+                root.Remove("classArguments");
+                var held = root.ToObject<ClassMember>()!;
+                held.classArguments = TestTypeBindings.Stamp((holder.genericParams![0].id, HeldLookup(entry)));
+                schema.members["selection-held-root"] = held;
                 schema.classes.Values.Single(c => c.schema.Values.Contains(function.id)).schema["SelectionHeldRoot"] = "selection-held-root";
             }
             return (NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false), function);
@@ -234,8 +239,7 @@ namespace NeoCompose.Tests
                     // Only this invocation's Lookup entry selects a List row.
                     var row = c.sessionValues.Values.OfType<ArrayMemberValue>().Single(r => r.value?.Length == 1
                         && c.sessionValues.TryGetValue(r.value[0], out MemberValue? target) && target is ArrayMemberValue);
-                    var member = c.members.Values.OfType<LookupMember>().First(m =>
-                        m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+                    var member = ListIntReference();
                     if (first is null)
                     {
                         firstId = row.value![0];
@@ -281,8 +285,7 @@ namespace NeoCompose.Tests
                     c.CommitScriptRows();
                     var row = c.sessionValues.Values.OfType<ArrayMemberValue>().First(r => r.value?.Length == 1
                         && c.sessionValues.TryGetValue(r.value[0], out MemberValue? target) && target is ArrayMemberValue);
-                    var member = c.members.Values.OfType<LookupMember>().First(m =>
-                        m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+                    var member = ListIntReference();
                     if (reference is null)
                     {
                         var node = (NeoMemberLookup)NeoMember.CreateWritable(c, member, row.id, NeoValueOwnership.Session);
@@ -330,11 +333,18 @@ namespace NeoCompose.Tests
                 if (mode == "wrong")
                     list.entryMemberId = schema.members.Values.First(m => m.kind == MemberKind.String
                         && m.Requirement == NeoMemberRequirementKind.Required).id;
-                var lookup = schema.members.Values.OfType<LookupMember>().First(m =>
-                    m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+                // A declared Reference<List<int>> member this case may retarget,
+                // so it copies the shared interned view rather than editing it.
+                var lookup = (LookupMember)ListIntReference().ShallowClone();
+                lookup.id = Guid.NewGuid().ToString();
+                schema.members[lookup.id] = lookup;
+                NeoSchemaClass? genericClass = null;
                 if (mode is "open" or "partial")
                 {
-                    var genericClass = schema.classes.Values.First(c => c.genericParams?.Count > 0);
+                    genericClass = schema.classes.Values.First(c => c.genericParams?.Count > 0);
+                    // P127 reads a Lookup's generic target from its owning class row.
+                    if (mode == "partial")
+                        genericClass.schema["Target"] = lookup.id;
                     lookup.declaredTypeInfo = new GenericTypeInfo
                     {
                         type = MemberKind.Generic,
@@ -358,13 +368,25 @@ namespace NeoCompose.Tests
                     else
                         plan.Set(ownership, new NumberMemberValue { id = child, value = 7 });
                 }
-                plan.Set(ownership, new ArrayMemberValue
+                plan.Set(ownership, new ArrayMemberValue { id = entry, value = new[] { id } });
+                string owner = Guid.NewGuid().ToString();
+                if (mode == "partial")
                 {
-                    id = entry,
-                    value = new[] { id },
-                    genericBindings = mode == "partial" ? new() { ["unrelated"] = list.entryMemberId } : null
-                });
+                    // The owner stamps only an unrelated param, not the one the target names.
+                    plan.Set(ownership, new ObjectMemberValue
+                    {
+                        id = owner,
+                        classId = genericClass!.id,
+                        value = new() { ["Target"] = entry },
+                        genericBindings = TestTypeBindings.Stamp(("unrelated", TestTypeBindings.Of(MemberKind.Int)))
+                    });
+                }
                 plan.Commit();
+                if (mode == "partial")
+                {
+                    Assert.IsTrue(client.TryFindOwnedParent(ownership, entry, out string? parent), ownership + " " + mode);
+                    Assert.AreEqual(owner, parent);
+                }
                 if (mode == "deleted")
                 {
                     var removal = new NeoWritePlan(client);
@@ -520,14 +542,11 @@ namespace NeoCompose.Tests
                     c.CommitScriptRows();
                     var context = new NSGetterEvaluator.Context(c, null, null);
                     var coin = c.classes.Values.Single(type => type.name == "Coin");
-                    var list = c.members.Values.OfType<ListMember>().First(m => m.name == "Type argument"
-                        && c.members.TryGetValue(m.entryMemberId, out Member? entry)
-                        && entry is ClassMember entryClass && entryClass.TryGetDeclaredClassId(out string classId) && classId == coin.id);
-                    // Close a test selection over the existing exported owned-Class descriptor.
-                    // No descriptor is added or synthesized for the target graph.
-                    var lookup = (LookupMember)c.members.Values.OfType<LookupMember>().First(m =>
-                        m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List }).ShallowClone();
-                    lookup.declaredTypeInfo = NeoReferenceTypes.SlotTypeInfo(c, list)!;
+                    // P127 §12.1: a closed type reads as its interned member view,
+                    // so the selection closes over List<Coin>'s own view.
+                    TypeBinding coins = TestTypeBindings.List(TestTypeBindings.Class(coin.id));
+                    var list = (ListMember)NeoTypeBindingViews.View(coins);
+                    var lookup = (LookupMember)NeoTypeBindingViews.View(TestTypeBindings.Reference(coins));
                     string coinId = Guid.NewGuid().ToString();
                     string numberId = Guid.NewGuid().ToString();
                     var initial = new NeoWritePlan(c);
@@ -566,6 +585,84 @@ namespace NeoCompose.Tests
             });
             Assert.AreEqual(22, NeoMemberNSFunction.GetOrCreateStatic(client, setup.function.id).InvokeStatic());
             Assert.AreEqual(1, calls);
+        }
+
+        /// <summary>
+        /// P127 §12.1. A materialized local selection is a root its
+        /// descriptor types. An entry of a generic class sits where the
+        /// descriptor spells its class, so it reads its type from a
+        /// typeSource there rather than keeping the stamp it had when free.
+        /// </summary>
+        [Test]
+        public void MaterializedLocalSelectionPlacesGenericClassEntries()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Root + "paired-export.json"));
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var list = client.members.Values.OfType<ListMember>().First(m => m.name == "ChildOverrides");
+            var entry = (ClassMember)client.members[list.entryMemberId];
+            Assert.IsTrue(entry.TryGetDeclaredClassId(out string classId));
+            var stamp = new Dictionary<string, TypeBinding>(entry.classArguments!);
+            string entryId = Guid.NewGuid().ToString();
+            var initial = new NeoWritePlan(client);
+            initial.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = entryId,
+                classId = classId,
+                value = new(),
+                genericBindings = stamp
+            });
+            initial.Commit();
+            object?[] local = { NSGetterEvaluator.ResolveValueIfId(entryId, context) };
+            NSGetterEvaluator.CaptureRuntimeList(local);
+
+            var plan = new NeoWritePlan(client);
+            string target = NeoGeneratedTypesSupport.MaterializeLocalSelection(plan, list, local, context);
+            plan.Commit();
+
+            var row = (ArrayMemberValue)client.sessionValues[target];
+            Assert.AreEqual(new[] { entryId }, row.value);
+            MemberValue placed = client.sessionValues[entryId];
+            Assert.IsNull(placed.genericBindings);
+            Assert.AreEqual(NeoTypeSource.OfType(TypeBinding.Closed(
+                new TypeHead(MemberKind.Class, true, classId: classId), stamp)), placed.typeSource);
+            Assert.AreEqual(stamp, NeoTypeSources.OwnStamp(client, entryId, placed, entry,
+                id => client.TryGetValue(NeoValueOwnership.Session, id, out MemberValue? value) ? value : null));
+        }
+
+        /// <summary>
+        /// A local selection's descriptor is its target's own closed view, so a
+        /// Lookup bound to a collection and a still-open target have none.
+        /// </summary>
+        [TestCase("bound")]
+        [TestCase("open")]
+        public void LocalSelectionDescriptorRefusesTargetsWithNoClosedType(string mode)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Root + "paired-export.json"));
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var integer = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            TypeInfo target = mode == "bound"
+                ? new LookupTypeInfo
+                {
+                    type = MemberKind.Lookup,
+                    required = true,
+                    collectionMemberId = client.members.Values.OfType<ListMember>().First().id,
+                    entryTypeInfo = integer
+                }
+                : new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    required = true,
+                    entryTypeInfo = new GenericTypeInfo
+                    {
+                        type = MemberKind.Generic,
+                        required = true,
+                        ownerClassId = "holder",
+                        genericParamId = "t"
+                    }
+                };
+
+            Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.LocalSelectionDescriptor(target));
         }
 
         [TestCase("gain")]
@@ -613,8 +710,7 @@ namespace NeoCompose.Tests
                             && c.sessionValues.TryGetValue(r.value[0], out MemberValue? target) && target is ArrayMemberValue);
                         entryId = row.id;
                         originalTarget = previousTarget = row.value![0];
-                        lookup = c.members.Values.OfType<LookupMember>().First(m =>
-                            m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+                        lookup = ListIntReference();
                         fixedHost = new NeoReference<NeoList<int>>(c, originalTarget, lookup, entryId);
                         Assert.IsTrue(c.PendingScriptWrites!.TryGetEntryParent(NeoValueOwnership.Session, entryId, out parentId));
                         var holder = c.sessionValues.Values.OfType<ObjectMemberValue>().Single(r =>
@@ -729,7 +825,7 @@ namespace NeoCompose.Tests
             var schema = NeoTestExport.Read(File.ReadAllText(Root + "paired-export.json"));
             using var c = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
             var ctx = new NSGetterEvaluator.Context(c, null, null);
-            var lookup = c.members.Values.OfType<LookupMember>().First(m => m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+            var lookup = ListIntReference();
             object?[] a = { 7d }, b = { 8d, 9d };
             NSGetterEvaluator.CaptureRuntimeList(a);
             NSGetterEvaluator.CaptureRuntimeList(b);
@@ -842,8 +938,7 @@ namespace NeoCompose.Tests
         private static LocalCollectionSelections.Occurrence StageEarlySelection(NeoWriteBatch batch,
             NSGetterEvaluator.Context context, object value, string id)
         {
-            var lookup = context.client.members.Values.OfType<LookupMember>().First(m =>
-                m.declaredTypeInfo is CollectionTypeInfo { type: MemberKind.List, entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int } });
+            var lookup = ListIntReference();
             var occurrence = LocalCollectionSelections.Capture(batch.Plan, NeoValueOwnership.Session, id,
                 lookup, value, context, null)!;
             Assert.IsNotNull(occurrence);

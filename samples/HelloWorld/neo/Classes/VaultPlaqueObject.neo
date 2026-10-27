@@ -5,8 +5,8 @@
     DefaultObjectLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-e2b72fb554c3dbfc86cde50f39ab2feb")
-    DefaultObjectLayer
+  @id("neo-tile-grid-record-relations-v1-relation-e2b72fb554c3dbfc86cde50f39ab2feb")
+  DefaultObjectLayer
 )
 class VaultPlaqueObject : ConsoleObject {
   @id("neo-tile-grid-record-relations-v1-member-6600a0b0a8a2c976fd3b76e3199a91f7")
@@ -28,7 +28,9 @@ class VaultPlaqueObject : ConsoleObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.VaultPlaqueObject.Slice(0),
+      Children = [],
       Enabled = true,
+      PlacementTiles = [],
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     }
