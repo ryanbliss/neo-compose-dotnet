@@ -50,7 +50,7 @@ namespace NeoCompose.Runtime
                         return null;
             closedOwnedMembers ??= new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
             if (!closedOwnedMembers.TryGetValue(member, out var resolved))
-                closedOwnedMembers[member] = resolved = NeoGenericResolution.SubstituteMember(client, member, closedEnvironment);
+                closedOwnedMembers[member] = resolved = NeoGenericResolution.SubstituteOwnedMember(client, member, closedEnvironment);
             return resolved;
         }
 

@@ -525,7 +525,7 @@ namespace NeoCompose.Tests
         public void ConstructorRecord_AndClassConstructorIdsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -592,7 +592,7 @@ namespace NeoCompose.Tests
         public void RequiredConstructorId_AndBaseInitializerFieldsRoundTrip()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
         public void ConstructorCode_IsAbsentWhenNoInitBlockIsDeclared()
         {
             const string json = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project"", ""versionId"": ""v"" },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project"", ""versionId"": ""v"" },
   ""project"": { ""id"": ""project"", ""name"": ""P"" },
   ""members"": {},
   ""values"": {},
@@ -923,6 +923,53 @@ namespace NeoCompose.Tests
                 error.Message,
                 Does.Contain(
                     $"requires schema version {NeoProjectExportContract.CurrentSchemaVersion}"));
+        }
+
+        /// <summary>
+        /// A fixture below the current export schema can't load, so every test
+        /// that reads it fails at the gate. This sweep names each one at once,
+        /// including fixtures a merge brings in from an older schema.
+        /// </summary>
+        [Test]
+        public void EveryExportFixtureIsAtTheCurrentSchemaVersion()
+        {
+            var stale = new List<string>();
+            var swept = new List<string>();
+            foreach (string path in Directory.GetFiles(PackageRoot, "*.json", SearchOption.AllDirectories))
+            {
+                CollectStaleSchema(
+                    Path.GetRelativePath(PackageRoot, path),
+                    File.ReadAllText(path),
+                    swept,
+                    stale);
+            }
+            CollectStaleSchema(
+                "HelloWorld offline project.json",
+                File.ReadAllText("Assets/Resources/Neo/project.json"),
+                swept,
+                stale);
+
+            Assert.IsNotEmpty(swept, $"No export fixtures were found under '{PackageRoot}'.");
+            CollectionAssert.IsEmpty(
+                stale,
+                $"Upgrade these export fixtures to schema version {NeoProjectExportContract.CurrentSchemaVersion}; "
+                    + "the SDK refuses every other version before it reads a record. Swept: "
+                    + string.Join(", ", swept));
+        }
+
+        private static void CollectStaleSchema(string label, string json, List<string> swept, List<string> stale)
+        {
+            if (JToken.Parse(json) is not JObject root)
+                return;
+            if (root["metadata"]?["schemaVersion"] is not JToken version)
+                return;
+            swept.Add(label);
+            if (version.Type == JTokenType.Integer
+                && version.Value<int>() == NeoProjectExportContract.CurrentSchemaVersion)
+            {
+                return;
+            }
+            stale.Add($"{label}: schemaVersion {version}");
         }
 
         [Test]
@@ -1878,32 +1925,31 @@ namespace NeoCompose.Tests
 
             Assert.That(
                 Assert.Throws<JsonSerializationException>(() =>
-                    JsonConvert.DeserializeObject<GenericBinding>(
-                        "{'kind':'member','memberId':'member-a'}"))!.Message,
-                Does.Contain("must be a numeric enum ordinal"));
+                    JsonConvert.DeserializeObject<TypeBinding>(
+                        "{'kind':'closed','type':{'type':2,'required':true}}"))!.Message,
+                Does.Contain("needs an integer 'kind'"));
             Assert.That(
                 Assert.Throws<JsonSerializationException>(() =>
-                    JsonConvert.DeserializeObject<GenericBinding>(
-                        "{'kind':99,'memberId':'member-a'}"))!.Message,
-                Does.Contain("unknown ordinal '99'"));
+                    JsonConvert.DeserializeObject<TypeBinding>(
+                        "{'kind':99,'type':{'type':2,'required':true}}"))!.Message,
+                Does.Contain("unknown kind 99"));
         }
 
         [Test]
-        public void GenericDiscriminators_AbsentKindsDefaultToZero()
+        public void GenericDiscriminators_AbsentConstraintKindDefaultsToZero()
         {
             var constraint = JsonConvert.DeserializeObject<GenericParamConstraint>(
                 "{'classId':'class-a'}")!;
-            var binding = JsonConvert.DeserializeObject<GenericBinding>(
-                "{'genericParamId':'param-t'}")!;
 
             Assert.AreEqual(NeoGenericParamConstraintKind.Class, constraint.kind);
             Assert.AreEqual("class-a", constraint.classId);
-            Assert.AreEqual(NeoGenericBindingKind.Generic, binding.kind);
-            Assert.AreEqual("param-t", binding.genericParamId);
             Assert.IsFalse(
                 JObject.Parse(JsonConvert.SerializeObject(constraint)).ContainsKey("kind"));
-            Assert.IsFalse(
-                JObject.Parse(JsonConvert.SerializeObject(binding)).ContainsKey("kind"));
+            Assert.That(
+                Assert.Throws<JsonSerializationException>(() =>
+                    JsonConvert.DeserializeObject<TypeBinding>("{'type':{'type':2,'required':true}}"))!.Message,
+                Does.Contain("needs an integer 'kind'"),
+                "a type binding always spells its kind, Closed included");
         }
 
         [Test]
@@ -1912,27 +1958,23 @@ namespace NeoCompose.Tests
             const string json = @"{
   'classId':'class-open',
   'classArguments':{
-    'param-t':{'kind':1,'memberId':'member-string'},
-    'param-u':{'genericParamId':'param-v'}
+    'param-t':{'kind':0,'type':{'type':3,'required':true}},
+    'param-u':{'kind':1,'owner':{'type':7,'classId':'class-owner'},'param':'param-v'}
   }
 }";
 
             var constraint = JsonConvert.DeserializeObject<GenericParamConstraint>(json)!;
 
-            Assert.AreEqual("member-string", constraint.classArguments!["param-t"].memberId);
-            Assert.AreEqual(NeoGenericBindingKind.Member,
-                constraint.classArguments["param-t"].kind);
-            Assert.AreEqual("param-v", constraint.classArguments["param-u"].genericParamId);
-            Assert.AreEqual(NeoGenericBindingKind.Generic,
-                constraint.classArguments["param-u"].kind);
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.String), constraint.classArguments!["param-t"]);
+            Assert.AreEqual(TestTypeBindings.Open("class-owner", "param-v"), constraint.classArguments["param-u"]);
 
             JObject roundTrip = JObject.Parse(JsonConvert.SerializeObject(constraint));
             Assert.IsNull(roundTrip["enumId"]);
-            Assert.AreEqual(1, roundTrip["classArguments"]!["param-t"]!["kind"]!.Value<int>());
-            Assert.IsNull(roundTrip["classArguments"]!["param-t"]!["genericParamId"]);
-            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["kind"],
-                "the zero Generic binding discriminator stays omitted");
-            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["memberId"]);
+            Assert.AreEqual(0, roundTrip["classArguments"]!["param-t"]!["kind"]!.Value<int>(),
+                "the zero Closed discriminator is still written");
+            Assert.IsNull(roundTrip["classArguments"]!["param-t"]!["param"]);
+            Assert.AreEqual(1, roundTrip["classArguments"]!["param-u"]!["kind"]!.Value<int>());
+            Assert.IsNull(roundTrip["classArguments"]!["param-u"]!["type"]);
         }
 
         [Test]
@@ -1948,14 +1990,14 @@ namespace NeoCompose.Tests
             Assert.That(error!.Message, Does.Contain("cannot declare 'classId' or 'classArguments'"));
         }
 
-        [TestCase("{'genericParamId':'param-t','memberId':'member-a'}")]
-        [TestCase("{'kind':1,'memberId':'member-a','genericParamId':'param-t'}")]
-        public void GenericBinding_RejectsOppositeArmField(string json)
+        [TestCase("{'kind':0,'type':{'type':2,'required':true},'param':'param-t'}", "'param'")]
+        [TestCase("{'kind':1,'owner':{'type':7,'classId':'class-a'},'param':'param-t','type':{'type':2,'required':true}}", "'type'")]
+        public void TypeBinding_RejectsOppositeArmField(string json, string field)
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<GenericBinding>(json));
+                JsonConvert.DeserializeObject<TypeBinding>(json));
 
-            Assert.That(error!.Message, Does.Contain("cannot declare"));
+            Assert.That(error!.Message, Does.Contain($"has {field}, which it doesn't take"));
         }
 
         [Test]
@@ -2081,7 +2123,7 @@ namespace NeoCompose.Tests
                             },
                         },
                         memberKeyOrder = new List<string> { "Health", "FindTarget" },
-                        extendsInterfaceIds = new List<string> { "interface-entity" },
+                        extendsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = "interface-entity" } },
                         createdAt = 1000d,
                         updatedAt = 2000d,
                     },
@@ -2094,7 +2136,7 @@ namespace NeoCompose.Tests
                         projectId = "project",
                         name = "Enemy",
                         schema = new Dictionary<string, string>(),
-                        implementsInterfaceIds = new List<string> { "interface-damageable" },
+                        implementsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = "interface-damageable" } },
                     },
                 },
             };
@@ -2108,7 +2150,7 @@ namespace NeoCompose.Tests
                 declaration.memberKeyOrder);
             CollectionAssert.AreEqual(
                 new[] { "interface-entity" },
-                declaration.extendsInterfaceIds);
+                declaration.extendsInterfaces!.Select(construction => construction.interfaceId));
             Assert.AreEqual(true, declaration.members["Health"].Accessors == NeoPropertyAccessorsKind.GetSet);
 
             var function = declaration.members["FindTarget"];
@@ -2120,7 +2162,7 @@ namespace NeoCompose.Tests
                 function.argumentTypes![0].interfaceId);
             CollectionAssert.AreEqual(
                 new[] { "interface-damageable" },
-                roundTripped.classes["class-enemy"].implementsInterfaceIds);
+                roundTripped.classes["class-enemy"].implementsInterfaces!.Select(construction => construction.interfaceId));
         }
 
         [Test]

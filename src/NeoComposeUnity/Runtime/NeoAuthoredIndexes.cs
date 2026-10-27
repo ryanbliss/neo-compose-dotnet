@@ -21,6 +21,13 @@ namespace NeoCompose.Runtime
         internal readonly Dictionary<string, MemberValue> listenerRoots = new(StringComparer.Ordinal);
         internal readonly Dictionary<string, NeoValueOwnership> ownership = new();
         internal readonly Dictionary<string, NeoValueOwnership> storageRoots = new();
+
+        /// <summary>
+        /// The slot of each Save or User authored row, which a save row at
+        /// that id overlays. P127 §15's save pass reads it to type the rows
+        /// a save holds without walking the authored graph.
+        /// </summary>
+        internal readonly Dictionary<string, Member> storedSlots = new(StringComparer.Ordinal);
         internal bool membershipBuilt;
         internal bool ownershipBuilt;
         internal int ownershipEpoch;

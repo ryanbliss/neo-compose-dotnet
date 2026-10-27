@@ -44,6 +44,9 @@ namespace NeoCompose.Runtime
             if (left.id != right.id || left.classId != right.classId || left.mark != right.mark
                 || !ignorePlacement && (left.containerId != right.containerId || left.mapKey != right.mapKey)
                 || left.sourceValueId != right.sourceValueId
+                || !Equals(left.valueType, right.valueType)
+                || !Equals(left.typeSource, right.typeSource)
+                || !NeoCollectionComparer.Same(left.comparer, right.comparer)
                 || left.hasInstanceConstructorId != right.hasInstanceConstructorId
                 || left.instanceConstructorId != right.instanceConstructorId
                 || left.instanceVariantId != right.instanceVariantId
@@ -68,23 +71,34 @@ namespace NeoCompose.Runtime
                 Vector2MemberValue a => VectorEqual(a.value, ((Vector2MemberValue)right).value),
                 Vector3MemberValue a => VectorEqual(a.value, ((Vector3MemberValue)right).value),
                 ColorMemberValue a => ColorEqual(a.value, ((ColorMemberValue)right).value),
-                DelegateMemberValue a when IsMemberTargetOrNull(a.value)
-                    && IsMemberTargetOrNull(((DelegateMemberValue)right).value) =>
+                DelegateMemberValue a when IsTargetOrNull(a.value)
+                    && IsTargetOrNull(((DelegateMemberValue)right).value) =>
                     DelegateEqual(a.value, ((DelegateMemberValue)right).value),
                 ActionMemberValue a => ActionEqual(a.value, ((ActionMemberValue)right).value),
                 FileMemberValue a => ReferenceEquals(a.value, ((FileMemberValue)right).value)
                     || a.value is not null && ((FileMemberValue)right).value is { } file && a.value.fileId == file.fileId,
+                PayloadMemberValue a => JToken.DeepEquals(a.value, ((PayloadMemberValue)right).value),
                 SpriteMemberValue a => a.value?.fileId == ((SpriteMemberValue)right).value?.fileId
                     && a.value?.sliceIndex == ((SpriteMemberValue)right).value?.sliceIndex,
                 _ => ProjectRecordsEqual(JObject.FromObject(left), JObject.FromObject(right)),
             };
         }
 
-        private static bool IsMemberTargetOrNull(NeoDelegateValue? value) => value is null || value.IsMemberTarget;
+        private static bool IsTargetOrNull(NeoDelegateValue? value) => value is null || value.IsMemberTarget || value.IsBuiltInTarget;
 
+        /// <summary>
+        /// Member-target equality over every stored field, P127 §12.1's four
+        /// target keys and built-in target included, so an edit changing only
+        /// a construction is a change.
+        /// </summary>
         private static bool DelegateEqual(NeoDelegateValue? left, NeoDelegateValue? right) =>
             ReferenceEquals(left, right) || (left is not null && right is not null
-                && left.memberId == right.memberId && left.valueId == right.valueId);
+                && left.memberId == right.memberId && left.valueId == right.valueId
+                && Equals(left.staticConstruction, right.staticConstruction)
+                && Equals(left.interfaceConstruction, right.interfaceConstruction)
+                && Equals(left.delegateType, right.delegateType)
+                && ArraysEqual(left.typeArguments, right.typeArguments)
+                && Equals(left.builtIn, right.builtIn));
 
         private static bool ActionEqual(NeoActionValue? left, NeoActionValue? right)
         {
@@ -98,14 +112,15 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static bool ArraysEqual(string[]? left, string[]? right)
+        private static bool ArraysEqual<T>(T[]? left, T[]? right)
+            where T : IEquatable<T>
         {
             if (ReferenceEquals(left, right))
                 return true;
             if (left is null || right is null || left.Length != right.Length)
                 return false;
             for (int i = 0; i < left.Length; i++)
-                if (left[i] != right[i])
+                if (!(left[i]?.Equals(right[i]) ?? right[i] is null))
                     return false;
             return true;
         }

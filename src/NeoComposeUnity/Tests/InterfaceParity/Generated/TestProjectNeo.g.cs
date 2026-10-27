@@ -29,6 +29,7 @@ namespace NeoCompose.Tests.InterfaceParity
             {
                 throw new InvalidOperationException("Only one active TestProjectNeo is allowed while generated static members are enabled. Dispose the existing project client first.");
             }
+            Client.RegisterGeneratedDetachedClassFactories(NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds, NeoTypeArgumentInterfaceIds);

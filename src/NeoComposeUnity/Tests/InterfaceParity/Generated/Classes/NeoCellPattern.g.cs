@@ -284,7 +284,7 @@ namespace NeoCompose.Tests.InterfaceParity
             get
             {
                 var result = ComputeProperty("Count");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
         }

@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
     public static class NeoSetEntryKeyParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P108 \u00a73 Set entry keys, shared verbatim by setEntryKey (TypeScript) and NeoSetEntryKey (C#). Float components key by their float32 bit pattern as a signed integer."",
+  ""$comment"": ""P108 §3 Set entry keys, shared verbatim by setEntryKey (TypeScript) and NeoSetEntryKey (C#). Float components key by their float32 bit pattern as a signed integer. P127 §9.5: an object or interface slot keys a row by id and a box by its canonical binding key (sorted-key JSON of its valueType), '|', and its payload's key. Keys decode stored floats first: \""-0\"" keys as 0 and every NaN as the one NaN, bits 0xFFC00000. A reference keys by its target id whether stored as the id or a one-id array, and a null at any reference-type position keys as \""null\"". keyEquivalent false (default true) means only a comparer can judge the entry, so no duplicate of it is refused. description is the entry as a Set duplicate error names it: a tuple as (1, 2), a box by its payload, and a row whose equality is identity by its id."",
   ""cases"": [
     {
       ""name"": ""bool true"",
@@ -212,9 +212,609 @@ namespace NeoCompose.Tests
         ""Name"": ""value-2""
       },
       ""key"": ""value-2""
+    },
+    {
+      ""name"": ""object slot row is its value id (P127 §9.5)"",
+      ""kind"": ""Object"",
+      ""id"": ""row-1"",
+      ""classId"": ""money"",
+      ""value"": {},
+      ""key"": ""row-1"",
+      ""description"": ""row-1""
+    },
+    {
+      ""name"": ""boxed int keys by type and payload"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""value"": 3,
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}|3"",
+      ""description"": ""3""
+    },
+    {
+      ""name"": ""boxed float is not boxed int"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 4,
+          ""required"": true
+        }
+      },
+      ""value"": 3,
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":4}}|1077936128""
+    },
+    {
+      ""name"": ""boxed negative zero float"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 4,
+          ""required"": true
+        }
+      },
+      ""value"": -0.0,
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":4}}|0""
+    },
+    {
+      ""name"": ""boxed decimal normalizes"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 20,
+          ""required"": true
+        }
+      },
+      ""value"": ""1.10"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":20}}|1.1""
+    },
+    {
+      ""name"": ""boxed string"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 3,
+          ""required"": true
+        }
+      },
+      ""value"": ""a"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":3}}|a"",
+      ""description"": ""a""
+    },
+    {
+      ""name"": ""boxed Vector2Int"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 15,
+          ""required"": true
+        }
+      },
+      ""value"": {
+        ""x"": 1,
+        ""y"": 2
+      },
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":15}}|1,2""
+    },
+    {
+      ""name"": ""boxed enum keys by option id"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 8,
+          ""required"": true,
+          ""enumId"": ""color""
+        }
+      },
+      ""value"": [""red""],
+      ""key"": ""{\""kind\"":0,\""type\"":{\""enumId\"":\""color\"",\""required\"":true,\""type\"":8}}|red"",
+      ""description"": ""red""
+    },
+    {
+      ""name"": ""boxed list is identity"",
+      ""kind"": ""Object"",
+      ""id"": ""list-1"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 6,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": [""entry-1""],
+      ""key"": ""list-1"",
+      ""description"": ""list-1""
+    },
+    {
+      ""name"": ""new object() is identity"",
+      ""kind"": ""Object"",
+      ""id"": ""object-1"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 31,
+          ""required"": true
+        }
+      },
+      ""value"": {},
+      ""key"": ""object-1""
+    },
+    {
+      ""name"": ""null object entry"",
+      ""kind"": ""Object"",
+      ""value"": null,
+      ""key"": ""null"",
+      ""description"": ""null""
+    },
+    {
+      ""name"": ""Type entry keys by its type's canonical key"",
+      ""kind"": ""Object"",
+      ""objectType"": 2,
+      ""value"": {
+        ""type"": {
+          ""kind"": 0,
+          ""type"": {
+            ""type"": 6,
+            ""required"": true
+          },
+          ""bindings"": {
+            ""0"": {
+              ""kind"": 0,
+              ""type"": {
+                ""type"": 2,
+                ""required"": true
+              }
+            }
+          }
+        }
+      },
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":6}}""
+    },
+    {
+      ""name"": ""CultureInfo entry keys by its invariant name"",
+      ""kind"": ""Object"",
+      ""objectType"": 3,
+      ""value"": {
+        ""invariant"": true
+      },
+      ""key"": """"
+    },
+    {
+      ""name"": ""NumberFormatInfo entry is identity"",
+      ""kind"": ""Object"",
+      ""id"": ""format-1"",
+      ""objectType"": 4,
+      ""value"": {
+        ""invariant"": true
+      },
+      ""key"": ""format-1""
+    },
+    {
+      ""name"": ""held default comparer keys by payload"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""system_00000000-0000-4000-8000-0000000000c1""
+        },
+        ""bindings"": {
+          ""system_00000000-0000-4000-8000-0000000000c1.T"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": {
+        ""comparer"": 0,
+        ""family"": 0,
+        ""type"": {
+          ""kind"": 0,
+          ""type"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        }
+      },
+      ""key"": ""{\""bindings\"":{\""system_00000000-0000-4000-8000-0000000000c1.T\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""classId\"":\""system_00000000-0000-4000-8000-0000000000c1\"",\""required\"":true,\""type\"":7}}|0:0:{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}""
+    },
+    {
+      ""name"": ""held Comparer.Create comparer is identity"",
+      ""kind"": ""Object"",
+      ""id"": ""comparer-1"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 7,
+          ""required"": true,
+          ""classId"": ""system_00000000-0000-4000-8000-0000000000c2""
+        },
+        ""bindings"": {
+          ""system_00000000-0000-4000-8000-0000000000c2.T"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": {
+        ""comparer"": 3,
+        ""family"": 1,
+        ""type"": {
+          ""kind"": 0,
+          ""type"": {
+            ""type"": 2,
+            ""required"": true
+          }
+        },
+        ""delegates"": []
+      },
+      ""key"": ""comparer-1""
+    },
+    {
+      ""name"": ""interface slot box keys by what it holds"",
+      ""kind"": ""Class"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 2,
+          ""required"": true
+        }
+      },
+      ""value"": 3,
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}|3""
+    },
+    {
+      ""name"": ""float NaN decodes to one NaN"",
+      ""kind"": ""Float"",
+      ""value"": ""NaN"",
+      ""key"": ""-4194304""
+    },
+    {
+      ""name"": ""float stored -0 keys as 0"",
+      ""kind"": ""Float"",
+      ""value"": ""-0"",
+      ""key"": ""0""
+    },
+    {
+      ""name"": ""float stored Infinity"",
+      ""kind"": ""Float"",
+      ""value"": ""Infinity"",
+      ""key"": ""2139095040""
+    },
+    {
+      ""name"": ""float stored -Infinity"",
+      ""kind"": ""Float"",
+      ""value"": ""-Infinity"",
+      ""key"": ""-8388608""
+    },
+    {
+      ""name"": ""Vector2 with a NaN component only a comparer judges"",
+      ""kind"": ""Vector2"",
+      ""value"": {
+        ""x"": ""NaN"",
+        ""y"": 1
+      },
+      ""key"": ""-4194304,1065353216"",
+      ""keyEquivalent"": false
+    },
+    {
+      ""name"": ""Vector3 stored forms decode per component"",
+      ""kind"": ""Vector3"",
+      ""value"": {
+        ""x"": ""-0"",
+        ""y"": 0,
+        ""z"": ""Infinity""
+      },
+      ""key"": ""0,0,2139095040""
+    },
+    {
+      ""name"": ""boxed float NaN"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 4,
+          ""required"": true
+        }
+      },
+      ""value"": ""NaN"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":4}}|-4194304""
+    },
+    {
+      ""name"": ""boxed float stored -0"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 4,
+          ""required"": true
+        }
+      },
+      ""value"": ""-0"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":4}}|0""
+    },
+    {
+      ""name"": ""boxed float stored Infinity"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 4,
+          ""required"": true
+        }
+      },
+      ""value"": ""Infinity"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":4}}|2139095040""
+    },
+    {
+      ""name"": ""boxed Vector2 with a NaN component"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 14,
+          ""required"": true
+        }
+      },
+      ""value"": {
+        ""x"": ""NaN"",
+        ""y"": 0
+      },
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":14}}|-4194304,0"",
+      ""keyEquivalent"": false
+    },
+    {
+      ""name"": ""boxed tuple keys by its elements"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 30,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""1"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 3,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": [""e1"", ""e2""],
+      ""rows"": {
+        ""e1"": {
+          ""value"": 1
+        },
+        ""e2"": {
+          ""value"": ""a""
+        }
+      },
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}},\""1\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":3}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":30}}|[[2,\""1\""],[3,\""a\""]]"",
+      ""description"": ""(1, a)""
+    },
+    {
+      ""name"": ""boxed tuple with repeated element types"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 30,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""1"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": [""e1"", ""e2""],
+      ""rows"": {
+        ""e1"": {
+          ""value"": 1
+        },
+        ""e2"": {
+          ""value"": 2
+        }
+      },
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}},\""1\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":30}}|[[2,\""1\""],[2,\""2\""]]"",
+      ""description"": ""(1, 2)""
+    },
+    {
+      ""name"": ""boxed nested tuple with repeated element types"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 30,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          },
+          ""1"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 30,
+              ""required"": true
+            },
+            ""bindings"": {
+              ""0"": {
+                ""kind"": 0,
+                ""type"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              },
+              ""1"": {
+                ""kind"": 0,
+                ""type"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
+              }
+            }
+          }
+        }
+      },
+      ""value"": [""e1"", ""e2""],
+      ""rows"": {
+        ""e1"": {
+          ""value"": 1
+        },
+        ""e2"": {
+          ""value"": [""e3"", ""e4""]
+        },
+        ""e3"": {
+          ""value"": 2
+        },
+        ""e4"": {
+          ""value"": 3
+        }
+      },
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}},\""1\"":{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}},\""1\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":30}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":30}}|[[2,\""1\""],[30,[[2,\""2\""],[2,\""3\""]]]]"",
+      ""description"": ""(1, (2, 3))""
+    },
+    {
+      ""name"": ""boxed Reference<int> stored as a one-id array keys by target"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 29,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": [""v1""],
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":29}}|v1"",
+      ""description"": ""v1""
+    },
+    {
+      ""name"": ""boxed Reference<int> stored as an id keys by target"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 29,
+          ""required"": true
+        },
+        ""bindings"": {
+          ""0"": {
+            ""kind"": 0,
+            ""type"": {
+              ""type"": 2,
+              ""required"": true
+            }
+          }
+        }
+      },
+      ""value"": ""v1"",
+      ""key"": ""{\""bindings\"":{\""0\"":{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":2}}},\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":29}}|v1""
+    },
+    {
+      ""name"": ""boxed NeoDialogueReference stored as a one-id array"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 18,
+          ""required"": true
+        }
+      },
+      ""value"": [""d1""],
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":18}}|d1""
+    },
+    {
+      ""name"": ""boxed NeoDialogueReference stored as an id"",
+      ""kind"": ""Object"",
+      ""valueType"": {
+        ""kind"": 0,
+        ""type"": {
+          ""type"": 18,
+          ""required"": true
+        }
+      },
+      ""value"": ""d1"",
+      ""key"": ""{\""kind\"":0,\""type\"":{\""required\"":true,\""type\"":18}}|d1""
+    },
+    {
+      ""name"": ""null Object entry is the null key"",
+      ""kind"": ""Object"",
+      ""value"": null,
+      ""key"": ""null""
+    },
+    {
+      ""name"": ""null interface entry is the null key"",
+      ""kind"": ""Class"",
+      ""value"": null,
+      ""key"": ""null""
+    },
+    {
+      ""name"": ""null string entry of a boxed Set<string>"",
+      ""kind"": ""String"",
+      ""value"": null,
+      ""key"": ""null""
     }
   ]
-}
-";
+}";
     }
 }

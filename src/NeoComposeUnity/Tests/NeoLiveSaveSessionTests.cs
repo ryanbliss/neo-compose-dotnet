@@ -144,6 +144,19 @@ namespace NeoCompose.Tests
             return remote;
         }
 
+        /// <summary>A remote save a generated app loads: stamped with the
+        /// current save format revision so the client accepts it.</summary>
+        private static RemoteGameSave AppRemoteWithValues(
+            string snapshotId, string valuesJson,
+            string? liveSessionId = null,
+            long snapshotRevision = 1)
+        {
+            var remote = RemoteWithValues(
+                snapshotId, valuesJson, liveSessionId, snapshotRevision);
+            remote.requiredSaveFormatRevision = NeoSaveFormat.P127Revision;
+            return remote;
+        }
+
         private static NeoLivePatchResult Patched(string snapshotId, long revision) =>
             NeoLivePatchResult.Patched(
                 snapshotId,
@@ -1308,7 +1321,7 @@ namespace NeoCompose.Tests
         {
             var api = new FakeApiClient
             {
-                getResult = RemoteWithValues("snap-1", "{}"),
+                getResult = AppRemoteWithValues("snap-1", "{}"),
             };
             var realtime = new FakeRealtimeProvider
             {
@@ -1348,7 +1361,7 @@ namespace NeoCompose.Tests
             var firstValues = (JObject)JObject.Parse(
                 app.SerializeSaveData())["values"]!;
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
+                AppRemoteWithValues(
                     "snap-live",
                     firstValues.ToString(Formatting.None),
                     "session-x")));
@@ -1397,7 +1410,7 @@ namespace NeoCompose.Tests
             var firstValues = (JObject)JObject.Parse(
                 app.SerializeSaveData())["values"]!;
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
+                AppRemoteWithValues(
                     "snap-live",
                     firstValues.ToString(Formatting.None),
                     "session-x")));
@@ -1443,7 +1456,7 @@ namespace NeoCompose.Tests
             app.Save.Score = 41;
             var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
+                AppRemoteWithValues(
                     "snap-live",
                     forkedValues.ToString(Formatting.None),
                     "session-x")));
@@ -1457,7 +1470,7 @@ namespace NeoCompose.Tests
             Assert.That(app.Client.IsCommitting, Is.True, "the commit is serializing");
             // The co-editor's revision still carries the forked score.
             api.SetValueDelta("snap-live", 2, forkedValues.ToString(Formatting.None));
-            realtime.PushHead(RemoteWithValues(
+            realtime.PushHead(AppRemoteWithValues(
                 "snap-live",
                 "{}",
                 "session-x",
@@ -1480,7 +1493,7 @@ namespace NeoCompose.Tests
             app.Save.Score = 41;
             var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
+                AppRemoteWithValues(
                     "snap-live",
                     forkedValues.ToString(Formatting.None),
                     "session-x")));
@@ -1519,7 +1532,7 @@ namespace NeoCompose.Tests
             app.Save.Score = 41;
             var forkedValues = (JObject)JObject.Parse(app.SerializeSaveData())["values"]!;
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues(
+                AppRemoteWithValues(
                     "snap-live",
                     forkedValues.ToString(Formatting.None),
                     "session-x")));
@@ -1529,7 +1542,7 @@ namespace NeoCompose.Tests
             Assert.That(realtime.forks, Has.Count.EqualTo(1));
 
             api.SetValueDelta("snap-live", 2, coEditedValues.ToString(Formatting.None));
-            realtime.PushHead(RemoteWithValues(
+            realtime.PushHead(AppRemoteWithValues(
                 "snap-live",
                 "{}",
                 "session-x",

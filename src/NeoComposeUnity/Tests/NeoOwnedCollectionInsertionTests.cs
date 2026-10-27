@@ -237,7 +237,49 @@ namespace NeoCompose.Tests
         {
             var client = ControlClient();
             var holder = (INeoValueReference)Call(client, factory)!;
-            client.TryGetValue(NeoValueOwnership.Session, holder.valueId!, out ObjectMemberValue? root);
+            return RetainedGraph(client, holder.valueId!);
+        }
+
+        /// <summary>
+        /// A <c>Holder&lt;List&lt;Coin&gt;&gt;</c> whose one list reads its type
+        /// through the holder's stamp (P127 §12.1), retained like <see cref="RetainedGraph(string)"/>'s.
+        /// </summary>
+        private static (NeoClient client, NSGetterEvaluator.Context context, string root, string child, string outer, Member member) GenericRetainedGraph()
+        {
+            var client = ControlClient();
+            var holderClass = client.classes.Values.Single(c => c.name == "Holder");
+            var coinClass = client.classes.Values.Single(c => c.name == "Coin");
+            string param = holderClass.genericParams![0].id;
+            string holder = Guid.NewGuid().ToString(), values = Guid.NewGuid().ToString();
+            string list = Guid.NewGuid().ToString(), coin = Guid.NewGuid().ToString();
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Session, new ObjectMemberValue
+            {
+                id = holder,
+                classId = holderClass.id,
+                genericBindings = TestTypeBindings.Stamp((param, TestTypeBindings.List(TestTypeBindings.Class(coinClass.id)))),
+                value = new() { ["Values"] = values }
+            });
+            plan.Set(NeoValueOwnership.Session, new ArrayMemberValue
+            {
+                id = values,
+                value = new[] { list },
+                typeSource = NeoTypeSource.OfType(TestTypeBindings.List(TestTypeBindings.Open(holderClass.id, param)), holder)
+            });
+            plan.Set(NeoValueOwnership.Session, new ArrayMemberValue
+            {
+                id = list,
+                value = new[] { coin },
+                typeSource = NeoTypeSource.AtPath(holder, new[] { param })
+            });
+            plan.Set(NeoValueOwnership.Session, new ObjectMemberValue { id = coin, classId = coinClass.id, value = new() });
+            plan.Commit();
+            return RetainedGraph(client, holder);
+        }
+
+        private static (NeoClient client, NSGetterEvaluator.Context context, string root, string child, string outer, Member member) RetainedGraph(NeoClient client, string holder)
+        {
+            client.TryGetValue(NeoValueOwnership.Session, holder, out ObjectMemberValue? root);
             client.TryGetValue(NeoValueOwnership.Session, root!.value!["Values"], out ArrayMemberValue? outer);
             client.TryGetValue(NeoValueOwnership.Session, outer!.value![0], out ArrayMemberValue? inner);
             Assert.IsTrue(client.TryInferMemberForValueId(inner!.id, out Member? member));
@@ -275,7 +317,7 @@ namespace NeoCompose.Tests
             {
                 id = graph.root,
                 value = (string[])old!.value!.Clone(),
-                genericBindings = old.genericBindings is null ? null : new(old.genericBindings),
+                typeSource = old.typeSource,
             });
             plan.Commit();
             var fresh = new NSGetterEvaluator.Context(client, null, null);
@@ -289,26 +331,70 @@ namespace NeoCompose.Tests
             GC.KeepAlive(fresh);
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void RetainedContractRejectsChangedSchemaOrBindings(bool bindings)
+        /// <summary>
+        /// A retained root's contract is the type its typeSource resolves to:
+        /// a changed schema or type, a pointer moved to an owner bound
+        /// otherwise or to one that binds nothing, and a rebound owner each
+        /// refuse it.
+        /// </summary>
+        [TestCase("schema")]
+        [TestCase("type")]
+        [TestCase("moved")]
+        [TestCase("unbound")]
+        [TestCase("rebound")]
+        public void RetainedContractRejectsChangedSchemaOrBindings(string change)
         {
-            var graph = RetainedGraph("MakeClassRetention");
+            var graph = change is "moved" or "unbound" or "rebound" ? GenericRetainedGraph() : RetainedGraph("MakeClassRetention");
             using var client = graph.client;
-            if (bindings)
+            client.TryGetValue(NeoValueOwnership.Session, graph.root, out ArrayMemberValue? old);
+            var plan = new NeoWritePlan(client);
+            if (change == "schema")
+                client.InvalidateSchemaResolutionCaches();
+            else if (change == "type")
             {
-                client.TryGetValue(NeoValueOwnership.Session, graph.root, out ArrayMemberValue? old);
-                var plan = new NeoWritePlan(client);
                 plan.Set(NeoValueOwnership.Session, new ArrayMemberValue
                 {
                     id = graph.root,
                     value = old!.value,
-                    genericBindings = new() { ["different"] = "binding" }
+                    typeSource = NeoTypeSource.OfType(TestTypeBindings.List(TestTypeBindings.Of(MemberKind.Int)))
                 });
-                plan.Commit();
             }
             else
-                client.InvalidateSchemaResolutionCaches();
+            {
+                NeoTypeSource source = old!.typeSource!;
+                Assert.IsNotNull(source.ValueId);
+                client.TryGetValue(NeoValueOwnership.Session, source.ValueId!, out MemberValue? ownerRow);
+                var rebound = new Dictionary<string, TypeBinding>(StringComparer.Ordinal);
+                foreach (string key in ownerRow!.genericBindings!.Keys)
+                    rebound[key] = TestTypeBindings.List(TestTypeBindings.Of(MemberKind.String));
+                if (change is "moved" or "unbound")
+                {
+                    string moved = Guid.NewGuid().ToString();
+                    plan.Set(NeoValueOwnership.Session, new ObjectMemberValue
+                    {
+                        id = moved,
+                        classId = ownerRow.classId,
+                        value = new(),
+                        genericBindings = change == "moved"
+                            ? rebound
+                            : TestTypeBindings.Stamp(("unrelated", TestTypeBindings.Of(MemberKind.Int)))
+                    });
+                    plan.Set(NeoValueOwnership.Session, new ArrayMemberValue
+                    {
+                        id = graph.root,
+                        value = old.value,
+                        typeSource = source.Path is { } path ? NeoTypeSource.AtPath(moved, path) : NeoTypeSource.OfType(source.Type!, moved)
+                    });
+                }
+                else
+                {
+                    MemberValue clone = client.CloneRowForWrite(ownerRow);
+                    clone.genericBindings = rebound;
+                    plan.Set(NeoValueOwnership.Session, clone);
+                }
+            }
+            if (change != "schema")
+                plan.Commit();
             Assert.Throws<InvalidOperationException>(() => client.TryInferMemberForValueId(graph.root, out _));
             Assert.Throws<InvalidOperationException>(() => client.TryFindOwnedParent(NeoValueOwnership.Session, graph.child, out _));
         }

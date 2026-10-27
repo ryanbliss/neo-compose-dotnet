@@ -34,7 +34,7 @@ namespace NeoCompose.Tests
             "}";
 
         [TestCase(0)]
-        [TestCase(3)]
+        [TestCase(NeoSaveFormat.SupportedRevision + 1)]
         public void UnsupportedSaveFormatCannotFallBackToAnEmptyLocalOrRemoteSave(int required)
         {
             var json = JObject.Parse(RemoteJson);

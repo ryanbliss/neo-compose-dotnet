@@ -27,9 +27,9 @@ sealed class VenusianTheOldestPattern : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("307c83bd-5da3-5bd0-a7db-6104b1779f20")
-    Condition1,
-  ],
+      @id("307c83bd-5da3-5bd0-a7db-6104b1779f20")
+      Condition1,
+    ],
     limit: 1,
   ) => V1;
 

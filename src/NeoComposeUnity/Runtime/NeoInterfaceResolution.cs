@@ -44,11 +44,11 @@ namespace NeoCompose.Runtime
                 path.Add(currentId);
                 result.Add(declaration);
                 emitted.Add(currentId);
-                if (declaration.extendsInterfaceIds is not null)
+                if (declaration.extendsInterfaces is not null)
                 {
-                    foreach (string parentId in declaration.extendsInterfaceIds)
+                    foreach (InterfaceConstruction parent in declaration.extendsInterfaces)
                     {
-                        Visit(parentId);
+                        Visit(parent.interfaceId);
                     }
                 }
                 path.RemoveAt(path.Count - 1);
@@ -80,10 +80,11 @@ namespace NeoCompose.Runtime
 
             foreach (NeoSchemaClass schemaClass in classChain)
             {
-                if (schemaClass.implementsInterfaceIds is null)
+                if (schemaClass.implementsInterfaces is null)
                     continue;
-                foreach (string declaredId in schemaClass.implementsInterfaceIds)
+                foreach (InterfaceConstruction declared in schemaClass.implementsInterfaces)
                 {
+                    string declaredId = declared.interfaceId;
                     IReadOnlyList<Interface> closure;
                     try
                     {

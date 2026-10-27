@@ -98,9 +98,9 @@ namespace NeoCompose.Runtime
         private NeoLifecycleHooks OwnInterfaceHooks(NeoSchemaClass schemaClass)
         {
             NeoLifecycleHooks hooks = NeoLifecycleHooks.None;
-            if (schemaClass.implementsInterfaceIds is { } interfaceIds)
-                foreach (string interfaceId in interfaceIds)
-                    hooks |= InterfaceHooks(interfaceId);
+            if (schemaClass.implementsInterfaces is { } constructions)
+                foreach (InterfaceConstruction construction in constructions)
+                    hooks |= InterfaceHooks(construction.interfaceId);
             return hooks;
         }
 
@@ -112,9 +112,9 @@ namespace NeoCompose.Runtime
             interfaceHooks[interfaceId] = NeoLifecycleHooks.None;
             hooks = NeoLifecycleHookTable.ForInterface(interfaceId);
             if (data.interfaces.TryGetValue(interfaceId, out Interface? contract)
-                && contract.extendsInterfaceIds is { } parents)
-                foreach (string parent in parents)
-                    hooks |= InterfaceHooks(parent);
+                && contract.extendsInterfaces is { } parents)
+                foreach (InterfaceConstruction parent in parents)
+                    hooks |= InterfaceHooks(parent.interfaceId);
             interfaceHooks[interfaceId] = hooks;
             return hooks;
         }

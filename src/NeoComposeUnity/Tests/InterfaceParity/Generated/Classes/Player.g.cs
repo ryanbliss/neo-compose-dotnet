@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
         internal Player(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3727cc0c-8757-4226-a2a8-3597b3e8e965", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e7d88bd3-0039-4f0f-a698-5f5a21a2a30b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -71,17 +71,17 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "3727cc0c-8757-4226-a2a8-3597b3e8e965",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "918e9deb-eedc-4408-9829-ab3508425b4c", Pouch),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "b9b9244b-c636-422f-87a0-d445dfea54be", Racks),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "2b09ded0-9632-4916-8b00-0fc5fdab74fb", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "2c179a7f-ec03-4306-a2c4-8b2518209c31", Boxed),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "b4d0c1a8-9d4e-4b3f-97b2-b5a54b48b27e", Favorite),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "7aeb0604-6f1f-4bc7-9f55-09252df557c9", SeedShelf),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "10171178-1e73-4924-bcff-0eb963ed1189", Tools),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ToolFrames", "6f952f3f-8cc5-47ca-bc78-437041adec93", ToolFrames),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorFrames", "514af902-f963-44fd-a3cc-f6cb7152dcc3", VectorFrames),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "6cd9a601-f18e-4e0f-8282-fe328a308f28", Sack)
+                "e7d88bd3-0039-4f0f-a698-5f5a21a2a30b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "c528d6c4-8a0d-430c-bb9c-2c1951bb5a9c", Pouch),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "d9b95e32-9ac2-476f-a97a-362065b3220e", Racks),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "4c3250d7-3928-411d-9ea2-83b946468b31", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "9dd103dd-1a96-48fc-b1bf-ac79b25534e4", Boxed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "c3da2dc1-0e9e-46a5-b468-b0f43a2107ee", Favorite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "9ec2d553-ed54-49c3-80e7-201912228858", SeedShelf),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "0c401df7-2257-4afa-bfd1-9b22812d5c3f", Tools),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ToolFrames", "43e18c2e-0d8e-4be5-9292-65e12f5cdf98", ToolFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorFrames", "a386032c-c5a2-4ba1-a350-288bb001b706", VectorFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "5ab5f6b8-8a08-48a6-9462-b857cfd06bb1", Sack)
             );
         }
 
@@ -195,7 +195,7 @@ namespace NeoCompose.Tests.InterfaceParity
             get
             {
                 var result = ComputeProperty("PouchView");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IContainer<Seed>>(client, result.value, false, TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories, "NSProperty result");
             }
         }

@@ -28,16 +28,14 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public string? extendsClassId;
         /// <summary>
-        /// Interfaces declared by this class. Implemented interfaces inherited
-        /// through <see cref="extendsClassId"/> are not repeated here.
+        /// Interface constructions declared by this class, in source order
+        /// (P127 §4.7). Implemented interfaces inherited through
+        /// <see cref="extendsClassId"/> are not repeated here. A generic
+        /// interface's arguments bind each param to a forward of this class's
+        /// own param, or a closed Member binding (P113 §4.4).
         /// </summary>
-        public List<string>? implementsInterfaceIds;
-        /// <summary>
-        /// P113 §4.4. For each generic interface in
-        /// <see cref="implementsInterfaceIds"/>, one binding per param: a
-        /// forward of this class's own param, or a closed Member binding.
-        /// </summary>
-        public Dictionary<string, Dictionary<string, GenericBinding>>? implementsInterfaceArguments;
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public List<InterfaceConstruction>? implementsInterfaces;
         [Newtonsoft.Json.JsonProperty("uiVisibility", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         private NeoClassVisibilityKind? uiVisibility;
         [Newtonsoft.Json.JsonProperty("modifier", NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
@@ -98,9 +96,11 @@ namespace NeoCompose.Runtime.Json
         /// Present iff <see cref="extendsClassId"/> references a class with
         /// unbound generics in scope: how each parent-scope param is
         /// implemented, keyed by that param's id (Decision 4). Immutable
-        /// after creation (re-binding is a migration, not an edit).
+        /// after creation (re-binding is a migration, not an edit). Each is a
+        /// P127 §12.1 type argument: a closed type or a forwarded parameter.
         /// </summary>
-        public Dictionary<string, GenericBinding>? extendsGenericBindings;
+        [Newtonsoft.Json.JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? extendsGenericBindings;
         /// <summary>
         /// P43 §6.3 — ordered ids of this class's declared constructors, in
         /// declaration order. Absent/empty means the class declares none, in

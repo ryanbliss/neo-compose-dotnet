@@ -1,6 +1,6 @@
 @id("system_d48b66ab-4d59-47e7-a25a-591fe97062de")
 @system(kind: .WorldAuthoring, worldKind: .SpriteObject)
-class NeoSpriteObject : NeoObjectBase {
+class NeoSpriteObject : NeoObject {
   /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
   @id("system_9fcab37a-9743-4e35-8eee-80cb560f1433")
   @system(kind: .WorldAuthoring)

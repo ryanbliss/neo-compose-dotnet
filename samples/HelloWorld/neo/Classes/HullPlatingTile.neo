@@ -1,8 +1,8 @@
 @id("a8305a31-7f6c-4ff5-8a9f-5871ef451093")
 @relations(
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-555f2840f4b52d2b3ee3fa81a76fae10")
-    CollisionTileLayer,
+  @id("neo-tile-grid-record-relations-v1-relation-555f2840f4b52d2b3ee3fa81a76fae10")
+  CollisionTileLayer,
   compatibleLayers: [
     @id("neo-tile-grid-record-relations-v1-relation-72bfec4bad85da08e34af2c9e3e38ba5")
     CollisionTileLayer,
