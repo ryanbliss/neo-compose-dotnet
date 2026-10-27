@@ -18,6 +18,159 @@ namespace NeoCompose.Tests
     public sealed class NeoAnimationClipTests
     {
         [Test]
+        public void FrameCallbackPauseStopsTheCurrentTick()
+        {
+            using var client = CreateClient();
+            var entered = new List<int>();
+            var clip = CreateClip(new TestTarget(client), "pause", 3, entered);
+            using var subscription = clip.AddFrameEvent(1, clip.Pause);
+            var completion = clip.PlayOnceAsync();
+            clip.Tick(1f);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, entered);
+            Assert.That(clip.IsPaused, Is.True);
+            Assert.That(clip.IsPlaying, Is.True);
+            Assert.That(completion.IsCompleted, Is.False);
+            clip.Resume();
+            clip.Tick(.1f);
+            Assert.That(clip.CurrentFrame, Is.EqualTo(2));
+            Assert.That(completion.IsCompleted, Is.False, "Time after the pause event must not accumulate.");
+            clip.Tick(.1f);
+            Assert.That(completion.IsCompletedSuccessfully, Is.True);
+        }
+
+        [TestCase(NeoPlayMode.Boomerang, NeoPlayDirection.Forward)]
+        [TestCase(NeoPlayMode.Repeat, NeoPlayDirection.Forward)]
+        [TestCase(NeoPlayMode.Boomerang, NeoPlayDirection.Reverse)]
+        [TestCase(NeoPlayMode.Repeat, NeoPlayDirection.Reverse)]
+        public void BoomerangFrameCallbackRestartKeepsNewPlaybackDirection(NeoPlayMode mode, NeoPlayDirection direction)
+        {
+            using var client = CreateClient();
+            var entered = new List<int>();
+            var clip = CreateClip(new TestTarget(client), "restart", 3, entered);
+            bool restarted = false;
+            using var subscription = clip.AddFrameEvent(direction == NeoPlayDirection.Forward ? 2 : 0, () =>
+            {
+                if (restarted)
+                    return;
+                restarted = true;
+                clip.PlayLoop(mode, direction);
+            });
+            clip.PlayLoop(NeoPlayMode.Boomerang, direction);
+            Tick(clip, 3);
+            CollectionAssert.AreEqual(direction == NeoPlayDirection.Forward
+                ? new[] { 0, 1, 2, 0, 1 } : new[] { 2, 1, 0, 2, 1 }, entered);
+            Assert.That(clip.IsPlaying, Is.True);
+        }
+
+        [Test]
+        public void StopCallbackRestartSettlesEveryAsyncPlayback()
+        {
+            using var client = CreateClient();
+            var clip = CreateClip(new TestTarget(client), "restart", 2, new List<int>());
+            Task? nested = null;
+            bool restarted = false;
+            clip.OnStop += () =>
+            {
+                if (restarted)
+                    return;
+                restarted = true;
+                nested = clip.PlayOnceAsync();
+            };
+            var original = clip.PlayOnceAsync();
+            var superseded = clip.PlayOnceAsync();
+            Tick(clip, 2);
+            Assert.That(original.IsCanceled, Is.True);
+            Assert.That(superseded.IsCanceled, Is.True, "The newer request made by OnStop wins.");
+            Assert.That(nested!.IsCompletedSuccessfully, Is.True);
+        }
+
+        [Test]
+        public void StopCallbackStartingThirdClipKeepsOnlyLatestRequestActive()
+        {
+            using var client = CreateClient();
+            var target = new TestTarget(client);
+            var first = CreateClip(target, "shared", 3, new List<int>());
+            var secondFrames = new List<int>();
+            var second = CreateClip(target, "shared", 3, secondFrames);
+            var thirdFrames = new List<int>();
+            var third = CreateClip(target, "shared", 3, thirdFrames);
+            first.OnStop += () => third.PlayOnce();
+            first.PlayLoop();
+            var superseded = second.PlayOnceAsync();
+            Assert.That(first.IsPlaying, Is.False);
+            Assert.That(second.IsPlaying, Is.False);
+            Assert.That(superseded.IsCanceled, Is.True);
+            Assert.That(third.IsPlaying, Is.True);
+            client.AnimationCoordinator.Tick(.1f);
+            Assert.That(secondFrames, Is.Empty);
+            CollectionAssert.AreEqual(new[] { 0, 1 }, thirdFrames);
+        }
+
+        [Test]
+        public void DisposingCoordinatorFromFrameCallbackStopsAllPlayersWithoutInvalidatingTick()
+        {
+            using var client = CreateClient();
+            var target = new TestTarget(client);
+            var first = CreateClip(target, "first", 3, new List<int>());
+            var second = CreateClip(target, "second", 3, new List<int>());
+            using var subscription = first.AddFrameEvent(1, client.AnimationCoordinator.Dispose);
+            var firstCompletion = first.PlayOnceAsync();
+            var secondCompletion = second.PlayOnceAsync();
+            Assert.DoesNotThrow(() => client.AnimationCoordinator.Tick(.1f));
+            Assert.That(firstCompletion.IsCanceled, Is.True);
+            Assert.That(secondCompletion.IsCanceled, Is.True);
+            Assert.That(first.IsPlaying || second.IsPlaying, Is.False);
+            Assert.DoesNotThrow(() => client.AnimationCoordinator.Tick(.1f));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void FailedPlaybackStartLeavesNoActivePlayer(bool onPlayFails)
+        {
+            using var client = CreateClient();
+            var target = new TestTarget(client);
+            bool fail = true;
+            var clip = new NeoAnimationClip<TestTarget>(target, "failure", 10, 3,
+                client.AnimationCoordinator, (int _) =>
+                {
+                    if (fail && !onPlayFails)
+                        throw new InvalidOperationException("initial frame failed");
+                });
+            clip.OnPlay += () =>
+            {
+                if (fail && onPlayFails)
+                    throw new InvalidOperationException("play callback failed");
+            };
+            Assert.Throws<InvalidOperationException>(() => clip.PlayOnceAsync());
+            Assert.That(clip.IsPlaying, Is.False);
+            fail = false;
+            var completion = clip.PlayOnceAsync();
+            Tick(clip, 3);
+            Assert.That(completion.IsCompletedSuccessfully, Is.True);
+        }
+
+        [Test]
+        public void FailingOldPlayCallbackDoesNotStopItsReplacement()
+        {
+            using var client = CreateClient();
+            var clip = CreateClip(new TestTarget(client), "restart", 2, new List<int>());
+            Task? replacement = null;
+            bool restarted = false;
+            clip.OnPlay += () =>
+            {
+                if (restarted)
+                    return;
+                restarted = true;
+                replacement = clip.PlayOnceAsync();
+                throw new InvalidOperationException("old callback failed");
+            };
+            Assert.Throws<InvalidOperationException>(() => clip.PlayOnceAsync());
+            Assert.That(clip.IsPlaying, Is.True);
+            Tick(clip, 2);
+            Assert.That(replacement!.IsCompletedSuccessfully, Is.True);
+        }
+
+        [Test]
         public void EightFpsSingleFrameLoopOnlyReentersOnItsClockBoundary()
         {
             using var client = CreateClient();

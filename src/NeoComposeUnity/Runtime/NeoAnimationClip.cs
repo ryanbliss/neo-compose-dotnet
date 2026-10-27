@@ -450,10 +450,13 @@ namespace NeoCompose.Runtime
                 return;
             elapsed += scaledDeltaTime;
             int steps = 0;
-            while (IsPlaying && elapsed >= secondsPerFrame)
+            long generation = playbackGeneration;
+            while (IsPlaying && !IsPaused && playbackGeneration == generation && elapsed >= secondsPerFrame)
             {
                 elapsed -= secondsPerFrame;
                 AdvanceOneFrame();
+                if (IsPaused)
+                    elapsed = 0f;
                 steps += 1;
                 if (steps >= MaxFrameStepsPerTick)
                 {
@@ -508,27 +511,48 @@ namespace NeoCompose.Runtime
                 throw new ArgumentOutOfRangeException(nameof(direction));
             }
 
-            StopInternal(cancelTask: true);
+            // A callback may start a newer playback while this request stops
+            // the previous one. That newer request owns the handle.
             long generation = ++playbackGeneration;
-            preparePlayback();
-            coordinator.Activate(this);
-            elapsed = 0f;
-            isOnce = once;
-            isBoomerang = !once && mode == NeoPlayMode.Boomerang;
-            loopsRemaining = loops;
-            initialStep = direction == NeoPlayDirection.Forward ? 1 : -1;
-            step = initialStep;
-            hasTurned = false;
-            CurrentFrame = direction == NeoPlayDirection.Forward ? 0 : duration - 1;
-            IsPaused = false;
-            IsPlaying = true;
-            completion = pendingCompletion;
-            OnPlay?.Invoke();
-            if (IsPlaying && playbackGeneration == generation)
+            try
             {
-                EnterFrame(
-                    CurrentFrame,
-                    useResolvedState: direction == NeoPlayDirection.Reverse);
+                StopInternal(cancelTask: true);
+                if (playbackGeneration != generation)
+                {
+                    pendingCompletion?.TrySetCanceled();
+                    return generation;
+                }
+                preparePlayback();
+                if (playbackGeneration != generation)
+                {
+                    pendingCompletion?.TrySetCanceled();
+                    return generation;
+                }
+                elapsed = 0f;
+                isOnce = once;
+                isBoomerang = !once && mode == NeoPlayMode.Boomerang;
+                loopsRemaining = loops;
+                initialStep = direction == NeoPlayDirection.Forward ? 1 : -1;
+                step = initialStep;
+                hasTurned = false;
+                CurrentFrame = direction == NeoPlayDirection.Forward ? 0 : duration - 1;
+                IsPaused = false;
+                IsPlaying = true;
+                completion = pendingCompletion;
+                // Publish this playback before stopping another clip: its
+                // OnStop callback can supersede and cancel this request too.
+                coordinator.Activate(this);
+                if (IsPlaying && playbackGeneration == generation)
+                    OnPlay?.Invoke();
+                if (IsPlaying && playbackGeneration == generation)
+                    EnterFrame(CurrentFrame, useResolvedState: direction == NeoPlayDirection.Reverse);
+            }
+            catch
+            {
+                pendingCompletion?.TrySetCanceled();
+                if (playbackGeneration == generation)
+                    StopInternal(cancelTask: true);
+                throw;
             }
             return generation;
         }
@@ -576,7 +600,10 @@ namespace NeoCompose.Runtime
             }
 
             int next = CurrentFrame + step;
+            long generation = playbackGeneration;
             EnterFrame(next, useResolvedState: step < 0);
+            if (!IsPlaying || playbackGeneration != generation)
+                return;
             int farEnd = initialStep > 0 ? duration - 1 : 0;
             int startEnd = initialStep > 0 ? 0 : duration - 1;
             if (!hasTurned && next == farEnd)

@@ -21,16 +21,12 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed)
                 throw new ObjectDisposedException(nameof(NeoAnimationCoordinator));
-            if (playersByInstance.TryGetValue(
-                    player.InstanceIdentity,
-                    out INeoAnimationPlayer existing)
-                && !ReferenceEquals(existing, player))
-            {
-                existing.StopFromCoordinator();
-            }
+            playersByInstance.TryGetValue(player.InstanceIdentity, out INeoAnimationPlayer existing);
             playersByInstance[player.InstanceIdentity] = player;
             activePlayers.Add(player);
             EnsureRunner();
+            if (existing is not null && !ReferenceEquals(existing, player))
+                existing.StopFromCoordinator();
         }
 
         internal void Deactivate(INeoAnimationPlayer player)
@@ -51,22 +47,29 @@ namespace NeoCompose.Runtime
                 return;
             playerSnapshot.Clear();
             playerSnapshot.AddRange(activePlayers);
-            foreach (INeoAnimationPlayer player in playerSnapshot)
+            try
             {
-                if (!player.IsPlaying)
+                foreach (INeoAnimationPlayer player in playerSnapshot)
                 {
-                    Deactivate(player);
-                    continue;
+                    if (!player.IsPlaying)
+                    {
+                        Deactivate(player);
+                        continue;
+                    }
+                    try
+                    {
+                        player.Tick(scaledDeltaTime);
+                    }
+                    catch (Exception exception)
+                    {
+                        player.StopFromCoordinator();
+                        Debug.LogException(exception);
+                    }
                 }
-                try
-                {
-                    player.Tick(scaledDeltaTime);
-                }
-                catch (Exception exception)
-                {
-                    player.StopFromCoordinator();
-                    Debug.LogException(exception);
-                }
+            }
+            finally
+            {
+                playerSnapshot.Clear();
             }
         }
 
@@ -85,13 +88,12 @@ namespace NeoCompose.Runtime
             if (isDisposed)
                 return;
             isDisposed = true;
-            playerSnapshot.Clear();
-            playerSnapshot.AddRange(activePlayers);
-            foreach (INeoAnimationPlayer player in playerSnapshot)
+            // Disposal can run inside Tick's frame callbacks. Keep its
+            // snapshot separate from the allocation-free per-frame buffer.
+            foreach (INeoAnimationPlayer player in new List<INeoAnimationPlayer>(activePlayers))
             {
                 player.StopFromCoordinator();
             }
-            playerSnapshot.Clear();
             activePlayers.Clear();
             playersByInstance.Clear();
             if (runner != null)
