@@ -30,7 +30,16 @@ namespace NeoCompose.Runtime
                 foreach (var token in constructed.constructorArgs.Values)
                     if (token?.Type == Newtonsoft.Json.Linq.JTokenType.String && (string?)token is string child)
                         yield return child;
+            if (OwnedComparerValueId(row) is string comparer)
+                yield return comparer;
         }
+
+        /// <summary>
+        /// P127 §9.5. The owned row of a Set's or Dictionary's authored
+        /// comparer, or null for the default and a built-in comparer.
+        /// </summary>
+        internal static string? OwnedComparerValueId(MemberValue row) =>
+            row.comparer is { kind: NeoCollectionComparerKind.Value, valueId: string valueId } ? valueId : null;
 
         /// <summary><see cref="PlacementChildIds"/> without its enumerator, for the per-row index.</summary>
         internal static void CollectPlacementChildIds(MemberValue row, List<string> into)
@@ -47,17 +56,20 @@ namespace NeoCompose.Runtime
             }
             else if (row is ArrayMemberValue { value: not null } array)
                 into.AddRange(array.value);
+            if (OwnedComparerValueId(row) is string comparer)
+                into.Add(comparer);
         }
 
         private void IndexPlacementParent(NeoValueOwnership ownership, MemberValue row)
         {
             if (writablePlacementParents is null)
                 return;
-            // An array row's ids are its children; only a record's are collected.
-            string[]? ids = (row as ArrayMemberValue)?.value;
+            // An array row's ids are its children; only a record's, or a
+            // Set's with an owned comparer, are collected.
+            string[]? ids = row.comparer is null ? (row as ArrayMemberValue)?.value : null;
             List<string> scratch = placementChildScratch;
             scratch.Clear();
-            if (row is ObjectMemberValue)
+            if (ids is null)
                 CollectPlacementChildIds(row, scratch);
             IReadOnlyList<string> next = (IReadOnlyList<string>?)ids ?? scratch;
             var key = (ownership, row.id);

@@ -15,6 +15,13 @@ namespace NeoCompose.Runtime.Json
         public const string Value = "value";
         public const string ChangeListeners = "change-listeners";
         public const string StaticBinding = "static-binding";
+
+        /// <summary>
+        /// A generic static's value for one closed construction (P127 §5.3).
+        /// Its record id is minted by the server; its data is
+        /// <c>{ memberId, construction, valueId }</c>.
+        /// </summary>
+        public const string StaticConstruction = "static-construction";
     }
 
     public static class NeoGameSaveRecordChangeKinds
@@ -147,6 +154,10 @@ namespace NeoCompose.Runtime.Json
     {
         public override string kind => NeoGameSaveRecordChangeKinds.StaticBindingSet;
         public string memberId = "";
+
+        /// <summary>A generic static's closed owner construction; absent for a plain static.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeBinding? construction;
         public string? baseRecordStateId;
         public string? baseRecordRevisionToken;
         public string? valueId;
@@ -158,6 +169,10 @@ namespace NeoCompose.Runtime.Json
         public override string kind =>
             NeoGameSaveRecordChangeKinds.StaticBindingRestoreToAuthored;
         public string memberId = "";
+
+        /// <summary>A generic static's closed owner construction; absent for a plain static.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeBinding? construction;
     }
 
     public sealed class NeoGameSaveRecordChangeConverter
@@ -367,7 +382,8 @@ namespace NeoCompose.Runtime.Json
             IEnumerable<GameSaveRecordDescriptor> incoming,
             JObject values,
             IDictionary<string, string?> staticBindings,
-            IDictionary<string, NeoChangeListenerMap>? changeListeners = null)
+            IDictionary<string, NeoChangeListenerMap>? changeListeners = null,
+            IDictionary<string, NeoStaticConstruction>? staticConstructions = null)
         {
             foreach (var descriptor in incoming)
             {
@@ -418,6 +434,17 @@ namespace NeoCompose.Runtime.Json
                     continue;
                 }
 
+                if (descriptor.recordKind == NeoGameSaveRecordKinds.StaticConstruction)
+                {
+                    if (staticConstructions is null)
+                        throw new JsonSerializationException("Static construction records require a construction map.");
+                    if (descriptor.deleted)
+                        staticConstructions.Remove(descriptor.recordId);
+                    else
+                        staticConstructions[descriptor.recordId] = ReadConstruction(descriptor);
+                    continue;
+                }
+
                 if (descriptor.recordKind == NeoGameSaveRecordKinds.ChangeListeners)
                 {
                     if (changeListeners is null)
@@ -438,6 +465,57 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Unknown save record kind '{descriptor.recordKind}'.");
             }
+        }
+
+        /// <summary>
+        /// The live construction records this cache holds, by record id: the
+        /// starting map a delta applies to.
+        /// </summary>
+        internal Dictionary<string, NeoStaticConstruction> StaticConstructions()
+        {
+            var constructions = new Dictionary<string, NeoStaticConstruction>(StringComparer.Ordinal);
+            foreach (var descriptor in descriptors.Values)
+            {
+                if (descriptor.recordKind == NeoGameSaveRecordKinds.StaticConstruction && !descriptor.deleted)
+                    constructions[descriptor.recordId] = ReadConstruction(descriptor);
+            }
+            return constructions;
+        }
+
+        /// <summary>
+        /// The live construction descriptors, by member and construction, so a
+        /// patch finds each construction's record without a scan per change.
+        /// </summary>
+        internal Dictionary<(string memberId, TypeBinding construction), GameSaveRecordDescriptor> ConstructionDescriptors()
+        {
+            var found = new Dictionary<(string, TypeBinding), GameSaveRecordDescriptor>();
+            foreach (var descriptor in descriptors.Values)
+            {
+                if (descriptor.recordKind != NeoGameSaveRecordKinds.StaticConstruction || descriptor.deleted)
+                    continue;
+                NeoStaticConstruction entry = ReadConstruction(descriptor);
+                found[(entry.memberId, entry.construction)] = descriptor;
+            }
+            return found;
+        }
+
+        private NeoStaticConstruction ReadConstruction(GameSaveRecordDescriptor descriptor)
+        {
+            JObject data = ParseDataObject(RequireCachedState(descriptor), descriptor);
+            string subject = $"Save static-construction record '{descriptor.recordId}'";
+            if (data["memberId"] is not JValue { Type: JTokenType.String } memberId)
+                throw new JsonSerializationException($"{subject} has no string memberId.");
+            if (data["construction"] is not JObject construction)
+                throw new JsonSerializationException($"{subject} has no construction object.");
+            JToken? valueId = data["valueId"];
+            if (valueId is not null && valueId.Type != JTokenType.Null && valueId.Type != JTokenType.String)
+                throw new JsonSerializationException($"{subject} has a non-string valueId.");
+            return new NeoStaticConstruction
+            {
+                memberId = memberId.Value<string>()!,
+                construction = TypeBindings.Read(construction, $"{subject} construction"),
+                value = valueId?.Type == JTokenType.String ? valueId.Value<string>() : null,
+            };
         }
 
         private GameSaveRecordState RequireCachedState(GameSaveRecordDescriptor descriptor)

@@ -8,6 +8,6 @@
 abstract class NeoSpriteAnimationSegmentTrack<
   @id("system_4de90637-6a3b-4bba-95ef-2ff9dfb05268")
   TChild extends NeoSpriteObject
->(NeoDelegate<TChild> selector) : NeoAnimationSegmentTrack<TChild, SpriteInfo>(selector: selector) {
+  >(NeoDelegate<TChild> selector) : NeoAnimationSegmentTrack<TChild, SpriteInfo>(selector: selector) {
 
-}
+  }

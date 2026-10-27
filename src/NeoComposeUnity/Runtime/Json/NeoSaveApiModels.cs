@@ -30,6 +30,10 @@ namespace NeoCompose.Runtime.Json
         /// Values are target value ids or null tombstones.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+
+        /// <inheritdoc cref="NeoStaticConstruction"/>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<NeoStaticConstruction>? staticConstructions;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, NeoChangeListenerMap>? changeListeners;
 

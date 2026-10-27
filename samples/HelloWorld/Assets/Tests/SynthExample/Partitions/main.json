@@ -361,7 +361,14 @@
     "createdAt": 0,
     "updatedAt": 0,
     "genericBindings": {
-      "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
+      "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+        "kind": 0,
+        "type": {
+          "type": 7,
+          "required": true,
+          "classId": "class-animated-sprite"
+        }
+      }
     }
   },
   "value-animation-tracks": {

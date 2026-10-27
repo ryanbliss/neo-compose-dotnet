@@ -344,8 +344,7 @@ namespace NeoCompose.Tests
         {
             var d = Data();
             d.classes["tuple-host"].genericParams = new List<GenericParamDeclaration> { new() { id = "p-review", name = "T" }, new() { id = "q-review", name = "U" } };
-            d.classes["closed-review"] = new NeoSchemaClass { id = "closed-review", projectId = "project-a", name = "Closed", extendsClassId = "tuple-host", schema = new Dictionary<string, string>(), extendsGenericBindings = new Dictionary<string, GenericBinding> { ["p-review"] = new() { kind = NeoGenericBindingKind.Member, memberId = "tuple-int" }, ["q-review"] = new() { kind = NeoGenericBindingKind.Member, memberId = "review-string" } } };
-            d.members["review-string"] = new StringMember { id = "review-string", name = "Text", projectId = "project-a", kind = MemberKind.String, Requirement = NeoMemberRequirementKind.Optional };
+            d.classes["closed-review"] = new NeoSchemaClass { id = "closed-review", projectId = "project-a", name = "Closed", extendsClassId = "tuple-host", schema = new Dictionary<string, string>(), extendsGenericBindings = new Dictionary<string, TypeBinding> { ["p-review"] = TestTypeBindings.Of(d.members["tuple-int"]), ["q-review"] = TestTypeBindings.Of(MemberKind.String, required: false) } };
             d.members["p-member"] = new GenericMember { id = "p-member", name = "P", projectId = "project-a", kind = MemberKind.Generic, genericParamId = "p-review" };
             d.members["q-member"] = new GenericMember { id = "q-member", name = "Q", projectId = "project-a", kind = MemberKind.Generic, genericParamId = "q-review" };
             d.members["nested-list"] = new ListMember { id = "nested-list", name = "List", projectId = "project-a", kind = MemberKind.List, Requirement = NeoMemberRequirementKind.Required, entryMemberId = "q-member" };
@@ -435,7 +434,9 @@ namespace NeoCompose.Tests
             using var client = NeoSourceParityFixture.CreateClient("generic-tuple-set-parity.json");
             using var parent = CreateTupleSetOwner(client);
             var node = parent.Get<NeoMember>("Items");
-            Assert.That(node.value!.genericBindings, Is.Not.Null.And.Not.Empty);
+            // P127 §12.1: the set reads its owner's bindings through its typeSource.
+            Assert.That(node.value!.genericBindings, Is.Null);
+            Assert.That(node.value.typeSource?.ValueId, Is.EqualTo(parent.value!.id));
             var writable = NeoGenericBindings.Resolve<NeoSet<(int, int)>>(client, node).Read(node);
             var view = NeoGenericBindings.Resolve<NeoReadOnlySet<(int, int)>>(client, node).Read(node);
             if (operation.EndsWith("existing"))

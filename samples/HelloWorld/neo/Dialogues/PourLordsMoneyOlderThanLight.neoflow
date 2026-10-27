@@ -42,9 +42,9 @@ sealed class PourLordsMoneyOlderThanLight : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("82db4290-2c59-56f4-9b38-b13f22b394ef")
-    Condition1,
-  ],
+      @id("82db4290-2c59-56f4-9b38-b13f22b394ef")
+      Condition1,
+    ],
     limit: 1,
   ) => P1;
 
@@ -146,9 +146,9 @@ sealed class PourLordsMoneyOlderThanLight : NeoDialogue {
     @id("1f93c851-c1a3-45da-ba63-de3eb30f5e2f")
     Option Pour = new(
       selectableWhen: [
-      @id("46b9c5b4-f793-5fce-996c-8cfff96821d9")
-      Condition2,
-    ],
+        @id("46b9c5b4-f793-5fce-996c-8cfff96821d9")
+        Condition2,
+      ],
     ) {
       """
       Pour from your Helium-3 Flask

@@ -1,0 +1,8 @@
+@id("system_0f2970bc-bd11-5173-847c-713e88b47a44")
+@system(kind: .ScriptRuntime)
+class NeoIndexOutOfRangeError : NeoError {
+  @id("system_7e66b321-59ef-5d57-a126-15aee7505321")
+  public NeoIndexOutOfRangeError(string message)
+  : base(message: message) {
+  }
+}

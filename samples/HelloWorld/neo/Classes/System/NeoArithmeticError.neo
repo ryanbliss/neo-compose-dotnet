@@ -1,0 +1,8 @@
+@id("system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab")
+@system(kind: .ScriptRuntime)
+class NeoArithmeticError : NeoError {
+  @id("system_2f292163-652d-51be-a4d3-e0f908703890")
+  public NeoArithmeticError(string message)
+  : base(message: message) {
+  }
+}

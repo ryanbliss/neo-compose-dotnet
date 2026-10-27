@@ -2,8 +2,8 @@
 @storage(allowed: .Save)
 @relations(
   targetLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-76260de49b864153d4336985bde4790f")
-    CollisionTileLayer
+  @id("neo-tile-grid-record-relations-v1-relation-76260de49b864153d4336985bde4790f")
+  CollisionTileLayer
 )
 class BlockedPath : NeoTileLayerLink {
   @id("e0316e12-b70d-4d4a-9c16-1861ce394849")

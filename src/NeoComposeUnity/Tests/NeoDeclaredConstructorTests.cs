@@ -1925,6 +1925,58 @@ namespace NeoCompose.Tests
             StringAssert.Contains("__arg_0__", error.Message);
         }
 
+        /// <summary>
+        /// P127 §3.4: a decimal constructor argument records as its canonical
+        /// string, which keeps every digit of the envelope, its scale and a
+        /// zero's sign, and replay reads that string back.
+        /// </summary>
+        [TestCase("79228162514264337593543950335")]
+        [TestCase("-79228162514264337593543950335")]
+        [TestCase("0.1234567890123456789012345678")]
+        [TestCase("-0")]
+        [TestCase("-0.00")]
+        public void DeclaredConstructor_RecordsADecimalArgumentAsItsCanonicalString(string text)
+        {
+            ProjectData data = BuildProjectData();
+            AddOverload(data, "ctor-amount", "amount", new FunctionArgumentTypeInfo
+            {
+                name = "Amount",
+                type = MemberKind.Decimal,
+                required = true,
+            });
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var amount = new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = MemberKind.Decimal,
+                        required = true,
+                    },
+                    value = JToken.FromObject(text),
+                },
+            };
+
+            object? result = NSGetterEvaluator.Evaluate(
+                ReturnFunction(DeclaredConstructorPointer(
+                    PartType(),
+                    "ctor-amount",
+                    new[]
+                    {
+                        new DeclaredConstructorArgument { name = "Amount", valuePointer = amount },
+                    },
+                    Array.Empty<FunctionClassConstructorField>())),
+                ctx);
+
+            JToken recorded = RequireConstructedRoot(client, ctx, result).constructorArgs!["__arg_0__"]!;
+            Assert.AreEqual(JTokenType.String, recorded.Type);
+            Assert.AreEqual(text, recorded.Value<string>());
+            Assert.AreEqual(text, NeoClient.StoredDecimalArgument(recorded));
+        }
+
         [Test]
         public void ConstructorRecords_CollectionElementTypeDistinguishesOverloads()
         {

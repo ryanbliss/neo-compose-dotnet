@@ -318,6 +318,7 @@ namespace NeoCompose.Runtime
                 releaseChannelId = core.TargetReleaseChannelId,
                 name = UserFileName,
                 projectId = core.ProjectId,
+                requiredSaveFormatRevision = NeoSaveFormat.SupportedRevision,
                 createdAt = now,
                 updatedAt = now,
             };

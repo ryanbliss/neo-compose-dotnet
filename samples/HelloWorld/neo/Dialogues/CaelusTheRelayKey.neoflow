@@ -27,9 +27,9 @@ sealed class CaelusTheRelayKey : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("d71ea14b-2aeb-5778-b61e-d6b61b3a7484")
-    Condition1,
-  ],
+      @id("d71ea14b-2aeb-5778-b61e-d6b61b3a7484")
+      Condition1,
+    ],
     limit: 1,
   ) => C1;
 

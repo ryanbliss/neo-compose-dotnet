@@ -1,0 +1,8 @@
+@id("system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183")
+@system(kind: .ScriptRuntime)
+class NeoKeyNotFoundError : NeoError {
+  @id("system_0adaa530-dae1-5bc9-a498-de27d719b0c2")
+  public NeoKeyNotFoundError(string message)
+  : base(message: message) {
+  }
+}

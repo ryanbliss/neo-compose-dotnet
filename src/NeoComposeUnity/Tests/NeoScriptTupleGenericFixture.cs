@@ -236,10 +236,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     },
@@ -500,10 +497,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     },
@@ -814,10 +808,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     }
@@ -1240,10 +1231,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""builtin:Root"",
-          ""pending:class:Probe.neo:Probe""
-        ],
+        ""recordIds"": [""builtin:Root"", ""pending:class:Probe.neo:Probe""],
         ""typeNames"": []
       }
     }

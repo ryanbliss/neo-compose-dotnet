@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
 
@@ -36,24 +37,42 @@ namespace NeoCompose.Runtime
         {
             internal readonly Member member;
             internal readonly object schema;
-            internal readonly System.Collections.Generic.Dictionary<string, string>? bindings;
+            // P127 §12.1: a List or Dictionary root's type is the one its typeSource
+            // resolves to. Re-placement moves the pointer but must not change that
+            // type, so the contract compares resolved types. A type resolved at
+            // creation accepts an unresolved row only with its source unchanged;
+            // a source unresolved at creation, such as a row unplaced mid-batch,
+            // falls back to the stored source's type or path.
+            internal readonly NeoTypeSource? typeSource;
+            internal readonly TypeBinding? type;
 
-            internal RetainedRootContract(Member member, object schema, MemberValue row)
+            internal RetainedRootContract(Member member, object schema, MemberValue row, System.Func<string, MemberValueBase?> lookup)
             {
                 this.member = member;
                 this.schema = schema;
-                bindings = row.genericBindings is null ? null : new(row.genericBindings);
+                typeSource = row.typeSource;
+                type = row.typeSource is { } source ? NeoTypeSources.TryTypeSourceType(source, lookup) : null;
             }
 
-            internal bool MatchesBindings(MemberValue row)
+            internal bool MatchesType(MemberValue row, System.Func<string, MemberValueBase?> lookup)
             {
-                if ((bindings?.Count ?? 0) != (row.genericBindings?.Count ?? 0))
+                TypeBinding? expected = type ?? (typeSource is null ? null : NeoTypeSources.TryTypeSourceType(typeSource, lookup));
+                NeoTypeSource? current = row.typeSource;
+                TypeBinding? resolved = current is null ? null : NeoTypeSources.TryTypeSourceType(current, lookup);
+                if (expected is not null && resolved is not null)
+                    return Equals(expected, resolved);
+                // A contract that knew its type accepts a row that resolves to
+                // nothing only while its source is unchanged: a moved pointer
+                // that resolves nothing can't show the type held.
+                if (type is not null)
+                    return Equals(typeSource, current);
+                if (typeSource is null || current is null)
+                    return typeSource is null && current is null;
+                if (!Equals(typeSource.Type, current.Type))
                     return false;
-                if (bindings is not null)
-                    foreach (var pair in bindings)
-                        if (row.genericBindings?.TryGetValue(pair.Key, out string value) != true || value != pair.Value)
-                            return false;
-                return true;
+                if (typeSource.Path is null || current.Path is null)
+                    return typeSource.Path is null && current.Path is null;
+                return typeSource.Path.SequenceEqual(current.Path, System.StringComparer.Ordinal);
             }
         }
         /// <summary>The evaluator's canonical unwraps of this row.</summary>

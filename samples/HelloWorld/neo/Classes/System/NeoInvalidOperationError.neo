@@ -1,0 +1,8 @@
+@id("system_bdca6d33-5224-5412-8e50-bef6fe0720bf")
+@system(kind: .ScriptRuntime)
+class NeoInvalidOperationError : NeoError {
+  @id("system_96788ed2-20ae-54fa-b6cb-2e7d558513a8")
+  public NeoInvalidOperationError(string message)
+  : base(message: message) {
+  }
+}

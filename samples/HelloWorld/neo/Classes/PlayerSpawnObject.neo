@@ -5,8 +5,8 @@
     DefaultObjectLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-bafe60914eda064ee17ae4f0c918ec29")
-    DefaultObjectLayer
+  @id("neo-tile-grid-record-relations-v1-relation-bafe60914eda064ee17ae4f0c918ec29")
+  DefaultObjectLayer
 )
 class PlayerSpawnObject : ConsoleObject {
   @id("neo-tile-grid-record-relations-v1-member-5544b0deacdcfd845f211f1bb0cf21da")
@@ -22,7 +22,9 @@ class PlayerSpawnObject : ConsoleObject {
       MaskInteraction = .None,
       Name = "",
       Sprite = Images.PlayerSpawnObject.Slice(0),
+      Children = [],
       Enabled = true,
+      PlacementTiles = [],
       Position = new(0, 0, 0),
       Size = new(1, 1, 0)
     }

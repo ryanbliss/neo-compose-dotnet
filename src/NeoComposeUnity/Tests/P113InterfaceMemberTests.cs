@@ -19,6 +19,8 @@ namespace NeoCompose.Tests
     /// helpers. <c>IContainer&lt;T&gt;</c> is implemented by a closed
     /// <c>Box</c>, an <c>OpenBox&lt;U&gt;</c> it determines, a
     /// <c>Keyed&lt;K, V&gt;</c> it can't determine, and not by <c>Plain</c>.
+    /// <c>IntBox</c> and <c>CultureBox</c> implement it with other arguments
+    /// than the slots' <c>IContainer&lt;string&gt;</c>.
     /// </summary>
     public class P113InterfaceMemberTests
     {
@@ -31,6 +33,9 @@ namespace NeoCompose.Tests
         private const string KeyedK = "class-keyed-k";
         private const string KeyedV = "class-keyed-v";
         private const string PlainId = "class-plain";
+        private const string IntBoxId = "class-int-box";
+        private const string CultureBoxId = "class-culture-box";
+        private const string HolderP = "class-generic-holder-p";
 
         private interface ITestContainer
         {
@@ -90,7 +95,9 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 NeoInterfaceDeterminationKind.NotImplemented,
                 implementers.Determination(PlainId, ContainerId).kind);
-            CollectionAssert.AreEqual(new[] { BoxId, OpenBoxId }, implementers.Implementers(ContainerId));
+            CollectionAssert.AreEqual(
+                new[] { BoxId, OpenBoxId, IntBoxId, CultureBoxId },
+                implementers.Implementers(ContainerId));
         }
 
         [Test]
@@ -115,7 +122,7 @@ namespace NeoCompose.Tests
 
             var open = client.InterfaceImplementers.SlotClassArguments(slot!, OpenBoxId);
             Assert.IsNotNull(open);
-            Assert.AreEqual("member-string", open![OpenBoxU].memberId);
+            Assert.AreEqual(StringArgument, open![OpenBoxU]);
             Assert.IsNull(client.InterfaceImplementers.SlotClassArguments(slot!, BoxId));
             Assert.AreSame(open, client.InterfaceImplementers.SlotClassArguments(slot!, OpenBoxId));
         }
@@ -134,6 +141,87 @@ namespace NeoCompose.Tests
                 "Holder.Slot can't hold a Keyed, because IContainer doesn't determine Keyed's parameter K.",
                 error.Message);
             Assert.IsFalse(holder.TryGet<NeoMemberClass>("Slot", out _));
+        }
+
+        [Test]
+        public void ClassSlotWrite_RefusesARowThatImplementsOtherArguments()
+        {
+            var client = LoadClient();
+            AddRow(client, "int-row", IntBoxId);
+            var holder = client.save;
+
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                holder.SetSerializedValue("Slot", Reference("int-row")))!;
+
+            Assert.AreEqual(
+                "Holder.Slot can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<string>.",
+                error.Message);
+            Assert.IsFalse(holder.TryGet<NeoMemberClass>("Slot", out _));
+        }
+
+        [Test]
+        public void CollectionWrites_RefuseARowThatImplementsOtherArguments()
+        {
+            var client = LoadClient();
+            AddRow(client, "int-row", IntBoxId);
+            var list = client.save.GetOrCreateCollection<NeoMemberListWritable>("Containers");
+            var dictionary = client.save.GetOrCreateCollection<NeoMemberDictionaryWritable>("ByName");
+
+            var add = Assert.Throws<InvalidOperationException>(() => list.AddSerialized(Reference("int-row")))!;
+            var set = Assert.Throws<InvalidOperationException>(() =>
+                dictionary.SetSerialized("a", Reference("int-row")))!;
+
+            Assert.AreEqual(
+                "Containers can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<string>.",
+                add.Message);
+            Assert.AreEqual(
+                "ByName can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<string>.",
+                set.Message);
+            Assert.AreEqual(0, list.Count);
+        }
+
+        [Test]
+        public void ConstructedSlotAccepts_ComparesObjectTypeArguments()
+        {
+            var client = LoadClient();
+            ClassMember slot = InterfaceSlot("member-type-slot", "TypeSlot", ObjectArgument(NeoObjectTypeKind.Type));
+
+            NeoSlotAdmission admission = NeoGenericResolution.ConstructedSlotAccepts(
+                client,
+                slot,
+                CultureBoxId,
+                NeoGenericResolution.EmptyEnv);
+
+            Assert.IsFalse(admission.ok);
+            Assert.AreEqual(
+                "TypeSlot can't hold a CultureBox, because CultureBox implements IContainer<CultureInfo>, not IContainer<Type>.",
+                admission.reason);
+        }
+
+        [TestCase("generic-forward", TestName = "ConstructedSlotAccepts_ReadsAForwardedArgumentInItsContext")]
+        [TestCase("generic-nested", TestName = "ConstructedSlotAccepts_ReadsANestedForwardedArgumentInItsContext")]
+        public void ConstructedSlotAccepts_ReadsAnArgumentInItsContext(string shape)
+        {
+            var client = LoadClient();
+            TypeBinding argument = shape == "generic-forward"
+                ? HolderParam
+                : TestTypeBindings.List(HolderParam);
+            ClassMember slot = InterfaceSlotWithArgument("member-forward-slot", "Forwarded", argument);
+            var open = new Dictionary<string, NeoGenericEnvEntry> { [HolderP] = NeoGenericEnvEntry.Unbound(HolderP) };
+            var closed = new Dictionary<string, NeoGenericEnvEntry> { [HolderP] = NeoTypeBindings.Entry(StringArgument) };
+
+            // An argument its context leaves open, at any depth, fits every implementer.
+            Assert.IsTrue(NeoGenericResolution.ConstructedSlotAccepts(client, slot, IntBoxId, open).ok);
+            Assert.IsTrue(NeoGenericResolution.ConstructedSlotAccepts(client, slot, CultureBoxId, open).ok);
+            NeoSlotAdmission refused = NeoGenericResolution.ConstructedSlotAccepts(client, slot, IntBoxId, closed);
+
+            string wanted = shape == "generic-forward" ? "string" : "List<string>";
+            Assert.AreEqual(
+                $"Forwarded can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<{wanted}>.",
+                refused.reason);
+            Assert.AreEqual(
+                shape == "generic-forward",
+                NeoGenericResolution.ConstructedSlotAccepts(client, slot, BoxId, closed).ok);
         }
 
         [Test]
@@ -177,6 +265,26 @@ namespace NeoCompose.Tests
                 dictionary.SetSerialized("a", Reference("keyed-row")))!;
 
             StringAssert.StartsWith("ByName can't hold a Keyed", error.Message);
+        }
+
+        [Test]
+        public void InterfaceSlot_ClassValueClonesAndReloads()
+        {
+            using var client = LoadClient();
+            AddRow(client, "box-row", BoxId);
+            client.save.SetSerializedValue("Slot", Reference("box-row"));
+            string held = client.save.Get<NeoMemberClass>("Slot").value!.id;
+
+            NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(client, new ValueRef(client.save.value!.id));
+            var cloned = clone.Get<NeoMemberClass>("Slot");
+            Assert.AreEqual(BoxId, cloned.ClassId);
+            Assert.AreNotEqual(held, cloned.value!.id);
+            Assert.IsInstanceOf<TestBox>(NeoGeneratedTypesSupport.ResolveInterfaceValue<ITestContainer>(client, cloned, readOnly: false));
+
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(client.Synchronizer.Schema, loadedSaveContent: client.SerializeSaveData());
+            var slot = reloaded.save.Get<NeoMemberClass>("Slot");
+            Assert.AreEqual(BoxId, slot.ClassId);
+            Assert.AreEqual(held, slot.value!.id);
         }
 
         [Test]
@@ -276,6 +384,16 @@ namespace NeoCompose.Tests
             return client;
         }
 
+        private sealed class ValueRef : INeoValueReference
+        {
+            internal ValueRef(string valueId) => this.valueId = valueId;
+
+            public string? valueId
+            {
+                get;
+            }
+        }
+
         private static NeoValueWritePayload Reference(string valueId) =>
             NeoValueWritePayload.FromValueReference(valueId, null);
 
@@ -293,7 +411,6 @@ namespace NeoCompose.Tests
 
         private static ProjectData BuildProjectData()
         {
-            var stringArgument = new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = "member-string" };
             var container = new Interface
             {
                 id = ContainerId,
@@ -323,7 +440,7 @@ namespace NeoCompose.Tests
                         ["Containers"] = "member-containers",
                         ["ByName"] = "member-by-name",
                     }),
-                    [BoxId] = Implementing(Class(BoxId, "Box"), stringArgument),
+                    [BoxId] = Implementing(Class(BoxId, "Box"), StringArgument),
                     [OpenBoxId] = Implementing(
                         Class(OpenBoxId, "OpenBox", genericParams: new[] { (OpenBoxU, "U") }),
                         Forward(OpenBoxU)),
@@ -331,19 +448,18 @@ namespace NeoCompose.Tests
                         Class(KeyedId, "Keyed", genericParams: new[] { (KeyedK, "K"), (KeyedV, "V") }),
                         Forward(KeyedV)),
                     [PlainId] = Class(PlainId, "Plain"),
+                    [IntBoxId] = Implementing(Class(IntBoxId, "IntBox"), TestTypeBindings.Of(MemberKind.Int)),
+                    [CultureBoxId] = Implementing(Class(CultureBoxId, "CultureBox"), ObjectArgument(NeoObjectTypeKind.CultureInfo)),
+                    ["class-generic-holder"] = Class(
+                        "class-generic-holder",
+                        "GenericHolder",
+                        genericParams: new[] { (HolderP, "P") }),
                 },
                 members = new Dictionary<string, Member>
                 {
                     ["root-assets"] = RootMember("root-assets", "class-root"),
                     ["root-save"] = RootMember("root-save", "class-holder"),
                     ["root-session"] = RootMember("root-session", "class-root"),
-                    ["member-string"] = new StringMember
-                    {
-                        id = "member-string",
-                        projectId = "project",
-                        name = "Text",
-                        kind = MemberKind.String,
-                    },
                     ["member-slot"] = InterfaceSlot("member-slot", "Slot"),
                     ["member-containers"] = new ListMember
                     {
@@ -372,29 +488,37 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static readonly TypeBinding StringArgument = TestTypeBindings.Of(MemberKind.String);
+        private static readonly TypeBinding HolderParam = TestTypeBindings.Open("class-generic-holder", HolderP);
+
         // An interface arm comes from the wire, which marks its declared
         // fields the way the export does.
-        private static ClassMember InterfaceSlot(string id, string name)
+        private static ClassMember InterfaceSlot(string id, string name, TypeBinding? argument = null) =>
+            InterfaceSlotWithArgument(id, name, argument ?? StringArgument);
+
+        private static ClassMember InterfaceSlotWithArgument(string id, string name, TypeBinding argument)
         {
             return (ClassMember)JsonConvert.DeserializeObject<Member>(
                 $"{{'id':'{id}','projectId':'project','name':'{name}','kind':7,'interfaceId':'{ContainerId}',"
-                    + $"'interfaceArguments':{{'{ContainerT}':{{'kind':1,'memberId':'member-string'}}}},"
+                    + $"'interfaceArguments':{{'{ContainerT}':{JsonConvert.SerializeObject(argument)}}},"
                     + "'createdAt':'x','updatedAt':'x'}")!;
         }
 
-        private static GenericBinding Forward(string paramId) =>
-            new()
-            {
-                kind = NeoGenericBindingKind.Generic,
-                genericParamId = paramId
-            };
+        private static TypeBinding ObjectArgument(NeoObjectTypeKind objectType) =>
+            TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: objectType));
 
-        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, GenericBinding argument)
+        private static TypeBinding Forward(string paramId) =>
+            TestTypeBindings.Open(paramId.Substring(0, paramId.LastIndexOf('-')), paramId);
+
+        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, TypeBinding argument)
         {
-            schemaClass.implementsInterfaceIds = new List<string> { ContainerId };
-            schemaClass.implementsInterfaceArguments = new Dictionary<string, Dictionary<string, GenericBinding>>
+            schemaClass.implementsInterfaces = new List<InterfaceConstruction>
             {
-                [ContainerId] = new() { [ContainerT] = argument },
+                new()
+                {
+                    interfaceId = ContainerId,
+                    arguments = new Dictionary<string, TypeBinding> { [ContainerT] = argument },
+                },
             };
             return schemaClass;
         }

@@ -89,7 +89,7 @@ namespace NeoCompose.Runtime.NeoScript
                     "subtract" => VectorRound(x - y, integer),
                     "negate" => VectorRound(-x, integer),
                     "multiply" or "scaleLeft" => VectorRound(x * scalar, integer),
-                    "divide" => integer ? Math.Truncate(x / scalar) : VectorRound(x / scalar, false),
+                    "divide" => VectorRound(integer ? Math.Truncate(x / scalar) : x / scalar, integer),
                     "normalized" => magnitude > (float)0.00001 ? VectorRound(x / magnitude, false) : 0,
                     "lerp" => VectorRound(x + VectorRound(VectorRound(y - x, false) * scalar, false), false),
                     "moveTowards" => reached ? y : VectorRound(x + VectorRound(VectorRound(difference.Get(i) / magnitude, false) * scalar, false), false),
@@ -114,7 +114,8 @@ namespace NeoCompose.Runtime.NeoScript
             return VectorRound(VectorRound(a.Get(j) * b.Get(k), false) - VectorRound(a.Get(k) * b.Get(j), false), false);
         }
 
-        private static double VectorRound(double value, bool integer) => integer ? value : (float)value;
+        /// <summary>A float component rounds to 32 bits; an int component has no -0 (P127 §12.1).</summary>
+        private static double VectorRound(double value, bool integer) => integer ? value + 0d : (float)value;
 
         private static VectorComponents ReadVectorOperand(object? value, string kind, string op, int argumentIndex, bool integer, int count)
         {

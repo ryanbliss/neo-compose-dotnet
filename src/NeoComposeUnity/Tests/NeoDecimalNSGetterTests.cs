@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -161,13 +162,27 @@ namespace NeoCompose.Tests
         [Test]
         public void Arithmetic_OverflowSurfacesAsRuntimeError()
         {
+            // decimal.MaxValue + 1 overflows System.Decimal's 96-bit coefficient (P127 §3.4).
             var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(
                     DecimalArithmetic(
                         ArithmeticOpKind.Addition,
-                        DecimalLiteral(new string('9', 28)),
+                        DecimalLiteral("79228162514264337593543950335"),
                         DecimalLiteral("1"))));
-            StringAssert.Contains("Decimal overflow", error!.Message);
+            Assert.AreEqual("Value was either too large or too small for a Decimal.", error!.Message);
+        }
+
+        [Test]
+        public void Arithmetic_RoundsLikeSystemDecimal()
+        {
+            // The exact sum needs 30 digits, so the scale drops to 27 (P127 §3.4).
+            Assert.AreEqual(
+                "10.000000000000000000000000000",
+                EvaluateReturn(
+                    DecimalArithmetic(
+                        ArithmeticOpKind.Addition,
+                        DecimalLiteral("10"),
+                        DecimalLiteral("0.0000000000000000000000000001"))));
         }
 
         // ------------------------------------------------------------------
@@ -262,6 +277,23 @@ namespace NeoCompose.Tests
                 "0.10000000000000000555",
                 EvaluateReturn(DecimalOp(
                     DecimalOpKind.ToDecimal, NumberLiteral(0.1), digits: 20)));
+        }
+
+        [Test]
+        public void DecimalOp_ToDecimalOverflow_ThrowsNeoOverflowError()
+        {
+            // 1e30 has 31 integer digits, past System.Decimal's 2^96 envelope;
+            // the TS runtime raises NeoOverflowError here too (P127 §3.4).
+            // With error classes loaded the evaluator rewraps it as a
+            // catchable error, whose class id is the fallback.
+            var error = Assert.Catch<NSGetterRuntimeError>(() =>
+                EvaluateReturn(DecimalOp(
+                    DecimalOpKind.ToDecimal, NumberLiteral(1e30), digits: 0)));
+            var raised = error as NeoRuntimeError ?? error!.InnerException as NeoRuntimeError;
+            Assert.IsNotNull(raised, error!.ToString());
+            Assert.AreEqual(NeoErrorClass.NeoOverflowError, raised!.ErrorClass);
+            Assert.AreEqual("Value was either too large or too small for a Decimal.", raised.Message);
+            Assert.AreEqual(NeoErrorContract.NeoArithmeticError, error.Payload.ClassId);
         }
 
         [Test]
@@ -396,6 +428,100 @@ namespace NeoCompose.Tests
                     StringOp(StringOpKind.Trim, NullLiteral()),
                     MemberKind.String));
             StringAssert.Contains("receiver must be a string", error!.Message);
+        }
+
+        // ------------------------------------------------------------------
+        // Stored decimal collections (P127 §3.4 Average).
+        // ------------------------------------------------------------------
+
+        // .NET seeds a List's Average with 0m but a HashSet's with its first entry.
+        [Test]
+        public void Average_StoredRows_SeedLikeDotNet()
+        {
+            using NeoClient client = BuildStoredCollectionsClient();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+
+            Assert.AreEqual("0", StoredAverage("amounts", ctx));
+            Assert.AreEqual("-0", StoredAverage("bag", ctx));
+        }
+
+        private static object? StoredAverage(string rowId, NSGetterEvaluator.Context ctx) => NSGetterEvaluator.EvaluatePointer(
+            new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CollectionQueryFunction
+                {
+                    type = FunctionKind.CollectionQuery,
+                    info = new FunctionCollectionQueryInfo
+                    {
+                        op = "Average",
+                        collectionPointer = new ReferencePointer { type = PointerKind.Reference, valueId = rowId },
+                        keyType = "decimal",
+                    },
+                },
+            },
+            new Dictionary<string, object?>(),
+            ctx);
+
+        /// <summary>
+        /// Save root <c>{ List&lt;decimal&gt; Amounts; Set&lt;decimal&gt; Bag; }</c>,
+        /// each field storing one <c>-0</c> entry.
+        /// </summary>
+        private static NeoClient BuildStoredCollectionsClient()
+        {
+            var required = NeoMemberRequirementKind.Required;
+            var rootClass = new NeoSchemaClass
+            {
+                id = "root-class",
+                projectId = "project-a",
+                name = "Root",
+                schema = new Dictionary<string, string>(),
+            };
+            var saveClass = new NeoSchemaClass
+            {
+                id = "save-class",
+                projectId = "project-a",
+                name = "Save",
+                schema = new Dictionary<string, string> { ["Amounts"] = "amounts-member", ["Bag"] = "bag-member" },
+            };
+            var saveRoot = ObjectValue("root-save-value", saveClass.id);
+            saveRoot.value!["Amounts"] = "amounts";
+            saveRoot.value["Bag"] = "bag";
+            var members = new NeoCompose.Runtime.Json.Member[]
+            {
+                RootMember("root-assets", "root-assets-value", rootClass.id),
+                RootMember("root-save", "root-save-value", saveClass.id),
+                RootMember("root-session", "root-session-value", rootClass.id),
+                new DecimalMember { id = "amount-entry", projectId = "project-a", name = "Amount", kind = MemberKind.Decimal, Requirement = required },
+                new ListMember { id = "amounts-member", projectId = "project-a", name = "Amounts", kind = MemberKind.List, entryMemberId = "amount-entry", Requirement = required },
+                new SetMember { id = "bag-member", projectId = "project-a", name = "Bag", kind = MemberKind.Set, entryMemberId = "amount-entry", Requirement = required },
+            };
+            var values = new MemberValue[]
+            {
+                ObjectValue("root-assets-value", rootClass.id),
+                ObjectValue("root-session-value", rootClass.id),
+                saveRoot,
+                new ArrayMemberValue { id = "amounts", value = new[] { "amount-0" } },
+                new StringMemberValue { id = "amount-0", value = "-0" },
+                new ArrayMemberValue { id = "bag", value = new[] { "bag-0" } },
+                new StringMemberValue { id = "bag-0", value = "-0" },
+            };
+            return NeoTestSaveStack.ClientFromSchema(new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-a",
+                    _id = "project-a",
+                    name = "Decimal NSGetters",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
+                },
+                members = members.ToDictionary(member => member.id),
+                values = values.ToDictionary(value => value.id),
+                classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass, [saveClass.id] = saveClass },
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+            }.WithUserRoot());
         }
 
         // ------------------------------------------------------------------

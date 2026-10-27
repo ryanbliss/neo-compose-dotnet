@@ -69,6 +69,7 @@ namespace NeoCompose.Runtime
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
         private Dictionary<string, string?> liveStaticBindingBaseline = new();
+        private List<NeoStaticConstruction> liveStaticConstructionBaseline = new();
         private Dictionary<string, NeoChangeListenerMap> liveListenerBaseline = new();
 
         /// <summary>Records generated writes touched since the last capture.</summary>
@@ -740,7 +741,8 @@ namespace NeoCompose.Runtime
                     baseline.recordCache,
                     baseline.staticBindings,
                     local.staticBindings,
-                    dirty, baseline.changeListeners, local.changeListeners, local.listenerEndpoints)
+                    dirty, baseline.changeListeners, local.changeListeners, local.listenerEndpoints,
+                    baseline.staticConstructions, local.staticConstructions)
                 .changes;
 
             if (skipUnchangedSnapshot && !replaceSnapshot && changes.Count == 0 && baseline.HasSameHeader(local))
@@ -880,6 +882,7 @@ namespace NeoCompose.Runtime
                     values = source.values,
                     valuePartitions = source.valuePartitions,
                     staticBindings = source.staticBindings,
+                    staticConstructions = source.staticConstructions,
                     changeListeners = source.changeListeners,
                     platforms = source.platforms,
                     systems = source.systems,
@@ -892,6 +895,7 @@ namespace NeoCompose.Runtime
             public long snapshotRevision;
             public JObject values = new();
             public Dictionary<string, string?> staticBindings = new();
+            public List<NeoStaticConstruction>? staticConstructions;
             public Dictionary<string, NeoChangeListenerMap> changeListeners = new();
             public GameSaveRecordCache recordCache = new();
             public string? liveSessionId;
@@ -906,6 +910,7 @@ namespace NeoCompose.Runtime
                 snapshotRevision = save.snapshotRevision,
                 values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                staticConstructions = save.staticConstructions,
                 changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
@@ -919,6 +924,7 @@ namespace NeoCompose.Runtime
                 snapshotRevision = save.snapshotRevision,
                 values = AsValuesObject(save.values) ?? new JObject(),
                 staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                staticConstructions = save.staticConstructions,
                 changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners),
                 recordCache = save.recordCache,
                 liveSessionId = save.liveSessionId,
@@ -1262,7 +1268,8 @@ namespace NeoCompose.Runtime
                             current.recordCache,
                             liveStaticBindingBaseline,
                             stagedLive!.staticBindings,
-                            stagedDirty, liveListenerBaseline, stagedLive.changeListeners, stagedLive.listenerEndpoints);
+                            stagedDirty, liveListenerBaseline, stagedLive.changeListeners, stagedLive.listenerEndpoints,
+                            liveStaticConstructionBaseline, stagedLive.staticConstructions);
                     }
                 }
 
@@ -1291,6 +1298,7 @@ namespace NeoCompose.Runtime
             if (!listenersOnly)
             {
                 liveStaticBindingBaseline = new Dictionary<string, string?>(current.staticBindings);
+                liveStaticConstructionBaseline = CopyConstructions(current.staticConstructions);
                 if (serverValues is not null)
                     liveBaseline = await CloneOnWorkerAsync(serverValues);
             }
@@ -1298,7 +1306,9 @@ namespace NeoCompose.Runtime
             if (localDirty is not null && serverValues is not null)
             {
                 NeoChangeListenerPatches.Apply(liveListenerBaseline, localDirty, expected: true);
-                ApplyLocalChanges(serverValues, current.staticBindings, localDirty, current.changeListeners ??= new());
+                var constructions = CopyConstructions(current.staticConstructions);
+                ApplyLocalChanges(serverValues, current.staticBindings, localDirty, current.changeListeners ??= new(), constructions);
+                current.staticConstructions = constructions.Count == 0 ? null : constructions;
                 current.values = new NeoSaveValues(serverValues);
             }
             if (current.changeListeners?.Count == 0)
@@ -1369,6 +1379,7 @@ namespace NeoCompose.Runtime
                 : null;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(loaded.staticBindings);
+            liveStaticConstructionBaseline = CopyConstructions(loaded.staticConstructions);
             liveListenerBaseline = NeoChangeListenerPatches.Copy(loaded.changeListeners);
             RecordKnownLiveIdentity(
                 loaded.serverId,
@@ -1680,7 +1691,8 @@ namespace NeoCompose.Runtime
                 local.recordCache,
                 liveStaticBindingBaseline,
                 local.staticBindings,
-                stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints);
+                stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints,
+                liveStaticConstructionBaseline, local.staticConstructions);
             if (patch.IsEmpty && (local.requiredSaveFormatRevision ?? NeoSaveFormat.LegacyRevision) <= (local.recordCache.requiredSaveFormatRevision ?? NeoSaveFormat.LegacyRevision))
             {
                 if (ReferenceEquals(stagedLive, local))
@@ -1747,7 +1759,8 @@ namespace NeoCompose.Runtime
                         local.recordCache,
                         liveStaticBindingBaseline,
                         local.staticBindings,
-                        stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints);
+                        stagedDirty, liveListenerBaseline, local.changeListeners, local.listenerEndpoints,
+                        liveStaticConstructionBaseline, local.staticConstructions);
                     await ForkLiveSessionAsync(
                         realtime,
                         local,
@@ -1787,7 +1800,7 @@ namespace NeoCompose.Runtime
                 // Acknowledgement descriptors omit untouched remote content.
                 // Only record hydration advances recordCache.snapshotRevision.
                 liveBaseline ??= new JObject();
-                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch, liveListenerBaseline);
+                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch, liveListenerBaseline, liveStaticConstructionBaseline);
                 if (pendingListenerAdoption is { } adoption && adoption.snapshotId == result.SnapshotId)
                 {
                     // A failed local adoption can outlive another successful flush.
@@ -1808,6 +1821,7 @@ namespace NeoCompose.Runtime
             liveBaseline = await nextBaseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(local.staticBindings);
+            liveStaticConstructionBaseline = CopyConstructions(local.staticConstructions);
             liveListenerBaseline = NeoChangeListenerPatches.Copy(local.changeListeners);
             await PersistFlushedLocalAsync(local);
             return true;
@@ -1948,6 +1962,7 @@ namespace NeoCompose.Runtime
                 liveBaseline = adoptedBaseline;
                 liveStaticBindingBaseline =
                     new Dictionary<string, string?>(serverHead.staticBindings);
+                liveStaticConstructionBaseline = CopyConstructions(serverHead.staticConstructions);
                 liveListenerBaseline = NeoChangeListenerPatches.Copy(serverHead.changeListeners);
                 liveFirstDirtyAt = -1;
                 OnLiveContentChanged?.Invoke(adoptedContent);
@@ -2042,6 +2057,7 @@ namespace NeoCompose.Runtime
             liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
+            liveStaticConstructionBaseline = CopyConstructions(committed.staticConstructions);
             QueueListenerAdoption(local, committed);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
@@ -2085,6 +2101,7 @@ namespace NeoCompose.Runtime
             liveBaseline = baseline;
             liveStaticBindingBaseline =
                 new Dictionary<string, string?>(committed.staticBindings);
+            liveStaticConstructionBaseline = CopyConstructions(committed.staticConstructions);
             QueueListenerAdoption(local, committed);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
@@ -2240,7 +2257,9 @@ namespace NeoCompose.Runtime
             DirtyRecords? dirtyRecords,
             IReadOnlyDictionary<string, NeoChangeListenerMap>? baselineListeners = null,
             IReadOnlyDictionary<string, NeoChangeListenerMap>? stagedListeners = null,
-            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null)
+            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null,
+            IReadOnlyList<NeoStaticConstruction>? baselineConstructions = null,
+            IReadOnlyList<NeoStaticConstruction>? stagedConstructions = null)
         {
             if (dirtyRecords == null || dirtyRecords.IsEmpty)
             {
@@ -2252,7 +2271,8 @@ namespace NeoCompose.Runtime
                     staged,
                     cache,
                     baselineStaticBindings,
-                    stagedStaticBindings, baselineListeners, stagedListeners, listenerEndpoints);
+                    stagedStaticBindings, baselineListeners, stagedListeners, listenerEndpoints,
+                    baselineConstructions, stagedConstructions);
             }
 
             var patch = new NeoSavePatch();
@@ -2355,6 +2375,7 @@ namespace NeoCompose.Runtime
                     });
                 }
             }
+            AppendConstructionChanges(patch, baselineConstructions, stagedConstructions, cache);
             NeoChangeListenerPatches.AppendChanges(patch, baselineListeners, stagedListeners, cache, dirtyRecords.listenerOwners, listenerEndpoints);
             return patch;
         }
@@ -2367,7 +2388,9 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, string?>? stagedStaticBindings = null,
             IReadOnlyDictionary<string, NeoChangeListenerMap>? baselineListeners = null,
             IReadOnlyDictionary<string, NeoChangeListenerMap>? stagedListeners = null,
-            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null)
+            IReadOnlyDictionary<string, GameSaveListenerEndpointLocator>? listenerEndpoints = null,
+            IReadOnlyList<NeoStaticConstruction>? baselineConstructions = null,
+            IReadOnlyList<NeoStaticConstruction>? stagedConstructions = null)
         {
             var patch = new NeoSavePatch();
             foreach (var property in staged.Properties())
@@ -2477,9 +2500,72 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            AppendConstructionChanges(patch, baselineConstructions, stagedConstructions, cache);
             NeoChangeListenerPatches.AppendChanges(patch, baselineListeners, stagedListeners, cache, endpoints: listenerEndpoints);
             return patch;
         }
+
+        /// <summary>
+        /// One change per construction whose value differs: a set for a new
+        /// or changed construction, a restore for a dropped one with a live
+        /// record. Constructions match structurally (P127 §5.3).
+        /// </summary>
+        private static void AppendConstructionChanges(
+            NeoSavePatch patch,
+            IReadOnlyList<NeoStaticConstruction>? baseline,
+            IReadOnlyList<NeoStaticConstruction>? staged,
+            GameSaveRecordCache? cache)
+        {
+            if ((baseline is null || baseline.Count == 0) && (staged is null || staged.Count == 0))
+                return;
+            var before = new Dictionary<(string, TypeBinding), string?>();
+            if (baseline is not null)
+            {
+                foreach (NeoStaticConstruction entry in baseline)
+                    before[(entry.memberId, entry.construction)] = entry.value;
+            }
+            var records = cache?.ConstructionDescriptors();
+            var kept = new HashSet<(string, TypeBinding)>();
+            if (staged is not null)
+            {
+                foreach (NeoStaticConstruction entry in staged)
+                {
+                    var key = (entry.memberId, entry.construction);
+                    kept.Add(key);
+                    if (before.TryGetValue(key, out string? prior) && prior == entry.value)
+                        continue;
+                    GameSaveRecordDescriptor? descriptor = null;
+                    records?.TryGetValue(key, out descriptor);
+                    patch.changes.Add(new GameSaveStaticBindingSetChange
+                    {
+                        memberId = entry.memberId,
+                        construction = entry.construction,
+                        valueId = entry.value,
+                        baseRecordStateId = descriptor?.recordStateId,
+                        baseRecordRevisionToken = descriptor?.recordRevisionToken,
+                    });
+                }
+            }
+            foreach (var key in before.Keys)
+            {
+                if (kept.Contains(key))
+                    continue;
+                GameSaveRecordDescriptor? descriptor = null;
+                records?.TryGetValue(key, out descriptor);
+                if (descriptor is not { recordStateId: not null, recordRevisionToken: not null })
+                    continue;
+                patch.changes.Add(new GameSaveStaticBindingRestoreToAuthoredChange
+                {
+                    memberId = key.Item1,
+                    construction = key.Item2,
+                    baseRecordStateId = descriptor.recordStateId,
+                    baseRecordRevisionToken = descriptor.recordRevisionToken,
+                });
+            }
+        }
+
+        private static List<NeoStaticConstruction> CopyConstructions(List<NeoStaticConstruction>? source) =>
+            source is null ? new List<NeoStaticConstruction>() : new List<NeoStaticConstruction>(source);
 
         private static GameSaveRecordDescriptor? FindValueDescriptor(
             GameSaveRecordCache? cache,
@@ -2571,7 +2657,8 @@ namespace NeoCompose.Runtime
             JObject values,
             IDictionary<string, string?> staticBindings,
             NeoSavePatch patch,
-            IDictionary<string, NeoChangeListenerMap>? changeListeners = null)
+            IDictionary<string, NeoChangeListenerMap>? changeListeners = null,
+            List<NeoStaticConstruction>? staticConstructions = null)
         {
             if (changeListeners is not null)
                 NeoChangeListenerPatches.Apply(changeListeners, patch);
@@ -2595,14 +2682,40 @@ namespace NeoCompose.Runtime
                                 row.Remove(field);
                             break;
                         }
-                    case GameSaveStaticBindingSetChange binding:
+                    case GameSaveStaticBindingSetChange { construction: null } binding:
                         staticBindings[binding.memberId] = binding.valueId;
                         break;
-                    case GameSaveStaticBindingRestoreToAuthoredChange restoreBinding:
+                    case GameSaveStaticBindingRestoreToAuthoredChange { construction: null } restoreBinding:
                         staticBindings.Remove(restoreBinding.memberId);
+                        break;
+                    case GameSaveStaticBindingSetChange binding:
+                        SetConstruction(staticConstructions, binding.memberId, binding.construction!, binding.valueId);
+                        break;
+                    case GameSaveStaticBindingRestoreToAuthoredChange restoreBinding:
+                        RemoveConstruction(staticConstructions, restoreBinding.memberId, restoreBinding.construction!);
                         break;
                 }
             }
+        }
+
+        // Entries are replaced, never edited: baselines share them.
+        private static void SetConstruction(List<NeoStaticConstruction>? constructions, string memberId, TypeBinding construction, string? valueId)
+        {
+            if (constructions is null)
+                throw new InvalidOperationException($"A static construction change for member '{memberId}' has no construction list to apply to.");
+            var entry = new NeoStaticConstruction { memberId = memberId, construction = construction, value = valueId };
+            int index = constructions.FindIndex(existing => existing.memberId == memberId && existing.construction.Equals(construction));
+            if (index < 0)
+                constructions.Add(entry);
+            else
+                constructions[index] = entry;
+        }
+
+        private static void RemoveConstruction(List<NeoStaticConstruction>? constructions, string memberId, TypeBinding construction)
+        {
+            if (constructions is null)
+                throw new InvalidOperationException($"A static construction restore for member '{memberId}' has no construction list to apply to.");
+            constructions.RemoveAll(existing => existing.memberId == memberId && existing.construction.Equals(construction));
         }
 
         private static List<NeoSavePatch> SplitPatch(NeoSavePatch patch)
@@ -2787,6 +2900,7 @@ namespace NeoCompose.Runtime
                 targetReleaseChannelId = core.TargetReleaseChannelId,
                 values = mainValues,
                 staticBindings = local.staticBindings,
+                staticConstructions = local.staticConstructions,
                 changeListeners = local.changeListeners,
                 listenerEndpoints = local.listenerEndpoints is null ? null : new List<GameSaveListenerEndpointLocator>(local.listenerEndpoints.Values),
                 requiredSaveFormatRevision = local.requiredSaveFormatRevision,
@@ -2816,7 +2930,8 @@ namespace NeoCompose.Runtime
                     baselineStaticBindings:
                         new Dictionary<string, string?>(),
                     stagedStaticBindings: local.staticBindings,
-                    stagedListeners: local.changeListeners, listenerEndpoints: local.listenerEndpoints)
+                    stagedListeners: local.changeListeners, listenerEndpoints: local.listenerEndpoints,
+                    stagedConstructions: local.staticConstructions)
                 .changes;
         }
 

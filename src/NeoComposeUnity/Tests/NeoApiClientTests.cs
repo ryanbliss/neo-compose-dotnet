@@ -112,14 +112,14 @@ namespace NeoCompose.Tests
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
                 Assert.That(send.method, Is.EqualTo("POST"));
-                Assert.That(new System.Uri(send.url).Query, Is.EqualTo("?supportedSaveFormatRevision=2"));
+                Assert.That(new System.Uri(send.url).Query, Is.EqualTo("?supportedSaveFormatRevision=3"));
             }
         }
 
         [Test]
         public void UnsupportedHeaderFailsBeforeManifestHydration()
         {
-            var http = new FakeHttpClient { body = RemoteJson.Insert(1, "\"requiredSaveFormatRevision\":3,") };
+            var http = new FakeHttpClient { body = RemoteJson.Insert(1, "\"requiredSaveFormatRevision\":4,") };
             var client = NewClient(new FakeProvider("token"), http);
             Assert.ThrowsAsync<NeoUnsupportedSaveFormatException>(async () => await client.GetSaveAsync("save-1"));
             Assert.That(http.sends, Has.Count.EqualTo(1));

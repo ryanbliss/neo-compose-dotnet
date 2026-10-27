@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 46,
+    "schemaVersion": 47,
     "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
     "versionId": "p61-segment-rig-version",
     "semver": {
@@ -2492,17 +2492,6 @@
       "dialogueGroupId": null,
       "requirement": 1
     },
-    "503e1edd-b5ea-55dd-8447-723fa06e05b2": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "503e1edd-b5ea-55dd-8447-723fa06e05b2",
-      "name": "TChild",
-      "kind": 7,
-      "classId": "aaaa000a-0000-4000-8000-00000000000a",
-      "requirement": 1,
-      "modifier": 1
-    },
     "514a79c5-dd23-4ede-9fc8-b07b3c866fe5": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
       "createdAt": 0,
@@ -2975,17 +2964,6 @@
       "valueId": "c76972cb-5d92-4d1b-865f-b919615e51aa",
       "requirement": 1
     },
-    "8ee73861-ec15-5c63-8f48-1eb91f556c78": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "8ee73861-ec15-5c63-8f48-1eb91f556c78",
-      "name": "TChild",
-      "kind": 7,
-      "classId": "aaaa000a-0000-4000-8000-00000000000a",
-      "requirement": 1,
-      "modifier": 1
-    },
     "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
       "createdAt": 0,
@@ -3417,8 +3395,12 @@
       "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a",
       "classArguments": {
         "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
-          "kind": 1,
-          "memberId": "af63d793-1360-59db-afdd-304ff19681ea"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa000a-0000-4000-8000-00000000000a"
+          }
         }
       },
       "requirement": 1
@@ -3471,8 +3453,12 @@
       "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a",
       "classArguments": {
         "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
-          "kind": 1,
-          "memberId": "dd36b5b7-85fe-5d9d-924c-a82a1a905ce9"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa1000-0000-4000-8000-000000001000"
+          }
         }
       },
       "requirement": 1
@@ -3489,17 +3475,6 @@
       },
       "classId": "aaaa1000-0000-4000-8000-000000001000",
       "requirement": 1
-    },
-    "abcf28af-edaa-5f5d-9d5c-88f646b43948": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "abcf28af-edaa-5f5d-9d5c-88f646b43948",
-      "name": "TChild",
-      "kind": 7,
-      "classId": "aaaa000a-0000-4000-8000-00000000000a",
-      "requirement": 1,
-      "modifier": 1
     },
     "acf7a92c-9ede-4a0d-a00c-c8c64e7a9b80": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -3727,17 +3702,6 @@
       "classId": "b44d80a9-7760-4919-8844-0cb71d08b788",
       "valueId": "3089c4cc-1238-48af-a379-2d0212d0bf31",
       "requirement": 1
-    },
-    "af63d793-1360-59db-afdd-304ff19681ea": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "af63d793-1360-59db-afdd-304ff19681ea",
-      "name": "TTarget",
-      "kind": 7,
-      "classId": "aaaa000a-0000-4000-8000-00000000000a",
-      "requirement": 1,
-      "modifier": 1
     },
     "b56410b3-b2da-4681-897f-a25ce0a0ceb1": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -4190,17 +4154,6 @@
       "requirement": 1,
       "modifier": 3
     },
-    "bca963b9-34e3-595c-9b5e-a293b003d98e": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "bca963b9-34e3-595c-9b5e-a293b003d98e",
-      "name": "TChild",
-      "kind": 7,
-      "classId": "aaaa000a-0000-4000-8000-00000000000a",
-      "requirement": 1,
-      "modifier": 1
-    },
     "bf4a75b5-acf9-4ff8-8511-57f871749db3": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
       "createdAt": 0,
@@ -4490,17 +4443,6 @@
       "kind": 11,
       "templateId": null,
       "requirement": 1
-    },
-    "dd36b5b7-85fe-5d9d-924c-a82a1a905ce9": {
-      "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "id": "dd36b5b7-85fe-5d9d-924c-a82a1a905ce9",
-      "name": "TTarget",
-      "kind": 7,
-      "classId": "aaaa1000-0000-4000-8000-000000001000",
-      "requirement": 1,
-      "modifier": 1
     },
     "de93c887-ea29-49bd-bfea-a6255b8b9a54": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -6058,8 +6000,12 @@
       "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965",
       "classArguments": {
         "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
-          "kind": 0,
-          "genericParamId": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a"
+          },
+          "param": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
         }
       },
       "requirement": 1
@@ -6125,19 +6071,6 @@
       "requirement": 1,
       "modifier": 2,
       "access": 1
-    },
-    "system_65388373-2b28-53f4-b821-8c74dada7c8c": {
-      "projectId": "project",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "id": "system_65388373-2b28-53f4-b821-8c74dada7c8c",
-      "name": "__SpriteInfoTypeArgument",
-      "kind": 11,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "templateId": null,
-      "requirement": 1
     },
     "system_6755f539-a459-46ec-b44a-cc74a18ad83e": {
       "projectId": "project",
@@ -6318,7 +6251,8 @@
         "kind": "worldAuthoring"
       },
       "genericParamId": "system_de23448a-45be-4e3f-8965-072a545e08f0",
-      "payload": 1
+      "payload": 1,
+      "requirement": 1
     },
     "system_843c77b2-9db6-5fe7-94e0-c3edf436b7b1": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -6366,8 +6300,12 @@
       "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
       "classArguments": {
         "system_de23448a-45be-4e3f-8965-072a545e08f0": {
-          "kind": 1,
-          "memberId": "system_cbab87cf-1923-5891-a605-7dd7120e6760"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+          }
         }
       },
       "requirement": 1
@@ -6431,7 +6369,8 @@
         "kind": "worldAuthoring"
       },
       "genericParamId": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
-      "payload": 1
+      "payload": 1,
+      "requirement": 1
     },
     "system_8bfadaa8-14e9-4488-a103-ee688c1cc9c4": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -6749,7 +6688,8 @@
       "system": {
         "kind": "worldAuthoring"
       },
-      "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1"
+      "genericParamId": "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1",
+      "requirement": 1
     },
     "system_ba319c4b-3419-4301-a0d6-8bc5a89e20d1": {
       "projectId": "project",
@@ -6883,19 +6823,6 @@
       "classId": "system_bf076e9b-c8da-47dc-bae3-7527d0c307a8",
       "requirement": 1
     },
-    "system_cbab87cf-1923-5891-a605-7dd7120e6760": {
-      "projectId": "project",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "id": "system_cbab87cf-1923-5891-a605-7dd7120e6760",
-      "name": "__NeoObjectBaseTypeArgument",
-      "kind": 7,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
-      "requirement": 1
-    },
     "system_cbd6db9a-f473-44b5-b913-7cdc06452f35": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
       "createdAt": 0,
@@ -6965,8 +6892,12 @@
       "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "classArguments": {
         "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1": {
-          "kind": 0,
-          "genericParamId": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_2866011d-30fe-410a-8a04-d2ff291b77cd"
+          },
+          "param": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
         }
       },
       "requirement": 1
@@ -7177,19 +7108,6 @@
       "system": {
         "kind": "worldAuthoring"
       }
-    },
-    "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241": {
-      "projectId": "project",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "id": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241",
-      "name": "__SpriteInfoTypeArgument",
-      "kind": 11,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "templateId": null,
-      "requirement": 1
     },
     "system_f4be2707-74f5-4833-9784-e81bb2474330": {
       "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -7903,8 +7821,10 @@
         "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
         "ShowRelic": "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"
       },
-      "implementsInterfaceIds": [
-        "27d59731-311d-4d80-833a-916760c7ed30"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "27d59731-311d-4d80-833a-916760c7ed30"
+        }
       ]
     },
     "5c65b156-e83a-41c5-bef0-ee375798bdc2": {
@@ -8203,8 +8123,12 @@
       "extendsClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "extendsGenericBindings": {
         "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268": {
-          "kind": 1,
-          "memberId": "abcf28af-edaa-5f5d-9d5c-88f646b43948"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa000a-0000-4000-8000-00000000000a"
+          }
         }
       }
     },
@@ -8220,8 +8144,12 @@
       "extendsClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "extendsGenericBindings": {
         "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268": {
-          "kind": 1,
-          "memberId": "8ee73861-ec15-5c63-8f48-1eb91f556c78"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa000a-0000-4000-8000-00000000000a"
+          }
         }
       }
     },
@@ -8238,8 +8166,12 @@
       "extendsClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "extendsGenericBindings": {
         "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268": {
-          "kind": 1,
-          "memberId": "503e1edd-b5ea-55dd-8447-723fa06e05b2"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa000a-0000-4000-8000-00000000000a"
+          }
         }
       }
     },
@@ -8341,8 +8273,12 @@
       "extendsClassId": "system_24b70585-0798-49ad-b650-4c118bac1eb1",
       "extendsGenericBindings": {
         "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268": {
-          "kind": 1,
-          "memberId": "bca963b9-34e3-595c-9b5e-a293b003d98e"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "aaaa000a-0000-4000-8000-00000000000a"
+          }
         }
       },
       "requiredConstructorId": "d84cbfbc-57b0-5918-a693-0ea283890aad"
@@ -8595,20 +8531,29 @@
         {
           "id": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268",
           "name": "TChild",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de"
+            }
+          ]
         }
       ],
       "extendsGenericBindings": {
         "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655": {
-          "kind": 0,
-          "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_24b70585-0798-49ad-b650-4c118bac1eb1"
+          },
+          "param": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
         },
         "system_03497842-3381-45a2-b2fa-b2dee36c2759": {
-          "kind": 1,
-          "memberId": "system_65388373-2b28-53f4-b821-8c74dada7c8c"
+          "kind": 0,
+          "type": {
+            "type": 11,
+            "required": true
+          }
         }
       },
       "targetMemberId": "system_e9288ba9-f5a2-4485-8443-6afb155b31e0",
@@ -8905,10 +8850,12 @@
         {
           "id": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2",
           "name": "TTarget",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ]
     },
@@ -9004,10 +8951,12 @@
         {
           "id": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
           "name": "TTarget",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ]
     },
@@ -9134,10 +9083,12 @@
         {
           "id": "system_de23448a-45be-4e3f-8965-072a545e08f0",
           "name": "TEntry",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ],
       "constructorProjections": [
@@ -9193,10 +9144,12 @@
         {
           "id": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655",
           "name": "TChild",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         },
         {
           "id": "system_03497842-3381-45a2-b2fa-b2dee36c2759",
@@ -9225,8 +9178,11 @@
       },
       "extendsGenericBindings": {
         "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
-          "kind": 1,
-          "memberId": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
+          "kind": 0,
+          "type": {
+            "type": 11,
+            "required": true
+          }
         }
       }
     },
@@ -12005,6 +11961,26 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "35ff50de-aee2-5c74-9e8c-d1e358e1b715",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a"
+          },
+          "bindings": {
+            "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "aaaa000a-0000-4000-8000-00000000000a"
+              }
+            }
+          }
+        }
+      },
       "memberId": "aaaa001a-0000-4000-8000-00000000001a",
       "value": {
         "FPS": "b6be0305-f628-5f46-9f9e-d546670bee80",
@@ -12356,6 +12332,35 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "3cfa11bd-d152-553e-af0c-20e868d9f75f",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965"
+              },
+              "bindings": {
+                "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
+                  "kind": 0,
+                  "type": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "aaaa000a-0000-4000-8000-00000000000a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "memberId": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
       "value": [],
       "classId": null
@@ -14232,6 +14237,26 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "6fba3199-af31-552d-8499-2547b79ed9cc",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a"
+          },
+          "bindings": {
+            "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "aaaa000a-0000-4000-8000-00000000000a"
+              }
+            }
+          }
+        }
+      },
       "memberId": "aaaa001a-0000-4000-8000-00000000001a",
       "value": {
         "FPS": "a835cbbf-df3e-5beb-8832-bf489a56c537",
@@ -14940,6 +14965,35 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "8686aa53-bf28-56de-9584-68983e23fc61",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965"
+              },
+              "bindings": {
+                "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
+                  "kind": 0,
+                  "type": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "aaaa000a-0000-4000-8000-00000000000a"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "memberId": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
       "value": [],
       "classId": null
@@ -15780,6 +15834,26 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "99867f92-0ffc-5a22-af0b-26e20a22f1be",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a"
+          },
+          "bindings": {
+            "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "aaaa1000-0000-4000-8000-000000001000"
+              }
+            }
+          }
+        }
+      },
       "memberId": "aaaa1003-0000-4000-8000-000000001003",
       "value": {
         "FPS": "ef4bc138-80f6-50af-8998-a25edebb4fdf",
@@ -16934,7 +17008,13 @@
       "createdAt": 0,
       "updatedAt": 0,
       "genericBindings": {
-        "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
+        "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
+          "kind": 0,
+          "type": {
+            "type": 11,
+            "required": true
+          }
+        }
       }
     },
     "b4f5e2ed-ebcb-45f0-b32d-1dd026ffe495": {
@@ -17486,6 +17566,35 @@
       "createdAt": 0,
       "updatedAt": 0,
       "id": "c2d7ad94-1ff8-5fbe-b7a8-a52e0d5c4d65",
+      "typeSource": {
+        "type": {
+          "kind": 0,
+          "type": {
+            "type": 6,
+            "required": true
+          },
+          "bindings": {
+            "0": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965"
+              },
+              "bindings": {
+                "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
+                  "kind": 0,
+                  "type": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "aaaa1000-0000-4000-8000-000000001000"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "memberId": "system_485b0f05-ec7b-4e61-ba80-9a5d7d262b39",
       "value": [],
       "classId": null

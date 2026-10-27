@@ -31,9 +31,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         NeoReadOnlyVector3 CellSize { get; }
 
-        NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children { get; }
-
         int PixelsPerUnit { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children { get; }
     }
 
     public abstract partial class NeoTileGrid : NeoGeneratedClassValue, IReadOnlyNeoTileGrid
@@ -133,6 +133,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public virtual int PixelsPerUnit
+        {
+            get
+            {
+                if (TryReadDetached("PixelsPerUnit", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("PixelsPerUnit")) ?? throw new InvalidOperationException("Required int 'PixelsPerUnit' has no value.");
+            }
+        }
+
         public virtual NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children
         {
             get
@@ -148,27 +160,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public virtual int PixelsPerUnit
-        {
-            get
-            {
-                if (TryReadDetached("PixelsPerUnit", out object? detachedValue))
-                {
-                    return Convert.ToInt32(detachedValue);
-                }
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("PixelsPerUnit")) ?? throw new InvalidOperationException("Required int 'PixelsPerUnit' has no value.");
-            }
-        }
-
         public sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<NeoVector3> CellSize = new("CellSize");
 
-            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
-
             public static readonly NeoField<int> PixelsPerUnit = new("PixelsPerUnit");
+
+            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -176,8 +176,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.CellSize] = () => null,
-                [Fields.Children] = () => null,
                 [Fields.PixelsPerUnit] = () => null,
+                [Fields.Children] = () => null,
             };
         }
 
@@ -196,8 +196,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.CellSize] = () => CellSize,
-                [Fields.Children] = () => Children,
                 [Fields.PixelsPerUnit] = () => PixelsPerUnit,
+                [Fields.Children] = () => Children,
             };
         }
 

@@ -1,0 +1,10 @@
+/// A reusable sequence. Each enumeration owns an independent cursor.
+@id("system_d1413390-a2a6-4137-a8f8-e931da847345")
+@system(kind: .ScriptRuntime)
+interface IEnumerable<
+  @id("system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2")
+  T
+  > {
+    @id("system_a14c079d-7999-4125-81e0-8cc7226dbcd6")
+    IEnumerator<T> GetEnumerator();
+  }

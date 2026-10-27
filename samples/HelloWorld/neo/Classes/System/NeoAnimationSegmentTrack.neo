@@ -9,16 +9,16 @@
 abstract class NeoAnimationSegmentTrack<
   @id("system_d4fe9f71-d9d9-4baf-bc52-8de16933b655")
   TChild extends NeoObjectBase,
-  @id("system_03497842-3381-45a2-b2fa-b2dee36c2759")
-  TValue
->(NeoDelegate<TChild> selector) : NeoAnimationTrackBase(selector: selector) {
-  /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
-  @id("system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd")
-  @system(kind: .WorldAuthoring)
-  public abstract NeoAnimationSegment<TValue> Segment { get; }
+@id("system_03497842-3381-45a2-b2fa-b2dee36c2759")
+TValue
+  >(NeoDelegate<TChild> selector) : NeoAnimationTrackBase(selector: selector) {
+    /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+    @id("system_d2d0bf9b-211f-4b2f-bff3-3d6da5766abd")
+    @system(kind: .WorldAuthoring)
+    public abstract NeoAnimationSegment<TValue> Segment { get; }
 
-  /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
-  @id("system_b29e7ab9-0b8e-4399-84c1-1203070b75dd")
-  @system(kind: .WorldAuthoring)
-  public override NeoDelegate<TChild> Selector = selector;
-}
+    /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
+    @id("system_b29e7ab9-0b8e-4399-84c1-1203070b75dd")
+    @system(kind: .WorldAuthoring)
+    public override NeoDelegate<TChild> Selector = selector;
+  }

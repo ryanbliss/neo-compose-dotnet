@@ -191,7 +191,21 @@ namespace NeoCompose.Tests
         private static NeoClient Client(string? saved = null)
         {
             ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "variant-selectors-export.json")));
-            return NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved, assumeCurrentSchema: false);
+            NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved, assumeCurrentSchema: false);
+            // The fixture now uses TrySpawn, which resolves class views through
+            // the same registration normally supplied by the generated facade.
+            client.RegisterGeneratedClassFactories(
+                client.classes.Keys.ToDictionary(id => id,
+                    _ => (NeoGeneratedTypesSupport.ReadOnlyClassFactory)((owner, node) => new TestClassView(owner, node, true))),
+                client.classes.Keys.ToDictionary(id => id,
+                    _ => (NeoGeneratedTypesSupport.WritableClassFactory)((owner, node) => new TestClassView(owner, node, false))));
+            return client;
+        }
+
+        private sealed class TestClassView : NeoGeneratedClassValue
+        {
+            internal TestClassView(NeoClient client, NeoMemberClass node, bool readOnly)
+                : base(client, node, node.ClassId, readOnly) { }
         }
 
         private static JObject Fixture() =>

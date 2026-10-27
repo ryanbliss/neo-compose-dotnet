@@ -305,9 +305,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
-            public static readonly NeoField<int> Count = new("Count");
-
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -324,8 +324,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Cell] = () => null,
-                [Fields.Count] = () => null,
                 [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -353,8 +353,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Cell] = () => Cell,
-                [Fields.Count] = () => Count,
                 [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
             };
         }
 

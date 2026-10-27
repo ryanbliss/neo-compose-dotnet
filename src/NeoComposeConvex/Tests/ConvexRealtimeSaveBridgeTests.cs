@@ -91,7 +91,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Observations[0];
             Assert.That(functionName, Is.EqualTo("gameSaveRecordReads:getSnapshotRevision"));
-            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.SupportedRevision));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
 
             socket.PushJson(
@@ -139,7 +139,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:commit"));
-            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.SupportedRevision));
             Assert.That(args["replaceSnapshot"], Is.EqualTo(true));
             var save = (Dictionary<string, object?>)args["save"]!;
             Assert.That(save["customId"], Is.EqualTo("save-1"));
@@ -231,7 +231,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:forkLiveSnapshot"));
-            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.SupportedRevision));
             Assert.That(args["projectId"], Is.EqualTo("project-1"));
             var save = (Dictionary<string, object?>)args["save"]!;
             Assert.That(save["liveSessionId"], Is.EqualTo("session-1"));
@@ -286,7 +286,7 @@ namespace NeoCompose.Convex.Tests
 
             var (functionName, args) = socket.Mutations[0];
             Assert.That(functionName, Is.EqualTo("gameSaves:patchLiveSnapshot"));
-            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(2));
+            Assert.That(args["supportedSaveFormatRevision"], Is.EqualTo(NeoSaveFormat.SupportedRevision));
             Assert.That(args["customId"], Is.EqualTo("save-1"));
             Assert.That(args["snapshotId"], Is.EqualTo("snap-live"));
             var changes = (List<object?>)args["changes"]!;

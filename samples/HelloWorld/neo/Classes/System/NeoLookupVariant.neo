@@ -6,22 +6,22 @@
 sealed class NeoLookupVariant<
   @id("system_1d416b31-fa1a-4bbe-a716-249eb855712d")
   TObject extends NeoObject,
-  @id("system_4031d9da-38a7-4332-892e-b3fd8282378a")
-  TValue
->(NeoDelegate<TObject, TValue> initialize, NeoDelegate<void, TObject, TValue>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
-  @id("system_42da97f6-c714-47b6-b750-232232ec4f83")
-  @system(kind: .WorldAuthoring)
-  public virtual NeoDelegate<void, TObject, TValue>? Apply = apply;
+@id("system_4031d9da-38a7-4332-892e-b3fd8282378a")
+TValue
+  >(NeoDelegate<TObject, TValue> initialize, NeoDelegate<void, TObject, TValue>? apply = null, TObject? overrides = null, List<NeoAnimationChildOverride<NeoObjectBase>>? childOverrides = null) {
+    @id("system_42da97f6-c714-47b6-b750-232232ec4f83")
+    @system(kind: .WorldAuthoring)
+    public virtual NeoDelegate<void, TObject, TValue>? Apply = apply;
 
-  @id("system_ae23d675-2531-44a2-b792-8a121d99aec2")
-  @system(kind: .WorldAuthoring)
-  public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
+    @id("system_ae23d675-2531-44a2-b792-8a121d99aec2")
+    @system(kind: .WorldAuthoring)
+    public virtual List<NeoAnimationChildOverride<NeoObjectBase>>? ChildOverrides = childOverrides;
 
-  @id("system_ddff93cb-2e4e-43ed-ae1a-b523eb53e0e9")
-  @system(kind: .WorldAuthoring)
-  public virtual NeoDelegate<TObject, TValue> Initialize = initialize;
+    @id("system_ddff93cb-2e4e-43ed-ae1a-b523eb53e0e9")
+    @system(kind: .WorldAuthoring)
+    public virtual NeoDelegate<TObject, TValue> Initialize = initialize;
 
-  @id("system_070ae22a-7603-48cf-94e2-528d88b72825")
-  @system(kind: .WorldAuthoring)
-  public virtual Partial<TObject> Overrides = overrides;
-}
+    @id("system_070ae22a-7603-48cf-94e2-528d88b72825")
+    @system(kind: .WorldAuthoring)
+    public virtual Partial<TObject>? Overrides = overrides;
+  }
