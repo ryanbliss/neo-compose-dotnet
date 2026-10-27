@@ -8,7 +8,7 @@ abstract class NeoObjectLayer {
   public virtual string Name = "";
 
   @id("system_89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b")
-  @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
+  @settings(collection: Assets.SortingLayers, collectionValue: root.Assets.SortingLayers)
   @system(kind: .WorldAuthoring)
   public virtual Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 

@@ -37,6 +37,7 @@ namespace NeoCompose.Runtime
         private IReadOnlyDictionary<Type, string> classIds = new Dictionary<Type, string>();
         private IReadOnlyDictionary<Type, string> enumIds = new Dictionary<Type, string>();
         private IReadOnlyDictionary<Type, string> interfaceIds = new Dictionary<Type, string>();
+        private Dictionary<string, Type>? typesById;
         private readonly NeoClient client;
 
         internal NeoTypeArguments(NeoClient client)
@@ -56,8 +57,57 @@ namespace NeoCompose.Runtime
             this.classIds = classIds;
             this.enumIds = enumIds;
             this.interfaceIds = interfaceIds ?? new Dictionary<Type, string>();
+            typesById = null;
             cache.Clear();
             tables.Clear();
+        }
+
+        /// <summary>The CLR enum registered for <paramref name="enumId"/>.</summary>
+        internal bool TryGetEnumType(string enumId, out Type type) => TryGetType("e:" + enumId, out type);
+
+        /// <summary>The CLR class registered for <paramref name="classId"/>; a generic class's definition.</summary>
+        internal bool TryGetClassType(string classId, out Type type) => TryGetType("c:" + classId, out type);
+
+        /// <summary>The CLR interface registered for <paramref name="interfaceId"/>; a generic interface's definition.</summary>
+        internal bool TryGetInterfaceType(string interfaceId, out Type type) => TryGetType("i:" + interfaceId, out type);
+
+        /// <summary>The registered CLR enum or class type for <paramref name="type"/>'s id, as <see cref="Map"/> reads it.</summary>
+        internal bool TryGetId(Type type, out MemberKind kind, out string id)
+        {
+            if (classIds.TryGetValue(type, out id!))
+            {
+                kind = MemberKind.Class;
+                return true;
+            }
+            if (enumIds.TryGetValue(type, out id!))
+            {
+                kind = MemberKind.Enum;
+                return true;
+            }
+            if (interfaceIds.TryGetValue(type, out id!))
+            {
+                kind = MemberKind.Interface;
+                return true;
+            }
+            kind = MemberKind.Unknown;
+            id = "";
+            return false;
+        }
+
+        private bool TryGetType(string key, out Type type)
+        {
+            if (typesById is null)
+            {
+                var byId = new Dictionary<string, Type>(StringComparer.Ordinal);
+                foreach (KeyValuePair<Type, string> pair in classIds)
+                    byId["c:" + pair.Value] = pair.Key;
+                foreach (KeyValuePair<Type, string> pair in enumIds)
+                    byId["e:" + pair.Value] = pair.Key;
+                foreach (KeyValuePair<Type, string> pair in interfaceIds)
+                    byId["i:" + pair.Value] = pair.Key;
+                typesById = byId;
+            }
+            return typesById.TryGetValue(key, out type!);
         }
 
         /// <summary><typeparamref name="T"/>'s NeoScript type, cached per type.</summary>

@@ -47,9 +47,9 @@ sealed class CapitolTheLastOutput : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("2a48e41e-71d4-5343-aa5e-e4cc4e0b0bc3")
-    Condition1,
-  ],
+      @id("2a48e41e-71d4-5343-aa5e-e4cc4e0b0bc3")
+      Condition1,
+    ],
     limit: 1,
   ) => F1;
 

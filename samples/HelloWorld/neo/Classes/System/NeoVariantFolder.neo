@@ -11,9 +11,9 @@
 sealed class NeoVariantFolder<
   @id("system_966185ff-4071-4676-8992-f63223f0d122")
   TObject extends NeoObject
->(string path) {
-  @id("system_c8ab22de-6854-4330-a1aa-acf73af54e6c")
-  @settings(format: .Plain)
-  @system(kind: .WorldAuthoring)
-  public virtual string Path = path;
-}
+  >(string path) {
+    @id("system_c8ab22de-6854-4330-a1aa-acf73af54e6c")
+    @settings(format: .Plain)
+    @system(kind: .WorldAuthoring)
+    public virtual string Path = path;
+  }

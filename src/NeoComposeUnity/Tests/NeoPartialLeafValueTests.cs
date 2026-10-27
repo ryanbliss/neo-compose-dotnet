@@ -396,13 +396,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SetDouble_RejectsNonFinite()
+        public void SetDouble_StoresNonFiniteAsFloatSymbols()
         {
+            // P127 §12.1: a stored float writes NaN, the infinities and -0 as symbol strings.
             var partial = new NeoPartialLeafValue();
-            Assert.Throws<System.ArgumentException>(
-                () => partial.SetDouble("x", double.NaN));
-            Assert.Throws<System.ArgumentException>(
-                () => partial.SetDouble("x", double.PositiveInfinity));
+            partial.SetDouble("x", double.NaN);
+            partial.SetDouble("y", double.PositiveInfinity);
+            partial.SetDouble("z", double.NegativeInfinity);
+            partial.SetDouble("w", -0d);
+            Assert.AreEqual(
+                "{\"~partial\":{\"x\":\"NaN\",\"y\":\"Infinity\",\"z\":\"-Infinity\",\"w\":\"-0\"}}",
+                JsonConvert.SerializeObject(partial));
+            Assert.IsTrue(partial.TryGetSingle("x", out var nan));
+            Assert.IsTrue(float.IsNaN(nan));
+            Assert.IsTrue(partial.TryGetSingle("w", out var negativeZero));
+            Assert.IsTrue(float.IsNegative(negativeZero) && negativeZero == 0f);
         }
 
         // ------------------------------------------------------------------

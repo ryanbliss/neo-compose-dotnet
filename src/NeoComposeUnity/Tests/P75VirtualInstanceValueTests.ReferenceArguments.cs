@@ -82,14 +82,20 @@ namespace NeoCompose.Tests
                 {
                     new() { id = parameter, name = "T" },
                 };
+                var closed = new ReferenceTypeInfo
+                {
+                    type = MemberKind.Reference,
+                    required = true,
+                    targetTypeInfo = argument.targetTypeInfo!,
+                };
                 construction.info.schemaClassInfo.typeArguments = new Dictionary<string, TypeInfo>
                 {
-                    [parameter] = new ReferenceTypeInfo
-                    {
-                        type = MemberKind.Reference,
-                        required = true,
-                        targetTypeInfo = argument.targetTypeInfo!,
-                    },
+                    [parameter] = closed,
+                };
+                // P127 §4.9: the fixture's Entry variant closes Entry the same way.
+                data.variants["entry-variant"].typeArguments = new Dictionary<string, TypeBinding>
+                {
+                    [parameter] = NeoTypeBindings.FromTypeInfo(closed),
                 };
                 data.members["reference-int-binding"] = new LookupMember
                 {

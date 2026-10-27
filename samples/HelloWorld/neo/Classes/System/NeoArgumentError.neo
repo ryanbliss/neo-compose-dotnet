@@ -1,0 +1,8 @@
+@id("system_8c9fb766-c6aa-597a-a027-38a2dbc01687")
+@system(kind: .ScriptRuntime)
+class NeoArgumentError : NeoError {
+  @id("system_072bd389-2311-50dc-9a64-80f43b2f1ee1")
+  public NeoArgumentError(string message)
+  : base(message: message) {
+  }
+}

@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 46,
+    "schemaVersion": 47,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -320,7 +320,6 @@
       "memberKeyOrder": [
         "Greet"
       ],
-      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     }
@@ -359,8 +358,10 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "implementsInterfaceIds": [
-        "static-smoke-greeter"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "static-smoke-greeter"
+        }
       ],
       "constructorIds": [
         "static-smoke-rules-ctor"

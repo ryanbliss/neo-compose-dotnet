@@ -2646,7 +2646,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_RejectsNonFiniteFloatAndIntArgumentsAndReturns()
+        public void Invoke_PassesNonFiniteFloatsAndRejectsNonFiniteInts()
         {
             FunctionArgumentTypeInfo floatArgument = Argument(
                 "FloatValue",
@@ -2726,15 +2726,15 @@ namespace NeoCompose.Tests
                 functions.ToArray(),
                 ReceiverClass(members.ToArray()));
 
+            // P127 §12.1: a float holds NaN and both infinities, as a C# float does.
             foreach (double value in nonFinite)
             {
-                Assert.Catch<NSGetterRuntimeError>(() =>
-                    new NeoMemberNSFunction(
-                        client,
-                        floatArgumentFunction,
-                        null).Invoke(
-                            "receiver-value",
-                            new object?[] { value }));
+                Assert.AreEqual(1, Convert.ToInt32(new NeoMemberNSFunction(
+                    client,
+                    floatArgumentFunction,
+                    null).Invoke(
+                        "receiver-value",
+                        new object?[] { value })));
                 Assert.Catch<NSGetterRuntimeError>(() =>
                     new NeoMemberNSFunction(
                         client,
@@ -2743,12 +2743,11 @@ namespace NeoCompose.Tests
                             "receiver-value",
                             new object?[] { value }));
             }
-            foreach (NSFunctionMember function in floatReturns)
+            for (int i = 0; i < floatReturns.Count; i++)
             {
-                Assert.Catch<NSGetterRuntimeError>(() =>
-                    new NeoMemberNSFunction(client, function, null).Invoke(
-                        "receiver-value",
-                        Array.Empty<object?>()));
+                Assert.AreEqual(nonFinite[i], Convert.ToDouble(new NeoMemberNSFunction(client, floatReturns[i], null).Invoke(
+                    "receiver-value",
+                    Array.Empty<object?>())));
             }
             foreach (NSFunctionMember function in intReturns)
             {
@@ -2757,6 +2756,44 @@ namespace NeoCompose.Tests
                         "receiver-value",
                         Array.Empty<object?>()));
             }
+        }
+
+        // P127 §12.1: a declaration default stores float.NaN, the infinities
+        // and -0 as their symbols, and reads them as floats. The compose
+        // stored-floats-evaluate.test.ts "reads float symbols in a
+        // declaration default".
+        [Test]
+        public void DeclarationDefaultsReadStoredFloatSymbols()
+        {
+            JsonMember Declared(string json) => JsonConvert.DeserializeObject<JsonMember>(json.Replace('\'', '"'))!;
+            JsonMember ratio = Declared($"{{'id':'ratio','projectId':'{ProjectId}','name':'ratio','kind':4,'requirement':1,'defaultValue':{{'value':'-Infinity'}},'createdAt':'x','updatedAt':'x'}}");
+            JsonMember zero = Declared($"{{'id':'zero','projectId':'{ProjectId}','name':'zero','kind':4,'requirement':1,'defaultValue':{{'value':'-0'}},'createdAt':'x','updatedAt':'x'}}");
+            JsonMember pos = Declared($"{{'id':'pos','projectId':'{ProjectId}','name':'pos','kind':14,'requirement':1,'defaultValue':{{'value':{{'x':'NaN','y':'Infinity'}}}},'createdAt':'x','updatedAt':'x'}}");
+            NSFunctionMember Read(string id, Pointer pointer) => ScriptFunction(
+                id, id, deferred: false, FloatType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(FloatType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(pointer)));
+            NSFunctionMember ratioPlusOne = Read("ratio-plus-one", Add(Key(Variable("__this__"), "ratio"), Floating(1, FloatType())));
+            NSFunctionMember posX = Read("pos-x", Key(Key(Variable("__this__"), "pos"), "x"));
+            NSFunctionMember posYPlusOne = Read("pos-y-plus-one", Add(Key(Key(Variable("__this__"), "pos"), "y"), Floating(1, FloatType())));
+            NSFunctionMember zeroRead = Read("zero-read", Key(Variable("__this__"), "zero"));
+            // Each field row is materialized from its declaration default.
+            MemberValue FromDefault(JsonMember member) =>
+                MemberValueFactory.CreateFromDefault(member, $"{member.id}-value", default, default)!;
+            ObjectMemberValue receiver = ObjectValue("receiver-value", "receiver-class");
+            receiver.value!["ratio"] = "ratio-value";
+            receiver.value["zero"] = "zero-value";
+            receiver.value["pos"] = "pos-value";
+            using NeoClient client = BuildClient(
+                new[] { ratio, zero, pos, ratioPlusOne, posX, posYPlusOne, zeroRead },
+                ReceiverClass(("ratio", ratio.id), ("zero", zero.id), ("pos", pos.id)),
+                additionalValues: new[] { receiver, FromDefault(ratio), FromDefault(zero), FromDefault(pos) });
+            double Invoke(NSFunctionMember function) =>
+                Convert.ToDouble(new NeoMemberNSFunction(client, function, null).Invoke("receiver-value", Array.Empty<object?>()));
+
+            Assert.That(Invoke(ratioPlusOne), Is.EqualTo(double.NegativeInfinity));
+            Assert.That(Invoke(posX), Is.NaN);
+            Assert.That(Invoke(posYPlusOne), Is.EqualTo(double.PositiveInfinity));
+            Assert.That(1 / Invoke(zeroRead), Is.EqualTo(double.NegativeInfinity));
         }
 
         [Test]
@@ -3334,13 +3371,9 @@ namespace NeoCompose.Tests
                 name = "ConcreteDecimalReceiver",
                 schema = new Dictionary<string, string>(),
                 extendsClassId = genericClass.id,
-                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                extendsGenericBindings = new Dictionary<string, TypeBinding>
                 {
-                    [genericParamId] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = binding.id,
-                    },
+                    [genericParamId] = TestTypeBindings.Of(binding),
                 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -3387,8 +3420,10 @@ namespace NeoCompose.Tests
             baseCall.dispatch = "base";
             baseCall.args = new Pointer[] { Variable("__arg_0__") };
             // A closed subclass compiles its override against the bound
-            // type; the binding's nullability narrows the use site's.
-            bool boundRequired = useRequired && bindingRequired;
+            // type. P127 §4.2: a value-kind binding keeps its own
+            // nullability, so `T?` over `int` is `int` and `T` over `int?`
+            // is `int?`.
+            bool boundRequired = bindingRequired;
             FunctionArgumentTypeInfo boundArgument = Argument("value", MemberKind.Int, boundRequired);
             var derivedFunction = ScriptFunction("nullable-derived", "Echo", false, genericType,
                 new[] { argument }, Action(IntType(boundRequired), new[] { boundArgument }, Return(baseCall)));
@@ -3414,14 +3449,19 @@ namespace NeoCompose.Tests
             };
             var derivedClass = ReceiverClass(("Echo", derivedFunction.id));
             derivedClass.extendsClassId = baseClass.id;
-            derivedClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            derivedClass.extendsGenericBindings = new Dictionary<string, TypeBinding>
             {
-                [genericParamId] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
+                [genericParamId] = TestTypeBindings.Of(binding),
             };
             using NeoClient client = BuildClient(new JsonMember[] { baseFunction, derivedFunction, binding },
                 derivedClass, new[] { baseClass });
-            Assert.IsNull(new NeoMemberNSFunction(client, baseFunction, null)
-                .Invoke("receiver-value", new object?[] { null }));
+            object? input = boundRequired ? 7 : null;
+            object? result = new NeoMemberNSFunction(client, baseFunction, null)
+                .Invoke("receiver-value", new[] { input });
+            if (input is null)
+                Assert.IsNull(result);
+            else
+                Assert.AreEqual(7, Convert.ToInt32(result));
         }
 
         /// <summary>
@@ -3495,9 +3535,9 @@ namespace NeoCompose.Tests
             var minClass = ReceiverClass(("Apply", minApply.id));
             minClass.id = "min-watcher-class";
             minClass.extendsClassId = watcherClass.id;
-            minClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            minClass.extendsGenericBindings = new Dictionary<string, TypeBinding>
             {
-                [watcherParamId] = new() { kind = NeoGenericBindingKind.Member, memberId = intBinding.id },
+                [watcherParamId] = TestTypeBindings.Of(intBinding),
             };
             var clampedClass = ReceiverClass(("Apply", clampedApply.id));
             clampedClass.extendsClassId = minClass.id;
@@ -3508,9 +3548,9 @@ namespace NeoCompose.Tests
                 new() { id = "forward-u", name = "U" },
             };
             forwardClass.extendsClassId = watcherClass.id;
-            forwardClass.extendsGenericBindings = new Dictionary<string, GenericBinding>
+            forwardClass.extendsGenericBindings = new Dictionary<string, TypeBinding>
             {
-                [watcherParamId] = new() { kind = NeoGenericBindingKind.Generic, genericParamId = "forward-u" },
+                [watcherParamId] = TestTypeBindings.Open(forwardClass.id, "forward-u"),
             };
 
             using NeoClient client = BuildClient(
@@ -3668,13 +3708,9 @@ namespace NeoCompose.Tests
                 name = "ConcreteReceiver",
                 schema = new Dictionary<string, string>(),
                 extendsClassId = genericClass.id,
-                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                extendsGenericBindings = new Dictionary<string, TypeBinding>
                 {
-                    [genericParamId] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = binding.id,
-                    },
+                    [genericParamId] = TestTypeBindings.Of(binding),
                 },
                 createdAt = "x",
                 updatedAt = "x",
@@ -3749,13 +3785,9 @@ namespace NeoCompose.Tests
                 name = "Constructed Box Binding",
                 kind = MemberKind.Class,
                 DeclaredClassId = "box-class",
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    [boxParamId] = new GenericBinding
-                    {
-                        kind = NeoGenericBindingKind.Generic,
-                        genericParamId = forwardedParamId,
-                    },
+                    [boxParamId] = TestTypeBindings.Open("receiver-class", forwardedParamId),
                 },
                 Requirement = NeoMemberRequirementKind.Required,
                 createdAt = "x",
@@ -3862,13 +3894,10 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            cyclicBinding.classArguments = new Dictionary<string, GenericBinding>
+            // Box<F> bound to F: reading F reads Box<F> again.
+            cyclicBinding.classArguments = new Dictionary<string, TypeBinding>
             {
-                [boxParamId] = new GenericBinding
-                {
-                    kind = NeoGenericBindingKind.Member,
-                    memberId = cyclicBinding.id,
-                },
+                [boxParamId] = TestTypeBindings.Open("receiver-class", functionParamId),
             };
             NeoClient client = BuildClient(
                 new JsonMember[] { cyclicBinding },
@@ -4375,9 +4404,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 kind = MemberKind.Class,
                 DeclaredClassId = "receiver-class",
-                classArguments = new Dictionary<string, GenericBinding>
+                classArguments = new Dictionary<string, TypeBinding>
                 {
-                    [param] = new() { kind = NeoGenericBindingKind.Member, memberId = binding.id },
+                    [param] = TestTypeBindings.Of(binding),
                 },
             };
             var watcherClass = ReceiverClass(("Current", current.id), ("Previous", previous.id), ("Set", function.id));
@@ -7943,7 +7972,8 @@ namespace NeoCompose.Tests
             JsonMember[] callables,
             NeoSchemaClass receiverClass,
             NeoSchemaClass[]? additionalClasses = null,
-            MemberValue[]? additionalValues = null)
+            MemberValue[]? additionalValues = null,
+            Dictionary<string, Interface>? interfaces = null)
         {
             ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
             ClassMember save = RootMember("root-save", "Save", "root-save-value", NeoMemberStorage.Save);
@@ -8006,6 +8036,7 @@ namespace NeoCompose.Tests
                 members = members,
                 values = values,
                 classes = classes,
+                interfaces = interfaces ?? new Dictionary<string, Interface>(),
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             }.WithUserRoot());
         }

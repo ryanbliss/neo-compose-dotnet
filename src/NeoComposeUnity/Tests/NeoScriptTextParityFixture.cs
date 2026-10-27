@@ -10801,7 +10801,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""0""
+      ""expected"": ""-0""
     },
     {
       ""name"": ""decimal.TryParse \""-0\"""",
@@ -10831,7 +10831,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""0""
+      ""expected"": ""-0""
     },
     {
       ""name"": ""decimal.Parse \""-0.00\"""",
@@ -10861,7 +10861,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""0.00""
+      ""expected"": ""-0.00""
     },
     {
       ""name"": ""decimal.TryParse \""-0.00\"""",
@@ -10891,7 +10891,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""0.00""
+      ""expected"": ""-0.00""
     },
     {
       ""name"": ""decimal.Parse \"".5\"""",

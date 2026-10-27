@@ -324,6 +324,13 @@ namespace NeoCompose.Runtime
 
         internal bool IsSilent((NeoValueOwnership ownership, string id) key) => silentRows?.Contains(key) == true;
 
+        /// <summary>Commits the rows staged so far without notifying: a copy that changes no value.</summary>
+        internal void SilenceRows()
+        {
+            foreach (var key in Rows.Keys)
+                (silentRows ??= new()).Add(key);
+        }
+
         internal bool TryGetNodeBinding(NeoMember node, [NotNullWhen(true)] out string? valueId)
         {
             valueId = null;
@@ -335,7 +342,7 @@ namespace NeoCompose.Runtime
         internal IEnumerable<KeyValuePair<NeoMember, string>> NodeBindings =>
             nodeBindings ?? (IEnumerable<KeyValuePair<NeoMember, string>>)Array.Empty<KeyValuePair<NeoMember, string>>();
 
-        internal void Remove(NeoValueOwnership ownership, string id)
+        internal void Remove(NeoValueOwnership ownership, string id, bool silent = false)
         {
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot remove immutable asset data.");
@@ -345,7 +352,10 @@ namespace NeoCompose.Runtime
             var key = (ownership, id);
             Record(key);
             Restage(key, null);
-            silentRows?.Remove(key);
+            if (silent)
+                (silentRows ??= new()).Add(key);
+            else
+                silentRows?.Remove(key);
         }
 
         internal MemberValue? Resolve(NeoValueOwnership ownership, string id)
@@ -904,7 +914,8 @@ namespace NeoCompose.Runtime
 
             if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed while this write was being prepared.");
-            int? requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, plan.RequiredSaveFormatRevision);
+            // An unsupported revision fails before anything commits.
+            NeoSaveFormat.RequireSupported(plan.RequiredSaveFormatRevision);
             CandidateReplay? preparedExpansions = ValidatePreparedWrite(plan, out var preparedListeners);
             if (plan.BaseRevision < foreignWriteRevision)
                 throw new InvalidOperationException("The data graph changed during candidate validation.");
@@ -1001,7 +1012,7 @@ namespace NeoCompose.Runtime
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
                 CommitListenerEntries(plan, preparedListeners);
-                PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, requiredSaveFormatRevision);
+                PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, plan.RequiredSaveFormatRevision);
                 plan.MarkInstalled();
                 plan.LocalSelections?.Install();
                 WriteRevision++;
@@ -1201,6 +1212,13 @@ namespace NeoCompose.Runtime
             StageVirtualFootprintRemoval(plan, ownership, next.id);
             if (previous is null)
                 return;
+            // The replacement keeps the slot, so it reads its children from
+            // the slot's placement until the caller places it again (P127 §12.1).
+            if (next.genericBindings is null && next.typeSource is null)
+            {
+                next.genericBindings = previous.genericBindings;
+                next.typeSource = previous.typeSource;
+            }
             List<(string valueId, Member? member)>? released = null;
             foreach (var child in EnumerateOwnedChildLinks(previous, member))
                 if (ChildOwnership(child.member, ownership) == ownership)

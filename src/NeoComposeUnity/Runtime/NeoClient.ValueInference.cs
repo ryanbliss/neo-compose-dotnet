@@ -23,18 +23,45 @@ namespace NeoCompose.Runtime
         /// <summary>Whether <see cref="InferMemberParents"/> reads only committed parent edges.</summary>
         internal bool InfersCommittedParents => candidateReplay is null && candidateReadPlan is null;
 
+        /// <summary>Indexed parents plus those staged by the active read candidate or replay.</summary>
+        private void CollectInferredParentCandidates(string childId, HashSet<string> candidates)
+        {
+            CollectPlacementParents(childId, candidates);
+            if (candidateReadPlan is null)
+                return;
+            candidateReadPlan.CollectParentCandidates(childId, candidates);
+            if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
+                candidates.UnionWith(allocatedParents);
+        }
+
+        /// <summary>Whether an indexed parent places the row through a field or collection entry.</summary>
+        internal bool HasFieldOrEntryPlacementParent(string childId)
+        {
+            HashSet<string> candidates = RentIdSet();
+            try
+            {
+                CollectInferredParentCandidates(childId, candidates);
+                foreach (string parentId in candidates)
+                {
+                    if (TryGetValue(parentId, out MemberValue? parent)
+                        && (parent is ObjectMemberValue { value: { } values } && values.ContainsValue(childId)
+                            || parent is ArrayMemberValue { value: { } entries } && Array.IndexOf(entries, childId) >= 0))
+                        return true;
+                }
+                return false;
+            }
+            finally
+            {
+                ReturnIdSet(candidates);
+            }
+        }
+
         internal IEnumerable<KeyValuePair<string, MemberValue>> InferMemberParents(string childId)
         {
             HashSet<string> candidates = RentIdSet();
             try
             {
-                CollectPlacementParents(childId, candidates);
-                if (candidateReadPlan is not null)
-                {
-                    candidateReadPlan.CollectParentCandidates(childId, candidates);
-                    if (candidateReplay?.Parents.TryGetValue(childId, out var allocatedParents) == true)
-                        candidates.UnionWith(allocatedParents);
-                }
+                CollectInferredParentCandidates(childId, candidates);
                 foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Session, sessionData.values, candidates))
                     yield return pair;
                 foreach (var pair in IndexedWritableParents(childId, NeoValueOwnership.Save, saveData.values, candidates))

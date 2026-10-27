@@ -2176,9 +2176,14 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Session,
                 valuesId,
                 out ArrayMemberValue? values));
+            // P127 §12.1: the list stores no stamp; its typeSource closes
+            // the base's param, which its entries read.
+            Assert.IsNull(values!.genericBindings);
+            Assert.IsNotNull(values.typeSource);
+            Assert.IsTrue(client.TryInferMemberForValueId(valuesId, out JsonMember? valuesMember));
             Assert.AreEqual(
-                "generic-string-binding",
-                values!.genericBindings!["generic-param"]);
+                TestTypeBindings.Of(MemberKind.String),
+                NeoTypeSources.EntryStamp(client, values, valuesMember!)!["generic-param"]);
             Assert.That(values.value, Has.Length.EqualTo(2));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
@@ -2938,13 +2943,9 @@ namespace NeoCompose.Tests
                 name = "StringBox",
                 schema = new Dictionary<string, string>(),
                 extendsClassId = genericBoxClass.id,
-                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                extendsGenericBindings = new Dictionary<string, TypeBinding>
                 {
-                    ["generic-param"] = new GenericBinding
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = "generic-string-binding",
-                    },
+                    ["generic-param"] = TestTypeBindings.Of(MemberKind.String),
                 },
             };
             var ownedChildClass = new NeoSchemaClass
@@ -3188,15 +3189,6 @@ namespace NeoCompose.Tests
                 Requirement = NeoMemberRequirementKind.Required,
                 entryMemberId = genericEntry.id,
             };
-            var genericStringBinding = new StringMember
-            {
-                id = "generic-string-binding",
-                projectId = "static-project",
-                name = "String Binding",
-                kind = MemberKind.String,
-                Requirement = NeoMemberRequirementKind.Required,
-                Format = NeoStringFormatKind.Plain,
-            };
             var ownedChildValue = new StringMember
             {
                 id = "owned-child-value",
@@ -3247,7 +3239,6 @@ namespace NeoCompose.Tests
                     [staticConsume.id] = staticConsume,
                     [genericEntry.id] = genericEntry,
                     [genericValues.id] = genericValues,
-                    [genericStringBinding.id] = genericStringBinding,
                     [ownedChildValue.id] = ownedChildValue,
                     [ownedParentChild.id] = ownedParentChild,
                 },

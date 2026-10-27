@@ -20,9 +20,8 @@ namespace NeoCompose.Tests
     /// environment — and for a GENERIC class that environment cannot come from
     /// the row.
     ///
-    /// <para>Only List and Dictionary rows carry a <c>genericBindings</c>
-    /// stamp (<see cref="NeoGenericResolution.StampGenericBindings"/> no-ops
-    /// for every other kind), so a Class instance such as
+    /// <para>Only binding nodes carry a <c>genericBindings</c> stamp, so a
+    /// Class instance such as
     /// <c>ValueWatcher&lt;int&gt;</c> closes its parameters through the
     /// PLACEMENT that declares it. When the sweep dropped that placement, every
     /// generic parameter resolved unbound and the walk threw
@@ -205,23 +204,10 @@ namespace NeoCompose.Tests
                         DeclaredClassId = watcherClass.id,
                         Storage = NeoMemberStorage.Save,
                         Requirement = NeoMemberRequirementKind.Optional,
-                        classArguments = new Dictionary<string, GenericBinding>
+                        classArguments = new Dictionary<string, TypeBinding>
                         {
-                            [ParamT] = new()
-                            {
-                                kind = NeoGenericBindingKind.Member,
-                                memberId = "member-binding-modifier",
-                            },
+                            [ParamT] = TestTypeBindings.Class("modifier-class"),
                         },
-                    },
-                    ["member-binding-modifier"] = new ClassMember
-                    {
-                        id = "member-binding-modifier",
-                        projectId = ProjectId,
-                        name = "ModifierBinding",
-                        kind = MemberKind.Class,
-                        DeclaredClassId = "modifier-class",
-                        Requirement = NeoMemberRequirementKind.Required,
                     },
                 },
                 values = new Dictionary<string, MemberValue>

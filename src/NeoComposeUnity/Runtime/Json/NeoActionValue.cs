@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -14,8 +15,8 @@ namespace NeoCompose.Runtime.Json
     /// Persisted NSAction value (P62 §2.1) — an insertion-ordered listener
     /// set, wrapped in an object so shape sniffing stays unambiguous:
     /// <c>{ listeners: [{ memberId, valueId }, …] }</c>. Every entry is the
-    /// member-target arm of <see cref="NeoDelegateValue"/>; a closure is not
-    /// a listener (§2), and no two entries share a
+    /// member-target or built-in target arm of <see cref="NeoDelegateValue"/>;
+    /// a closure is not a listener (§2), and no two entries share a
     /// <c>(memberId, valueId)</c> identity (§3.3). The empty set — not
     /// <c>null</c> — is an action's rest state, so invoking one with no
     /// listeners is a successful no-op.
@@ -26,9 +27,13 @@ namespace NeoCompose.Runtime.Json
         public List<NeoDelegateValue> listeners = new List<NeoDelegateValue>();
 
         /// <summary>
-        /// Listener identity per §3.3 — the member target's
-        /// <c>(memberId, valueId)</c> pair, with a null valueId (the
-        /// declaration default) distinct from any instance.
+        /// Listener identity per §3.3, built from every stored field: a plain
+        /// member target's <c>(memberId, valueId)</c> pair, with a null
+        /// valueId (the declaration default) distinct from any instance, and
+        /// otherwise the canonical JSON of its stored form, so a target
+        /// differing only in a P127 §12.1 construction or type argument, or
+        /// a built-in target, is its own listener. In memory only: a key for
+        /// comparing listeners, never written to a save or to JSON.
         /// </summary>
         public static string ListenerIdentity(NeoDelegateValue listener)
         {
@@ -36,13 +41,81 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new ArgumentNullException(nameof(listener));
             }
-            if (string.IsNullOrEmpty(listener.memberId))
+            if (listener.builtIn is null && string.IsNullOrEmpty(listener.memberId))
             {
                 throw new ArgumentException(
                     "An NSAction listener must be a member target with a non-empty 'memberId'.",
                     nameof(listener));
             }
-            return $"{listener.memberId}\u0000{listener.valueId ?? string.Empty}";
+            if (listener.builtIn is null
+                && listener.typeArguments is null
+                && listener.staticConstruction is null
+                && listener.interfaceConstruction is null
+                && listener.delegateType is null)
+            {
+                return $"{listener.memberId}\u0000{listener.valueId ?? string.Empty}";
+            }
+            return StoredIdentity(listener);
+        }
+
+        /// <summary>
+        /// The canonical JSON of a structured target's stored fields, object
+        /// keys in ordinal order so binding map order doesn't matter. The
+        /// leading NUL keeps it apart from every plain member target's.
+        /// </summary>
+        private static string StoredIdentity(NeoDelegateValue listener)
+        {
+            var writer = new JTokenWriter();
+            writer.WriteStartObject();
+            if (listener.builtIn is not null)
+            {
+                listener.builtIn.WriteFields(writer);
+            }
+            else
+            {
+                writer.WritePropertyName("memberId");
+                writer.WriteValue(listener.memberId);
+                writer.WritePropertyName("valueId");
+                writer.WriteValue(listener.valueId);
+                NeoStoredDelegateFields.WriteMemberTarget(writer, listener);
+            }
+            writer.WriteEndObject();
+            var builder = new StringBuilder("\u0000");
+            AppendCanonical(builder, writer.Token!);
+            return builder.ToString();
+        }
+
+        private static void AppendCanonical(StringBuilder builder, JToken token)
+        {
+            switch (token)
+            {
+                case JObject obj:
+                    var names = new List<string>(obj.Count);
+                    foreach (JProperty property in obj.Properties())
+                        names.Add(property.Name);
+                    names.Sort(StringComparer.Ordinal);
+                    builder.Append('{');
+                    foreach (string name in names)
+                    {
+                        builder.Append(JsonConvert.ToString(name)).Append(':');
+                        AppendCanonical(builder, obj[name]!);
+                        builder.Append(',');
+                    }
+                    builder.Append('}');
+                    return;
+                case JArray array:
+                    builder.Append('[');
+                    foreach (JToken item in array)
+                    {
+                        AppendCanonical(builder, item);
+                        builder.Append(',');
+                    }
+                    builder.Append(']');
+                    return;
+                default:
+                    builder.Append(token.ToString(Formatting.None));
+                    return;
+            }
         }
 
         /// <summary>
@@ -91,20 +164,17 @@ namespace NeoCompose.Runtime.Json
                     "NSAction 'listeners' must be an array.");
             }
 
+            var value = new NeoActionValue();
             var identities = new HashSet<string>(StringComparer.Ordinal);
             for (int index = 0; index < entries.Count; index++)
             {
-                if (!identities.Add(ValidateListener(entries[index], index)))
+                NeoDelegateValue listener = ReadListener(entries[index], index);
+                if (!identities.Add(NeoActionValue.ListenerIdentity(listener)))
                 {
                     throw new JsonSerializationException(
                         $"NSAction listener {index} duplicates an earlier listener identity; a listener set holds each (memberId, valueId) once.");
                 }
-            }
-
-            var value = new NeoActionValue();
-            using (JsonReader subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, value);
+                value.listeners.Add(listener);
             }
             return value;
         }
@@ -133,10 +203,20 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException(
                         $"NSAction listener {index} is a closure; only member targets are valid listeners.");
                 }
-                if (!listener.IsMemberTarget)
+                if (!listener.IsMemberTarget && !listener.IsBuiltInTarget)
                 {
                     throw new JsonSerializationException(
                         $"NSAction listener {index} is missing 'memberId'; every listener must be a member target.");
+                }
+                if (listener.builtIn?.DelegateType is not null)
+                {
+                    throw new JsonSerializationException(
+                        $"NSAction listener {index} carries 'delegateType'; a listener always has its action's delegate type.");
+                }
+                if (listener.delegateType is not null)
+                {
+                    throw new JsonSerializationException(
+                        $"NSAction listener {index} carries 'delegateType'; a listener always has its action's delegate type.");
                 }
                 if (!identities.Add(NeoActionValue.ListenerIdentity(listener)))
                 {
@@ -163,48 +243,57 @@ namespace NeoCompose.Runtime.Json
             return obj["listeners"]?.Type == JTokenType.Array;
         }
 
-        /// <summary>
-        /// Validates one wire entry as the member-target arm and returns its
-        /// listener identity, so the caller can enforce the set invariant.
-        /// </summary>
-        private static string ValidateListener(JToken entry, int index)
+        /// <summary>Reads and validates one wire entry as the member-target or built-in target arm.</summary>
+        private static NeoDelegateValue ReadListener(JToken entry, int index)
         {
+            string subject = $"NSAction listener {index}";
             if (entry is not JObject obj)
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} must be an object.");
+                    $"{subject} must be an object.");
             }
             if (obj.Property("action") is not null)
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} carries 'action'; a closure is not a valid listener, only a member target is.");
+                    $"{subject} carries 'action'; a closure is not a valid listener, only a member target is.");
             }
             if (obj.Property("code") is not null)
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} carries 'code'; a closure is not a valid listener, only a member target is.");
+                    $"{subject} carries 'code'; a closure is not a valid listener, only a member target is.");
             }
-            if (obj.Count != 2 || obj.Property("valueId") is null)
+            if (obj.Property("delegateType") is not null)
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} must contain exactly 'memberId' and 'valueId'.");
+                    $"{subject} carries 'delegateType'; a listener always has its action's delegate type.");
+            }
+            if (NeoBuiltInTarget.IsBuiltIn(obj))
+                return new NeoDelegateValue { builtIn = NeoBuiltInTarget.Read(obj, subject, true) };
+            int extra = NeoStoredDelegateFields.CountPresent(obj, NeoStoredDelegateFields.MemberTargetKeys);
+            if (obj.Count != 2 + extra || obj.Property("valueId") is null)
+            {
+                throw new JsonSerializationException(
+                    $"{subject} must contain exactly 'memberId' and 'valueId', and optional 'typeArguments'/'staticConstruction'/'interfaceConstruction'.");
             }
             JToken? memberId = obj["memberId"];
             if (!IsNonEmptyString(memberId))
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} 'memberId' must be a non-empty string.");
+                    $"{subject} 'memberId' must be a non-empty string.");
             }
             JToken valueId = obj["valueId"]!;
             if (valueId.Type != JTokenType.Null && !IsNonEmptyString(valueId))
             {
                 throw new JsonSerializationException(
-                    $"NSAction listener {index} 'valueId' must be null or a non-empty string.");
+                    $"{subject} 'valueId' must be null or a non-empty string.");
             }
-            string valueIdentity = valueId.Type == JTokenType.Null
-                ? string.Empty
-                : valueId.Value<string>() ?? string.Empty;
-            return $"{memberId!.Value<string>()}\u0000{valueIdentity}";
+            var listener = new NeoDelegateValue
+            {
+                memberId = memberId!.Value<string>(),
+                valueId = valueId.Type == JTokenType.Null ? null : valueId.Value<string>(),
+            };
+            NeoStoredDelegateFields.ReadMemberTarget(obj, listener, subject);
+            return listener;
         }
 
         private static bool IsNonEmptyString(JToken? token) =>

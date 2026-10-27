@@ -91,8 +91,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void MissingDescriptorNamesTheParameterAndKind()
+        public void ConstructionsNeedNoTypeDescriptorMembers()
         {
+            // A construction's type arguments are bindings (P127 §12.1), so
+            // the export's old descriptor members play no part.
             ProjectData data = Data();
             foreach (Member descriptor in data.members.Values
                 .Where(member => member.name == "Type argument" && member.kind == MemberKind.String)
@@ -102,11 +104,7 @@ namespace NeoCompose.Tests
             }
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
 
-            Exception error = Assert.Catch(() => InvokeProbe(client, "BoxCount"));
-
-            StringAssert.Contains(
-                "type argument 'T' (String) has no matching type descriptor",
-                error.ToString());
+            Assert.AreEqual(2, InvokeProbe(client, "BoxCount"));
         }
 
         [Test]

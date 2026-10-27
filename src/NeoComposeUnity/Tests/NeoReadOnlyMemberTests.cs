@@ -359,8 +359,8 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            data.classes["class-weapon"].implementsInterfaceIds =
-                new List<string> { "interface-settable-damage" };
+            data.classes["class-weapon"].implementsInterfaces =
+                new List<InterfaceConstruction> { new() { interfaceId = "interface-settable-damage" } };
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 LoadClient(data));

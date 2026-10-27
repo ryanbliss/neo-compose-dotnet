@@ -9,12 +9,21 @@ namespace NeoCompose.Runtime.NeoScript
 {
     public static partial class NSGetterEvaluator
     {
-        private static RuntimeTuple? ReadStoredTuple(TupleMember member, ArrayMemberValue row, NeoValueOwnership ownership, Context ctx)
+        internal static RuntimeTuple? ReadStoredTuple(TupleMember member, ArrayMemberValue row, NeoValueOwnership ownership, Context ctx)
         {
             if (row.value is null)
                 return null;
             if (row.value.Length != member.elementMemberIds.Length)
                 throw new NSGetterRuntimeError($"Tuple row '{row.id}' has {row.value.Length} elements; expected {member.elementMemberIds.Length}.");
+            // A tuple read from its owner's field reads its typeSource under
+            // the member it is placed in (P127 §12.1).
+            if (member.ownerEnvironment is null
+                && NeoGenericResolution.ReadsOwnerParams(ctx.client, member)
+                && ctx.client.TryInferMemberForValueId(row.id, out Member? placed)
+                && placed is TupleMember placedTuple)
+            {
+                member = placedTuple;
+            }
             var env = NeoGenericResolution.CollectionEntryEnv(ctx.client, member, row, false);
             var type = NeoReferenceTypes.SlotTypeInfo(ctx.client, member, env) as TupleTypeInfo
                 ?? throw new NSGetterRuntimeError($"Tuple '{member.name}' has an unresolved element type.");
@@ -23,8 +32,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (!ctx.client.TryGetMember(member.elementMemberIds[i], out Member? descriptor))
                     throw new NSGetterRuntimeError($"Tuple '{member.name}' element {i + 1} has no member descriptor.");
-                if (env is not null)
-                    descriptor = NeoGenericResolution.SubstituteMember(ctx.client, descriptor, env);
+                descriptor = NeoGenericResolution.SubstituteEntryMember(ctx.client, descriptor, env);
                 elements[i] = ResolveValueIfId(row.value[i], ctx, ownership, descriptor);
             }
             return new RuntimeTuple(elements, type);

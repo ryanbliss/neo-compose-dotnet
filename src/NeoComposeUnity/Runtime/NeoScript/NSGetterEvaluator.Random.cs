@@ -9,6 +9,7 @@ namespace NeoCompose.Runtime.NeoScript
     internal static class NeoRandomContract
     {
         internal static bool IsSharedNative(string id) => id is Value or RangeInt or RangeFloat or GetSeed or SetSeed;
+        internal static bool Handles(string id) => IsSharedNative(id) || id == ValidateSeed;
         internal const string Class = "system_75b4633d-65d0-5da1-ac09-e7c2de0cd102";
         internal const string Value = "system_135e16a9-1996-5e5b-9c2a-730b2896a2cd";
         internal const string RangeInt = "system_60709cd5-8924-5a8c-93e5-482c1e678cdb";
@@ -43,8 +44,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx, out object? result)
         {
             result = null;
-            if (memberId is not (NeoRandomContract.Value or NeoRandomContract.RangeInt or NeoRandomContract.RangeFloat
-                or NeoRandomContract.GetSeed or NeoRandomContract.SetSeed or NeoRandomContract.ValidateSeed))
+            if (!NeoRandomContract.Handles(memberId))
                 return false;
             if (memberId == NeoRandomContract.ValidateSeed)
             {

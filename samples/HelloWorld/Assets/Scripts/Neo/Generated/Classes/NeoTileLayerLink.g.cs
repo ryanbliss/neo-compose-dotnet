@@ -135,7 +135,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoTile> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlyNeoTile>(client, result, NeoSequences.ElementType<IReadOnlyNeoTile>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<IReadOnlyNeoTile>(client, result, NeoSequences.ElementType<IReadOnlyNeoTile>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public virtual int IndexOf(IReadOnlyNeoTile obj)

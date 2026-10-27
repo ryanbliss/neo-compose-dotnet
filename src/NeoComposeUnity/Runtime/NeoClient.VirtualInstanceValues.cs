@@ -45,9 +45,9 @@ namespace NeoCompose.Runtime
         private readonly HashSet<string> replayingVirtualRootIds = new(StringComparer.Ordinal);
         private string? replayingVirtualInstanceRootId;
         private string? replayingVirtualInstanceClassId;
-        private IReadOnlyDictionary<string, GenericBinding>?
+        private IReadOnlyDictionary<string, TypeBinding>?
             replayingVirtualInstanceClassArguments;
-        private IReadOnlyDictionary<string, string>?
+        private IReadOnlyDictionary<string, TypeBinding>?
             replayingVirtualInstanceGenericBindings;
 
         /// <summary>
@@ -73,8 +73,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool TryGetReplayingVirtualInstanceClassContext(
             string classId,
-            out IReadOnlyDictionary<string, GenericBinding>? classArguments,
-            out IReadOnlyDictionary<string, string>? storedGenericBindings)
+            out IReadOnlyDictionary<string, TypeBinding>? classArguments,
+            out IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings)
         {
             classArguments = null;
             storedGenericBindings = null;
@@ -323,7 +323,10 @@ namespace NeoCompose.Runtime
             string? constructorId,
             Dictionary<string, JToken?> constructorArgs)
         {
+            using var metadataReads = SuppressValueReads();
             StampConstructionProvenance(live, constructorId, constructorArgs);
+            if (NeoTypeSources.PlaceConstructorArguments(this, live) is { } placed)
+                SetWritableValues(NeoValueOwnership.Session, placed);
             IndexPlacementParent(NeoValueOwnership.Session, live);
         }
 
@@ -343,9 +346,16 @@ namespace NeoCompose.Runtime
         /// would record the row's <i>contents</i> as the recipe, and replay
         /// would then rebuild the instance from a payload map instead of the
         /// row it was actually built from.</para>
+        ///
+        /// <para><paramref name="type"/> is the parameter's closed type. Floats
+        /// write by it through <see cref="NeoStoredFloat"/>, so a float's -0,
+        /// NaN and infinities keep their symbols and an int's -0 does not
+        /// gain one; decimals write as canonical strings (P127 §12.1,
+        /// §3.4).</para>
         /// </summary>
         internal static JToken? ConstructorArgumentToken(
             object? value,
+            TypeInfo? type,
             string describeArgument)
         {
             switch (value)
@@ -370,12 +380,17 @@ namespace NeoCompose.Runtime
                         : new JValue(generated.valueId);
                 case sbyte or byte or short or ushort or int or uint or long:
                     return new JValue(Convert.ToInt64(value));
-                case float or double or decimal:
+                // An int can be -0 at runtime; only a float writes the symbol.
+                case float or double when type?.type != MemberKind.Float:
                     return new JValue(Convert.ToDouble(value));
+                case decimal exact:
+                    return new JValue(NeoDecimalValues.Format(exact));
             }
             try
             {
-                return JToken.FromObject(value);
+                using var writer = new JTokenWriter();
+                NeoStoredNumberJsonConverter.WriteTyped(writer, value, type, NeoStoredNumberJsonConverter.Serializer);
+                return writer.Token;
             }
             catch (Exception error)
             {
@@ -1439,18 +1454,24 @@ namespace NeoCompose.Runtime
             {
                 placementMember = classPlacement;
             }
-            IReadOnlyDictionary<string, GenericBinding>? replayClassArguments =
+            // P127 §12.1: a root that isn't a binding node reads its class's
+            // bindings through its typeSource, one hop away.
+            IReadOnlyDictionary<string, TypeBinding>? rootStamp = instanceRoot.typeSource is not null
+                ? NeoTypeSources.TypeSourcedClassRowStamp(this, instanceRoot, instanceRoot.classId!)
+                : instanceRoot.genericBindings;
+            IReadOnlyDictionary<string, TypeBinding>? replayClassArguments =
                 NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    instanceRoot.genericBindings,
+                    this,
+                    rootStamp,
                     SlotClassArguments(placementMember, instanceRoot.classId!));
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
             string? previousReplayingClassId = replayingVirtualInstanceClassId;
-            IReadOnlyDictionary<string, GenericBinding>?
+            IReadOnlyDictionary<string, TypeBinding>?
                 previousReplayingClassArguments =
                     replayingVirtualInstanceClassArguments;
-            IReadOnlyDictionary<string, string>?
+            IReadOnlyDictionary<string, TypeBinding>?
                 previousReplayingGenericBindings =
                     replayingVirtualInstanceGenericBindings;
             HashSet<string>? previousAllocatedSessionValueIds =
@@ -1459,7 +1480,7 @@ namespace NeoCompose.Runtime
             replayingVirtualInstanceRootId = instanceRoot.id;
             replayingVirtualInstanceClassId = instanceRoot.classId;
             replayingVirtualInstanceClassArguments = replayClassArguments;
-            replayingVirtualInstanceGenericBindings = instanceRoot.genericBindings;
+            replayingVirtualInstanceGenericBindings = rootStamp;
             // Nested replay starts after the outer constructor published its
             // temporary Session graph. Keep the outer boundary so those rows
             // still await their remaining member initializers.
@@ -1579,6 +1600,18 @@ namespace NeoCompose.Runtime
                     ResolveConstructedListenerProjections(projections, () => graph);
                 RemapVirtualReplayIdentities(graph, expansion, allocations.ExistingListenerDefaults);
                 ComposeIndependentDeclarativeAnswers(graph, expansion);
+                // P127 §12.1: the replay built its rows under an ownerless
+                // temporary root. Place them under the instance's own root.
+                Member rootMember = placementMember
+                    ?? NeoGeneratedTypesSupport.UnplacedClassMember(this, instanceRoot.classId!, null, instanceRoot);
+                NeoTypeSources.PlaceVirtual(
+                    this,
+                    instanceRoot,
+                    rootMember,
+                    expansion.Values,
+                    expansion.ClassChildren,
+                    () => ReplayParents(graph, instanceRoot.id, rootMember),
+                    ownership);
                 if (replayBoundary is not null)
                     expansion.Boundary = replayBoundary;
                 else
@@ -1632,7 +1665,7 @@ namespace NeoCompose.Runtime
         private NeoMemberClassWritable ReplayVirtualInstance(
             ObjectMemberValue root,
             ClassMember? placementMember,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments)
         {
             NeoMemberClassWritable node = ReplayVirtualConstruction(
                 root,
@@ -1646,7 +1679,7 @@ namespace NeoCompose.Runtime
         private NeoMemberClassWritable ReplayVirtualConstruction(
             ObjectMemberValue root,
             ClassMember? placementMember,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+            IReadOnlyDictionary<string, TypeBinding>? classArguments)
         {
             if (root.instanceVariantId is not null)
             {
@@ -1693,6 +1726,8 @@ namespace NeoCompose.Runtime
                     : throw new InvalidOperationException(
                         "Instance has no constructorArgs creation data."));
             var replayArguments = new List<NeoDeclaredConstructorArgument>();
+            // Replay's arguments arrive closed (stamp over placement), and
+            // the server's virtual-instance graph reads them with no owner env.
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
                 NeoGenericResolution.ResolveInstanceEnv(
                     this,
@@ -1795,12 +1830,10 @@ namespace NeoCompose.Runtime
                 }
                 return new NeoVariantReference(selection.classId, selection.variantId, selection.rowValueId);
             }
+            if (typeInfo.type == MemberKind.Generic)
+                throw new InvalidOperationException($"Constructor parameter \"{(typeInfo as FunctionArgumentTypeInfo)?.name}\" replays with an unclosed type parameter.");
             if (token.Type == JTokenType.String
-                && typeInfo.type is MemberKind.Class
-                    or MemberKind.Interface
-                    or MemberKind.List
-                    or MemberKind.Set
-                    or MemberKind.Dictionary)
+                && NeoTypeSources.ConstructorArgumentStoresRow(typeInfo.type))
             {
                 string valueId = token.Value<string>()!;
                 var reads = capturedValueReads;
@@ -1819,12 +1852,24 @@ namespace NeoCompose.Runtime
                         $"Constructor argument value '{valueId}' has no resolvable storage ownership, so the instance cannot be replayed against it.");
                 }
                 reads?.Add(row is ObjectMemberValue { classId: not null } ? "identity:" + valueId : valueId);
+                if (typeInfo.type == MemberKind.Tuple)
+                {
+                    if (row is not ArrayMemberValue tupleRow)
+                        throw new InvalidOperationException($"Constructor argument '{valueId}' is not a tuple row.");
+                    var context = new NSGetterEvaluator.Context(this, null, null, ownership);
+                    context = context.WithRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
+                    // Tuple element reads are dependencies of replay too.
+                    using var elementReads = CaptureValueReads(reads ?? new HashSet<string>());
+                    return NSGetterEvaluator.ReadStoredTuple(
+                        (TupleMember)NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(typeInfo))), tupleRow, ownership, context);
+                }
                 return new NeoConstructorValueReference(valueId, ownership);
             }
             return typeInfo.type switch
             {
                 MemberKind.Int => token.ToObject<int>(),
-                MemberKind.Float => token.ToObject<double>(),
+                MemberKind.Float => StoredFloatArgument(token),
+                MemberKind.Decimal => StoredDecimalArgument(token),
                 MemberKind.Bool => token.ToObject<bool>(),
                 MemberKind.NSDelegate => token.ToObject<NeoDelegateValue>(),
                 MemberKind.NSAction => token.ToObject<NeoActionValue>(),
@@ -1835,8 +1880,37 @@ namespace NeoCompose.Runtime
                 MemberKind.Color => token.ToObject<NeoColorValue>(),
                 MemberKind.Sprite => token.ToObject<SpriteValue>(),
                 MemberKind.Audio => token.ToObject<FileValue>(),
-                _ => NeoJsonRuntimeValue.From(token),
+                // Float entries and tuple elements read back by their type.
+                _ => NeoStoredNumberJsonConverter.ReadTyped(NeoJsonRuntimeValue.From(token), typeInfo),
             };
+        }
+
+        /// <summary>A float argument's stored payload (P127 §12.1): a finite number or a symbol string.</summary>
+        internal static double StoredFloatArgument(JToken token)
+        {
+            if (!NeoStoredFloat.TryDecode(token, out double value))
+            {
+                throw new InvalidOperationException(
+                    $"Constructor argument '{token}' must be a finite number or one of \"NaN\", \"Infinity\", \"-Infinity\" and \"-0\".");
+            }
+            return value;
+        }
+
+        /// <summary>
+        /// A decimal argument as the evaluator holds it: its canonical
+        /// string (P127 §3.4). A number was written by an SDK before P127 as
+        /// the decimal's double, so it reads back as that double's decimal.
+        /// </summary>
+        internal static string StoredDecimalArgument(JToken token)
+        {
+            if (token.Type is JTokenType.Integer or JTokenType.Float)
+                return NeoDecimalValues.Format((decimal)token.Value<double>());
+            if (token.Type != JTokenType.String || NeoDecimalValues.GetViolation(token.Value<string>()!) != NeoDecimalValues.Violation.None)
+            {
+                throw new InvalidOperationException(
+                    $"Constructor argument '{token}' must be a canonical decimal string.");
+            }
+            return token.Value<string>()!;
         }
 
         private object UnwrapVirtualReplayRow(string valueId)
@@ -2063,9 +2137,9 @@ namespace NeoCompose.Runtime
                         continue;
                     if (!identities.TryGetValue(argument.Value<string>()!, out string? effective))
                         continue;
-                    environment ??= NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
-                        NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings,
-                            SlotClassArguments(member, constructor.classId)));
+                    // The server's constructor-argument ownership walk reads
+                    // the row through its slot and stamp, with no owner env.
+                    environment ??= NeoGenericResolution.SlotRowEnv(this, member, null, row.genericBindings, constructor.classId);
                     var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this,
                         constructor.argumentTypes[index], environment);
                     if (parameter.type == MemberKind.Reference)
@@ -2187,6 +2261,37 @@ namespace NeoCompose.Runtime
                     ownership = ownership,
                     parentOwnership = parentOwnership,
                 };
+            }
+        }
+
+        /// <summary>Each replayed row's parent row and that parent's member, by row id.</summary>
+        private static Dictionary<string, (string ParentId, Member ParentMember)> ReplayParents(
+            VirtualExpansionNode graph, string rootId, Member rootMember)
+        {
+            var parents = new Dictionary<string, (string ParentId, Member ParentMember)>(StringComparer.Ordinal);
+            var pending = new Stack<VirtualExpansionNode>();
+            pending.Push(graph);
+            while (pending.Count > 0)
+            {
+                VirtualExpansionNode node = pending.Pop();
+                string nodeId = node.effectiveId ?? node.virtualId;
+                Member nodeMember = nodeId == rootId ? rootMember : node.member;
+                foreach (VirtualExpansionNode child in Children(node))
+                {
+                    parents[child.effectiveId ?? child.virtualId] = (nodeId, nodeMember);
+                    pending.Push(child);
+                }
+            }
+            return parents;
+
+            static IEnumerable<VirtualExpansionNode> Children(VirtualExpansionNode node)
+            {
+                foreach (VirtualExpansionNode child in node.classChildren.Values)
+                    yield return child;
+                foreach (VirtualExpansionNode child in node.listChildren)
+                    yield return child;
+                foreach (VirtualExpansionNode child in node.dictionaryChildren.Values)
+                    yield return child;
             }
         }
 

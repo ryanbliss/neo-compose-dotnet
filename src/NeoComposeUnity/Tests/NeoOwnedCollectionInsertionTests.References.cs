@@ -129,10 +129,7 @@ namespace NeoCompose.Tests
             else
             {
                 if (change == "bindings")
-                    row.genericBindings = new()
-                    {
-                        ["changed"] = "changed"
-                    };
+                    row.typeSource = NeoTypeSource.OfType(TestTypeBindings.List(TestTypeBindings.Of(MemberKind.Int)));
                 else
                     client.InvalidateSchemaResolutionCaches();
                 Assert.Throws<InvalidOperationException>(() => batch.RemovalMember(NeoValueOwnership.Session, graph.inner, row));
@@ -180,22 +177,29 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
             var plan = new NeoWritePlan(client);
             string id = Guid.NewGuid().ToString();
-            System.Collections.Generic.Dictionary<string, string>? stamp = mode == "missing" ? null : new();
-            if (mode == "partial")
-                stamp!["unrelated"] = integer.id;
-            else if (stamp is not null)
-                stamp[generic.genericParamId] = mode == "open" ? generic.id : mode == "string" ? text.id : integer.id;
-            plan.Set(NeoValueOwnership.Session, new ArrayMemberValue { id = id, value = Array.Empty<string>(), genericBindings = stamp });
-            if (mode == "scope")
-                plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = id, value = Array.Empty<string>(), genericBindings = new() { [generic.genericParamId] = text.id } });
+            string genericOwner = schema.classes.Values.Single(c => c.genericParams?.Any(p => p.id == generic.genericParamId) == true).id;
+            TypeBinding bound = mode == "string" ? TestTypeBindings.Of(text) : TestTypeBindings.Of(integer);
             string parentId = Guid.NewGuid().ToString();
+            NeoTypeSource? typeSource = mode switch
+            {
+                "missing" => null,
+                // The parent stamps only an unrelated param, not the one the type names.
+                "partial" => NeoTypeSource.OfType(TestTypeBindings.Set(TestTypeBindings.Open(genericOwner, generic.genericParamId)), parentId),
+                "open" => NeoTypeSource.OfType(TestTypeBindings.Set(TestTypeBindings.Open(genericOwner, generic.genericParamId))),
+                _ => NeoTypeSource.OfType(TestTypeBindings.Set(bound, required: mode != "optional")),
+            };
+            plan.Set(NeoValueOwnership.Session, new ArrayMemberValue { id = id, value = Array.Empty<string>(), typeSource = typeSource });
+            if (mode == "scope")
+                plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = id, value = Array.Empty<string>(), typeSource = NeoTypeSource.OfType(TestTypeBindings.Set(TestTypeBindings.Of(text))) });
+            if (mode == "partial")
+                plan.Set(NeoValueOwnership.Session, new ObjectMemberValue { id = parentId, classId = genericOwner, value = new(), genericBindings = TestTypeBindings.Stamp(("unrelated", TestTypeBindings.Of(integer))) });
             if (mode == "parent")
             {
                 var type = (GenericTypeInfo)((LookupTypeInfo)NeoReferenceTypes.SlotTypeInfo(client, set)!).entryTypeInfo!;
-                plan.Set(NeoValueOwnership.Session, new ObjectMemberValue { id = parentId, classId = type.ownerClassId, value = new(), genericBindings = new() { [generic.genericParamId] = text.id } });
+                plan.Set(NeoValueOwnership.Session, new ObjectMemberValue { id = parentId, classId = type.ownerClassId, value = new(), genericBindings = TestTypeBindings.Stamp((generic.genericParamId, TestTypeBindings.Of(text))) });
             }
             // Reader controls use a candidate overlay so deliberately conflicting
-            // parent/stamp shapes do not weaken normal write validation.
+            // parent/typeSource shapes do not weaken normal write validation.
             using (client.ReadCandidate(plan))
             {
                 var context = new NSGetterEvaluator.Context(client, null, null);
@@ -206,25 +210,41 @@ namespace NeoCompose.Tests
                     ? NSSlotPlace.Member(NSGetterEvaluator.ResolveValueIfId(parentId, context)!, "Value", member.id)
                     : NSSlotPlace.Static(member.id);
                 var reference = new NSSlotReference(id, null, null, null);
-                if (mode is "partial" or "open")
+                if (mode == "missing")
                 {
-                    Assert.Throws<InvalidOperationException>(() => NSGetterEvaluator.TargetSlotType(reference, place, context));
+                    Exception? error = Assert.Catch(() => NSGetterEvaluator.TargetSlotType(reference, place, context));
+                    Assert.That(error!.Message, Does.Contain("is missing typeSource"));
+                    return;
+                }
+                if (mode == "partial")
+                {
+                    var error = Assert.Throws<InvalidOperationException>(() => NSGetterEvaluator.TargetSlotType(reference, place, context));
+                    Assert.That(error!.Message, Does.Contain("doesn't stamp"));
                     return;
                 }
                 TypeInfo actual = NSGetterEvaluator.TargetSlotType(reference, place, context);
-                if (mode == "missing")
+                if (mode == "open")
                 {
+                    // §12.1: an open type with no valueId reads as a member
+                    // default's template, which closes nothing, so it fits no
+                    // closed Reference. The validator refuses it outside a
+                    // default (P127TypeSourceTests).
                     Assert.IsTrue(NeoNSFunctionRuntime.ContainsGeneric(actual));
+                    var closed = NeoReferenceTypes.SlotTypeInfo(client, set, NeoGenericResolution.EnvFromStamp(
+                        client,
+                        TestTypeBindings.Stamp((generic.genericParamId, bound))))!;
+                    Assert.IsFalse(NeoReferenceTypes.SlotFits(actual, closed));
                     return;
                 }
                 TypeInfo expected = NeoReferenceTypes.SlotTypeInfo(client, member,
-                    mode == "concrete" ? null : NeoGenericResolution.EnvFromStamp(stamp))!;
+                    mode == "concrete" ? null : NeoGenericResolution.EnvFromStamp(client, TestTypeBindings.Stamp((generic.genericParamId, bound))))!;
                 Assert.IsTrue(NeoReferenceTypes.InvariantlyEqual(expected, actual));
                 Assert.IsFalse(NeoNSFunctionRuntime.ContainsGeneric(actual));
                 if (mode != "concrete")
                 {
                     var wrong = NeoReferenceTypes.SlotTypeInfo(client, set, NeoGenericResolution.EnvFromStamp(
-                        new System.Collections.Generic.Dictionary<string, string> { [generic.genericParamId] = mode == "string" ? integer.id : text.id }))!;
+                        client,
+                        TestTypeBindings.Stamp((generic.genericParamId, TestTypeBindings.Of(mode == "string" ? integer : text)))))!;
                     Assert.IsFalse(NeoReferenceTypes.SlotFits(actual, wrong));
                 }
                 if (mode == "optional")

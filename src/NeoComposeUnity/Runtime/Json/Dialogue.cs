@@ -20,6 +20,14 @@ namespace NeoCompose.Runtime.Json
     public abstract class LogicCondition
     {
         public LogicType type;
+
+        /// <summary>The reusable NeoFlow function this logic calls, when authored as code.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? sourceFunctionId;
+
+        /// <summary>True when this logic owns its expression instead of calling a reusable function.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? sourceInline;
     }
 
     public class UILogicCondition : LogicCondition
@@ -53,6 +61,14 @@ namespace NeoCompose.Runtime.Json
     public abstract class LogicAction
     {
         public LogicType type;
+
+        /// <summary>The reusable NeoFlow function this logic calls, when authored as code.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? sourceFunctionId;
+
+        /// <summary>True when this logic owns its expression instead of calling a reusable function.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? sourceInline;
     }
 
     public class UILogicAction : LogicAction
@@ -201,6 +217,18 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo typeInfo = null!;
         public Pointer pointer = null!;
         public FunctionWithReturnType getter = null!;
+
+        /// <summary>The reusable NeoFlow function this variable calls.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? sourceFunctionId;
+
+        /// <summary>The reusable function's body, or an inline getter for a direct path.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? code;
+
+        /// <summary>True when this variable owns its expression instead of calling a reusable function.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? sourceInline;
     }
 
     public class DialogueTextOptionSettings

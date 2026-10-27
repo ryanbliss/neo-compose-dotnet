@@ -79,8 +79,15 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (!ctx.client.TryGetMember(member.entryMemberId, out Member? entry))
                 return null;
-            if (entry is GenericMember && targetEnv is not null)
-                entry = NeoGenericResolution.SubstituteMember(ctx.client, entry, targetEnv);
+            // The entry reads through the list row's environment: the
+            // target's, or else the one the list member was read in.
+            if (entry is GenericMember)
+            {
+                entry = NeoGenericResolution.SubstituteEntryMember(
+                    ctx.client,
+                    entry,
+                    NeoGenericResolution.SlotRowEnv(ctx.client, member, targetEnv ?? member.ownerEnvironment, null));
+            }
             if (entry is ListMember or DictionaryMember or TupleMember or GenericMember
                 || value is not object?[] array
                 || (FindRowReference(array, ctx) is { } reference

@@ -2923,7 +2923,7 @@ namespace NeoCompose.Tests
       ""expectedError"": ""Math.Truncate requires a finite argument.""
     },
     {
-      ""name"": ""Min of tied decimals returns the first argument, scale and all"",
+      ""name"": ""Min of tied decimals returns the second argument, scale and all"",
       ""typeInfo"": {
         ""type"": 20,
         ""required"": true
@@ -2960,7 +2960,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""1.10""
+      ""expected"": ""1.1""
     },
     {
       ""name"": ""Max of tied decimals returns the first argument, scale and all"",

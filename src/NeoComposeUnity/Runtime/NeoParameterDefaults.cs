@@ -116,11 +116,22 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"{subject} parameter '{parameter.name}' was omitted but declares no default.");
             }
+            if (defaultValue.isDefault == true)
+            {
+                // P127 §4.1's `default` form is the parameter type's default
+                // under the call's bindings, which the evaluator resolves.
+                throw new NSGetterRuntimeError(
+                    $"{subject} parameter '{parameter.name}' declares a 'default' default, which this SDK can't evaluate yet.");
+            }
             if (defaultValue.value is null)
                 return null;
             // JSON reads an integral default as a long.
             if (defaultValue.value is long integer)
                 return (double)integer;
+            // P127 §12.1: a float default may store NaN, an infinity or -0 as
+            // its symbol string.
+            if (parameter.type == MemberKind.Float && defaultValue.value is string symbol && NeoStoredFloat.IsSymbol(symbol))
+                return NeoStoredFloat.DecodeSymbol(symbol);
             if (parameter.type != MemberKind.Enum)
                 return defaultValue.value;
             if (defaultValue.value is string optionId)

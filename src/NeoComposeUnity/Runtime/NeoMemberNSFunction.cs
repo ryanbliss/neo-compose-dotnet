@@ -1218,31 +1218,27 @@ namespace NeoCompose.Runtime
                 return cached;
             }
 
-            IReadOnlyDictionary<string, GenericBinding>? constructedArguments = null;
-            if (!string.IsNullOrEmpty(receiverValueId)
-                && client.TryInferMemberForValueId(
-                    receiverValueId!,
-                    out JsonMember? placementMember)
-                && placementMember is ClassMember classPlacement)
-            {
-                constructedArguments = client.SlotClassArguments(classPlacement, runtimeClassId!);
-            }
-
-            // A persisted closure closes forwarded placement parameters.
+            // A persisted closure closes forwarded placement parameters, and
+            // the placement reads its arguments in its owner's environment.
             NeoValueOwnership receiverOwnership = NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx) ?? ctx.valueOwnership;
-            if (receiverValueId is not null && client.TryGetValue(receiverOwnership, receiverValueId, out MemberValue? row)
-                && row.genericBindings is not null)
-            {
-                constructedArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, constructedArguments);
-            }
+            MemberValue? row = null;
+            if (receiverValueId is not null)
+                client.TryGetValue(receiverOwnership, receiverValueId, out row);
             try
             {
+                ClassMember? placement = null;
+                if (row?.typeSource is null && receiverValueId is not null
+                    && client.TryInferMemberForValueId(receiverValueId, out JsonMember? placementMember))
+                    placement = placementMember as ClassMember;
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> resolved =
-                    NeoGenericResolution.ResolveInstanceEnv(
+                    row?.typeSource is not null
+                        ? NeoTypeSources.TypeSourcedClassRowEnv(client, row, runtimeClassId!)
+                        : NeoGenericResolution.SlotRowEnv(
                     client,
-                    runtimeClassId!,
-                    constructedArguments);
+                    placement,
+                    placement?.ownerEnvironment,
+                    row?.genericBindings,
+                    runtimeClassId!);
                 if (cacheKey is not null)
                 {
                     ctx.genericEnvironmentCache[cacheKey] = resolved;
@@ -1314,9 +1310,9 @@ namespace NeoCompose.Runtime
                 TypeInfo resolved = TypeInfoFromBindingMember(
                     client,
                     bindingMember,
-                    genericEnv,
+                    NeoGenericResolution.BindingEnv(genericEnv, binding),
                     visitingMembers, projection);
-                resolved.required &= typeInfo.required;
+                resolved.required = NeoGeneratedTypesSupport.ClosedSlotRequired(resolved, declaredNullable: !typeInfo.required);
                 return resolved;
             }
 
@@ -1710,10 +1706,18 @@ namespace NeoCompose.Runtime
                     case Vector3IntMember:
                     case ColorMember:
                     case DecimalMember:
+                    case DialogueLookupMember:
                         return new PrimitiveTypeInfo
                         {
                             type = member.kind,
                             required = member.Requirement == NeoMemberRequirementKind.Required,
+                        };
+                    case ObjectMember objectMember:
+                        return new ObjectTypeInfo
+                        {
+                            type = MemberKind.Object,
+                            required = objectMember.Requirement == NeoMemberRequirementKind.Required,
+                            objectType = objectMember.objectType,
                         };
                     default:
                         throw new NSGetterRuntimeError(
@@ -1728,7 +1732,7 @@ namespace NeoCompose.Runtime
 
         private static Dictionary<string, TypeInfo>? ResolveBindingTypeArguments(
             NeoClient client,
-            IReadOnlyDictionary<string, GenericBinding>? bindings,
+            IReadOnlyDictionary<string, TypeBinding>? bindings,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             HashSet<string> visitingMembers,
             BindingTypeProjection projection = BindingTypeProjection.Read)
@@ -1738,20 +1742,20 @@ namespace NeoCompose.Runtime
             var resolved = new Dictionary<string, TypeInfo>(bindings.Count);
             foreach (var pair in bindings)
             {
-                GenericBinding binding = pair.Value;
+                TypeBinding binding = pair.Value;
                 string? memberId;
-                if (binding.kind == NeoGenericBindingKind.Member)
+                IReadOnlyDictionary<string, NeoGenericEnvEntry> memberEnv = genericEnv;
+                if (!binding.IsOpen)
                 {
-                    memberId = binding.memberId;
+                    memberId = NeoTypeBindingViews.Id(binding);
                 }
-                else if (binding.kind == NeoGenericBindingKind.Generic
-                    && !string.IsNullOrEmpty(binding.genericParamId)
-                    && genericEnv.TryGetValue(
-                        binding.genericParamId!,
+                else if (genericEnv.TryGetValue(
+                        binding.Param!,
                         out NeoGenericEnvEntry? forwarded)
                     && forwarded.IsBound)
                 {
                     memberId = forwarded.memberId;
+                    memberEnv = NeoGenericResolution.BindingEnv(genericEnv, forwarded);
                 }
                 else
                 {
@@ -1769,7 +1773,7 @@ namespace NeoCompose.Runtime
                 resolved[pair.Key] = TypeInfoFromBindingMember(
                     client,
                     bindingMember,
-                    genericEnv,
+                    memberEnv,
                     visitingMembers, projection);
             }
             return resolved;
@@ -2027,8 +2031,15 @@ namespace NeoCompose.Runtime
                 case MemberKind.Int when value is int:
                     return value;
                 case MemberKind.Float when IsNumber(value):
-                    value = NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "float binding");
-                    break;
+                    {
+                        object? rounded = NSGetterEvaluator.CoerceNumericBinding(value, typeInfo, "float binding");
+                        // A float holds the infinities, but a finite number
+                        // that rounds to one is out of range.
+                        if (rounded is double single && double.IsInfinity(single) && !IsNonFinite(value))
+                            throw new InvalidOperationException($"{subject} is outside the float range.");
+                        value = rounded;
+                        break;
+                    }
                 case MemberKind.Bool or MemberKind.Int or MemberKind.Float or MemberKind.String
                     when value is double or bool or string or int:
                     break;
@@ -2890,18 +2901,20 @@ namespace NeoCompose.Runtime
             return result.ToArray();
         }
 
-        private static bool IsNumber(object value)
+        /// <summary>
+        /// Whether <paramref name="value"/> is a float: any number, since a
+        /// float holds NaN and both infinities as a C# float does (P127
+        /// §12.1).
+        /// </summary>
+        private static bool IsNumber(object value) =>
+            value is double or float or int or long or short;
+
+        private static bool IsNonFinite(object? value) => value switch
         {
-            return value switch
-            {
-                double number => !double.IsNaN(number)
-                    && !double.IsInfinity(number),
-                float number => !float.IsNaN(number)
-                    && !float.IsInfinity(number),
-                int or long or short => true,
-                _ => false,
-            };
-        }
+            double number => double.IsNaN(number) || double.IsInfinity(number),
+            float number => float.IsNaN(number) || float.IsInfinity(number),
+            _ => false,
+        };
 
         internal static bool IsIntegralNumber(double number) =>
             !double.IsNaN(number)

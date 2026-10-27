@@ -180,7 +180,7 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Generator",
                 extendsClassId = ObjectClassId,
-                implementsInterfaceIds = new List<string> { "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb" },
+                implementsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb" } },
                 schema = new Dictionary<string, string> { ["OnUnload"] = DepartureHookId, ["Cleanup"] = "departure-cleanup" },
             };
             data.members["departure-cleanup"] = new FunctionMember

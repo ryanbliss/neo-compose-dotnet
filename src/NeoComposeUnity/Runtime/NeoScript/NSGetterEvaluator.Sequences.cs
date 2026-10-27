@@ -443,12 +443,16 @@ namespace NeoCompose.Runtime.NeoScript
         private sealed class ScriptCollectionCursor : ScriptCursor
         {
             private readonly CollectionSnapshot snapshot = new();
+            private readonly LookupMember? slotLookup;
+            private readonly TypeInfo? slotTarget;
             private int index;
             internal bool Values => snapshot.Values;
             internal object? Raw => snapshot.Raw(index - 1);
             internal ScriptCollectionCursor(object? collection, TypeInfo elementType, Context ctx) : base(ctx.client, elementType)
             {
                 snapshot.Take(collection, ctx);
+                // A query reads a Lookup of slot references as a direct query does.
+                slotTarget = SlotSelection(FindRowReference(collection, ctx), ctx, out slotLookup);
             }
             protected override bool Advance(Context ctx, out object? value)
             {
@@ -457,7 +461,10 @@ namespace NeoCompose.Runtime.NeoScript
                     value = null;
                     return false;
                 }
-                value = snapshot.Resolve(index++, ctx);
+                value = slotTarget is not null && snapshot.Raw(index) is string id
+                    ? SlotReferenceOf(id, slotLookup!, slotTarget)
+                    : snapshot.Resolve(index, ctx);
+                index++;
                 return true;
             }
             protected override void Release() => snapshot.Clear();

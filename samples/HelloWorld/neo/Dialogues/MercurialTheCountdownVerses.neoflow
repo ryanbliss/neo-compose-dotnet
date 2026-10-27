@@ -52,9 +52,9 @@ sealed class MercurialTheCountdownVerses : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("fe5e8099-d429-53a9-9d71-5288e90cc818")
-    Condition1,
-  ],
+      @id("fe5e8099-d429-53a9-9d71-5288e90cc818")
+      Condition1,
+    ],
     limit: 1,
   ) => M1;
 
@@ -177,9 +177,9 @@ sealed class MercurialTheCountdownVerses : NeoDialogue {
     @id("2c938d29-8bea-49b5-bb46-31eb4401801d")
     Option Anoint = new(
       selectableWhen: [
-      @id("7a17c8c5-e9d4-581f-b450-3756199f1e82")
-      Condition2,
-    ],
+        @id("7a17c8c5-e9d4-581f-b450-3756199f1e82")
+        Condition2,
+      ],
     ) {
       """
       Anoint his burns with the Cryo Salve

@@ -174,14 +174,15 @@ namespace NeoCompose.Runtime
                     $"No member for {nameof(member)}.{nameof(member.entryMemberId)} {member.entryMemberId}");
             }
             // Entry substitution is lazy via the row's genericBindings stamp
+            // over the collection's owner environment
             // (specs/class-generics.md Decision 9), or the declaring class's
             // environment for a declaration default. An open entry with
             // neither keeps the raw record until a stamped row binds, at
             // which point OnValueIdChainChanged re-substitutes.
-            var env = NeoGenericResolution.CollectionEntryEnv(client, member, value, valueId is null);
-            if (env is null)
-                return match;
-            return NeoGenericResolution.SubstituteMember(client, match, env);
+            return NeoGenericResolution.SubstituteEntryMember(
+                client,
+                match,
+                NeoGenericResolution.CollectionEntryEnv(client, member, value, valueId is null));
         }
     }
 
@@ -222,7 +223,8 @@ namespace NeoCompose.Runtime
             ObserveScriptWrites();
             if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
                 throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
-            client.RequireInterfaceSlotAdmits(entryMember, null, member.name, setValue);
+            client.RequireSlotAdmits(entryMember, null, member.name, setValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
+            client.RequireNoGenericStaticTargets(entryMember, null, member.name, setValue);
             var plan = new NeoWritePlan(client);
             NeoTimestamp nowIso = NeoTimestamp.Now();
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
@@ -244,13 +246,13 @@ namespace NeoCompose.Runtime
                 MemberValue next = MemberValueFactory.Create(entryMember, setValue?.value, nextId, previous?.createdAt ?? nowIso, nowIso);
                 next.genericBindings = previous?.genericBindings;
                 next.mapKey = previous?.mapKey ?? client.ResolveCreatedValueMapKey(entryMember, parentRow.mapKey, parentRow.classId);
-                NeoGenericResolution.StampGenericBindings(client, entryMember, next, NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
                 client.StageWritablePayloadRows(plan, entryOwnership, setValue?.value);
                 client.StageInPlaceReplacement(plan, entryOwnership, next, entryMember);
             }
             parentRow.value[key] = nextId;
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, nextId);
             if (previousId is not null && previousId != nextId)
                 client.StageUnlinkedRemovals(plan, entryOwnership, previousId, entryMember);
             CommitOwnChange(plan);
@@ -315,6 +317,7 @@ namespace NeoCompose.Runtime
             parentRow.value![key] = childValueId;
             parentRow.updatedAt = nowIso;
             plan.Set(ownership, parentRow);
+            NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, childValueId);
             // The bound child reports its own change.
             plan.ReportsOwnChange(this);
             plan.AfterCommit(() =>
@@ -351,12 +354,8 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(value.value),
             };
-            // SDK-created rows carry the Decision-9 stamp from the wrapper
-            // tree's enclosing context (spec §9).
-            NeoGenericResolution.StampGenericBindings(
-                client, member, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(plan, parentRow);
-            // The freshly-stamped row may close generic entry references
+            // The freshly placed row may close generic entry references
             // the construction-time (row-less) resolution left raw.
             plan.AfterCommit(() => entryMember = ResolveEntryMember());
             return parentRow;
