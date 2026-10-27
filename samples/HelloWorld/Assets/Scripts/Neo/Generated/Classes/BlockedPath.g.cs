@@ -112,6 +112,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BlockedPath>(out writable);
         }
 
+        public NeoPlacementResult TrySet(Vector2Int cell, ICollisionTileLayerCompatibleTile obj)
+        {
+            return NeoPlacementResult.FromOutcome(client, TryPlaceLayerEntry(cell, obj, tile: true));
+        }
+
         public virtual NeoDialogueReference BootGlyphSealLocked
         {
             get
@@ -150,16 +155,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return FunctionHandler.ClearPath();
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoTileLayerLink.Tiles
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Tiles");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoTile>>("Tiles", memberNode, out var cached)) return cached;
-                return CacheStoredView("Tiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
@@ -174,7 +169,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
+            public static readonly NeoField<int> Count = new("Count");
+
+            internal static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
 
             public static readonly NeoField<NeoDialogueReference> BootGlyphSealLocked = new("BootGlyphSealLocked");
 
@@ -190,6 +187,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.Tiles] = () => null,
                 [Fields.BootGlyphSealLocked] = () => null,
                 [Fields.BootGlyphSealReady] = () => null,
@@ -215,6 +213,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Count] = () => Count,
                 [Fields.Tiles] = () => Tiles,
                 [Fields.BootGlyphSealLocked] = () => BootGlyphSealLocked,
                 [Fields.BootGlyphSealReady] = () => BootGlyphSealReady,

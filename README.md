@@ -79,7 +79,7 @@ On a writable grid, use the generated classes directly:
 ```csharp
 var tile = saveContent.Background.GetTile<NeoTile>(cell);
 bool converted = tile != null && tile.TryConvert<GlassFloorTile>();
-var placed = saveContent.Background.TrySetTile<GlassFloorTile>(cell);
+var placed = saveContent.Background.TrySet<GlassFloorTile>(cell);
 
 var marker = new PlayerSpawnObject();
 var spawned = saveContent.Objects.TrySpawn(cell, marker);
@@ -97,8 +97,21 @@ properties or tile conversion from `NeoTile`.
 The SDK wires the system native grid methods automatically. Generated clients
 can call `Cell`, `GetObjects`, and `GetTile` without registering native handlers.
 
-Layer-link lists are the placement data. SDK and NeoScript list edits pass
-through placement validation, and the renderer observes the data changes.
+Layer links expose `TrySpawn(cell, obj)` or `TrySet(cell, tile)`, enumeration,
+`Count`, `Contains`, `IndexOf`, `Remove`, `RemoveAt`, and `Clear`. Their backing
+`Objects` and `Tiles` lists are protected. Concrete generated methods accept
+`I{Name}CompatibleObject` or `I{Name}CompatibleTile`, matching the target layer.
+
+Cells use owning-grid coordinates when attached, and link-local coordinates
+when detached. Attached validation includes sibling links in the actual grid;
+insertion goes into the called link. Failed placement leaves the candidate and
+link unchanged. `TrySet` replaces only the called link's tile at that cell.
+
+Regenerate project output with the matching Compose update. Tile APIs have
+been renamed from `TrySetTile`, `TryConvertTile`, `TryResetTile`, and `TryRemoveTile` to
+`TrySet`, `TryConvert`, `TryReset`, and `TryRemove`. Generated APIs return the schema's
+`NeoPlacementResult`; low-level SDK methods return `NeoPlacementOutcome`.
+Both expose `Ok`, `ErrorCode`, and `Message`.
 The flattened `Content` queries return generated tile and object values;
 the public `NeoResolvedTileInstance` and `NeoResolvedObjectInstance` snapshots
 are removed.

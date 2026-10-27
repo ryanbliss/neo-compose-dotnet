@@ -103,29 +103,29 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BackgroundTileLayer>(out writable);
         }
 
-        public NeoPlacementResult TrySetTile<TAsset>(Vector2Int cell) where TAsset : class, IBackgroundTileLayerCompatibleTile
+        public NeoPlacementResult TrySet<TAsset>(Vector2Int cell) where TAsset : class, IBackgroundTileLayerCompatibleTile
         {
-            return TrySetTileClass<TAsset>(cell);
+            return NeoPlacementResult.FromOutcome(client, TrySetClass<TAsset>(cell));
         }
 
-        public NeoPlacementResult TrySetTile<TAsset>(Vector2Int cell, NeoClassRef<TAsset> tile) where TAsset : class, IBackgroundTileLayerCompatibleTile
+        public NeoPlacementResult TrySet<TAsset>(Vector2Int cell, NeoClassRef<TAsset> tile) where TAsset : class, IBackgroundTileLayerCompatibleTile
         {
-            return TrySetTileClass(cell, tile);
+            return NeoPlacementResult.FromOutcome(client, TrySetClass(cell, tile));
         }
 
-        public NeoPlacementResult TryConvertTile<TAsset>(NeoTileInstanceId instanceId) where TAsset : class, IBackgroundTileLayerCompatibleTile
+        public NeoPlacementResult TryConvert<TAsset>(NeoTileInstanceId instanceId) where TAsset : class, IBackgroundTileLayerCompatibleTile
         {
-            return TryConvertTileClass<TAsset>(instanceId);
+            return NeoPlacementResult.FromOutcome(client, TryConvertClass<TAsset>(instanceId));
         }
 
-        public NeoPlacementResult TryResetTile(NeoTileInstanceId instanceId)
+        public NeoPlacementResult TryReset(NeoTileInstanceId instanceId)
         {
-            return TryResetBoundTile(instanceId);
+            return NeoPlacementResult.FromOutcome(client, TryResetBound(instanceId));
         }
 
-        public NeoPlacementResult TryRemoveTile(NeoTileInstanceId instanceId)
+        public NeoPlacementResult TryRemove(NeoTileInstanceId instanceId)
         {
-            return TryRemoveBoundTile(instanceId);
+            return NeoPlacementResult.FromOutcome(client, TryRemoveBound(instanceId));
         }
 
         public override string DisplayName

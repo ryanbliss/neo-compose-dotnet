@@ -624,89 +624,117 @@ namespace NeoCompose.Tests
                     ""type"": ""collectionQuery"",
                     ""info"": {
                       ""collectionPointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 30,
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
                             ""required"": true,
-                            ""elements"": [
-                              {
-                                ""typeInfo"": {
-                                  ""type"": 29,
-                                  ""required"": true,
-                                  ""targetTypeInfo"": {
-                                    ""type"": 21,
+                            ""entryTypeInfo"": {
+                              ""type"": 30,
+                              ""required"": true,
+                              ""elements"": [
+                                {
+                                  ""typeInfo"": {
+                                    ""type"": 29,
                                     ""required"": true,
-                                    ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:Membership"",
-                                    ""index"": 0
+                                    ""targetTypeInfo"": {
+                                      ""type"": 21,
+                                      ""required"": true,
+                                      ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:Membership"",
+                                      ""index"": 0
+                                    }
+                                  }
+                                },
+                                {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""function"",
+                              ""function"": {
+                                ""type"": ""tupleCreate"",
+                                ""info"": {
+                                  ""elementPointers"": [
+                                    {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""__arg_0__""
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 0
+                                      }
+                                    }
+                                  ],
+                                  ""typeInfo"": {
+                                    ""type"": 30,
+                                    ""required"": true,
+                                    ""elements"": [
+                                      {
+                                        ""typeInfo"": {
+                                          ""type"": 29,
+                                          ""required"": true,
+                                          ""targetTypeInfo"": {
+                                            ""type"": 21,
+                                            ""required"": true,
+                                            ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:Membership"",
+                                            ""index"": 0
+                                          }
+                                        }
+                                      },
+                                      {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        }
+                                      }
+                                    ]
                                   }
                                 }
                               },
-                              {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 264
                               }
-                            ]
-                          }
+                            }
+                          ]
                         },
-                        ""entries"": [
-                          {
-                            ""type"": ""function"",
-                            ""function"": {
-                              ""type"": ""tupleCreate"",
-                              ""info"": {
-                                ""elementPointers"": [
-                                  {
-                                    ""type"": ""variable"",
-                                    ""variableId"": ""__arg_0__""
-                                  },
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 0
-                                    }
-                                  }
-                                ],
-                                ""typeInfo"": {
-                                  ""type"": 30,
+                        ""elementType"": {
+                          ""type"": 30,
+                          ""required"": true,
+                          ""elements"": [
+                            {
+                              ""typeInfo"": {
+                                ""type"": 29,
+                                ""required"": true,
+                                ""targetTypeInfo"": {
+                                  ""type"": 21,
                                   ""required"": true,
-                                  ""elements"": [
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 29,
-                                        ""required"": true,
-                                        ""targetTypeInfo"": {
-                                          ""type"": 21,
-                                          ""required"": true,
-                                          ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:Membership"",
-                                          ""index"": 0
-                                        }
-                                      }
-                                    },
-                                    {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      }
-                                    }
-                                  ]
+                                  ""ownerMemberId"": ""pending:member:pending:class:Probe.neo:Probe:Membership"",
+                                  ""index"": 0
                                 }
                               }
                             },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 264
+                            {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
                             }
-                          }
-                        ]
+                          ]
+                        }
                       },
                       ""op"": ""ToSet""
                     }

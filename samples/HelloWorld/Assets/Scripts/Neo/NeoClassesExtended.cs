@@ -131,7 +131,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public bool ClearPath()
         {
-            blockedPath.Tiles.Clear();
+            blockedPath.Clear();
             return true;
         }
     }

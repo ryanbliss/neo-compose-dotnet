@@ -93,14 +93,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BackgroundTileLayerLink>(out writable);
         }
 
-        NeoReadOnlyList<IReadOnlyNeoTile> IReadOnlyNeoTileLayerLink.Tiles
+        public NeoPlacementResult TrySet(Vector2Int cell, IBackgroundTileLayerCompatibleTile obj)
         {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Tiles");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoTile>>("Tiles", memberNode, out var cached)) return cached;
-                return CacheStoredView("Tiles", memberNode, new NeoReadOnlyList<IReadOnlyNeoTile>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoMemberClass)child)));
-            }
+            return NeoPlacementResult.FromOutcome(client, TryPlaceLayerEntry(cell, obj, tile: true));
         }
 
         public new sealed class Fields
@@ -117,7 +112,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
+            public static readonly NeoField<int> Count = new("Count");
+
+            internal static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -129,6 +126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.Tiles] = () => null,
             };
         }
@@ -152,6 +150,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Count] = () => Count,
                 [Fields.Tiles] = () => Tiles,
             };
         }

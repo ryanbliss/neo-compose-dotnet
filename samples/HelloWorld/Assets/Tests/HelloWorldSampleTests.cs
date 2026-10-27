@@ -516,10 +516,10 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(group.IsReadOnly);
             Assert.IsTrue(group.TryWritable(out BlockedPath blocked));
             Assert.IsFalse(blocked.IsReadOnly);
-            Assert.Greater(blocked.Tiles.Count, 0);
+            Assert.Greater(blocked.Count, 0);
 
             Assert.IsTrue(blocked.ClearPath());
-            Assert.AreEqual(0, blocked.Tiles.Count);
+            Assert.AreEqual(0, blocked.Count);
             // Clearing an unordered containment list persists as removal
             // tombstones at the authored member ids (membership by join; the
             // container's discriminator row is never rewritten).
@@ -535,7 +535,7 @@ namespace HelloWorld.Assets.Tests
             // GetComponent-style: first assignable child, writable-resolved.
             var blocked = grid.GetRequiredChild<BlockedPath>();
             Assert.IsFalse(blocked.IsReadOnly);
-            Assert.Greater(blocked.Tiles.Count, 0);
+            Assert.Greater(blocked.Count, 0);
 
             Assert.AreSame(blocked, grid.GetChild<BlockedPath>());
             Assert.AreSame(blocked, grid.GetChild<BlockedPath>("Blocked Path"));
@@ -624,7 +624,7 @@ namespace HelloWorld.Assets.Tests
             var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
 
             var tiles = blocked.GetTiles<NeoTile>();
-            Assert.AreEqual(blocked.Tiles.Count, tiles.Count);
+            Assert.AreEqual(blocked.Count, tiles.Count);
             foreach (var tile in tiles)
             {
                 // The link's grid-space cells line up with the Collisions layer.
@@ -667,7 +667,7 @@ namespace HelloWorld.Assets.Tests
                     projectionDuringCallback = blocked.GetTiles<NeoTile>().Count;
                 });
 
-                blocked.Tiles.Clear();
+                blocked.Clear();
 
                 Assert.Greater(
                     notifications,
@@ -896,7 +896,7 @@ namespace HelloWorld.Assets.Tests
                 client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>().GetTile(blockerCell)?.valueId);
             Assert.IsInstanceOf<SealBarrierTile>(blocker);
 
-            AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.valueId));
+            AssertPlacementOk(saveContent.Collisions.TryRemove(blocker.valueId));
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
             await client.CommitAsync();
 
@@ -934,7 +934,7 @@ namespace HelloWorld.Assets.Tests
             {
                 Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(cell));
             }
-            Assert.AreEqual(0, blocked.Tiles.Count);
+            Assert.AreEqual(0, blocked.Count);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
 
             await client.CommitAsync();
@@ -976,7 +976,7 @@ namespace HelloWorld.Assets.Tests
                 NeoTileLayerChangedArgs observedLayerChange = null;
                 using var layerSubscription = content.Collisions.OnChanged(args =>
                     observedLayerChange = args);
-                blocked!.Tiles.Clear();
+                blocked!.Clear();
 
                 Assert.IsNotNull(observedLayerChange);
                 // Published data changes describe the final layer delta across all links.
@@ -1014,10 +1014,20 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(blocker.valueId, blocked!.GetTile(content, blockerCell)?.valueId);
             Assert.IsInstanceOf<PlayerSpawnObject>(content.GetObject(new Vector2Int(Mathf.RoundToInt(playerSpawn.Position.x), Mathf.RoundToInt(playerSpawn.Position.y))));
 
-            blocked.Tiles.Clear();
+            blocked.Clear();
 
             Assert.IsNull(content.Collisions.GetTile(blockerCell));
             Assert.IsNull(blocked.GetTile(content, blockerCell));
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task LayerLinkNativePlacesNeoScriptConstructedTemporaries()
+        {
+            var sample = await LoadSampleClient(EnglishLocalizationOptions());
+            var fixture = JObject.Parse(File.ReadAllText(Path.Combine(FixturesRoot, "layer-link-temporaries.json")));
+            var body = fixture["body"]!.ToObject<FunctionWithReturnType>()!;
+            var context = new NSGetterEvaluator.Context(sample.Client, null, null, null);
+            Assert.That(NSGetterEvaluator.Evaluate(body, context), Is.EqualTo(true), fixture["code"]!.ToString());
         }
 
         [Test]
@@ -1026,7 +1036,7 @@ namespace HelloWorld.Assets.Tests
             var sample = await LoadSampleClient(EnglishLocalizationOptions());
             var client = sample.Client;
             var player = sample.Assets.Worlds.OldConsoleLanding.Children.OfType<NeoObjectLayerLink>()
-                .SelectMany(link => link.Objects).OfType<PlayerSpawnObject>().Single();
+                .SelectMany(link => link).OfType<PlayerSpawnObject>().Single();
             var context = new NSGetterEvaluator.Context(client, player, null, NeoCellPattern.Center);
             // Use the same compiled call instructions as NeoScript. Loading the
             // ordinary generated client above is the only registration step.
@@ -1054,7 +1064,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNotNull(tile);
             var cellForConversion = new Vector2Int(20, 20);
             var content = OldConsoleLandingGridContent.ResolveForSave(client, sample.Assets.Worlds.OldConsoleLanding.valueId!);
-            AssertPlacementOk(content.Background.TrySetTile<GlassFloorTile>(cellForConversion));
+            AssertPlacementOk(content.Background.TrySet<GlassFloorTile>(cellForConversion));
             AssertPlacementOk(content.Objects.TrySpawn(cellForConversion, new VaultPlaqueObject()));
             var placed = content.Objects.GetObject<NeoObject>(cellForConversion)!;
             context = new NSGetterEvaluator.Context(client, placed, null, NeoCellPattern.Center);
@@ -1087,7 +1097,7 @@ namespace HelloWorld.Assets.Tests
 
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
             AssertPlacementOk(
-                saveContent.Background.TrySetTile<GlassFloorTile>(cell),
+                saveContent.Background.TrySet<GlassFloorTile>(cell),
                 "set GlassFloorTile class default");
             var placed = saveContent.Background.GetTiles<NeoTile>()
                 .Single(tile => tile.Cell == cell);
@@ -1110,7 +1120,7 @@ namespace HelloWorld.Assets.Tests
                 reopened.Client,
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
             AssertPlacementOk(
-                sessionContent.Background.TryConvertTile<BootGlyphTile>(placed.valueId),
+                sessionContent.Background.TryConvert<BootGlyphTile>(placed.valueId),
                 "convert persisted placement to BootGlyphTile class default in Session");
 
             Assert.IsInstanceOf<BootGlyphTile>(

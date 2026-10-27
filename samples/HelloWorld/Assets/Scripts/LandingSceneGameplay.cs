@@ -341,7 +341,7 @@ namespace HelloWorld.Assets.Scripts
         }
 
         private bool IsBarrierActive() =>
-            blockedPath.Tiles.Count > 0;
+            blockedPath.Count > 0;
 
         /// <summary>The player's interaction reach: their own cell plus the four neighbors. Built by NeoScript once the client runs.</summary>
         private IReadOnlyNeoCellPattern WithinReachPattern => withinReach ??= NeoCellPattern.Cross(1);

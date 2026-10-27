@@ -3,6 +3,8 @@
 
 #nullable enable
 
+using System;
+
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
@@ -482,12 +484,20 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? StoredEntryKey(object? collection, string rowId, Context ctx)
         {
             var cursor = new CollectionCursor(collection, ctx);
-            while (cursor.MoveNextUnresolved())
+            try
             {
-                if (cursor.ValueId == rowId)
-                    return cursor.Key;
+                while (cursor.MoveNextUnresolved())
+                {
+                    if (cursor.ValueId == rowId)
+                        return cursor.Key;
+                }
+                return null;
             }
-            return null;
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         internal static NSSlotReference SlotReferenceOf(object? id, LookupMember lookup, TypeInfo target)
@@ -529,19 +539,27 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? entryMember = CollectionEntryMember(FindRowReference(collection, ctx), collection, ctx);
             bool nested = entryMember is ListMember or DictionaryMember;
             var cursor = new CollectionCursor(collection, ctx);
-            if (collection is not (object?[] or RuntimeSet))
+            try
             {
-                var dictionary = new Dictionary<string, object?>();
+                if (collection is not (object?[] or RuntimeSet))
+                {
+                    var dictionary = new Dictionary<string, object?>();
+                    while (cursor.MoveNextUnresolved())
+                        dictionary[cursor.Key.ToString()!] = CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx);
+                    return KeepDerived(dictionary, null, values: true);
+                }
+                var entries = new List<object?>();
                 while (cursor.MoveNextUnresolved())
-                    dictionary[cursor.Key.ToString()!] = CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx);
-                return KeepDerived(dictionary, null, values: true);
+                    entries.Add(CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx));
+                var copied = new object?[entries.Count];
+                entries.CopyTo(copied);
+                return KeepDerived(copied, null, values: true);
             }
-            var entries = new List<object?>();
-            while (cursor.MoveNextUnresolved())
-                entries.Add(CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx));
-            var copied = new object?[entries.Count];
-            entries.CopyTo(copied);
-            return KeepDerived(copied, null, values: true);
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally
+            {
+                cursor.Dispose();
+            }
         }
 
         private static object? CopiedEntry(object? entry, bool nested, Context ctx) =>

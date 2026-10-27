@@ -1401,6 +1401,32 @@ namespace NeoCompose.Tests
             Assert.IsNull(client.FindMemoizedGetter(key), "A watch hears an entry change.");
         }
 
+        [Test]
+        public void EnumerableQueryPreservesStoredNumericEntryIds()
+        {
+            using var client = LoadClient();
+            client.SetSaveValue(new NumberMemberValue { id = "query-one", value = 1 });
+            client.SetSaveValue(new NumberMemberValue { id = "query-two", value = 2 });
+            client.SetSaveValue(new ArrayMemberValue { id = "query-list", value = new[] { "query-one", "query-two" } });
+            var source = new ReferencePointer { type = PointerKind.Reference, valueId = "query-list" };
+            var query = new SequenceConversionPointer
+            {
+                type = PointerKind.SequenceConversion,
+                operation = "queryEnumerable",
+                elementType = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                pointer = source,
+            };
+            var direct = KeepAll(source);
+            var enumerated = KeepAll(query);
+            ((WhereFunction)direct.function).info.function.parameters[0].typeInfo = query.elementType;
+            ((WhereFunction)enumerated.function).info.function.parameters[0].typeInfo = query.elementType;
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var scope = new NeoScriptScope(0);
+            var expected = NSGetterEvaluator.EvaluatePointer(direct, scope, ctx);
+            Assert.That(expected, Is.EqualTo(new object?[] { "query-one", "query-two" }));
+            Assert.That(NSGetterEvaluator.EvaluatePointer(enumerated, scope, ctx), Is.EqualTo(expected));
+        }
+
         // `collection.Where(entry => true)`.
         private static FunctionPointer KeepAll(Pointer collection) => new FunctionPointer
         {

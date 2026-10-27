@@ -32,6 +32,7 @@ namespace NeoCompose.Runtime
         private static readonly IReadOnlyList<NeoObjectPlacementRecord> EmptyObjectRecords =
             Array.Empty<NeoObjectPlacementRecord>();
 
+        internal NeoTileGridLifecycle? Lifecycle;
         private readonly NeoReadOnlyTileGridPrimitive primitive;
         private readonly Dictionary<string, TileLayerIndex> tileLayers = new();
         // The tile layers recent cell queries resolved, matched by id

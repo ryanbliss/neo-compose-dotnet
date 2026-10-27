@@ -105,12 +105,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public NeoPlacementResult TrySpawn(Vector2Int cell, IDefaultObjectLayerCompatibleObject obj)
         {
-            return TrySpawnConstructedObject(cell, obj);
+            return NeoPlacementResult.FromOutcome(client, TrySpawnConstructedObject(cell, obj));
         }
 
         public NeoPlacementResult TryDespawn(NeoObjectInstanceId instanceId)
         {
-            return TryDespawnBoundObject(instanceId);
+            return NeoPlacementResult.FromOutcome(client, TryDespawnBoundObject(instanceId));
         }
 
         public override string DisplayName

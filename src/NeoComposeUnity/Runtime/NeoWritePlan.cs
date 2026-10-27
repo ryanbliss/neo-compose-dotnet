@@ -48,6 +48,7 @@ namespace NeoCompose.Runtime
         }
         internal (string gridId, string layerId, string listId, string instanceId)? ObjectInsertion;
         internal string? ValidatedObjectInsertionGrid;
+        internal string? PlacementGridId;
         // Collections most writes never fill are allocated on first use.
         internal HashSet<string>? UnchangedValueIds;
         internal List<NeoValidatedTileConversion>? ValidatedTileConversions;

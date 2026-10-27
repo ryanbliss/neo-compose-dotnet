@@ -220,36 +220,36 @@ namespace NeoCompose.Runtime
         internal IEnumerable<NeoTileProjection> EnumerateRenderTiles() =>
             Binding.Primitive.EnumerateTileProjections(LayerClassId);
 
-        protected NeoPlacementResult TrySetTileClass<TAsset>(Vector2Int cell)
+        protected NeoPlacementOutcome TrySetClass<TAsset>(Vector2Int cell)
             where TAsset : class =>
-            WritablePrimitive().TrySetTile(
+            WritablePrimitive().TrySet(
                 LayerClassId,
                 cell,
                 Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
                 Binding.ImportedClassIds);
 
-        protected NeoPlacementResult TrySetTileClass<TAsset>(
+        protected NeoPlacementOutcome TrySetClass<TAsset>(
             Vector2Int cell,
             NeoClassRef<TAsset> tile)
             where TAsset : class =>
-            WritablePrimitive().TrySetTile(
+            WritablePrimitive().TrySet(
                 LayerClassId,
                 cell,
                 tile.ClassId,
                 Binding.ImportedClassIds);
 
-        protected NeoPlacementResult TryConvertTileClass<TAsset>(NeoTileInstanceId instanceId)
+        protected NeoPlacementOutcome TryConvertClass<TAsset>(NeoTileInstanceId instanceId)
             where TAsset : class =>
-            WritablePrimitive().TryConvertTileClass(
+            WritablePrimitive().TryConvertClass(
                 instanceId,
                 Binding.Primitive.ResolveGeneratedClassId(typeof(TAsset)),
                 Binding.ImportedClassIds);
 
-        protected NeoPlacementResult TryResetBoundTile(NeoTileInstanceId instanceId) =>
-            WritablePrimitive().TryResetTile(instanceId);
+        protected NeoPlacementOutcome TryResetBound(NeoTileInstanceId instanceId) =>
+            WritablePrimitive().TryReset(instanceId);
 
-        protected NeoPlacementResult TryRemoveBoundTile(NeoTileInstanceId instanceId) =>
-            WritablePrimitive().TryRemoveTile(instanceId);
+        protected NeoPlacementOutcome TryRemoveBound(NeoTileInstanceId instanceId) =>
+            WritablePrimitive().TryRemove(instanceId);
 
         private NeoTileGridPrimitive WritablePrimitive()
         {
@@ -318,7 +318,7 @@ namespace NeoCompose.Runtime
         public IDisposable OnChanged(Action<NeoObjectLayerChangedArgs> handler) =>
             Binding.Primitive.OnObjectLayerChanged(LayerClassId, handler);
 
-        protected NeoPlacementResult TrySpawnConstructedObject(
+        protected NeoPlacementOutcome TrySpawnConstructedObject(
             Vector2Int cell,
             INeoValueReference obj)
         {
@@ -331,7 +331,7 @@ namespace NeoCompose.Runtime
                 LayerClassId, cell, generated, Binding.ImportedClassIds);
         }
 
-        protected NeoPlacementResult TryDespawnBoundObject(NeoObjectInstanceId instanceId) =>
+        protected NeoPlacementOutcome TryDespawnBoundObject(NeoObjectInstanceId instanceId) =>
             WritablePrimitive().TryDespawnObject(instanceId);
 
         private NeoTileGridPrimitive WritablePrimitive()

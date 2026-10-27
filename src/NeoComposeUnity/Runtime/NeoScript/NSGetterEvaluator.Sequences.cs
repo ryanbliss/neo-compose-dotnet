@@ -444,6 +444,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             private readonly CollectionSnapshot snapshot = new();
             private int index;
+            internal bool Values => snapshot.Values;
+            internal object? Raw => snapshot.Raw(index - 1);
             internal ScriptCollectionCursor(object? collection, TypeInfo elementType, Context ctx) : base(ctx.client, elementType)
             {
                 snapshot.Take(collection, ctx);
@@ -668,6 +670,26 @@ namespace NeoCompose.Runtime.NeoScript
             return TagSequenceCollection(value, CloseContextType(type, ctx), ctx);
         }
 
+        private sealed class EnumerableQuery
+        {
+            internal readonly object? Source;
+            internal readonly TypeInfo ElementType;
+            internal EnumerableQuery(object? source, TypeInfo elementType)
+            {
+                Source = source;
+                ElementType = elementType;
+            }
+        }
+
+        // Normalize built-in List query inputs to the common enumerable protocol.
+        private static object? ListQueryReceiver(object? source, Context ctx) =>
+            source is object?[]? QueryEnumerable(source, ctx) : source;
+
+        private static EnumerableQuery QueryEnumerable(object? source, Context ctx) =>
+            source as EnumerableQuery ?? new EnumerableQuery(source,
+                source is ScriptSequence sequence ? sequence.ElementType :
+                SequenceCollectionElement(source, ctx) ?? new UnknownTypeInfo { required = true });
+
         private static object? EvalSequenceConversion(SequenceConversionPointer conversion, NeoScriptScope scope, Context ctx)
         {
             object? source = EvalPointer(conversion.pointer, scope, ctx);
@@ -675,6 +697,8 @@ namespace NeoCompose.Runtime.NeoScript
                 return null;
             if (conversion.operation == "retainCollectionType")
                 return RetainSequenceCollectionType(source, conversion.collectionType!, ctx);
+            if (conversion.operation == "queryEnumerable")
+                return new EnumerableQuery(source, CloseContextType(conversion.elementType, ctx));
             object? cursor = conversion.operation == "collectEnumerator" ? source : AcquireSequenceCursor(source, conversion.elementType, ctx);
             if (conversion.operation == "getEnumerator")
                 return cursor;

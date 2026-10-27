@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
+    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase>, INeoObjectLayerLinkValue
     {
         new bool IsReadOnly { get; }
 
@@ -21,7 +21,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObjectLayerLink writable);
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> Objects { get; }
+        void Clear();
+
+        bool Contains(IReadOnlyNeoObjectBase obj);
+
+        int Count { get; }
+
+        new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator();
+
+        int IndexOf(IReadOnlyNeoObjectBase obj);
+
+        bool Remove(IReadOnlyNeoObjectBase obj);
+
+        void RemoveAt(int index);
     }
 
     public abstract partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink, INeoObjectLayerLinkValue
@@ -77,7 +89,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectLayerLink>(out writable);
         }
 
-        public virtual NeoList<NeoObjectBase> Objects
+
+
+        public virtual int Count
+        {
+            get
+            {
+                var result = ComputeProperty("Count");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+
+
+        protected virtual NeoList<NeoObjectBase> Objects
         {
             get
             {
@@ -87,15 +113,48 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObjectLayerLink.Objects
+
+
+
+        [NeoMemberMethod("system_7604a328-0fbc-5e13-afaf-772fe49d52bd")]
+        public virtual void Clear()
         {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Objects");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Objects", memberNode, out var cached)) return cached;
-                return CacheStoredView("Objects", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
+            InvokeFunction("Clear");
         }
+
+        public virtual bool Contains(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("Contains", (object?)(obj));
+            return (bool)result!;
+        }
+
+        public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator()
+        {
+            var result = InvokeFunction("GetEnumerator");
+            return NeoSequences.ReadEnumerator<IReadOnlyNeoObjectBase>(client, result, NeoSequences.ElementType<IReadOnlyNeoObjectBase>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public virtual int IndexOf(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("IndexOf", (object?)(obj));
+            return Convert.ToInt32(result);
+        }
+
+        public virtual bool Remove(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("Remove", (object?)(obj));
+            return (bool)result!;
+        }
+
+        [NeoMemberMethod("system_9fb7f58b-8e13-5ea7-88db-8fa506ba93e6")]
+        public virtual void RemoveAt(int index)
+        {
+            InvokeFunction("RemoveAt", (object?)(index));
+        }
+
+
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase>)this).GetEnumerator();
+
 
         public new sealed class Fields
         {
@@ -111,7 +170,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
+            public static readonly NeoField<int> Count = new("Count");
+
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -123,6 +184,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.Objects] = () => null,
             };
         }
@@ -146,6 +208,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.Count] = () => Count,
                 [Fields.Objects] = () => Objects,
             };
         }

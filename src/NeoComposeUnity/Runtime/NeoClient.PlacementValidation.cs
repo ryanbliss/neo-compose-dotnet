@@ -482,6 +482,8 @@ namespace NeoCompose.Runtime
         private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
         {
             Queue<string> pending = scratch.pending;
+            if (plan.PlacementGridId is not null)
+                pending.Enqueue(plan.PlacementGridId);
             HashSet<string> writtenDescendants = scratch.writtenDescendants;
             // Pairs throughout: a dictionary's Keys or Values view allocates.
             foreach (var pair in plan.Rows)

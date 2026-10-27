@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using UnityEngine;
 using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
@@ -93,6 +94,13 @@ namespace NeoCompose.Runtime
             : nodeStore is null
                 ? AttachDetachedRows()
                 : node.overrideValueId ?? node.value?.id;
+        protected NeoPlacementOutcome TryPlaceLayerEntry(Vector2Int cell, INeoValueReference entry, bool tile)
+        {
+            if (entry is not NeoGeneratedClassValue generated)
+                throw new ArgumentException("Placement requires a generated class value.", nameof(entry));
+            return client.TryPlaceLayerEntry(this, cell, generated, tile);
+        }
+
         public string? classId => detached?.plan.classId ?? node.ClassId;
         internal ClassMember BackingMember => node.member;
         public bool IsReadOnly

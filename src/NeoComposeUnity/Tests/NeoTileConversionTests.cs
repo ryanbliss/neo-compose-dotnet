@@ -296,7 +296,7 @@ namespace NeoCompose.Tests
             client.OnWritableValuesPublished += (_, __) => publications++;
             string before = client.SerializeSaveData();
 
-            var result = grid.TryResetTile(new NeoTileInstanceId("existing-tile"));
+            var result = grid.TryReset(new NeoTileInstanceId("existing-tile"));
 
             Assert.AreEqual(!authoredCellOccupied, result.Ok, result.Message);
             if (authoredCellOccupied)
