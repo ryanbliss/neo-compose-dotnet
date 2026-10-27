@@ -617,6 +617,44 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public async System.Threading.Tasks.Task ObjectLayerLinkRemoval_ExecutesExportedNeoScriptAgainstUnorderedStorage()
+        {
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
+            var grid = client.Assets.Worlds.OldConsoleLanding;
+            var authored = grid.Children.OfType<ObjectLayerLink>().First(candidate => candidate.Count >= 2);
+            var link = authored.Clone();
+            var entries = link.ToArray();
+
+            Assert.IsTrue(link.Remove(entries[1]));
+            Assert.IsFalse(link.Remove(new VaultPlaqueObject()));
+            Assert.AreEqual(entries.Length - 1, link.Count);
+            CollectionAssert.AreEqual(entries.Where((_, index) => index != 1).Select(entry => entry.valueId),
+                link.Select(entry => entry.valueId));
+            link.RemoveAt(0);
+            CollectionAssert.AreEqual(entries.Skip(2).Select(entry => entry.valueId), link.Select(entry => entry.valueId));
+            Assert.AreEqual(entries.Length, authored.Count, "Removing cloned entries must preserve authored objects.");
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task TileLayerLinkRemoval_ExecutesExportedNeoScriptAgainstUnorderedStorage()
+        {
+            var client = await LoadSampleClient(EnglishLocalizationOptions());
+            var grid = client.Assets.Worlds.OldConsoleLanding;
+            var link = grid.GetRequiredChild<BlockedPath>();
+            var entries = link.ToArray();
+            Assert.GreaterOrEqual(entries.Length, 2);
+
+            Assert.IsTrue(link.Remove(entries[1]));
+            Assert.IsFalse(link.Remove(new SealBarrierTile()));
+            Assert.AreEqual(entries.Length - 1, link.Count);
+            CollectionAssert.AreEqual(entries.Where((_, index) => index != 1).Select(entry => entry.valueId),
+                link.Select(entry => entry.valueId));
+            link.RemoveAt(0);
+            CollectionAssert.AreEqual(entries.Skip(2).Select(entry => entry.valueId), link.Select(entry => entry.valueId));
+            Assert.IsFalse(grid.Content.Collisions.GetTiles<NeoTile>().Any(entry => entry.valueId == entries[0].valueId || entry.valueId == entries[1].valueId));
+        }
+
+        [Test]
         public async System.Threading.Tasks.Task TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
         {
             var client = await LoadSampleClient(EnglishLocalizationOptions());

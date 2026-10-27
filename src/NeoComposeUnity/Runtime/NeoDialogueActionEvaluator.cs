@@ -6194,6 +6194,17 @@ namespace NeoCompose.Runtime
                             }
                         }
                         break;
+                    case CollectionMutationKind.RemoveAt:
+                        int index = ToInt(args[0], "RemoveAt index");
+                        try
+                        {
+                            list.RemoveAt(index);
+                        }
+                        catch (ArgumentOutOfRangeException)
+                        {
+                            throw new NSGetterRuntimeError($"List index out of bounds: {index}");
+                        }
+                        break;
                     case CollectionMutationKind.Clear:
                         list.ClearSerialized();
                         break;
