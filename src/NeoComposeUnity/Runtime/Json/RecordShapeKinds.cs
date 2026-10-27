@@ -29,6 +29,11 @@ namespace NeoCompose.Runtime.Json
     {
         Public = 0, Protected = 1, Private = 2
     }
+    /// <summary>P127 §5. How a field member was declared; absent means Field.</summary>
+    public enum NeoMemberDeclarationFormKind
+    {
+        Field = 0, AutoProperty = 1
+    }
     public enum NeoStringFormatKind
     {
         Localized = 0, Plain = 1
@@ -47,15 +52,40 @@ namespace NeoCompose.Runtime.Json
     }
     public enum NeoInterfaceMemberKind
     {
-        Property = 0, Function = 1
+        Property = 0, Function = 1, Field = 2
     }
     public enum NeoGenericParamConstraintKind
     {
-        Class = 0, Enum = 1, Interface = 2
+        Class = 0, Enum = 1, Interface = 2, AnyEnum = 3
     }
-    public enum NeoGenericBindingKind
+    /// <summary>P127 §4.8. Absent on a declaration means invariant.</summary>
+    public enum NeoGenericParamVarianceKind
     {
-        Generic = 0, Member = 1
+        Out = 0, In = 1
+    }
+    /// <summary>P127 §1.3. The built-in type declaring an Object slot; absent means <c>object</c>.</summary>
+    public enum NeoObjectTypeKind
+    {
+        ValueType = 0, Enum = 1, Type = 2, CultureInfo = 3, NumberFormatInfo = 4, BuiltInComparer = 5
+    }
+    /// <summary>P127 §9.5. A stored Set or Dictionary comparer; absent means the default.</summary>
+    public enum NeoCollectionComparerKind
+    {
+        BuiltIn = 0, Value = 1
+    }
+    /// <summary>P127 §12.1. Which built-in comparer a <c>BuiltInComparer</c> payload holds.</summary>
+    public enum NeoBuiltInComparerKind
+    {
+        Default = 0, ReferenceEquality = 1, SetEquality = 2, Create = 3
+    }
+    public enum NeoComparerFamilyKind
+    {
+        Equality = 0, Comparison = 1
+    }
+    /// <summary>P127 §4.3. A parameter's passing mode; absent means by value.</summary>
+    public enum NeoParameterModeKind
+    {
+        Out = 0
     }
     public enum NeoMemberRequirementKind
     {
@@ -106,7 +136,7 @@ namespace NeoCompose.Runtime.Json
     }
     public enum NeoPropertyAccessorsKind
     {
-        Get = 0, GetSet = 1
+        Get = 0, GetSet = 1, Set = 2, GetInit = 3, Init = 4
     }
     public enum NeoMemberPayloadKind
     {

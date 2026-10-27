@@ -976,16 +976,33 @@ namespace NeoCompose.Runtime.NeoScript
             /// position. Its own type parameters read them by index.
             /// </summary>
             internal TypeInfo[]? functionTypeArguments;
+            /// <param name="slotOwnerEnv">
+            /// The environment the slot's arguments read the owner's params
+            /// in: where the slot was read, or the instance being initialized
+            /// (P127 §1.2). Null for a replayed root, whose flat stamp carries
+            /// them.
+            /// </param>
             internal bool TryGetConstructionClassContext(
-                string classId,
-                out IReadOnlyDictionary<string, GenericBinding>? classArguments,
-                out IReadOnlyDictionary<string, string>? storedGenericBindings)
+                ClassTypeInfo classInfo,
+                out IReadOnlyDictionary<string, TypeBinding>? classArguments,
+                out IReadOnlyDictionary<string, TypeBinding>? storedGenericBindings,
+                out IReadOnlyDictionary<string, NeoGenericEnvEntry>? slotOwnerEnv)
             {
-                if (initializerPlacement?.DeclaredClassId == classId
-                    && initializerPlacement.classArguments is not null)
+                string classId = classInfo.classId;
+                storedGenericBindings = null;
+                slotOwnerEnv = initializerPlacement?.ownerEnvironment ?? initializerGenericEnv;
+                // A base slot closes a derived class's own params too:
+                // `new ListBox<T>()` in `Box<List<T>>`.
+                if (initializerPlacement?.classArguments is { } placementArguments
+                    && (initializerPlacement.DeclaredClassId == classId
+                        || NeoGeneratedTypesSupport.BaseSlotCloses(
+                            client,
+                            initializerPlacement.DeclaredClassId,
+                            placementArguments,
+                            classInfo,
+                            slotOwnerEnv)))
                 {
-                    classArguments = initializerPlacement.classArguments;
-                    storedGenericBindings = null;
+                    classArguments = placementArguments;
                     return true;
                 }
                 // P113 §1. An interface slot's arguments close the open row it determines.
@@ -993,9 +1010,9 @@ namespace NeoCompose.Runtime.NeoScript
                     && client.SlotClassArguments(initializerPlacement, classId) is { } slotArguments)
                 {
                     classArguments = slotArguments;
-                    storedGenericBindings = null;
                     return true;
                 }
+                slotOwnerEnv = null;
                 return client.TryGetReplayingVirtualInstanceClassContext(
                     classId, out classArguments, out storedGenericBindings);
             }
@@ -2813,12 +2830,57 @@ namespace NeoCompose.Runtime.NeoScript
                     && CloseContextType(closurePointer.action.parameters[parameterIndex].typeInfo, ctx).type == MemberKind.List)
                     CaptureRuntimeList(list);
             }
+            int[] typed = closurePointer.storedNumberCaptures ??= StoredNumberCaptures(closurePointer);
+            TypeInfo?[]? captureTypes = closurePointer.closedCaptureTypes;
+            if (captureTypes is null && typed.Length > 0)
+            {
+                captureTypes = new TypeInfo?[captures.Length];
+                foreach (int i in typed)
+                {
+                    captureTypes[i] = CloseContextType(
+                        closurePointer.action.parameters[closurePointer.action.parameters.Length - captures.Length + i].typeInfo,
+                        ctx);
+                }
+            }
             return new NeoDelegateValue
             {
                 code = closurePointer.code,
                 action = closurePointer.action,
                 captures = captures,
+                captureTypes = captureTypes,
             }.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
+        }
+
+        /// <summary>
+        /// The captures of <paramref name="closurePointer"/> whose declared
+        /// type can hold a float or a decimal. When none of those types names
+        /// a type parameter, their closed types are the declared ones, which
+        /// the pointer keeps for every closure it makes.
+        /// </summary>
+        private static int[] StoredNumberCaptures(DelegateClosurePointer closurePointer)
+        {
+            int count = closurePointer.captures?.Length ?? 0;
+            Variable[] parameters = closurePointer.action.parameters;
+            var typed = new List<int>();
+            bool open = false;
+            for (int i = 0; i < count; i++)
+            {
+                TypeInfo type = parameters[parameters.Length - count + i].typeInfo;
+                if (!NeoStoredNumberJsonConverter.MayHoldStoredNumber(type))
+                    continue;
+                typed.Add(i);
+                open |= NeoNSFunctionRuntime.ContainsGeneric(type) || NeoFunctionTypeArguments.Contains(type);
+            }
+            if (typed.Count > 0 && !open)
+            {
+                var closed = new TypeInfo?[count];
+                foreach (int i in typed)
+                {
+                    closed[i] = parameters[parameters.Length - count + i].typeInfo;
+                }
+                closurePointer.closedCaptureTypes = closed;
+            }
+            return typed.ToArray();
         }
 
         /// <summary>A delegate invocation.</summary>
@@ -3084,6 +3146,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return InvokeDelegateClosure(delegateValue, args, ctx);
             }
+            if (delegateValue.builtIn is { } builtIn)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NeoDelegate built-in target '{builtIn.Name}' can't be invoked: this SDK has no built-in target table yet.");
+            }
             if (!delegateValue.IsMemberTarget)
             {
                 throw new NSGetterRuntimeError(
@@ -3324,7 +3391,7 @@ namespace NeoCompose.Runtime.NeoScript
                         NeoScriptValueMarshaller.Normalize(
                             ctx.client,
                             ctx.valueOwnership,
-                            captures[i],
+                            StoredCapture(value, i, action.parameters[parameterIndex].typeInfo, nestedCtx),
                             action.parameters[parameterIndex].typeInfo,
                             nestedCtx,
                             NeoScriptValueMarshaller.ValueSubject.Closure("capture", i)));
@@ -3353,6 +3420,21 @@ namespace NeoCompose.Runtime.NeoScript
                 else
                     layout.AbandonScope(scope);
             }
+        }
+
+        /// <summary>
+        /// A loaded closure's capture read back by its closed static type, so
+        /// a float's symbol string is its double again (P127 §12.1). The
+        /// closure keeps the decoded capture, so later calls skip the decode.
+        /// </summary>
+        private static object? StoredCapture(NeoDelegateValue value, int index, TypeInfo type, Context ctx)
+        {
+            object? capture = value.captures![index];
+            if (capture is not (string or object?[] or IDictionary<string, object?>)
+                || !NeoStoredNumberJsonConverter.MayHoldStoredNumber(type))
+                return capture;
+            object?[] decoded = value.decodedCaptures ??= new object?[value.captures.Length];
+            return decoded[index] ??= NeoStoredNumberJsonConverter.ReadTyped(capture, CloseContextType(type, ctx));
         }
 
         /// <param name="ownerReceiver">
@@ -5728,7 +5810,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (right == 0)
                         throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
                     if (numeric == ArithmeticNumeric.Int)
-                        return System.Math.Truncate(left / right);
+                        return System.Math.Truncate(left / right) + 0d;
                     return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
@@ -5739,11 +5821,16 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        /// <summary>A float step rounds to 32 bits, as Unity's own float math does.</summary>
+        /// <summary>
+        /// A float step rounds to 32 bits, as Unity's own float math does. An
+        /// int has no -0 (P127 §12.1), so an int step's zero is +0.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static double RoundArithmetic(double value, ArithmeticNumeric? numeric)
         {
-            return numeric == ArithmeticNumeric.Float ? (float)value : value;
+            if (numeric == ArithmeticNumeric.Float)
+                return (float)value;
+            return numeric == ArithmeticNumeric.Int ? value + 0d : value;
         }
 
         // ---------------------------------------------------------------
@@ -5819,42 +5906,36 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 decimals[i] = CoerceDecimalOperand(operands[i], "arithmetic");
             }
-            try
+            // The operators throw NeoOverflowError themselves (P127 §3.4).
+            switch (op)
             {
-                switch (op)
-                {
-                    case ArithmeticOpKind.Addition:
-                        {
-                            string acc = decimals[0];
-                            for (int i = 1; i < decimals.Length; i++)
-                                acc = NeoDecimalMath.Add(acc, decimals[i]);
-                            return acc;
-                        }
-                    case ArithmeticOpKind.Subtraction:
-                        {
-                            string acc = decimals[0];
-                            for (int i = 1; i < decimals.Length; i++)
-                                acc = NeoDecimalMath.Subtract(acc, decimals[i]);
-                            return acc;
-                        }
-                    case ArithmeticOpKind.Multiplication:
-                        {
-                            string acc = decimals[0];
-                            for (int i = 1; i < decimals.Length; i++)
-                                acc = NeoDecimalMath.Multiply(acc, decimals[i]);
-                            return acc;
-                        }
-                    default:
-                        // Unreachable for `/` and `%`: the compiler rejects
-                        // them on decimals (specs/decimal-member.md
-                        // decision 7).
-                        throw new NSGetterRuntimeError(
-                            $"Decimal '{op}' is not supported at runtime.");
-                }
-            }
-            catch (DecimalOverflowException error)
-            {
-                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
+                case ArithmeticOpKind.Addition:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++)
+                            acc = NeoDecimalMath.Add(acc, decimals[i]);
+                        return acc;
+                    }
+                case ArithmeticOpKind.Subtraction:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++)
+                            acc = NeoDecimalMath.Subtract(acc, decimals[i]);
+                        return acc;
+                    }
+                case ArithmeticOpKind.Multiplication:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++)
+                            acc = NeoDecimalMath.Multiply(acc, decimals[i]);
+                        return acc;
+                    }
+                default:
+                    // Unreachable for `/` and `%`: the compiler rejects
+                    // them on decimals (specs/decimal-member.md
+                    // decision 7).
+                    throw new NSGetterRuntimeError(
+                        $"Decimal '{op}' is not supported at runtime.");
             }
         }
 
@@ -6059,11 +6140,13 @@ namespace NeoCompose.Runtime.NeoScript
                 ?? NeoGeneratedTypesSupport.ConstructionSiteBuffers.NewFields(info.fields);
             ClassTypeInfo classInfo = CloseConstructionFunctionArguments(info.schemaClassInfo, ctx);
             ctx.TryGetConstructionClassContext(
-                info.schemaClassInfo.classId,
-                out IReadOnlyDictionary<string, GenericBinding>?
+                info.schemaClassInfo,
+                out IReadOnlyDictionary<string, TypeBinding>?
                     replayClassArguments,
-                out IReadOnlyDictionary<string, string>?
-                    replayGenericBindings);
+                out IReadOnlyDictionary<string, TypeBinding>?
+                    replayGenericBindings,
+                out IReadOnlyDictionary<string, NeoGenericEnvEntry>?
+                    slotOwnerEnv);
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
                 replayClassArguments is null
                     ? EnclosingGenericEnv(classInfo, ctx)
@@ -6093,7 +6176,8 @@ namespace NeoCompose.Runtime.NeoScript
                         replayClassArguments,
                         replayGenericBindings,
                         replayStoredInstance: ctx.IsEvaluatingInitializer,
-                        enclosingEnv: enclosingEnv);
+                        enclosingEnv: enclosingEnv,
+                        slotOwnerEnv: slotOwnerEnv);
                 }
                 catch (Exception error)
                     when (error is InvalidOperationException
@@ -6650,11 +6734,13 @@ namespace NeoCompose.Runtime.NeoScript
         {
             ClassTypeInfo classInfo = CloseConstructionFunctionArguments(constructor.info.schemaClassInfo, ctx);
             ctx.TryGetConstructionClassContext(
-                constructor.info.schemaClassInfo.classId,
-                out IReadOnlyDictionary<string, GenericBinding>?
+                constructor.info.schemaClassInfo,
+                out IReadOnlyDictionary<string, TypeBinding>?
                     replayClassArguments,
-                out IReadOnlyDictionary<string, string>?
-                    replayGenericBindings);
+                out IReadOnlyDictionary<string, TypeBinding>?
+                    replayGenericBindings,
+                out IReadOnlyDictionary<string, NeoGenericEnvEntry>?
+                    slotOwnerEnv);
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? enclosingEnv =
                 replayClassArguments is null
                     ? EnclosingGenericEnv(classInfo, ctx)
@@ -6678,7 +6764,8 @@ namespace NeoCompose.Runtime.NeoScript
                         fields,
                         replayClassArguments,
                         enclosingEnv,
-                        replayStoredInstance: ctx.IsEvaluatingInitializer);
+                        replayStoredInstance: ctx.IsEvaluatingInitializer,
+                        slotOwnerEnv: slotOwnerEnv);
                 }
                 catch (Exception error)
                     when (error is InvalidOperationException
@@ -6742,14 +6829,8 @@ namespace NeoCompose.Runtime.NeoScript
                             fields,
                             metadata,
                             ConstructorReferences(ctx),
-                            ctx);
-                    if (replayGenericBindings is not null)
-                    {
-                        node.value.genericBindings =
-                            new Dictionary<string, string>(
-                                replayGenericBindings,
-                                StringComparer.Ordinal);
-                    }
+                            ctx,
+                            replayGenericBindings);
                     ctx.allocationTracker.RegisterSessionRoot(node.value.id);
                     object? unwrapped = UnwrapCached(
                         node.value,
@@ -7917,7 +7998,7 @@ namespace NeoCompose.Runtime.NeoScript
                     EnsureVectorArity(arity, 2, info.vectorType);
                     RequireIntegerComponent(x, "x");
                     RequireIntegerComponent(y, "y");
-                    return new NeoVector2Value { x = x, y = y };
+                    return new NeoVector2Value { x = x + 0d, y = y + 0d };
                 case MemberKind.Vector3:
                     EnsureVectorArity(arity, 3, info.vectorType);
                     return new NeoVector3Value { x = x, y = y, z = z };
@@ -7926,7 +8007,7 @@ namespace NeoCompose.Runtime.NeoScript
                     RequireIntegerComponent(x, "x");
                     RequireIntegerComponent(y, "y");
                     RequireIntegerComponent(z, "z");
-                    return new NeoVector3Value { x = x, y = y, z = z };
+                    return new NeoVector3Value { x = x + 0d, y = y + 0d, z = z + 0d };
                 default:
                     throw new NSGetterRuntimeError($"Unsupported vector constructor '{info.vectorType}'.");
             }
@@ -8047,11 +8128,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (DecimalOverflowException error)
             {
-                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
-            }
-            catch (DecimalDivisionByZeroException error)
-            {
-                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
+                throw new NeoRuntimeError(NeoErrorClass.NeoOverflowError, error.Message);
             }
             catch (DecimalDigitsRangeException error)
             {
@@ -8609,7 +8686,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             catch (DecimalOverflowException error)
             {
-                throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArithmeticError);
+                throw new NeoRuntimeError(NeoErrorClass.NeoOverflowError, error.Message);
             }
         }
 
@@ -8905,6 +8982,18 @@ namespace NeoCompose.Runtime.NeoScript
         /// this is a membership snapshot, never a deep value clone. A reused
         /// snapshot keeps its buffers.
         /// </summary>
+        /// <summary>
+        /// The slot target of a multi-select Lookup of slot references
+        /// (P112 §1.1), whose ids read as references to their rows; else null.
+        /// </summary>
+        private static TypeInfo? SlotSelection(RowReference? collectionRef, Context ctx, out LookupMember? lookup)
+        {
+            lookup = collectionRef?.CollectionMember(ctx.client) as LookupMember;
+            if (lookup is not { Selection: NeoMemberSelectionKind.Multi })
+                return null;
+            return LookupSlotTarget(lookup, ctx, collectionRef!.valueId);
+        }
+
         internal sealed class CollectionSnapshot
         {
             // The raw entries, copied in one block. Only a row id entry has a
@@ -9171,8 +9260,7 @@ namespace NeoCompose.Runtime.NeoScript
                     this.entryMember = entryMember;
                     entryOwnership = ctx.client.ConcreteDeclaredOwnership(entryMember);
                 }
-                if (collectionRef?.CollectionMember(ctx.client) is LookupMember { Selection: NeoMemberSelectionKind.Multi } lookup
-                    && LookupSlotTarget(lookup, ctx, collectionRef.valueId) is { } target)
+                if (SlotSelection(collectionRef, ctx, out LookupMember? lookup) is { } target)
                 {
                     slotLookup = lookup;
                     slotTarget = target;
@@ -9599,8 +9687,7 @@ namespace NeoCompose.Runtime.NeoScript
                         {
                             if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry entry) || !entry.IsBound)
                                 return false;
-                            TypeInfo actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(ctx.client,
-                                new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = entry.memberId }, env));
+                            TypeInfo actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfEntry(ctx.client, entry, NeoGenericResolution.BindingEnv(env, entry)));
                             if (!NeoClient.TypeInfoMatches(pair.Value, actual))
                                 return false;
                         }
@@ -10375,7 +10462,7 @@ namespace NeoCompose.Runtime.NeoScript
                     || NeoGeneratedTypesSupport.ResolveClassValueClassId(ctx.client, id, row) is not { } classId)
                     continue;
                 RetainClassAliases(plan, ctx, ownership, id,
-                    NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row), retained);
+                    NeoGeneratedTypesSupport.UnplacedClassMember(ctx.client, classId, null, row), retained);
             }
         }
 
@@ -10395,7 +10482,7 @@ namespace NeoCompose.Runtime.NeoScript
             members.TryGetValue(id, out JsonMember? member);
             member ??= pendingAlias?.Member;
             if (row is ObjectMemberValue { classId: not null } classRow)
-                member = NeoGeneratedTypesSupport.UnplacedClassMember(classRow.classId, null, classRow);
+                member = NeoGeneratedTypesSupport.UnplacedClassMember(ctx.client, classRow.classId, null, classRow);
             if (member is null)
                 foreach (object alias in ctx.rowAliases.Get(ownership, id))
                     if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference reference)
@@ -11361,7 +11448,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (!client.InterfaceImplementers.TryGetConstruction(
                     rowClassId,
                     interfaceType.interfaceId,
-                    out IReadOnlyDictionary<string, GenericBinding> construction))
+                    out IReadOnlyDictionary<string, TypeBinding> construction))
             {
                 return false;
             }
@@ -11380,7 +11467,7 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, value, ctx, "An interface check");
             foreach (var pair in ((InterfaceTypeInfo)checkedType).typeArguments!)
             {
-                if (!construction.TryGetValue(pair.Key, out GenericBinding? binding))
+                if (!construction.TryGetValue(pair.Key, out TypeBinding? binding))
                     return false;
                 TypeInfo implemented = NeoGenericResolution.TypeInfoFromArgumentSignature(
                     NeoGenericResolution.SignatureOfBinding(client, binding, rowEnv));

@@ -44,8 +44,7 @@ namespace NeoCompose.Runtime.NeoScript
             var arguments = new Dictionary<string, TypeInfo>();
             foreach (var pair in env)
                 if (pair.Value.IsBound)
-                    arguments[pair.Key] = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(ctx.client,
-                        new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = pair.Value.memberId }, env));
+                    arguments[pair.Key] = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfEntry(ctx.client, pair.Value, env));
             throw new InvalidOperationException($"No generated error wrapper for '{schemaClass?.name ?? payload.ClassId}' with closed arguments {Newtonsoft.Json.JsonConvert.SerializeObject(arguments)}. Call {schemaClass?.name ?? payload.ClassId}<...>.RegisterErrorFactory(client) for this construction before reading NeoScriptException.Error.");
         }
 
@@ -118,8 +117,7 @@ namespace NeoCompose.Runtime.NeoScript
                         return false;
                 }
                 else
-                    actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(ctx.client,
-                    new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = entry.memberId }, env));
+                    actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfEntry(ctx.client, entry, NeoGenericResolution.BindingEnv(env, entry)));
                 if (!NeoClient.TypeInfoMatches(pair.Value, actual))
                     return false;
             }

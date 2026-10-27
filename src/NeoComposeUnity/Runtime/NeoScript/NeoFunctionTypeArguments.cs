@@ -236,7 +236,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 TypeInfo resolved = Lookup(table, Index(argument));
                 FunctionArgumentTypeInfo bound = AsArgument(resolved, argument.name);
-                bound.required = resolved.required && argument.required;
+                bound.required = NeoGeneratedTypesSupport.ClosedSlotRequired(resolved, declaredNullable: !argument.required);
                 // Only a non-constant type can hold a type parameter, and its
                 // only default is null.
                 bound.defaultValue = argument.defaultValue;
@@ -271,7 +271,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>A bound type in a parameter's flattened shape.</summary>
-        private static FunctionArgumentTypeInfo AsArgument(TypeInfo typeInfo, string name)
+        internal static FunctionArgumentTypeInfo AsArgument(TypeInfo typeInfo, string name)
         {
             if (typeInfo is FunctionArgumentTypeInfo flattened)
             {
@@ -371,7 +371,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A nullable use of a type parameter is nullable whatever it binds to.</summary>
         private static TypeInfo Required(TypeInfo bound, bool required)
         {
-            if (required || !bound.required)
+            if (NeoGeneratedTypesSupport.ClosedSlotRequired(bound, declaredNullable: !required) == bound.required)
                 return bound;
             TypeInfo nullable = bound.ShallowClone();
             nullable.required = false;

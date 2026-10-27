@@ -331,10 +331,13 @@ namespace NeoCompose.Tests
             ProjectData data = BuildProjectData();
             if (constrained)
             {
-                data.classes[BoxClassId].genericParams![0].constraint = new GenericParamConstraint
+                data.classes[BoxClassId].genericParams![0].constraints = new List<GenericParamConstraint>
                 {
-                    kind = NeoGenericParamConstraintKind.Class,
-                    classId = ItemClassId,
+                    new()
+                    {
+                        kind = NeoGenericParamConstraintKind.Class,
+                        classId = ItemClassId,
+                    },
                 };
             }
             using var script = new Script(data);
@@ -550,7 +553,7 @@ namespace NeoCompose.Tests
                 new ClassMember { id = "box-binding", name = "T", kind = MemberKind.Class, DeclaredClassId = ItemClassId, Requirement = required },
                 new StringMember { id = "item-name", name = "Name", kind = MemberKind.String },
             };
-            var bindings = new Dictionary<string, string> { [BoxParamId] = "box-binding" };
+            var bindings = TestTypeBindings.Stamp((BoxParamId, TestTypeBindings.Class(ItemClassId, required == NeoMemberRequirementKind.Required)));
             var values = new MemberValue[]
             {
                 Object("root-assets-value", "root-class", new()),

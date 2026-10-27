@@ -29,7 +29,10 @@ namespace NeoCompose.Tests
                 client.ImportValueReference(ownership, id, out HashSet<string>? _);
             Assert.IsTrue(client.TryGetValue(ownership, id, out ObjectMemberValue? owner));
             Assert.IsTrue(client.TryGetValue(ownership, owner!.value!["Items"], out ArrayMemberValue? items));
-            Assert.That(items!.genericBindings, Is.Not.Null.And.Not.Empty);
+            // P127 §12.1: the container reads its type from its owner
+            // through typeSource, placed when the write created it.
+            Assert.IsNotNull(items!.typeSource);
+            Assert.IsNull(items.genericBindings);
             string method = client.members.Values.Single(member => member.name == "HasValue").id;
             using var contains = new NeoMemberNSFunction(client, method, null, ownership);
             Assert.AreEqual(true, contains.Invoke(id, new object?[] { text ? "x" : 7d }));

@@ -20,10 +20,11 @@ namespace NeoCompose.Runtime
             var children = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             foreach (Interface declaration in data.interfaces.Values)
             {
-                if (declaration.extendsInterfaceIds is null)
+                if (declaration.extendsInterfaces is null)
                     continue;
-                foreach (string parent in declaration.extendsInterfaceIds)
+                foreach (InterfaceConstruction parentConstruction in declaration.extendsInterfaces)
                 {
+                    string parent = parentConstruction.interfaceId;
                     if (!children.TryGetValue(parent, out var descendants))
                         children[parent] = descendants = new();
                     descendants.Add(declaration.id);
@@ -88,13 +89,13 @@ namespace NeoCompose.Runtime
                             return true;
                     return false;
                 }
-                bool HasCursorArgument(Dictionary<string, GenericBinding> arguments)
+                bool HasCursorArgument(Dictionary<string, TypeBinding> arguments)
                 {
-                    foreach (GenericBinding binding in arguments.Values)
+                    foreach (TypeBinding binding in arguments.Values)
                     {
-                        string? id = binding.memberId;
-                        if (binding.IsForward && binding.genericParamId is { } parameter && env.TryGetValue(parameter, out var resolved))
-                            id = resolved.memberId;
+                        string? id = binding.IsOpen
+                            ? env.TryGetValue(binding.Param!, out var resolved) ? resolved.memberId : null
+                            : NeoTypeBindingViews.Id(binding);
                         if (id is not null && ChildContainsCursor(id))
                             return true;
                     }

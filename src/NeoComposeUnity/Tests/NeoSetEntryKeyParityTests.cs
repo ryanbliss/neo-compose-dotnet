@@ -17,7 +17,8 @@ namespace NeoCompose.Tests
     /// <summary>
     /// P108 §3. The .NET half of the Set entry key parity gate: every case in
     /// <see cref="NeoSetEntryKeyParityFixture"/> keys the stored row the way
-    /// the TypeScript <c>setEntryKey</c> does.
+    /// the TypeScript <c>setEntryKey</c> does. The fixture's
+    /// <c>keyEquivalent</c> and <c>description</c> are server rules (P127 §9.5).
     /// </summary>
     public class NeoSetEntryKeyParityTests
     {
@@ -25,10 +26,29 @@ namespace NeoCompose.Tests
         public void EveryCaseKeysLikeTheWeb()
         {
             var failures = new List<string>();
+            using NeoClient client = EmptyClient(out ProjectData data);
             foreach (JObject testCase in (JArray)JObject.Parse(NeoSetEntryKeyParityFixture.Json)["cases"]!)
             {
                 string name = testCase.Value<string>("name")!;
-                string actual = NeoSetEntryKey.Of(EntryMember(testCase.Value<string>("kind")!), Row(testCase));
+                var rows = new Dictionary<string, MemberValue>(StringComparer.Ordinal);
+                if (testCase["rows"] is JObject childRows)
+                {
+                    foreach (JProperty child in childRows.Properties())
+                        rows[child.Name] = Row(child.Name, (JObject)child.Value, data);
+                }
+                string actual;
+                JsonMember entryMember = EntryMember(testCase.Value<string>("kind")!, testCase.Value<int?>("objectType"));
+                MemberValue entry = Row(testCase.Value<string>("id") ?? "entry", testCase, data);
+                MemberValue? ReadRow(string id) => rows.TryGetValue(id, out MemberValue row) ? row : null;
+                try
+                {
+                    actual = NeoSetEntryKey.Of(entryMember, entry, client, ReadRow);
+                }
+                catch (Exception error)
+                {
+                    failures.Add($"[{name}] threw {error.GetType().Name}: {error.Message}");
+                    continue;
+                }
                 string expected = testCase.Value<string>("key")!;
                 if (actual != expected)
                     failures.Add($"[{name}] expected '{expected}', got '{actual}'");
@@ -49,12 +69,74 @@ namespace NeoCompose.Tests
                 "{\"id\":\"entry\",\"name\":\"Title\",\"kind\":3}")!;
             var row = new StringMemberValue { id = "entry", value = "text-id" };
 
-            var error = Assert.Throws<InvalidOperationException>(() => NeoSetEntryKey.Of(member, row));
+            using NeoClient client = EmptyClient(out _);
+
+            var error = Assert.Throws<InvalidOperationException>(() => NeoSetEntryKey.Of(member, row, client));
 
             StringAssert.Contains("Set<string> elements must be @settings(format: .Plain)", error!.Message);
         }
 
-        private static JsonMember EntryMember(string kind)
+        /// <summary>
+        /// A project with only its roots and the fixture's comparer classes:
+        /// box members mint from stored bindings.
+        /// </summary>
+        private static NeoClient EmptyClient(out ProjectData data)
+        {
+            const string projectId = "set-entry-key-parity";
+            var rootClass = new NeoSchemaClass
+            {
+                id = "root-class",
+                projectId = projectId,
+                name = "Root",
+                schema = new Dictionary<string, string>(),
+            };
+            ClassMember Root(string id, string? valueId) => new()
+            {
+                id = id,
+                projectId = projectId,
+                name = id,
+                kind = MemberKind.Class,
+                DeclaredClassId = rootClass.id,
+                valueId = valueId,
+            };
+            data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = projectId,
+                    name = "Set entry key parity",
+                    rootAssetsMemberId = "assets-member",
+                    rootSaveFileMemberId = "save-member",
+                    rootSessionMemberId = "session-member",
+                },
+                members = new Dictionary<string, JsonMember>
+                {
+                    ["assets-member"] = Root("assets-member", "assets"),
+                    ["save-member"] = Root("save-member", null),
+                    ["session-member"] = Root("session-member", null),
+                },
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["assets"] = new ObjectMemberValue { id = "assets", classId = rootClass.id, value = new Dictionary<string, string>() },
+                },
+                classes = new Dictionary<string, NeoSchemaClass> { [rootClass.id] = rootClass },
+            }.WithUserRoot();
+            foreach ((string id, string name) in FixtureComparerClasses)
+            {
+                data.classes[id] = new NeoSchemaClass
+                {
+                    id = id,
+                    projectId = projectId,
+                    name = name,
+                    schema = new Dictionary<string, string>(),
+                    genericParams = new List<GenericParamDeclaration> { new() { id = id + "-t", name = "T" } },
+                };
+            }
+            NeoSystemComparerClasses.Register(JObject.FromObject(data.classes));
+            return NeoTestSaveStack.ClientFromSchema(data);
+        }
+
+        private static JsonMember EntryMember(string kind, int? objectType)
         {
             var member = new JObject
             {
@@ -68,17 +150,45 @@ namespace NeoCompose.Tests
                 member["classId"] = "class-entry";
             if (kind == nameof(MemberKind.Enum))
                 member["enumId"] = "enum-entry";
+            if (objectType is int declared)
+                member["objectType"] = declared;
             return JsonConvert.DeserializeObject<JsonMember>(member.ToString())!;
         }
 
-        private static MemberValue Row(JObject testCase)
+        private static readonly (string id, string name)[] FixtureComparerClasses =
         {
+            ("system_00000000-0000-4000-8000-0000000000c1", "EqualityComparer"),
+            ("system_00000000-0000-4000-8000-0000000000c2", "Comparer"),
+        };
+
+        /// <summary>
+        /// The fixture spells stored types as runtime type keys (a box's held
+        /// type, a comparer's <c>type</c>, a <c>Type</c> entry's payload);
+        /// rows store the bindings they name.
+        /// </summary>
+        private static MemberValue Row(string id, JObject testCase, ProjectData data)
+        {
+            JToken value = testCase["value"]!.DeepClone();
+            if (value is JObject comparer && comparer["comparer"] is not null && comparer["typeKey"] is JValue { Type: JTokenType.String } typeKey)
+            {
+                comparer.Remove("typeKey");
+                comparer["type"] = TestTypeBindings.JsonFromKey((string)typeKey!, data);
+            }
+            if (testCase.Value<int?>("objectType") == (int)NeoObjectTypeKind.Type && value is JValue { Type: JTokenType.String } spelled)
+                value = new JObject { ["type"] = TestTypeBindings.JsonFromKey((string)spelled!, data) };
             var row = new JObject
             {
-                ["id"] = testCase.Value<string>("id") ?? "entry",
-                ["value"] = testCase["value"]!.DeepClone(),
+                ["id"] = id,
+                ["value"] = value,
             };
-            return JsonConvert.DeserializeObject<MemberValue>(row.ToString())!;
+            if (testCase["classId"] is JToken classId)
+                row["classId"] = classId.DeepClone();
+            MemberValue stored = JsonConvert.DeserializeObject<MemberValue>(row.ToString())!;
+            // The fixture pins key rules, not storage: a box's payload may be
+            // one storage refuses, such as a Comparer.Create without delegates.
+            if (testCase.Value<string>("valueTypeKey") is string heldKey)
+                stored.valueType = TestTypeBindings.FromKey(heldKey, data);
+            return stored;
         }
     }
 }

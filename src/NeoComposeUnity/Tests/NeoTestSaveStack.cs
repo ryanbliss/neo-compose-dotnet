@@ -208,6 +208,80 @@ namespace NeoCompose.Tests
     }
 
     /// <summary>
+    /// Places a hand-built fixture's authored rows as an export does (P127
+    /// §12.1): one walk from each member's root writes the stamps and
+    /// typeSources the fixture omits. Rows no root reaches stay as written.
+    /// A client loads its rows as it constructs, so placement reads the
+    /// schema through a client that holds none.
+    /// </summary>
+    internal static class NeoTestPlacement
+    {
+        public static ProjectData PlaceAuthored(this ProjectData schema)
+        {
+            var values = schema.values;
+            schema.values = new System.Collections.Generic.Dictionary<string, MemberValue>();
+            try
+            {
+                using NeoClient client = NeoTestSaveStack.ClientFromSchema(schema);
+                Place(client, schema, values);
+            }
+            finally
+            {
+                schema.values = values;
+            }
+            return schema;
+        }
+
+        private static void Place(NeoClient client, ProjectData schema, System.Collections.Generic.Dictionary<string, MemberValue> values)
+        {
+            var graph = new AuthoredGraph(values);
+            foreach (Member member in schema.members.Values)
+            {
+                if (member.valueId is not string rootId || !values.ContainsKey(rootId))
+                    continue;
+                NeoTypeSources.Walk(
+                    client,
+                    graph,
+                    NeoTypeSources.RootPosition(client, rootId, member, client.SchemaOwnerClassId(member.id)),
+                    placed =>
+                    {
+                        // An open binding node no slot closes stays as
+                        // authored, for a test that it is refused.
+                        if (placed.StampParams is { Length: > 0 }
+                            && (placed.Row as MemberValue)?.genericBindings is null
+                            && placed.SpelledStamp is null)
+                            return;
+                        NeoTypeSources.Apply(placed);
+                    });
+            }
+        }
+
+        private sealed class AuthoredGraph : INeoTypeSourceGraph
+        {
+            private readonly System.Collections.Generic.Dictionary<string, MemberValue> rows;
+            private readonly System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<string>> unordered = new();
+
+            internal AuthoredGraph(System.Collections.Generic.Dictionary<string, MemberValue> rows)
+            {
+                this.rows = rows;
+                foreach (MemberValue row in rows.Values)
+                {
+                    if (row.containerId is not string containerId)
+                        continue;
+                    if (!unordered.TryGetValue(containerId, out var entries))
+                        unordered[containerId] = entries = new System.Collections.Generic.List<string>();
+                    entries.Add(row.id);
+                }
+            }
+
+            public MemberValueBase? Row(string valueId) => rows.TryGetValue(valueId, out MemberValue? row) ? row : null;
+
+            public System.Collections.Generic.IEnumerable<string> UnorderedEntryIds(string containerId) =>
+                unordered.TryGetValue(containerId, out var entries) ? entries : System.Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
     /// The User root every project carries (P104), as the retired
     /// <c>p104-user-root</c> migration minted it: an empty User-storage class,
     /// its root member, and the member's empty object row.

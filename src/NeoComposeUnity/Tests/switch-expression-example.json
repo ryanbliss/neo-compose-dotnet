@@ -15,7 +15,12 @@
       ],
       "extendsGenericBindings": {
         "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
-          "genericParamId": "1b7d1aaa-9bcf-43b4-92cd-608b1bf44ca6"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "0ae7eaa9-0283-40b7-a78e-666953efdf10"
+          },
+          "param": "1b7d1aaa-9bcf-43b4-92cd-608b1bf44ca6"
         }
       },
       "id": "0ae7eaa9-0283-40b7-a78e-666953efdf10"
@@ -59,7 +64,12 @@
       ],
       "extendsGenericBindings": {
         "d159dafd-09ac-4d0a-b014-747ccb4a2962": {
-          "genericParamId": "fce966ae-bde7-43f4-8e86-7306f1a08010"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "fb0a62b4-c892-482a-bd31-388d2ff27b2b"
+          },
+          "param": "fce966ae-bde7-43f4-8e86-7306f1a08010"
         }
       },
       "id": "fb0a62b4-c892-482a-bd31-388d2ff27b2b"

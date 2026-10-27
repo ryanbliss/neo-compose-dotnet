@@ -1409,7 +1409,7 @@ namespace NeoCompose.Tests
                     new FunctionArgumentTypeInfo { name = "offset", type = MemberKind.Vector2Int, required = false },
                 },
                 returnTypeInfo = returnType,
-                genericParams = new[] { new FunctionGenericParam { name = "T", constraint = baseClass, defaultType = baseClass } },
+                genericParams = new[] { new FunctionGenericParam { name = "T", constraints = new TypeInfo[] { baseClass }, defaultType = baseClass } },
             };
         }
 
@@ -3331,13 +3331,9 @@ namespace NeoCompose.Tests
                 name = "ClosedAnimationOwner",
                 extendsClassId = "generic-animation-owner",
                 schema = new Dictionary<string, string>(),
-                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                extendsGenericBindings = new Dictionary<string, TypeBinding>
                 {
-                    [paramId] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = "inherited-invalid-clip-binding",
-                    },
+                    [paramId] = TestTypeBindings.Class("animation-clip-class", required: false),
                 },
             };
             data.members["generic-animation-slot"] = new GenericMember
@@ -3347,14 +3343,6 @@ namespace NeoCompose.Tests
                 name = "InheritedClip",
                 kind = MemberKind.Generic,
                 genericParamId = paramId,
-            };
-            data.members["inherited-invalid-clip-binding"] = new ClassMember
-            {
-                id = "inherited-invalid-clip-binding",
-                projectId = "project-a",
-                name = "ClipBinding",
-                kind = MemberKind.Class,
-                DeclaredClassId = "animation-clip-class",
                 valueId = "inherited-invalid-clip",
             };
             data.values["inherited-invalid-clip"] = new ObjectMemberValue

@@ -1,0 +1,16 @@
+/// A runtime cursor. Store its produced values in a List instead of storing the cursor.
+@id("system_1604985c-2d92-4aca-9fcb-16a667aaaf1a")
+@system(kind: .ScriptRuntime)
+interface IEnumerator<
+  @id("system_8c8392fe-41f0-4116-9ac8-e325a187d8aa")
+  T
+  > {
+    @id("system_a4ee2931-f6c6-41cb-8ee9-4fc1b12d97ff")
+    T Current { get; }
+
+    @id("system_f0c37057-082c-4a23-8c9f-27ea9a17b5be")
+    bool MoveNext();
+
+    @id("system_9b9cd079-e20d-47e5-8d86-11080b867fe8")
+    void Dispose();
+  }

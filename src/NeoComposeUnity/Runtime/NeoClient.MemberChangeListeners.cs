@@ -978,7 +978,7 @@ namespace NeoCompose.Runtime
         {
             if (cache?.TryGetValue(owner, out var cached) == true)
                 return cached;
-            var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(owner.genericBindings, null);
+            var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(this, owner.genericBindings, null);
             var environment = NeoGenericResolution.ResolveInstanceEnv(this, owner.classId!, arguments);
             if (cache is not null)
                 cache[owner] = environment;

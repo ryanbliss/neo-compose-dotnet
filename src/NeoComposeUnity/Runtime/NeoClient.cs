@@ -121,7 +121,6 @@ namespace NeoCompose.Runtime
         /// </summary>
         private readonly Dictionary<string, object> variantHandles = new();
         private Dictionary<string, VariantRecord>? variantsByValueId;
-        private readonly Dictionary<string, ClassMember> variantTargetMembers = new();
 
         private Dictionary<string, VariantRecord> VariantGraphs =>
             variantsByValueId ??= data.variants.Values
@@ -129,23 +128,14 @@ namespace NeoCompose.Runtime
                 .GroupBy(record => record.valueId)
                 .ToDictionary(group => group.Key, group => group.First());
 
-        internal ClassMember VariantTargetMember(VariantRecord record)
-        {
-            string id = $"__neo_variant_binding_{record.id}";
-            if (!variantTargetMembers.TryGetValue(id, out ClassMember? member)
-                || member.DeclaredClassId != record.classId)
-            {
-                member = new ClassMember
-                {
-                    id = id,
-                    name = "TObject",
-                    kind = MemberKind.Class,
-                    DeclaredClassId = record.classId,
-                };
-                variantTargetMembers[id] = member;
-            }
-            return member;
-        }
+        /// <summary>
+        /// P127 §4.9. The type a variant's <c>TObject</c> binds to: its
+        /// owning class, closed by the record's <c>typeArguments</c>
+        /// (<c>Box&lt;int&gt;</c>). The record is the one source of the
+        /// target; a variant graph's root row carries no stamp for it.
+        /// </summary>
+        internal static TypeBinding VariantTarget(VariantRecord record) =>
+            TypeBinding.Closed(new TypeHead(MemberKind.Class, false, classId: record.classId), record.typeArguments);
 
         /// <summary>
         /// Compiled definitions, keyed exactly as <see cref="animationClips"/>
@@ -480,7 +470,6 @@ namespace NeoCompose.Runtime
             // is dropped on the same schedule a recompile drops clips.
             variantHandles.Clear();
             variantsByValueId = null;
-            variantTargetMembers.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -822,12 +811,24 @@ namespace NeoCompose.Runtime
             {
                 ValidateCallableMembers();
                 ValidateConstructorRecords();
+                ValidateVariantTypeArguments();
                 data.clientPassesValidated = true;
             }
             loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
+            // P127 §5.3: the walk collects the Lookup rows whose targets the
+            // generic static check reads.
+            GenericStaticIndex? genericStatics = validated ? null : GenericStaticIndex.Of(data);
+            if (genericStatics is not null)
+                genericStaticLookupRows = new List<(string rowId, LookupMember member)>();
             BuildAuthoredOwnershipMap();
+            if (genericStatics is not null)
+            {
+                ValidateGenericStaticBindings(genericStatics);
+                genericStaticLookupRows = null;
+            }
+            ApplySaveFormatRevision(loadedExistingSave);
             InitializeSaveDefaults();
             InitializeSessionDefaults();
             if (IsUserClient)
@@ -914,6 +915,16 @@ namespace NeoCompose.Runtime
 
         private void CompleteInitialization()
         {
+            // Sparse instances have replayed, so their saved rows have slots.
+            initializationCompleted = true;
+            try
+            {
+                PlaceUnplacedSaveRows();
+            }
+            catch (SaveRowRefusal refusal)
+            {
+                throw new NeoUnsupportedSaveFormatException(NeoSaveFormat.P127Revision, $"{refusal.Message} The save was not loaded.");
+            }
             // Animations are system types, never User data (§4.2).
             if (!IsUserClient)
                 NeoAnimationCompiler.ValidateProject(this);
@@ -980,7 +991,6 @@ namespace NeoCompose.Runtime
             // is dropped on the same schedule a recompile drops clips.
             variantHandles.Clear();
             variantsByValueId = null;
-            variantTargetMembers.Clear();
             DisposeAnimationDefinitions();
             reportedAnimationChildSkips.Clear();
             reportedAnimationApplySkips.Clear();
@@ -1011,23 +1021,17 @@ namespace NeoCompose.Runtime
 
         internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member
         {
-            // Variant target ids carry a reserved prefix no schema member id
-            // uses, so the two maps never answer the same id.
             if (data.members.TryGetValue(id, out Member idMatch))
             {
                 member = idMatch as TMember;
                 return member is not null;
             }
-            if (variantTargetMembers.Count != 0
-                && variantTargetMembers.TryGetValue(id, out ClassMember? target)
-                && target is TMember typedTarget)
-            {
-                member = typedTarget;
-                return true;
-            }
-            member = null;
-            return false;
+            member = NeoTypeBindingViews.Member(id) as TMember;
+            return member is not null;
         }
+
+        /// <summary>This export's stored-type rules (P127 §1.3, §9.5).</summary>
+        internal NeoTypeRules TypeRules => NeoTypeRules.Of(data);
 
         // The untyped lookup most callers make. Mono shares one generic body
         // across reference instantiations, so the generic overload's cast is
@@ -1036,14 +1040,8 @@ namespace NeoCompose.Runtime
         {
             if (data.members.TryGetValue(id, out member))
                 return member is not null;
-            if (variantTargetMembers.Count != 0
-                && variantTargetMembers.TryGetValue(id, out ClassMember? target))
-            {
-                member = target;
-                return true;
-            }
-            member = null;
-            return false;
+            member = NeoTypeBindingViews.Member(id);
+            return member is not null;
         }
 
         internal bool TryGetClass(string id, [NotNullWhen(true)] out NeoSchemaClass? schemaClass)
@@ -1636,6 +1634,7 @@ namespace NeoCompose.Runtime
             authoredOwnershipEpoch++;
             authoredOwnership.Clear();
             authoredStorageRoots.Clear();
+            authoredIndexes.storedSlots.Clear();
             var visited = new HashSet<string>();
             MarkAuthoredOwnership(data.project.rootAssetsMemberId, NeoValueOwnership.Asset, visited);
             MarkAuthoredOwnership(data.project.rootSaveFileMemberId, NeoValueOwnership.Save, visited);
@@ -1686,16 +1685,29 @@ namespace NeoCompose.Runtime
             WalkAuthoredOwnership(rootMember.valueId, rootMember, ownership, visited);
         }
 
+        /// <param name="parentRow">The row that links this one, whose generic environment a box's slot resolves in.</param>
+        /// <param name="parentMember">The slot <paramref name="parentRow"/> fills.</param>
         private void WalkAuthoredOwnership(
             string valueId,
             Member? member,
             NeoValueOwnership inherited,
-            HashSet<string> visited)
+            HashSet<string> visited,
+            MemberValue? parentRow = null,
+            Member? parentMember = null)
         {
             NeoValueOwnership effective =
                 ChildOwnership(member, inherited);
             if (!data.values.TryGetValue(valueId, out MemberValue row))
                 return;
+            // P127 §12.1: a stored float's symbol string reads as a string
+            // row. Only the slot tells a float from a decimal or a string.
+            if (member is FloatMember && TryDecodeFloatSymbolRow(row, out NumberMemberValue? number))
+                data.values[valueId] = row = number;
+            if (member is not null
+                && TypeRules.SlotViolation(member, row, new NeoSlotContext(this, parentRow, parentMember)) is string slotViolation)
+                throw new InvalidOperationException($"NeoClient: Stored {slotViolation} Run `neo pull` and `neo export`.");
+            if (genericStaticLookupRows is not null && member is LookupMember lookup)
+                genericStaticLookupRows.Add((valueId, lookup));
             if (row is ObjectMemberValue obj
                 && obj.classId is string runtimeClassId
                 && TryResolveSchemaClassAllowedOwnership(runtimeClassId, out NeoValueOwnership typeOwnership))
@@ -1710,10 +1722,12 @@ namespace NeoCompose.Runtime
                 authoredOwnership[valueId] = effective;
                 if (effective != inherited)
                     authoredStorageRoots[valueId] = effective;
+                if (member is not null && effective is NeoValueOwnership.Save or NeoValueOwnership.User)
+                    authoredIndexes.storedSlots.TryAdd(valueId, member);
             }
             foreach (var child in EnumerateOwnedChildLinks(row, member))
             {
-                WalkAuthoredOwnership(child.valueId, child.member, effective, visited);
+                WalkAuthoredOwnership(child.valueId, child.member, effective, visited, row, member);
             }
             // Unordered lists store only a presence discriminator. Their owned
             // entries are indexed by containerId, not listed in the array body.
@@ -1725,7 +1739,7 @@ namespace NeoCompose.Runtime
             {
                 Member? entryMember = TryResolveCollectionEntryMember(list, row);
                 foreach (string entryId in entries)
-                    WalkAuthoredOwnership(entryId, entryMember, effective, visited);
+                    WalkAuthoredOwnership(entryId, entryMember, effective, visited, row, member);
             }
         }
 
@@ -2246,42 +2260,62 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Whether a row of <paramref name="classId"/> fits
-        /// <paramref name="slot"/>'s declared type: the declared class or a
-        /// descendant, or an implementer of the declared interface.
+        /// Whether a row of <paramref name="classId"/> has
+        /// <paramref name="slot"/>'s declared type by name: the declared class
+        /// or a descendant, or an implementer of the declared interface. A
+        /// constructed slot's arguments are judged by
+        /// <see cref="NeoGenericResolution.ConstructedSlotAccepts"/>.
         /// </summary>
-        internal bool SlotAdmitsClass(ClassMember slot, string classId)
-        {
-            if (slot.DeclaredClassId is { } declaredClassId)
-                return ClassChainContains(classId, declaredClassId);
-            return InterfaceImplementers.Implements(classId, slot.DeclaredInterfaceId!);
-        }
+        internal bool SlotNamesClass(ClassMember slot, string classId) =>
+            slot.DeclaredClassId is { } declaredClassId
+                ? ClassChainContains(classId, declaredClassId)
+                : InterfaceImplementers.Implements(classId, slot.DeclaredInterfaceId!);
 
         /// <summary>
-        /// P113 §3.3. A value written into an interface slot must be closed or
-        /// determined by the slot's interface: an undetermined open row would
-        /// lose its parameters for good. Every SDK write path into a slot runs
-        /// this O(1) check before it imports the value.
+        /// The row a host write puts in <paramref name="slot"/> must fit its
+        /// arguments, read in <paramref name="environment"/>, the environment
+        /// the slot was read in. An interface slot's row must be closed or
+        /// determined by the interface and implement it with the slot's
+        /// arguments (P113 §3.2 rule 1 and §3.3); a constructed class slot's
+        /// must pass <see cref="NeoGenericResolution.ConstructedSlotAccepts"/>,
+        /// refused in the server's words for an entry write. Every host write
+        /// path into a slot runs this check before it imports the value;
+        /// NeoScript writes check determination only, as the TypeScript
+        /// runtime does.
         /// </summary>
         /// <remarks>
         /// The slot's label, <paramref name="ownerClassName"/>.<paramref name="key"/>
         /// or a bare <paramref name="key"/>, is built only for a refusal.
         /// </remarks>
-        internal void RequireInterfaceSlotAdmits(
+        internal void RequireSlotAdmits(
             Member slot,
             string? ownerClassName,
             string key,
-            NeoValueWritePayload? payload)
+            NeoValueWritePayload? payload,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> environment)
         {
             if (payload?.isValueReference != true)
                 return;
-            if (slot is not ClassMember { DeclaredInterfaceId: { } interfaceId })
+            if (slot is not ClassMember classSlot)
                 return;
-            if (InterfaceSlotRefusedClass(interfaceId, payload.valueId!) is { } rowClassId)
+            bool constructed = classSlot.DeclaredInterfaceId is null && classSlot.classArguments is { Count: > 0 };
+            if (classSlot.DeclaredInterfaceId is null && !constructed)
+                return;
+            if (!TryGetValue(payload.valueId!, out ObjectMemberValue? row))
+                return;
+            if (NeoGeneratedTypesSupport.ResolveClassValueClassId(this, payload.valueId!, row) is not { } rowClassId)
+                return;
+            if (!constructed)
             {
-                string slotLabel = ownerClassName is null ? key : $"{ownerClassName}.{key}";
+                if (InterfaceImplementers.SlotRefusal(classSlot, ownerClassName, key, rowClassId, environment) is { } refusal)
+                    throw new System.InvalidOperationException(refusal);
+                return;
+            }
+            NeoSlotAdmission admission = NeoGenericResolution.ConstructedSlotAccepts(this, classSlot, rowClassId, environment);
+            if (!admission.ok)
+            {
                 throw new System.InvalidOperationException(
-                    InterfaceImplementers.UndeterminedRowMessage(slotLabel, rowClassId, interfaceId)!);
+                    $"Type \"{rowClassId}\" is not admissible in constructed slot \"{classSlot.name}\": {admission.reason}.");
             }
         }
 
@@ -2303,7 +2337,7 @@ namespace NeoCompose.Runtime
         /// P113 §1. The class arguments a row of <paramref name="rowClassId"/>
         /// takes from <paramref name="slot"/>.
         /// </summary>
-        internal IReadOnlyDictionary<string, GenericBinding>? SlotClassArguments(
+        internal IReadOnlyDictionary<string, TypeBinding>? SlotClassArguments(
             ClassMember? slot,
             string rowClassId)
         {
@@ -2358,6 +2392,8 @@ namespace NeoCompose.Runtime
                 node.live = false;
             classNodes.Clear();
             interfaceImplementers = null;
+            genericStaticOwnedRows = null;
+            TypeRules.ForgetClassPairs();
             interfaceHooks.Clear();
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(this);
             constantDeclarationValueIds.Clear();
@@ -2387,7 +2423,6 @@ namespace NeoCompose.Runtime
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
                 placed.UnionWith(schemaClass.schema.Values);
             var entryTemplateIds = new HashSet<string>();
-            var genericBindingIds = new HashSet<string>();
             foreach (Member candidate in data.members.Values)
             {
                 switch (candidate)
@@ -2401,15 +2436,7 @@ namespace NeoCompose.Runtime
                     case DictionaryMember dictionary:
                         entryTemplateIds.Add(dictionary.entryMemberId);
                         break;
-                    case ClassMember classMember when classMember.TypeArguments is not null:
-                        AddGenericBindingIds(classMember.TypeArguments.Values, genericBindingIds);
-                        break;
                 }
-            }
-            foreach (NeoSchemaClass schemaClass in data.classes.Values)
-            {
-                if (schemaClass.extendsGenericBindings is not null)
-                    AddGenericBindingIds(schemaClass.extendsGenericBindings.Values, genericBindingIds);
             }
 
             foreach (Member declaration in data.members.Values)
@@ -2435,11 +2462,6 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} cannot be a collection entry template.");
                 }
-                if (genericBindingIds.Contains(declaration.id))
-                {
-                    throw new InvalidOperationException(
-                        $"{subject} cannot be a generic binding artifact.");
-                }
                 if (declaration.Modifier == NeoMemberModifierKind.Static)
                 {
                     throw new InvalidOperationException(
@@ -2458,17 +2480,6 @@ namespace NeoCompose.Runtime
             }
 
             ValidateReadOnlyAbstractContracts();
-        }
-
-        private static void AddGenericBindingIds(
-            IEnumerable<GenericBinding> bindings,
-            HashSet<string> genericBindingIds)
-        {
-            foreach (GenericBinding binding in bindings)
-            {
-                if (!binding.IsForward && binding.memberId is not null)
-                    genericBindingIds.Add(binding.memberId);
-            }
         }
 
         private void ValidateReadOnlyAbstractContracts()
@@ -2563,13 +2574,13 @@ namespace NeoCompose.Runtime
             var visited = new HashSet<string>();
             foreach (NeoSchemaClass ancestor in ResolveClassInheritanceChain(schemaClass.id))
             {
-                if (ancestor.implementsInterfaceIds is null)
+                if (ancestor.implementsInterfaces is null)
                     continue;
-                foreach (string interfaceId in ancestor.implementsInterfaceIds)
+                foreach (InterfaceConstruction construction in ancestor.implementsInterfaces)
                 {
                     ValidateReadOnlyInterfaceSetters(
                         schemaClass,
-                        interfaceId,
+                        construction.interfaceId,
                         readOnlyKeys,
                         visited);
                 }
@@ -2592,7 +2603,8 @@ namespace NeoCompose.Runtime
                 foreach (var pair in contract.members)
                 {
                     if (pair.Value.kind != NeoInterfaceMemberKind.Property
-                        || pair.Value.Accessors != NeoPropertyAccessorsKind.GetSet
+                        || pair.Value.IsStatic
+                        || !pair.Value.IsSettable
                         || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
                     {
                         continue;
@@ -2601,13 +2613,13 @@ namespace NeoCompose.Runtime
                         $"Read-only member '{member.name}' ({member.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
                 }
             }
-            if (contract.extendsInterfaceIds is null)
+            if (contract.extendsInterfaces is null)
                 return;
-            foreach (string parentId in contract.extendsInterfaceIds)
+            foreach (InterfaceConstruction parent in contract.extendsInterfaces)
             {
                 ValidateReadOnlyInterfaceSetters(
                     schemaClass,
-                    parentId,
+                    parent.interfaceId,
                     readOnlyKeys,
                     visited);
             }
@@ -3098,6 +3110,53 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
+        /// <summary>
+        /// Publishes C#'s writes to the culture or number format
+        /// <paramref name="row"/> holds (P127 §12.1). C# changes the CLR
+        /// object in place, so a changed one is written the way a vector field
+        /// write is: marked dirty, and notified. Returns the published row, or
+        /// null when nothing changed.
+        /// </summary>
+        internal PayloadMemberValue? PublishHeldPayloadWrite(NeoValueOwnership ownership, PayloadMemberValue row)
+        {
+            if (HeldPayloadWrite(row) is not { } next)
+                return null;
+            SetWritableValue(ownership, next, "value");
+            return next;
+        }
+
+        /// <summary>Publishes C#'s writes to every culture or number format <paramref name="ownership"/>'s store holds.</summary>
+        internal void PublishHeldPayloadWrites(NeoValueOwnership ownership)
+        {
+            List<PayloadMemberValue>? changed = null;
+            foreach (MemberValue row in GetWritableStore(ownership).values.Values)
+            {
+                if (row is PayloadMemberValue held && HeldPayloadWrite(held) is { } next)
+                    (changed ??= new()).Add(next);
+            }
+            if (changed is null)
+                return;
+            var plan = new NeoWritePlan(this);
+            foreach (PayloadMemberValue next in changed)
+                plan.Set(ownership, next, "value");
+            plan.Commit();
+        }
+
+        private PayloadMemberValue? HeldPayloadWrite(PayloadMemberValue row)
+        {
+            if (row.live is not { } held)
+                return null;
+            JObject current = NeoStorablePayloads.Encode(held);
+            if (JToken.DeepEquals(row.storedValue, current))
+                return null;
+            var next = (PayloadMemberValue)CloneValueRow(row);
+            next.value = current;
+            next.updatedAt = NeoTimestamp.Now();
+            next.mark = null;
+            NeoGeneratedTypesSupport.RememberBox(next, held);
+            return next;
+        }
+
         /// <param name="node">The live node of <paramref name="value"/>'s id, when the caller holds it.</param>
         private void StoreWritableValue(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node = null)
         {
@@ -3525,7 +3584,6 @@ namespace NeoCompose.Runtime
             shadow.sourceValueId = existing.sourceValueId;
             shadow.mapKey = existing.mapKey;
             shadow.containerId = existing.containerId;
-            shadow.genericBindings = existing.genericBindings;
             shadow.createdAt = existing.createdAt;
             if (hasSourceOwnership && (movedValueIds is not null || importedValueId == sourceValueId))
                 Random.PreserveInstanceOnMove(plan, sourceOwnership, sourceValueId, ownership, existing.id);
@@ -3575,7 +3633,8 @@ namespace NeoCompose.Runtime
                     ? inferredSourceOwnership
                     : NeoValueOwnership.Asset),
                 sourceRow.id,
-                sourceMember);
+                sourceMember,
+                detached: true);
         }
 
         private string CloneOwnedValueGraphWithFreshIdsAtomic(
@@ -3583,7 +3642,8 @@ namespace NeoCompose.Runtime
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
             Member? sourceMember, ListenerCopyIntent intent = ListenerCopyIntent.IndependentCopy,
-            Dictionary<string, string>? clonedValueIds = null)
+            Dictionary<string, string>? clonedValueIds = null,
+            bool detached = false)
         {
             if (sourceMember is not ClassMember { Payload: NeoMemberPayloadKind.Partial })
                 EnsureVirtualReplayArgumentReady(sourceValueId);
@@ -3593,6 +3653,8 @@ namespace NeoCompose.Runtime
                 try
                 {
                     string copy = PrepareFreshClone(candidate, targetOwnership, sourceOwnership, sourceValueId, sourceMember, intent, clonedValueIds);
+                    if (detached)
+                        PlaceDetachedCopy(candidate, targetOwnership, copy, sourceOwnership, sourceValueId, sourceMember);
                     candidate.Close();
                     return copy;
                 }
@@ -3604,8 +3666,49 @@ namespace NeoCompose.Runtime
             }
             var plan = new NeoWritePlan(this);
             string result = PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember, intent, clonedValueIds);
+            if (detached)
+                PlaceDetachedCopy(plan, targetOwnership, result, sourceOwnership, sourceValueId, sourceMember);
             plan.Commit();
             return result;
+        }
+
+        /// <summary>
+        /// P127 §12.1. A parentless copy is an ownerless binding node: its
+        /// root stamps the closed params its source's own members read in,
+        /// whether the source stored a stamp or a typeSource, and its rows
+        /// place under it rather than naming rows of the source's graph.
+        /// </summary>
+        private void PlaceDetachedCopy(
+            NeoWritePlan plan,
+            NeoValueOwnership ownership,
+            string copyId,
+            NeoValueOwnership sourceOwnership,
+            string sourceValueId,
+            Member? sourceMember)
+        {
+            if (!plan.Rows.TryGetValue((ownership, copyId), out MemberValue? root) || root.classId is not string classId)
+                return;
+            if (root.genericBindings is null && root.typeSource is not null)
+            {
+                MemberValue source = plan.Resolve(sourceOwnership, sourceValueId)!;
+                Dictionary<string, TypeBinding> env = NeoTypeSources.PlacedRowStamp(
+                    this,
+                    source.id,
+                    source,
+                    sourceMember ?? NeoGeneratedTypesSupport.UnplacedClassMember(this, classId, null),
+                    id => plan.Resolve(id));
+                IList<NeoSchemaClass> chain = ResolveClassInheritanceChain(classId);
+                var stamp = new Dictionary<string, TypeBinding>(System.StringComparer.Ordinal);
+                if (chain.Count > 0 && chain[0].genericParams is { } ownParams)
+                    foreach (var param in ownParams)
+                        if (env.TryGetValue(param.id, out TypeBinding? bound))
+                            stamp[param.id] = bound;
+                MemberValue stamped = CloneValueRow(root);
+                stamped.genericBindings = stamp;
+                stamped.typeSource = null;
+                plan.Set(ownership, stamped, silent: true);
+            }
+            NeoTypeSources.PlaceOwnerless(this, plan, copyId);
         }
 
         internal string StageClassRetention(
@@ -3701,8 +3804,13 @@ namespace NeoCompose.Runtime
                 copies.Values.Add((sourceOwnership, sourceValueId), (clone.id, sourceMember));
                 clone.sourceValueId = sourceRow.sourceValueId ?? sourceRow.id;
                 clone.containerId = clonedContainerId;
+                // P127 §1.3: a box's payload owns rows as a field of its held
+                // type; a held comparer or new object() owns none.
+                bool ownsPayloadRows = true;
+                if (sourceRow.valueType is not null)
+                    ownsPayloadRows = (sourceMember = TypeRules.PayloadMemberOf(sourceMember, sourceRow)) is not null;
 
-                switch (clone)
+                switch (ownsPayloadRows ? clone : null)
                 {
                     case ObjectMemberValue obj when obj.value is not null:
                         {
@@ -3772,25 +3880,26 @@ namespace NeoCompose.Runtime
                             // are reference edges and must retain their target ids.
                             if (sourceMember is LookupMember)
                                 break;
-                            Member? collectionEntry = TryResolveCollectionEntryMember(sourceMember);
+                            // A tuple's elements each have their own member.
                             var tuple = sourceMember as TupleMember;
-                            if (collectionEntry is null && tuple is null)
+                            Member? entryMember = tuple is null ? TryResolveCollectionEntryMember(sourceMember) : null;
+                            if (entryMember is null && tuple is null)
                                 break;
                             var remapped = new string[arr.value.Length];
                             for (int i = 0; i < arr.value.Length; i++)
                             {
-                                Member entryMember = collectionEntry
+                                Member elementMember = entryMember
                                     ?? TryResolveTupleElementMember(tuple!, sourceRow, i)
                                     ?? throw new InvalidOperationException($"Cannot clone tuple element {i} of '{sourceValueId}': its declaration is missing.");
                                 NeoValueOwnership entryOwnership =
-                                    ChildOwnership(entryMember, sourceOwnership);
+                                    ChildOwnership(elementMember, sourceOwnership);
                                 remapped[i] = plan.TryGet(entryOwnership, arr.value[i], out MemberValue? _)
                                     ? CloneOwnedValueGraphWithFreshIds(
                                         plan,
                                         targetOwnership,
                                         entryOwnership,
                                         arr.value[i],
-                                        entryMember,
+                                        elementMember,
                                         copies,
                                         path, ref repeatedCopies,
                                         null)
@@ -3799,6 +3908,24 @@ namespace NeoCompose.Runtime
                             arr.value = remapped;
                             break;
                         }
+                }
+                // P127 §9.5: an authored comparer's row is the collection's own.
+                if (OwnedComparerValueId(sourceRow) is string comparerId
+                    && plan.TryGet(sourceOwnership, comparerId, out MemberValue? _))
+                {
+                    clone.comparer = new NeoCollectionComparer
+                    {
+                        kind = NeoCollectionComparerKind.Value,
+                        valueId = CloneOwnedValueGraphWithFreshIds(
+                            plan,
+                            targetOwnership,
+                            sourceOwnership,
+                            comparerId,
+                            NeoTypeBindingViews.ComparerSlotMember,
+                            copies,
+                            path, ref repeatedCopies,
+                            null),
+                    };
                 }
 
                 plan.Set(targetOwnership, clone, silent: true);
@@ -3845,7 +3972,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private IEnumerable<string> EnumerateContainerMemberValueIds(
+        internal IEnumerable<string> EnumerateContainerMemberValueIds(
             NeoValueOwnership sourceOwnership,
             string containerId)
         {
@@ -4595,8 +4722,13 @@ namespace NeoCompose.Runtime
             // id in the target store), never a fresh GUID.
             clone.id = sourceRow.id;
             remappedIds[sourceValueId] = clone.id;
+            // P127 §1.3: a box's payload owns rows as a field of its held
+            // type; a held comparer or new object() owns none.
+            bool ownsPayloadRows = true;
+            if (sourceRow.valueType is not null)
+                ownsPayloadRows = (sourceMember = TypeRules.PayloadMemberOf(sourceMember, sourceRow)) is not null;
 
-            switch (clone)
+            switch (ownsPayloadRows ? clone : null)
             {
                 case ObjectMemberValue obj when obj.value is not null:
                     {
@@ -4635,18 +4767,35 @@ namespace NeoCompose.Runtime
                         {
                             break;
                         }
-                        Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
+                        // A tuple's elements each have their own member.
+                        var tuple = sourceMember as TupleMember;
+                        Member? entryMember = tuple is null ? TryResolveCollectionEntryMember(sourceMember) : null;
                         var remapped = new string[arr.value.Length];
                         for (int i = 0; i < arr.value.Length; i++)
                         {
                             string childId = arr.value[i];
-                            remapped[i] = entryMember is not null && plan.TryGet(childId, out MemberValue? _)
-                                ? CloneValueGraphToOwnership(plan, targetOwnership, childId, remappedIds, entryMember)
+                            Member? elementMember = tuple is null ? entryMember : TryResolveTupleElementMember(tuple, sourceRow, i);
+                            remapped[i] = elementMember is not null && plan.TryGet(childId, out MemberValue? _)
+                                ? CloneValueGraphToOwnership(plan, targetOwnership, childId, remappedIds, elementMember)
                                 : childId;
                         }
                         arr.value = remapped;
                         break;
                     }
+            }
+            // P127 §9.5: an authored comparer's row is the collection's own.
+            if (OwnedComparerValueId(sourceRow) is string comparerId && plan.TryGet(comparerId, out MemberValue? _))
+            {
+                clone.comparer = new NeoCollectionComparer
+                {
+                    kind = NeoCollectionComparerKind.Value,
+                    valueId = CloneValueGraphToOwnership(
+                        plan,
+                        targetOwnership,
+                        comparerId,
+                        remappedIds,
+                        NeoTypeBindingViews.ComparerSlotMember),
+                };
             }
 
             plan.Set(targetOwnership, clone);
@@ -4660,8 +4809,10 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// A row's owned child links: an object's fields, then its settled
-        /// aggregate arguments; an array's entries. A struct, so a graph walk
-        /// allocates nothing per row it visits.
+        /// aggregate arguments; an array's entries; then an authored
+        /// comparer's row (P127 §9.5). A box's payload links as a field of its
+        /// held type (§1.3). A struct, so a graph walk allocates nothing per
+        /// row it visits.
         /// </summary>
         internal readonly struct OwnedChildLinks : IEnumerable<(string valueId, Member? member)>
         {
@@ -4688,7 +4839,8 @@ namespace NeoCompose.Runtime
                 private const int FieldsStage = 0;
                 private const int AggregatesStage = 1;
                 private const int EntriesStage = 2;
-                private const int DoneStage = 3;
+                private const int ComparerStage = 3;
+                private const int DoneStage = 4;
 
                 private readonly NeoClient client;
                 private readonly MemberValue row;
@@ -4704,12 +4856,20 @@ namespace NeoCompose.Runtime
                 {
                     this.client = client;
                     this.row = row;
-                    this.sourceMember = sourceMember;
                     fields = default;
                     parameters = null;
                     entryMember = null;
                     index = 0;
                     current = default;
+                    // A box's payload stores as a field of its held type.
+                    if (row.valueType is not null
+                        && (sourceMember = client.TypeRules.PayloadMemberOf(sourceMember, row)) is null)
+                    {
+                        this.sourceMember = null;
+                        stage = ComparerStage;
+                        return;
+                    }
+                    this.sourceMember = sourceMember;
                     if (row is ObjectMemberValue obj)
                     {
                         if (obj.value is not null)
@@ -4725,7 +4885,7 @@ namespace NeoCompose.Runtime
                     else
                     {
                         // A leaf row links nothing.
-                        stage = row is ArrayMemberValue { value: not null } ? EntriesStage : DoneStage;
+                        stage = row is ArrayMemberValue { value: not null } ? EntriesStage : ComparerStage;
                     }
                 }
 
@@ -4759,8 +4919,8 @@ namespace NeoCompose.Runtime
                                     // Most rows have no settling constructor.
                                     if (client.SettledAggregateConstructor(obj) is not { } constructor)
                                     {
-                                        stage = DoneStage;
-                                        return false;
+                                        stage = ComparerStage;
+                                        continue;
                                     }
                                     parameters = client.SettledAggregateParameters(constructor);
                                 }
@@ -4774,16 +4934,16 @@ namespace NeoCompose.Runtime
                                         return true;
                                     }
                                 }
-                                stage = DoneStage;
-                                return false;
+                                stage = ComparerStage;
+                                continue;
                             case EntriesStage:
                                 string[] entries = ((ArrayMemberValue)row).value!;
                                 if (sourceMember is TupleMember tuple)
                                 {
                                     if (index >= entries.Length)
                                     {
-                                        stage = DoneStage;
-                                        return false;
+                                        stage = ComparerStage;
+                                        continue;
                                     }
                                     Member child = client.TryResolveTupleElementMember(tuple, row, index)
                                         ?? throw new InvalidOperationException($"Tuple '{tuple.name}' element {index + 1} has no member descriptor.");
@@ -4798,10 +4958,16 @@ namespace NeoCompose.Runtime
                                 }
                                 if (entryMember is null || index >= entries.Length)
                                 {
-                                    stage = DoneStage;
-                                    return false;
+                                    stage = ComparerStage;
+                                    continue;
                                 }
                                 current = (entries[index++], entryMember);
+                                return true;
+                            case ComparerStage:
+                                stage = DoneStage;
+                                if (OwnedComparerValueId(row) is not string comparer)
+                                    return false;
+                                current = (comparer, NeoTypeBindingViews.ComparerSlotMember);
                                 return true;
                             default:
                                 return false;
@@ -4817,14 +4983,28 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal Member? TryResolveTupleElementMember(TupleMember tuple, MemberValue? row, int index)
+        internal Member? TryResolveTupleElementMember(TupleMember tuple, MemberValue? row, int index) =>
+            TryResolveTupleElementMember(tuple, NeoTypeSources.EntryStamp(this, row, tuple), row is null, index);
+
+        /// <summary>
+        /// A tuple's element member in the bindings <paramref name="stamp"/>
+        /// closes, such as those of the collection a tuple not yet stored is
+        /// probed against.
+        /// </summary>
+        internal Member? TryResolveTupleElementMember(
+            TupleMember tuple,
+            IReadOnlyDictionary<string, TypeBinding>? stamp,
+            bool readsDeclarationDefault,
+            int index)
         {
             if ((uint)index >= (uint)tuple.elementMemberIds.Length)
                 return null;
             if (!TryGetMember(tuple.elementMemberIds[index], out Member? member))
                 return null;
-            var env = NeoGenericResolution.CollectionEntryEnv(this, tuple, row, row is null);
-            return env is null ? member : NeoGenericResolution.SubstituteMember(this, member, env);
+            return NeoGenericResolution.SubstituteEntryMember(
+                this,
+                member,
+                NeoGenericResolution.CollectionEntryEnv(this, tuple, stamp, readsDeclarationDefault));
         }
 
         internal Member? TryResolveOwnedChildMember(
@@ -4858,13 +5038,12 @@ namespace NeoCompose.Runtime
             MemberValue row, Member? sourceMember, string classId, Member member,
             Dictionary<MemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null)
         {
-            if (!NeedsOwnedMemberContext(member))
+            bool readsOwnerParams = NeoGenericResolution.ReadsOwnerParams(this, member);
+            if (!NeedsOwnedMemberContext(member) && !readsOwnerParams)
                 return member;
             if (environments is null || !environments.TryGetValue(row, out var environment))
             {
-                var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    row.genericBindings, SlotClassArguments(sourceMember as ClassMember, classId));
-                environment = NeoGenericResolution.ResolveInstanceEnv(this, classId, arguments);
+                environment = InstanceEnvironment(row, sourceMember, classId);
                 if (environments is not null)
                     environments[row] = environment;
             }
@@ -4873,11 +5052,37 @@ namespace NeoCompose.Runtime
             if (member is GenericMember generic
                 && (!environment.TryGetValue(generic.genericParamId, out var binding) || !binding.IsBound))
                 return member;
-            return NeoGenericResolution.SubstituteMember(this, member, environment);
+            return NeoGenericResolution.SubstituteOwnedMember(this, member, environment, readsOwnerParams);
         }
 
-        private static bool NeedsOwnedMemberContext(Member member) => member is GenericMember
-            || member is ClassMember constructed && constructed.TypeArguments?.Values.Any(argument => argument.IsForward) == true;
+        /// <summary>
+        /// The generic environment a child of <paramref name="row"/> resolves
+        /// in under <paramref name="member"/>, as the server walk's
+        /// <c>genericEnv</c>: a class instance's, closed by its slot's
+        /// arguments and its stamp; a collection's or tuple's stamp; empty for
+        /// a box, whose payload is a closed type.
+        /// </summary>
+        internal IReadOnlyDictionary<string, NeoGenericEnvEntry> ChildGenericEnvironment(MemberValue? row, Member? member)
+        {
+            if (row is null || row.valueType is not null)
+                return NeoGenericResolution.EmptyEnv;
+            if (member is ListMember or DictionaryMember or TupleMember)
+                return NeoGenericResolution.SlotRowEnv(this, member, member.ownerEnvironment, row.genericBindings);
+            string? classId = (row as ObjectMemberValue)?.classId;
+            if (string.IsNullOrEmpty(classId) && member is ClassMember classMember)
+                classId = classMember.DeclaredClassId;
+            return string.IsNullOrEmpty(classId)
+                ? NeoGenericResolution.EmptyEnv
+                : InstanceEnvironment(row, member, classId!);
+        }
+
+        /// <summary>A class instance's environment: its <see cref="NeoGenericResolution.SlotRowEnv"/> in its slot.</summary>
+        private IReadOnlyDictionary<string, NeoGenericEnvEntry> InstanceEnvironment(
+            MemberValue row, Member? sourceMember, string classId) =>
+            NeoGenericResolution.SlotRowEnv(this, sourceMember, sourceMember?.ownerEnvironment, row.genericBindings, classId);
+
+        internal static bool NeedsOwnedMemberContext(Member member) => member is GenericMember
+            || member is ClassMember constructed && constructed.TypeArguments?.Values.Any(argument => argument.IsOpen) == true;
 
         internal Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
@@ -4889,13 +5094,12 @@ namespace NeoCompose.Runtime
             };
             if (string.IsNullOrEmpty(entryMemberId) || !TryGetMember(entryMemberId!, out Member? entryMember))
                 return null;
-            if (row?.genericBindings is null || !NeedsOwnedMemberContext(entryMember))
+            if (!NeedsOwnedMemberContext(entryMember) && !NeoGenericResolution.ReadsOwnerParams(this, entryMember))
                 return entryMember;
-            var environment = NeoGenericResolution.EnvFromStamp(row.genericBindings);
-            if (entryMember is GenericMember generic
-                && (!environment.TryGetValue(generic.genericParamId, out var binding) || !binding.IsBound))
-                return entryMember;
-            return NeoGenericResolution.SubstituteMember(this, entryMember, environment);
+            return NeoGenericResolution.SubstituteEntryMember(
+                this,
+                entryMember,
+                NeoGenericResolution.CollectionEntryEnv(this, collectionMember!, row, readsDeclarationDefault: false));
         }
 
         private bool TryResolveMergedSchemaMember(
@@ -5315,8 +5519,9 @@ namespace NeoCompose.Runtime
                             {
                                 if (pair.Value != valueId)
                                     continue;
+                                // A member that reads its owner's params reads them in its placement.
                                 Member? child = TryResolveOwnedChildMember(obj, null, pair.Key);
-                                if (child is null || NeedsOwnedMemberContext(child))
+                                if (child is null || NeedsOwnedMemberContext(child) || child.ownerEnvironment is not null)
                                     child = TryResolveOwnedChildMember(obj, ParentMember(), pair.Key);
                                 if (child is not null)
                                 {
@@ -5327,7 +5532,8 @@ namespace NeoCompose.Runtime
                         if (ConstructorArgsReference(obj, valueId))
                         {
                             if (TryResolveConstructorSettledAggregateMember(obj, valueId, null, out Member? settled)
-                                && !NeedsOwnedMemberContext(settled))
+                                && !NeedsOwnedMemberContext(settled)
+                                && settled.ownerEnvironment is null)
                             {
                                 member = settled;
                                 return true;
@@ -5557,7 +5763,7 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private static MemberValue CloneValueRow(MemberValue row, bool sharesArrayEntries = false)
+        internal static MemberValue CloneValueRow(MemberValue row, bool sharesArrayEntries = false)
         {
             MemberValue clone = row switch
             {
@@ -5657,9 +5863,25 @@ namespace NeoCompose.Runtime
                 {
                     value = p.value?.Clone(),
                 },
+                // A built-in value's payload (P127 §12.1), such as a held
+                // comparer's, is plain tokens the shadow deep-copies.
+                PayloadMemberValue p => new PayloadMemberValue
+                {
+                    value = (JObject?)p.value?.DeepClone(),
+                },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
             };
+            CopyRowIdentity(row, clone);
+            return clone;
+        }
+
+        /// <summary>
+        /// Copies everything a row carries besides its value, so a clone or a
+        /// retyped row keeps the original's identity, placement and provenance.
+        /// </summary>
+        internal static void CopyRowIdentity(MemberValue row, MemberValue clone)
+        {
             clone.id = row.id;
             clone.createdAt = row.createdAt;
             clone.updatedAt = row.updatedAt;
@@ -5698,9 +5920,22 @@ namespace NeoCompose.Runtime
             // stamped collection row keeps its entry-substitution stamp.
             clone.genericBindings = row.genericBindings is null
                 ? null
-                : new Dictionary<string, string>(row.genericBindings);
+                : new Dictionary<string, TypeBinding>(row.genericBindings);
+            // P127 §1.3 and §9.5: a box's held type and a collection's
+            // comparer are part of the stored value.
+            clone.valueType = row.valueType;
+            // P127 §12.1: a shadow keeps its id and its placement, so its
+            // typeSource; a fresh-id copy is re-placed when it commits.
+            clone.typeSource = row.typeSource;
+            clone.comparer = row.comparer is not { } comparer
+                ? null
+                : new NeoCollectionComparer
+                {
+                    kind = comparer.kind,
+                    comparer = (JObject?)comparer.comparer?.DeepClone(),
+                    valueId = comparer.valueId,
+                };
             clone.mark = row.mark;
-            return clone;
         }
 
         /// <summary>
@@ -6412,6 +6647,17 @@ namespace NeoCompose.Runtime
             {
                 InitializeVirtualInstanceValuesForLoadedRows(rows.Values);
             }
+            // Saved rows under the partition have slots now (P127 §15). A
+            // refused one leaves the partition unloaded, as it was.
+            try
+            {
+                PlaceUnplacedSaveRows();
+            }
+            catch (SaveRowRefusal refusal)
+            {
+                UnloadValuePartitionRows(mapKey, rollback: true);
+                throw new NeoSaveValueRefusedException(NeoSaveFormat.P127Revision, $"{refusal.Message} Value partition '{mapKey}' was not loaded.");
+            }
             InvalidateSharedEvaluationContext();
             RaiseValuePartitionChanged(mapKey);
         }
@@ -6438,7 +6684,11 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void UnloadValuePartitionRows(string mapKey)
+        /// <param name="rollback">
+        /// Undoes a load that failed before announcing itself: the save rows
+        /// under the partition stay, and no change is raised.
+        /// </param>
+        private void UnloadValuePartitionRows(string mapKey, bool rollback = false)
         {
             EnsureNotDisposed();
             if (!loadedPartitionRowIds.TryGetValue(mapKey, out HashSet<string> rowIds))
@@ -6446,8 +6696,11 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Value partition '{mapKey}' is not loaded. Loaded partitions: [{string.Join(", ", loadedPartitionRowIds.Keys)}].");
             }
-            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
-            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
+            if (!rollback)
+            {
+                ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
+                ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
+            }
             // Capture origins before any parent, position, or placement row leaves.
             foreach (string rowId in rowIds)
                 NoteDeparture(rowId, RowLayer.Asset, null);
@@ -6486,7 +6739,8 @@ namespace NeoCompose.Runtime
             if (authoredOwnershipBuilt)
                 BuildAuthoredOwnershipMap();
             InvalidateSharedEvaluationContext();
-            RaiseValuePartitionChanged(mapKey);
+            if (!rollback)
+                RaiseValuePartitionChanged(mapKey);
         }
 
         private IEnumerable<string> AvailableValuePartitionKeys() => data.valuePartitions.Keys;
@@ -8230,6 +8484,56 @@ namespace NeoCompose.Runtime
         /// <c>requiredConstructorId</c> — so ownership is collected from both
         /// fields before the disowned-record sweep runs.</para>
         /// </summary>
+        /// <summary>
+        /// P127 §4.9. A variant or folder of a generic class binds each of
+        /// the class's params to a closed type, and a variant binds them as
+        /// its folder does; one of a non-generic class binds none.
+        /// </summary>
+        private void ValidateVariantTypeArguments()
+        {
+            var folders = new Dictionary<(string classId, string path), VariantFolderRecord>();
+            foreach (VariantFolderRecord folder in data.variantFolders?.Values ?? Enumerable.Empty<VariantFolderRecord>())
+            {
+                if (VariantTypeArgumentsViolation(folder.classId, folder.typeArguments) is string violation)
+                    throw new InvalidOperationException($"Variant folder '{folder.id}' {violation} {NeoProjectExportContract.RegenerateAction}");
+                folders[(folder.classId, folder.path)] = folder;
+            }
+            foreach (VariantRecord variant in data.variants.Values)
+            {
+                if (VariantTypeArgumentsViolation(variant.classId, variant.typeArguments) is string violation)
+                    throw new InvalidOperationException($"Variant '{variant.id}' {violation} {NeoProjectExportContract.RegenerateAction}");
+                if (variant.folder is string path
+                    && folders.TryGetValue((variant.classId, path), out VariantFolderRecord? folder)
+                    && !NeoSemanticJson.MapsEqual(variant.typeArguments, folder.typeArguments))
+                {
+                    throw new InvalidOperationException(
+                        $"Variant '{variant.id}' closes class '{variant.classId}' unlike its folder '{folder.id}'. {NeoProjectExportContract.RegenerateAction}");
+                }
+            }
+        }
+
+        private string? VariantTypeArgumentsViolation(string classId, Dictionary<string, TypeBinding>? typeArguments)
+        {
+            if (!TryGetClass(classId, out NeoSchemaClass? schemaClass))
+                return typeArguments is null ? null : $"closes missing class '{classId}'.";
+            List<GenericParamDeclaration>? genericParams = schemaClass.genericParams;
+            if (genericParams is not { Count: > 0 })
+                return typeArguments is null ? null : $"carries typeArguments, but class '{schemaClass.name}' declares no params.";
+            if (typeArguments is null)
+                return $"has no typeArguments, but class '{schemaClass.name}' is generic.";
+            foreach (GenericParamDeclaration param in genericParams)
+            {
+                if (!typeArguments.ContainsKey(param.id))
+                    return $"leaves param '{param.name}' ({param.id}) of class '{schemaClass.name}' unbound.";
+            }
+            foreach (string paramId in typeArguments.Keys)
+            {
+                if (!genericParams.Exists(param => param.id == paramId))
+                    return $"binds '{paramId}', which class '{schemaClass.name}' doesn't declare.";
+            }
+            return null;
+        }
+
         private void ValidateConstructorRecords()
         {
             var claimedByClass = new Dictionary<string, string>();
@@ -9500,6 +9804,8 @@ namespace NeoCompose.Runtime
                     "current schema; skipping the live apply (the cloud copy is untouched).");
                 return;
             }
+            // The same P127 §15 rules as a load, before anything changes.
+            Dictionary<string, PendingSaveRow> pending = CheckExternalSaveRows(incoming, rows);
 
             // An inbound apply is already server state: re-shadowing it must
             // raise the typed change events but never loop back into the live
@@ -9508,7 +9814,7 @@ namespace NeoCompose.Runtime
             CurrentChangeSource = NeoChangeSource.External;
             try
             {
-                var plan = new NeoWritePlan(this, incoming.requiredSaveFormatRevision);
+                var plan = new NeoWritePlan(this, incoming.requiredSaveFormatRevision ?? NeoSaveFormat.LegacyRevision);
                 var changedValueIds = new HashSet<string>(System.StringComparer.Ordinal);
                 foreach (string id in persistedValues.Keys)
                 {
@@ -9525,9 +9831,10 @@ namespace NeoCompose.Runtime
                     plan.Set(PersistedOwnership, row);
                     changedValueIds.Add(row.id);
                 }
-                var staticMemberIds = new HashSet<string>(PersistedData.staticBindings.Keys);
-                staticMemberIds.UnionWith(incoming.staticBindings.Keys);
-                foreach (string memberId in staticMemberIds)
+                // Bindings diff by member id.
+                var memberIds = new HashSet<string>(PersistedData.staticBindings.Keys);
+                memberIds.UnionWith(incoming.staticBindings.Keys);
+                foreach (string memberId in memberIds)
                 {
                     bool hadBefore = PersistedData.staticBindings.TryGetValue(memberId, out string? before);
                     bool hasAfter = incoming.staticBindings.TryGetValue(memberId, out string? after);
@@ -9551,6 +9858,9 @@ namespace NeoCompose.Runtime
                         plan.SetListenerEntry(PersistedOwnership, rootId, ownerId, after?.GetValueOrDefault(ownerId));
                 }
                 plan.Commit();
+                // Carried, not bound: the SDK reads no generic static construction yet.
+                PersistedData.staticConstructions = incoming.staticConstructions;
+                AdoptPendingSaveRows(pending);
             }
             finally
             {
@@ -9597,13 +9907,15 @@ namespace NeoCompose.Runtime
             NeoSaveSynchronizer.DirtyRecords? dirty = null;
             try
             {
+                // A co-editor revision being applied lands first, so the
+                // capture includes it and this stage persists after it.
                 if (synchronizer != null)
-                {
-                    // A co-editor revision being applied lands first, so the
-                    // capture includes it and this stage persists after it.
                     await synchronizer.WaitForRevisionApplyAsync();
+                // C#'s writes to held cultures mark their rows before the
+                // capture takes the marks (P127 §12.1).
+                PublishHeldPayloadWrites(PersistedOwnership);
+                if (synchronizer != null)
                     dirty = synchronizer.TakeDirtyRecords();
-                }
                 var listenerOwners = forceCapture || PersistedData.serverId is null ? null : synchronizer?.ListenerOwnersForCapture(dirty);
                 await CommitSaveAsync(CaptureSave(captureListenerEndpoints: true, listenerOwners), dirty, replaceSnapshot, flushLiveImmediately, forceCapture);
             }

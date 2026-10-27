@@ -52,22 +52,36 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // Negative-zero normalization (decision 1 — "-0" never produced).
+        // Negative zero keeps its sign (P127 §3.4).
         // ------------------------------------------------------------------
 
         [Test]
-        public void Format_NegativeZeroNormalizesToPlainZero()
+        public void Format_NegativeZeroKeepsItsSign()
         {
-            Assert.AreEqual("0", NeoDecimalValues.Format(decimal.Negate(0m)));
-            Assert.AreEqual("0.00", NeoDecimalValues.Format(decimal.Negate(0.00m)));
+            Assert.AreEqual("-0", NeoDecimalValues.Format(decimal.Negate(0m)));
+            Assert.AreEqual("-0.00", NeoDecimalValues.Format(decimal.Negate(0.00m)));
         }
 
         [Test]
-        public void Parse_AcceptsNegativeZeroInputButFormatsPositive()
+        public void Parse_NegativeZeroRoundTripsWithItsSign()
         {
             Assert.AreEqual(0m, NeoDecimalValues.Parse("-0"));
-            Assert.AreEqual("0", NeoDecimalValues.Format(NeoDecimalValues.Parse("-0")));
-            Assert.AreEqual("0.00", NeoDecimalValues.Format(NeoDecimalValues.Parse("-0.00")));
+            Assert.AreEqual("-0", NeoDecimalValues.Format(NeoDecimalValues.Parse("-0")));
+            Assert.AreEqual("-0.00", NeoDecimalValues.Format(NeoDecimalValues.Parse("-0.00")));
+            Assert.AreEqual("0.00", NeoDecimalValues.Format(NeoDecimalValues.Parse("0.00")));
+        }
+
+        [Test]
+        public void Parse_AcceptsTheFullDecimalEnvelope()
+        {
+            Assert.AreEqual(decimal.MaxValue, NeoDecimalValues.Parse("79228162514264337593543950335"));
+            Assert.AreEqual(decimal.MinValue, NeoDecimalValues.Parse("-79228162514264337593543950335"));
+            Assert.AreEqual("7.9228162514264337593543950335", NeoDecimalValues.Format(NeoDecimalValues.Parse("7.9228162514264337593543950335")));
+            Assert.AreEqual("79228162514264337593543950335", NeoDecimalValues.Format(decimal.MaxValue));
+            Assert.AreEqual("0.0000000000000000000000000001", NeoDecimalValues.Format(NeoDecimalValues.Parse("0.0000000000000000000000000001")));
+            var error = Assert.Throws<OverflowException>(
+                () => NeoDecimalValues.Parse("79228162514264337593543950336"));
+            StringAssert.Contains("significant digits", error!.Message);
         }
 
         // ------------------------------------------------------------------

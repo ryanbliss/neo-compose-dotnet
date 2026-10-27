@@ -175,9 +175,15 @@ namespace NeoCompose.Runtime
                 if (argument.type == MemberKind.Generic)
                     throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' must be concrete.");
                 if (argument.type == MemberKind.Unknown)
-                    throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' is unknown.");
-                if (parameter.constraint is { } constraint && !SatisfiesConstraint(argument, NeoFunctionTypeArguments.Bind(constraint, table), ctx.client))
-                    throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' does not satisfy its constraint.");
+                    throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' must be concrete.");
+                foreach (TypeInfo constraint in parameter.constraints ?? Array.Empty<TypeInfo>())
+                {
+                    bool? satisfies = SatisfiesConstraint(argument, NeoFunctionTypeArguments.Bind(constraint, table), ctx.client);
+                    if (satisfies is null)
+                        throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' must be concrete.");
+                    if (satisfies == false)
+                        throw new NSGetterRuntimeError($"Type argument '{parameter.name}' of extension '{member.name}' does not satisfy its constraint.");
+                }
             }
             if (member.Modifier == NeoMemberModifierKind.Static)
             {
@@ -189,78 +195,26 @@ namespace NeoCompose.Runtime
             NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(ctx.client, receiver, receiverType, ctx, $"receiver of extension '{member.name}'");
         }
 
-        private static bool SatisfiesConstraint(TypeInfo argument, TypeInfo constraint, NeoClient client)
+        /// <summary>
+        /// The server's <c>satisfiesTypeInfoConstraint</c>: an
+        /// <c>IEnumerable</c> constraint reads a collection's element
+        /// invariantly, and anything else is an implicit conversion. Null when
+        /// either type stays open. <paramref name="argument"/> is already
+        /// non-nullable, so no nullability check is needed.
+        /// </summary>
+        private static bool? SatisfiesConstraint(TypeInfo argument, TypeInfo constraint, NeoClient client)
         {
-            if (constraint is EnumTypeInfo expectedEnum)
-                return argument is EnumTypeInfo actualEnum && actualEnum.enumId == expectedEnum.enumId;
-            if (constraint is ClassTypeInfo expectedClass)
-            {
-                if (argument is not ClassTypeInfo actualClass || !client.ClassChainContains(actualClass.classId, expectedClass.classId))
-                    return false;
-                if (expectedClass.typeArguments is not { Count: > 0 })
-                    return true;
-                var environment = NeoGenericResolution.ResolveEnv(client, actualClass.classId);
-                foreach (var pair in expectedClass.typeArguments)
-                {
-                    TypeInfo? actual = null;
-                    if (actualClass.typeArguments?.TryGetValue(pair.Key, out actual) != true && environment.TryGetValue(pair.Key, out var entry) && entry.IsBound)
-                        actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(client,
-                            new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = entry.memberId }, environment));
-                    if (actual is null || !NeoClient.TypeInfoMatches(pair.Value, actual))
-                        return false;
-                }
-                return true;
-            }
-            if (constraint is not InterfaceTypeInfo expectedInterface)
-                return false;
             TypeInfo? collectionElement = argument switch
             {
                 CollectionTypeInfo collection => collection.entryTypeInfo,
                 LookupTypeInfo lookup => lookup.entryTypeInfo,
                 _ => null,
             };
-            if (expectedInterface.interfaceId == NeoSequenceContract.Enumerable && collectionElement is not null)
-                return expectedInterface.typeArguments is { Count: 1 }
-                    && expectedInterface.typeArguments.TryGetValue(NeoSequenceContract.EnumerableElement, out TypeInfo expectedElement)
-                    && NeoClient.TypeInfoMatches(collectionElement, expectedElement);
-            IReadOnlyDictionary<string, IReadOnlyDictionary<string, GenericBinding>> constructions;
-            IReadOnlyDictionary<string, TypeInfo>? arguments;
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> env = NeoGenericResolution.EmptyEnv;
-            if (argument is ClassTypeInfo schemaClass)
-            {
-                constructions = client.InterfaceImplementers.Constructions(schemaClass.classId);
-                arguments = schemaClass.typeArguments;
-                env = NeoGenericResolution.ResolveEnv(client, schemaClass.classId);
-            }
-            else if (argument is InterfaceTypeInfo schemaInterface)
-            {
-                constructions = client.InterfaceImplementers.InterfaceClosure(schemaInterface.interfaceId);
-                arguments = schemaInterface.typeArguments;
-            }
-            else
-                return false;
-            if (!constructions.TryGetValue(expectedInterface.interfaceId, out var construction))
-                return false;
-            if (expectedInterface.typeArguments is null)
-                return true;
-            foreach (var pair in expectedInterface.typeArguments)
-            {
-                if (!construction.TryGetValue(pair.Key, out var binding))
-                    return false;
-                TypeInfo actual = null!;
-                if (binding.IsForward && arguments?.TryGetValue(binding.genericParamId!, out actual) == true)
-                {
-                    if (!NeoClient.TypeInfoMatches(pair.Value, actual))
-                        return false;
-                }
-                else
-                {
-                    actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfBinding(client, binding, env));
-                    if (!NeoClient.TypeInfoMatches(pair.Value, actual))
-                        return false;
-                }
-            }
-            return true;
+            if (constraint is InterfaceTypeInfo { interfaceId: NeoSequenceContract.Enumerable } enumerable && collectionElement is not null)
+                return enumerable.typeArguments is { Count: 1 }
+                    && enumerable.typeArguments.TryGetValue(NeoSequenceContract.EnumerableElement, out TypeInfo expectedElement)
+                    && NeoReferenceTypes.InvariantlyEqual(collectionElement, expectedElement);
+            return client.TypeRules.Assignable(client, argument, constraint);
         }
 
         internal static TypeInfo[]? BindProperty(NSPropertyMember member, TypeInfo[]? written, object? receiver, NSGetterEvaluator.Context ctx)
@@ -277,7 +231,7 @@ namespace NeoCompose.Runtime
             {
                 FunctionGenericParam[]? parameters = Parameters(member);
                 receiver = parameters is not null && (uint)generic.index < (uint)parameters.Length
-                    ? parameters[generic.index].constraint : null;
+                    ? parameters[generic.index].ClassConstraint : null;
             }
             return (receiver as ClassTypeInfo)?.classId;
         }

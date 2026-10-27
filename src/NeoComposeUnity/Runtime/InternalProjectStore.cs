@@ -505,6 +505,8 @@ namespace NeoCompose.Runtime
                 StringComparer.Ordinal);
             var bindings = new Dictionary<string, GameSaveStaticBindingSetChange>(
                 StringComparer.Ordinal);
+            var constructions = new HashSet<(string, TypeBinding)>();
+            var constructionChanges = new List<GameSaveStaticBindingSetChange>();
             var listeners = new SortedDictionary<string, GameSaveChangeListenersPatchChange>(StringComparer.Ordinal);
             foreach (var change in changes)
             {
@@ -519,7 +521,7 @@ namespace NeoCompose.Runtime
                                 $"Chunked create repeats value record \"{value.valueId}\".");
                         }
                         break;
-                    case GameSaveStaticBindingSetChange binding
+                    case GameSaveStaticBindingSetChange { construction: null } binding
                         when binding.baseRecordStateId == null
                              && binding.baseRecordRevisionToken == null:
                         if (!bindings.TryAdd(binding.memberId, binding))
@@ -527,6 +529,16 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Chunked create repeats static binding \"{binding.memberId}\".");
                         }
+                        break;
+                    case GameSaveStaticBindingSetChange binding
+                        when binding.baseRecordStateId == null
+                             && binding.baseRecordRevisionToken == null:
+                        if (!constructions.Add((binding.memberId, binding.construction!)))
+                        {
+                            throw new InvalidOperationException(
+                                $"Chunked create repeats a static construction of member \"{binding.memberId}\".");
+                        }
+                        constructionChanges.Add(binding);
                         break;
                     case GameSaveChangeListenersPatchChange listener
                         when listener.baseRecordStateId is null && listener.baseRecordRevisionToken is null
@@ -568,6 +580,7 @@ namespace NeoCompose.Runtime
             }
             ordered.AddRange(bindings.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => pair.Value));
+            ordered.AddRange(constructionChanges);
             ordered.AddRange(listeners.Values);
 
             var batches = new List<List<GameSaveRecordChange>>();

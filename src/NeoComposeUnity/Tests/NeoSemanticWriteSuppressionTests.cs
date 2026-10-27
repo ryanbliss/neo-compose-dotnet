@@ -142,7 +142,7 @@ namespace NeoCompose.Tests
                     value => value.mapKey = "entry",
                     value => value.sourceValueId = "source",
                     value => value.mark = "removed",
-                    value => value.genericBindings = new Dictionary<string, string> { ["T"] = "class" },
+                    value => value.genericBindings = TestTypeBindings.Stamp(("T", TestTypeBindings.Class("class"))),
                 })
                 {
                     copy = (MemberValue)JObject.FromObject(row).ToObject(row.GetType())!;
@@ -236,6 +236,7 @@ namespace NeoCompose.Tests
             const string loaded = @"{
   'name': 'Loaded',
   'projectId': 'test-project',
+  'requiredSaveFormatRevision': 3,
   'version': { 'id': 'version-1', 'label': '0.1.0' },
   'createdAt': 100,
   'updatedAt': 123,

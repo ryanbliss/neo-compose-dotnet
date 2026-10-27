@@ -1,4 +1,4 @@
-/// An immutable ordered pattern of cell offsets, relative to an origin.
+/// An ordered pattern of cell offsets, relative to an origin.
 /// Hand-built patterns preserve order and duplicates; factories order cells nearest first.
 @id("system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7")
 @system(kind: .WorldAuthoring, worldKind: .CellPattern)
@@ -6,7 +6,13 @@ sealed class NeoCellPattern {
   /// A filled rectangle of offsets. Omitting radiusY uses radiusX on both axes.
   @id("system_aaad2df6-e31e-5f5d-95b9-e265211faed5")
   @system(kind: .WorldAuthoring)
-  native public static NeoCellPattern Box(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None);
+  public static NeoCellPattern Box(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None) {
+    int y = radiusY ?? radiusX;
+    if (radiusX < 0 || y < 0) {
+      throw $"Box radii must be non-negative; got {radiusX}, {y}.";
+    }
+    return NeoCellPattern.Shells(-radiusX, radiusX, -y, y, excluding == NeoCellPatternExcluding.Center ? 1 : 0);
+  }
 
   /// The ordered offsets translated to absolute cells around origin.
   @id("system_c72d9b09-fc4c-55db-b763-f1954a536069")
@@ -15,8 +21,14 @@ sealed class NeoCellPattern {
 
   /// Only the origin cell.
   @id("system_d90a6e51-0b1e-5354-b4e2-ad4155a833f1")
-  @system(kind: .WorldAuthoring)
-  public static NeoCellPattern Center => new NeoCellPattern(offsets: [new(0, 0)]);
+  @storage(allowed: .Immutable)
+  @system(kind: .SystemPreset)
+  public static NeoCellPattern Center = new NeoCellPattern(
+    offsets: [
+      @id("system_44790350-68e0-5c2c-bca4-d511419fcd71")
+      Vector2Int(0, 0)
+    ],
+  );
 
   /// Whether the pattern includes the offset.
   @id("system_65a16908-05a6-52f9-a467-4e37e95ba0be")
@@ -31,37 +43,167 @@ sealed class NeoCellPattern {
   /// Axis-aligned offsets. Omitting radiusY uses radiusX on both axes.
   @id("system_df8ebca6-a1d1-57c1-8762-227943fc51d8")
   @system(kind: .WorldAuthoring)
-  native public static NeoCellPattern Cross(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None);
+  public static NeoCellPattern Cross(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = .None) {
+    int y = radiusY ?? radiusX;
+    if (radiusX < 0 || y < 0) {
+      throw $"Cross radii must be non-negative; got {radiusX}, {y}.";
+    }
+    List<Vector2Int> cells = [];
+    if (excluding == NeoCellPatternExcluding.None) {
+      cells.Add(new(0, 0));
+    }
+    for (int distance = 1; distance <= Math.Max(radiusX, y); distance++) {
+      if (distance <= radiusX) {
+        cells.Add(new(-distance, 0));
+        cells.Add(new(distance, 0));
+      }
+      if (distance <= y) {
+        cells.Add(new(0, -distance));
+        cells.Add(new(0, distance));
+      }
+    }
+    return new NeoCellPattern(offsets: cells);
+  }
 
   /// The eight surrounding cells, excluding the origin.
   @id("system_a8f2f798-7988-5df8-8294-decdd4316c7e")
-  @system(kind: .WorldAuthoring)
-  public static NeoCellPattern EightNeighbors => NeoCellPattern.Box(1, null, .Center);
+  @storage(allowed: .Immutable)
+  @system(kind: .SystemPreset)
+  public static NeoCellPattern EightNeighbors = new NeoCellPattern(
+    offsets: [
+      @id("system_b32c4b4e-853e-5156-9c83-2b9fc15d80f1")
+      Vector2Int(-1, -1),
+
+      @id("system_e9796035-7f16-5ae1-a04e-3413c8da3466")
+      Vector2Int(-1, 0),
+
+      @id("system_a95ddbf4-dc84-5150-b2be-1b9724219b19")
+      Vector2Int(-1, 1),
+
+      @id("system_01c4eea2-a140-58b4-802b-71bea96eb81c")
+      Vector2Int(0, -1),
+
+      @id("system_a87cb586-9f92-53b9-bc44-304003ec2f46")
+      Vector2Int(0, 1),
+
+      @id("system_5a10bffd-0d51-5078-b291-0c8d1ac8e767")
+      Vector2Int(1, -1),
+
+      @id("system_ccf1f83b-b634-5c4b-98ea-f49641bd2637")
+      Vector2Int(1, 0),
+
+      @id("system_efc82894-6b22-56be-8a87-dd77d8504c4d")
+      Vector2Int(1, 1)
+    ],
+  );
 
   /// No cells.
   @id("system_98d035f6-9f7d-5d2b-ae01-70ce90621333")
-  @system(kind: .WorldAuthoring)
-  public static NeoCellPattern Empty => new NeoCellPattern(offsets: []);
+  @storage(allowed: .Immutable)
+  @system(kind: .SystemPreset)
+  public static NeoCellPattern Empty = new NeoCellPattern(offsets: []);
 
   /// The four edge-adjacent cells, excluding the origin.
   @id("system_57290d57-16dd-54d6-ad1e-81a72bd7f457")
-  @system(kind: .WorldAuthoring)
-  public static NeoCellPattern FourNeighbors => NeoCellPattern.Cross(1, null, .Center);
+  @storage(allowed: .Immutable)
+  @system(kind: .SystemPreset)
+  public static NeoCellPattern FourNeighbors = new NeoCellPattern(
+    offsets: [
+      @id("system_9358e455-03e7-5c71-ab61-846ae1270833")
+      Vector2Int(-1, 0),
+
+      @id("system_f71f9a43-c33e-566e-af57-c9f762b9b19d")
+      Vector2Int(1, 0),
+
+      @id("system_f7fdbf9d-c982-5516-8a48-5eed25442207")
+      Vector2Int(0, -1),
+
+      @id("system_f1124a69-46dd-5463-9b3b-3e36e6c8f1cd")
+      Vector2Int(0, 1)
+    ],
+  );
 
   /// Offsets from the origin through length steps in direction. Center excludes only the origin.
   @id("system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5")
   @system(kind: .WorldAuthoring)
-  native public static NeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = .None);
+  public static NeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = .None) {
+    if (direction.x == 0 && direction.y == 0) {
+      throw "Line direction must be non-zero.";
+    }
+    if (length < 0) {
+      throw $"Line length must be non-negative; got {length}.";
+    }
+    List<Vector2Int> cells = [];
+    if (excluding == NeoCellPatternExcluding.None) {
+      cells.Add(new(0, 0));
+    }
+    for (int step = 1; step <= length; step++) {
+      cells.Add(new(direction.x * step, direction.y * step));
+    }
+    return new NeoCellPattern(offsets: cells);
+  }
 
   /// Cells from the origin through size minus one. Both dimensions must be positive.
   @id("system_d803cfd5-ce53-57da-abc2-7cd69befeb01")
   @system(kind: .WorldAuthoring)
-  native public static NeoCellPattern Rect(Vector2Int size);
+  public static NeoCellPattern Rect(Vector2Int size) {
+    if (size.x < 1 || size.y < 1) {
+      throw $"Rect size must be positive; got {size.x}, {size.y}.";
+    }
+    return NeoCellPattern.Shells(0, size.x - 1, 0, size.y - 1, 0);
+  }
 
   /// The square ring at the given Chebyshev radius. Zero returns the center.
   @id("system_82222600-f67f-5127-bb2d-278381b4ef2f")
   @system(kind: .WorldAuthoring)
-  native public static NeoCellPattern Ring(int radius);
+  public static NeoCellPattern Ring(int radius) {
+    if (radius < 0) {
+      throw $"Ring radius must be non-negative; got {radius}.";
+    }
+    return NeoCellPattern.Shells(-radius, radius, -radius, radius, radius);
+  }
+
+  /// Square shells firstShell through the rectangle's Chebyshev radius, each clipped to the rectangle.
+  /// A shell runs left column, then bottom/top pairs by x, then right column.
+  @id("system_faf10f4f-f5c2-47d8-b4e2-8f196c756668")
+  @system(kind: .WorldAuthoring)
+  private static NeoCellPattern Shells(int minX, int maxX, int minY, int maxY, int firstShell) {
+    List<Vector2Int> cells = [];
+    int radius = Math.Max(Math.Max(-minX, maxX), Math.Max(-minY, maxY));
+    for (int shell = firstShell; shell <= radius; shell++) {
+      int firstY = Math.Max(minY, -shell);
+      int lastY = Math.Min(maxY, shell);
+      if (shell == 0) {
+        if (minX <= 0 && maxX >= 0 && firstY <= lastY) {
+          cells.Add(new(0, 0));
+        }
+      } else if (firstY <= lastY) {
+        if (-shell >= minX && -shell <= maxX) {
+          for (int y = firstY; y <= lastY; y++) {
+            cells.Add(new(-shell, y));
+          }
+        }
+        bool bottom = -shell >= minY && -shell <= maxY;
+        bool top = shell >= minY && shell <= maxY;
+        if (bottom || top) {
+          for (int x = Math.Max(minX, -shell + 1); x <= Math.Min(maxX, shell - 1); x++) {
+            if (bottom) {
+              cells.Add(new(x, -shell));
+            }
+            if (top) {
+              cells.Add(new(x, shell));
+            }
+          }
+        }
+        if (shell >= minX && shell <= maxX) {
+          for (int y = firstY; y <= lastY; y++) {
+            cells.Add(new(shell, y));
+          }
+        }
+      }
+    }
+    return new NeoCellPattern(offsets: cells);
+  }
 
   /// Shift every offset, preserving order and duplicates.
   @id("system_efc67858-0c95-573f-a8a9-d7e07d0a1d55")

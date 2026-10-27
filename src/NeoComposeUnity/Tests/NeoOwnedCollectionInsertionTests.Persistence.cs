@@ -16,34 +16,30 @@ namespace NeoCompose.Tests
     {
         private const string PersistHolder = "test-save-early-holder";
         private const string PersistOwner = "test-save-early-owner";
-        private static (ProjectData schema, string function, string lookup) PersistenceSchema(bool temporary)
+        private static (ProjectData schema, string function, LookupMember lookup) PersistenceSchema(bool temporary)
         {
             var schema = NeoTestExport.Read(File.ReadAllText(Root + "paired-export.json"));
             var function = (NSFunctionMember)schema.members.Values.Single(m => m.name == "LocalCollectionReferenceOwnLater");
             var holder = schema.classes.Values.Single(c => c.name == "Holder");
             var owner = schema.classes.Values.Single(c => c.name == "LocalReferenceOwner");
-            var lookup = schema.members.Values.OfType<LookupMember>().First(m =>
-                m.declaredTypeInfo is CollectionTypeInfo
-                {
-                    type: MemberKind.List, required: true,
-                    entryTypeInfo: PrimitiveTypeInfo { type: MemberKind.Int, required: true }
-                });
+            var lookup = ListIntReference();
             var probe = schema.classes.Values.Single(c => c.schema.Values.Contains(function.id));
-            ClassMember RootMember(string id, string classId, JObject? arguments) => JObject.FromObject(new
+            ClassMember RootMember(string id, string classId, Dictionary<string, TypeBinding>? arguments)
             {
-                id,
-                name = id,
-                kind = (int)MemberKind.Class,
-                requirement = (int)NeoMemberRequirementKind.Required,
-                modifier = (int)NeoMemberModifierKind.Static,
-                storage = (int)NeoMemberStorage.Save,
-                classId,
-                classArguments = arguments
-            }).ToObject<ClassMember>()!;
-            schema.members[PersistHolder] = RootMember(PersistHolder, holder.id, new JObject
-            {
-                [holder.genericParams![0].id] = new JObject { ["kind"] = 1, ["memberId"] = lookup.id }
-            });
+                var member = JObject.FromObject(new
+                {
+                    id,
+                    name = id,
+                    kind = (int)MemberKind.Class,
+                    requirement = (int)NeoMemberRequirementKind.Required,
+                    modifier = (int)NeoMemberModifierKind.Static,
+                    storage = (int)NeoMemberStorage.Save,
+                    classId
+                }).ToObject<ClassMember>()!;
+                member.classArguments = arguments;
+                return member;
+            }
+            schema.members[PersistHolder] = RootMember(PersistHolder, holder.id, TestTypeBindings.Stamp((holder.genericParams![0].id, HeldLookup(lookup))));
             schema.members[PersistOwner] = RootMember(PersistOwner, owner.id, null);
             probe.schema["PersistenceHolder"] = PersistHolder;
             probe.schema["PersistenceOwner"] = PersistOwner;
@@ -73,9 +69,14 @@ namespace NeoCompose.Tests
             foreach (var value in action.Descendants().OfType<JProperty>().Where(p => p.Name == "writability" && (string?)p.Value == "session").ToArray())
                 value.Value = "save";
             function.action = action.ToObject<FunctionWithReturnType>()!;
-            return (schema, function.id, lookup.id);
+            return (schema, function.id, lookup);
         }
-        private static (string holder, string owner) SeedPersistenceRoots(NeoClient client, string lookup)
+        // The type a Lookup member binds a param to: a Reference to its target (P127 §12.1).
+        private static TypeBinding HeldLookup(LookupMember lookup) =>
+            TestTypeBindings.Reference(
+                NeoTypeBindings.ArgumentOf(lookup.declaredTypeInfo!),
+                lookup.Requirement == NeoMemberRequirementKind.Required);
+        private static (string holder, string owner) SeedPersistenceRoots(NeoClient client, LookupMember lookup)
         {
             var holderClass = client.classes.Values.Single(c => c.name == "Holder");
             var ownerClass = client.classes.Values.Single(c => c.name == "LocalReferenceOwner");
@@ -86,10 +87,15 @@ namespace NeoCompose.Tests
             {
                 id = h,
                 classId = holderClass.id,
-                genericBindings = new() { [holderClass.genericParams![0].id] = lookup },
+                genericBindings = TestTypeBindings.Stamp((holderClass.genericParams![0].id, HeldLookup(lookup))),
                 value = new() { ["Values"] = hl }
             });
-            plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = hl, value = Array.Empty<string>(), genericBindings = new() { [holderClass.genericParams![0].id] = lookup } });
+            plan.Set(NeoValueOwnership.Save, new ArrayMemberValue
+            {
+                id = hl,
+                value = Array.Empty<string>(),
+                typeSource = NeoTypeSource.OfType(TestTypeBindings.List(TestTypeBindings.Open(holderClass.id, holderClass.genericParams![0].id)), h)
+            });
             plan.Set(NeoValueOwnership.Save, new ObjectMemberValue { id = o, classId = ownerClass.id, value = new() { ["Values"] = ol } });
             plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = ol, value = Array.Empty<string>() });
             plan.Bind(NeoValueOwnership.Save, PersistHolder, true, h);
@@ -122,7 +128,7 @@ namespace NeoCompose.Tests
                 if (!temporary)
                 {
                     Assert.AreEqual(((ObjectMemberValue)client.saveValues[owner]).value!["Values"], target);
-                    var host = new NeoReference<NeoList<int>>(client, target, (LookupMember)client.members[setup.lookup], entry);
+                    var host = new NeoReference<NeoList<int>>(client, target, setup.lookup, entry);
                     Assert.AreEqual(2, host.Value.Count);
                     CollectionAssert.AreEqual(new[] { 7, 9 }, host.Value);
                 }
@@ -138,7 +144,7 @@ namespace NeoCompose.Tests
                 Assert.AreNotSame(oldClient.Target, reloaded);
                 Assert.IsNull(reloaded.PendingScriptWrites);
                 Assert.AreEqual(target, ((ArrayMemberValue)reloaded.saveValues[entry]).value!.Single());
-                var host = new NeoReference<NeoList<int>>(reloaded, target, (LookupMember)reloaded.members[setup.lookup], entry);
+                var host = new NeoReference<NeoList<int>>(reloaded, target, setup.lookup, entry);
                 if (temporary)
                 {
                     Assert.IsFalse(reloaded.sessionValues.ContainsKey(target));

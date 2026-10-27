@@ -421,7 +421,7 @@ namespace NeoCompose.Tests
             data.members[memberId] = ScriptFunction(memberId, name, null, null, body);
             NeoSchemaClass plant = data.classes["class-plant"];
             plant.schema[name] = memberId;
-            (plant.implementsInterfaceIds ??= new List<string>()).Add(interfaceId);
+            (plant.implementsInterfaces ??= new List<InterfaceConstruction>()).Add(new InterfaceConstruction { interfaceId = interfaceId });
         }
 
         private static void RemovePlant(Fixture fixture, string plantId, params string[] kept)

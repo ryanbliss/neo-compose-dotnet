@@ -388,10 +388,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -775,10 +772,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -1123,10 +1117,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -1520,10 +1511,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -1945,10 +1933,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -2168,10 +2153,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -2497,10 +2479,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -2826,10 +2805,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -3144,10 +3120,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -3483,10 +3456,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -3812,10 +3782,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -4150,10 +4117,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -4545,10 +4509,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -4878,10 +4839,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -5211,10 +5169,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -5533,10 +5488,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -5989,10 +5941,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -6000,12 +5949,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""set then by"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result { get { Set<int> n = [21, 12, 11, 22].ToSet(); return n.OrderBy((v) => v / 10).ThenBy((v) => v).Distinct(); } } }"",
-      ""expected"": [
-        11,
-        12,
-        21,
-        22
-      ],
+      ""expected"": [11, 12, 21, 22],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -6319,10 +6263,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -6606,9 +6547,7 @@ namespace NeoCompose.Tests
             ""pending:class:Query.neo:Query"",
             ""pending:enum:Query.neo:Tone""
           ],
-          ""typeNames"": [
-            ""Tone""
-          ]
+          ""typeNames"": [""Tone""]
         }
       }
     },
@@ -6870,9 +6809,7 @@ namespace NeoCompose.Tests
             ""pending:class:Query.neo:Query"",
             ""pending:enum:Query.neo:Tone""
           ],
-          ""typeNames"": [
-            ""Tone""
-          ]
+          ""typeNames"": [""Tone""]
         }
       }
     },
@@ -7124,9 +7061,7 @@ namespace NeoCompose.Tests
             ""pending:class:Query.neo:Query"",
             ""pending:enum:Query.neo:Tone""
           ],
-          ""typeNames"": [
-            ""Tone""
-          ]
+          ""typeNames"": [""Tone""]
         }
       }
     },
@@ -7432,10 +7367,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -7713,10 +7645,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -7724,11 +7653,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""sort failure cleanup"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result { get { var n = [3, 1, 2]; try { n.Sort((a, b) => { throw \""failed\""; return a - b; }); } catch (string error) { } n.Sort(); return n; } } }"",
-      ""expected"": [
-        1,
-        2,
-        3
-      ],
+      ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -8025,10 +7950,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -8165,10 +8087,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -8371,10 +8290,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -8504,10 +8420,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -8726,10 +8639,7 @@ namespace NeoCompose.Tests
           ""required"": false
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -8938,10 +8848,7 @@ namespace NeoCompose.Tests
           ""required"": false
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9068,10 +8975,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9198,10 +9102,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9420,10 +9321,7 @@ namespace NeoCompose.Tests
           ""required"": false
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9632,10 +9530,7 @@ namespace NeoCompose.Tests
           ""required"": false
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9765,10 +9660,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -9917,10 +9809,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10079,10 +9968,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10090,7 +9976,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""decimal average whole"",
       ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { List<decimal> n = [12, 13]; return n.Average(); } } }"",
-      ""expected"": ""12.50000000000000000000000000"",
+      ""expected"": ""12.5"",
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -10231,10 +10117,1334 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal average negative zero"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { decimal z = 0; List<decimal> n = [-z]; return n.Average(); } } }"",
+      ""expected"": ""0"",
+      ""expectedError"": null,
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""z"",
+              ""typeInfo"": {
+                ""type"": 20,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  },
+                  ""value"": ""0""
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""operation"",
+                    ""operation"": {
+                      ""type"": ""arithmetic"",
+                      ""arithmetic"": {
+                        ""type"": ""*"",
+                        ""pointers"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": -1
+                            }
+                          },
+                          {
+                            ""type"": ""variable"",
+                            ""variableId"": ""z""
+                          }
+                        ],
+                        ""decimal"": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 84
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  },
+                  ""op"": ""Average"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 124
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 108
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal average selector negative zero"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { decimal z = 0; List<decimal> n = [-z]; return n.Average((x) => x); } } }"",
+      ""expected"": ""-0"",
+      ""expectedError"": null,
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""z"",
+              ""typeInfo"": {
+                ""type"": 20,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  },
+                  ""value"": ""0""
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""operation"",
+                    ""operation"": {
+                      ""type"": ""arithmetic"",
+                      ""arithmetic"": {
+                        ""type"": ""*"",
+                        ""pointers"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": -1
+                            }
+                          },
+                          {
+                            ""type"": ""variable"",
+                            ""variableId"": ""z""
+                          }
+                        ],
+                        ""decimal"": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 84
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  },
+                  ""op"": ""Average"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false,
+                  ""function"": {
+                    ""compilerRevision"": 18,
+                    ""source"": {
+                      ""uri"": ""Query.neo"",
+                      ""coordinateSpace"": ""file"",
+                      ""name"": ""Query.Result <callback>""
+                    },
+                    ""parameters"": [
+                      {
+                        ""id"": ""x"",
+                        ""typeInfo"": {
+                          ""type"": 20,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 20,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""x""
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 132
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  }
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 124
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 108
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal average nullable negative zero"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal? Result { get { decimal z = 0; List<decimal?> n = [null, -z]; return n.Average(); } } }"",
+      ""expected"": ""-0"",
+      ""expectedError"": null,
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""z"",
+              ""typeInfo"": {
+                ""type"": 20,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  },
+                  ""value"": ""0""
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 70
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": false
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": false
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 20,
+                        ""required"": false
+                      },
+                      ""value"": null
+                    }
+                  },
+                  {
+                    ""type"": ""operation"",
+                    ""operation"": {
+                      ""type"": ""arithmetic"",
+                      ""arithmetic"": {
+                        ""type"": ""*"",
+                        ""pointers"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": -1
+                            }
+                          },
+                          {
+                            ""type"": ""variable"",
+                            ""variableId"": ""z""
+                          }
+                        ],
+                        ""decimal"": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 85
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": false
+                    }
+                  },
+                  ""op"": ""Average"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": true
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 132
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 116
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": false
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal average set negative zero"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { decimal z = 0; List<decimal> l = [-z]; Set<decimal> n = l.ToSet(); return n.Average(); } } }"",
+      ""expected"": ""-0"",
+      ""expectedError"": null,
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""z"",
+              ""typeInfo"": {
+                ""type"": 20,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  },
+                  ""value"": ""0""
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""l"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""operation"",
+                    ""operation"": {
+                      ""type"": ""arithmetic"",
+                      ""arithmetic"": {
+                        ""type"": ""*"",
+                        ""pointers"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": -1
+                            }
+                          },
+                          {
+                            ""type"": ""variable"",
+                            ""variableId"": ""z""
+                          }
+                        ],
+                        ""decimal"": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 84
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 9,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""l""
+                      },
+                      ""elementType"": {
+                        ""type"": 20,
+                        ""required"": true
+                      }
+                    },
+                    ""op"": ""ToSet"",
+                    ""decimalEntries"": true
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 132
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 108
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""n""
+                  },
+                  ""op"": ""Average"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 152
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 136
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal sum selector negative zero"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { decimal z = 0; List<decimal> n = [-z]; return n.Sum((x) => x); } } }"",
+      ""expected"": ""0"",
+      ""expectedError"": null,
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""z"",
+              ""typeInfo"": {
+                ""type"": 20,
+                ""required"": true
+              },
+              ""pointer"": {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  },
+                  ""value"": ""0""
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""operation"",
+                    ""operation"": {
+                      ""type"": ""arithmetic"",
+                      ""arithmetic"": {
+                        ""type"": ""*"",
+                        ""pointers"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": -1
+                            }
+                          },
+                          {
+                            ""type"": ""variable"",
+                            ""variableId"": ""z""
+                          }
+                        ],
+                        ""decimal"": true
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 84
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  },
+                  ""op"": ""Sum"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false,
+                  ""function"": {
+                    ""compilerRevision"": 18,
+                    ""source"": {
+                      ""uri"": ""Query.neo"",
+                      ""coordinateSpace"": ""file"",
+                      ""name"": ""Query.Result <callback>""
+                    },
+                    ""parameters"": [
+                      {
+                        ""id"": ""x"",
+                        ""typeInfo"": {
+                          ""type"": 20,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 20,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
+                      }
+                    ],
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""x""
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 128
+                        }
+                      }
+                    ],
+                    ""typeInfo"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  }
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 120
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 108
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal sum overflow"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { List<decimal> n = [79228162514264337593543950335, 1]; return n.Sum(); } } }"",
+      ""expected"": null,
+      ""expectedError"": ""Value was either too large or too small for a Decimal."",
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 20,
+                        ""required"": true
+                      },
+                      ""value"": ""79228162514264337593543950335""
+                    }
+                  },
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 20,
+                        ""required"": true
+                      },
+                      ""value"": ""1""
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  },
+                  ""op"": ""Sum"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 135
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 123
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
+          ""typeNames"": []
+        }
+      }
+    },
+    {
+      ""name"": ""decimal average overflow"",
+      ""source"": ""enum Tone { Red, Blue } class Query { public decimal Result { get { List<decimal> n = [79228162514264337593543950335, 1]; return n.Average(); } } }"",
+      ""expected"": null,
+      ""expectedError"": ""Value was either too large or too small for a Decimal."",
+      ""getter"": {
+        ""compilerRevision"": 18,
+        ""source"": {
+          ""name"": ""Query.Result"",
+          ""uri"": ""Query.neo"",
+          ""coordinateSpace"": ""file""
+        },
+        ""parameters"": [
+          {
+            ""id"": ""__this__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""pending:class:Query.neo:Query""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""pending:class:Query.neo:Query""
+                },
+                ""value"": null
+              }
+            }
+          },
+          {
+            ""id"": ""__root__"",
+            ""typeInfo"": {
+              ""type"": 7,
+              ""required"": true,
+              ""classId"": ""builtin:Root""
+            },
+            ""pointer"": {
+              ""type"": ""value"",
+              ""value"": {
+                ""typeInfo"": {
+                  ""type"": 7,
+                  ""required"": true,
+                  ""classId"": ""builtin:Root""
+                },
+                ""value"": null
+              }
+            }
+          }
+        ],
+        ""instructions"": [
+          {
+            ""type"": ""variable"",
+            ""variable"": {
+              ""id"": ""n"",
+              ""typeInfo"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                }
+              },
+              ""pointer"": {
+                ""type"": ""listLiteral"",
+                ""typeInfo"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
+                },
+                ""entries"": [
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 20,
+                        ""required"": true
+                      },
+                      ""value"": ""79228162514264337593543950335""
+                    }
+                  },
+                  {
+                    ""type"": ""value"",
+                    ""value"": {
+                      ""typeInfo"": {
+                        ""type"": 20,
+                        ""required"": true
+                      },
+                      ""value"": ""1""
+                    }
+                  }
+                ]
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 69
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""function"",
+              ""function"": {
+                ""type"": ""collectionQuery"",
+                ""info"": {
+                  ""collectionPointer"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""queryEnumerable"",
+                    ""pointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""n""
+                    },
+                    ""elementType"": {
+                      ""type"": 20,
+                      ""required"": true
+                    }
+                  },
+                  ""op"": ""Average"",
+                  ""keyType"": ""decimal"",
+                  ""nullable"": false
+                }
+              },
+              ""source"": {
+                ""line"": 1,
+                ""column"": 139
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 123
+            }
+          }
+        ],
+        ""typeInfo"": {
+          ""type"": 20,
+          ""required"": true
+        },
+        ""dependencies"": {
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10437,10 +11647,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10649,10 +11856,7 @@ namespace NeoCompose.Tests
           ""required"": false
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10789,10 +11993,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -10922,10 +12123,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -11128,10 +12326,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -11334,10 +12529,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -11556,10 +12748,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -11771,10 +12960,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -11985,10 +13171,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12202,10 +13385,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12410,10 +13590,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12421,11 +13598,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""distinct"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result => [1, 2, 1, 3].Distinct(); }"",
-      ""expected"": [
-        1,
-        2,
-        3
-      ],
+      ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -12566,10 +13739,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12577,10 +13747,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""distinct null"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int?> Result { get { List<int?> n = [null, 1, null, 1]; return n.Distinct(); } } }"",
-      ""expected"": [
-        null,
-        1
-      ],
+      ""expected"": [null, 1],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -12743,10 +13910,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12754,10 +13918,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""distinct decimal"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<decimal> Result { get { List<decimal> n = [1.10, 1.1, 2]; return n.Distinct(); } } }"",
-      ""expected"": [
-        ""1.10"",
-        ""2""
-      ],
+      ""expected"": [""1.10"", ""2""],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -12911,10 +14072,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -12922,10 +14080,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""zip"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result => [1, 2, 3].Zip([10, 20], (a, b) => a + b); }"",
-      ""expected"": [
-        11,
-        22
-      ],
+      ""expected"": [11, 22],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -13174,10 +14329,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -13185,12 +14337,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""then descending"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result => [21, 12, 11, 22].OrderBy((n) => n / 10).ThenByDescending((n) => n % 10); }"",
-      ""expected"": [
-        12,
-        11,
-        22,
-        21
-      ],
+      ""expected"": [12, 11, 22, 21],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -13486,10 +14633,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -13497,12 +14641,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""ordered local"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result { get { var ordered = [21, 12, 11, 22].OrderBy((n) => n / 10); return ordered.ThenBy((n) => n); } } }"",
-      ""expected"": [
-        11,
-        12,
-        21,
-        22
-      ],
+      ""expected"": [11, 12, 21, 22],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -13799,10 +14938,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -13810,10 +14946,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""dictionary keys"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<string> Result => {\""b\"": 1, \""a\"": 2}.Keys; }"",
-      ""expected"": [
-        ""b"",
-        ""a""
-      ],
+      ""expected"": [""b"", ""a""],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -14006,10 +15139,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -14017,10 +15147,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""dictionary values"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result => {\""b\"": 1, \""a\"": 2}.Values; }"",
-      ""expected"": [
-        1,
-        2
-      ],
+      ""expected"": [1, 2],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -14157,10 +15284,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -14431,10 +15555,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -14613,10 +15734,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -14796,10 +15914,7 @@ namespace NeoCompose.Tests
           ""required"": true
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -14807,10 +15922,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""group by"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result => [1, 2, 3].GroupBy((n) => n == 2 ? \""even\"" : \""odd\"")[\""odd\""]; }"",
-      ""expected"": [
-        1,
-        3
-      ],
+      ""expected"": [1, 3],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -15044,10 +16156,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -15055,11 +16164,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""dictionary numeric key order"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<string> Result => [2, 10, 1].GroupBy((n) => \""\"" + n).Keys; }"",
-      ""expected"": [
-        ""1"",
-        ""2"",
-        ""10""
-      ],
+      ""expected"": [""1"", ""2"", ""10""],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -15334,10 +16439,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -15345,11 +16447,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""sort"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result { get { var list = [3, 1, 2]; list.Sort(); return list; } } }"",
-      ""expected"": [
-        1,
-        2,
-        3
-      ],
+      ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -15506,10 +16604,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -15517,11 +16612,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""sort comparison"",
       ""source"": ""enum Tone { Red, Blue } class Query { public List<int> Result { get { var list = [3, 1, 2]; list.Sort((a, b) => b - a); return list; } } }"",
-      ""expected"": [
-        3,
-        2,
-        1
-      ],
+      ""expected"": [3, 2, 1],
       ""expectedError"": null,
       ""getter"": {
         ""compilerRevision"": 18,
@@ -15754,10 +16845,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -16055,10 +17143,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -16356,10 +17441,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -16646,10 +17728,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -16956,10 +18035,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }
@@ -17247,10 +18323,7 @@ namespace NeoCompose.Tests
           }
         },
         ""dependencies"": {
-          ""recordIds"": [
-            ""builtin:Root"",
-            ""pending:class:Query.neo:Query""
-          ],
+          ""recordIds"": [""builtin:Root"", ""pending:class:Query.neo:Query""],
           ""typeNames"": []
         }
       }

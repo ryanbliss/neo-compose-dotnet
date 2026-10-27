@@ -599,7 +599,7 @@ namespace NeoCompose.Tests
         {
             ProjectData data = BuildPlacementAnimationProjectData();
             NeoSchemaClass objectClass = data.classes[ObjectClassId];
-            objectClass.implementsInterfaceIds ??= new List<string>();
+            objectClass.implementsInterfaces ??= new List<InterfaceConstruction>();
             var invokers = new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>();
             foreach (var (name, interfaceId) in hooks)
             {
@@ -612,7 +612,7 @@ namespace NeoCompose.Tests
                 data.members[memberId] = hook;
                 data.members[recorderId] = RecordingFunction(recorderId, arguments);
                 objectClass.schema[name] = memberId;
-                objectClass.implementsInterfaceIds.Add(interfaceId);
+                objectClass.implementsInterfaces.Add(new InterfaceConstruction { interfaceId = interfaceId });
                 bool contact = name.Contains("Trigger") || name.Contains("Collision");
                 invokers[recorderId] = (_, receiver, args, _) =>
                 {

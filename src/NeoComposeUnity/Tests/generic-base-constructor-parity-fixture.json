@@ -61,12 +61,19 @@
     "StaticClassArgument": 5,
     "NullableDeclared": true,
     "NullableImplicit": true,
-    "ClassForwardedNullable": true,
-    "ClassForwardedNullableImplicit": true,
-    "InheritedNullable": true,
     "ForwardedTypes": true,
     "RepeatedPairNullable": true,
     "ChainedInt": 7,
     "ChainedString": "chain"
+  },
+  "refuses": {
+    "ClassForwardedNullable": "NSFunction argument 1 does not match its declared runtime type.",
+    "ClassForwardedNullableImplicit": "NSFunction argument 1 does not match its declared runtime type.",
+    "InheritedNullable": "NSFunction argument 1 does not match its declared runtime type."
+  },
+  "notes": {
+    "ClassForwardedNullable": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused.",
+    "ClassForwardedNullableImplicit": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused.",
+    "InheritedNullable": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused."
   }
 }

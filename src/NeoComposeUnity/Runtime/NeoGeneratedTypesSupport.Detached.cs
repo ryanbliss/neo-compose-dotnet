@@ -662,7 +662,7 @@ namespace NeoCompose.Runtime
                     if (value is not NeoScriptObject { attachedId: null, owner: null, constructing: false } child
                         || child.sharedGetterResult
                         || child == target
-                        || !target.client.SlotAdmitsClass((ClassMember)member, child.plan.classId))
+                        || !target.client.SlotNamesClass((ClassMember)member, child.plan.classId))
                     {
                         return false;
                     }
@@ -851,7 +851,7 @@ namespace NeoCompose.Runtime
             try
             {
                 ObjectMemberValue rootRow = staging.Stage(root);
-                PrepareConstructedGraph(
+                List<MemberValue>? placedImports = PrepareConstructedGraph(
                     client,
                     rootRow,
                     staging.rows,
@@ -861,6 +861,8 @@ namespace NeoCompose.Runtime
                     trustedMaterialization: true,
                     root.plan.runtimePlan);
                 client.PublishConstructedSessionRows(staging.rows, trackGetterConstruction: !root.sharedGetterResult);
+                if (placedImports is not null)
+                    client.SetWritableValues(NeoValueOwnership.Session, placedImports);
                 if (root.sharedGetterResult)
                     foreach (MemberValue row in staging.rows)
                         client.ValueNode(row.id)!.sharedGetterResult = true;
@@ -880,11 +882,12 @@ namespace NeoCompose.Runtime
         /// arguments: on a staged row, or with <paramref name="live"/> set, on
         /// the row already in its store.
         /// </summary>
-        private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row, NeoClient? live = null)
+        private static void StampDetachedProvenance(NeoScriptObject value, ObjectMemberValue row, NeoClient? live = null,
+            List<MemberValue>? stagedRows = null)
         {
             if (value.constructorArgs is null)
                 return;
-            var args = SerializeConstructionProvenanceArgs(value.constructor, value.constructorArgs);
+            var args = SerializeConstructionProvenanceArgs(value.client, value.constructor, value.constructorArgs, stagedRows);
             if (live is null)
                 NeoClient.StampConstructionProvenance(row, value.constructor?.id, args);
             else
@@ -986,7 +989,7 @@ namespace NeoCompose.Runtime
                     scope,
                     plan.classId,
                     classPlan: plan.runtimePlan);
-                StampDetachedProvenance(value, row);
+                StampDetachedProvenance(value, row, stagedRows: rows);
                 rows.Add(row);
                 return row;
             }

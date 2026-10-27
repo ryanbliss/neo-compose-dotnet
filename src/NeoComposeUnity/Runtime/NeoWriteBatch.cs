@@ -244,18 +244,21 @@ namespace NeoCompose.Runtime
         {
             private readonly MemberValue row;
             private readonly NeoValueNode.RetainedRootContract contract;
+            // The batch's overlay view, where a moved owner may be staged.
+            private readonly Func<string, MemberValueBase?> lookup;
 
-            internal RemovalContext(NeoClient client, MemberValue row, Member member)
+            internal RemovalContext(NeoWritePlan plan, NeoValueOwnership ownership, MemberValue row, Member member)
             {
                 this.row = row;
-                contract = new NeoValueNode.RetainedRootContract(member, client.SchemaResolution, row);
+                lookup = id => plan.Resolve(ownership, id);
+                contract = new NeoValueNode.RetainedRootContract(member, plan.Client.SchemaResolution, row, lookup);
             }
 
             internal Member? Resolve(NeoClient client, MemberValue current)
             {
                 if (!ReferenceEquals(row, current) || current.IsRemoved)
                     return null;
-                if (!ReferenceEquals(contract.schema, client.SchemaResolution) || !contract.MatchesBindings(current))
+                if (!ReferenceEquals(contract.schema, client.SchemaResolution) || !contract.MatchesType(current, lookup))
                     throw new InvalidOperationException("A pending removal no longer has its validated schema contract.");
                 return contract.member switch
                 {
@@ -304,7 +307,7 @@ namespace NeoCompose.Runtime
                 Ownership = ownership,
                 Value = value,
                 Context = context,
-                Removal = member is ListMember or DictionaryMember ? new RemovalContext(Plan.Client, row, member) : null
+                Removal = member is ListMember or DictionaryMember ? new RemovalContext(Plan, ownership, row, member) : null
             };
             object identity = NSGetterEvaluator.SequenceCollectionIdentity(value);
             if (!(pendingAttachments ??= new(NSGetterEvaluator.ReferenceEqualityComparer.Instance)).TryAdd(identity, attachment))
@@ -735,8 +738,8 @@ namespace NeoCompose.Runtime
             try
             {
                 NeoClient client = Plan.Client;
-                if (member is null)
-                    client.TryInferMemberForValueId(collection.Row.id, out member);
+                if (member is null && !client.TryInferMemberForValueId(collection.Row.id, out member))
+                    member = GainedEntryMember(collection);
                 collection.CollectionMember = member;
                 if (member is ListMember or DictionaryMember)
                     collection.EntryMember = client.TryResolveCollectionEntryMember(member, collection.Row);
@@ -748,13 +751,28 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// The member of a collection this batch added to another, which no
+        /// committed row places yet: its parent collection's entry member.
+        /// </summary>
+        private Member? GainedEntryMember(PendingCollection collection)
+        {
+            if (entries is null
+                || !entries.TryGetValue((collection.Ownership, collection.Row.id), out var entry)
+                || entry.parent is not string parentId
+                || !collections.TryGetValue((collection.Ownership, parentId), out PendingCollection? parent))
+                return null;
+            ResolveMembers(parent);
+            return parent.EntryMember;
+        }
+
         /// <summary>Releases an entry a collection dropped, once the batch is prepared.</summary>
         internal void Release(NeoValueOwnership ownership, string id, Member? member, string parentId)
         {
             Plan.Client.CaptureListenerMove(Plan, ownership, ownership, id, member, parentId);
             (releases ??= new()).Add((ownership, id, member, parentId));
             SetEntryParent(ownership, id, null, member is ListMember or DictionaryMember && Plan.Resolve(ownership, id) is { } row
-                ? new RemovalContext(Plan.Client, row, member) : null);
+                ? new RemovalContext(Plan, ownership, row, member) : null);
         }
 
         /// <summary>Records that collection <paramref name="parentId"/> gained entry <paramref name="id"/>.</summary>

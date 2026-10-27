@@ -46,7 +46,7 @@ namespace NeoCompose.Runtime
                 case (BoolMember, BoolMemberValue row):
                     return row.value == Cast<bool?>(payload, member);
                 case (IntMember or FloatMember, NumberMemberValue row):
-                    return row.value == NumberPayload(payload, member);
+                    return Same(row.value, NumberPayload(payload, member));
                 case (StringMember, StringMemberValue row):
                     return row.neoLocalizationMode == NeoStringLocalizationMode.Literal
                         && row.value == Cast<string?>(payload, member);
@@ -65,21 +65,48 @@ namespace NeoCompose.Runtime
                     return row.value is null ? file is null : file is not null && row.value.fileId == file.fileId;
                 case (Vector2Member or Vector2IntMember, Vector2MemberValue row):
                     var v2 = member is Vector2IntMember ? Vector2IntPayload(payload, member) : Vector2Payload(payload, member);
-                    return row.value is null ? v2 is null : v2 is not null && row.value.x == v2.x && row.value.y == v2.y;
+                    return row.value is null ? v2 is null : v2 is not null && Same(row.value.x, v2.x) && Same(row.value.y, v2.y);
                 case (Vector3Member or Vector3IntMember, Vector3MemberValue row):
                     var v3 = member is Vector3IntMember ? Vector3IntPayload(payload, member) : Vector3Payload(payload, member);
                     return row.value is null ? v3 is null : v3 is not null
-                        && row.value.x == v3.x && row.value.y == v3.y && row.value.z == v3.z;
+                        && Same(row.value.x, v3.x) && Same(row.value.y, v3.y) && Same(row.value.z, v3.z);
                 case (ColorMember, ColorMemberValue row):
                     var color = ColorPayload(payload, member);
                     return row.value is null ? color is null : color is not null
-                        && row.value.r == color.r && row.value.g == color.g && row.value.b == color.b && row.value.a == color.a;
+                        && Same(row.value.r, color.r) && Same(row.value.g, color.g)
+                        && Same(row.value.b, color.b) && Same(row.value.a, color.a);
                 case (ClassMember, ObjectMemberValue row):
                     return row.value is null && payload is null;
                 default:
                     return false;
             }
         }
+
+        /// <summary>
+        /// <c>default(T)</c>'s payload for a value kind whose default needs no
+        /// schema: false, zero, or a zero vector or color. Null for any other
+        /// kind; an enum's default is its first option and a tuple's is a row
+        /// per element, which the caller builds.
+        /// </summary>
+        internal static object? DefaultPayload(Member member) => member switch
+        {
+            BoolMember => false,
+            IntMember or FloatMember => 0d,
+            DecimalMember => "0",
+            Vector2Member or Vector2IntMember => new NeoVector2Value { x = 0d, y = 0d },
+            Vector3Member or Vector3IntMember => new NeoVector3Value { x = 0d, y = 0d, z = 0d },
+            ColorMember => new NeoColorValue { r = 0f, g = 0f, b = 0f, a = 0f },
+            _ => null,
+        };
+
+        /// <summary>
+        /// Stored-number equality: a float's -0 is a value of its own (P127
+        /// §12.1), so it doesn't match +0, and NaN matches NaN.
+        /// </summary>
+        private static bool Same(double? stored, double? written) =>
+            stored is double a && written is double b
+                ? a.Equals(b) && double.IsNegative(a) == double.IsNegative(b)
+                : stored is null && written is null;
 
         public static MemberValue Create<TPayload>(
             Member member,
@@ -95,6 +122,8 @@ namespace NeoCompose.Runtime
                 rawPayload = wrapped.value;
                 classId = wrapped.classId;
             }
+            if (member is ObjectMember objectSlot)
+                return CreateObjectSlotRow(objectSlot, payload as NeoValuePayload, rawPayload, id, createdAt, updatedAt);
 
             MemberValue created = member switch
             {
@@ -239,6 +268,79 @@ namespace NeoCompose.Runtime
             };
             created.classId = classId;
             return created;
+        }
+
+        /// <summary>
+        /// An object field's row (P127 §1.3): a box stores its payload as a
+        /// field of its held type, <c>new object()</c> stores <c>{}</c>, and
+        /// null stores a null row. A class value arrives as a reference.
+        /// </summary>
+        private static MemberValue CreateObjectSlotRow(
+            ObjectMember slot,
+            NeoValuePayload? wrapped,
+            object? rawPayload,
+            string id,
+            NeoTimestamp createdAt,
+            NeoTimestamp updatedAt)
+        {
+            if (wrapped?.valueType is TypeBinding valueType)
+            {
+                MemberValue box;
+                if (wrapped.heldMember is Member held)
+                {
+                    box = Create(held, rawPayload, id, createdAt, updatedAt);
+                }
+                else if (rawPayload is JObject comparer)
+                {
+                    box = new PayloadMemberValue
+                    {
+                        id = id,
+                        createdAt = createdAt,
+                        updatedAt = updatedAt,
+                        value = comparer,
+                    };
+                }
+                else
+                {
+                    box = new ObjectMemberValue
+                    {
+                        id = id,
+                        createdAt = createdAt,
+                        updatedAt = updatedAt,
+                        value = new Dictionary<string, string>(),
+                    };
+                }
+                box.valueType = valueType;
+                if (wrapped.origin is { } origin)
+                    NeoGeneratedTypesSupport.RememberBox(box, origin);
+                return box;
+            }
+            // A Type, CultureInfo or NumberFormatInfo slot stores its payload directly (P127 §1.3).
+            if (rawPayload is JObject payload && slot.objectType is NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo)
+            {
+                var declared = new PayloadMemberValue
+                {
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                    value = payload,
+                };
+                if (wrapped?.origin is { } written)
+                    NeoGeneratedTypesSupport.RememberBox(declared, written);
+                return declared;
+            }
+            if (rawPayload is null)
+            {
+                return new NullMemberValue
+                {
+                    id = id,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                };
+            }
+            throw new System.ArgumentException(
+                $"Object field '{slot.name}' takes a payload from {nameof(NeoGeneratedTypesSupport)}.{nameof(NeoGeneratedTypesSupport.ObjectValue)}, not {rawPayload.GetType().Name}.",
+                nameof(rawPayload));
         }
 
         /// <summary>
@@ -621,15 +723,27 @@ namespace NeoCompose.Runtime
                     changeListeners = member.defaultValue.changeListeners?.Copy(),
                     changeListenerEndpoints = member.defaultValue.changeListenerEndpoints?.Copy(),
                 },
+                // A Type, CultureInfo or NumberFormatInfo slot's default is its payload (P127 §1.3).
+                ObjectMember { objectType: NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo } member
+                    => member.defaultValue?.value is JObject payload
+                        ? new PayloadMemberValue
+                        {
+                            id = id,
+                            createdAt = createdAt,
+                            updatedAt = updatedAt,
+                            value = (JObject)payload.DeepClone(),
+                        }
+                        : null,
                 _ => null,
             };
         }
 
         // Cast<double?> would box the converted number on every write.
-        // NeoScript numbers are doubles, so that test comes first.
+        // NeoScript numbers are doubles, so that test comes first. An int
+        // has no -0 (P127 §12.1): only a Float slot keeps its sign.
         private static double? NumberPayload(object? payload, Member member) => payload switch
         {
-            double d => d,
+            double d => member is IntMember ? d + 0d : d,
             null => null,
             int i => i,
             float f => f,
@@ -836,7 +950,8 @@ namespace NeoCompose.Runtime
             {
                 if (!NeoNumbers.IsWhole(raw.x) || !NeoNumbers.IsWhole(raw.y))
                     throw PayloadError(payload, member, "Vector2Int");
-                return raw;
+                // An int component has no -0 (P127 §12.1).
+                return raw.x == 0 || raw.y == 0 ? new NeoVector2Value { x = raw.x + 0d, y = raw.y + 0d } : raw;
             }
             if (payload is Vector2Int vector)
                 return NeoVectorValues.FromVector2Int(vector);
@@ -866,7 +981,9 @@ namespace NeoCompose.Runtime
             {
                 if (!NeoNumbers.IsWhole(raw.x) || !NeoNumbers.IsWhole(raw.y) || !NeoNumbers.IsWhole(raw.z))
                     throw PayloadError(payload, member, "Vector3Int");
-                return raw;
+                return raw.x == 0 || raw.y == 0 || raw.z == 0
+                    ? new NeoVector3Value { x = raw.x + 0d, y = raw.y + 0d, z = raw.z + 0d }
+                    : raw;
             }
             if (payload is Vector3Int vector)
                 return NeoVectorValues.FromVector3Int(vector);

@@ -3,7 +3,7 @@ NeoDialogueGroup Visits = new(
   kind: .Lookup,
   parent: Outposts,
   collection: Assets.Outposts,
-  collectionValue: Reference(root.Assets.Outposts),
+  collectionValue: root.Assets.Outposts,
 ) {
   @id("99c22fbc-bb70-5f11-84ef-3599ecdfffd6")
   bool Condition1() {
