@@ -828,7 +828,20 @@ namespace NeoCompose.Runtime
         /// <summary>Reads getter <paramref name="key"/>, if it is one, so its reads are recorded.</summary>
         private void ReadGetter(string key)
         {
-            if (node.TryGet<NeoMemberNSProperty>(key, out _))
+            if (!node.TryGet<NeoMemberNSProperty>(key, out _))
+                return;
+            // Spawn hooks can subscribe while a NeoScript batch commits. Its
+            // reads cannot enter the memo, so arm the watch at the existing
+            // field-delivery boundary after the batch has settled.
+            if (!client.CanMemoizeGetters)
+            {
+                client.QueueFieldChange(() =>
+                {
+                    if (CanReadChange())
+                        _ = ComputeProperty(key);
+                });
+            }
+            else
                 _ = ComputeProperty(key);
         }
 
