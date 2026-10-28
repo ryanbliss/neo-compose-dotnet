@@ -11,25 +11,28 @@ namespace NeoCompose.Runtime
     {
         internal const string TrySpawnId = "system_fdeabfed-3e78-55ca-b793-3a5e3e5cdad7";
         internal const string TrySetId = "system_5728d83c-cd44-5c7d-a43f-61bf83ca2b91";
+        internal const string TrySpawnChildId = "system_767acaf4-4f8c-5fdf-b562-a2e910ad489e";
         private static readonly object ResultSite = new();
 
         internal static bool TryInvoke(string memberId, object? receiver, object?[] args,
             NSGetterEvaluator.Context ctx, out object? result)
         {
             result = null;
-            if (memberId != TrySpawnId && memberId != TrySetId)
+            if (memberId != TrySpawnId && memberId != TrySetId && memberId != TrySpawnChildId)
                 return false;
             var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[0])
                 ?? throw new NSGetterRuntimeError("Placement cell must be a Vector2Int.");
             ctx.client.CommitScriptWritesForGrid();
             NeoGeneratedClassValue link = View(receiver, ctx);
             NeoGeneratedClassValue entry = View(args[1], ctx);
-            NeoPlacementOutcome placed = ctx.client.TryPlaceLayerEntry(link, cell, entry, memberId == TrySetId);
+            NeoPlacementOutcome placed = memberId == TrySpawnChildId
+                ? ctx.client.TrySpawnChild(link, cell, entry)
+                : ctx.client.TryPlaceLayerEntry(link, cell, entry, memberId == TrySetId);
             result = ConstructResult(placed, ctx);
             return true;
         }
 
-        private static NeoGeneratedClassValue View(object? value, NSGetterEvaluator.Context ctx)
+        internal static NeoGeneratedClassValue View(object? value, NSGetterEvaluator.Context ctx)
         {
             if (value is NeoGeneratedClassValue generated)
                 return generated;
@@ -53,7 +56,7 @@ namespace NeoCompose.Runtime
                 : base(client, value, isReadOnly: false) { }
         }
 
-        private static object ConstructResult(NeoPlacementOutcome result, NSGetterEvaluator.Context ctx)
+        internal static object ConstructResult(NeoPlacementOutcome result, NSGetterEvaluator.Context ctx)
         {
             if (!NeoGeneratedTypesSupport.TryGetResolvedSite(ctx.client, ResultSite,
                 out NeoGeneratedTypesSupport.NeoResolvedDeclaredConstructor resolved))

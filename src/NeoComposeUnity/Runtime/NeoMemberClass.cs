@@ -1045,6 +1045,7 @@ namespace NeoCompose.Runtime
         private void WriteSerializedValue(string key, NeoValueWritePayload? setValue, bool placement)
         {
             AssertContainingClassesCanBeConstructed();
+            placement |= client.IsPlacementMember(value, key);
             NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Resolution flows through the merged schema (inheritance

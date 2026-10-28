@@ -455,7 +455,7 @@ namespace NeoCompose.Runtime
         private static readonly Unity.Profiling.ProfilerMarker ValidatePlacementsMarker = new("NeoCompose.Write.ValidatePlacements");
         private static readonly Unity.Profiling.ProfilerMarker ValidateGridMarker = new("NeoCompose.Write.ValidateGrid");
 #endif
-        private void ValidateWritePlan(NeoWritePlan plan)
+        internal void ValidateWritePlan(NeoWritePlan plan)
         {
 #if NEO_COMPOSE_PROFILING
             using var sample = ValidatePlacementsMarker.Auto();
@@ -518,7 +518,9 @@ namespace NeoCompose.Runtime
                 MemberValue? candidate = plan.Resolve(id);
                 TryGetCommittedValue(id, out MemberValue? previous);
                 string[] kinds = WorldKinds(candidate?.classId);
-                if (HasWorldKind(candidate?.classId is null ? WorldKinds(previous?.classId) : kinds, "tileGrid"))
+                string? gridClass = (candidate ?? previous) is ObjectMemberValue placementOwner
+                    ? NeoGeneratedTypesSupport.ResolveClassValueClassId(this, id, placementOwner) : null;
+                if (HasWorldKind(gridClass, "tileGrid"))
                     grids.Add(id);
                 if (HasWorldKind(kinds, "tile"))
                     tiles.Add(id);
@@ -574,7 +576,11 @@ namespace NeoCompose.Runtime
             // generated wrappers or populate persistent layer caches here.
             Dictionary<string, NeoReadOnlyTileGridPrimitive> primitives = scratch.primitives;
             foreach (string gridId in grids)
-                primitives[gridId] = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
+            {
+                var candidate = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
+                candidate.RetainPlacementGraph = true;
+                primitives[gridId] = candidate;
+            }
             using (ReadCandidate(plan))
             {
                 Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers = scratch.compatibleLayers;
@@ -615,7 +621,8 @@ namespace NeoCompose.Runtime
                 if (row is null)
                     return false;
                 return ResolveClassChildRow(row, "Position")?.id == childId
-                    || ResolveClassChildRow(row, "PlacementTiles")?.id == childId;
+                    || ResolveClassChildRow(row, "PlacementTiles")?.id == childId
+                    || ResolveClassChildRow(row, "Children")?.id == childId;
             }
 
             bool Owns(MemberValue? row)
@@ -686,8 +693,10 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan, string gridId, NeoReadOnlyTileGridPrimitive primitive,
             Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
         {
-            if (ResolveValueRow(gridId) is not ObjectMemberValue { classId: not null } grid || grid.IsRemoved)
+            if (ResolveValueRow(gridId) is not ObjectMemberValue grid || grid.IsRemoved)
                 return;
+            string gridClass = NeoGeneratedTypesSupport.ResolveClassValueClassId(this, gridId, grid)
+                ?? throw PlacementError("placement-class-missing", $"Grid '{gridId}' has no class.");
             if (ValidatePlacementCollectionField(grid, "Children") is ArrayMemberValue children)
                 foreach (string childId in PlacementListEntries(children.id))
                 {
@@ -711,8 +720,8 @@ namespace NeoCompose.Runtime
                     }
                 }
             }
-            var tileImports = new HashSet<string>(InternalRecordRelations.ResolveTargetIds(InternalRecordRelationKinds.WorldGridTileImport, grid.classId));
-            var objectImports = new HashSet<string>(InternalRecordRelations.ResolveTargetIds(InternalRecordRelationKinds.WorldGridObjectImport, grid.classId));
+            var tileImports = new HashSet<string>(InternalRecordRelations.ResolveTargetIds(InternalRecordRelationKinds.WorldGridTileImport, gridClass));
+            var objectImports = new HashSet<string>(InternalRecordRelations.ResolveTargetIds(InternalRecordRelationKinds.WorldGridObjectImport, gridClass));
             foreach (string layerId in primitive.ResolveTileLayerIds())
             {
                 var occupied = new HashSet<(string source, Vector2Int cell)>();
@@ -736,7 +745,12 @@ namespace NeoCompose.Runtime
                 {
                     ValidateLayerClass(obj.AssetClassId, layerId, objectImports, false, compatibleLayers);
                     if (ResolveValueRow(obj.InstanceId) is ObjectMemberValue row)
+                    {
+                        RequirePlacementClass(row.id, "object");
+                        ValidateObjectPosition(row);
+                        ValidateObjectFootprint(row);
                         ValidateObjectVariant(row, obj.AssetClassId);
+                    }
                     foreach (Vector2Int cell in obj.Footprint)
                     {
                         if (occupied.TryGetValue(cell, out string other) && other != obj.InstanceId)
@@ -769,6 +783,7 @@ namespace NeoCompose.Runtime
 
         private void ValidateObjectFootprint(ObjectMemberValue owner)
         {
+            ValidateCompositionChildren(owner, new HashSet<string>());
             if (ValidatePlacementCollectionField(owner, "PlacementTiles") is not ArrayMemberValue footprint)
                 return;
             string? entryClassId = null;
@@ -789,6 +804,22 @@ namespace NeoCompose.Runtime
                     throw PlacementError("object-footprint-class-invalid", $"Object '{owner.id}' footprint '{tileId}' must inherit '{entryClassId}'.");
                 ValidatePlacementCell(tile);
             }
+        }
+
+        private void ValidateCompositionChildren(ObjectMemberValue owner, HashSet<string> visiting)
+        {
+            if (!visiting.Add(owner.id) || visiting.Count > NeoReadOnlyTileGridPrimitive.MaxCompositionDepth)
+                throw PlacementError("placement-containment-cycle", $"Invalid composition ownership at '{owner.id}'.");
+            if (ValidatePlacementCollectionField(owner, "Children") is ArrayMemberValue children)
+                foreach (string id in PlacementListEntries(children.id))
+                {
+                    ObjectMemberValue child = RequirePlacementClass(id, null);
+                    if (ValidatePlacementCollectionField(child, "PlacementTiles") is ArrayMemberValue footprint
+                        && PlacementListEntries(footprint.id).Any())
+                        throw PlacementError("composition-child-placement", $"Direct child '{id}' has placement tiles. Place it inside an object layer link instead.");
+                    ValidateCompositionChildren(child, visiting);
+                }
+            visiting.Remove(owner.id);
         }
 
         private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

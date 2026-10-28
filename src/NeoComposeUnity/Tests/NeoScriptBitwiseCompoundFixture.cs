@@ -7,7 +7,7 @@ namespace NeoCompose.Tests
     internal static class NeoScriptBitwiseCompoundFixture
     {
         public const string Json = @"{
-  ""compilerRevision"": 18,
+  ""compilerRevision"": 19,
   ""source"": {
     ""name"": ""getter"",
     ""coordinateSpace"": ""body""
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests
             ""value"": {
               ""code"": ""() => { Debug.Log(\""index\""); return 0; }"",
               ""action"": {
-                ""compilerRevision"": 18,
+                ""compilerRevision"": 19,
                 ""source"": {
                   ""coordinateSpace"": ""body"",
                   ""name"": ""getter <delegate>""
@@ -247,7 +247,7 @@ namespace NeoCompose.Tests
             ""argumentTypes"": []
           },
           ""action"": {
-            ""compilerRevision"": 18,
+            ""compilerRevision"": 19,
             ""source"": {
               ""coordinateSpace"": ""body"",
               ""name"": ""getter <delegate>""

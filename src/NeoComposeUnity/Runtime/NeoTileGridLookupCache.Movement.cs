@@ -10,12 +10,17 @@ namespace NeoCompose.Runtime
 {
     internal sealed partial class NeoTileGridLookupCache
     {
+        private readonly Stack<ObjectMove> objectMovePool = new();
+
         /// <summary>One object's validated move: the records to swap and the change to publish.</summary>
         internal sealed class ObjectMove
         {
             internal readonly NeoTileGridLookupCache Cache;
             private readonly List<(string layer, ObjectLayerIndex index, NeoObjectPlacementRecord before, NeoObjectPlacementRecord after)> objects = new();
             private readonly List<(string layer, TileLayerIndex index, int slot, NeoTilePlacementRecord before, NeoTilePlacementRecord after)> tiles = new();
+            private readonly List<(NeoReadOnlyTileGridPrimitive.PlacementNode node, (double x, double y) offset)> nodes = new();
+            private NeoReadOnlyTileGridPrimitive.PlacementNode? movedNode;
+            private (double x, double y) position;
             internal NeoTileGridChangedArgs? Change;
 
             private ObjectMove(NeoTileGridLookupCache cache) => Cache = cache;
@@ -26,67 +31,117 @@ namespace NeoCompose.Runtime
             /// object is not indexed there or stays in its cell; throws on a
             /// collision. Changes no index.
             /// </summary>
-            internal static ObjectMove? Prepare(NeoTileGridLookupCache cache, string objectId, Vector2Int cell)
+            internal static ObjectMove? Prepare(NeoTileGridLookupCache cache, string objectId, (double x, double y) position)
             {
-                // A moving object stays in its cell for most frames. Allocate the
-                // move bookkeeping only once a footprint actually changes cell.
-                ObjectMove? move = null;
-                Vector2Int delta = default;
-                IReadOnlyList<string> objectLayerIds = cache.ObjectLayerIds;
-                for (int layer = 0; layer < objectLayerIds.Count; layer++)
-                {
-                    string layerId = objectLayerIds[layer];
-                    // These are committed indexes, never a speculative layer rebuild.
-                    var index = cache.GetObjectLayerIndex(layerId);
-                    if (!index.ById.TryGetValue(objectId, out var before) || before.Cell == cell)
-                        continue;
-                    // One row, one Position: every layer indexing this object
-                    // agrees on where it was, so the delta the tile projection
-                    // below consumes is fixed by the first of them.
-                    if (move is null)
-                        delta = cell - before.Cell;
-                    var footprint = new Vector2Int[before.Footprint.Count];
-                    for (int i = 0; i < footprint.Length; i++)
-                    {
-                        var next = footprint[i] = before.Footprint[i] + delta;
-                        if (index.CandidatesByCell.TryGetValue(next, out var occupants))
-                            foreach (var occupant in occupants)
-                                if (occupant.InstanceId != objectId)
-                                    throw Occupied(layerId, objectId, occupant.InstanceId, next);
-                    }
-                    (move ??= new ObjectMove(cache)).objects.Add((layerId, index, before, new NeoObjectPlacementRecord(
-                        objectId, cell, footprint, before.Order, before.AssetClassId, before.AssetValueId, before.Ownership)));
-                }
-                if (move is null)
+                if (!cache.primitive.PlacementGraph.Nodes.TryGetValue(objectId, out var root)
+                    || root.Position == position)
                     return null;
-                IReadOnlyList<string> tileLayerIds = cache.TileLayerIds;
-                for (int layer = 0; layer < tileLayerIds.Count; layer++)
+                (double x, double y) offset = (root.Offset.x + position.x - root.Position.x, root.Offset.y + position.y - root.Position.y);
+                var move = cache.objectMovePool.Count == 0 ? new ObjectMove(cache) : cache.objectMovePool.Pop();
+                move.movedNode = root;
+                move.position = position;
+                try
                 {
-                    string layerId = tileLayerIds[layer];
-                    var index = cache.GetTileLayerIndex(layerId);
-                    if (!index.RecordIndicesByObject.TryGetValue(objectId, out var slots))
-                        continue;
-                    foreach (int slot in slots)
+                    if (root.Children.Count == 0 && NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(offset.x, offset.y) == root.Cell)
                     {
-                        var before = index.Records[slot];
-                        var next = before.Cell + delta;
-                        if (index.CandidatesByCell.TryGetValue(next, out var occupants))
-                            foreach (var occupant in occupants)
-                                if (occupant.SourceTileLayerLinkId == before.SourceTileLayerLinkId
-                                    && occupant.SourceObjectInstanceId != objectId)
-                                    throw new NeoPlacementValidationException("tile-cell-occupied",
-                                        $"Tile link '{before.SourceTileLayerLinkId}' has more than one tile at {next}.");
-                        move.tiles.Add((layerId, index, slot, before, new NeoTilePlacementRecord(before.InstanceId,
-                            before.PlacementValueId, next, before.AssetClassId, before.Ownership, before.Order,
-                            before.SourceTileLayerLinkId, before.SourceObjectInstanceId, before.UpdatedAtMs, before.CellValueId)));
+                        move.nodes.Add((root, offset));
+                        return move;
                     }
+                    Collect(move, root, offset);
+                    var moving = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var state in move.nodes)
+                        if (state.node.PlacementLayerId is not null)
+                            moving.Add(state.node.Row.id);
+                    // Validate the candidate subtree against itself and against
+                    // committed occupants outside it. No stored row/index changes.
+                    var occupied = new Dictionary<(string layer, Vector2Int cell), string>();
+                    foreach (var state in move.nodes)
+                    {
+                        var node = state.node;
+                        var cell = NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(state.offset.x, state.offset.y);
+                        long dx = (long)cell.x - node.Cell.x;
+                        long dy = (long)cell.y - node.Cell.y;
+                        if (node.PlacementLayerId is string layerId)
+                        {
+                            var index = cache.GetObjectLayerIndex(layerId);
+                            var before = index.ById[node.Row.id];
+                            var footprint = new Vector2Int[before.Footprint.Count];
+                            for (int i = 0; i < footprint.Length; i++)
+                            {
+                                var next = footprint[i] = Translate(before.Footprint[i], dx, dy);
+                                if (occupied.TryGetValue((layerId, next), out string other) && other != node.Row.id)
+                                    throw Occupied(layerId, node.Row.id, other, next);
+                                occupied[(layerId, next)] = node.Row.id;
+                                if (index.CandidatesByCell.TryGetValue(next, out var occupants))
+                                    foreach (var occupant in occupants)
+                                        if (!moving.Contains(occupant.InstanceId))
+                                            throw Occupied(layerId, node.Row.id, occupant.InstanceId, next);
+                            }
+                            if ((dx != 0 || dy != 0))
+                                move.objects.Add((layerId, index, before, new NeoObjectPlacementRecord(
+                                    node.Row.id, cell, footprint, before.Order, before.AssetClassId, before.AssetValueId,
+                                    before.Ownership, before.SourceLayerLinkId, before.ParentObjectId)));
+                        }
+                        if ((dx != 0 || dy != 0) && node.Link is { IsTileLink: true } link)
+                        {
+                            var index = cache.GetTileLayerIndex(link.LayerId);
+                            if (!index.RecordIndicesByLink.TryGetValue(link.LinkValueId, out var slots))
+                                continue;
+                            foreach (int slot in slots)
+                            {
+                                var before = index.Records[slot];
+                                var next = Translate(before.Cell, dx, dy);
+                                move.tiles.Add((link.LayerId, index, slot, before, new NeoTilePlacementRecord(before.InstanceId,
+                                    before.PlacementValueId, next, before.AssetClassId, before.Ownership, before.Order,
+                                    before.SourceTileLayerLinkId, before.SourceObjectInstanceId, before.UpdatedAtMs, before.CellValueId)));
+                            }
+                        }
+                    }
+                    return move;
+
                 }
-                return move;
+                catch
+                {
+                    move.Release();
+                    throw;
+                }
+            }
+
+            private static void Collect(ObjectMove move, NeoReadOnlyTileGridPrimitive.PlacementNode node, (double x, double y) offset)
+            {
+                move.nodes.Add((node, offset));
+                foreach (var child in node.Children)
+                    Collect(move, child, (offset.x + child.Position.x, offset.y + child.Position.y));
+            }
+
+            internal void Release()
+            {
+                objects.Clear();
+                tiles.Clear();
+                nodes.Clear();
+                movedNode = null;
+                Change = null;
+                Cache.objectMovePool.Push(this);
+            }
+
+            private static Vector2Int Translate(Vector2Int cell, long dx, long dy)
+            {
+                long x = cell.x + dx, y = cell.y + dy;
+                if (x < int.MinValue || x > int.MaxValue || y < int.MinValue || y > int.MaxValue)
+                    throw new NeoPlacementValidationException("tile-cell-invalid", "Moved placement exceeds the integer cell range.");
+                return new Vector2Int((int)x, (int)y);
             }
 
             /// <summary>Patches the indexes for this prepared move and tells NeoScript grid queries.</summary>
             internal void Apply()
             {
+                movedNode!.Position = position;
+                foreach (var state in nodes)
+                {
+                    state.node.Offset = state.offset;
+                }
+                if (objects.Count == 0 && tiles.Count == 0)
+                    return;
                 var objectCells = new Dictionary<string, HashSet<Vector2Int>>();
                 var objectIds = new Dictionary<string, List<NeoObjectInstanceId>>();
                 var tileCells = new Dictionary<string, HashSet<Vector2Int>>();
@@ -142,7 +197,11 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal void RaiseChanged(ObjectMove move) => Changed?.Invoke(move.Change!);
+        internal void RaiseChanged(ObjectMove move)
+        {
+            if (move.Change is not null)
+                Changed?.Invoke(move.Change);
+        }
 
         private static NeoPlacementValidationException Occupied(string layer, string id, string other, Vector2Int cell) =>
             new("tile-grid-object-cell-occupied", $"Object layer '{layer}' has objects '{id}' and '{other}' at {cell}.");

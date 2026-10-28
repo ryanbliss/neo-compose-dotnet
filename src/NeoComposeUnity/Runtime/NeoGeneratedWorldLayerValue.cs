@@ -190,6 +190,8 @@ namespace NeoCompose.Runtime
         private NeoTileLayerBinding Binding => binding ?? throw new InvalidOperationException(
             $"Authored tile layer '{GetType().Name}' is not bound to a grid instance.");
 
+        internal NeoReadOnlyTileGridPrimitive BoundPrimitive => Binding.Primitive;
+        internal IReadOnlyCollection<string> ImportedClassIds => Binding.ImportedClassIds;
         public string LayerId => Binding.LayerClassId;
         public string LayerClassId => Binding.LayerClassId;
         public string? LayerOverrideValueId => Binding.LayerOverrideValueId;
@@ -219,6 +221,14 @@ namespace NeoCompose.Runtime
 
         internal IEnumerable<NeoTileProjection> EnumerateRenderTiles() =>
             Binding.Primitive.EnumerateTileProjections(LayerClassId);
+
+        protected NeoPlacementOutcome TrySetConstructedTile(Vector2Int cell, INeoValueReference tile)
+        {
+            if (tile is not NeoGeneratedClassValue generated)
+                throw new ArgumentException("TrySet requires a generated tile value.", nameof(tile));
+            return Binding.Primitive.TryPlaceConstructedLayerEntry(LayerId, cell, generated, tile: true,
+                StorageOwnership == NeoValueOwnership.Session ? NeoValueOwnership.Session : NeoValueOwnership.Save);
+        }
 
         protected NeoPlacementOutcome TrySetClass<TAsset>(Vector2Int cell)
             where TAsset : class =>
@@ -292,6 +302,8 @@ namespace NeoCompose.Runtime
         private NeoObjectLayerBinding Binding => binding ?? throw new InvalidOperationException(
             $"Authored object layer '{GetType().Name}' is not bound to a grid instance.");
 
+        internal NeoReadOnlyTileGridPrimitive BoundPrimitive => Binding.Primitive;
+        internal IReadOnlyCollection<string> ImportedClassIds => Binding.ImportedClassIds;
         public string LayerId => Binding.LayerClassId;
         public string LayerClassId => Binding.LayerClassId;
         public string? LayerOverrideValueId => Binding.LayerOverrideValueId;
@@ -327,8 +339,9 @@ namespace NeoCompose.Runtime
                 throw new ArgumentException(
                     "Cannot spawn an object that is not a generated class value.", nameof(obj));
             }
-            return WritablePrimitive().TrySpawn(
-                LayerClassId, cell, generated, Binding.ImportedClassIds);
+            if (Binding.Primitive is NeoTileGridPrimitive writable && !IsReadOnly)
+                return writable.TrySpawn(LayerClassId, cell, generated, Binding.ImportedClassIds);
+            return Binding.Primitive.TryPlaceConstructedLayerEntry(LayerClassId, cell, generated, tile: false);
         }
 
         protected NeoPlacementOutcome TryDespawnBoundObject(NeoObjectInstanceId instanceId) =>

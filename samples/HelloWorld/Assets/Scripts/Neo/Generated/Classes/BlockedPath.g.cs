@@ -26,6 +26,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out BlockedPath writable);
 
+        CollisionTileLayer Layer { get; }
+
         NeoDialogueReference BootGlyphSealLocked { get; }
 
         NeoDialogueReference BootGlyphSealReady { get; }
@@ -111,6 +113,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<BlockedPath>(out writable);
         }
+
+        public CollisionTileLayer Layer => client.ScriptGridQueries.Layer<CollisionTileLayer>(this, "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa");
 
         public NeoPlacementResult TrySet(Vector2Int cell, ICollisionTileLayerCompatibleTile obj)
         {

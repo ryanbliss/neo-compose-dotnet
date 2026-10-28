@@ -593,7 +593,7 @@ namespace HelloWorld.Assets.Tests
             // The boot glyph sits eight rows below the spawn, at (-7, -6).
             var below = new Vector2Int(0, -8);
 
-            var tiles = spawn.GetTiles(NeoCellPattern.Center, below);
+            var tiles = spawn.GetTiles(NeoCellPattern.Center, below).ToList();
             Assert.IsInstanceOf<BootGlyphTile>(tiles.Single());
             Assert.AreEqual(tiles[0].valueId, spawn.GetTile(NeoCellPattern.Center, below)?.valueId);
             CollectionAssert.IsEmpty(spawn.GetTiles(NeoCellPattern.Center, new Vector2Int(50, 50)));
@@ -610,7 +610,7 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual(grid.valueId, spawn.GetArea<IReadOnlyOldConsoleLandingGrid>()?.valueId);
             Assert.AreEqual(grid.valueId, spawn.GetArea()?.valueId);
             // The spawn's sprite is a class-default child it never stored.
-            Assert.AreEqual(grid.valueId, spawn.Children[0].GetArea<IReadOnlyOldConsoleLandingGrid>()?.valueId);
+            Assert.AreEqual(grid.valueId, spawn.First().GetArea<IReadOnlyOldConsoleLandingGrid>()?.valueId);
             Assert.AreEqual(grid.valueId, content.Background.GetTile<BootGlyphTile>(new Vector2Int(-7, -6))!.GetArea()?.valueId);
             Assert.AreEqual(grid.valueId, grid.GetRequiredChild<BlockedPath>().GetTiles<NeoTile>().First().GetArea()?.valueId);
             Assert.IsNull(new VaultPlaqueObject().GetArea(), "A value no grid holds is in no area.");
@@ -1097,7 +1097,9 @@ namespace HelloWorld.Assets.Tests
             var cell = (NeoVector2Value)Call("system_df1c2d06-eeec-5340-addc-740f3668c9e4", false, MemberKind.Vector2Int);
             Assert.AreEqual(Mathf.RoundToInt(player.Position.x), cell.x);
             Assert.AreEqual(Mathf.RoundToInt(player.Position.y), cell.y);
-            Assert.IsNotEmpty((object[])Call("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", true, MemberKind.List));
+            var neighbors = Call("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", true, MemberKind.Class);
+            Assert.That(NeoSequences.ReadEnumerable(client, neighbors,
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = player.classId }, value => value), Is.Not.Empty);
             object tile = Call("system_593e6208-e2ca-505e-9933-04b17102b6d2", true, MemberKind.Class);
             Assert.IsNotNull(tile);
             var cellForConversion = new Vector2Int(20, 20);

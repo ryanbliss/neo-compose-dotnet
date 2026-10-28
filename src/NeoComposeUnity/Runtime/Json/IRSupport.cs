@@ -198,6 +198,7 @@ namespace NeoCompose.Runtime.Json
         /// <c>Parse</c>/<c>TryParse</c>/<c>ToString(format)</c>.
         /// </summary>
         public const string TextOp = "textOp";
+        public const string WorldLayer = "worldLayer";
         public const string ListIndex = "listIndex";
         /// <summary>
         /// P67 §4.1 — `&lt;variant&gt;.Initialize()`: the Initialize closure,
@@ -590,7 +591,7 @@ namespace NeoCompose.Runtime.Json
         /// <c>numeric</c> arithmetic with 32-bit float rounding; revision 18
         /// identifies structured leaf assignment receivers for validation.
         /// </summary>
-        public const int CurrentCompilerRevision = 18;
+        public const int CurrentCompilerRevision = 19;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

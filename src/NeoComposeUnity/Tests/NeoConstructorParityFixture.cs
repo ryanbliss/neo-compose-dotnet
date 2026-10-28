@@ -289,7 +289,7 @@ namespace NeoCompose.Tests
           ""init"": {
             ""code"": ""\""computed\"""",
             ""compiled"": {
-              ""compilerRevision"": 18,
+              ""compilerRevision"": 19,
               ""parameters"": [
                 {
                   ""id"": ""__this__"",
@@ -363,7 +363,7 @@ namespace NeoCompose.Tests
           ""init"": {
             ""code"": ""Explode(\""initializer exploded\"")"",
             ""compiled"": {
-              ""compilerRevision"": 18,
+              ""compilerRevision"": 19,
               ""parameters"": [
                 {
                   ""id"": ""__this__"",
@@ -436,7 +436,7 @@ namespace NeoCompose.Tests
           ""init"": {
             ""code"": ""new Node()"",
             ""compiled"": {
-              ""compilerRevision"": 18,
+              ""compilerRevision"": 19,
               ""parameters"": [
                 {
                   ""id"": ""__this__"",
@@ -713,7 +713,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""this.Tag = \""base:\"" + Tag;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -850,7 +850,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""this.Note = \""derived:\"" + this.Tag;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -995,7 +995,7 @@ namespace NeoCompose.Tests
         ],
         ""compiledBaseArguments"": [
           {
-            ""compilerRevision"": 18,
+            ""compilerRevision"": 19,
             ""parameters"": [
               {
                 ""id"": ""__this__"",
@@ -1082,7 +1082,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""if (AllCaps) {\n  this.Bar = \""BAR\"";\n}"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1227,7 +1227,7 @@ namespace NeoCompose.Tests
         ""argumentTypes"": [],
         ""code"": ""throw \""constructor rejected the arguments\"";"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1298,7 +1298,7 @@ namespace NeoCompose.Tests
         ""argumentTypes"": [],
         ""code"": ""this.Count = root.Save.WorldTime;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1429,7 +1429,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""this.Note = \""level:\"" + this.Tag;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1574,7 +1574,7 @@ namespace NeoCompose.Tests
         ],
         ""compiledBaseArguments"": [
           {
-            ""compilerRevision"": 18,
+            ""compilerRevision"": 19,
             ""parameters"": [
               {
                 ""id"": ""__this__"",
@@ -1679,7 +1679,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""this.Mark = \""gate:\"" + Mark;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1816,7 +1816,7 @@ namespace NeoCompose.Tests
         ],
         ""code"": ""this.Note = \""init:\"" + this.Mark;"",
         ""action"": {
-          ""compilerRevision"": 18,
+          ""compilerRevision"": 19,
           ""parameters"": [
             {
               ""id"": ""__this__"",
@@ -1961,7 +1961,7 @@ namespace NeoCompose.Tests
         ],
         ""compiledBaseArguments"": [
           {
-            ""compilerRevision"": 18,
+            ""compilerRevision"": 19,
             ""parameters"": [
               {
                 ""id"": ""__this__"",
@@ -2042,7 +2042,7 @@ namespace NeoCompose.Tests
         ],
         ""compiledBaseInitializerFields"": [
           {
-            ""compilerRevision"": 18,
+            ""compilerRevision"": 19,
             ""parameters"": [
               {
                 ""id"": ""__this__"",
@@ -2130,7 +2130,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""member initializers run and the body's untaken branch changes nothing"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2216,7 +2216,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""the constructor body overwrites what a member initializer wrote"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2302,7 +2302,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""the call-site initializer block is applied last and beats the body"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2402,7 +2402,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""precedence is static: the branch the body took does not change it"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2502,7 +2502,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""new() on a class with no parameterless constructor means member initializers only"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2574,7 +2574,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""the base constructor runs before the derived body, bound by ': base(...)'"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2660,7 +2660,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""an init-backed member default is evaluated at construction"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2731,7 +2731,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""an overridden member's initializer still runs before the call-site block replaces it"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2815,7 +2815,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""a throw inside a constructor body aborts with the thrown message"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2884,7 +2884,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""a body reads root.Save and resolves the authored default"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -2955,7 +2955,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""unbounded construction through a member initializer hits the depth cap"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3024,7 +3024,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""a ': base(...)' argument reads `this`, so member initializers have already run"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3111,7 +3111,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""an explicit null in the call-site block assigns null to an optional member"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3198,7 +3198,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""a required constructor runs the base clause, then its init body"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3285,7 +3285,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""the call-site block beats the base clause block on an inherited member"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3387,7 +3387,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""a call-site list literal materializes its class entries"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",
@@ -3511,7 +3511,7 @@ namespace NeoCompose.Tests
     {
       ""name"": ""the implicit new is rejected on a class with a required constructor"",
       ""getter"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [
           {
             ""id"": ""__this__"",

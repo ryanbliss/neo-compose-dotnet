@@ -1464,6 +1464,8 @@ namespace NeoCompose.Runtime
                 if (objectRootsByInstanceId.TryGetValue(instanceId, out var existing) && existing != null
                     && (change.PositionsOnly || TryUpdateRenderedObject(existing, layer, resolved)))
                 {
+                    if (placedPositionsByInstanceId.TryGetValue(instanceId, out var placement))
+                        placement.Place(resolved.Cell);
                     if (objectVisibilityByInstanceId.TryGetValue(instanceId, out var rendered))
                     {
                         foreach (var behaviour in rendered.Behaviours)
@@ -1548,11 +1550,12 @@ namespace NeoCompose.Runtime
         private Action<NeoGeneratedClassValue, NeoMember> TrackObjectPosition(
             GameObject root,
             NeoObjectProjection instance,
-            SortPointPair? sortPoint)
+            SortPointPair? sortPoint,
+            NeoReadOnlyTileGridPrimitive? primitive)
         {
             var instanceId = instance.InstanceId;
             var value = instance.Object;
-            var placed = new PlacedObjectPosition(this, root.transform, value, sortPoint);
+            var placed = new PlacedObjectPosition(this, root.transform, value, sortPoint, primitive);
             placed.Place(instance.Cell);
             // Coalesce the many leaf writes of a composed animation frame.
             // Flush before ApplyFrame returns, never on a later Unity frame.
@@ -1602,6 +1605,7 @@ namespace NeoCompose.Runtime
             DisposeObjectPositionSubscription(instanceId);
             placed.Subscription = value.WatchAnyChange(
                 (changedValue, changedMember, _) => Changed(changedValue, changedMember));
+            placed.TrackAncestors(Changed);
             placedPositionsByInstanceId[instanceId] = placed;
             return Changed;
         }
@@ -1628,12 +1632,15 @@ namespace NeoCompose.Runtime
             private Vector3 applied;
             private Vector3 appliedPosition;
             private Vector3 appliedPoint;
+            private readonly List<NeoGeneratedClassValue> ancestors = new();
+            private readonly List<IDisposable> ancestorSubscriptions = new();
 
             public PlacedObjectPosition(
                 NeoTileGridRenderer renderer,
                 Transform transform,
                 NeoGeneratedClassValue value,
-                SortPointPair? sortPoint)
+                SortPointPair? sortPoint,
+                NeoReadOnlyTileGridPrimitive? primitive)
             {
                 this.renderer = renderer;
                 this.transform = transform;
@@ -1641,6 +1648,37 @@ namespace NeoCompose.Runtime
                 worldObject = value as INeoWorldObjectValue;
                 this.sortPoint = sortPoint;
                 writable = worldObject is not null && !value.IsReadOnly;
+                var graph = primitive?.LookupCache.Primitive.PlacementGraph;
+                if (value.valueId is string id && graph?.Nodes.TryGetValue(id, out var node) == true)
+                    for (var ancestor = node.Parent; ancestor is not null; ancestor = ancestor.Parent)
+                        if (primitive.ResolveGeneratedClassValue(ancestor.Row.id) is { } generated)
+                            ancestors.Add(generated);
+            }
+
+            public void TrackAncestors(Action<NeoGeneratedClassValue, NeoMember> changed)
+            {
+                foreach (var ancestor in ancestors)
+                    ancestorSubscriptions.Add(ancestor.WatchAnyChange((value, member, _) => changed(value, member)));
+            }
+
+            public bool AncestorsEnabled
+            {
+                get
+                {
+                    foreach (var ancestor in ancestors)
+                        if (ancestor is INeoWorldObjectValue world && !world.Enabled)
+                            return false;
+                    return true;
+                }
+            }
+
+            private Vector3 AncestorOrigin()
+            {
+                var offset = Vector3.zero;
+                foreach (var ancestor in ancestors)
+                    if (ancestor is INeoWorldObjectValue world)
+                        offset += world.Position.Value;
+                return renderer.CellOffsetToLocalPosition(offset);
             }
 
             public IDisposable? Subscription
@@ -1655,9 +1693,9 @@ namespace NeoCompose.Runtime
             public void Place(Vector2Int cell)
             {
                 var position = worldObject?.Position.Value ?? Vector3.zero;
-                origin = renderer.CellOffsetToLocalPosition(cell - new Vector2Int(
+                origin = ancestors.Count == 0 ? renderer.CellOffsetToLocalPosition(cell - new Vector2Int(
                     Mathf.RoundToInt(position.x),
-                    Mathf.RoundToInt(position.y)));
+                    Mathf.RoundToInt(position.y))) : AncestorOrigin();
                 Apply(position);
             }
 
@@ -1667,8 +1705,10 @@ namespace NeoCompose.Runtime
                 if (worldObject is null)
                     return;
                 var position = worldObject.Position.Value;
-                if (position == appliedPosition && Point == appliedPoint)
+                var nextOrigin = ancestors.Count == 0 ? origin : AncestorOrigin();
+                if (position == appliedPosition && Point == appliedPoint && nextOrigin == origin)
                     return;
+                origin = nextOrigin;
                 Apply(position);
             }
 
@@ -1703,7 +1743,12 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            public void Dispose() => Subscription?.Dispose();
+            public void Dispose()
+            {
+                Subscription?.Dispose();
+                foreach (var subscription in ancestorSubscriptions)
+                    subscription.Dispose();
+            }
 
             private Vector3 Point => sortPoint?.Point ?? Vector3.zero;
 
@@ -1885,6 +1930,8 @@ namespace NeoCompose.Runtime
             foreach (var bucket in visibility.Buckets)
             {
                 var enabled = bucket.Value.Enabled;
+                if (ReferenceEquals(bucket, visibility.Buckets[0]) && placedPositionsByInstanceId.TryGetValue(instanceId, out var placed))
+                    enabled &= placed.AncestorsEnabled;
                 // One managed bool read per value settles the common case. Only
                 // a value that actually flipped reaches a native GameObject.
                 if (bucket.Applied == enabled)
@@ -2334,7 +2381,7 @@ namespace NeoCompose.Runtime
             // parented under a group that already exists.
             var sortPoint = AttachSortingGroup(go, layer, instance.Object, sortingOrder);
             var content = sortPoint?.Content ?? go.transform;
-            var changed = TrackObjectPosition(go, instance, sortPoint);
+            var changed = TrackObjectPosition(go, instance, sortPoint, (layer as NeoGeneratedObjectLayerValue)?.BoundPrimitive);
 
             var visibility = new ObjectVisibilityIndex(this, changed);
             objectVisibilityByInstanceId[instance.InstanceId] = visibility;
@@ -2462,7 +2509,7 @@ namespace NeoCompose.Runtime
         {
             // A tile layer link flattens into its target layer's Tilemap
             // (NeoTileGridPrimitive.BuildTileLayerRecords), not under the object.
-            if (child is INeoTileLayerLinkValue)
+            if (child is INeoTileLayerLinkValue or INeoObjectLayerLinkValue)
                 return;
             var childOffset = CellOffsetToLocalPosition(child.Position);
 

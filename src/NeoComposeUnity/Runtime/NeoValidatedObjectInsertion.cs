@@ -68,10 +68,11 @@ namespace NeoCompose.Runtime
             foreach (var link in links)
                 members.AddRange(primitive.ResolveListEntryIds(link.ListValueId, null));
             var tileDependencies = new HashSet<string>();
-            if (primitive.HasObjectCarriedTiles(root, tileDependencies))
+            if (primitive.HasObjectCarriedPlacements(root, tileDependencies))
                 return false;
             var dependencies = new HashSet<string> { root.id };
-            Vector2Int origin = primitive.ReadObjectOrigin(root, dependencies);
+            primitive.ReadObjectOrigin(root, dependencies);
+            Vector2Int origin = WorldPlacementOrigin(root.id).origin;
             tileDependencies.UnionWith(dependencies);
             var footprint = primitive.ReadObjectFootprint(root, origin, dependencies);
             RequirePlacementClass(root.id, "object");
@@ -88,7 +89,7 @@ namespace NeoCompose.Runtime
                 return false;
             return cache.PrepareObjectInsertion(plan, insertion.layerId, members,
                 new NeoObjectPlacementRecord(root.id, origin, footprint, 0, root.classId,
-                    root.value?.GetValueOrDefault("assetValueId"), ownership), dependencies, tileDependencies);
+                    root.value?.GetValueOrDefault("assetValueId"), ownership, links.First(link => link.ListValueId == insertion.listId).LinkValueId), dependencies, tileDependencies);
         }
     }
 
@@ -163,6 +164,6 @@ namespace NeoCompose.Runtime
         }
 
         private static NeoObjectPlacementRecord WithOrder(NeoObjectPlacementRecord row, int order) =>
-            new(row.InstanceId, row.Cell, row.Footprint, order, row.AssetClassId, row.AssetValueId, row.Ownership);
+            new(row.InstanceId, row.Cell, row.Footprint, order, row.AssetClassId, row.AssetValueId, row.Ownership, row.SourceLayerLinkId, row.ParentObjectId);
     }
 }

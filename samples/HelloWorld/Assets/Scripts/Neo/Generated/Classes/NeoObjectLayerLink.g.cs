@@ -29,6 +29,30 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator();
 
+        T? GetObject<T>(string instanceId) where T : class, IReadOnlyNeoObjectBase;
+
+
+
+        IReadOnlyNeoObjectBase? GetObject(string instanceId);
+
+        T? GetObject<T>(Vector2Int cell) where T : class, IReadOnlyNeoObjectBase;
+
+
+
+        IReadOnlyNeoObjectBase? GetObject(Vector2Int cell);
+
+        global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoObject;
+
+
+
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int cell);
+
+        global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(Vector2Int cell) where T : class, IReadOnlyNeoObjectBase;
+
+
+
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase> GetObjects(Vector2Int cell);
+
         int IndexOf(IReadOnlyNeoObjectBase obj);
 
         bool Remove(IReadOnlyNeoObjectBase obj);
@@ -103,6 +127,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
+
+
+
+
         protected virtual NeoList<NeoObjectBase> Objects
         {
             get
@@ -133,6 +161,42 @@ namespace HelloWorld.Assets.Scripts.Neo
             var result = InvokeFunction("GetEnumerator");
             return NeoSequences.ReadEnumerator<IReadOnlyNeoObjectBase>(client, result, NeoSequences.ElementType<IReadOnlyNeoObjectBase>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
+
+        public T? GetObject<T>(string instanceId) where T : class, IReadOnlyNeoObjectBase
+        {
+            var result = client.ScriptGridQueries.Invoke("system_536e03f8-d177-5fbb-8391-112706dc761e", this, new object?[] { instanceId }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoObjectBase? GetObject(string instanceId)
+            => GetObject<IReadOnlyNeoObjectBase>(instanceId);
+
+        public T? GetObject<T>(Vector2Int cell) where T : class, IReadOnlyNeoObjectBase
+        {
+            var result = client.ScriptGridQueries.Invoke("system_855ebeef-50d6-563a-9518-56472de73ce4", this, new object?[] { cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoObjectBase? GetObject(Vector2Int cell)
+            => GetObject<IReadOnlyNeoObjectBase>(cell);
+
+        public global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoObject
+        {
+            var result = client.ScriptGridQueries.Invoke("system_a2a601b0-7811-514c-896c-472db86fe38e", this, new object?[] { pattern, cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int cell)
+            => GetObjects<IReadOnlyNeoObject>(pattern, cell);
+
+        public global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(Vector2Int cell) where T : class, IReadOnlyNeoObjectBase
+        {
+            var result = client.ScriptGridQueries.Invoke("system_cce85e15-bede-5e77-8463-63805445eeeb", this, new object?[] { cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase> GetObjects(Vector2Int cell)
+            => GetObjects<IReadOnlyNeoObjectBase>(cell);
 
         public virtual int IndexOf(IReadOnlyNeoObjectBase obj)
         {

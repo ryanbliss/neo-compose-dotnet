@@ -40,14 +40,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject;
+        global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject;
 
 
 
         /// <summary>
         /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
 
         /// <summary>
@@ -66,14 +66,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// The tiles of type T at the cells around this tile, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
+        global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile;
 
 
 
         /// <summary>
         /// The tiles of type T at the cells around this tile, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
+
+
+        /// <summary>
+        /// The cell in the owning grid, or null when this tile is not in a grid.
+        /// </summary>
+        Vector2Int? GridCell { get; }
 
         string Name { get; }
 
@@ -182,6 +188,22 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
+
+        /// <summary>
+        /// The cell in the owning grid, or null when this tile is not in a grid.
+        /// </summary>
+        public virtual Vector2Int? GridCell
+        {
+            get
+            {
+                var result = ComputeProperty("GridCell");
+                result.ThrowIfFailed();
+                if (result.value is null) return null;
+                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
+                return resolvedVector;
+            }
+        }
+
         public virtual string Name
         {
             get
@@ -225,19 +247,27 @@ namespace HelloWorld.Assets.Scripts.Neo
         public IReadOnlyNeoTileGrid? GetArea()
             => GetArea<IReadOnlyNeoTileGrid>();
 
-        /// <summary>
-        /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
-        /// </summary>
-        public virtual IReadOnlyList<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
+        private Vector2Int? GetGridCell()
         {
-            var result = client.ScriptGridQueries.Invoke("system_bf87a1b7-b1ff-48dc-bbf0-286bd2739a9b", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
+            var result = client.ScriptGridQueries.Invoke("system_223292cc-c600-57b6-a927-69bee647d82a", this, new object?[] { });
+            if (result is null) return null;
+            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
+            return resolvedVector;
         }
 
         /// <summary>
         /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
-        public IReadOnlyList<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
+        {
+            var result = client.ScriptGridQueries.Invoke("system_bf87a1b7-b1ff-48dc-bbf0-286bd2739a9b", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        /// <summary>
+        /// Objects of type T at the cells around this tile, shifted by offset, in pattern order. A repeated footprint can appear more than once.
+        /// </summary>
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObject> GetObjects(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetObjects<IReadOnlyNeoObject>(pattern, offset);
 
         /// <summary>
@@ -258,16 +288,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// The tiles of type T at the cells around this tile, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        public virtual IReadOnlyList<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
             var result = client.ScriptGridQueries.Invoke("system_7aac6739-41ad-4d7f-88d0-15b5f0416e67", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoGeneratedTypesSupport.ReadScriptList<T>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); });
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
         /// The tiles of type T at the cells around this tile, shifted by offset, in pattern order. Each cell uses the grid layer precedence and empty cells are skipped.
         /// </summary>
-        public IReadOnlyList<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetTiles<IReadOnlyNeoTile>(pattern, offset);
 
         /// <summary>
@@ -284,6 +314,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
 
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
@@ -296,6 +328,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.SmartTile] = () => null,
                 [Fields.Sprite] = () => null,
@@ -317,6 +350,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
                 [Fields.Name] = () => Name,
                 [Fields.SmartTile] = () => SmartTile,
                 [Fields.Sprite] = () => Sprite,

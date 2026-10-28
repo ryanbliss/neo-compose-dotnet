@@ -282,6 +282,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (function)
             {
+                case WorldLayerFunction layer:
+                    return AnyPointer(layer.info.receiverPointer, predicate);
                 case ClassCloneFunction clone:
                     return AnyPointer(clone.info.receiverPointer, predicate);
                 case ClassConstructorFunction constructor:

@@ -2895,6 +2895,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 if (TryInvokeRandom(memberId, site?.receiver.kind ?? receiverKind, receiver, args, ctx, out object? result))
                     return result;
+                if (NeoWorldLayerRuntime.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
+                    return result;
                 if (NeoLayerLinkRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
                     return result;
                 if (NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, ctx, out result))
@@ -4472,6 +4474,15 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             string k = key as string ?? key?.ToString() ?? "null";
+            if (receiver is NeoGeneratedClassValue { valueId: null } defaultView
+                && defaultView.BackingNode.TryGet<NeoMember>(k, out var defaultMember))
+            {
+                if (defaultMember.member is NSPropertyMember { getter: { } defaultGetter })
+                    return DispatchNSGetterById(defaultMember.member.id, defaultView, ctx, defaultGetter, null);
+                if (defaultMember.value is { } defaultRow)
+                    return UnwrapRow(defaultRow, ctx);
+                return null;
+            }
             if (receiver is NeoScriptObject detached)
             {
                 if (TryReadDetachedMember(detached, k, ctx, out object? detachedValue, keyOf))
@@ -6400,6 +6411,9 @@ namespace NeoCompose.Runtime.NeoScript
             switch (fn)
             {
                 // Hot kinds first: each case is a type test.
+                case WorldLayerFunction world:
+                    return NeoWorldLayerRuntime.ResolveLayer(EvalPointer(world.info.receiverPointer, scope, ctx),
+                        world.info.layerClassId, world.info.source, ctx);
                 case ListIndexFunction lif:
                     return EvalListIndex(lif.info, scope, ctx);
                 case CountFunction cf:
@@ -11381,6 +11395,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="row">The row <paramref name="value"/> was unwrapped from, when the caller just read it.</param>
         internal static string? FindRowClassIdByReference(object? value, Context ctx, MemberValue? row = null)
         {
+            if (value is NeoWorldLayerRuntime.LayerView or NeoGeneratedTileLayerValue or NeoGeneratedObjectLayerValue)
+                return ((NeoGeneratedClassValue)value).classId;
             // The row the value came from names its class, as its reverse
             // index entry would.
             if (!string.IsNullOrEmpty(row?.classId))

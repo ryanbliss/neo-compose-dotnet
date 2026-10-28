@@ -225,7 +225,7 @@ namespace NeoCompose.Tests
                                 receiver = CallReceiver.Instance(receiver),
                                 args = new Pointer[]
                                 {
-                                    new CallFunctionPointer
+                                    CollectQuery(new CallFunctionPointer
                                     {
                                         type = PointerKind.CallFunction, callSiteId = "neighbors", memberId = GetObjectsId,
                                         receiver = CallReceiver.Instance(receiver),
@@ -233,7 +233,7 @@ namespace NeoCompose.Tests
                                         args = new Pointer[] { NeoCellPatternRuntimeTests.StaticCall("range", NeoCellPatternRuntimeTests.BoxId,
                                             NeoCellPatternRuntimeTests.Int(1), NeoCellPatternRuntimeTests.Int(0),
                                             NeoCellPatternRuntimeTests.Excluding(NeoCellPatternRuntimeTests.NoneOptionId)) },
-                                    },
+                                    }, new ClassTypeInfo { type = MemberKind.Class, classId = ObjectClassId, required = true }),
                                 },
                             },
                         },
@@ -264,7 +264,7 @@ namespace NeoCompose.Tests
             object? receiver = row is null ? null : NSGetterEvaluator.UnwrapRow(row, ctx, NeoValueOwnership.Save);
             client.ScriptGridQueries.TryInvoke(GetObjectsId, receiver,
                 new object?[] { NeoCellPatternRuntimeTests.Construct(client, Vector2Int.left, Vector2Int.zero, Vector2Int.right) }, null, ctx, out object? result);
-            return ((object?[])result!).Select(value => NSGetterEvaluator.FindRowIdByReference(value, ctx)!).ToArray();
+            return QueryValues(result, ctx).Select(value => NSGetterEvaluator.FindRowIdByReference(value, ctx)!).ToArray();
         }
     }
 }

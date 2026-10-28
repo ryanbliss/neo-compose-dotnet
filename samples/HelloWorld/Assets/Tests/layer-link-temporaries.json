@@ -1,7 +1,7 @@
 {
   "code": "ObjectLayerLink link = new ObjectLayerLink();\n NeoObjectBase obj = new VaultPlaqueObject();\n NeoPlacementResult result = link.TrySpawn(Vector2Int(20, 30), obj);\n NeoPlacementResult collision = link.TrySpawn(Vector2Int(20, 30), new VaultPlaqueObject());\n return result.Ok && !collision.Ok && link.Any() && link.Count == 1;",
   "body": {
-    "compilerRevision": 18,
+    "compilerRevision": 19,
     "source": {
       "name": "function",
       "coordinateSpace": "body"

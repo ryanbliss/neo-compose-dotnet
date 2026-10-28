@@ -149,6 +149,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
 
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
@@ -160,6 +162,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
                 [Fields.SmartTile] = () => null,
             };
         }
@@ -182,6 +185,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
                 [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
                 [Fields.SmartTile] = () => SmartTile,
             };
         }

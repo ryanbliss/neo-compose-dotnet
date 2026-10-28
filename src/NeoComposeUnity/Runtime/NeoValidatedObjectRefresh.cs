@@ -100,13 +100,14 @@ namespace NeoCompose.Runtime
                     break;
                 }
             }
-            // Tiles an object carried before the write are not proven here.
-            if (cache is null || cache.CarriesTiles(next.id))
+            // Prior nested placements must be invalidated even when the candidate removes their links.
+            if (cache is null || cache.CarriesTiles(next.id)
+                || (cache.Primitive.PlacementGraph.Nodes.TryGetValue(next.id, out var priorNode) && priorNode.Children.Count != 0))
                 return false;
             var placementDependencies = new HashSet<string>(StringComparer.Ordinal);
             var carriedDependencies = new HashSet<string>(StringComparer.Ordinal);
             if (!cache.Primitive.PlacesAs(next, record!, placementDependencies)
-                || cache.Primitive.HasObjectCarriedTiles(next, carriedDependencies))
+                || cache.Primitive.HasObjectCarriedPlacements(next, carriedDependencies))
                 return false;
             // The checks a whole-grid validation runs on one object; its
             // membership, class and layer are unchanged.
@@ -166,6 +167,7 @@ namespace NeoCompose.Runtime
                     continue;
                 ids.Remove(refresh.ObjectId);
                 ids.Remove(refresh.ContainerId);
+                ids.ExceptWith(refresh.CarriedDependencyIds);
             }
         }
 

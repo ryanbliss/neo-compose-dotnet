@@ -321,7 +321,7 @@ namespace NeoCompose.Tests
     ""init"": {
       ""code"": ""StaticFunc(\""bar\"")"",
       ""compiled"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -549,14 +549,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""AllCaps"", ""type"": 1, ""required"": true }],
       ""code"": ""\t\tif (AllCaps) {\n\t\t\tthis.Bar = \""BAR\"";\n\t\t}"",
       ""action"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseArguments"": [{ ""name"": ""Seed"", ""code"": ""AllCaps"" }],
       ""compiledBaseArguments"": [{
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 1, ""required"": true }
@@ -617,14 +617,14 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": """",
       ""action"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
       },
       ""baseInitializerFields"": [{ ""name"": ""Bar"", ""code"": ""bar"" }],
       ""compiledBaseInitializerFields"": [{
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 3, ""required"": true }
@@ -683,7 +683,7 @@ namespace NeoCompose.Tests
       ""argumentTypes"": [{ ""name"": ""bar"", ""type"": 3, ""required"": true }],
       ""code"": null,
       ""action"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }
@@ -697,7 +697,7 @@ namespace NeoCompose.Tests
       ""classId"": ""class-bar"",
       ""argumentTypes"": [],
       ""action"": {
-        ""compilerRevision"": 18,
+        ""compilerRevision"": 19,
         ""parameters"": [],
         ""instructions"": [],
         ""typeInfo"": { ""type"": 0, ""required"": true }

@@ -34,7 +34,7 @@
         "init": {
           "code": "ok",
           "compiled": {
-            "compilerRevision": 18,
+            "compilerRevision": 19,
             "source": {
               "name": "Ok",
               "coordinateSpace": "body"
@@ -171,7 +171,7 @@
         "init": {
           "code": "errorCode",
           "compiled": {
-            "compilerRevision": 18,
+            "compilerRevision": 19,
             "source": {
               "name": "ErrorCode",
               "coordinateSpace": "body"
@@ -308,7 +308,7 @@
         "init": {
           "code": "message",
           "compiled": {
-            "compilerRevision": 18,
+            "compilerRevision": 19,
             "source": {
               "name": "Message",
               "coordinateSpace": "body"
@@ -465,7 +465,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "action": {
-        "compilerRevision": 18,
+        "compilerRevision": 19,
         "source": {
           "name": "NeoPlacementResult",
           "coordinateSpace": "body"

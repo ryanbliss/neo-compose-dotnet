@@ -20,6 +20,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out CollisionsTileLayerLink writable);
+
+        CollisionTileLayer Layer { get; }
     }
 
     public partial class CollisionsTileLayerLink : NeoTileLayerLink, IReadOnlyCollisionsTileLayerLink
@@ -92,6 +94,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<CollisionsTileLayerLink>(out writable);
         }
+
+        public CollisionTileLayer Layer => client.ScriptGridQueries.Layer<CollisionTileLayer>(this, "neo-tile-grid-record-relations-v1-class-e06896b149a650d6ceb37fbdfdba9ffa");
 
         public NeoPlacementResult TrySet(Vector2Int cell, ICollisionTileLayerCompatibleTile obj)
         {

@@ -21,8 +21,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out VaultPlaqueObject writable);
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
-
         new string Name { get; }
 
 
@@ -125,23 +123,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public static NeoClassRef<VaultPlaqueObject> Definition { get; } = new NeoClassRef<VaultPlaqueObject>("cacf06dd-db1d-4f48-99c7-f3cea5a6961f");
 
-        public override NeoList<NeoObjectBase> Children
+        protected override NeoList<NeoObjectBase> Children
         {
             get
             {
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Children");
                 if (TryGetStoredView<NeoList<NeoObjectBase>>("Children", memberNode, out var cached)) return cached;
                 return CacheStoredView("Children", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("VaultPlaqueObject.Children"), () => IsReadOnly));
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyVaultPlaqueObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -234,16 +222,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
@@ -264,7 +242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoDialogueReference> VaultPlaqueReward = new("VaultPlaqueReward");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
@@ -277,6 +255,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<int> Count = new("Count");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -293,6 +275,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.Count] = () => null,
+                [Fields.GridCell] = () => null,
             };
         }
 
@@ -320,6 +304,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Size] = () => Size,
                 [Fields.Cell] = () => Cell,
+                [Fields.Count] = () => Count,
+                [Fields.GridCell] = () => GridCell,
             };
         }
 

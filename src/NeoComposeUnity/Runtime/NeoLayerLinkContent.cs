@@ -386,7 +386,9 @@ namespace NeoCompose.Runtime
                 (NeoGeneratedClassValue)link,
                 linkRow!,
                 isTileLink: false);
-            var origin = client!.LayerLinkPlacementOrigin((NeoGeneratedClassValue)link).origin;
+            var (gridId, _) = client!.LayerLinkPlacementOrigin((NeoGeneratedClassValue)link);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, gridId ?? linkRow!.id);
+            var graph = gridId is null ? null : primitive.LookupCache.Primitive.PlacementGraph;
             var order = 0;
             var ownership = ((NeoGeneratedClassValue)link).BackingNode.Get<NeoMemberList>("Objects").ownership;
 
@@ -409,14 +411,14 @@ namespace NeoCompose.Runtime
                 if (generatedObject is null)
                     continue;
                 var localPosition = ReadRowPosition(client, objectRow);
-                var cell = origin + new Vector2Int(
-                    Mathf.RoundToInt(localPosition.x),
-                    Mathf.RoundToInt(localPosition.y));
+                var cell = graph is not null && graph.Nodes.TryGetValue(objectValueId, out var placement)
+                    ? placement.Cell
+                    : NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(localPosition.x, localPosition.y);
                 objects.Add(new NeoObjectProjection(
                     objectValueId,
                     layerId,
                     cell,
-                    new[] { cell },
+                    primitive.ReadObjectFootprint(objectRow, cell, null),
                     generatedObject,
                     order++));
             }
