@@ -117,6 +117,10 @@ namespace NeoCompose.Runtime
             objectVisibilityByInstanceId = new();
         // The same GameObjects by value id, for NeoGeneratedWorldObjectValue.TryGetGameObject.
         private readonly Dictionary<string, GameObject> gameObjectsByValueId = new();
+        // Placement roots remain independently indexed, but share their authored
+        // ancestor's Unity sorting group, even across object layers.
+        private readonly Dictionary<string, Transform> sortingGroupContentsByValueId = new();
+        private readonly Dictionary<string, HashSet<PlacedObjectPosition>> sortingGroupDescendantsByValueId = new();
         // Every SpriteRenderer an instance rendered from a sprite OBJECT,
         // paired with the value that governs it. See SyncObjectSprites.
         private readonly Dictionary<NeoObjectInstanceId, List<RenderedObjectSprite>>
@@ -208,6 +212,8 @@ namespace NeoCompose.Runtime
                 foreach (var bucket in Buckets)
                 {
                     bucket.PositionBinding?.Dispose();
+                    if (bucket.Value.valueId is string groupedValueId)
+                        renderer.UnregisterSortingGroup(groupedValueId, bucket.GameObject);
                     if (bucket.Value.valueId is string valueId
                         && renderer.gameObjectsByValueId.TryGetValue(valueId, out var registered)
                         && ReferenceEquals(registered, bucket.GameObject))
@@ -237,7 +243,11 @@ namespace NeoCompose.Runtime
                     bucket.PositionBinding.Register(gameObject.transform);
                 }
                 if (value.valueId is string valueId)
+                {
                     renderer.gameObjectsByValueId[valueId] = gameObject;
+                    if (sortPoint is not null)
+                        renderer.RegisterSortingGroup(valueId, sortPoint.Content);
+                }
             }
         }
 
@@ -501,7 +511,7 @@ namespace NeoCompose.Runtime
             {
                 parts.Add(child);
                 parts.Add(child.valueId);
-                if (child is INeoTileLayerLinkValue)
+                if (child is INeoTileLayerLinkValue or INeoObjectLayerLinkValue)
                     return;
                 parts.Add(child.Name);
                 if (child is INeoSpriteObjectValue sprite)
@@ -1632,6 +1642,8 @@ namespace NeoCompose.Runtime
             private Vector3 applied;
             private Vector3 appliedPosition;
             private Vector3 appliedPoint;
+            private readonly Transform layerParent;
+            private int positionedAncestorCount;
             private readonly List<NeoGeneratedClassValue> ancestors = new();
             private readonly List<IDisposable> ancestorSubscriptions = new();
 
@@ -1644,6 +1656,7 @@ namespace NeoCompose.Runtime
             {
                 this.renderer = renderer;
                 this.transform = transform;
+                layerParent = transform.parent;
                 this.value = value;
                 worldObject = value as INeoWorldObjectValue;
                 this.sortPoint = sortPoint;
@@ -1653,12 +1666,48 @@ namespace NeoCompose.Runtime
                     for (var ancestor = node.Parent; ancestor is not null; ancestor = ancestor.Parent)
                         if (primitive.ResolveGeneratedClassValue(ancestor.Row.id) is { } generated)
                             ancestors.Add(generated);
+                positionedAncestorCount = ancestors.Count;
             }
 
             public void TrackAncestors(Action<NeoGeneratedClassValue, NeoMember> changed)
             {
                 foreach (var ancestor in ancestors)
+                {
                     ancestorSubscriptions.Add(ancestor.WatchAnyChange((value, member, _) => changed(value, member)));
+                    if (ancestor is INeoSortingGroupSource && ancestor.valueId is string id)
+                    {
+                        if (!renderer.sortingGroupDescendantsByValueId.TryGetValue(id, out var descendants))
+                            renderer.sortingGroupDescendantsByValueId[id] = descendants = new();
+                        descendants.Add(this);
+                    }
+                }
+                Reparent();
+            }
+
+            public void Reparent()
+            {
+                if (transform == null)
+                    return;
+                var parent = layerParent;
+                int count = ancestors.Count;
+                for (int index = 0; index < ancestors.Count; index++)
+                {
+                    var ancestor = ancestors[index];
+                    if (ancestor.valueId is string id
+                        && renderer.sortingGroupContentsByValueId.TryGetValue(id, out var content)
+                        && content != null)
+                    {
+                        parent = content;
+                        count = index;
+                        break;
+                    }
+                }
+                if (transform.parent == parent && positionedAncestorCount == count)
+                    return;
+                positionedAncestorCount = count;
+                transform.SetParent(parent, false);
+                origin = AncestorOrigin();
+                Apply(worldObject?.Position.Value ?? appliedPosition);
             }
 
             public bool AncestorsEnabled
@@ -1675,8 +1724,10 @@ namespace NeoCompose.Runtime
             private Vector3 AncestorOrigin()
             {
                 var offset = Vector3.zero;
-                foreach (var ancestor in ancestors)
-                    if (ancestor is INeoWorldObjectValue world)
+                // The anchor group's Content already carries its own and all
+                // higher positions. Counting them again would move children twice.
+                for (int index = 0; index < positionedAncestorCount; index++)
+                    if (ancestors[index] is INeoWorldObjectValue world)
                         offset += world.Position.Value;
                 return renderer.CellOffsetToLocalPosition(offset);
             }
@@ -1748,6 +1799,16 @@ namespace NeoCompose.Runtime
                 Subscription?.Dispose();
                 foreach (var subscription in ancestorSubscriptions)
                     subscription.Dispose();
+                foreach (var ancestor in ancestors)
+                {
+                    if (ancestor.valueId is string id
+                        && renderer.sortingGroupDescendantsByValueId.TryGetValue(id, out var descendants))
+                    {
+                        descendants.Remove(this);
+                        if (descendants.Count == 0)
+                            renderer.sortingGroupDescendantsByValueId.Remove(id);
+                    }
+                }
             }
 
             private Vector3 Point => sortPoint?.Point ?? Vector3.zero;
@@ -1948,6 +2009,25 @@ namespace NeoCompose.Runtime
                 QueueLifecycleTransitions(visibility);
         }
 
+        private void RegisterSortingGroup(string valueId, Transform content)
+        {
+            sortingGroupContentsByValueId[valueId] = content;
+            if (sortingGroupDescendantsByValueId.TryGetValue(valueId, out var descendants))
+                foreach (var descendant in descendants)
+                    descendant.Reparent();
+        }
+
+        private void UnregisterSortingGroup(string valueId, GameObject owner)
+        {
+            if (!sortingGroupContentsByValueId.TryGetValue(valueId, out var content)
+                || content == null || content.parent != owner.transform)
+                return;
+            sortingGroupContentsByValueId.Remove(valueId);
+            if (sortingGroupDescendantsByValueId.TryGetValue(valueId, out var descendants))
+                foreach (var descendant in descendants)
+                    descendant.Reparent();
+        }
+
         private void DisposeObjectPositionSubscription(NeoObjectInstanceId instanceId)
         {
             if (placedPositionsByInstanceId.Remove(instanceId, out var placed))
@@ -2042,6 +2122,8 @@ namespace NeoCompose.Runtime
             objectLayerRootsByLayerId.Clear();
             DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
+            sortingGroupContentsByValueId.Clear();
+            sortingGroupDescendantsByValueId.Clear();
             foreach (var visibility in objectVisibilityByInstanceId.Values)
                 visibility.Dispose();
             objectVisibilityByInstanceId.Clear();
@@ -2395,7 +2477,7 @@ namespace NeoCompose.Runtime
             // run.
             if (instance.Object is INeoWorldObjectValue rootObject)
             {
-                visibility.Register(rootObject, go, trackPosition: false);
+                visibility.Register(rootObject, go, trackPosition: false, sortPoint: sortPoint);
             }
 
             // A placed sprite draws its own art under its children (P111 §4).

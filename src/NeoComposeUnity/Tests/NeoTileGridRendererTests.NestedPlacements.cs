@@ -3,6 +3,7 @@
 #nullable enable
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime;
@@ -10,6 +11,7 @@ using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -183,6 +185,143 @@ namespace NeoCompose.Tests
                 Assert.That(door.activeSelf, Is.True);
             }
             finally { UnityEngine.Object.DestroyImmediate(go); }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void NestedObjectLayerRenderingKeepsAncestorSortingGroup(bool reverseLayers, bool sortAtRoot)
+        {
+            const string supportLayerId = "support-object-layer";
+            const string supportLinkId = "support-object-link";
+            var data = BuildNestedObjectPlacementData();
+            data.classes[ObjectLayerLinkClassId].schema["Enabled"] = "object-enabled-member";
+            data.classes[ObjectsLayerClassId].schema["SortingOrder"] = "primary-order";
+            data.members["primary-order"] = SortingOrderMember("primary-order", 7);
+            data.members["support-order"] = SortingOrderMember("support-order", 19);
+            data.classes[supportLayerId] = new NeoSchemaClass
+            {
+                id = supportLayerId,
+                projectId = "project-a",
+                name = "Support",
+                extendsClassId = ObjectsLayerClassId,
+                schema = new Dictionary<string, string> { ["SortingOrder"] = "support-order" },
+            };
+            data.classes[supportLinkId] = new NeoSchemaClass
+            {
+                id = supportLinkId,
+                projectId = "project-a",
+                name = "SupportLink",
+                extendsClassId = ObjectLayerLinkClassId,
+                schema = new Dictionary<string, string>(),
+            };
+            data.internalRecordRelations!["support-grid"] = Relation("support-grid",
+                InternalRecordRelationKinds.WorldGridObjectLayer, GridClassId, supportLayerId, "c0");
+            data.internalRecordRelations["support-compatible"] = Relation("support-compatible",
+                InternalRecordRelationKinds.WorldObjectCompatibleLayer, ObjectClassId, supportLayerId);
+            data.internalRecordRelations["support-target"] = Relation("support-target",
+                InternalRecordRelationKinds.WorldObjectLayerLinkTarget, supportLinkId, supportLayerId);
+            data.values["nested-objects-link"].classId = supportLinkId;
+            data.values["door-art"] = new ObjectMemberValue
+            {
+                id = "door-art",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string>()
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var factories = BuildClassBackedReadOnlyFactories();
+            factories[ObjectClassId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                () => new TestComposedObject(c, n) { PositionFromNode = true });
+            factories[supportLinkId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                () => new TestObjectLayerLink(c, n) { WorldFieldsFromNode = true });
+            factories[supportLayerId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                () => new TestAuthoredObjectLayer(c, n));
+            var grid = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid", factories, BuildClassBackedWritableFactories());
+            TestComposedObject Object(string id) => (TestComposedObject)grid.ResolveGeneratedClassValue(id)!;
+            var location = Object("shop-1");
+            var part = Object("shop-part");
+            var door = Object("door");
+            location.Children = new[] { part };
+            part.Children = new[] { (INeoWorldObjectValue)grid.ResolveGeneratedClassValue("nested-objects-link")! };
+            location.SortingGroup = new TestSortingGroup();
+            door.SortingGroup = new TestSortingGroup { SortAtRoot = sortAtRoot };
+            var sprite = CreateTestSprite("Door art");
+            door.Children = new[] { new TestSpriteObject(client, Object("door-art").BackingNode)
+                { Name = "Door art", Sprite = sprite, SortingOrder = 4 } };
+            int doorSpawns = 0, doorDespawns = 0;
+            door.Spawned = _ => doorSpawns++;
+            door.Despawned = _ => doorDespawns++;
+            var primary = grid.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(ObjectsLayerClassId, new[] { ObjectClassId });
+            var support = grid.BindReadOnlyObjectLayer<TestAuthoredObjectLayer>(supportLayerId, new[] { ObjectClassId });
+            var go = new GameObject("nested-sorting");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(new TestTileGridContent(grid, Array.Empty<IReadOnlyNeoTileLayerRuntime>(),
+                    reverseLayers ? new[] { support, primary } : new[] { primary, support }));
+                Assert.That(renderer.TryGetObjectRoot("shop-1", out var locationRoot), Is.True);
+                Assert.That(renderer.TryGetObjectRoot("door", out var doorRoot), Is.True);
+                Assert.That(doorRoot.transform.parent, Is.SameAs(locationRoot.transform.Find("Content")));
+                var doorGroup = doorRoot.GetComponent<UnityEngine.Rendering.SortingGroup>();
+                Assert.That(doorGroup.sortAtRoot, Is.EqualTo(sortAtRoot));
+                Assert.That(doorGroup.sortingOrder, Is.EqualTo(19));
+                Assert.That(locationRoot.GetComponent<UnityEngine.Rendering.SortingGroup>().sortingOrder, Is.EqualTo(7));
+                Assert.That(doorRoot.GetComponentInChildren<SpriteRenderer>().sortingOrder, Is.EqualTo(23));
+                AssertSamePosition(new Vector3(16.5f, 21, 0), doorRoot.transform.position);
+                Assert.That(go.GetComponentsInChildren<SpriteRenderer>(true).Length, Is.EqualTo(1));
+
+                NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "shop-part"), "Position", new NeoReadOnlyVector3(3.25f, 1, 2));
+                AssertSamePosition(new Vector3(16.75f, 21, 2), doorRoot.transform.position);
+                NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "shop-1"), "Position", new NeoReadOnlyVector3(11, 20, 1));
+                AssertSamePosition(new Vector3(17.75f, 21, 3), doorRoot.transform.position);
+
+                // A parent's shape rebuild must neither destroy nor respawn its
+                // separately indexed nested placement, in either layer order.
+                location.SortingGroup = null;
+                ApplyNestedRenderDelta(renderer, primary, "shop-1", removed: false);
+                Assert.That(renderer.TryGetObjectRoot("door", out var afterRebuild), Is.True);
+                Assert.That(afterRebuild, Is.SameAs(doorRoot));
+                AssertSamePosition(new Vector3(17.75f, 21, 3), doorRoot.transform.position);
+                location.SortingGroup = new TestSortingGroup();
+                ApplyNestedRenderDelta(renderer, primary, "shop-1", removed: false);
+                Assert.That(renderer.TryGetObjectRoot("shop-1", out locationRoot), Is.True);
+                Assert.That(doorRoot.transform.parent, Is.SameAs(locationRoot.transform.Find("Content")));
+                Assert.That(doorSpawns, Is.EqualTo(Application.isPlaying ? 1 : 0));
+                Assert.That(doorDespawns, Is.Zero);
+                ApplyNestedRenderDelta(renderer, primary, "shop-1", removed: true);
+                Assert.That(renderer.TryGetObjectRoot("door", out afterRebuild), Is.True);
+                Assert.That(afterRebuild, Is.SameAs(doorRoot));
+                ApplyNestedRenderDelta(renderer, support, "door", removed: true);
+                Assert.That(doorDespawns, Is.EqualTo(Application.isPlaying ? 1 : 0));
+                Assert.That(renderer.TryGetObjectRoot("door", out _), Is.False);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator NestedSortingRebuildKeepsPlacedChildLifecycle()
+        {
+            yield return new EnterPlayMode();
+            NestedObjectLayerRenderingKeepsAncestorSortingGroup(reverseLayers: true, sortAtRoot: true);
+            yield return new ExitPlayMode();
+        }
+
+        private static void ApplyNestedRenderDelta(NeoTileGridRenderer renderer, IReadOnlyNeoObjectLayerRuntime layer,
+            string id, bool removed)
+        {
+            var empty = Array.Empty<NeoObjectInstanceId>();
+            var ids = new NeoObjectInstanceId[] { id };
+            var change = new NeoObjectLayerChangedArgs(layer.LayerId, removed ? ids : empty, removed ? empty : ids,
+                Array.Empty<Vector2Int>(), NeoTileGridChangeSourceKind.Direct, null);
+            typeof(NeoTileGridRenderer).GetMethod("ApplyObjectLayerDelta",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(renderer, new object[] { layer, change });
         }
 
         [Test]
