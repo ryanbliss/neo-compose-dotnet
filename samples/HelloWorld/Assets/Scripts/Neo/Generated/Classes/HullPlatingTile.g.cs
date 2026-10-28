@@ -142,6 +142,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
 
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -152,6 +154,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => null,
                 [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
             };
         }
 
@@ -173,6 +176,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => Sprite,
                 [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
             };
         }
 

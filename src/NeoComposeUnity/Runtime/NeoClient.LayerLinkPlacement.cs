@@ -11,8 +11,45 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
+        internal NeoPlacementOutcome TrySpawnChild(NeoGeneratedClassValue parent, Vector2Int cell, NeoGeneratedClassValue child)
+        {
+            if (!ReferenceEquals(parent.Client, this) || !ReferenceEquals(child.Client, this))
+                throw new ArgumentException("Parent and child must belong to the same client.");
+            if (!HasWorldKind(parent.classId, "object") || !HasWorldKind(child.classId, "objectBase"))
+                return NeoPlacementOutcome.Error("placement-class-invalid", "TrySpawn requires a NeoObject parent and a NeoObjectBase child.");
+            try
+            {
+                var collection = NeoGeneratedTypesSupport.AsWritable(parent.BackingNode, parent.StorageOwnership)
+                    .Get<NeoMemberList>("Children");
+                if (collection is not NeoMemberListWritable list || list.ownership == NeoValueOwnership.Asset)
+                    throw new InvalidOperationException("Cannot spawn into immutable Children.");
+                AssertConstructedValueAdoptable(list.ownership, child);
+                var (gridId, origin) = WorldPlacementOrigin(parent.valueId!);
+                long x = (long)cell.x - origin.x;
+                long y = (long)cell.y - origin.y;
+                if (x < int.MinValue || x > int.MaxValue || y < int.MinValue || y > int.MaxValue)
+                    return NeoPlacementOutcome.Error("object-position-invalid", "Child position exceeds the integer cell range.");
+                var plan = new NeoWritePlan(this) { PlacementGridId = gridId };
+                PrepareConstructedObjectPlacement(plan, list, child, cell, parent.valueId!);
+                using (ReadCandidate(plan))
+                {
+                    var root = (ObjectMemberValue)ResolveValueRow(parent.valueId!)!;
+                    ValidateCompositionChildren(root, new HashSet<string>());
+                    if (gridId is null)
+                        ValidateDetachedWorldContent(root);
+                }
+                plan.Commit();
+                return NeoPlacementOutcome.Success();
+            }
+            catch (NeoPlacementValidationException error)
+            {
+                return NeoPlacementOutcome.Error(error.ErrorCode, error.Message);
+            }
+        }
+
         internal NeoPlacementOutcome TryPlaceLayerEntry(
-            NeoGeneratedClassValue link, Vector2Int cell, NeoGeneratedClassValue entry, bool tile)
+            NeoGeneratedClassValue link, Vector2Int cell, NeoGeneratedClassValue entry, bool tile,
+            NeoValueOwnership? tileOverlayOwnership = null)
         {
             if (!ReferenceEquals(link.Client, this) || !ReferenceEquals(entry.Client, this))
                 throw new ArgumentException("The layer link and placement must belong to the same client.");
@@ -37,6 +74,8 @@ namespace NeoCompose.Runtime
                 string collectionKey = tile ? "Tiles" : "Objects";
                 var collection = NeoGeneratedTypesSupport.AsWritable(link.BackingNode, link.StorageOwnership)
                     .Get<NeoMemberList>(collectionKey);
+                if (collection.ownership == NeoValueOwnership.Asset && tile && tileOverlayOwnership is NeoValueOwnership.Save or NeoValueOwnership.Session)
+                    return TryPlaceConstructedTileOverlay(link, collection, entry, cell, layerId, tileOverlayOwnership.Value);
                 if (collection.ownership == NeoValueOwnership.Asset)
                     throw new InvalidOperationException($"Cannot place content into immutable layer-link collection '{collectionKey}'.");
                 if (collection is not NeoMemberListWritable list)
@@ -65,7 +104,10 @@ namespace NeoCompose.Runtime
                         if (ResolveValueRow(id) is ObjectMemberValue existing && PlacementCell(existing) == localCell)
                             list.PrepareRemoveUnorderedEntry(plan, id);
                 }
-                PrepareConstructedPlacement(plan, list, entry, localCell, tile);
+                if (tile)
+                    PrepareConstructedPlacement(plan, list, entry, localCell, tile: true);
+                else
+                    PrepareConstructedObjectPlacement(plan, list, entry, cell, linkId);
                 if (!tile && gridId is not null)
                 {
                     using (ReadCandidate(plan))
@@ -102,6 +144,22 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan, NeoMemberListWritable list, NeoGeneratedClassValue entry,
             Vector2Int cell, bool tile)
         {
+            string id = PreparePlacementCoordinate(plan, entry, (cell.x, cell.y), tile);
+            list.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(id, entry));
+        }
+
+        internal void PrepareConstructedObjectPlacement(
+            NeoWritePlan plan, NeoMemberListWritable list, NeoGeneratedClassValue entry,
+            Vector2Int gridCell, string ownerId)
+        {
+            var offset = WorldPlacementOffset(ownerId).offset;
+            string id = PreparePlacementCoordinate(plan, entry,
+                (gridCell.x - offset.x, gridCell.y - offset.y), tile: false);
+            list.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(id, entry));
+        }
+
+        private string PreparePlacementCoordinate(NeoWritePlan plan, NeoGeneratedClassValue entry, (double x, double y) cell, bool tile)
+        {
             string id = entry.valueId ?? throw new InvalidOperationException("Placement has no backing row.");
             NeoValueOwnership ownership = entry.ValueOwnership;
             if (!TryGetValue(ownership, id, out ObjectMemberValue? source))
@@ -134,45 +192,92 @@ namespace NeoCompose.Runtime
             row.value[key] = coordinate.id;
             plan.Set(ownership, coordinate);
             plan.Set(ownership, row);
-            list.PrepareAddSerialized(plan, NeoValueWritePayload.FromValueReference(id, entry));
+            return id;
+        }
+
+        private NeoPlacementOutcome TryPlaceConstructedTileOverlay(
+            NeoGeneratedClassValue link, NeoMemberList collection, NeoGeneratedClassValue entry,
+            Vector2Int cell, string layerId, NeoValueOwnership ownership)
+        {
+            AssertConstructedValueAdoptable(ownership, entry);
+            var (gridId, origin) = LayerLinkPlacementOrigin(link);
+            if (gridId is null)
+                throw new InvalidOperationException("Tile overlays require an owning grid.");
+            var grid = ownership == NeoValueOwnership.Session
+                ? NeoTileGridPrimitive.ResolveForSession(this, gridId)
+                : NeoTileGridPrimitive.ResolveForSave(this, gridId);
+            long localX = (long)cell.x - origin.x, localY = (long)cell.y - origin.y;
+            if (localX < int.MinValue || localX > int.MaxValue || localY < int.MinValue || localY > int.MaxValue)
+                return NeoPlacementOutcome.Error("tile-cell-invalid", "Placement cell exceeds the supported integer range.");
+            var local = new Vector2Int((int)localX, (int)localY);
+            var plan = new NeoWritePlan(this) { PlacementGridId = gridId };
+            foreach (var existing in grid.LookupCache.TileRecords(layerId))
+                if (existing.SourceTileLayerLinkId == link.valueId && existing.Cell == cell)
+                {
+                    string existingId = existing.PlacementValueId;
+                    StageOwnedRemoval(plan, ownership, existingId, collection.EntryMember,
+                        values.ContainsKey(existingId) || !plan.TryGetWritable(ownership, existingId, out _));
+                }
+            string id = PreparePlacementCoordinate(plan, entry, (local.x, local.y), true);
+            string importedId = ImportValueReference(plan, ownership, id, out bool moved);
+            var row = CloneRowForWrite(plan.Resolve(importedId)!);
+            row.containerId = collection.value!.id;
+            plan.Set(ownership, row);
+            if (moved)
+            {
+                var payload = NeoValueWritePayload.FromValueReference(id, entry);
+                plan.AfterCommit(() => payload.RetargetMovedReference(this, collection.EntryMember, importedId, ownership));
+            }
+            using (ReadCandidate(plan))
+                ValidateWritePlan(plan);
+            grid.BeforeLinkPlacement(link.valueId!, layerId, cell, entry, true);
+            plan.Commit();
+            return NeoPlacementOutcome.Success();
         }
 
         // Direct grid links already store grid cells. Carried links project
         // through their owning object's rounded cell and composition offsets.
         internal (string? gridId, Vector2Int origin) LayerLinkPlacementOrigin(NeoGeneratedClassValue link)
+            => WorldPlacementOrigin(link.valueId!);
+
+        internal (string? gridId, Vector2Int origin) WorldPlacementOrigin(string valueId)
         {
-            string current = link.valueId!;
+            var (gridId, offset) = WorldPlacementOffset(valueId);
+            return (gridId, NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(offset.x, offset.y));
+        }
+
+        internal (string? gridId, (double x, double y) offset) WorldPlacementOffset(string valueId)
+        {
+            string current = valueId;
             var seen = new HashSet<string>();
             var owners = new List<ObjectMemberValue>();
             while (seen.Add(current))
             {
                 if (ResolveValueRow(current) is ObjectMemberValue row)
                 {
-                    if (HasWorldKind(row.classId, "tileGrid"))
+                    NoteRowRead(row.id);
+                    string? classId = row.classId;
+                    if (classId is null && TryInferMemberForValueId(row.id, out Member? member)
+                        && member is ClassMember placing && placing.TryGetDeclaredClassId(out string declaredClassId))
+                        classId = declaredClassId;
+                    if (HasWorldKind(classId, "tileGrid"))
                     {
-                        if (owners.Count <= 1)
-                            return (current, Vector2Int.zero);
-                        // The final owner is the direct grid link. The one
-                        // before it is the placed object that carries this link.
-                        ObjectMemberValue placed = owners[owners.Count - 2];
                         (double x, double y) offset = (0, 0);
-                        for (int i = 0; i < owners.Count - 2; i++)
+                        foreach (var owner in owners)
                         {
-                            var child = PlacementPosition(owners[i]);
-                            offset = (offset.x + child.x, offset.y + child.y);
+                            var position = PlacementPosition(owner);
+                            offset = (offset.x + position.x, offset.y + position.y);
                         }
-                        var position = PlacementPosition(placed);
-                        return (current, NeoReadOnlyTileGridPrimitive.CheckedPlacementCell(
-                            NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(position.x, position.y), NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(offset.x, offset.y)));
+                        return (current, offset);
                     }
                     owners.Add(row);
                 }
                 string? parent = PlacementParent(current);
                 if (parent is null)
-                    return (null, Vector2Int.zero);
+                    return (null, (0, 0));
                 current = parent;
             }
-            throw PlacementError("placement-containment-cycle", $"Layer link '{link.valueId}' has cyclic ownership.");
+            throw PlacementError("placement-containment-cycle", $"World value '{valueId}' has cyclic ownership.");
         }
 
         private string? PlacementParent(string id)
@@ -196,9 +301,13 @@ namespace NeoCompose.Runtime
             return found;
         }
 
-        private (double x, double y) PlacementPosition(ObjectMemberValue row) =>
-            ResolveClassChildRow(row, "Position") is Vector3MemberValue { value: not null } position
-                ? (position.value.x, position.value.y) : (0, 0);
+        private (double x, double y) PlacementPosition(ObjectMemberValue row)
+        {
+            if (ResolveClassChildRow(row, "Position") is not Vector3MemberValue { value: not null } position)
+                return (0, 0);
+            NoteRowRead(position.id);
+            return (position.value.x, position.value.y);
+        }
 
         private Vector2Int PlacementCell(ObjectMemberValue row) =>
             ResolveClassChildRow(row, "Cell") is Vector2MemberValue { value: not null } cell
@@ -207,36 +316,51 @@ namespace NeoCompose.Runtime
         private void ValidateDetachedLayerLink(string linkId, bool tile)
         {
             ObjectMemberValue link = RequirePlacementClass(linkId, tile ? "tileLayerLink" : "objectLayerLink");
-            ArrayMemberValue? list = ValidatePlacementCollectionField(link, tile ? "Tiles" : "Objects");
-            if (list is null)
-                return;
-            var occupied = new Dictionary<Vector2Int, string>();
-            foreach (string id in PlacementListEntries(list.id))
+            ValidateDetachedWorldContent(link);
+        }
+
+        private void ValidateDetachedWorldContent(ObjectMemberValue root)
+        {
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(this, root.id);
+            var graph = primitive.BuildDetachedPlacementGraph(root);
+            var occupied = new Dictionary<(string layer, Vector2Int cell), string>();
+            foreach (var node in graph.Ordered)
             {
-                ObjectMemberValue row = RequirePlacementClass(id, tile ? "tile" : "object");
-                if (tile)
+                if (node.PlacementLayerId is string layer)
                 {
-                    ValidateTileRow(id);
-                    Reserve(PlacementCell(row), id);
+                    RequirePlacementClass(node.Row.id, "object");
+                    ValidateObjectPosition(node.Row);
+                    ValidateObjectFootprint(node.Row);
+                    RequireCompatible(node.Row, layer, false);
+                    foreach (var cell in primitive.ReadObjectFootprint(node.Row, node.Cell, null))
+                    {
+                        var key = (layer, cell);
+                        if (occupied.TryGetValue(key, out string previous) && previous != node.Row.id)
+                            throw PlacementError("tile-grid-object-cell-occupied", $"Detached content has objects '{previous}' and '{node.Row.id}' at {cell} in layer '{layer}'.");
+                        occupied[key] = node.Row.id;
+                    }
                 }
-                else
+                if (node.Link is not { IsTileLink: true } tileLink)
+                    continue;
+                var tiles = new HashSet<Vector2Int>();
+                foreach (string id in PlacementListEntries(tileLink.ListValueId))
                 {
-                    ValidateObjectPosition(row);
-                    ValidateObjectFootprint(row);
-                    var position = PlacementPosition(row);
-                    Vector2Int origin = NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(position.x, position.y);
-                    if (ValidatePlacementCollectionField(row, "PlacementTiles") is not ArrayMemberValue footprint)
-                        continue;
-                    foreach (string footprintId in PlacementListEntries(footprint.id))
-                        Reserve(NeoReadOnlyTileGridPrimitive.CheckedPlacementCell(origin, PlacementCell(RequirePlacementClass(footprintId, null))), id);
+                    var tile = RequirePlacementClass(id, "tile");
+                    ValidateTileRow(id);
+                    RequireCompatible(tile, tileLink.LayerId, true);
+                    var cell = NeoReadOnlyTileGridPrimitive.CheckedPlacementCell(node.Cell, PlacementCell(tile));
+                    if (!tiles.Add(cell))
+                        throw PlacementError("tile-cell-occupied", $"Tile link '{tileLink.LinkValueId}' has duplicate cells at {cell}.");
                 }
             }
-            void Reserve(Vector2Int cell, string id)
+
+            void RequireCompatible(ObjectMemberValue row, string layer, bool tile)
             {
-                if (occupied.TryGetValue(cell, out string previous) && previous != id)
-                    throw PlacementError(tile ? "tile-cell-occupied" : "tile-grid-object-cell-occupied",
-                        $"Layer link '{linkId}' has placements '{previous}' and '{id}' at {cell}.");
-                occupied[cell] = id;
+                string relation = tile ? InternalRecordRelationKinds.WorldTileCompatibleLayer : InternalRecordRelationKinds.WorldObjectCompatibleLayer;
+                foreach (string target in InternalRecordRelations.ResolveTargetIds(relation, row.classId!))
+                    if (target == layer)
+                        return;
+                throw PlacementError("placement-layer-incompatible", $"Class '{row.classId}' is not compatible with layer '{layer}'.");
             }
         }
     }

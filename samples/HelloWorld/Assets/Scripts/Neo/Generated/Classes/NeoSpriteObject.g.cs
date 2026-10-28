@@ -246,16 +246,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
@@ -282,7 +272,11 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<int> Count = new("Count");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
@@ -308,6 +302,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => null,
                 [Fields.Cell] = () => null,
                 [Fields.Children] = () => null,
+                [Fields.Count] = () => null,
+                [Fields.GridCell] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.FlipX] = () => null,
                 [Fields.FlipY] = () => null,
@@ -338,6 +334,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Size] = () => Size,
                 [Fields.Cell] = () => Cell,
                 [Fields.Children] = () => Children,
+                [Fields.Count] = () => Count,
+                [Fields.GridCell] = () => GridCell,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.FlipX] = () => FlipX,
                 [Fields.FlipY] = () => FlipY,

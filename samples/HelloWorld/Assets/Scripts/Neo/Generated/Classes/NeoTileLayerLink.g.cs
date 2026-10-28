@@ -29,6 +29,24 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoTile> GetEnumerator();
 
+        T? GetTile<T>(Vector2Int cell) where T : class, IReadOnlyNeoTile;
+
+
+
+        IReadOnlyNeoTile? GetTile(Vector2Int cell);
+
+        T? GetTile<T>(string instanceId) where T : class, IReadOnlyNeoTile;
+
+
+
+        IReadOnlyNeoTile? GetTile(string instanceId);
+
+        global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoTile;
+
+
+
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int cell);
+
         int IndexOf(IReadOnlyNeoTile obj);
 
         bool Remove(IReadOnlyNeoTile obj);
@@ -109,6 +127,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
+
+
+
         protected virtual NeoList<NeoTile> Tiles
         {
             get
@@ -137,6 +158,33 @@ namespace HelloWorld.Assets.Scripts.Neo
             var result = InvokeFunction("GetEnumerator");
             return NeoSequences.ReadEnumerator<IReadOnlyNeoTile>(client, result, NeoSequences.ElementType<IReadOnlyNeoTile>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
+
+        public T? GetTile<T>(Vector2Int cell) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_d8484b9c-4463-504e-a9e6-f20a0ebcd9d0", this, new object?[] { cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoTile? GetTile(Vector2Int cell)
+            => GetTile<IReadOnlyNeoTile>(cell);
+
+        public T? GetTile<T>(string instanceId) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_ed52c435-3d4a-555c-bc63-9db796f471fe", this, new object?[] { instanceId }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoTile? GetTile(string instanceId)
+            => GetTile<IReadOnlyNeoTile>(instanceId);
+
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_87bc5708-4c9f-5263-91c2-c83cb76f9357", this, new object?[] { pattern, cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int cell)
+            => GetTiles<IReadOnlyNeoTile>(pattern, cell);
 
         public virtual int IndexOf(IReadOnlyNeoTile obj)
         {

@@ -613,6 +613,18 @@ namespace NeoCompose.Runtime.Json
         public FunctionTextOpInfo info = null!;
     }
 
+    public sealed class WorldLayerFunction : Function
+    {
+        public WorldLayerInfo info = null!;
+    }
+
+    public sealed class WorldLayerInfo
+    {
+        public Pointer receiverPointer = null!;
+        public string layerClassId = null!;
+        public string source = null!;
+    }
+
     public sealed class ListIndexFunction : Function
     {
         public FunctionListIndexInfo info = null!;
@@ -758,6 +770,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(ListRepeatFunction);
                 case FunctionKind.TextOp:
                     return typeof(TextOpFunction);
+                case FunctionKind.WorldLayer:
+                    return typeof(WorldLayerFunction);
                 case FunctionKind.ListIndex:
                     return typeof(ListIndexFunction);
                 case FunctionKind.VariantInitialize:

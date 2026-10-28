@@ -911,8 +911,12 @@ namespace NeoCompose.Runtime
             int order,
             string assetClassId,
             string? assetValueId,
-            NeoValueOwnership? ownership)
+            NeoValueOwnership? ownership,
+            string? sourceLayerLinkId = null,
+            string? parentObjectId = null)
         {
+            SourceLayerLinkId = sourceLayerLinkId;
+            ParentObjectId = parentObjectId;
             InstanceId = instanceId;
             Cell = cell;
             Footprint = footprint;
@@ -947,6 +951,15 @@ namespace NeoCompose.Runtime
             get;
         }
         public NeoValueOwnership? Ownership
+        {
+            get;
+        }
+
+        internal string? SourceLayerLinkId
+        {
+            get;
+        }
+        internal string? ParentObjectId
         {
             get;
         }
@@ -1004,7 +1017,7 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoReadOnlyTileGridPrimitive
+    public partial class NeoReadOnlyTileGridPrimitive
     {
         protected readonly NeoClient client;
         protected static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> EmptyReadOnlyFactories =
@@ -1255,7 +1268,8 @@ namespace NeoCompose.Runtime
 
         public TLayer BindReadOnlyTileLayer<TLayer>(
             string layerClassId,
-            IReadOnlyCollection<string> importedClassIds)
+            IReadOnlyCollection<string> importedClassIds,
+            NeoValueOwnership storageOwnership = NeoValueOwnership.Asset)
             where TLayer : class
         {
             string? layerOverrideValueId = ResolveLayerOverrideValueId(
@@ -1264,7 +1278,7 @@ namespace NeoCompose.Runtime
             object value = CreateReadOnlyLayerValue(
                 layerClassId,
                 layerOverrideValueId,
-                $"__neo_grid_tile_layer_ro:{bindingInstanceId}:{GridValueId}:{layerClassId}");
+                $"__neo_grid_tile_layer_ro:{bindingInstanceId}:{GridValueId}:{layerClassId}:{storageOwnership}", storageOwnership);
             if (value is not TLayer typed || value is not NeoGeneratedTileLayerValue layer)
             {
                 throw new InvalidOperationException(
@@ -1280,7 +1294,8 @@ namespace NeoCompose.Runtime
 
         public TLayer BindReadOnlyObjectLayer<TLayer>(
             string layerClassId,
-            IReadOnlyCollection<string> importedClassIds)
+            IReadOnlyCollection<string> importedClassIds,
+            NeoValueOwnership storageOwnership = NeoValueOwnership.Asset)
             where TLayer : class
         {
             string? layerOverrideValueId = ResolveLayerOverrideValueId(
@@ -1289,7 +1304,7 @@ namespace NeoCompose.Runtime
             object value = CreateReadOnlyLayerValue(
                 layerClassId,
                 layerOverrideValueId,
-                $"__neo_grid_object_layer_ro:{bindingInstanceId}:{GridValueId}:{layerClassId}");
+                $"__neo_grid_object_layer_ro:{bindingInstanceId}:{GridValueId}:{layerClassId}:{storageOwnership}", storageOwnership);
             if (value is not TLayer typed || value is not NeoGeneratedObjectLayerValue layer)
             {
                 throw new InvalidOperationException(
@@ -1306,7 +1321,8 @@ namespace NeoCompose.Runtime
         private object CreateReadOnlyLayerValue(
             string classId,
             string? overrideValueId,
-            string memberId)
+            string memberId,
+            NeoValueOwnership storageOwnership)
         {
             if (!readOnlyFactories.TryGetValue(classId, out var factory))
             {
@@ -1316,7 +1332,7 @@ namespace NeoCompose.Runtime
             var node = new NeoMemberClass(
                 client,
                 CreateClassDefaultMember(classId, memberId),
-                overrideValueId);
+                overrideValueId, storageOwnership);
             object value = factory(client, node);
             if (overrideValueId is null && value is NeoGeneratedClassValue generated)
             {
@@ -1397,7 +1413,7 @@ namespace NeoCompose.Runtime
         private protected NeoGridLayerLinkModel? ResolveDirectWriteTargetLink(
             string layerClassId,
             bool isTileLayer,
-            NeoValueOwnership writeOwnership,
+            NeoValueOwnership? writeOwnership,
             out bool ambiguous)
         {
             ambiguous = false;
@@ -1415,7 +1431,7 @@ namespace NeoCompose.Runtime
                 bool collectionHasStorage = declared is not null;
                 if (declared is null && client.TryResolveSchemaClassAllowedOwnership(link.LinkClassId, out var classOwnership))
                     declared = classOwnership;
-                if (declared is not null && declared != writeOwnership)
+                if (declared is not null && (declared == NeoValueOwnership.Asset || (writeOwnership is not null && declared != writeOwnership)))
                 {
                     // Tile placements are separate overlay rows; an immutable
                     // source still supports them when no writable link exists.
@@ -1445,6 +1461,21 @@ namespace NeoCompose.Runtime
             return onlyMatch;
         }
 
+        internal NeoPlacementOutcome TryPlaceConstructedLayerEntry(string layerId, Vector2Int cell, NeoGeneratedClassValue entry, bool tile, NeoValueOwnership? overlayOwnership = null)
+        {
+            var target = ResolveDirectWriteTargetLink(layerId, tile, null, out bool ambiguous);
+            if (target is null)
+                return NeoPlacementOutcome.Error(ambiguous ? "tile-grid-layer-link-ambiguous" : "tile-grid-layer-link-missing",
+                    $"Grid '{GridValueId}' requires an unambiguous direct link for layer '{layerId}'.");
+            var ownership = ResolveCollectionOwnership(target.ListValueId)
+                ?? (client.TryResolveSchemaClassAllowedOwnership(target.LinkClassId, out var declared) ? declared : NeoValueOwnership.Save);
+            var context = client.CreateGetterContext(ownership);
+            var link = NeoLayerLinkRuntime.View(ResolveGeneratedClassValue(target.LinkValueId), context);
+            var overlay = overlayOwnership ?? (this is NeoTileGridPrimitive writable ? writable.WriteOwnership : NeoValueOwnership.Save);
+            return client.TryPlaceLayerEntry(link, cell, entry, tile,
+                tile && ownership == NeoValueOwnership.Asset ? overlay : null);
+        }
+
         internal string ResolveGeneratedClassId(Type generatedType)
         {
             if (generatedType is null)
@@ -1465,7 +1496,7 @@ namespace NeoCompose.Runtime
                 readOnlyFactories);
         }
 
-        protected static ClassMember CreateClassDefaultMember(string classId, string memberId)
+        internal static ClassMember CreateClassDefaultMember(string classId, string memberId)
         {
             NeoTimestamp now = NeoTimestamp.Now();
             return new ClassMember
@@ -2128,118 +2159,64 @@ namespace NeoCompose.Runtime
         internal NeoTileLayerBuild BuildTileLayerRecords(string layerId)
         {
             var build = new NeoTileLayerBuild();
-            var records = build.Records;
-            var dependencyIds = build.DependencyIds;
-            int order = 0;
-            var links = ResolveGridLinks(dependencyIds);
-            foreach (var link in links)
+            var graph = PlacementGraph;
+            build.DependencyIds.UnionWith(graph.Dependencies);
+            foreach (var node in graph.Ordered)
             {
-                if (!link.IsTileLink || link.LayerId != layerId)
+                if (node.CarriesTiles)
+                {
+                    if (node.EnabledRowId is string enabledId)
+                        build.LeafDependencyIds.Add(enabledId);
                     continue;
+                }
+                if (node.PositionRowId is string positionId)
+                    build.DependencyIds.Remove(positionId);
+                if (node.EnabledRowId is string ignoredEnabledId)
+                    build.DependencyIds.Remove(ignoredEnabledId);
+            }
+            foreach (var node in graph.Ordered)
+            {
+                if (node.Link is not { IsTileLink: true } link || link.LayerId != layerId)
+                    continue;
+                if (!node.Enabled)
+                    continue;
+                if (node.RootObjectId is not null)
+                    build.CarriedLinkIds.Add(link.LinkValueId);
                 var ownership = ResolveCollectionOwnership(link.ListValueId);
-                foreach (var placementId in ResolveListEntryIds(link.ListValueId, dependencyIds))
+                foreach (string id in ResolveListEntryIds(link.ListValueId, build.DependencyIds))
                 {
                     var record = ResolvePlacementRecord(
-                        placementId,
-                        placementId,
-                        origin: Vector2Int.zero,
-                        order,
-                        link.LinkValueId,
-                        sourceObjectInstanceId: null,
-                        CellKeyCandidates,
-                        dependencyIds,
-                        ownership);
-                    if (record is null)
-                        continue;
-                    records.Add(record);
-                    order += 1;
-                }
-            }
-
-            // Object-carried tile layer links (stamps): each placed object's
-            // composition may host TileLayerLink values, at any depth, whose
-            // tiles flatten into this layer.
-            var carried = new List<ObjectCarriedLink>();
-            var visiting = new HashSet<string>();
-            foreach (var link in links)
-            {
-                if (link.IsTileLink)
-                    continue;
-                int objectIndex = 0;
-                foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
-                {
-                    AppendObjectCarriedTiles(layerId, objectValueId, objectIndex, carried, visiting, build);
-                    objectIndex += 1;
+                        node.RootObjectId is null ? id : $"{node.RootObjectId}:{link.LinkValueId}:{id}",
+                        id, node.Cell, build.Records.Count, link.LinkValueId, node.RootObjectId,
+                        CellKeyCandidates, build.DependencyIds, ownership);
+                    if (record is not null)
+                        build.Records.Add(record);
                 }
             }
             return build;
         }
 
-        private void AppendObjectCarriedTiles(
-            string layerId,
-            string objectValueId,
-            int objectIndex,
-            List<ObjectCarriedLink> carried,
-            HashSet<string> visiting,
-            NeoTileLayerBuild build)
+        internal bool HasObjectCarriedPlacements(ObjectMemberValue row, HashSet<string> dependencies)
         {
-            var dependencyIds = build.DependencyIds;
-            dependencyIds.Add(objectValueId);
-            if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow)
-                return;
-            if (objectRow.IsRemoved)
-                return;
-            if (string.IsNullOrEmpty(objectRow.classId))
-                return;
-            carried.Clear();
-            visiting.Clear();
-            visiting.Add(objectValueId);
-            CollectCarriedLinks(objectRow, visiting, 0, carried, dependencyIds, build.LeafDependencyIds);
-            if (carried.Count == 0)
-                return;
-            foreach (var link in carried)
-                if (link.LayerId == layerId)
-                    build.CarriedLinkIds.Add(link.LinkValueId);
-            // Read only for an object that carries a link, so every other
-            // object's Enabled and Position writes leave the layer alone.
-            if (!ReadEnabled(objectRow, dependencyIds, build.LeafDependencyIds))
-                return;
-            Vector2Int origin = ReadObjectOrigin(objectRow, dependencyIds);
-
-            for (int linkIndex = 0; linkIndex < carried.Count; linkIndex++)
+            return HasLinks(row, new HashSet<string>());
+            bool HasLinks(ObjectMemberValue owner, HashSet<string> visited)
             {
-                var link = carried[linkIndex];
-                if (!link.Enabled || link.LayerId != layerId)
-                    continue;
-                var linkOrigin = CheckedPlacementCell(origin, RoundedPlacementCell(link.Offset.x, link.Offset.y));
-                int sourceOrder = objectIndex * 1000 + linkIndex;
-                int tileIndex = 0;
-                var ownership = ResolveCollectionOwnership(link.TilesListValueId);
-                foreach (var entryId in ResolveListEntryIds(link.TilesListValueId, dependencyIds))
+                if (!visited.Add(owner.id))
+                    throw new NeoPlacementValidationException("placement-containment-cycle", $"Cyclic composition at '{owner.id}'.");
+                if (client.ResolveClassChildRow(owner, "Children") is not ArrayMemberValue children)
+                    return false;
+                foreach (string id in ResolveListEntryIds(children.id, dependencies))
                 {
-                    var record = ResolveObjectCarriedTileRecord(
-                        objectValueId,
-                        link.LinkValueId,
-                        entryId,
-                        linkOrigin,
-                        sourceOrder,
-                        tileIndex,
-                        dependencyIds,
-                        ownership);
-                    tileIndex += 1;
-                    if (record is null)
+                    dependencies.Add(id);
+                    if (client.ResolveValueRow(id) is not ObjectMemberValue { IsRemoved: false } child)
                         continue;
-                    build.Records.Add(record);
+                    if (client.HasWorldKind(child.classId, "tileLayerLink") || client.HasWorldKind(child.classId, "objectLayerLink")
+                        || HasLinks(child, visited))
+                        return true;
                 }
+                visited.Remove(owner.id);
+                return false;
             }
-        }
-
-        /// <summary>Whether the object's composition holds a tile layer link at any depth, enabled or not.</summary>
-        internal bool HasObjectCarriedTiles(ObjectMemberValue objectRow, HashSet<string> dependencies)
-        {
-            var links = new List<ObjectCarriedLink>();
-            CollectCarriedLinks(objectRow, new HashSet<string> { objectRow.id }, 0, links, dependencies, null);
-            return links.Count != 0;
         }
 
         /// <summary>
@@ -2258,7 +2235,8 @@ namespace NeoCompose.Runtime
             if (assetValueId != record.AssetValueId)
                 return false;
             dependencyIds.Add(objectRow.id);
-            if (ReadObjectOrigin(objectRow, dependencyIds) != record.Cell)
+            ReadObjectOrigin(objectRow, dependencyIds);
+            if (client.WorldPlacementOrigin(objectRow.id).origin != record.Cell)
                 return false;
             IReadOnlyList<Vector2Int> footprint = ReadObjectFootprint(objectRow, record.Cell, dependencyIds);
             if (footprint.Count != record.Footprint.Count)
@@ -2269,100 +2247,6 @@ namespace NeoCompose.Runtime
                     return false;
             }
             return true;
-        }
-
-        private readonly struct ObjectCarriedLink
-        {
-            public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, (double x, double y) offset, bool enabled)
-            {
-                LinkValueId = linkValueId;
-                LayerId = layerId;
-                TilesListValueId = tilesListValueId;
-                Offset = offset;
-                Enabled = enabled;
-            }
-
-            public string LinkValueId
-            {
-                get;
-            }
-            public string LayerId
-            {
-                get;
-            }
-            public string TilesListValueId
-            {
-                get;
-            }
-            /// <summary>The Positions between the placed object and the link's tiles, the link's own included.</summary>
-            public (double x, double y) Offset
-            {
-                get;
-            }
-            /// <summary>False when the link or any object between it and the placed object is disabled.</summary>
-            public bool Enabled
-            {
-                get;
-            }
-
-            public ObjectCarriedLink Under((double x, double y) position, bool enabled) =>
-                new(LinkValueId, LayerId, TilesListValueId, (Offset.x + position.x, Offset.y + position.y), Enabled && enabled);
-        }
-
-        /// <summary>
-        /// Collects every tile layer link in an object's composition, depth
-        /// first. Only the Position and Enabled rows on a path to a link are
-        /// read; those are the leaf dependencies a runtime write can change
-        /// without a plan.
-        /// </summary>
-        private void CollectCarriedLinks(
-            ObjectMemberValue objectRow,
-            HashSet<string> visiting,
-            int depth,
-            List<ObjectCarriedLink> links,
-            HashSet<string>? dependencyIds,
-            HashSet<string>? leafDependencyIds)
-        {
-            string? childrenKey = FindSchemaKey(objectRow.classId!, ChildrenKeyCandidates);
-            if (childrenKey is null)
-                return;
-            if (client.ResolveClassChildRow(objectRow, childrenKey) is not ArrayMemberValue childrenList)
-                return;
-            foreach (var childValueId in ResolveListEntryIds(childrenList.id, dependencyIds))
-            {
-                dependencyIds?.Add(childValueId);
-                if (client.ResolveValueRow(childValueId) is not ObjectMemberValue childRow)
-                    continue;
-                if (childRow.IsRemoved)
-                    continue;
-                if (string.IsNullOrEmpty(childRow.classId))
-                    continue;
-                int first = links.Count;
-                string? tilesKey = FindSchemaKey(childRow.classId!, TilesKeyCandidates);
-                if (tilesKey is not null)
-                {
-                    if (client.ResolveClassChildRow(childRow, tilesKey) is not ArrayMemberValue tilesList)
-                        continue;
-                    dependencyIds?.Add(tilesList.id);
-                    string targetLayerId = NeoWorldLayerLinkResolver.ResolveTargetLayerClassId(
-                        client,
-                        childValueId,
-                        childRow.classId!,
-                        isTileLink: true);
-                    links.Add(new ObjectCarriedLink(childValueId, targetLayerId, tilesList.id, (0, 0), enabled: true));
-                }
-                else if (depth < MaxCompositionDepth && visiting.Add(childValueId))
-                {
-                    CollectCarriedLinks(childRow, visiting, depth + 1, links, dependencyIds, leafDependencyIds);
-                    visiting.Remove(childValueId);
-                }
-                if (links.Count == first)
-                    continue;
-                bool enabled = ReadEnabled(childRow, dependencyIds, leafDependencyIds);
-                var position = ReadPosition(childRow, dependencyIds, leafDependencyIds);
-                for (int i = first; i < links.Count; i++)
-                    links[i] = links[i].Under(position, enabled);
-            }
         }
 
         /// <summary>A world object's Enabled, true when its class declares none.</summary>
@@ -2395,28 +2279,6 @@ namespace NeoCompose.Runtime
             dependencyIds?.Add(position.id);
             leafDependencyIds?.Add(position.id);
             return ReadVector(position) ?? (0, 0);
-        }
-
-        private NeoTilePlacementRecord? ResolveObjectCarriedTileRecord(
-            string objectValueId,
-            string linkValueId,
-            string entryId,
-            Vector2Int origin,
-            int sourceOrder,
-            int tileIndex,
-            HashSet<string>? dependencyIds,
-            NeoValueOwnership? ownership)
-        {
-            return ResolvePlacementRecord(
-                $"{objectValueId}:{linkValueId}:{entryId}",
-                entryId,
-                origin,
-                CombineTileLayerLinkOrder(sourceOrder, tileIndex),
-                linkValueId,
-                objectValueId,
-                CellKeyCandidates,
-                dependencyIds,
-                ownership);
         }
 
         private NeoTilePlacementRecord? ResolvePlacementRecord(
@@ -2495,36 +2357,18 @@ namespace NeoCompose.Runtime
             HashSet<string>? dependencyIds)
         {
             var records = new List<NeoObjectPlacementRecord>();
-            int order = 0;
-            foreach (var link in ResolveGridLinks(dependencyIds))
+            var graph = PlacementGraph;
+            dependencyIds?.UnionWith(graph.Dependencies);
+            dependencyIds?.ExceptWith(graph.EnabledDependencies);
+            foreach (var node in graph.Ordered)
             {
-                if (link.IsTileLink || link.LayerId != layerId)
+                if (node.PlacementLayerId != layerId)
                     continue;
-                var ownership = ResolveCollectionOwnership(link.ListValueId);
-                foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
-                {
-                    dependencyIds?.Add(objectValueId);
-                    if (client.ResolveValueRow(objectValueId) is not ObjectMemberValue objectRow)
-                        continue;
-                    if (objectRow.IsRemoved)
-                        continue;
-                    if (string.IsNullOrEmpty(objectRow.classId))
-                        continue;
-                    string? assetValueId = objectRow.value is null
-                        ? null
-                        : ReadDirectReference(objectRow.value, "assetValueId");
-                    Vector2Int cell = ReadObjectOrigin(objectRow, dependencyIds);
-                    var footprint = ReadObjectFootprint(objectRow, cell, dependencyIds);
-                    records.Add(new NeoObjectPlacementRecord(
-                        objectValueId,
-                        cell,
-                        footprint,
-                        order,
-                        objectRow.classId!,
-                        assetValueId,
-                        ownership));
-                    order += 1;
-                }
+                var row = node.Row;
+                string? assetValueId = row.value is null ? null : ReadDirectReference(row.value, "assetValueId");
+                records.Add(new NeoObjectPlacementRecord(row.id, node.Cell,
+                    ReadObjectFootprint(row, node.Cell, dependencyIds), records.Count,
+                    row.classId!, assetValueId, node.Ownership, node.SourceLinkId, node.ParentObjectId));
             }
             return records;
         }
@@ -2708,31 +2552,9 @@ namespace NeoCompose.Runtime
             return cells;
         }
 
-        internal IReadOnlyList<string> ResolveTileLayerIds()
-        {
-            var ids = new List<string>();
-            foreach (var link in ResolveGridLinks(null))
-            {
-                if (!link.IsTileLink)
-                    continue;
-                if (!ids.Contains(link.LayerId))
-                    ids.Add(link.LayerId);
-            }
-            return ids;
-        }
+        internal IReadOnlyList<string> ResolveTileLayerIds() => PlacementGraph.TileLayerIds;
 
-        internal IReadOnlyList<string> ResolveObjectLayerIds()
-        {
-            var ids = new List<string>();
-            foreach (var link in ResolveGridLinks(null))
-            {
-                if (link.IsTileLink)
-                    continue;
-                if (!ids.Contains(link.LayerId))
-                    ids.Add(link.LayerId);
-            }
-            return ids;
-        }
+        internal IReadOnlyList<string> ResolveObjectLayerIds() => PlacementGraph.ObjectLayerIds;
 
         // -------------------------------------------------------------------
         // Row-shape helpers.
@@ -3347,6 +3169,14 @@ namespace NeoCompose.Runtime
                 || listMember is not ListMember objectsMember)
                 throw new InvalidOperationException($"Object list '{targetLink.ListValueId}' has no List member declaration.");
             string instanceId = objectValueId!;
+
+            var plan = new NeoWritePlan(client);
+            var objects = (NeoMemberListWritable)NeoMember.CreateWritable(
+                client, objectsMember, targetLink.ListValueId, writeOwnership);
+            client.PrepareConstructedObjectPlacement(plan, objects, generatedObject, cell, targetLink.LinkValueId);
+            plan.ObjectInsertion = (GridValueId, layerId, targetLink.ListValueId, instanceId);
+            if (Lifecycle is not null)
+                client.ValidateWritePlan(plan);
             Lifecycle?.BeforeSpawnObject(new NeoObjectSpawnContext(
                 this,
                 layerId,
@@ -3356,11 +3186,6 @@ namespace NeoCompose.Runtime
                 objectValueId,
                 objectClassId));
 
-            var plan = new NeoWritePlan(client);
-            var objects = (NeoMemberListWritable)NeoMember.CreateWritable(
-                client, objectsMember, targetLink.ListValueId, writeOwnership);
-            client.PrepareConstructedPlacement(plan, objects, generatedObject, cell, tile: false);
-            plan.ObjectInsertion = (GridValueId, layerId, targetLink.ListValueId, instanceId);
             plan.Commit();
             return NeoPlacementOutcome.Success();
         }
@@ -3437,6 +3262,16 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private Vector2Int LocalPlacementCell(NeoGridLayerLinkModel link, Vector2Int cell)
+        {
+            var origin = client.WorldPlacementOrigin(link.LinkValueId).origin;
+            long x = (long)cell.x - origin.x;
+            long y = (long)cell.y - origin.y;
+            if (x < int.MinValue || x > int.MaxValue || y < int.MinValue || y > int.MaxValue)
+                throw new NeoPlacementValidationException("tile-cell-invalid", "Placement cell exceeds the supported integer range.");
+            return new Vector2Int((int)x, (int)y);
+        }
+
         private NeoPlacementOutcome? CreatePlacementRows(
             NeoGridLayerLinkModel link,
             string placementValueId,
@@ -3473,6 +3308,7 @@ namespace NeoCompose.Runtime
                     "tile-grid-placement-cell-key-missing",
                     $"Placement class '{placementClassId}' has no 'Cell' schema key.");
             }
+            cell = LocalPlacementCell(link, cell);
             NeoTimestamp now = NeoTimestamp.Now();
             // Storage partitions: the placement subtree lives in its
             // container's partition. The placement row would inherit through

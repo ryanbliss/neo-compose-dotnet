@@ -124,16 +124,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyExitPromptObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
@@ -149,16 +139,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return (NeoReadOnlyVector3)(object)((ExitPromptObject)this).Size!;
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -182,7 +162,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoDialogueReference> ExitPromptQuiet = new("ExitPromptQuiet");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
@@ -195,6 +175,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<int> Count = new("Count");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -211,6 +195,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.Count] = () => null,
+                [Fields.GridCell] = () => null,
             };
         }
 
@@ -238,6 +224,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
                 [Fields.Cell] = () => Cell,
+                [Fields.Count] = () => Count,
+                [Fields.GridCell] = () => GridCell,
             };
         }
 

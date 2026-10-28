@@ -20,6 +20,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ObjectLayerLink writable);
+
+        DefaultObjectLayer Layer { get; }
     }
 
     public partial class ObjectLayerLink : NeoObjectLayerLink, IReadOnlyObjectLayerLink
@@ -92,6 +94,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<ObjectLayerLink>(out writable);
         }
+
+        public DefaultObjectLayer Layer => client.ScriptGridQueries.Layer<DefaultObjectLayer>(this, "neo-tile-grid-record-relations-v1-class-d1b21a408630eedaf664ccf5720d874f");
 
         public NeoPlacementResult TrySpawn(Vector2Int cell, IDefaultObjectLayerCompatibleObject obj)
         {

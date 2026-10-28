@@ -20,6 +20,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out BackgroundTileLayerLink writable);
+
+        BackgroundTileLayer Layer { get; }
     }
 
     public partial class BackgroundTileLayerLink : NeoTileLayerLink, IReadOnlyBackgroundTileLayerLink
@@ -92,6 +94,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return TryWritable<BackgroundTileLayerLink>(out writable);
         }
+
+        public BackgroundTileLayer Layer => client.ScriptGridQueries.Layer<BackgroundTileLayer>(this, "neo-tile-grid-record-relations-v1-class-9f889dbed89e6fdd2a883fb5a87fea19");
 
         public NeoPlacementResult TrySet(Vector2Int cell, IBackgroundTileLayerCompatibleTile obj)
         {

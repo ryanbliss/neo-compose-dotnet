@@ -94,6 +94,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
+            public static readonly NeoField<int> Count = new("Count");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
@@ -107,6 +109,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Count] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.SortingLayer] = () => null,
                 [Fields.SortingOrder] = () => null,
@@ -128,6 +131,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Count] = () => Count,
                 [Fields.Name] = () => Name,
                 [Fields.SortingLayer] = () => SortingLayer,
                 [Fields.SortingOrder] = () => SortingOrder,

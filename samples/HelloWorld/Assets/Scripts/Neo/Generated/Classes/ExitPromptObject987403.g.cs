@@ -21,8 +21,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out ExitPromptObject987403 writable);
 
-        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
-
 
         /// <summary>
         /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
@@ -129,23 +127,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public static NeoClassRef<ExitPromptObject987403> Definition { get; } = new NeoClassRef<ExitPromptObject987403>("neo-tile-grid-record-relations-v1-class-f937471d208e5283ebd4905292987403");
 
-        public override NeoList<NeoObjectBase> Children
+        protected override NeoList<NeoObjectBase> Children
         {
             get
             {
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Children");
                 if (TryGetStoredView<NeoList<NeoObjectBase>>("Children", memberNode, out var cached)) return cached;
                 return CacheStoredView("Children", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject987403.Children"), () => IsReadOnly));
-            }
-        }
-
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyExitPromptObject987403.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
             }
         }
 
@@ -265,16 +253,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyExitPromptObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
         {
             get
@@ -293,16 +271,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObject.Children
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("Children");
-                if (TryGetStoredView<NeoReadOnlyList<IReadOnlyNeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, memberNode, (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child)));
-            }
-        }
-
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
             get
@@ -317,7 +285,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
@@ -336,6 +304,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<int> Count = new("Count");
+
+            public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -352,6 +324,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => null,
                 [Fields.Enabled] = () => null,
                 [Fields.Cell] = () => null,
+                [Fields.Count] = () => null,
+                [Fields.GridCell] = () => null,
             };
         }
 
@@ -379,6 +353,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
                 [Fields.Enabled] = () => Enabled,
                 [Fields.Cell] = () => Cell,
+                [Fields.Count] = () => Count,
+                [Fields.GridCell] = () => GridCell,
             };
         }
 

@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoTileLayer : IReadOnlyNeoTileLayerRuntime
+    public interface IReadOnlyNeoTileLayer : IReadOnlyNeoTileLayerRuntime, global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile>
     {
         bool IsReadOnly { get; }
 
@@ -21,7 +21,39 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTileLayer writable);
 
+        void Clear();
+
+        bool Contains(IReadOnlyNeoTile obj);
+
+        int Count { get; }
+
+        new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoTile> GetEnumerator();
+
+        T? GetTile<T>(string instanceId) where T : class, IReadOnlyNeoTile;
+
+
+
+        IReadOnlyNeoTile? GetTile(string instanceId);
+
+        T? GetTile<T>(Vector2Int cell) where T : class, IReadOnlyNeoTile;
+
+
+
+        IReadOnlyNeoTile? GetTile(Vector2Int cell);
+
+        global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoTile;
+
+
+
+        global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int cell);
+
+        int IndexOf(IReadOnlyNeoTile obj);
+
         string Name { get; }
+
+        bool Remove(IReadOnlyNeoTile obj);
+
+        void RemoveAt(int index);
 
         IReadOnlyNeoSortingLayer SortingLayer { get; }
 
@@ -117,6 +149,24 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
+
+
+        public virtual int Count
+        {
+            get
+            {
+                var result = ComputeProperty("Count");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+
+
+
+
+
+
         public virtual string Name
         {
             get
@@ -129,6 +179,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+
 
         public virtual IReadOnlyNeoSortingLayer SortingLayer
         {
@@ -157,9 +209,85 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
+        [NeoMemberMethod("system_f77c4cbb-2df3-5350-b0bc-9bf99ade5082")]
+        public virtual void Clear()
+        {
+            client.ScriptGridQueries.Invoke("system_f77c4cbb-2df3-5350-b0bc-9bf99ade5082", this, new object?[] { });
+        }
+
+        public virtual bool Contains(IReadOnlyNeoTile obj)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_7afcfb2d-dccb-5398-b431-865c1457eaba", this, new object?[] { obj });
+            return (bool)result!;
+        }
+
+        private int GetCount()
+        {
+            var result = client.ScriptGridQueries.Invoke("system_4087fd9c-ceb1-5616-8779-6c4d7f379bfc", this, new object?[] { });
+            return Convert.ToInt32(result);
+        }
+
+        public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoTile> GetEnumerator()
+        {
+            var result = client.ScriptGridQueries.Invoke("system_47765255-929f-5bc3-bb80-c02d4d7470bd", this, new object?[] { });
+            return NeoSequences.ReadEnumerator<IReadOnlyNeoTile>(client, result, NeoSequences.ElementType<IReadOnlyNeoTile>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public T? GetTile<T>(string instanceId) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_92bac216-5060-5043-90fa-6666cc37f868", this, new object?[] { instanceId }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoTile? GetTile(string instanceId)
+            => GetTile<IReadOnlyNeoTile>(instanceId);
+
+        public T? GetTile<T>(Vector2Int cell) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_d9d97231-c764-5824-b9b0-3c449743180e", this, new object?[] { cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+        }
+
+        public IReadOnlyNeoTile? GetTile(Vector2Int cell)
+            => GetTile<IReadOnlyNeoTile>(cell);
+
+        public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int cell) where T : class, IReadOnlyNeoTile
+        {
+            var result = client.ScriptGridQueries.Invoke("system_0e919dfb-35f1-5620-a170-c8a341c7c4ff", this, new object?[] { pattern, cell }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int cell)
+            => GetTiles<IReadOnlyNeoTile>(pattern, cell);
+
+        public virtual int IndexOf(IReadOnlyNeoTile obj)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_e30a8a13-9a4a-5d1a-bbd8-988cf42eb3ae", this, new object?[] { obj });
+            return Convert.ToInt32(result);
+        }
+
+        public virtual bool Remove(IReadOnlyNeoTile obj)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_c9a358ad-96ee-5c93-8321-73d5a546e0fe", this, new object?[] { obj });
+            return (bool)result!;
+        }
+
+        [NeoMemberMethod("system_3ecba6cc-9e6c-5b5d-aa5a-1de26eedaa6e")]
+        public virtual void RemoveAt(int index)
+        {
+            client.ScriptGridQueries.Invoke("system_3ecba6cc-9e6c-5b5d-aa5a-1de26eedaa6e", this, new object?[] { index });
+        }
+
+
+        global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile>)this).GetEnumerator();
+
+
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<int> Count = new("Count");
 
             public static readonly NeoField<string> Name = new("Name");
 
@@ -172,6 +300,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Count] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.SortingLayer] = () => null,
                 [Fields.SortingOrder] = () => null,
@@ -192,6 +321,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Count] = () => Count,
                 [Fields.Name] = () => Name,
                 [Fields.SortingLayer] = () => SortingLayer,
                 [Fields.SortingOrder] = () => SortingOrder,

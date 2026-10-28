@@ -193,7 +193,7 @@ namespace NeoCompose.Tests
                         client, pair.Key, null, arguments, CallReceiverKind.Static));
                     continue;
                 }
-                if (!NeoCellPatternRuntime.Handles(pair.Key) && !NeoScriptGridQueries.Handles(pair.Key) && pair.Key != NeoLayerLinkRuntime.TrySpawnId && pair.Key != NeoLayerLinkRuntime.TrySetId)
+                if (!NeoCellPatternRuntime.Handles(pair.Key) && !NeoScriptGridQueries.Handles(pair.Key) && !NeoWorldLayerRuntime.Handles(pair.Key) && pair.Key != NeoLayerLinkRuntime.TrySpawnChildId && pair.Key != NeoLayerLinkRuntime.TrySpawnId && pair.Key != NeoLayerLinkRuntime.TrySetId)
                     unhandled.Add($"{pair.Value!["name"]} ({pair.Key})");
             }
             Assert.Greater(natives, 0, "The sample export has no system natives; the kind filter is wrong.");

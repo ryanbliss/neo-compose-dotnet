@@ -104,7 +104,7 @@
       ],
       "code": "return result switch {\n  PatternSuccess<int> ok when ok.Value > 0 => $\"ok {ok.Value}\",\n  PatternSuccess<int> => \"zero\",\n  PatternFailure<int> error => error.Message,\n};",
       "action": {
-        "compilerRevision": 18,
+        "compilerRevision": 19,
         "source": {
           "name": "PatternProbe.Describe",
           "uri": "Classes/PatternProbe.neo",
@@ -392,7 +392,7 @@
       "argumentTypes": [],
       "code": "return this.Describe(new PatternSuccess<int> { Value = 7 });",
       "action": {
-        "compilerRevision": 18,
+        "compilerRevision": 19,
         "source": {
           "name": "PatternProbe.Exercise",
           "uri": "Classes/PatternProbe.neo",

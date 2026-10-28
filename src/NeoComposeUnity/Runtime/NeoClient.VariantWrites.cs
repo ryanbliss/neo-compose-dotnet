@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime
                         if (row is null)
                             throw PlacementError("object-variant-placement-removed", $"Variant removed placed object '{receiverId}'.");
                         var (primitive, cells) = placement.Value;
-                        var next = primitive.ReadObjectFootprint(row, primitive.ReadObjectOrigin(row, null), null);
+                        var next = primitive.ReadObjectFootprint(row, WorldPlacementOrigin(row.id).origin, null);
                         if (!cells.SetEquals(next))
                             throw PlacementError("object-variant-footprint-changed", $"Variant must preserve the occupied cells of placed object '{receiverId}'.");
                     }
@@ -74,7 +74,8 @@ namespace NeoCompose.Runtime
             string id = receiverId;
             while (visited.Add(id))
             {
-                if (HasWorldKind(ResolveValueRow(id)?.classId, "tileGrid"))
+                if (ResolveValueRow(id) is ObjectMemberValue row
+                    && HasWorldKind(NeoGeneratedTypesSupport.ResolveClassValueClassId(this, id, row), "tileGrid"))
                 {
                     var primitive = NeoReadOnlyTileGridPrimitive.Resolve(this, id);
                     foreach (string layerId in primitive.ResolveObjectLayerIds())

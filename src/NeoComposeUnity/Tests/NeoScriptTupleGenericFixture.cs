@@ -8,7 +8,7 @@ namespace NeoCompose.Tests
   ""source"": ""class Probe { public static bool Equal<T>(T left, T right) => (left, 0) == (right, 0); public static bool References<T>(Reference<T> left, Reference<T> right) => (left, 0) == (right, 0); public static bool Membership<T>(Reference<T> left, Reference<T> right) => [(left, 0)].ToSet().Contains((right, 0)); }"",
   ""getters"": [
     {
-      ""compilerRevision"": 18,
+      ""compilerRevision"": 19,
       ""source"": {
         ""name"": ""Probe.Equal"",
         ""uri"": ""Probe.neo"",
@@ -244,7 +244,7 @@ namespace NeoCompose.Tests
       }
     },
     {
-      ""compilerRevision"": 18,
+      ""compilerRevision"": 19,
       ""source"": {
         ""name"": ""Probe.References"",
         ""uri"": ""Probe.neo"",
@@ -508,7 +508,7 @@ namespace NeoCompose.Tests
       }
     },
     {
-      ""compilerRevision"": 18,
+      ""compilerRevision"": 19,
       ""source"": {
         ""name"": ""Probe.Membership"",
         ""uri"": ""Probe.neo"",
@@ -825,7 +825,7 @@ namespace NeoCompose.Tests
   ""capture"": {
     ""source"": ""class Probe { public static int Capture<T>(T values) { NeoDelegate<int> add = () => { if (values is List<int> list) { list.Add(2); return list.Count; } return 0; }; int ignored = add(); if(values is List<int> list) return list.Count; return 0; } }"",
     ""getter"": {
-      ""compilerRevision"": 18,
+      ""compilerRevision"": 19,
       ""source"": {
         ""name"": ""Probe.Capture"",
         ""uri"": ""Probe.neo"",
@@ -916,7 +916,7 @@ namespace NeoCompose.Tests
                 ""argumentTypes"": []
               },
               ""action"": {
-                ""compilerRevision"": 18,
+                ""compilerRevision"": 19,
                 ""source"": {
                   ""uri"": ""Probe.neo"",
                   ""coordinateSpace"": ""file"",

@@ -175,7 +175,9 @@ namespace NeoCompose.Runtime
             var reader = new GridMemoReader(entry);
             if (entry.sequenceGrids!.Add(grid))
                 IndexGridReader(getterMemoEntriesByGrid, grid, reader);
-            if (read.cell is UnityEngine.Vector2Int cell)
+            if (read.layerId is string layerId)
+                IndexGridReader(getterMemoEntriesByLayer, (grid, layerId), reader);
+            else if (read.cell is UnityEngine.Vector2Int cell)
                 IndexGridReader(getterMemoEntriesByGridCell, new GridCellRead(grid, grid.GetHashCode(), cell, read.tile), reader);
             else
                 IndexGridReader(getterMemoEntriesByPlacement, read.placementId, reader);

@@ -79,6 +79,7 @@ namespace NeoCompose.Runtime
         public NeoTileGridLookupCache(NeoClient client, string gridValueId)
         {
             primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, gridValueId);
+            primitive.RetainPlacementGraph = true;
             client.OnWritableValuesPublished += InvalidatePublishedValues;
             client.OnWritableValuesChanged += NotifyPublishedValues;
             client.OnValuePartitionChanged += HandleValuePartitionChanged;
@@ -112,6 +113,7 @@ namespace NeoCompose.Runtime
             knownObjectLayers.Clear();
             convertedTileCells.Clear();
             refreshedObjects?.Clear();
+            primitive.ForgetPlacementGraph();
             objectLayerIds = null;
             tileLayerIds = null;
         }
@@ -131,6 +133,13 @@ namespace NeoCompose.Runtime
             if (index.AdditionalRecordIndicesByPlacementId.ContainsKey(placementValueId))
                 throw new NeoScript.NSGetterRuntimeError($"Placed tile '{placementValueId}' has ambiguous grid ownership.");
             return index.Records[slot];
+        }
+
+        internal NeoTilePlacementRecord? TileInstanceRecord(string layerId, string instanceId)
+        {
+            var index = GetTileLayerIndex(layerId);
+            return index.RecordIndicesByInstanceId.TryGetValue(instanceId, out int slot)
+                ? index.Records[slot] : TileRecord(layerId, instanceId);
         }
 
         public IReadOnlyList<List<NeoTilePlacementRecord>> TileCandidatesInCellOrder(
@@ -220,18 +229,25 @@ namespace NeoCompose.Runtime
             NeoWritePlan plan)
         {
             if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId)
+            {
+                primitive.ForgetPlacementGraph();
                 return;
+            }
             if (plan.ValidatedTileConversions is { Count: not 0 } conversions)
             {
                 ApplyTileConversions(conversions);
                 return;
             }
-            objectLayerIds = null;
-            tileLayerIds = null;
             var ids = new HashSet<string>();
             foreach (var value in changed)
                 if (plan.UnchangedValueIds?.Contains(value.valueId) != true)
                     ids.Add(value.valueId);
+            if (primitive.PlacementGraphDependsOn(ids))
+            {
+                primitive.ForgetPlacementGraph();
+                objectLayerIds = null;
+                tileLayerIds = null;
+            }
             ExcludeRefreshedObjects(plan, ids);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             ForgetRecentTileLayers();
@@ -296,6 +312,7 @@ namespace NeoCompose.Runtime
             // The getters were all forgotten with the partition; an effect
             // that queried the grid reads its placements again.
             primitive.Client.InvalidateGetterMemoForGrid(primitive.GridValueId);
+            primitive.ForgetPlacementGraph();
             objectLayerIds = null;
             tileLayerIds = null;
             tileLayers.Clear();
@@ -321,13 +338,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool IndexesObject(string objectId)
         {
-            IReadOnlyList<string> layerIds = ObjectLayerIds;
-            for (int i = 0; i < layerIds.Count; i++)
-            {
-                if (GetObjectLayerIndex(layerIds[i]).ById.ContainsKey(objectId))
-                    return true;
-            }
-            return false;
+            return primitive.PlacementGraph.Nodes.ContainsKey(objectId);
         }
 
         /// <summary>Whether a built layer index read row <paramref name="valueId"/>.</summary>
@@ -379,6 +390,7 @@ namespace NeoCompose.Runtime
             {
                 if (!layer.LeafDependencyIds.Contains(valueId))
                     continue;
+                primitive.ForgetPlacementGraph();
                 InvalidateDependents(tileLayers, changedTileLayers, new HashSet<string> { valueId });
                 ForgetRecentTileLayers();
                 return true;
@@ -648,6 +660,11 @@ namespace NeoCompose.Runtime
                 FirstRecordIndexByPlacementId = new Dictionary<string, int>(records.Count);
                 for (int i = 0; i < records.Count; i++)
                 {
+                    RecordIndicesByInstanceId.Add(records[i].InstanceId, i);
+                    string link = records[i].SourceTileLayerLinkId;
+                    if (!RecordIndicesByLink.TryGetValue(link, out var linkSlots))
+                        RecordIndicesByLink[link] = linkSlots = new List<int>();
+                    linkSlots.Add(i);
                     string id = records[i].PlacementValueId;
                     if (FirstRecordIndexByPlacementId.TryAdd(id, i))
                         continue;
@@ -668,6 +685,8 @@ namespace NeoCompose.Runtime
                     }
             }
 
+            internal readonly Dictionary<string, int> RecordIndicesByInstanceId = new();
+            internal readonly Dictionary<string, List<int>> RecordIndicesByLink = new();
             public Dictionary<string, List<int>> RecordIndicesByObject { get; } = new();
             private IReadOnlyList<List<NeoTilePlacementRecord>>? candidatesInCellOrder;
             internal void InvalidateCellOrder() => candidatesInCellOrder = null;

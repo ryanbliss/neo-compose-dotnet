@@ -36,18 +36,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal bool IsPlacementMember(MemberValue? owner, string key) => key switch
         {
-            PositionKey => owner is not null && HasWorldKind(owner.classId, "object") && IsPlacedObject(owner.id),
+            PositionKey => owner is not null && IsPlacedObject(owner.id),
             CellKey => HasWorldKind(owner?.classId, "tile") || HasWorldKind(owner?.classId, "placementTile"),
             _ => false,
         };
 
         /// <summary>
-        /// Whether <paramref name="objectId"/> is placed in a grid this client
-        /// indexes. A composition child never is, so its Position is an
-        /// ordinary leaf (P111 §3). The first write after the memo is
-        /// forgotten probes every object layer of every lookup cache, building
-        /// any index not yet built, as a placement write does; later writes
-        /// cost one lookup.
+        /// Whether a positioned object or link participates in an indexed grid's
+        /// placement graph. Composition ancestors participate when moving them
+        /// moves carried placements. The first read after invalidation probes
+        /// the grid caches; subsequent reads use the memoized result.
         /// </summary>
         private bool IsPlacedObject(string objectId)
         {
@@ -125,7 +123,7 @@ namespace NeoCompose.Runtime
                 // Validation changes no index; a collision leaves the store
                 // and every index as they were.
                 foreach (NeoTileGridLookupCache cache in gridLookupCacheList)
-                    if (ObjectMove.Prepare(cache, owner.id, cell) is { } move)
+                    if (ObjectMove.Prepare(cache, owner.id, (value.x, value.y)) is { } move)
                         moves.Add(move);
                 StoreLeaf(ownership, next, node!);
                 // Each move publishes its change to the getter memo as it
@@ -143,6 +141,8 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                foreach (var move in moves)
+                    move.Release();
                 moves.Clear();
                 if (gridLeaf)
                     EndGridChange();

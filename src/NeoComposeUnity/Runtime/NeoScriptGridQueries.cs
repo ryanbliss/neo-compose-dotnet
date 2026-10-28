@@ -13,6 +13,7 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Dictionary<string, INeoTileGridContent> contentByGrid = new();
+        private readonly Dictionary<(string grid, string layer, NeoValueOwnership ownership), object> layerViews = new();
         // A class, so a lookup hands back one reference: copying a tuple of
         // references out of the table costs a GC write barrier per field.
         private sealed class PlacementBinding
@@ -66,16 +67,6 @@ namespace NeoCompose.Runtime
         // placements clears it.
         private string? lastReceiverId;
         private PlacementBinding? lastBinding;
-        // GetObjects' and GetTiles' buffers; filling them runs no NeoScript, so no query nests inside another.
-        private readonly List<object?> queried = new();
-        private Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[] layerCellsBuffer =
-            Array.Empty<Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>>();
-        // Whose indexes layerCellsBuffer holds: they serve the next query of
-        // the same layers until the lookup cache drops an object layer index.
-        private string[] layerCellsLayerIds = Array.Empty<string>();
-        private int layerCellsLayerCount;
-        private NeoTileGridLookupCache? layerCellsCache;
-        private int layerCellsVersion;
         private IReadOnlyDictionary<string, Func<NeoClient, string, INeoTileGridContent>> factories =
             new Dictionary<string, Func<NeoClient, string, INeoTileGridContent>>();
 
@@ -99,6 +90,7 @@ namespace NeoCompose.Runtime
         internal void RegisterContent(INeoTileGridContent content, string gridId)
         {
             contentByGrid[gridId] = content;
+            layerViews.Clear();
             changeEpoch++;
         }
         internal void Bind(string receiverId, string gridId, string layerId, string instanceId)
@@ -206,6 +198,13 @@ namespace NeoCompose.Runtime
                 NeoCellPatternRuntime.TryInvoke(memberId, receiver, args, client.CreateGetterContext(NeoValueOwnership.Session), out object? pattern);
                 return pattern;
             }
+            if (NeoWorldLayerRuntime.Handles(memberId) || memberId == NeoLayerLinkRuntime.TrySpawnChildId)
+            {
+                var context = client.CreateGetterContext((receiver as NeoGeneratedClassValue)?.StorageOwnership ?? NeoValueOwnership.Asset);
+                if (NeoWorldLayerRuntime.TryInvoke(memberId, receiver, args, typeArguments, context, out object? native)
+                    || NeoLayerLinkRuntime.TryInvoke(memberId, receiver, args, context, out native))
+                    return native;
+            }
             if (receiver.valueId is not string id || !client.TryGetValue(id, out MemberValue? row))
             {
                 // P114 §2. A value with no row is in no area.
@@ -221,6 +220,37 @@ namespace NeoCompose.Runtime
             return result;
         }
 
+        public TLayer Layer<TLayer>(INeoValueReference link, string layerId) where TLayer : class
+        {
+            string id = link.valueId ?? throw new NSGetterRuntimeError("Layer link has no identity.");
+            string gridId = client.WorldPlacementOrigin(id).gridId
+                ?? throw new NSGetterRuntimeError("A detached layer link has no owning grid Layer.");
+            var content = ResolveContent(gridId);
+            var ownership = (link as NeoGeneratedClassValue)?.StorageOwnership ?? NeoValueOwnership.Asset;
+            var key = (gridId, layerId, ownership);
+            if (layerViews.TryGetValue(key, out var cached))
+                return (TLayer)cached;
+            foreach (var layer in content.TileLayersInOrder)
+                if (layer.LayerId == layerId && layer is TLayer tiles && layer is NeoGeneratedTileLayerValue tileView)
+                {
+                    var result = ownership == NeoValueOwnership.Asset ? tiles
+                        : content.Primitive.BindReadOnlyTileLayer<TLayer>(layerId, tileView.ImportedClassIds, ownership);
+                    layerViews[key] = result;
+                    return result;
+                }
+            foreach (var layer in content.ObjectLayersInOrder)
+                if (layer.LayerId == layerId && layer is TLayer objects && layer is NeoGeneratedObjectLayerValue objectView)
+                {
+                    var result = ownership == NeoValueOwnership.Asset ? objects
+                        : content.Primitive.BindReadOnlyObjectLayer<TLayer>(layerId, objectView.ImportedClassIds, ownership);
+                    layerViews[key] = result;
+                    return result;
+                }
+            throw new NSGetterRuntimeError($"Grid has no generated layer '{layerId}'.");
+        }
+
+        private const string ObjectGridCellId = "system_a7c3197e-e672-5f58-a82e-39db2d864a78";
+        private const string TileGridCellId = "system_223292cc-c600-57b6-a927-69bee647d82a";
         private const string GetCellId = "system_df1c2d06-eeec-5340-addc-740f3668c9e4";
         private const string GetObjectsId = "system_f5ca386c-990c-54a1-8473-2d49d2cd887d";
         private const string GetTileId = "system_593e6208-e2ca-505e-9933-04b17102b6d2";
@@ -238,7 +268,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>Whether <paramref name="memberId"/> is a grid query this class answers.</summary>
         internal static bool Handles(string memberId) => memberId is
-            GetCellId or GetObjectsId or GetTileId or GetTilesId or GetObjectAreaId or GetTileAreaId
+            ObjectGridCellId or TileGridCellId or GetCellId or GetObjectsId or GetTileId or GetTilesId or GetObjectAreaId or GetTileAreaId
             or TileGetObjectsId or TileGetTileId or TileGetTilesId;
 
         /// <summary>
@@ -257,22 +287,7 @@ namespace NeoCompose.Runtime
             return classType.classId is NeoObjectClassId or NeoTileClassId or NeoTileGridClassId ? null : classType.classId;
         }
 
-        /// <summary>Whether the call returns a fresh array of the queried objects or tiles.</summary>
-        internal static bool ReturnsFreshList(string? memberId) => memberId is GetObjectsId or GetTilesId or TileGetObjectsId or TileGetTilesId;
-
-        // Compares layer ids rather than the list: content may reuse one
-        // list across layer changes.
-        private bool HoldsLayerCells(IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> layers)
-        {
-            if (layerCellsLayerCount != layers.Count)
-                return false;
-            for (int layer = 0; layer < layers.Count; layer++)
-            {
-                if (!string.Equals(layerCellsLayerIds[layer], layers[layer].LayerId, StringComparison.Ordinal))
-                    return false;
-            }
-            return true;
-        }
+        internal static bool ReturnsFreshList(string? memberId) => false;
 
         internal bool TryInvoke(
             string memberId,
@@ -298,7 +313,33 @@ namespace NeoCompose.Runtime
             }
             if (receiverId is null)
                 throw new NSGetterRuntimeError("Grid query receiver has no placement identity.");
-            bool getCell = memberId == GetCellId;
+            if (memberId == GetCellId)
+            {
+                var row = client.ResolveValueRow(receiverId) as ObjectMemberValue
+                    ?? throw new NSGetterRuntimeError("Cell requires a world object.");
+                client.NoteRowRead(row.id);
+                var positionRow = client.ResolveClassChildRow(row, "Position") as Vector3MemberValue;
+                if (positionRow is not null)
+                    client.NoteRowRead(positionRow.id);
+                var position = positionRow?.value;
+                result = NeoVectorValues.FromVector2Int(NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(position?.x ?? 0, position?.y ?? 0));
+                return true;
+            }
+            if (memberId is ObjectGridCellId or TileGridCellId)
+            {
+                var (gridId, worldOrigin) = client.WorldPlacementOrigin(receiverId);
+                if (gridId is not null)
+                {
+                    if (memberId == TileGridCellId && client.ResolveValueRow(receiverId) is ObjectMemberValue tile
+                        && client.ResolveClassChildRow(tile, "Cell") is Vector2MemberValue { value: not null } local)
+                    {
+                        client.NoteRowRead(local.id);
+                        worldOrigin = Cell(worldOrigin, NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(local.value.x, local.value.y));
+                    }
+                    result = NeoVectorValues.FromVector2Int(worldOrigin);
+                }
+                return true;
+            }
             bool getObjects = memberId is GetObjectsId or TileGetObjectsId;
             bool getTile = memberId is GetTileId or TileGetTileId;
             bool getTiles = memberId is GetTilesId or TileGetTilesId;
@@ -315,16 +356,21 @@ namespace NeoCompose.Runtime
             }
             else
             {
-                binding = Resolve(receiverId);
-                content = binding.content!;
-                receiverCell = binding.record!.Cell;
-                placementId = binding.record.InstanceId;
-            }
-            if (getCell)
-            {
-                ctx.client.NoteGridRead(content, placementId, null, false);
-                result = NeoVectorValues.FromVector2Int(receiverCell);
-                return true;
+                binding = client.ReadsDepartedRows(receiverId) && departedPlacements.ContainsKey(receiverId)
+                    ? Resolve(receiverId) : TryResolve(receiverId);
+                if (binding is not null)
+                {
+                    content = binding.content!;
+                    receiverCell = binding.record!.Cell;
+                    placementId = binding.record.InstanceId;
+                }
+                else
+                {
+                    var (gridId, worldOrigin) = client.WorldPlacementOrigin(receiverId);
+                    content = ResolveContent(gridId ?? throw new NSGetterRuntimeError("Grid queries require an owning tile grid."));
+                    receiverCell = worldOrigin;
+                    placementId = receiverId;
+                }
             }
             Vector2Int[] pattern = NeoCellPatternOffsets.Read(args[0], ctx);
             string? filterClassId = FilterClassId(typeArguments);
@@ -339,9 +385,9 @@ namespace NeoCompose.Runtime
                 // or resolve a replacement grid with the same id.
                 if (!getTile)
                 {
-                    object?[] empty = NSGetterEvaluator.TemporaryLists.Rent(0);
-                    NSGetterEvaluator.TemporaryLists.MarkExclusive(empty);
-                    result = empty;
+                    result = new NeoWorldQuerySequence(client,
+                        new ClassTypeInfo { type = MemberKind.Class, required = true, classId = getTiles ? NeoTileClassId : NeoObjectClassId },
+                        Array.Empty<string>());
                 }
                 return true;
             }
@@ -349,98 +395,64 @@ namespace NeoCompose.Runtime
             // Bodies compiled before the offset existed pass only the pattern.
             Vector2Int origin = Shifted(receiverCell, args.Length > 1 ? args[1] : null);
             bool tiles = getTile || getTiles;
-            // Resolve each layer's cell index once per query rather than once
-            // per layer per cell.
-            IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> layers = content.ObjectLayersInOrder;
-            Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[]? layerCells = null;
-            if (getObjects)
+            var ids = QueryRows(content, placementId, origin, pattern, tiles);
+            var element = typeArguments is { Length: > 0 } ? typeArguments[0]
+                : new ClassTypeInfo { type = MemberKind.Class, required = true, classId = tiles ? NeoTileClassId : NeoObjectClassId };
+            if (getTile)
             {
-                NeoTileGridLookupCache cache = content.Primitive.LookupCache;
-                if (!ReferenceEquals(layerCellsCache, cache)
-                    || layerCellsVersion != cache.ObjectLayersVersion
-                    || !HoldsLayerCells(layers))
+                foreach (string id in ids)
                 {
-                    if (layerCellsBuffer.Length < layers.Count)
+                    object? tile = RuntimeValue(id, ctx);
+                    if (filterClassId is null || NSGetterEvaluator.RuntimeClassExtends(tile, filterClassId, ctx))
                     {
-                        layerCellsBuffer = new Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>[layers.Count];
-                        layerCellsLayerIds = new string[layers.Count];
+                        result = tile;
+                        break;
                     }
-                    for (int layer = 0; layer < layers.Count; layer++)
-                    {
-                        string layerId = layers[layer].LayerId;
-                        layerCellsBuffer[layer] = cache.ObjectCandidatesByCell(layerId);
-                        layerCellsLayerIds[layer] = layerId;
-                    }
-                    layerCellsLayerCount = layers.Count;
-                    layerCellsCache = cache;
-                    layerCellsVersion = cache.ObjectLayersVersion;
                 }
-                layerCells = layerCellsBuffer;
             }
-            // A query that threw mid-fill leaves its entries behind.
-            queried.Clear();
-            for (int offset = 0; offset < pattern.Length; offset++)
+            else
+                result = new NeoWorldQuerySequence(client, element, ids);
+            return true;
+        }
+
+        private IEnumerable<string> QueryRows(INeoTileGridContent content, string receiverId,
+            Vector2Int origin, Vector2Int[] pattern, bool tiles)
+        {
+            foreach (var offset in pattern)
             {
-                Vector2Int cell = Cell(origin, pattern[offset]);
-                ctx.client.NoteGridRead(content, placementId, cell, tiles);
+                var cell = Cell(origin, offset);
+                client.NoteGridRead(content, receiverId, cell, tiles);
                 if (tiles)
                 {
-                    var tile = content.GetTile(cell);
-                    if (tile is null)
-                        continue;
-                    // A cell's winner is kept or skipped; nothing under it is a candidate.
-                    object? winner = RuntimeValue(tile, ctx);
-                    if (filterClassId is not null && !NSGetterEvaluator.RuntimeClassExtends(winner, filterClassId, ctx))
-                        continue;
-                    if (getTiles)
-                    {
-                        queried.Add(winner);
-                        continue;
-                    }
-                    result = winner;
-                    return true;
+                    if (content.GetTile(cell)?.valueId is string tileId)
+                        yield return tileId;
+                    continue;
                 }
-                // NeoScript already consumes stored-row views. Do not create
-                // generated C# wrappers and intermediate lists for every cell.
-                for (int layer = 0; layer < layers.Count; layer++)
-                {
-                    // An empty layer answers no cell; skip its lookup and
-                    // the write barrier its out parameter costs.
-                    Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> cells = layerCells![layer];
-                    if (cells.Count == 0 || !cells.TryGetValue(cell, out var items))
-                        continue;
-                    string layerId = layers[layer].LayerId;
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        NeoObjectPlacementRecord item = items[i];
-                        // Resolve validates every binding, so a stale mark
-                        // costs only its slow path.
-                        if (!ReferenceEquals(item.queryBoundLayerId, layerId))
-                        {
-                            Bind(item.InstanceId, content.Primitive.GridValueId, layerId, item.InstanceId);
-                            item.queryBoundLayerId = layerId;
-                        }
-                        object? found = RuntimeValue(item.InstanceId, ref item.valueNode, ctx);
-                        if (filterClassId is null || NSGetterEvaluator.RuntimeClassExtends(found, filterClassId, ctx))
-                            queried.Add(found);
-                    }
-                }
+                foreach (var layer in content.ObjectLayersInOrder)
+                    foreach (var row in content.Primitive.LookupCache.ObjectCandidatesAt(layer.LayerId, cell))
+                        yield return row.InstanceId;
             }
-            if (getTile)
-                return true;
-            object?[] list = NSGetterEvaluator.TemporaryLists.Rent(queried.Count);
-            queried.CopyTo(list);
-            queried.Clear();
-            ctx.NoteFreshList(list);
-            NSGetterEvaluator.TemporaryLists.MarkExclusive(list);
-            result = list;
-            return true;
         }
 
         private (INeoTileGridContent content, Vector2Int cell, string placementId) ResolveTile(string receiverId)
         {
             string gridId = AreaOf(receiverId)
                 ?? throw new NSGetterRuntimeError("Grid queries require a NeoTile in an owning grid.");
+            var content = ResolveContent(gridId);
+            if (client.ResolveValueRow(receiverId) is not ObjectMemberValue tile
+                || !client.HasWorldKind(tile.classId, "tile"))
+                throw new NSGetterRuntimeError($"Value '{receiverId}' is not a tile.");
+            var origin = client.WorldPlacementOrigin(receiverId).origin;
+            if (client.ResolveClassChildRow(tile, "Cell") is not Vector2MemberValue { value: not null } local)
+                throw new NSGetterRuntimeError($"Tile '{receiverId}' has no local Cell.");
+            client.NoteRowRead(local.id);
+            var cell = Cell(origin, NeoReadOnlyTileGridPrimitive.RoundedPlacementCell(local.value.x, local.value.y));
+            client.NoteGridRead(content, receiverId, cell, true);
+            return (content, cell, receiverId);
+        }
+
+        internal INeoTileGridContent ResolveContent(string gridId)
+        {
             if (!contentByGrid.TryGetValue(gridId, out var content))
             {
                 MemberValue grid = client.ResolveValueRow(gridId)
@@ -452,23 +464,7 @@ namespace NeoCompose.Runtime
                 content = factory(client, gridId);
                 RegisterContent(content);
             }
-            NeoTilePlacementRecord? placement = null;
-            foreach (var layer in content.TileLayersInOrder)
-            {
-                var candidate = content.Primitive.LookupCache.TileRecord(layer.LayerId, receiverId);
-                if (candidate is null)
-                    continue;
-                if (placement is not null)
-                    throw new NSGetterRuntimeError($"Placed tile '{receiverId}' has ambiguous grid ownership.");
-                placement = candidate;
-            }
-            if (placement is null)
-                throw new NSGetterRuntimeError($"Value '{receiverId}' is not a placed tile in a grid.");
-            if (placement.CellValueId is string cellId)
-                client.NoteRowRead(cellId);
-            // Origin edits must invalidate a query even when its pattern excludes the center.
-            client.NoteGridRead(content, receiverId, placement.Cell, true);
-            return (content, placement.Cell, placement.SourceObjectInstanceId ?? receiverId);
+            return content;
         }
 
         /// <summary>

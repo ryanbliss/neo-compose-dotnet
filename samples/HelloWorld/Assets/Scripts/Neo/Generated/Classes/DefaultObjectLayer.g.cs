@@ -177,6 +177,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
 
             public static readonly NeoField<int> SortingOrder = new("SortingOrder");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -187,6 +189,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.SortingLayer] = () => null,
                 [Fields.SortingOrder] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -208,6 +211,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.SortingLayer] = () => SortingLayer,
                 [Fields.SortingOrder] = () => SortingOrder,
+                [Fields.Count] = () => Count,
             };
         }
 

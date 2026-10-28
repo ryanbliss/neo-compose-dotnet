@@ -138,13 +138,15 @@ namespace NeoCompose.Runtime
             public readonly UnityEngine.Vector2Int? cell;
             public readonly bool tile;
             public readonly string placementId;
+            public readonly string? layerId;
 
-            public GridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile)
+            public GridRead(INeoTileGridContent content, string placementId, UnityEngine.Vector2Int? cell, bool tile, string? layerId = null)
             {
                 this.content = content;
                 this.cell = cell;
                 this.tile = tile;
                 this.placementId = placementId;
+                this.layerId = layerId;
             }
         }
 
@@ -179,6 +181,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<GridCellRead, List<GridMemoReader>> getterMemoEntriesByGridCell = new();
         // A query reads its receiver's placement, so moving it changes the result.
         private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByPlacement = new(StringComparer.Ordinal);
+        private readonly Dictionary<(string grid, string layer), List<GridMemoReader>> getterMemoEntriesByLayer = new();
         private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByGrid = new(StringComparer.Ordinal);
         private int memoIndexEntries;
         private int deadMemoIndexEntries;
@@ -495,6 +498,14 @@ namespace NeoCompose.Runtime
                 OpenGridReadCapture().Add(read);
         }
 
+        internal void NoteGridLayerRead(INeoTileGridContent content, string layerId, bool tile)
+        {
+            var read = new GridRead(content, content.Primitive.GridValueId, null, tile, layerId);
+            NoteSequenceGrid(read);
+            if (getterReadCapture is not null)
+                OpenGridReadCapture().Add(read);
+        }
+
         /// <summary>Reports a memoized getter's recorded reads as if it had run.</summary>
         // Every memo hit calls this, and usually nothing observes its reads.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -737,7 +748,7 @@ namespace NeoCompose.Runtime
             }
 
             internal static bool Same(in GridRead x, in GridRead y) =>
-                ReferenceEquals(x.placementId, y.placementId) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile;
+                ReferenceEquals(x.placementId, y.placementId) && ReferenceEquals(x.content, y.content) && x.cell == y.cell && x.tile == y.tile && x.layerId == y.layerId;
 
             internal void Clear()
             {
@@ -1029,7 +1040,9 @@ namespace NeoCompose.Runtime
                     indexedGrid = grid;
                     gridHash = grid.GetHashCode();
                 }
-                if (read.cell is UnityEngine.Vector2Int cell)
+                if (read.layerId is string layerId)
+                    IndexGridReader(getterMemoEntriesByLayer, (grid, layerId), reader);
+                else if (read.cell is UnityEngine.Vector2Int cell)
                     IndexGridReader(getterMemoEntriesByGridCell, new GridCellRead(grid, gridHash, cell, read.tile), reader);
                 else
                     IndexGridReader(getterMemoEntriesByPlacement, read.placementId, reader);
@@ -1114,6 +1127,7 @@ namespace NeoCompose.Runtime
             SweepMemoIndex(getterMemoEntriesByRow, entries => entries.RemoveAll(entry => entry.abandoned), memoEntryListPool);
             SweepMemoIndex(getterMemoEntriesByGridCell, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
             SweepMemoIndex(getterMemoEntriesByPlacement, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByLayer, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
             SweepMemoIndex(getterMemoEntriesByGrid, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
         }
 
@@ -1204,6 +1218,7 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < objectLayers.Count; i++)
             {
                 NeoObjectLayerChangedArgs layer = objectLayers[i];
+                CollectGridReaders(getterMemoEntriesByLayer, (grid, layer.LayerId));
                 IReadOnlyList<NeoObjectInstanceId> instances = layer.ChangedInstances;
                 for (int j = 0; j < instances.Count; j++)
                     CollectGridReaders(getterMemoEntriesByPlacement, instances[j].Value);
@@ -1211,7 +1226,10 @@ namespace NeoCompose.Runtime
             }
             IReadOnlyList<NeoTileLayerChangedArgs> tileLayers = change.TileLayers;
             for (int i = 0; i < tileLayers.Count; i++)
+            {
+                CollectGridReaders(getterMemoEntriesByLayer, (grid, tileLayers[i].LayerId));
                 CollectCellReaders(grid, gridHash, tileLayers[i].ChangedCells, tile: true);
+            }
             ForgetChangedGetters();
         }
 
@@ -1331,6 +1349,7 @@ namespace NeoCompose.Runtime
                 getterMemoEntriesByGridCell.Clear();
                 getterMemoEntriesByPlacement.Clear();
                 getterMemoEntriesByGrid.Clear();
+                getterMemoEntriesByLayer.Clear();
                 memoIndexEntries = 0;
                 deadMemoIndexEntries = 0;
             }
