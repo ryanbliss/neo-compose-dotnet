@@ -757,28 +757,37 @@ namespace NeoCompose.Runtime
         private bool ConstructionKeepsNullability(NeoClient client, TypeInfo from, TypeInfo to)
         {
             string interfaceId = NeoReferenceTypes.InterfaceIdOf(to)!;
-            bool found = from.type == MemberKind.Class
-                ? client.InterfaceImplementers.TryGetConstruction(NeoReferenceTypes.ClassIdOf(from)!, interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction)
-                : client.InterfaceImplementers.InterfaceClosure(NeoReferenceTypes.InterfaceIdOf(from)!).TryGetValue(interfaceId, out construction!);
-            if (!found)
-                return false;
-            if (NeoReferenceTypes.TypeArgumentsOf(to) is not { } expected)
-                return true;
-            Dictionary<string, TypeInfo>? holderArguments = NeoReferenceTypes.TypeArgumentsOf(from);
-            foreach (KeyValuePair<string, TypeInfo> pair in expected)
+            var expected = NeoReferenceTypes.TypeArgumentsOf(to);
+            var parameters = client.ProjectDataForRuntime.interfaces[interfaceId].genericParams;
+            foreach (var construction in NeoInterfaceDispatch.Of(client).AnnotatedClosure(NeoTypeBindings.ArgumentOf(Declared(from))))
             {
-                if (!construction.TryGetValue(pair.Key, out TypeBinding? binding))
-                    return false;
-                TypeInfo? actual = binding.IsOpen
-                    ? holderArguments?.GetValueOrDefault(binding.Param!)
-                    : client.TryGetMember(NeoTypeBindingViews.Id(binding), out Member? member) ? BindingTypeInfo(client, member) : null;
-                // A binding with no type info here keeps the erased result.
-                if (actual is null)
+                if (construction.Head!.InterfaceId != interfaceId)
                     continue;
-                if (!NeoReferenceTypes.InvariantlyEqual(actual, pair.Value))
-                    return false;
+                if (expected is null)
+                    return true;
+                bool matches = true;
+                foreach (var pair in expected)
+                {
+                    if (construction.Bindings?.TryGetValue(pair.Key, out var binding) != true)
+                    {
+                        matches = false;
+                        break;
+                    }
+                    TypeInfo actual = NeoTypeBindings.ToTypeInfo(binding!);
+                    var variance = parameters?.FirstOrDefault(parameter => parameter.id == pair.Key)?.variance;
+                    bool identity = NeoReferenceTypes.InvariantlyEqual(actual, pair.Value);
+                    if (!identity && (TypeBindings.IsValueType(binding!.Head!) || TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(pair.Value).Head!)
+                        || !(variance == NeoGenericParamVarianceKind.Out ? Assignable(client, actual, pair.Value) == true
+                            : variance == NeoGenericParamVarianceKind.In && Assignable(client, pair.Value, actual) == true)))
+                    {
+                        matches = false;
+                        break;
+                    }
+                }
+                if (matches)
+                    return true;
             }
-            return true;
+            return false;
         }
 
         /// <summary>
@@ -1021,7 +1030,7 @@ namespace NeoCompose.Runtime
         /// signature, as the server's <c>openBindingTypeInfo</c> spells a
         /// delegate.
         /// </summary>
-        private static TypeInfo? BindingTypeInfo(NeoClient client, Member member)
+        internal static TypeInfo? BindingTypeInfo(NeoClient client, Member member)
         {
             bool required = member.Requirement == NeoMemberRequirementKind.Required;
             switch (member)
@@ -1430,36 +1439,9 @@ namespace NeoCompose.Runtime
         /// </summary>
         private bool ConstructsInterface(NeoRuntimeTypeKey holder, NeoRuntimeTypeKey to, in NeoSlotContext context)
         {
-            if (context.Client is not NeoClient client)
+            if (context.Client is not NeoClient client || BindingOfKey(holder) is not { } source || BindingOfKey(to) is not { } target)
                 return false;
-            bool found = holder.Kind == NeoRuntimeTypeKeyKind.Class
-                ? client.InterfaceImplementers.TryGetConstruction(holder.Id!, to.Id!, out IReadOnlyDictionary<string, TypeBinding> construction)
-                : client.InterfaceImplementers.InterfaceClosure(holder.Id!).TryGetValue(to.Id!, out construction!);
-            if (!found)
-                return false;
-            NeoRuntimeTypeKey[] expected = to.Arguments ?? Array.Empty<NeoRuntimeTypeKey>();
-            List<GenericParamDeclaration> positions = ParametersOf(NeoRuntimeTypeKeyKind.Interface, to.Id!);
-            List<GenericParamDeclaration> holderParameters = ParametersOf(holder.Kind, holder.Id!);
-            for (int index = 0; index < expected.Length && index < positions.Count; index++)
-            {
-                if (!construction.TryGetValue(positions[index].id, out TypeBinding? binding))
-                    return false;
-                string? actual;
-                if (binding.IsOpen)
-                {
-                    int position = holderParameters.FindIndex(parameter => parameter.id == binding.Param);
-                    actual = position >= 0 && holder.Arguments is { } holderArguments && position < holderArguments.Length
-                        ? NeoRuntimeTypeKeys.Spell(holderArguments[position])
-                        : null;
-                }
-                else
-                {
-                    actual = TryDescribeBinding(binding, NeoGenericResolution.EmptyEnv, out SlotType type) ? type.Key : null;
-                }
-                if (actual is null || actual != NeoRuntimeTypeKeys.Spell(expected[index]))
-                    return false;
-            }
-            return true;
+            return NeoInterfaceDispatch.Of(client).Converts(source, target);
         }
 
         /// <summary>

@@ -512,7 +512,7 @@ namespace NeoCompose.Tests
                 "Static construction 0 of member 'box-shared-field': its construction at \"box-t\" is string?; a runtime type has no nullable reference.",
                 ("box-shared-field", BoxOf(TestTypeBindings.Of(MemberKind.String, required: false)), null));
             AssertConstructionRefused(
-                "Static construction 1 of member 'box-shared-field' repeats construction Box<int>.",
+                "Save holds two entries for static 'box-shared-field' of construction 'Box<int>'.",
                 ("box-shared-field", boxOfInt, "shared"),
                 ("box-shared-field", boxOfInt, null));
             AssertConstructionRefused(

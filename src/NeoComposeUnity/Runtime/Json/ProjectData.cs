@@ -874,7 +874,8 @@ namespace NeoCompose.Runtime.Json
             if (!property
                 && !function
                 && accessorAccess
-                && member.Value<int?>("declarationForm") != (int)NeoMemberDeclarationFormKind.AutoProperty)
+                && member.Value<int?>("declarationForm") != (int)NeoMemberDeclarationFormKind.AutoProperty
+                && string.IsNullOrEmpty(member.Value<string>("extendsMemberId")))
             {
                 throw new JsonSerializationException($"Field member '{name}' declares accessor access without an AutoProperty declaration form.");
             }

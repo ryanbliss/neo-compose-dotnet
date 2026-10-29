@@ -54,9 +54,10 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
-        /// The member record <see cref="memberId"/> names, resolved once by the
-        /// runtime's class node; null outside a class node or when the id
-        /// names no member.
+        /// The storage member resolved once by the runtime's class node.
+        /// A bodied override of a stored member uses its stored ancestor;
+        /// memberId still names the overriding declaration for dispatch.
+        /// Null outside a class node or when the id names no member.
         /// </summary>
         internal Member? member
         {
