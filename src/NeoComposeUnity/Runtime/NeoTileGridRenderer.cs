@@ -134,6 +134,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
+        private readonly Queue<NeoTileGridChangedArgs> pendingGridChanges = new();
+        private bool applyingGridChanges;
         private INeoTileGridContent? currentContent;
         private NeoReadOnlyTileGridPrimitive? renderedPrimitive;
         private CancellationTokenSource? activeRenderCancellation;
@@ -1319,14 +1321,32 @@ namespace NeoCompose.Runtime
 
         private void HandleGridChanged(NeoTileGridChangedArgs args)
         {
-            NeoClient? held = HoldLifecycle();
+            pendingGridChanges.Enqueue(args);
+            if (applyingGridChanges)
+                return;
+            applyingGridChanges = true;
             try
             {
-                ApplyGridChange(args);
+                // Spawn/despawn hooks can synchronously write to the grid.
+                // Finish the current hierarchy and its indexes before applying
+                // those changes, while still draining before this call returns.
+                while (pendingGridChanges.Count != 0)
+                {
+                    NeoClient? held = HoldLifecycle();
+                    try
+                    {
+                        ApplyGridChange(pendingGridChanges.Dequeue());
+                    }
+                    finally
+                    {
+                        held?.ReleaseGetterChanges();
+                    }
+                }
             }
             finally
             {
-                held?.ReleaseGetterChanges();
+                applyingGridChanges = false;
+                pendingGridChanges.Clear();
             }
         }
 
@@ -2396,12 +2416,13 @@ namespace NeoCompose.Runtime
             try
             {
                 var go = BuildObjectRoot(parent, layer, instance, layerFallbackSortingOrder);
+                objectRootsByInstanceId[instance.InstanceId] = go;
                 // Attached last so every spawn hook observes a fully-built
                 // hierarchy (composition children, authored colliders, sprite
                 // art) — e.g. an added Rigidbody2D composes with the BoxCollider2D.
                 AttachObjectBehaviours(go, layer, instance);
-                // Spawn hooks can assign a sprite or collider before the root is
-                // registered for change notifications. Reconcile those writes now.
+                // Spawn hooks can assign a sprite or collider. Reconcile those
+                // writes before queued grid changes and lifecycle effects run.
                 SyncObjectSprites(instance.InstanceId);
                 SyncObjectColliders(instance.InstanceId);
                 // Applied only after Initialize, so the spawn hook sees an active,
@@ -2411,9 +2432,6 @@ namespace NeoCompose.Runtime
                 // GetComponentsInChildren does not silently miss hidden layers.
                 // The root's own collider follows GameObject activity for free.
                 SyncObjectVisibility(instance.InstanceId);
-                // Registered before the hold releases, so a lifecycle hook's
-                // write in the drain reaches the root.
-                objectRootsByInstanceId[instance.InstanceId] = go;
                 QueueSpawnedLifecycle(instance.InstanceId);
             }
             finally
