@@ -44,6 +44,18 @@ namespace NeoCompose.Runtime
             HashSet<string> visited)
         {
             CandidateReplay? candidate = null;
+            HashSet<string>? copiedRows = null;
+            if (plan.ClonedGraphs is not null)
+                foreach (var graph in plan.ClonedGraphs)
+                    if (graph.IsCurrent(plan))
+                    {
+                        if (graph.Immutable.Count != 0)
+                        {
+                            candidate ??= new CandidateReplay(this, plan);
+                            candidate.Add(PrepareClonedExpansion(graph));
+                        }
+                        (copiedRows ??= new()).UnionWith(graph.Rows.Keys);
+                    }
             HashSet<string>? completeLocalRoots = null;
             HashSet<string>? changedPaths = null;
             foreach (var write in plan.Rows)
@@ -68,6 +80,8 @@ namespace NeoCompose.Runtime
                 {
                     string id = pending.Dequeue();
                     if (!visited.Add(id))
+                        continue;
+                    if (copiedRows?.Contains(id) == true)
                         continue;
                     if (!CanReuseVirtualExpansionForLocalOverlay(plan, id, out bool unchanged))
                     {
@@ -478,6 +492,8 @@ namespace NeoCompose.Runtime
                     {
                         candidate.RetainedRoots.Add(expansion.Root.id);
                         candidate.RehomedRoots.Add(expansion.Root.id);
+                        if (virtualValueIdsByRoot.TryGetValue(expansion.Root.id, out var values))
+                            candidate.HiddenVirtualIds.ExceptWith(values);
                         foreach (var child in expansion.Nested)
                             RetainMoved(child);
                     }

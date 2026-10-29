@@ -460,7 +460,7 @@ namespace NeoCompose.Runtime
 #if NEO_COMPOSE_PROFILING
             using var sample = ValidatePlacementsMarker.Auto();
 #endif
-            if (plan.Rows.Count == 0 && plan.Bindings.Count == 0)
+            if (plan.Rows.Count == 0 && plan.Bindings.Count == 0 || IsTemporaryReplayWrite(plan))
                 return;
             WriteValidationScratch scratch;
             if (writeValidationScratch is null)
@@ -479,8 +479,27 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private bool IsTemporaryReplayWrite(NeoWritePlan plan)
+        {
+            if (!isReplayingVirtualInstance || replayAllocationScope is null
+                || plan.Bindings.Count != 0 || plan.PlacementGridId is not null)
+                return false;
+            foreach (var row in plan.Rows)
+                if (row.Key.ownership != NeoValueOwnership.Session
+                    || !replayAllocationScope.Ids.Contains(row.Key.id)
+                    || data.values.ContainsKey(row.Key.id) || virtualValues.ContainsKey(row.Key.id)
+                    || saveData.values.ContainsKey(row.Key.id) || userSource.userData.values.ContainsKey(row.Key.id))
+                    return false;
+            return true;
+        }
+
         private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
         {
+            HashSet<string>? copied = null;
+            if (plan.ClonedGraphs is not null)
+                foreach (var graph in plan.ClonedGraphs)
+                    if (graph.IsCurrent(plan))
+                        (copied ??= new()).UnionWith(graph.Rows.Keys);
             Queue<string> pending = scratch.pending;
             if (plan.PlacementGridId is not null)
                 pending.Enqueue(plan.PlacementGridId);
@@ -488,6 +507,8 @@ namespace NeoCompose.Runtime
             // Pairs throughout: a dictionary's Keys or Values view allocates.
             foreach (var pair in plan.Rows)
             {
+                if (copied?.Contains(pair.Key.id) == true)
+                    continue;
                 writtenDescendants.Add(pair.Key.id);
                 pending.Enqueue(pair.Key.id);
                 // The walk reaches the container of the row it resolves, unless
@@ -502,8 +523,9 @@ namespace NeoCompose.Runtime
                     pending.Enqueue(binding.Value.valueId);
             if (candidateReplay is not null)
                 foreach (var pair in candidateReplay.Values)
-                    if (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)
-                        || !NeoSemanticJson.MemberRowsEqual(previousVirtual, pair.Value))
+                    if (copied?.Contains(pair.Key) != true
+                        && (!virtualValues.TryGetValue(pair.Key, out var previousVirtual)
+                        || !NeoSemanticJson.MemberRowsEqual(previousVirtual, pair.Value)))
                         pending.Enqueue(pair.Key);
             HashSet<string> visited = scratch.visited;
             HashSet<string> grids = scratch.grids;

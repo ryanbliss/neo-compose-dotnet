@@ -85,7 +85,7 @@ namespace NeoCompose.Runtime
                 foreach (string ownerId in map.Keys)
                 {
                     var scope = root.scope;
-                    if (!TryGetValue(scope, ownerId, out MemberValue? _)
+                    if (!HasWritableValue(scope, ownerId)
                         && !TryGetValueOwnership(ownerId, out scope))
                         continue;
                     var key = (scope, ownerId);
@@ -119,10 +119,13 @@ namespace NeoCompose.Runtime
             {
                 foreach (var entry in carrier.row.copiedChangeListeners!)
                 {
-                    if (plan.Resolve(carrier.scope, entry.Key) is not ObjectMemberValue { classId: not null } owner)
+                    var ownerScope = carrier.scope;
+                    if (!plan.TryGetWritable(ownerScope, entry.Key, out _))
+                        plan.TryGetOwnership(entry.Key, out ownerScope);
+                    if (plan.Resolve(ownerScope, entry.Key) is not ObjectMemberValue { classId: not null } owner)
                         continue;
-                    string rootId = ListenerBindingRoot(owner.id, carrier.scope, roots);
-                    var key = (PersistedOwnership, carrier.scope, rootId, owner.id);
+                    string rootId = ListenerBindingRoot(owner.id, ownerScope, roots);
+                    var key = (PersistedOwnership, ownerScope, rootId, owner.id);
                     Dictionary<string, NeoDelegateValue[]>? pending = null;
                     bool edited = plan.ListenerEntries?.TryGetValue(key, out pending) == true;
                     var durable = pending is null ? new Dictionary<string, NeoDelegateValue[]>(StringComparer.Ordinal)
@@ -135,7 +138,7 @@ namespace NeoCompose.Runtime
                         if (!TryGetMember(slot.Key, out Member? declaration))
                             continue;
                         Member member = ResolveOwnedMemberType(owner, null, owner.classId, declaration);
-                        var observedLifetime = ChildOwnership(member, carrier.scope);
+                        var observedLifetime = ChildOwnership(member, ownerScope);
                         if (observedLifetime != PersistedOwnership)
                             continue;
                         var targets = new List<NeoDelegateValue>();
@@ -143,7 +146,7 @@ namespace NeoCompose.Runtime
                             if (!IsSessionListenerTarget(target, observedLifetime))
                                 targets.Add(target.PersistedCopy());
                         bool inherited = false;
-                        foreach (var target in InheritedChangeListenerTargets(rootId, owner.id, slot.Key, carrier.scope, ignoreCopied: true))
+                        foreach (var target in InheritedChangeListenerTargets(rootId, owner.id, slot.Key, ownerScope, ignoreCopied: true))
                             if (!IsSessionListenerTarget(target, observedLifetime))
                             {
                                 inherited = true;
@@ -153,7 +156,7 @@ namespace NeoCompose.Runtime
                             durable[slot.Key] = targets.ToArray();
                     }
                     if (durable.Count > 0 || edited)
-                        plan.SetListenerEntry(PersistedOwnership, rootId, owner.id, durable.Count == 0 ? null : durable, carrier.scope);
+                        plan.SetListenerEntry(PersistedOwnership, rootId, owner.id, durable.Count == 0 ? null : durable, ownerScope);
                 }
                 var adopted = CloneValueRow(carrier.row);
                 adopted.copiedListenersAdopted = true;
@@ -189,11 +192,32 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<(NeoValueOwnership scope, string id), (string id, Member? member)> Values = new();
             private readonly ClonedValueOccurrence? parent;
             internal readonly System.Security.Cryptography.SHA1 Hash;
+            internal ClonedGraph? Snapshot;
             internal ClonedValueOccurrence(ClonedValueOccurrence? parent, System.Security.Cryptography.SHA1 hash)
             {
                 this.parent = parent;
                 Hash = hash;
+                Snapshot = parent?.Snapshot;
             }
+            private Dictionary<string, string>? identities;
+            internal string? ResolveIdentity(NeoClient client, string id)
+            {
+                for (var occurrence = this; occurrence is not null; occurrence = occurrence.parent)
+                {
+                    if (occurrence.identities is null)
+                    {
+                        occurrence.identities = new();
+                        foreach (var copy in occurrence.Values)
+                            occurrence.identities[copy.Key.id] = client.TryGetCommittedOwnership(copy.Key.id, out var scope)
+                                && occurrence.Values.TryGetValue((scope, copy.Key.id), out var preferred)
+                                    ? preferred.id : copy.Value.id;
+                    }
+                    if (occurrence.identities.TryGetValue(id, out string mapped))
+                        return mapped;
+                }
+                return null;
+            }
+
             internal bool TryResolve((NeoValueOwnership scope, string id) source, out string? id)
             {
                 for (var occurrence = this; occurrence is not null; occurrence = occurrence.parent)
@@ -217,7 +241,8 @@ namespace NeoCompose.Runtime
                 {
                     if (plan.Resolve(copy.Key.scope, copy.Key.id) is not ObjectMemberValue owner)
                         continue;
-                    string? classId = owner.classId ?? plan.Resolve(targetOwnership, copy.Value.id)?.classId;
+                    string? classId = owner.classId ?? plan.Resolve(targetOwnership, copy.Value.id)?.classId
+                        ?? copies.Snapshot?.Rows.GetValueOrDefault(copy.Value.id)?.classId;
                     if (classId is null)
                         continue;
                     if (owner.classId is null)

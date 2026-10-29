@@ -60,6 +60,7 @@ namespace NeoCompose.Runtime
         // Counts staged row and binding changes, so a replay prepared against
         // this plan can tell the plan still matches it.
         internal int Version;
+        internal List<NeoClient.ClonedGraph>? ClonedGraphs;
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
         // Most plans bind no static; they share one empty map until the first Bind.

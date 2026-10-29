@@ -403,7 +403,6 @@ namespace NeoCompose.Runtime
                 }
 
                 ThrowIfDisposed();
-                NeoProjectDataValidator.Validate(schema);
                 if (schema.metadata?.localExport == true && !localExport)
                 {
                     EnterLocalExport();

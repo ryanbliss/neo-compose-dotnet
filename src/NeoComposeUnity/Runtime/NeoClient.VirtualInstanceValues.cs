@@ -246,6 +246,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
         private readonly Dictionary<string, string> virtualRootByFootprintId = new();
+        private readonly HashSet<string> identitySensitiveExpansionRoots = new();
         private readonly Dictionary<string, HashSet<string>>
             constructorArgumentRootsByValueId = new(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>>
@@ -259,6 +260,9 @@ namespace NeoCompose.Runtime
             internal string path = null!;
             internal string? schemaKey;
             internal string virtualId = null!;
+            internal string identityId = null!;
+            internal string identity = null!;
+            internal string identityRoot = null!;
             internal string? effectiveId;
             internal NeoValueOwnership effectiveOwnership;
             internal VirtualExpansionNode? parent;
@@ -273,6 +277,8 @@ namespace NeoCompose.Runtime
             internal string rootId = null!;
             internal string path = null!;
             internal string parentValueId = null!;
+            internal string? identity;
+            internal string? identityRoot;
             internal string? schemaKey;
             internal Member member = null!;
             internal NeoValueOwnership ownership;
@@ -660,6 +666,7 @@ namespace NeoCompose.Runtime
             virtualClassChildIdsByRoot.Clear();
             virtualFootprintByRoot.Clear();
             virtualRootByFootprintId.Clear();
+            identitySensitiveExpansionRoots.Clear();
             nestedReplayBoundaries.Clear();
             nestedReplayRootsByOwner.Clear();
             constructorArgumentRootsByValueId.Clear();
@@ -1402,6 +1409,7 @@ namespace NeoCompose.Runtime
 
         private PreparedVirtualExpansion ExpandVirtualInstanceRootCore(ObjectMemberValue instanceRoot, bool prepareOnly = false, NeoValueOwnership? replayOwnership = null, NestedReplayBoundary? preparedBoundary = null)
         {
+            long identityReads = Random.IdentityReadCount;
             using var randomFrame = Random.EnterIdentity(instanceRoot.id);
 #if NEO_COMPOSE_PROFILING
             using var marker = ReplayRootMarker.Auto();
@@ -1585,6 +1593,14 @@ namespace NeoCompose.Runtime
                     expansion.Boundary = replayBoundary;
                 else
                     PartitionNestedReplay(graph, expansion, instanceRoot, allocations.Ids);
+            }
+            if (Random.IdentityReadCount != identityReads)
+                MarkIdentitySensitive(expansion);
+            static void MarkIdentitySensitive(PreparedVirtualExpansion value)
+            {
+                value.IdentitySensitive = true;
+                foreach (var nested in value.Nested)
+                    MarkIdentitySensitive(nested);
             }
             if (prepareOnly)
                 return expansion;
@@ -1903,6 +1919,9 @@ namespace NeoCompose.Runtime
                 member = member,
                 path = path,
                 virtualId = virtualId,
+                identityId = virtualId,
+                identity = sourceIdentity,
+                identityRoot = instanceRoot.id,
             };
 
             // Replay rows live in temporary Session storage, including immutable
@@ -2051,29 +2070,9 @@ namespace NeoCompose.Runtime
                 }
                 selection.value = ids;
             }
+            string? Resolve(string id) => identities.GetValueOrDefault(id);
             foreach (var (row, member) in constructions)
-            {
-                if (row.instanceConstructorId is not string constructorId
-                    || !data.constructors.TryGetValue(constructorId, out var constructor))
-                    continue;
-                IReadOnlyDictionary<string, NeoGenericEnvEntry>? environment = null;
-                for (int index = 0; index < constructor.argumentTypes.Length; index++)
-                {
-                    string parameterId = ConstructorParameterId(constructor, index);
-                    if (!row.constructorArgs!.TryGetValue(parameterId, out var argument)
-                        || argument?.Type != JTokenType.String)
-                        continue;
-                    if (!identities.TryGetValue(argument.Value<string>()!, out string? effective))
-                        continue;
-                    environment ??= NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
-                        NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings,
-                            SlotClassArguments(member, constructor.classId)));
-                    var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this,
-                        constructor.argumentTypes[index], environment);
-                    if (parameter.type == MemberKind.Reference)
-                        row.constructorArgs[parameterId] = effective;
-                }
-            }
+                RemapConstructedReferences(row, member, Resolve);
             if (scopes is null)
                 return;
             foreach (var owner in listenerDefaults!)
@@ -2094,6 +2093,31 @@ namespace NeoCompose.Runtime
                     entry[member.Key] = targets;
                 }
                 expansion.ListenerDefaults[(scopes[owner.Key], effectiveOwner)] = entry;
+            }
+        }
+
+        private void RemapConstructedReferences(ObjectMemberValue row, ClassMember? member,
+            Func<string, string?> resolve)
+        {
+            if (row.instanceConstructorId is not string constructorId
+                || !data.constructors.TryGetValue(constructorId, out var constructor))
+                return;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? environment = null;
+            for (int index = 0; index < constructor.argumentTypes.Length; index++)
+            {
+                string parameterId = ConstructorParameterId(constructor, index);
+                if (!row.constructorArgs!.TryGetValue(parameterId, out var argument)
+                    || argument?.Type != JTokenType.String)
+                    continue;
+                if (resolve(argument.Value<string>()!) is not { } effective)
+                    continue;
+                environment ??= NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
+                    NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings,
+                        SlotClassArguments(member, constructor.classId)));
+                var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this,
+                    constructor.argumentTypes[index], environment);
+                if (parameter.type == MemberKind.Reference)
+                    row.constructorArgs[parameterId] = effective;
             }
         }
 
@@ -2171,17 +2195,20 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<string> Dependencies = new();
             internal readonly List<PreparedVirtualExpansion> Nested = new();
             internal NestedReplayBoundary? Boundary;
+            internal bool IdentitySensitive;
 
             // The ownership a root expansion replayed under.
             internal NeoValueOwnership RootOwnership;
 
             internal PreparedVirtualExpansion(ObjectMemberValue root) => Root = root;
 
-            internal void TrackPlacement(string parentId, string childId, Member member, NeoValueOwnership ownership, NeoValueOwnership parentOwnership, string path, string? schemaKey = null)
+            internal void TrackPlacement(string parentId, string childId, Member member, NeoValueOwnership ownership, NeoValueOwnership parentOwnership, string path, string? schemaKey = null, VirtualExpansionNode? node = null)
             {
                 Placements[childId] = new VirtualClassPlacement
                 {
                     rootId = Root.id,
+                    identity = childId == node?.identityId ? node.identity : null,
+                    identityRoot = childId == node?.identityId ? node.identityRoot : null,
                     path = path,
                     parentValueId = parentId,
                     schemaKey = schemaKey,
@@ -2195,6 +2222,8 @@ namespace NeoCompose.Runtime
         private void InstallVirtualExpansion(PreparedVirtualExpansion expansion, bool includeNested = true)
         {
             string rootId = expansion.Root.id;
+            if (expansion.IdentitySensitive)
+                identitySensitiveExpansionRoots.Add(rootId);
             foreach (var pair in expansion.Values)
                 NoteDeparture(pair.Key, RowLayer.Virtual, pair.Value);
             foreach (var pair in expansion.Values)
@@ -2219,7 +2248,7 @@ namespace NeoCompose.Runtime
             virtualClassChildrenEpoch++;
             foreach (var pair in expansion.Placements)
             {
-                TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership, pair.Value.parentOwnership, pair.Value.path, pair.Value.schemaKey);
+                TrackVirtualClassPlacement(rootId, pair.Value.parentValueId, pair.Key, pair.Value.member, pair.Value.ownership, pair.Value.parentOwnership, pair.Value.path, pair.Value.schemaKey, pair.Value.identity, pair.Value.identityRoot);
                 // An authored row at a writable root's virtual id is that root's
                 // materialized spine, which the authored walk's links don't reach.
                 if (pair.Value.ownership != NeoValueOwnership.Asset
@@ -2283,7 +2312,7 @@ namespace NeoCompose.Runtime
             }
             node.effectiveId = materialized.id;
             if (node.parent is not null)
-                expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey);
+                expansion.TrackPlacement(node.parent.effectiveId, node.effectiveId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey, node);
             if (materialized.id != instanceRoot.id
                 && materialized is ObjectMemberValue nestedRoot
                 && IsVirtualInstanceRoot(nestedRoot)
@@ -2329,7 +2358,7 @@ namespace NeoCompose.Runtime
                                 childOwnership,
                                 ownership,
                                 pair.Value.path,
-                                pair.Key);
+                                pair.Key, pair.Value);
                         }
                     }
                     // Ownership switches at declared member boundaries: a
@@ -2471,7 +2500,7 @@ namespace NeoCompose.Runtime
             // Collection entries need their closed placement just as class
             // fields do, including when a candidate replay hides the old graph.
             if (node.parent is not null)
-                expansion.TrackPlacement(node.parent.effectiveId, node.virtualId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey);
+                expansion.TrackPlacement(node.parent.effectiveId, node.virtualId, node.member, ownership, node.parent.effectiveOwnership, node.path, node.schemaKey, node);
             expansion.Footprint.Add(node.virtualId);
             MemberValue virtualRow = RewriteVirtualRow(node, instanceRoot);
             if (unorderedContainerId is not null)
@@ -2497,7 +2526,7 @@ namespace NeoCompose.Runtime
                         childOwnership,
                         ownership,
                         child.path,
-                        child.schemaKey);
+                        child.schemaKey, child);
                 }
                 IndexVirtualChild(expansion, child, instanceRoot, childOwnership);
             }
@@ -2777,7 +2806,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             NeoValueOwnership parentOwnership,
             string path,
-            string? schemaKey)
+            string? schemaKey, string? identity = null, string? identityRoot = null)
         {
             if (virtualClassPlacementByChildId.TryGetValue(childValueId, out var previousPlacement))
                 RemoveVirtualLookupBinding(previousPlacement.member.id, childValueId);
@@ -2789,6 +2818,8 @@ namespace NeoCompose.Runtime
                 new VirtualClassPlacement
                 {
                     rootId = rootId,
+                    identity = identity,
+                    identityRoot = identityRoot,
                     path = path,
                     parentValueId = parentValueId,
                     schemaKey = schemaKey,
@@ -2824,6 +2855,7 @@ namespace NeoCompose.Runtime
 
         private void ClearVirtualInstanceRoot(string rootId)
         {
+            identitySensitiveExpansionRoots.Remove(rootId);
             ClearListenerDefaults(rootId);
             ClearNestedReplayBoundary(rootId);
             RemoveConstructorArgumentRows(rootId);

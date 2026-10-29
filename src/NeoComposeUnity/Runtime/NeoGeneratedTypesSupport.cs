@@ -3912,6 +3912,12 @@ namespace NeoCompose.Runtime
 
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
                     classPlan.genericEnv;
+                if (trustedMaterialization)
+                {
+                    foreach (var field in row.value!)
+                        VisitChild(classPlan.membersBySchemaKey[field.Key], field.Key, field.Value);
+                    return;
+                }
                 // Indexed: an interface foreach would box its enumerator per row.
                 for (int entryIndex = 0; entryIndex < schema.Count; entryIndex++)
                 {
@@ -3957,6 +3963,11 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Constructed Class row '{path}.{entry.schemaKey}' references an empty value id.");
                     }
+                    VisitChild(member, entry.schemaKey, childId);
+
+                }
+                void VisitChild(Member member, string key, string childId)
+                {
                     bool childIsTrustedStaged = trustedMaterialization
                         && stagedById.ContainsKey(childId);
                     ValidateConstructedValueLink(
@@ -3965,7 +3976,7 @@ namespace NeoCompose.Runtime
                         childId,
                         childIsTrustedStaged
                             ? null
-                            : ReplaceFieldValueId(row, entry.schemaKey),
+                            : ReplaceFieldValueId(row, key),
                         row.mapKey,
                         classId,
                         stagedById,
@@ -3977,13 +3988,14 @@ namespace NeoCompose.Runtime
                         childIsTrustedStaged
                             && referenceOwnershipByPath is { Count: 0 }
                             ? path
-                            : $"{path}.{entry.schemaKey}",
+                            : $"{path}.{key}",
                         traversal,
                         env,
                         referenceOwnershipByPath,
                         trustedMaterialization,
                         requireNonNull: requireRequiredMembers);
                 }
+
             }
             finally
             {

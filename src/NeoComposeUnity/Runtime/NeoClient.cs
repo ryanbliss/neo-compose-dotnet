@@ -791,18 +791,14 @@ namespace NeoCompose.Runtime
             PersistedOwnership = persisted;
             userSource = this;
             ValidateExportSchemaVersion(data.metadata);
-            // P104 §4.2: the schema passes are idempotent over `data`, so the
-            // first client of a ProjectData pays for them.
-            bool validated = data.clientPassesValidated;
+            // Schema preparation is shared by all clients of this export.
+            bool prepared = data.clientSchemaPrepared;
             authoredIndexes = data.authoredIndexes ??= new NeoAuthoredIndexes();
-            if (!validated)
+            if (!prepared)
             {
-                ValidateClassMemberPayload(data);
                 NeoMemberShapeResolution.ResolveAll(data.members);
                 NormalizeClassSchemas();
-                ValidateReadOnlyMembers();
-                ValidateStoredSequenceMembers();
-                ValidateInternalRecordRelations(data);
+                data.clientSchemaPrepared = true;
             }
             InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
             // User data holds no world partitions (§4.2).
@@ -818,12 +814,6 @@ namespace NeoCompose.Runtime
                 ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
             }
             ValidateRootClassMember(data.project.rootUserMemberId, nameof(Project.rootUserMemberId));
-            if (!validated)
-            {
-                ValidateCallableMembers();
-                ValidateConstructorRecords();
-                data.clientPassesValidated = true;
-            }
             loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
@@ -912,11 +902,22 @@ namespace NeoCompose.Runtime
             cancellationToken.ThrowIfCancellationRequested();
         }
 
+        // Compiler/export invariants belong to schema diagnostics. Game load
+        // normalizes the schema and checks its format, then checks dynamic
+        // arguments and ownership at the operations that consume them.
+        internal void ValidateSchemaContracts()
+        {
+            ValidateClassMemberPayload(data);
+            ValidateReadOnlyMembers();
+            ValidateStoredSequenceMembers();
+            ValidateInternalRecordRelations(data);
+            ValidateCallableMembers();
+            ValidateConstructorRecords();
+            NeoAnimationCompiler.ValidateProject(this);
+        }
+
         private void CompleteInitialization()
         {
-            // Animations are system types, never User data (§4.2).
-            if (!IsUserClient)
-                NeoAnimationCompiler.ValidateProject(this);
             if (loader is NeoSaveSynchronizer saveSynchronizer)
                 saveSynchronizer.PrepareSaveIdentity(PersistedData);
             if (loadedExistingSave)
@@ -3659,6 +3660,15 @@ namespace NeoCompose.Runtime
         {
             using var cloneHash = System.Security.Cryptography.SHA1.Create();
             var copies = new ClonedValueOccurrence(null, cloneHash);
+            // Identity-seeded defaults must evaluate under the new identity,
+            // matching what save/reload reconstructs without storing defaults.
+            bool identitySensitive = identitySensitiveExpansionRoots.Contains(sourceValueId)
+                || (virtualRootByFootprintId.TryGetValue(sourceValueId, out var expansionRoot)
+                    && identitySensitiveExpansionRoots.Contains(expansionRoot));
+            if (!identitySensitive && !isReplayingVirtualInstance && candidateReplay is null
+                && sourceMember is not ClassMember { Payload: NeoMemberPayloadKind.Partial }
+                && plan.Resolve(sourceOwnership, sourceValueId) is ObjectMemberValue { classId: not null })
+                copies.Snapshot = new ClonedGraph(targetOwnership);
             List<ClonedValueOccurrence>? repeatedCopies = null;
             string clonedId = CloneOwnedValueGraphWithFreshIds(
                 plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember,
@@ -3683,6 +3693,19 @@ namespace NeoCompose.Runtime
                     retainedRows[copy.Key] = copy.Value.id;
             if (sourceMember is ClassMember { DeclaredClassId: { } declaredClassId })
                 NameCopiedRootClass(plan, targetOwnership, clonedId, declaredClassId);
+            if (copies.Snapshot is { } snapshot)
+            {
+                snapshot.Root = (ObjectMemberValue?)plan.Resolve(targetOwnership, clonedId);
+                if (snapshot.Root is not null)
+                {
+                    snapshot.Rows[clonedId] = snapshot.Root;
+                    CopyCloneDependencies(snapshot, copies);
+                    if (repeatedCopies is not null)
+                        foreach (var occurrence in repeatedCopies)
+                            CopyCloneDependencies(snapshot, occurrence);
+                    (plan.ClonedGraphs ??= new()).Add(snapshot);
+                }
+            }
             return clonedId;
         }
 
@@ -3695,11 +3718,16 @@ namespace NeoCompose.Runtime
             if ((!virtualFootprintByRoot.ContainsKey(row.id) || nestedReplayBoundaries.ContainsKey(row.id))
                 && TryResolveVirtualPlacement(row.id, out var placement))
             {
-                string root = nestedReplayBoundaries.TryGetValue(placement.rootId, out var boundary)
-                    ? boundary.NamespaceRoot.id : placement.rootId;
+                string root = placement.identityRoot ?? (nestedReplayBoundaries.TryGetValue(placement.rootId, out var boundary)
+                    ? boundary.NamespaceRoot.id : placement.rootId);
                 var rootScope = TryGetCommittedOwnership(root, out var resolvedScope) ? resolvedScope : ownership;
                 if (copies.Values.TryGetValue((rootScope, root), out var rootCopy))
                 {
+                    if (placement.identity is { } knownIdentity)
+                    {
+                        spine = true;
+                        return VirtualValueId(rootCopy.id, knownIdentity, copies.Hash);
+                    }
                     string identity = VirtualSourceIdentity(row, placement.member, placement.path);
                     if (VirtualValueId(root, identity, copies.Hash) == row.id)
                     {
@@ -3727,7 +3755,7 @@ namespace NeoCompose.Runtime
             HashSet<string> path,
             ref List<ClonedValueOccurrence>? repeatedCopies,
             string? clonedContainerId,
-            bool partial = false)
+            bool partial = false, bool virtualCopy = false)
         {
             partial |= sourceMember is ClassMember { Payload: NeoMemberPayloadKind.Partial }
                 || IsAuthoredPartialValue(sourceValueId);
@@ -3735,7 +3763,7 @@ namespace NeoCompose.Runtime
             {
                 var occurrence = new ClonedValueOccurrence(copies, copies.Hash);
                 string repeated = CloneOwnedValueGraphWithFreshIds(plan, targetOwnership, sourceOwnership, sourceValueId,
-                    sourceMember, occurrence, path, ref repeatedCopies, clonedContainerId, partial);
+                    sourceMember, occurrence, path, ref repeatedCopies, clonedContainerId, partial, virtualCopy);
                 (repeatedCopies ??= new()).Add(occurrence);
                 return repeated;
             }
@@ -3791,14 +3819,23 @@ namespace NeoCompose.Runtime
                             {
                                 Member? childMember =
                                     TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
-                                // A runtime copy owns no Immutable value: an
-                                // authored one stays shared with the export,
-                                // and an evaluated one replays from the copy.
+                                // Authored Immutable values stay shared. Resolved
+                                // per-instance defaults are copied into the virtual
+                                // cache, never into writable storage.
                                 if (childMember?.Storage == NeoMemberStorage.Immutable
                                     && !isReplayingVirtualInstance)
                                 {
                                     if (obj.value.ContainsKey(pair.Key) && data.values.ContainsKey(pair.Value))
                                         remapped[pair.Key] = pair.Value;
+                                    else if (copies.Snapshot is { } snapshot)
+                                    {
+                                        string immutableId = CloneOwnedValueGraphWithFreshIds(plan,
+                                            targetOwnership, NeoValueOwnership.Asset, pair.Value, childMember,
+                                            copies, path, ref repeatedCopies, null, virtualCopy: true);
+                                        if (!snapshot.Fields.TryGetValue(clone.id, out var defaults))
+                                            snapshot.Fields[clone.id] = defaults = new();
+                                        defaults[pair.Key] = immutableId;
+                                    }
                                     else
                                         omitsImmutable = true;
                                     continue;
@@ -3810,14 +3847,15 @@ namespace NeoCompose.Runtime
                                         out MemberValue? _)
                                         ? CloneOwnedValueGraphWithFreshIds(
                                             plan,
-                                            targetOwnership,
+                                            virtualCopy ? ChildOwnership(childMember, NeoValueOwnership.Asset) : targetOwnership,
                                             ChildOwnership(childMember, sourceOwnership),
                                             pair.Value,
                                             childMember,
                                             copies,
                                             path, ref repeatedCopies,
                                             null,
-                                            partial && childMember is ClassMember)
+                                            partial && childMember is ClassMember,
+                                            virtualCopy && ChildOwnership(childMember, NeoValueOwnership.Asset) == NeoValueOwnership.Asset)
                                         : pair.Value;
                             }
                             obj.value = remapped;
@@ -3850,13 +3888,13 @@ namespace NeoCompose.Runtime
                                 remapped[i] = plan.TryGet(entryOwnership, arr.value[i], out MemberValue? _)
                                     ? CloneOwnedValueGraphWithFreshIds(
                                         plan,
-                                        targetOwnership,
+                                        virtualCopy ? ChildOwnership(entryMember, NeoValueOwnership.Asset) : targetOwnership,
                                         entryOwnership,
                                         arr.value[i],
                                         entryMember,
                                         copies,
                                         path, ref repeatedCopies,
-                                        null)
+                                        null, virtualCopy: virtualCopy && ChildOwnership(entryMember, NeoValueOwnership.Asset) == NeoValueOwnership.Asset)
                                     : arr.value[i];
                             }
                             arr.value = remapped;
@@ -3864,14 +3902,23 @@ namespace NeoCompose.Runtime
                         }
                 }
 
-                plan.Set(targetOwnership, clone, silent: true);
+                if (copies.Snapshot is { } graph)
+                {
+                    graph.Rows[clone.id] = clone;
+                    if (virtualCopy)
+                        graph.Immutable.Add(clone.id);
+                    else
+                        graph.Stores[clone.id] = targetOwnership;
+                }
+                if (!virtualCopy)
+                    plan.Set(targetOwnership, clone, silent: true);
                 if (targetOwnership == NeoValueOwnership.Session && getterReadCapture is not null)
                     (getterConstructedRows ??= new HashSet<string>(System.StringComparer.Ordinal)).Add(clone.id);
                 // A Session clone can outlive the Save-owned object whose
                 // child was supplied as a constructor-only input. Retain that
                 // replay dependency in the clone's Session store before the
                 // source unlinks it.
-                if (targetOwnership == NeoValueOwnership.Session && candidateReplay is null)
+                if (!virtualCopy && targetOwnership == NeoValueOwnership.Session && candidateReplay is null)
                     StageConstructorDependencies(plan, clone, targetOwnership);
 
                 // Unordered list membership is stored on the member rows,
@@ -3890,13 +3937,13 @@ namespace NeoCompose.Runtime
                         {
                             CloneOwnedValueGraphWithFreshIds(
                                 plan,
-                                targetOwnership,
+                                virtualCopy ? ChildOwnership(entryMember, NeoValueOwnership.Asset) : targetOwnership,
                                 entryOwnership,
                                 memberId,
                                 entryMember,
                                 copies,
                                 path, ref repeatedCopies,
-                                clone.id);
+                                clone.id, virtualCopy: virtualCopy && ChildOwnership(entryMember, NeoValueOwnership.Asset) == NeoValueOwnership.Asset);
                         }
                     }
                 }

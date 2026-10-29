@@ -453,10 +453,10 @@ namespace NeoCompose.Runtime.Json
         internal int valuesEpoch;
 
         /// <summary>
-        /// Set once a client ran the idempotent schema passes over this
+        /// Set once a client normalized the schema shapes in this
         /// instance, so clients that share it skip them (P104 §4.2).
         /// </summary>
-        internal bool clientPassesValidated;
+        internal bool clientSchemaPrepared;
 
         /// <summary>
         /// Indexes derived only from authored rows, built by the first

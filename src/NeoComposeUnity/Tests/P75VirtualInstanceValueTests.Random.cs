@@ -37,6 +37,71 @@ namespace NeoCompose.Tests
             return random.RangeInt(int.MinValue, int.MaxValue);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CloneIdentitySensitiveImmutableDefaultSurvivesReload(bool seedOnly)
+        {
+            var data = RandomDefaultProject(constant: true);
+            var initializer = ((IntMember)data.members["thing-count"]).defaultValue!.init!.compiled!;
+            if (seedOnly)
+            {
+                initializer = JObject.Parse(NeoScriptRandomIrFixture.Json)["sharedSeed"]!.ToObject<FunctionWithReturnType>()!;
+                data.members["thing-count"] = new FloatMember
+                {
+                    id = "thing-count",
+                    name = "Count",
+                    kind = MemberKind.Float,
+                    Storage = NeoMemberStorage.Immutable,
+                    defaultValue = new NumberMemberValueBase { init = new InitializerBody { code = "NeoRandom.Seed", compiled = initializer } }
+                };
+            }
+            // Keep the initializer instance-bound instead of a declaration constant.
+            var instructions = new List<Instruction>
+            {
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable
+                    {
+                        id = "self", typeInfo = ClassType("thing-class"),
+                        pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" }
+                    }
+                }
+            };
+            instructions.AddRange(initializer.instructions!);
+            initializer.instructions = instructions.ToArray();
+            initializer.parameters = new[]
+            {
+                ConstructorVariable("__this__", ClassType("thing-class")),
+                ConstructorVariable("__root__", ClassType("__root__"))
+            };
+            double Read(NeoMemberClass value) => seedOnly
+                ? value.Get<NeoMemberFloat>("Count").value!.value!.Value
+                : value.Get<NeoMemberInt>("Count").value!.value!.Value;
+            string saved;
+            double expected;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var source = client.save.Get<NeoMemberClassWritable>("Thing");
+                string id = client.CloneValueReference(source.value!.id, source.ownership);
+                var clone = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], id, NeoValueOwnership.Session);
+                expected = Read(clone);
+                if (seedOnly)
+                {
+                    var random = new NeoRandom(0);
+                    using var identity = random.EnterIdentity(id);
+                    Assert.AreEqual((double)(float)random.Seed, expected);
+                }
+                else
+                    Assert.AreEqual(IdentityRange(id), expected);
+                client.save.SetSerializedValue("Thing", NeoGeneratedTypesSupport.ValueReference(new ImmutableProbeReference { valueId = id }));
+                Assert.AreEqual(expected, Read(client.save.Get<NeoMemberClass>("Thing")));
+                saved = client.SerializeSaveData();
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(expected, Read(reloaded.save.Get<NeoMemberClass>("Thing")));
+        }
+
         [Test]
         public void RandomStoredDefaultsSurvivePartitionReloadAndFullRebuildWithoutGameplayDraws()
         {

@@ -214,7 +214,7 @@ namespace NeoCompose.Runtime
             var other = carrier.scope == NeoValueOwnership.Session ? PersistedOwnership : NeoValueOwnership.Session;
             if (copiedListenerRootByOwner.TryGetValue((other, ownerId), out root) && root == carrier)
                 return other;
-            if (TryGetCommittedValue(carrier.scope, ownerId, out _))
+            if (HasWritableValue(carrier.scope, ownerId))
                 return carrier.scope;
             return TryGetCommittedOwnership(ownerId, out var scope) ? scope : carrier.scope;
         }

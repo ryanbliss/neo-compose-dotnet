@@ -36,7 +36,6 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(loader));
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
-            NeoProjectDataValidator.Validate(data);
             NeoClient? userClient = await ResolveUserClientAsync(loader, data, cancellationToken);
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
