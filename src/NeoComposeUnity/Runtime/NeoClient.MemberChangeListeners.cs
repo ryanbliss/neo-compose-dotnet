@@ -27,6 +27,8 @@ namespace NeoCompose.Runtime
             internal readonly HashSet<(NeoValueOwnership scope, string id)> Replacements = new();
             internal readonly List<(NeoValueOwnership scope, string ownerId, string memberId)> Changes = new();
             internal readonly HashSet<(NeoValueOwnership scope, string ownerId, string memberId)> Keys = new();
+            internal readonly HashSet<(string memberId, TypeBinding construction)> StaticKeys = new();
+            internal readonly List<(string memberId, TypeBinding construction)> Statics = new();
             internal bool IsEmpty = true;
             internal void Clear()
             {
@@ -36,6 +38,8 @@ namespace NeoCompose.Runtime
                 Replacements.Clear();
                 Changes.Clear();
                 Keys.Clear();
+                StaticKeys.Clear();
+                Statics.Clear();
                 IsEmpty = true;
             }
         }
@@ -1044,7 +1048,8 @@ namespace NeoCompose.Runtime
         }
 
         private string? ChangeListenerSignatureError(string targetMemberId, Json.TypeInfo observedType, Member member,
-            ObjectMemberValue receiver, Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null)
+            ObjectMemberValue? receiver, Dictionary<ObjectMemberValue, IReadOnlyDictionary<string, NeoGenericEnvEntry>>? environments = null,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? typeEnvironment = null, bool preserveOpen = false)
         {
             Json.TypeInfo? result;
             FunctionArgumentTypeInfo[]? arguments;
@@ -1083,7 +1088,8 @@ namespace NeoCompose.Runtime
             Json.TypeInfo argument;
             try
             {
-                argument = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, arguments[0], ListenerOwnerEnvironment(receiver, environments));
+                argument = preserveOpen ? arguments[0] : NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, arguments[0],
+                    typeEnvironment ?? (receiver is null ? NeoGenericResolution.EmptyEnv : ListenerOwnerEnvironment(receiver, environments)));
             }
             catch (NSGetterRuntimeError error)
             {

@@ -1888,6 +1888,8 @@ namespace NeoCompose.Runtime
             SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
+                if (data.interfaces.Values.Any(owner => owner.members.Values.Any(declaration => declaration.IsStatic && declaration.implementationMemberId == member.id)))
+                    return null;
                 throw new System.InvalidOperationException(
                     $"Static member '{member.id}' has no declaring Class.");
             }
@@ -1940,6 +1942,8 @@ namespace NeoCompose.Runtime
             SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
+                if (data.interfaces.Values.Any(owner => owner.members.Values.Any(declaration => declaration.IsStatic && declaration.implementationMemberId == member.id)))
+                    return NeoValueOwnership.Session;
                 throw new System.InvalidOperationException(
                     $"Static member '{member.id}' has no declaring Class.");
             }
@@ -2268,7 +2272,7 @@ namespace NeoCompose.Runtime
                     id => data.classes.TryGetValue(id, out NeoSchemaClass match)
                         ? match
                         : null);
-                node = new NeoClassNode(classId, chain, data.members, ClassHooks(chain));
+                node = new NeoClassNode(this, classId, chain, data.members, ClassHooks(chain));
                 classNodes.Add(classId, node);
             }
             return node;
@@ -2768,6 +2772,8 @@ namespace NeoCompose.Runtime
                     if (pair.Value.kind != NeoInterfaceMemberKind.Property
                         || pair.Value.IsStatic
                         || !pair.Value.IsSettable
+                        || pair.Value.SetterAccess == NeoMemberAccessKind.Private
+                        || pair.Value.implementationMemberId is not null
                         || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
                     {
                         continue;
@@ -4442,6 +4448,12 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out Member? owner)
         {
+            if (ConstructionOfValue(ownership, valueId) is { } construction && TryGetMember(construction.memberId, out var constructedMember))
+            {
+                owner = NeoGenericResolution.SubstituteMember(this, constructedMember,
+                    NeoInterfaceDispatch.Of(this).Environment(construction.construction));
+                return true;
+            }
             if (ValueInferenceIndex.MembersByValueId.TryGetValue(valueId, out var declared))
             {
                 foreach (Member member in declared)
@@ -10094,9 +10106,9 @@ namespace NeoCompose.Runtime
                     foreach (string ownerId in owners)
                         plan.SetListenerEntry(PersistedOwnership, rootId, ownerId, after?.GetValueOrDefault(ownerId));
                 }
+                plan.ReplacesStaticConstructions = true;
+                plan.StaticConstructionSnapshot = incoming.staticConstructions;
                 plan.Commit();
-                // Carried, not bound: the SDK reads no generic static construction yet.
-                PersistedData.staticConstructions = incoming.staticConstructions;
                 AdoptPendingSaveRows(pending);
             }
             finally

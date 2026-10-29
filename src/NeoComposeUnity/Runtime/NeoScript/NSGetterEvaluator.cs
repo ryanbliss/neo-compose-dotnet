@@ -979,6 +979,8 @@ namespace NeoCompose.Runtime.NeoScript
             /// position. Its own type parameters read them by index.
             /// </summary>
             internal TypeInfo[]? functionTypeArguments;
+            internal TypeBinding? staticConstruction;
+            internal TypeBinding? interfaceConstruction;
             /// <param name="slotOwnerEnv">
             /// The environment the slot's arguments read the owner's params
             /// in: where the slot was read, or the instance being initialized
@@ -1135,6 +1137,8 @@ namespace NeoCompose.Runtime.NeoScript
                     initializerGenericEnv = null;
                 if (functionTypeArguments is not null)
                     functionTypeArguments = null;
+                staticConstruction = null;
+                interfaceConstruction = null;
                 // A C# setter entered its setter here.
                 if (!ReferenceEquals(setterCallStack, client.EmptyCallFrames))
                     setterCallStack = client.EmptyCallFrames;
@@ -1292,6 +1296,8 @@ namespace NeoCompose.Runtime.NeoScript
                 internal ClassMember? initializerPlacement;
                 internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv;
                 internal TypeInfo[]? functionTypeArguments;
+                internal TypeBinding? staticConstruction;
+                internal TypeBinding? interfaceConstruction;
                 // Entered by getter and construction frames only.
                 internal IReadOnlyCollection<string>? getterCallStack;
                 internal IReadOnlyList<string>? constructionStack;
@@ -1408,6 +1414,10 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.initializerGenericEnv = initializerGenericEnv;
                 if (functionTypeArguments is not null)
                     saved.functionTypeArguments = functionTypeArguments;
+                saved.staticConstruction = staticConstruction;
+                saved.interfaceConstruction = interfaceConstruction;
+                staticConstruction = null;
+                interfaceConstruction = null;
                 saved.constructorBody = constructorBody;
                 constructorBody = false;
                 if (!ReferenceEquals(thisValue, receiver))
@@ -1501,6 +1511,10 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!ReferenceEquals(functionTypeArguments, saved.functionTypeArguments))
                     functionTypeArguments = saved.functionTypeArguments;
                 saved.functionTypeArguments = null;
+                staticConstruction = saved.staticConstruction;
+                interfaceConstruction = saved.interfaceConstruction;
+                saved.staticConstruction = null;
+                saved.interfaceConstruction = null;
                 constructorBody = saved.constructorBody;
             }
 
@@ -2260,7 +2274,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case VariantPointer variantPointer:
                     return EvalVariant(variantPointer);
                 case StaticMemberPointer staticPointer:
-                    return ReadStaticMember(staticPointer.memberId, ctx);
+                    return ReadStaticMember(staticPointer.memberId, ctx, staticPointer.staticConstruction);
                 case RowOfPointer rowOf:
                     return EvalRowOf(rowOf, scope, ctx);
                 case DerefPointer deref:
@@ -2282,19 +2296,12 @@ namespace NeoCompose.Runtime.NeoScript
                             scope.SetLocal(icp.bindingId, IsCheckBinding(v, icp.checkType));
                         return Box(RuntimeTypeCheck(v, icp.checkType, ctx));
                     }
+                case TypeParameterStaticPointer staticParameter:
+                    return EvalTypeParameterStatic(staticParameter, scope, ctx);
                 case CallGetterPointer cgp:
                     return EvalCallGetter(cgp, scope, ctx);
                 case MemberTargetPointer target:
-                    {
-                        string? valueId = null;
-                        if (!target.receiver.IsStatic)
-                        {
-                            object? receiver = EvalCallReceiver(target.receiver, scope, ctx);
-                            valueId = FindRowIdByReference(receiver, ctx)
-                                ?? throw new NSGetterRuntimeError("A listener receiver must have a logical value identity.");
-                        }
-                        return new NeoDelegateValue { memberId = target.memberId, valueId = valueId };
-                    }
+                    return BindMemberTarget(target, scope, ctx);
                 case CoalescePointer cp:
                     {
                         var left = EvalPointer(cp.left, scope, ctx);
@@ -2477,6 +2484,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.IsClosure)
             {
                 ctx.allocationTracker.ReusableContext = false;
+                value.declaringConstruction = ClosureConstruction(value.action!, ctx);
+                value.typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray();
                 return value.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
             }
 
@@ -2599,7 +2608,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>A static member's bound value.</summary>
-        private static object? ReadStaticMember(string memberId, Context ctx)
+        private static object? ReadStaticMember(string memberId, Context ctx, TypeInfo? construction = null)
         {
             if (!ctx.client.TryGetMember(
                     memberId,
@@ -2609,16 +2618,13 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Static member '{memberId}' was not found.");
             }
-            NeoValueOwnership ownership =
-                ctx.client.ResolveStaticOwnership(staticMember);
-            if (!ctx.client.TryResolveStaticBinding(
-                    staticMember.id,
-                    out _,
-                    out _,
-                    out string? staticValueId))
-            {
-                return null;
-            }
+            var binding = ResolveStaticBinding(memberId, construction, ctx);
+            staticMember = binding.Member;
+            NeoValueOwnership ownership = binding.Ownership;
+            string? staticValueId = binding.ValueId;
+            if (staticValueId is null)
+                return construction is not null && ctx.client.IsInitializingStaticConstruction(RuntimeTypeOf(CloseContextType(construction, ctx)))
+                    ? DefaultOf(NeoTypeRules.BindingTypeInfo(ctx.client, staticMember)!, ctx.client) : null;
             if (!ctx.client.TryGetOverlaidValue(
                     ownership,
                     staticValueId,
@@ -2682,6 +2688,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A getter call, dispatched on the receiver's runtime Class.</summary>
         private static object? EvalCallGetter(CallGetterPointer cgp, NeoScriptScope scope, Context ctx)
         {
+            if (cgp.interfaceMember is not null)
+                return ReadInterfaceProperty(cgp, scope, ctx);
             if (ResolveGetterMember(cgp, ctx) is NSPropertyMember { extension: not null } extension)
             {
                 object? receiver = EvalCallReceiver(cgp.receiver, scope, ctx);
@@ -2712,7 +2720,8 @@ namespace NeoCompose.Runtime.NeoScript
                     cgp.memberId,
                     receiver: null,
                     ctx,
-                    (member as NSPropertyMember)?.getter);
+                    (member as NSPropertyMember)?.getter,
+                    staticConstruction: (cgp.receiver.staticConstruction ?? cgp.staticConstruction) is not { } construction ? null : RuntimeTypeOf(CloseContextType(construction, ctx)));
             }
             var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
             if (innerThis is null)
@@ -2723,20 +2732,14 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (cgp.memberId == NeoSequenceContract.Current)
                 return ReadSequenceCurrent(innerThis, ctx);
-            if (baseDispatch)
-                return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
-            // Try runtime dispatch via the receiver's classId merged
-            // schema first — same trick the TS evaluator uses to
-            // honor runtime overrides regardless of the static
-            // compile-time binding.
-            SchemaPlacement? placement = FindSchemaPlacementCached(cgp, ctx);
+            JsonMember accessor = NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(
+                FindRowClassIdByReference(innerThis, ctx), cgp.memberId, "get", baseDispatch || cgp.direct);
+            if (accessor is NSPropertyMember property)
+                return DispatchNSGetterById(accessor.id, innerThis, ctx, property.getter);
+            SchemaPlacement? placement = FindSchemaPlacementCached(accessor.id, ctx);
             if (placement is not null)
-            {
-                object? dispatched = DispatchSchemaMember(innerThis, placement.schemaKey, ctx, cgp);
-                if (Dispatched(dispatched))
-                    return ReadDispatchedGetterValue(dispatched, cgp, innerThis, ctx);
-            }
-            return DispatchNSGetterById(cgp.memberId, innerThis, ctx, (ResolveGetterMember(cgp, ctx) as NSPropertyMember)?.getter);
+                return ReadDispatchedGetterValue(DispatchSchemaMember(innerThis, placement.schemaKey, ctx, cgp, accessorMember: accessor), cgp, innerThis, ctx);
+            throw new NSGetterRuntimeError($"Getter '{accessor.name}' has no implementation.");
         }
 
         /// <summary>A stored override reads as the getter contract at this call site.</summary>
@@ -2811,23 +2814,11 @@ namespace NeoCompose.Runtime.NeoScript
             out JsonMember? member)
         {
             member = ResolveGetterMember(site, ctx);
-            if (NeoExtensionRuntime.Descriptor(member) is not null)
+            if (NeoExtensionRuntime.Descriptor(member) is not null || site.receiver?.IsStatic == true)
                 return site.memberId;
-            if (receiver is not null
-                && FindSchemaPlacementCached(site, ctx) is { } placement
-                && FindRowClassIdByReference(receiver, ctx) is { Length: > 0 } classId)
-            {
-                if (SurfaceRowMember(FindRowReference(receiver, ctx), classId, placement.schemaKey, site, ctx) is { } entry)
-                {
-                    // Only a variant target member needs the client's lookup.
-                    member = entry.member;
-                    if (member is null)
-                        ctx.client.TryGetMember(entry.memberId, out member);
-                    return entry.memberId;
-                }
-            }
-            member = ResolveGetterMember(site, ctx);
-            return site.memberId;
+            member = NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(
+                FindRowClassIdByReference(receiver, ctx), site.memberId, "set", site.direct || site.dispatch == "base");
+            return member.id;
         }
 
         /// <summary>A getter call site's member under one schema resolution.</summary>
@@ -2849,9 +2840,13 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (ctx.functionTypeArguments is { } arguments)
                 type = NeoFunctionTypeArguments.Bind(type, arguments);
+            if (NeoNSFunctionRuntime.ContainsGeneric(type) && (ctx.staticConstruction ?? ctx.interfaceConstruction) is { } construction)
+                type = NeoGenericResolution.SubstituteTypeInfo(ctx.client, type, NeoInterfaceDispatch.Of(ctx.client).Environment(construction));
             if (NeoNSFunctionRuntime.ContainsGeneric(type) && ctx.thisValue is { } receiver)
                 type = NeoGenericResolution.SubstituteTypeInfo(ctx.client, type,
                     NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, receiver, ctx, "A runtime type"));
+            if (NeoNSFunctionRuntime.ContainsGeneric(type) && ctx.initializerGenericEnv is { } environment)
+                type = NeoGenericResolution.SubstituteTypeInfo(ctx.client, type, environment);
             return type;
         }
 
@@ -2891,7 +2886,21 @@ namespace NeoCompose.Runtime.NeoScript
                 action = closurePointer.action,
                 captures = captures,
                 captureTypes = captureTypes,
+                typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray(),
+                declaringConstruction = ClosureConstruction(closurePointer.action, ctx),
+                site = closurePointer.site,
             }.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
+        }
+
+        private static TypeBinding? ClosureConstruction(FunctionWithReturnType action, Context ctx)
+        {
+            if ((ctx.staticConstruction ?? ctx.interfaceConstruction) is { } construction)
+                return construction;
+            if (ctx.thisValue is not null && action.parameters.FirstOrDefault()?.typeInfo is ClassTypeInfo declaring
+                && ctx.client.TryGetClass(declaring.classId, out var owner) && owner.genericParams is { Count: > 0 })
+                return NeoInterfaceDispatch.Of(ctx.client).ClassChain(RuntimeTypeOfValue(ctx.thisValue, null, ctx))
+                    .FirstOrDefault(owner => owner.Head!.ClassId == declaring.classId && owner.Bindings is { Count: > 0 });
+            return null;
         }
 
         /// <summary>
@@ -3354,6 +3363,8 @@ namespace NeoCompose.Runtime.NeoScript
             FunctionWithReturnType action,
             Context ctx)
         {
+            if (value.declaringConstruction is not null && action.parameters[0].typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
+                return null;
             if (action.parameters[0].typeInfo is not ClassTypeInfo thisType)
                 return ctx.thisValue;
             RowReference? closureRow = FindRowReference(value, ctx);
@@ -3411,7 +3422,9 @@ namespace NeoCompose.Runtime.NeoScript
                 nestedCtx.BindRoot(lexicalRoot);
             }
             // The body reads the type arguments of the frame that made it.
-            nestedCtx.BindFunctionTypeArguments(value.lexicalTypeArguments);
+            nestedCtx.BindFunctionTypeArguments(value.lexicalTypeArguments ?? value.typeArguments?.Select(NeoTypeBindings.ToTypeInfo).ToArray());
+            nestedCtx.staticConstruction = lexicalThis is null ? value.declaringConstruction : null;
+            nestedCtx.interfaceConstruction = lexicalThis is not null && value.declaringConstruction?.Head?.Type == MemberKind.Interface ? value.declaringConstruction : null;
             NeoScriptScopeLayout layout = action.scopeLayout ??= new NeoScriptScopeLayout(action);
             var scope = layout.RentScope();
             bool completed = false;
@@ -3642,7 +3655,10 @@ namespace NeoCompose.Runtime.NeoScript
                         function,
                         receiver,
                         args,
-                        ctx);
+                        ctx,
+                        typeArguments: target.typeArguments?.Select(NeoTypeBindings.ToTypeInfo).ToArray(),
+                        boundStaticConstruction: target.staticConstruction,
+                        boundInterfaceConstruction: target.interfaceConstruction);
                 }
                 if (member is DelegateMember delegateMember)
                 {
@@ -4112,6 +4128,11 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             MemberValue? receiverRow = null)
         {
+            if (pointer.interfaceMember is not null)
+            {
+                var implementation = ResolveInterfaceCall(pointer, receiver, ctx);
+                return implementation.CallTarget ??= new CallSiteTarget(ctx.client, null, implementation.MemberId, null);
+            }
             // Targets are immutable and published with one reference write,
             // so a site shared across clients or threads reads a whole chain.
             CallSiteTarget? targets = pointer.resolvedTargets;
@@ -4185,7 +4206,7 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError($"Extension function '{selected.name}' has the wrong receiver mode.");
                 return pointer.memberId;
             }
-            if (pointer.dispatch == "base")
+            if (pointer.dispatch == "base" || pointer.direct)
             {
                 if (pointer.receiver.IsStatic)
                     throw new NSGetterRuntimeError("Base dispatch requires an instance receiver.");
@@ -4903,9 +4924,9 @@ namespace NeoCompose.Runtime.NeoScript
                 return referenced;
             }
             if (pointer is StaticMemberPointer staticMember
-                && ctx.client.TryResolveStaticBinding(staticMember.memberId, out Member? bindingMember, out NeoValueOwnership staticOwnership, out string? staticValueId)
-                && batch.Collection(staticOwnership, staticValueId) is { } bound
-                && Answers(batch, bound, read, bindingMember))
+                && ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx) is { ValueId: { } staticValueId } staticBinding
+                && batch.Collection(staticBinding.Ownership, staticValueId) is { } bound
+                && Answers(batch, bound, read, staticBinding.Member))
             {
                 value = null;
                 return bound;
@@ -5135,8 +5156,10 @@ namespace NeoCompose.Runtime.NeoScript
             string schemaKey,
             Context ctx,
             ISchemaResolutionSite? site = null,
-            MemberValue? receiverRow = null)
+            MemberValue? receiverRow = null, JsonMember? accessorMember = null)
         {
+            if (accessorMember is not null && receiver is NeoScriptObject { attachedId: null } accessorReceiver)
+                receiver = ForwardDetached(accessorReceiver, ctx);
             if (receiver is NeoScriptObject { attachedId: null } detached)
             {
                 return TryReadDetachedMember(detached, schemaKey, ctx, out object? detachedValue)
@@ -5166,7 +5189,9 @@ namespace NeoCompose.Runtime.NeoScript
                 : receiver is NeoObjectRecord receiverRecord ? receiverRecord.valueOwnership : null;
 
             MergedSchemaEntry? entry = SurfaceRowMember(receiverRef, runtimeClassId!, schemaKey, site, ctx);
-            JsonMember? member = entry?.member;
+            JsonMember? member = accessorMember ?? entry?.member;
+            if (accessorMember is null && member is not null && member.id != entry!.memberId)
+                member = NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(runtimeClassId, entry.memberId, "get");
             if (member is null)
             {
                 return DispatchNoMember;
@@ -5183,11 +5208,11 @@ namespace NeoCompose.Runtime.NeoScript
 
             if (member.kind == MemberKind.NSProperty)
             {
-                if (entry!.member is not NSPropertyMember { getter: { } getter })
+                if (member is not NSPropertyMember { getter: { } getter })
                 {
                     return DispatchMatchedNoValue;
                 }
-                return DispatchNSGetterById(entry.memberId, receiver, ctx, getter, receiverRef);
+                return DispatchNSGetterById(member.id, receiver, ctx, getter, receiverRef);
             }
 
             ctx.client.ReadReplayField(receiverRowId, schemaKey);
@@ -5428,7 +5453,8 @@ namespace NeoCompose.Runtime.NeoScript
             FunctionWithReturnType? getter = null,
             RowReference? receiverRef = null,
             TypeInfo[]? typeArguments = null,
-            bool receiverGeneric = false)
+            bool receiverGeneric = false,
+            TypeBinding? staticConstruction = null, TypeBinding? interfaceConstruction = null)
         {
             if (ContainsFrame(ctx.getterCallStack, memberId))
             {
@@ -5445,9 +5471,11 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Getter '{name}' has no compiled `getter` — save its code to compile it");
             }
             NeoClient client = ctx.client;
+            if (staticConstruction is not null)
+                client.EnsureStaticConstruction(staticConstruction);
             if (client.IsSequenceType(getter.typeInfo))
-                return DispatchSequenceGetter(memberId, receiver, getter, receiverRef, ctx, typeArguments, receiverGeneric);
-            bool memoize = !receiverGeneric && client.CanMemoizeGetters
+                return DispatchSequenceGetter(memberId, receiver, getter, receiverRef, ctx, typeArguments, receiverGeneric, staticConstruction, interfaceConstruction);
+            bool memoize = staticConstruction is null && interfaceConstruction is null && !receiverGeneric && client.CanMemoizeGetters
                 && receiver is not NeoScriptObject { attachedId: null }
                 && (receiverRef ??= FindRowReference(receiver, ctx)) is not null;
             bool holdsValuelessReads = false;
@@ -5493,6 +5521,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (holdsValuelessReads)
                 memoize = false;
             int frame = ctx.EnterGetter(memberId, receiver);
+            ctx.staticConstruction = staticConstruction;
+            ctx.interfaceConstruction = interfaceConstruction;
             if (typeArguments is not null)
                 ctx.BindFunctionTypeArguments(typeArguments);
             if (!memoize)
@@ -6319,19 +6349,11 @@ namespace NeoCompose.Runtime.NeoScript
         /// state. Its own method because C# allocates a closure where its
         /// captures are declared, and most constructions supply no fields.
         /// </summary>
-        private static Action<Context> FieldValueEvaluator(
+        private static Action<Context, int> FieldValueEvaluator(
             DeclaredConstructorInfo info,
             IReadOnlyList<NeoGeneratedTypesSupport.RuntimeConstructorField> fields,
-            NeoScriptScope scope) => constructionCtx =>
-        {
-            for (int i = 0; i < fields.Count; i++)
-            {
-                fields[i].value = EvalPointer(
-                    info.fields[i].valuePointer,
-                    scope,
-                    constructionCtx);
-            }
-        };
+            NeoScriptScope scope) => (constructionCtx, index) =>
+                fields[index].value = EvalPointer(info.fields[index].valuePointer, scope, constructionCtx);
 
         /// <summary>
         /// The construction-frame label for a class id: its schema name, which
@@ -6745,10 +6767,16 @@ namespace NeoCompose.Runtime.NeoScript
             };
         }
 
-        private static ClassTypeInfo CloseConstructionFunctionArguments(ClassTypeInfo classInfo, Context ctx) =>
-            ctx.functionTypeArguments is { } arguments
-                ? (ClassTypeInfo)NeoFunctionTypeArguments.Bind(classInfo, arguments)
-                : classInfo;
+        private static ClassTypeInfo CloseConstructionFunctionArguments(ClassTypeInfo classInfo, Context ctx)
+        {
+            TypeInfo type = ctx.functionTypeArguments is { } arguments
+                ? NeoFunctionTypeArguments.Bind(classInfo, arguments) : classInfo;
+            if (NeoNSFunctionRuntime.ContainsGeneric(type) && (ctx.staticConstruction ?? ctx.interfaceConstruction) is { } construction)
+                type = NeoGenericResolution.SubstituteTypeInfo(ctx.client, type, NeoInterfaceDispatch.Of(ctx.client).Environment(construction));
+            // Instance and initializer arguments are resolved with the destination slot's
+            // environment by the constructor, including recursively nested owners.
+            return (ClassTypeInfo)type;
+        }
 
         /// <summary>
         /// `new Box<T>()` inside a generic class closes <c>T</c> through its
@@ -9518,7 +9546,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return a is NSSlotReference left && b is NSSlotReference right && left.TargetId == right.TargetId;
             if (a is NeoDelegateValue { IsMemberTarget: true } leftDelegate
                 && b is NeoDelegateValue { IsMemberTarget: true } rightDelegate)
-                return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId;
+                return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId
+                    && Equals(leftDelegate.staticConstruction, rightDelegate.staticConstruction)
+                    && Equals(leftDelegate.interfaceConstruction, rightDelegate.interfaceConstruction)
+                    && (leftDelegate.typeArguments ?? Array.Empty<TypeBinding>()).SequenceEqual(rightDelegate.typeArguments ?? Array.Empty<TypeBinding>());
             if (a is bool ba && b is bool bb)
                 return ba == bb;
             // Vectors and colors compare by value, as TS compares their records.
@@ -9834,7 +9865,7 @@ namespace NeoCompose.Runtime.NeoScript
                             return false;
                         if (checkType is not InterfaceTypeInfo interfaceType)
                             return false;
-                        return RowImplementsInterface(value, runtimeClassId!, interfaceType, ctx);
+                        return NeoInterfaceDispatch.Of(ctx.client).Converts(RuntimeTypeOfValue(value, null, ctx), RuntimeTypeOf(CloseContextType(interfaceType, ctx)));
                     }
                 default:
                     return false;
@@ -11628,45 +11659,6 @@ namespace NeoCompose.Runtime.NeoScript
         /// arguments resolve through its instance environment, and the checked
         /// type's parameters through the frame and the receiver (§4.3).
         /// </summary>
-        private static bool RowImplementsInterface(
-            object value,
-            string rowClassId,
-            InterfaceTypeInfo interfaceType,
-            Context ctx)
-        {
-            NeoClient client = ctx.client;
-            if (!client.InterfaceImplementers.TryGetConstruction(
-                    rowClassId,
-                    interfaceType.interfaceId,
-                    out IReadOnlyDictionary<string, TypeBinding> construction))
-            {
-                return false;
-            }
-            if (interfaceType.typeArguments is not { Count: > 0 })
-                return true;
-            TypeInfo checkedType = interfaceType;
-            if (ctx.functionTypeArguments is { } frameArguments)
-                checkedType = NeoFunctionTypeArguments.Bind(checkedType, frameArguments);
-            if (ctx.thisValue is { } receiver && NeoNSFunctionRuntime.ContainsGeneric(checkedType))
-            {
-                IReadOnlyDictionary<string, NeoGenericEnvEntry> receiverEnv =
-                    NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, receiver, ctx, "An interface check");
-                checkedType = NeoGenericResolution.SubstituteTypeInfo(client, checkedType, receiverEnv);
-            }
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> rowEnv =
-                NeoNSFunctionRuntime.ResolveReceiverGenericEnv(client, value, ctx, "An interface check");
-            foreach (var pair in ((InterfaceTypeInfo)checkedType).typeArguments!)
-            {
-                if (!construction.TryGetValue(pair.Key, out TypeBinding? binding))
-                    return false;
-                TypeInfo implemented = NeoGenericResolution.TypeInfoFromArgumentSignature(
-                    NeoGenericResolution.SignatureOfBinding(client, binding, rowEnv));
-                if (!NeoClient.TypeInfoMatches(pair.Value, implemented))
-                    return false;
-            }
-            return true;
-        }
-
         internal static bool RuntimeClassExtends(object? value, string expectedClassId, Context ctx)
         {
             if (value is not NeoScriptObject { attachedId: null } && FindRowReference(value, ctx) is { } rowRef)

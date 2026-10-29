@@ -678,7 +678,15 @@ namespace NeoCompose.Runtime
                         case InstructionCode.ChangeListener:
                             {
                                 var subscription = (ChangeListenerInstruction)instruction;
-                                object? owner = Eval(subscription.target.owner, scope, actionCtx);
+                                if (subscription.target.kind == "static")
+                                {
+                                    NeoDelegateValue? handler = subscription is ChangeListenerEditInstruction staticEdit
+                                        ? ResolveListenerTarget(Eval(staticEdit.listener, scope, actionCtx), "OnChanged") : null;
+                                    client.EditStaticChangeListener(subscription.target.memberId, subscription.target.typeInfo,
+                                        handler, subscription is AddChangeListenerInstruction, actionCtx);
+                                    break;
+                                }
+                                object? owner = Eval(subscription.target.owner!, scope, actionCtx);
                                 string ownerId = NSGetterEvaluator.FindRowIdByReference(owner, actionCtx)
                                     ?? throw new NSGetterRuntimeError("A listener owner must have a logical value identity.");
                                 NeoValueOwnership ownership = NSGetterEvaluator.FindRowOwnershipByReference(owner, actionCtx)
@@ -2304,8 +2312,13 @@ namespace NeoCompose.Runtime
             }
 
             object? rhs = Eval(instruction.pointer, scope, ctx);
+            if (instruction.target.pointer is CallGetterPointer { interfaceMember: not null } or TypeParameterStaticPointer)
+            {
+                NSGetterEvaluator.WriteInterfacePointer(instruction.target.pointer, rhs, instruction.target.typeInfo, scope, ctx);
+                return default;
+            }
 
-            if (instruction.target.writability == WritabilityKind.Setter)
+            if (instruction.target.writability == WritabilityKind.Setter || instruction.target.pointer is CallGetterPointer)
             {
                 ctx.trace.Position(instruction.source);
                 return ExecuteSetterAssignment(
@@ -2330,7 +2343,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Writes <paramref name="assigned"/> to a member, static, or entry target.</summary>
-        private static void AssignTarget(
+        internal static void AssignTarget(
             NeoClient client,
             WriteTarget writeTarget,
             object? assigned,
@@ -2392,6 +2405,15 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string? unboundChildId = null)
         {
+            if (keyOfPointer.memberId is string memberId
+                && client.ProjectDataForRuntime.members.ContainsKey(memberId)
+                && NSGetterEvaluator.FindRowClassIdByReference(receiver, ctx) is string receiverClassId
+                && NeoInterfaceDispatch.Of(client).ClassAccessor(receiverClassId, memberId, "set") is NSPropertyMember property
+                && !NSGetterEvaluator.ContainsFrame(ctx.setterCallStack, property.id))
+            {
+                NSGetterEvaluator.WriteClassProperty(property, receiver!, assigned, ctx);
+                return;
+            }
             bool detachedCollection = NSGetterEvaluator.IsDetachedCollectionAlias(receiver);
             receiver = NSGetterEvaluator.RuntimeCollection(receiver, ctx);
             NSGetterEvaluator.InvalidateCollectionOrdering(receiver);
@@ -3113,8 +3135,7 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            var binding = NeoGeneratedTypesSupport.StaticBinding(client, staticMember.memberId,
-                TargetOwnership(client, instruction.target, scope, ctx));
+            var binding = NSGetterEvaluator.ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx);
             if (binding.ValueId is not null)
                 return false;
             PrepareWrite(client, plan =>
@@ -3536,7 +3557,7 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.EvalBooleanExpression(expression, scope, ctx);
         }
 
-        private static NeoScriptExecutionResult ExecuteSetterAssignment(
+        internal static NeoScriptExecutionResult ExecuteSetterAssignment(
             NeoClient client,
             AssignInstruction instruction,
             object? rhs,
@@ -3587,6 +3608,17 @@ namespace NeoCompose.Runtime
                     $"Circular setter call: '{effectiveMember?.name ?? effectiveMemberId}'.");
             }
 
+            if (effectiveMember is not NSPropertyMember && effectiveMember is not null && receiver is not null)
+            {
+                string schemaKey = client.FindSchemaPlacement(effectiveMemberId)!.schemaKey;
+                if (receiver is NeoScriptObject { attachedId: null } detached
+                    && NSGetterEvaluator.TryWriteDetachedMember(detached, schemaKey, rhs, ctx, new KeyOf()))
+                    return default;
+                string rowId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx)!;
+                WriteConstructedClassMember(client, rowId, schemaKey, effectiveMember,
+                    NSGetterEvaluator.FindRowOwnershipByReference(receiver, ctx) ?? ctx.valueOwnership, rhs, ctx);
+                return default;
+            }
             FunctionWithReturnType? setter = (effectiveMember as NSPropertyMember)?.setter;
             if (setter is null)
             {
@@ -3604,6 +3636,11 @@ namespace NeoCompose.Runtime
 
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveMemberId, isStatic ? null : receiver);
+            nestedCtx.staticConstruction = (callGetter.receiver.staticConstruction ?? callGetter.staticConstruction) is not { } construction ? null
+                : NeoTypeBindings.FromTypeInfo(NSGetterEvaluator.CloseContextType(construction, ctx));
+            nestedCtx.interfaceConstruction = null;
+            if (nestedCtx.staticConstruction is not null)
+                client.EnsureStaticConstruction(nestedCtx.staticConstruction);
             if (extensionTypeArguments is not null)
                 nestedCtx.BindFunctionTypeArguments(extensionTypeArguments);
             var nestedOptions = options is null || ctx.constructorBody
@@ -3709,7 +3746,7 @@ namespace NeoCompose.Runtime
             {
                 case StaticMemberPointer staticMember:
                     return new NeoStaticMemberWriteTarget(
-                        client.StaticBinding(staticMember.memberId),
+                        NSGetterEvaluator.ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx),
                         target.typeInfo);
                 case ReferencePointer reference:
                     {
@@ -3766,10 +3803,7 @@ namespace NeoCompose.Runtime
             if (target.pointer is StaticMemberPointer staticMember)
             {
                 client.TryGetMember(staticMember.memberId, out member);
-                var binding = NeoGeneratedTypesSupport.StaticBinding(
-                    client,
-                    staticMember.memberId,
-                    ownership);
+                var binding = NSGetterEvaluator.ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx);
                 rowId = binding.ValueId;
             }
             else if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
@@ -5360,7 +5394,7 @@ namespace NeoCompose.Runtime
                                 movedIds);
                         }
                     }
-                    else if (client.members[binding.MemberId] is ListMember or DictionaryMember or TupleMember
+                    else if (binding.Member is ListMember or DictionaryMember or TupleMember
                         && (value is not null || binding.ValueId is not null))
                     {
                         PrepareWrite(client, plan =>
@@ -5368,10 +5402,10 @@ namespace NeoCompose.Runtime
                             string valueId = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
                             if (TryGetValueReferenceId(value, ctx, out string? sourceId) && sourceId == valueId)
                                 return;
-                            var member = client.members[binding.MemberId];
+                            var member = binding.Member;
                             NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, binding.Ownership, valueId, member, value);
                             object? payload = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
-                                client, member, value, binding.Ownership, ctx, plan, currentDestinationValueId: valueId);
+                                client, member, value, binding.Ownership, ctx, plan, binding.GenericEnvironment, currentDestinationValueId: valueId);
                             string updatedId = binding.PreparePayload(plan, payload,
                                 removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, binding.Ownership, removed));
                             plan.AfterCommit(() =>
@@ -5385,7 +5419,7 @@ namespace NeoCompose.Runtime
                     else
                     {
                         // P127 §1.3. A box stores its payload beside its held type.
-                        if (client.members[binding.MemberId] is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
+                        if (binding.Member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
                         {
                             PrepareWrite(client, plan =>
                             {

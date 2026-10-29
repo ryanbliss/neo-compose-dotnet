@@ -120,7 +120,7 @@ namespace NeoCompose.Runtime.NeoScript
             object?[] argumentValues,
             IReadOnlyList<NeoGeneratedTypesSupport.RuntimeConstructorField> fields,
             Context ctx,
-            Action<Context>? evaluateFieldValues,
+            Action<Context, int>? evaluateFieldValues,
             bool replayContext)
         {
             if (!replayContext
@@ -241,6 +241,13 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 result = null;
                 return false;
+            }
+            var surface = value.plan.ClassNode(ctx.client).SurfaceMember(key);
+            if (surface?.member is { } stored && stored.id != surface.memberId
+                && NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(value.plan.classId, surface.memberId, "get") is NSPropertyMember getterOverride)
+            {
+                result = DispatchNSGetterById(getterOverride.id, value, ctx, getterOverride.getter);
+                return true;
             }
             if (TryFindDetachedSlot(value.plan, key, site, ctx, out int index))
             {

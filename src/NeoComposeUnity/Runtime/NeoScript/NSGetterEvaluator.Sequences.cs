@@ -77,12 +77,15 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static object? DispatchSequenceGetter(string memberId, object? receiver, FunctionWithReturnType getter,
-            RowReference? receiverRef, Context ctx, TypeInfo[]? typeArguments, bool receiverGeneric)
+            RowReference? receiverRef, Context ctx, TypeInfo[]? typeArguments, bool receiverGeneric,
+            TypeBinding? staticConstruction = null, TypeBinding? interfaceConstruction = null)
         {
             NeoClient client = ctx.client;
             receiverRef ??= FindRowReference(receiver, ctx);
-            bool watched = !receiverGeneric && receiverRef is not null && client.WatchesGetters(receiverRef.valueId);
+            bool watched = staticConstruction is null && interfaceConstruction is null && !receiverGeneric && receiverRef is not null && client.WatchesGetters(receiverRef.valueId);
             int frame = ctx.EnterGetter(memberId, receiver);
+            ctx.staticConstruction = staticConstruction;
+            ctx.interfaceConstruction = interfaceConstruction;
             if (typeArguments is not null)
                 ctx.BindFunctionTypeArguments(typeArguments);
             if (!watched)
