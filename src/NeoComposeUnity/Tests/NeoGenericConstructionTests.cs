@@ -5,6 +5,7 @@
 
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -119,6 +120,40 @@ namespace NeoCompose.Tests
             // `new Tag<T> { N = 2 }` differs per `T`, so instances can't share one value.
             Assert.IsFalse(NeoGeneratedTypesSupport.IsConstantMember(client, tagged));
             Assert.AreEqual(4, InvokeProbe(client, "ImmutableCount"));
+        }
+
+        [Test]
+        public void ConstructedClassPlansReuseEquivalentBindingsWithoutRetainingMutableArguments()
+        {
+            var data = NeoGenericTestFixture.BuildProjectData();
+            data.classes["class-enchant"].Modifier = NeoClassModifierKind.Open;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var type = new ClassTypeInfo { type = MemberKind.Class, classId = "class-enchant", required = true };
+            var args = new Dictionary<string, GenericBinding>
+            {
+                [NeoGenericTestFixture.ParamT] = new() { kind = NeoGenericBindingKind.Member, memberId = "member-binding-float" },
+            };
+            var first = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
+                new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, args, replayStoredInstance: true);
+            var equivalent = new Dictionary<string, GenericBinding>
+            {
+                [NeoGenericTestFixture.ParamT] = new() { kind = NeoGenericBindingKind.Member, memberId = "member-binding-float" },
+            };
+            var again = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
+                new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, equivalent, replayStoredInstance: true);
+            Assert.That(again.classPlan, Is.SameAs(first.classPlan));
+            args[NeoGenericTestFixture.ParamT].memberId = "member-binding-string";
+            var changed = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
+                new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, args, replayStoredInstance: true);
+            Assert.That(changed.membersBySchemaKey["Speed"], Is.TypeOf<StringMember>());
+            Assert.That(first.membersBySchemaKey["Speed"], Is.TypeOf<FloatMember>());
+            Assert.That(first.classPlan.factoryMember.classArguments[NeoGenericTestFixture.ParamT].memberId,
+                Is.EqualTo("member-binding-float"));
+            NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(client);
+            var fresh = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
+                new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, equivalent, replayStoredInstance: true);
+            Assert.That(fresh.classPlan, Is.Not.SameAs(first.classPlan));
+            Assert.That(fresh.membersBySchemaKey["Speed"], Is.TypeOf<FloatMember>());
         }
 
         private static NeoClient Client()

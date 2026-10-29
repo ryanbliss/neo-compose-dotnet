@@ -22,15 +22,17 @@ namespace NeoCompose.Runtime.Json
         // Ids, names and enum options. Longer strings are prose and code.
         private const int MaxInternedLength = 64;
 
-        // A save's own strings are shared within the read but not added to
-        // the process-wide intern pool, which would keep them for the life
-        // of the process.
-        private readonly Dictionary<string, string>? savePool;
+        // Cache each short string once per read instead of repeatedly probing
+        // the global intern pool. Authored strings remain globally interned;
+        // save-only strings stay local so player data is not retained forever.
+        private readonly Dictionary<string, string> pool;
+        private readonly bool saving;
 
         private NeoInterningJsonReader(string json, Dictionary<string, string>? savePool)
             : base(new StringReader(json))
         {
-            this.savePool = savePool;
+            pool = savePool ?? new Dictionary<string, string>(StringComparer.Ordinal);
+            saving = savePool is not null;
         }
 
         internal static T? Deserialize<T>(string json, JsonSerializerSettings? settings = null) =>
@@ -56,14 +58,11 @@ namespace NeoCompose.Runtime.Json
 
         private string Intern(string value)
         {
-            if (savePool is null)
-                return string.Intern(value);
-            if (string.IsInterned(value) is { } interned)
-                return interned;
-            if (savePool.TryGetValue(value, out string? pooled))
+            if (pool.TryGetValue(value, out string? pooled))
                 return pooled;
-            savePool.Add(value, value);
-            return value;
+            string shared = saving ? string.IsInterned(value) ?? value : string.Intern(value);
+            pool.Add(value, shared);
+            return shared;
         }
 
         public override bool Read()

@@ -90,6 +90,55 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, changes, "The parent's listener hears the shared child's descendant.");
         }
 
+        [Test]
+        public void ClientRootBindsSettledChildrenAndSubscriptionHearsNestedWrites()
+        {
+            ProjectData data = BuildProjectData();
+            ((ClassMember)data.members["root-save"]).DeclaredClassId = "class-outer";
+            ((ObjectMemberValue)data.values["v-root-save"]).classId = "class-outer";
+            ((ObjectMemberValue)data.values["v-root-save"]).value = new Dictionary<string, string>
+            {
+                ["Name"] = "v-name",
+                ["Inner"] = "v-inner",
+            };
+            data.values.Remove("v-outer");
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            Assert.That(client.save.BoundChildren.Count, Is.EqualTo(2));
+            int changes = 0;
+            client.save.OnChanged += _ => changes++;
+            client.SetWritableValue(NeoValueOwnership.Save, Text("v-label", "Changed"));
+            Assert.That(changes, Is.EqualTo(1));
+            Assert.That(client.save.Get<NeoMemberClass>("Inner").Get<NeoMemberString>("Label").value.value,
+                Is.EqualTo("Changed"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GeneratedFactoryDefersDescendantsUntilReadOrSubscribed(bool propertyResult)
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["class-root"].schema["Outer"] = "member-outer";
+            ((ObjectMemberValue)data.values["v-root-save"]).value["Outer"] = "v-outer";
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            using var view = propertyResult
+                ? NeoGeneratedTypesSupport.ReadNSPropertyClass<NeoMemberClass>(client, new NeoReference<NeoMemberClass>(client, "v-outer", null, null), true, true,
+                    (_, node) => node, (_, node) => node)
+                : (NeoMemberClass)NeoGeneratedTypesSupport.ResolveClassValue(client, "v-outer",
+                    new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>(),
+                    new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+                    {
+                        ["class-outer"] = (_, node) => node,
+                    });
+            Assert.That(view.BoundChildren, Is.Empty);
+            var inner = view.Get<NeoMemberClass>("Inner");
+            Assert.That(inner.Get<NeoMemberString>("Label").value.value, Is.EqualTo("Label"));
+            int changes = 0;
+            view.OnChanged += _ => changes++;
+            client.SetWritableValue(NeoValueOwnership.Save, Text("v-label", "Changed"));
+            Assert.That(changes, Is.EqualTo(1));
+            Assert.That(inner.Get<NeoMemberString>("Label").value.value, Is.EqualTo("Changed"));
+        }
+
         private static TMember RequireMember<TMember>(NeoClient client, string id)
             where TMember : NeoCompose.Runtime.Json.Member
         {

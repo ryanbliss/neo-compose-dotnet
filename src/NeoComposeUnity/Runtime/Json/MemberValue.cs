@@ -1217,7 +1217,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
-            var obj = NeoJsonObjectReader.Read(reader);
+            var obj = NeoJsonObjectReader.ReadForPopulate(reader);
             // P42 decision D10 — a MemberValueBase is only ever a
             // Member.defaultValue, which is never an animation override
             // graph, so a `~partial` envelope here is invalid wherever it
@@ -1243,10 +1243,7 @@ namespace NeoCompose.Runtime.Json
             // Use Populate (not ToObject) to avoid converter recursion.
             // Same trick as DiscriminatedConverter — see its docstring.
             var instance = Activator.CreateInstance(concrete);
-            using (var subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, instance);
-            }
+            NeoJsonObjectReader.Populate(reader, obj, serializer, instance);
             return instance;
         }
 
@@ -1786,7 +1783,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
-            var obj = NeoJsonObjectReader.Read(reader);
+            var obj = NeoJsonObjectReader.ReadForPopulate(reader);
             // P76 §5 — every row set expands once, where it is assembled
             // (ProjectDataConverter). By the time a row reaches here it is
             // logical, so a surviving envelope means the expansion boundary was
@@ -1801,10 +1798,7 @@ namespace NeoCompose.Runtime.Json
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValue<>))
                 ?? ResolveByShape(obj["value"]);
             var instance = Activator.CreateInstance(concrete);
-            using (var subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, instance);
-            }
+            NeoJsonObjectReader.Populate(reader, obj, serializer, instance);
             return instance;
         }
 

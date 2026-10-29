@@ -336,7 +336,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(member.defaultValue!.init);
             Assert.AreEqual("StaticFunc(\"bar\")", member.defaultValue.init!.code);
-            Assert.AreEqual(18, member.defaultValue.init.compiled!.compilerRevision);
+            Assert.AreEqual(19, member.defaultValue.init.compiled!.compilerRevision);
             Assert.IsNull(member.defaultValue.value);
             Assert.IsNull(member.defaultValue.classId);
         }
@@ -785,9 +785,9 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CompilerRevision_EighteenIsTheCurrentCeiling()
+        public void CompilerRevision_NineteenIsTheCurrentCeiling()
         {
-            Assert.AreEqual(18, FunctionWithReturnType.CurrentCompilerRevision);
+            Assert.AreEqual(19, FunctionWithReturnType.CurrentCompilerRevision);
         }
 
         [Test]

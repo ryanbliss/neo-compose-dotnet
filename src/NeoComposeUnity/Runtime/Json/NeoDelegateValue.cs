@@ -96,7 +96,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
-            JObject obj = NeoJsonObjectReader.Read(reader);
+            JObject obj = NeoJsonObjectReader.ReadForPopulate(reader);
             bool target = IsNonEmptyString(obj["memberId"]);
             bool closure = obj["action"]?.Type == JTokenType.Object;
             if (obj["action"]?["generator"] is { Type: not JTokenType.Null })
@@ -143,10 +143,7 @@ namespace NeoCompose.Runtime.Json
             }
 
             var value = new NeoDelegateValue();
-            using (JsonReader subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, value);
-            }
+            NeoJsonObjectReader.Populate(reader, obj, serializer, value);
             // Captures read as their runtime values, so a captured list is the
             // array its closure made rather than a JArray.
             if (obj["captures"] is JArray captures)

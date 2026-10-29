@@ -9024,6 +9024,21 @@ namespace NeoCompose.Tests
             };
         }
 
+        [Test]
+        public void ConstructorLeafProvenanceMatchesItsSerializedWireShape()
+        {
+            foreach (object value in new object[]
+            {
+                new NeoVector2Value { x = -2.25, y = 4 },
+                new NeoVector3Value { x = 1, y = 2, z = -3.5 },
+                new NeoColorValue { r = 0.25f, g = 0.5f, b = 1, a = 0.75f },
+            })
+            {
+                var token = NeoClient.ConstructorArgumentToken(value, "leaf");
+                Assert.That(JToken.DeepEquals(token, JToken.FromObject(value)), Is.True);
+            }
+        }
+
         /// <summary>
         /// A declaration-default delegate argument — <c>this.SelectSclera</c>
         /// on the row that declares it — records a null <c>valueId</c>.

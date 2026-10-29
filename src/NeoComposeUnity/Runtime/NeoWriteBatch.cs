@@ -762,7 +762,11 @@ namespace NeoCompose.Runtime
                     list.RemoveAt(i, NeoTimestamp.Now());
                     break;
                 }
-            list.Changes(NeoTimestamp.Now());
+            // Authored joined lists change membership through entry rows alone.
+            // A constructor-derived container must be pinned as well so replay
+            // retains the removal instead of rebuilding its default membership.
+            if (Plan.Client.HasVirtualValue(listId))
+                list.Changes(NeoTimestamp.Now());
             bool tombstone = Plan.Client.values.ContainsKey(row.id) || !Plan.TryGetWritable(entryOwnership, row.id, out _);
             var detached = Plan.Client.CloneRowForWrite(row);
             detached.containerId = null;
