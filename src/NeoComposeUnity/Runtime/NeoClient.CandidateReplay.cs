@@ -762,6 +762,15 @@ namespace NeoCompose.Runtime
             {
                 if (!virtualValueOwnership.TryGetValue(id, out var oldOwnership))
                     continue;
+                // A stored selection fully replaces its virtual default. Replay
+                // may retire that default without changing the selected ids.
+                // Explicit writes still publish through the plan's own rows.
+                if (!candidate.Values.ContainsKey(id)
+                    && TryGetWritableValue(oldOwnership, id, out ArrayMemberValue? selection)
+                    && !selection.IsRemoved
+                    && TryInferMemberForValueId(id, out Member? selectionMember)
+                    && selectionMember is LookupMember or DialogueLookupMember or EnumMember)
+                    continue;
                 if (candidate.Values.TryGetValue(id, out MemberValue next)
                     && candidate.Ownership.TryGetValue(id, out var nextOwnership)
                     && oldOwnership == nextOwnership
