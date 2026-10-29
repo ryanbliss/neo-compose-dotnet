@@ -1,0 +1,74 @@
+{
+  "load-final-before": {
+    "trials": {
+      "0": {
+        "store": 3168.4,
+        "client": 1812.84,
+        "startup": 371.22
+      },
+      "1": {
+        "store": 1040.59,
+        "client": 1825.21,
+        "startup": 118.39
+      },
+      "2": {
+        "store": 1115.16,
+        "client": 1904.95,
+        "startup": 119.94
+      },
+      "3": {
+        "store": 1116.71,
+        "client": 1785.99,
+        "startup": 113.38
+      },
+      "4": {
+        "store": 1077.4,
+        "client": 1711.57,
+        "startup": 115.38
+      }
+    },
+    "warmTotal": 3000.135,
+    "coldTotal": 5352.46,
+    "warmPhases": {
+      "store": 1096.2800000000002,
+      "client": 1805.6,
+      "startup": 116.88499999999999
+    }
+  },
+  "load-neowyn-refresh-benchmark": {
+    "trials": {
+      "0": {
+        "store": 2925.26,
+        "client": 1705.94,
+        "startup": 297.35
+      },
+      "1": {
+        "store": 999.88,
+        "client": 1296.33,
+        "startup": 179.65
+      },
+      "2": {
+        "store": 873.58,
+        "client": 1509.02,
+        "startup": 110.37
+      },
+      "3": {
+        "store": 933.23,
+        "client": 1386.06,
+        "startup": 109.77
+      },
+      "4": {
+        "store": 941.96,
+        "client": 1503.56,
+        "startup": 110.44
+      }
+    },
+    "warmTotal": 2484.415,
+    "coldTotal": 4928.55,
+    "warmPhases": {
+      "store": 937.595,
+      "client": 1444.81,
+      "startup": 110.405
+    }
+  }
+}

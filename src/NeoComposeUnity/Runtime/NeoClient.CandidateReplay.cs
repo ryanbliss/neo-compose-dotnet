@@ -802,6 +802,8 @@ namespace NeoCompose.Runtime
             : !candidate.HiddenVirtualIds.Contains(id) && virtualValues.TryGetValue(id, out var kept) ? kept
             : null;
 
+        internal bool HasVirtualValue(string id) => TryResolveVirtualValue(id, out _);
+
         private bool TryResolveVirtualValue(string id, out MemberValue value)
         {
             for (var graph = replayDefaultGraph; graph is not null; graph = graph.Parent)

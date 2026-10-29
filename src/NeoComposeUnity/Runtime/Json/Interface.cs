@@ -120,7 +120,7 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null)
                 return null;
 
-            var json = NeoJsonObjectReader.Read(reader);
+            var json = NeoJsonObjectReader.ReadForPopulate(reader);
             RecordShapeContractGuard.ValidateInterfaceMember(json);
             var kind = StrictRecordShapeEnums.ReadDefaulted(
                 json,
@@ -141,10 +141,7 @@ namespace NeoCompose.Runtime.Json
             }
 
             var member = new InterfaceMember();
-            using (var subReader = json.CreateReader())
-            {
-                serializer.Populate(subReader, member);
-            }
+            NeoJsonObjectReader.Populate(reader, json, serializer, member);
             ValidateSupportedTypeInfos(member);
             return member;
         }

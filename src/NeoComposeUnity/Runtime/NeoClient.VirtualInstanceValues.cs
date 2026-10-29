@@ -364,6 +364,14 @@ namespace NeoCompose.Runtime
                     return new JValue(text);
                 case bool flag:
                     return new JValue(flag);
+                // These runtime leaves have a fixed wire shape. Recording
+                // constructor provenance need not rediscover it via reflection.
+                case NeoVector3Value vector:
+                    return new JObject { ["x"] = vector.x, ["y"] = vector.y, ["z"] = vector.z };
+                case NeoVector2Value vector:
+                    return new JObject { ["x"] = vector.x, ["y"] = vector.y };
+                case NeoColorValue color:
+                    return new JObject { ["r"] = color.r, ["g"] = color.g, ["b"] = color.b, ["a"] = color.a };
                 case NeoVariantReference variant:
                     return JToken.FromObject(variant.ToStoredValue());
                 case NeoMember member:
@@ -1289,10 +1297,13 @@ namespace NeoCompose.Runtime
             switch (node)
             {
                 case NeoMemberClass classNode:
+                    // Newly bound descendants already see the current expansion.
+                    // Only wrappers retained from before the refresh can be stale.
+                    var previousChildren = classNode.BoundChildren.ToArray();
                     classNode.RefreshChildrenAfterConstruction();
-                    // An unbound function or getter has nothing to refresh.
-                    foreach (NeoMember child in classNode.BoundChildren.ToArray())
-                        RefreshVirtualWrapperTree(child);
+                    foreach (NeoMember child in previousChildren)
+                        if (!child.isDisposed)
+                            RefreshVirtualWrapperTree(child);
                     break;
                 case NeoMemberList listNode:
                     foreach (NeoMember child in listNode.ToArray())
@@ -1494,17 +1505,18 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    NeoMemberClassWritable replayed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments);
+                    constructed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments);
                     if (replayBoundary?.IncomingAnswers is { } incoming)
                     {
                         declarativeReplayReceiver = replayBoundary.OwnerRootId;
                         try
                         {
+                            NeoMemberClassWritable replayed = ReplayView(constructed);
                             incoming.Apply(this, replayed);
+                            constructed = new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(replayed.value!, replayed.member);
                         }
                         finally { declarativeReplayReceiver = null; }
                     }
-                    constructed = new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(replayed.value!, replayed.member);
                 }
             }
             catch (Exception error)
@@ -1647,21 +1659,28 @@ namespace NeoCompose.Runtime
         /// P75 §6 — a stored root's expansion: its construction, then the
         /// declarative halves of the variant <c>ToVariant</c> last applied.
         /// </summary>
-        private NeoMemberClassWritable ReplayVirtualInstance(
+        private NeoGeneratedTypesSupport.RuntimeConstructedClassValue ReplayVirtualInstance(
             ObjectMemberValue root,
             ClassMember? placementMember,
             IReadOnlyDictionary<string, GenericBinding>? classArguments)
         {
-            NeoMemberClassWritable node = ReplayVirtualConstruction(
+            var constructed = ReplayVirtualConstruction(
                 root,
                 placementMember,
                 classArguments);
             if (root.instanceAppliedVariantId is string appliedVariantId)
+            {
+                NeoMemberClassWritable node = ReplayView(constructed);
                 NeoVariantSupport.ReplayAppliedVariant(this, appliedVariantId, node);
-            return node;
+                return new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(node.value!, node.member);
+            }
+            return constructed;
         }
 
-        private NeoMemberClassWritable ReplayVirtualConstruction(
+        private NeoMemberClassWritable ReplayView(NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed) =>
+            new(this, constructed.member, constructed.value.id, NeoValueOwnership.Session, bindsOnRead: true);
+
+        private NeoGeneratedTypesSupport.RuntimeConstructedClassValue ReplayVirtualConstruction(
             ObjectMemberValue root,
             ClassMember? placementMember,
             IReadOnlyDictionary<string, GenericBinding>? classArguments)
@@ -1677,17 +1696,19 @@ namespace NeoCompose.Runtime
                 {
                     lookupRow = UnwrapVirtualReplayRow(lookupRowId);
                 }
-                return NeoVariantSupport.InitializeNode(
+                var node = NeoVariantSupport.InitializeNode(
                     this,
                     root.classId!,
                     variant,
                     lookupRow,
                     root.instanceVariantRowValueId);
+                return new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(node.value!, node.member);
             }
 
             if (DerivesContentFromPlacementDefault(root, placementMember))
             {
-                return NeoGeneratedTypesSupport.EvaluateStoredClassMemberDefault(
+                using var randomFrame = Random.EnterIdentity(root.id);
+                return NeoGeneratedTypesSupport.MaterializeStoredClassMemberDefault(
                     this,
                     placementMember!,
                     root);

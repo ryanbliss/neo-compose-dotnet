@@ -448,6 +448,7 @@ namespace NeoCompose.Runtime
                 RuntimeConstructorMetadata> emptyFieldMetadata = new();
             internal readonly Dictionary<string, RuntimeClassPlan>
                 classPlans = new();
+            internal readonly Dictionary<(string, GenericBindingsKey), RuntimeClassPlan> constructedClassPlans = new();
             // By construction IR type argument: the descriptor member it names.
             internal readonly Dictionary<TypeInfo, string> descriptorMemberIds = new();
             internal readonly Dictionary<string, DetachedClassPlan?>
@@ -2006,19 +2007,19 @@ namespace NeoCompose.Runtime
             {
                 return savedFactory(
                     client,
-                    new NeoMemberClassWritable(client, member, valueId, ownership));
+                    new NeoMemberClassWritable(client, member, valueId, ownership, bindsOnRead: true));
             }
 
             if (readOnlyFactories.TryGetValue(classId, out var readOnlyFactory))
             {
-                return readOnlyFactory(client, new NeoMemberClass(client, member, valueId, ownership));
+                return readOnlyFactory(client, new NeoMemberClass(client, member, valueId, ownership, bindsOnRead: true));
             }
 
             if (interfaceResolver is null)
                 return null;
             NeoMemberClass resolverNode = saved
-                ? new NeoMemberClassWritable(client, member, valueId, ownership)
-                : new NeoMemberClass(client, member, valueId, ownership);
+                ? new NeoMemberClassWritable(client, member, valueId, ownership, bindsOnRead: true)
+                : new NeoMemberClass(client, member, valueId, ownership, bindsOnRead: true);
             return interfaceResolver(client, resolverNode, readOnly: false);
         }
 
@@ -5402,15 +5403,22 @@ namespace NeoCompose.Runtime
         {
             RuntimeConstructedClassValue constructed = ConstructDeclaredClassValueData(
                 resolved, argumentValues, fields, ctx, evaluateFieldValues, replayDefaultRoot);
+            return WrapConstructedClassValue(resolved.client, constructed, ctx, bindsOnRead);
+        }
+
+        private static NeoMemberClassWritable WrapConstructedClassValue(
+            NeoClient client, RuntimeConstructedClassValue constructed,
+            NeoScript.NSGetterEvaluator.Context ctx, bool bindsOnRead = false)
+        {
             try
             {
-                using var wrapperReads = resolved.client.SuppressValueReads();
-                return new NeoMemberClassWritable(resolved.client, constructed.member,
+                using var wrapperReads = client.SuppressValueReads();
+                return new NeoMemberClassWritable(client, constructed.member,
                     constructed.value.id, NeoValueOwnership.Session, bindsOnRead);
             }
             catch
             {
-                ReclaimFailedConstruction(resolved.client, constructed.value.id, ctx);
+                ReclaimFailedConstruction(client, constructed.value.id, ctx);
                 throw;
             }
         }
@@ -5670,8 +5678,18 @@ namespace NeoCompose.Runtime
                 if (ReferenceEquals(value, OmittedArgument))
                     continue;
                 string parameterId = NeoClient.ConstructorParameterId(record!, index);
-                constructorArgs[parameterId] = value as JToken
-                    ?? NeoClient.ConstructorArgumentToken(value, parameterId);
+                if (value is object?[] entries && IsLiteralLeafArray(entries))
+                {
+                    var array = new JArray();
+                    foreach (object? entry in entries)
+                        array.Add(NeoClient.ConstructorArgumentToken(entry, parameterId));
+                    constructorArgs[parameterId] = array;
+                }
+                else
+                {
+                    constructorArgs[parameterId] = value as JToken
+                        ?? NeoClient.ConstructorArgumentToken(value, parameterId);
+                }
             }
             return constructorArgs;
         }
@@ -6315,21 +6333,6 @@ namespace NeoCompose.Runtime
                 Array.Empty<NeoGeneratedConstructorValue>());
         }
 
-        /// <summary>
-        /// P75 declaration-default replay. The declaring member's authored
-        /// graph is the construction baseline, while the stored row's generic
-        /// stamp closes any open or forwarding placement arguments.
-        /// </summary>
-        internal static NeoMemberClassWritable EvaluateStoredClassMemberDefault(
-            NeoClient client,
-            ClassMember placementMember,
-            ObjectMemberValue storedRoot)
-        {
-            using var randomFrame = client.Random.EnterIdentity(storedRoot.id);
-            RuntimeConstructedClassValue constructed = MaterializeStoredClassMemberDefault(client, placementMember, storedRoot);
-            return new NeoMemberClassWritable(client, constructed.member, constructed.value.id, NeoValueOwnership.Session);
-        }
-
         internal static RuntimeConstructedClassValue MaterializeStoredClassMemberDefault(
             NeoClient client,
             ClassMember placementMember,
@@ -6396,7 +6399,7 @@ namespace NeoCompose.Runtime
         /// otherwise open or forwarding placement before constructor metadata,
         /// arguments, defaults, or bodies are evaluated.
         /// </summary>
-        internal static NeoMemberClassWritable EvaluateStoredDeclaredConstructor(
+        internal static RuntimeConstructedClassValue EvaluateStoredDeclaredConstructor(
             NeoClient client,
             string classId,
             string? constructorId,
@@ -6412,6 +6415,7 @@ namespace NeoCompose.Runtime
                 Array.Empty<NeoGeneratedConstructorValue>(),
                 classArguments,
                 storedGenericBindings,
+                out _,
                 replayStoredInstance: true);
         }
 
@@ -6438,17 +6442,19 @@ namespace NeoCompose.Runtime
             NeoDeclaredConstructorArgument[] arguments,
             NeoGeneratedConstructorValue[] suppliedValues)
         {
-            return EvaluateDeclaredConstructorCore(
+            RuntimeConstructedClassValue constructed = EvaluateDeclaredConstructorCore(
                 client,
                 classId,
                 constructorId,
                 arguments,
                 suppliedValues,
                 classArguments: null,
-                storedGenericBindings: null);
+                storedGenericBindings: null,
+                out var ctx);
+            return WrapConstructedClassValue(client, constructed, ctx);
         }
 
-        private static NeoMemberClassWritable EvaluateDeclaredConstructorCore(
+        private static RuntimeConstructedClassValue EvaluateDeclaredConstructorCore(
             NeoClient client,
             string classId,
             string? constructorId,
@@ -6456,6 +6462,7 @@ namespace NeoCompose.Runtime
             NeoGeneratedConstructorValue[] suppliedValues,
             IReadOnlyDictionary<string, GenericBinding>? classArguments,
             IReadOnlyDictionary<string, string>? storedGenericBindings,
+            out NeoScript.NSGetterEvaluator.Context ctx,
             bool replayStoredInstance = false)
         {
             if (client is null)
@@ -6499,7 +6506,7 @@ namespace NeoCompose.Runtime
                 storedGenericBindings,
                 replayStoredInstance);
 
-            var ctx = new NeoScript.NSGetterEvaluator.Context(
+            ctx = new NeoScript.NSGetterEvaluator.Context(
                 client,
                 null,
                 null,
@@ -6518,14 +6525,11 @@ namespace NeoCompose.Runtime
 
             List<RuntimeConstructorField> callSiteFields =
                 OmitUnsuppliedOptionalFields(fields, resolved.membersBySchemaKey);
-            return ConstructDeclaredClassValue(
+            return ConstructDeclaredClassValueData(
                 resolved,
                 argumentValues,
                 callSiteFields,
                 ctx,
-                // Stored fields are applied after replay. Eager child wrappers
-                // would traverse incomplete declaration defaults before then.
-                bindsOnRead: replayStoredInstance,
                 replayDefaultRoot: replayStoredInstance);
         }
 
@@ -8957,6 +8961,8 @@ namespace NeoCompose.Runtime
                 knownGenericEnv = null,
             IReadOnlyDictionary<string, GenericBinding>? classArguments = null)
         {
+            if (classArguments?.Count == 0)
+                classArguments = null;
             ConstructorSchemaCache cache = ConstructorSchemaCaches.GetOrCreateValue(
                 client);
             if (classArguments is null)
@@ -8970,6 +8976,16 @@ namespace NeoCompose.Runtime
                         return cached;
                     }
                 }
+            }
+
+            var argumentsKey = new GenericBindingsKey(classArguments);
+            if (classArguments is not null)
+            {
+                lock (cache.gate)
+                    if (cache.constructedClassPlans.TryGetValue((classId, argumentsKey), out var cached))
+                        return cached;
+                argumentsKey = argumentsKey.Snapshot();
+                classArguments = argumentsKey.Bindings;
             }
 
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
@@ -9016,6 +9032,11 @@ namespace NeoCompose.Runtime
                 {
                     cache.classPlans[classId] = resolved;
                 }
+            }
+            else
+            {
+                lock (cache.gate)
+                    cache.constructedClassPlans[(classId, argumentsKey)] = resolved;
             }
             return resolved;
         }
@@ -10551,7 +10572,7 @@ namespace NeoCompose.Runtime
                 }
                 return savedFactory(
                     client,
-                    new NeoMemberClassWritable(client, member, valueId, ownership));
+                    new NeoMemberClassWritable(client, member, valueId, ownership, bindsOnRead: true));
             }
 
             bool writableRow = client.TryGetValueOwnership(valueId, out var readOwnership)
@@ -10563,7 +10584,7 @@ namespace NeoCompose.Runtime
             {
                 return savedFactory(
                     client,
-                    new NeoMemberClassWritable(client, member, valueId, readOwnership));
+                    new NeoMemberClassWritable(client, member, valueId, readOwnership, bindsOnRead: true));
             }
 
             if (readOnlyFactory is null)
@@ -10575,8 +10596,8 @@ namespace NeoCompose.Runtime
             return readOnlyFactory(
                 client,
                 writableRow
-                    ? new NeoMemberClassWritable(client, member, valueId, readOwnership)
-                    : new NeoMemberClass(client, member, valueId));
+                    ? new NeoMemberClassWritable(client, member, valueId, readOwnership, bindsOnRead: true)
+                    : new NeoMemberClass(client, member, valueId, NeoValueOwnership.Asset, bindsOnRead: true));
         }
 
         public static T ReadRequiredNSPropertyClass<T>(

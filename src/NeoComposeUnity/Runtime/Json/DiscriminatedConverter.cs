@@ -81,7 +81,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
-            var obj = NeoJsonObjectReader.Read(reader);
+            var obj = NeoJsonObjectReader.ReadForPopulate(reader);
             ValidateObjectBeforeDiscriminator(obj);
             var disc = obj[DiscriminatorField];
             if (disc == null)
@@ -108,11 +108,9 @@ namespace NeoCompose.Runtime.Json
             // but DOES dispatch normally for nested fields — which is
             // exactly what we want, so an inner discriminated-union
             // field still flows through its own converter.
-            var instance = Activator.CreateInstance(concrete);
-            using (var subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, instance);
-            }
+            var creator = serializer.ContractResolver.ResolveContract(concrete).DefaultCreator;
+            var instance = creator is null ? Activator.CreateInstance(concrete) : creator();
+            NeoJsonObjectReader.Populate(reader, obj, serializer, instance);
             var typedInstance = (TBase)instance;
             OnPopulated(obj, typedInstance);
             return typedInstance;

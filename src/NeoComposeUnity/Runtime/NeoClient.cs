@@ -791,6 +791,11 @@ namespace NeoCompose.Runtime
             PersistedOwnership = persisted;
             userSource = this;
             ValidateExportSchemaVersion(data.metadata);
+            if (data.members is null || data.classes is null)
+            {
+                string missing = data.members is null ? "members" : "classes";
+                throw new InvalidOperationException($"Project export is missing the required '{missing}' collection. Run `neo pull` and `neo export`.");
+            }
             // Schema preparation is shared by all clients of this export.
             bool prepared = data.clientSchemaPrepared;
             authoredIndexes = data.authoredIndexes ??= new NeoAuthoredIndexes();

@@ -79,7 +79,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
-            JObject obj = NeoJsonObjectReader.Read(reader);
+            JObject obj = NeoJsonObjectReader.ReadForPopulate(reader);
             if (obj.Count != 1 || obj.Property("listeners") is null)
             {
                 throw new JsonSerializationException(
@@ -102,10 +102,7 @@ namespace NeoCompose.Runtime.Json
             }
 
             var value = new NeoActionValue();
-            using (JsonReader subReader = obj.CreateReader())
-            {
-                serializer.Populate(subReader, value);
-            }
+            NeoJsonObjectReader.Populate(reader, obj, serializer, value);
             return value;
         }
 
