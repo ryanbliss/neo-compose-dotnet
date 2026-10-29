@@ -90,6 +90,16 @@ var spawned = saveContent.Objects.TrySpawn(cell, marker);
 fields. A successful `TrySpawn` adopts the supplied object's identity. Clone
 an existing owned object explicitly before placing another copy.
 
+Cloning an evaluated instance copies its resolved defaults and stored overrides
+without running its constructors again. Mutable children remain independent,
+and computed defaults retain their dependencies. Identity-seeded random defaults
+still evaluate under the copy's new identity so they agree with save/reload.
+Computed immutable defaults remain absent from save data; the export format is unchanged.
+
+Loading performs format checks and resolves the schema. Whole-project contract
+checks run in the SDK test harness, rather than on each game load. Runtime writes
+still enforce ownership, type shape, and placement constraints where they occur.
+
 Object `PlacementTiles` contains only `NeoPlacementTile` values. This standalone
 footprint type retains its own `Cell` member. It does not inherit rendering
 properties or tile conversion from `NeoTile`.

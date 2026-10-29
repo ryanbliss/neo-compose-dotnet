@@ -73,6 +73,13 @@ namespace NeoCompose.Runtime.NeoScript
             get; private set;
         }
 
+        // Monotonic across identity frames so a caller can detect whether
+        // resolved content depends on its construction identity.
+        internal long IdentityReadCount
+        {
+            get; private set;
+        }
+
         public NeoRandom() : this(EntropySeed()) { }
         public NeoRandom(double seed)
         {
@@ -165,6 +172,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (identity is not null)
             {
+                IdentityReadCount++;
                 uint seed = 2166136261;
                 foreach (char codeUnit in identity)
                     seed = unchecked((seed ^ codeUnit) * 16777619);

@@ -11,6 +11,155 @@ namespace NeoCompose.Tests
 {
     public partial class P75VirtualInstanceValueTests
     {
+        private static InitializerBody Init(TypeInfo type, Pointer pointer) => new()
+        {
+            code = "fixture",
+            compiled = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new[] { ConstructorVariable("__this__", ClassType("thing-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                typeInfo = type,
+                instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = pointer } }
+            }
+        };
+
+        [Test]
+        public void ClonePreservesSaveStateInsideImmutableObject()
+        {
+            var data = BuildNestedProjectData();
+            data.members["thing-nested"].Storage = NeoMemberStorage.Immutable;
+            data.classes["nested-class"].allowedStorage = NeoMemberStorage.Inherit;
+            data.members["nested-deep"].Storage = NeoMemberStorage.Save;
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var source = client.save.Get<NeoMemberClassWritable>("Thing");
+                var deep = source.Get<NeoMemberClass>("Nested").Get<NeoMemberClassWritable>("Deep");
+                deep.Get<NeoMemberIntWritable>("Count").Set(42);
+                string id = client.CloneValueReference(source.value!.id, source.ownership);
+                var clone = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], id, NeoValueOwnership.Session);
+                var clonedDeep = clone.Get<NeoMemberClass>("Nested").Get<NeoMemberClassWritable>("Deep");
+                Assert.AreEqual(42, clonedDeep.Get<NeoMemberInt>("Count").value!.value);
+                clonedDeep.Get<NeoMemberIntWritable>("Count").Set(99);
+                Assert.AreEqual(42, deep.Get<NeoMemberInt>("Count").value!.value);
+                client.save.SetSerializedValue("Thing", NeoGeneratedTypesSupport.ValueReference(new ImmutableProbeReference { valueId = id }));
+                saved = client.SerializeSaveData();
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(99, reloaded.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Nested")
+                .Get<NeoMemberClass>("Deep").Get<NeoMemberInt>("Count").value!.value);
+        }
+
+        [Test]
+        public void ClonePreservesListenersOnSaveFieldsOfImmutableOwners()
+        {
+            var data = BuildNestedProjectData();
+            data.members["thing-nested"].Storage = NeoMemberStorage.Immutable;
+            data.classes["nested-class"].allowedStorage = NeoMemberStorage.Inherit;
+            data.members["nested-deep"].Storage = NeoMemberStorage.Save;
+            data.classes["nested-class"].schema["Count"] = "deep-count";
+            data.members["deep-count"].Storage = NeoMemberStorage.Save;
+            data.classes["nested-class"].schema["Changed"] = "clone-handler";
+            data.members["clone-handler"] = new FunctionMember
+            {
+                id = "clone-handler",
+                name = "Changed",
+                kind = MemberKind.Function,
+                returnTypeInfo = new VoidTypeInfo { type = MemberKind.Void, required = true },
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "next", type = MemberKind.Int, required = true } }
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var heard = new List<double>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["clone-handler"] = (_, _, args, _) => { heard.Add(System.Convert.ToDouble(args[0])); return null; }
+            });
+            var source = client.save.Get<NeoMemberClassWritable>("Thing");
+            var nested = source.Get<NeoMemberClass>("Nested");
+            client.EditMemberChangeListener(nested.value!.id, NeoValueOwnership.Asset, "deep-count", IntTypeInfo(),
+                new NeoDelegateValue { memberId = "clone-handler", valueId = nested.value.id }, true);
+            nested.Get<NeoMemberIntWritable>("Count").Set(7);
+            CollectionAssert.AreEqual(new[] { 7d }, heard);
+            heard.Clear();
+            string id = client.CloneValueReference(source.value!.id, source.ownership);
+            var clone = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], id, NeoValueOwnership.Session);
+            var copiedOwner = clone.Get<NeoMemberClass>("Nested");
+            Assert.That(clone.value!.copiedChangeListeners![copiedOwner.value!.id]["deep-count"][0].valueId,
+                Is.EqualTo(copiedOwner.value.id));
+            copiedOwner.Get<NeoMemberIntWritable>("Count").Set(9);
+            CollectionAssert.AreEqual(new[] { 9d }, heard);
+            Assert.AreEqual(7, nested.Get<NeoMemberInt>("Count").value!.value);
+            id = client.CloneValueReference(id, NeoValueOwnership.Session);
+            var repeated = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], id, NeoValueOwnership.Session);
+            repeated.Get<NeoMemberClass>("Nested").Get<NeoMemberIntWritable>("Count").Set(10);
+            CollectionAssert.AreEqual(new[] { 9d, 10d }, heard);
+            client.save.SetSerializedValue("Thing", NeoGeneratedTypesSupport.ValueReference(new ImmutableProbeReference { valueId = id }));
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+            reopened.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["clone-handler"] = (_, _, args, _) => { heard.Add(System.Convert.ToDouble(args[0])); return null; }
+            });
+            reopened.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Nested").Get<NeoMemberIntWritable>("Count").Set(11);
+            CollectionAssert.AreEqual(new[] { 9d, 10d, 11d }, heard);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CopiedImmutableDefaultsKeepTheirExternalDependencies(bool samePlan)
+        {
+            var data = BuildProjectData();
+            data.classes["save-root-class"].schema["Input"] = "clone-input";
+            data.members["clone-input"] = new IntMember
+            {
+                id = "clone-input",
+                name = "Input",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 3 }
+            };
+            data.classes["thing-class"].schema["Frozen"] = "clone-frozen";
+            data.members["clone-frozen"] = new IntMember
+            {
+                id = "clone-frozen",
+                name = "Frozen",
+                kind = MemberKind.Int,
+                Storage = NeoMemberStorage.Immutable,
+                defaultValue = new NumberMemberValueBase { init = Init(IntTypeInfo(), SavePointer("Input")) }
+            };
+            var initializer = ((IntMember)data.members["clone-frozen"]).defaultValue!.init!.compiled!;
+            initializer.instructions = new Instruction[]
+            {
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable { id = "self", typeInfo = ClassType("thing-class"), pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" } }
+                },
+                initializer.instructions[0]
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var source = client.save.Get<NeoMemberClassWritable>("Thing");
+            int replays = client.VirtualReplayCount;
+            string copied;
+            if (samePlan)
+            {
+                var plan = new NeoWritePlan(client);
+                using (client.ReadCandidate(plan))
+                    copied = client.CloneValueReference(source.value!.id, source.ownership);
+                var input = (NumberMemberValue)client.CloneRowForWrite(client.save.Get<NeoMemberInt>("Input").value!);
+                input.value = 9;
+                plan.Set(NeoValueOwnership.Save, input);
+                plan.Commit();
+            }
+            else
+                copied = client.CloneValueReference(source.value!.id, source.ownership);
+            var clone = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], copied, NeoValueOwnership.Session);
+            Assert.AreEqual(samePlan ? 9 : 3, clone.Get<NeoMemberInt>("Frozen").value!.value);
+            if (!samePlan)
+                Assert.AreEqual(replays, client.VirtualReplayCount);
+            client.save.Get<NeoMemberIntWritable>("Input").Set(9);
+            Assert.AreEqual(9, source.Get<NeoMemberInt>("Frozen").value!.value);
+            Assert.AreEqual(9, clone.Get<NeoMemberInt>("Frozen").value!.value);
+        }
+
         [Test]
         public void RemovingSparseRootReclaimsMaterializedNestedReplayPartitions()
         {
@@ -69,17 +218,7 @@ namespace NeoCompose.Tests
             using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
             Assert.IsFalse(reloaded.saveValues.ContainsKey(leafId));
 
-            static InitializerBody Init(TypeInfo type, Pointer pointer) => new()
-            {
-                code = "fixture",
-                compiled = new FunctionWithReturnType
-                {
-                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
-                    parameters = new[] { ConstructorVariable("__root__", ClassType("__root__")) },
-                    typeInfo = type,
-                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = pointer } }
-                }
-            };
+
         }
 
         [Test]
@@ -176,6 +315,7 @@ namespace NeoCompose.Tests
             var source = client.save.Get<NeoMemberClassWritable>("Thing");
             source.Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").Set(42);
             var ids = new HashSet<string>();
+            int replays = client.VirtualReplayCount;
             for (int i = 0; i < 4; i++)
             {
                 string id = client.CloneValueReference(source.value!.id, source.ownership);
@@ -187,6 +327,7 @@ namespace NeoCompose.Tests
                 Assert.AreEqual(7, deep.Get<NeoMemberInt>("Frozen").value!.value);
                 source = copy;
             }
+            Assert.AreEqual(replays, client.VirtualReplayCount, "repeated copies reuse resolved defaults");
         }
     }
 }

@@ -122,8 +122,18 @@ namespace NeoCompose.Tests
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(loader.Schema.localization,
                 localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(), localizationOptions);
-            return new NeoClient(loader, loader.LoadSaveContentAsync().GetAwaiter().GetResult(),
+            var client = new NeoClient(loader, loader.LoadSaveContentAsync().GetAwaiter().GetResult(),
                 NeoAssetDatabase.LoadDefault(), localization, options);
+            try
+            {
+                client.ValidateSchemaContracts();
+                return client;
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -178,11 +188,21 @@ namespace NeoCompose.Tests
                 new System.Collections.Generic.Dictionary<
                     string,
                     VariantFolderRecord>();
-            return new NeoClient(
+            var client = new NeoClient(
                 new SchemaOnlyLoader(schema),
                 loadedSaveContent,
                 localization: localization,
                 saveOptions: options);
+            try
+            {
+                client.ValidateSchemaContracts();
+                return client;
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
         }
 
         /// <summary>

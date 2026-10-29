@@ -32,7 +32,7 @@ namespace NeoCompose.Runtime
                 var next = pair.Value;
                 if (previous.ownership != next.ownership || previous.parentOwnership != next.parentOwnership)
                     TrackVirtualClassPlacement(next.rootId, next.parentValueId, pair.Key, next.member, next.ownership,
-                        next.parentOwnership, next.path, next.schemaKey);
+                        next.parentOwnership, next.path, next.schemaKey, next.identity, next.identityRoot);
             }
             if (expansion.Boundary is not null)
                 InstallNestedReplayBoundary(expansion.Boundary);
@@ -63,20 +63,32 @@ namespace NeoCompose.Runtime
             if (virtualValueIdsByRoot.TryGetValue(root.id, out var values))
                 foreach (string id in values)
                 {
-                    result.Values[id] = virtualValues[id];
-                    result.Ownership[id] = Scope(id);
+                    var scope = Scope(id);
+                    if (scope != virtualValueOwnership[id])
+                    {
+                        result.Values[id] = virtualValues[id];
+                        result.Ownership[id] = scope;
+                    }
                 }
             if (virtualClassParentIdsByRoot.TryGetValue(root.id, out var parents))
                 foreach (string id in parents.Keys)
                 {
-                    result.ClassChildren[id] = virtualClassChildren[id];
-                    result.ClassParentOwnership[id] = Scope(id);
+                    var scope = Scope(id);
+                    if (scope != parents[id])
+                    {
+                        result.ClassChildren[id] = virtualClassChildren[id];
+                        result.ClassParentOwnership[id] = scope;
+                    }
                 }
             if (virtualClassChildIdsByRoot.TryGetValue(root.id, out var children))
                 foreach (string id in children)
                 {
                     var slot = virtualClassPlacementByChildId[id];
+                    if (Scope(id) == slot.ownership && Scope(slot.parentValueId) == slot.parentOwnership)
+                        continue;
                     result.TrackPlacement(slot.parentValueId, id, slot.member, Scope(id), Scope(slot.parentValueId), slot.path, slot.schemaKey);
+                    result.Placements[id].identity = slot.identity;
+                    result.Placements[id].identityRoot = slot.identityRoot;
                 }
             if (virtualFootprintByRoot.TryGetValue(root.id, out var footprint))
                 result.Footprint.UnionWith(footprint);

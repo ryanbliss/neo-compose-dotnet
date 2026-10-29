@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Copy resolved instance defaults during `Clone()` without rerunning constructors, preserving mutable ownership, internal bindings, and external dependencies. Identity-seeded random defaults retain replay so saves reload consistently.
+- Update only changed ownership indexes when moving an existing instance between stores.
+- Remove whole-project schema, dialogue, and animation contract scans from ordinary loading. The SDK test harness retains these checks; runtime mutation and placement checks remain.
+
 - Allow a NeoScript unordered-list removal followed by layer-link `TrySpawn` in the same pending write batch to transfer the existing object without cloning or changing its identity. Preserve placement rejection, retry, lifecycle callbacks, and removal tombstones across reloads.
 - Avoid replaying unchanged constructor descendants during reparenting and storage promotion. Preserve descendant construction identities across repeated clones while retaining copied constructor arguments and reevaluating immutable defaults.
 

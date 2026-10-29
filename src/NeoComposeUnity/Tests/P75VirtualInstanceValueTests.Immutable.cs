@@ -699,7 +699,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CloneReplaysAPerInstanceImmutableMember()
+        public void CloneCopiesPerInstanceImmutableWithoutReconstruction()
         {
             ProjectData data = BuildConstructorRankProjectData();
             string saved;
@@ -711,14 +711,16 @@ namespace NeoCompose.Tests
                     "thing-ctor",
                     new[] { new NeoDeclaredConstructorArgument("InitialRank", 9d) });
                 var sessionRows = new HashSet<string>(client.sessionValues.Keys);
+                int replays = client.VirtualReplayCount;
                 NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(
                     client,
                     new ImmutableProbeReference { valueId = source.value!.id });
+                Assert.AreEqual(replays, client.VirtualReplayCount, "cloning resolved data must not execute constructors");
                 Assert.AreEqual(9d, clone.Get<NeoMemberInt>("Rank").value!.value);
                 Assert.AreNotEqual(
                     source.Get<NeoMemberInt>("Rank").value!.id,
                     clone.Get<NeoMemberInt>("Rank").value!.id,
-                    "the clone evaluates its own value");
+                    "the clone owns a distinct identity for the copied default");
                 Assert.IsFalse(((ObjectMemberValue)clone.value!).value!.ContainsKey("Rank"));
 
                 client.save.Get<NeoMemberListWritable>("Things").AddSerialized(
