@@ -47,7 +47,7 @@ namespace NeoCompose.Tests
                 {
                     string id = NeoGeneratedTypesSupport.ValueId(receiver)!;
                     var ctx = c.CreateGetterContext(NeoValueOwnership.Save);
-                    seen = ((object?[])args[0]!).Select(value => NSGetterEvaluator.FindRowIdByReference(value, ctx)!).ToArray();
+                    seen = ((object?[])args[0]!).Select(value => NeoGeneratedTypesSupport.ValueId(value)!).ToArray();
                     Assert.IsTrue(c.ScriptGridQueries.TryInvoke("system_df1c2d06-eeec-5340-addc-740f3668c9e4", receiver,
                         Array.Empty<object?>(), null, ctx, out object? cell));
                     origin = NeoGeneratedTypesSupport.ReadVector2IntValue(cell);

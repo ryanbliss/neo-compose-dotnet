@@ -390,10 +390,12 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Moves whenever any parent's virtual children change, so a reader
         /// can keep a resolved child id until then; -1 while a replay reads
-        /// proposed state, when nothing may be kept.
+        /// proposed state or a hook can read departed fields, when nothing may be kept.
         /// </summary>
         internal int VirtualClassChildrenEpoch =>
-            candidateReplay is null && !isReplayingVirtualInstance ? virtualClassChildrenEpoch : -1;
+            candidateReplay is null && !isReplayingVirtualInstance
+                && (departedReads == DepartedReads.None || departedNodes.Count == 0)
+                ? virtualClassChildrenEpoch : -1;
 
         internal bool TryGetVirtualClassChildValueId(
             string parentValueId,

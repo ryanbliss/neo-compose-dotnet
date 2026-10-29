@@ -217,8 +217,9 @@ namespace NeoCompose.Runtime
             if (effectOrphans.Count != 0 && value is ObjectMemberValue or ArrayMemberValue)
                 effectOrphansDirty = true;
             // A row's kind is its member's, so only an object row or a
-            // removal can start, keep or stop an instance.
-            if (value is not (null or ObjectMemberValue))
+            // removal can start, keep or stop an instance. Authored removals
+            // leave a null tombstone instead of deleting the writable row.
+            if (value is not (null or ObjectMemberValue or { IsRemoved: true }))
                 return;
             if (effectInstances.TryGetValue(id, out EffectInstance? tracked))
             {

@@ -1199,6 +1199,12 @@ namespace NeoCompose.Runtime
         /// <param name="function">Whether a direct function call binds the context, which keeps the binding the last one left.</param>
         internal NeoScript.NSGetterEvaluator.Context RentDirectFunctionContext(NeoValueOwnership ownership, bool function = false)
         {
+            if (departedReads != DepartedReads.None && departedNodes.Count != 0)
+            {
+                var departed = CreateGetterContext(ownership);
+                departed.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, departed));
+                return departed;
+            }
             for (int i = directFunctionContextCount - 1; i >= 0; i--)
             {
                 var context = directFunctionContexts[i]!;
@@ -1262,7 +1268,9 @@ namespace NeoCompose.Runtime
 
         internal NeoScript.NSGetterEvaluator.Context CreateGetterContext(NeoValueOwnership ownership)
         {
-            if (isReplayingVirtualInstance)
+            // A departure hook may read an older row with the same id as a live
+            // replacement. Keep its unwraps out of the live context pool/cache.
+            if (isReplayingVirtualInstance || (departedReads != DepartedReads.None && departedNodes.Count != 0))
                 return new NeoScript.NSGetterEvaluator.Context(this, null, null, valueOwnership: ownership);
             var shared = sharedEvaluationContext;
             if (shared is null || shared.rowUnwrapCache.Count > SharedRowCacheLimit)
