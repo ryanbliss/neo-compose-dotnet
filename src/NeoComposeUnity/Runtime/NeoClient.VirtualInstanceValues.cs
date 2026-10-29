@@ -718,6 +718,17 @@ namespace NeoCompose.Runtime
                 pendingRoots.Remove(root.id);
                 readyRoots.Enqueue(root);
             }
+            // Saved unordered entries can move beneath a constructor-created
+            // list. Its replay exposes the container, not the added entry.
+            var waitingByContainer = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (ObjectMemberValue root in pendingRoots.Values)
+            {
+                if (string.IsNullOrEmpty(root.containerId))
+                    continue;
+                if (!waitingByContainer.TryGetValue(root.containerId, out var waiting))
+                    waitingByContainer[root.containerId] = waiting = new List<string>();
+                waiting.Add(root.id);
+            }
             while (readyRoots.Count > 0)
             {
                 yield return 0;
@@ -732,13 +743,12 @@ namespace NeoCompose.Runtime
                 }
                 foreach (string classChildId in classChildIds)
                 {
-                    if (!pendingRoots.Remove(
-                            classChildId,
-                            out ObjectMemberValue? nestedRoot))
-                    {
-                        continue;
-                    }
-                    readyRoots.Enqueue(nestedRoot);
+                    if (pendingRoots.Remove(classChildId, out ObjectMemberValue? nestedRoot))
+                        readyRoots.Enqueue(nestedRoot);
+                    if (waitingByContainer.Remove(classChildId, out var waiting))
+                        foreach (string entryId in waiting)
+                            if (pendingRoots.Remove(entryId, out ObjectMemberValue? entryRoot))
+                                readyRoots.Enqueue(entryRoot);
                 }
             }
             // Unreferenced authored rows are not part of a runtime graph.
