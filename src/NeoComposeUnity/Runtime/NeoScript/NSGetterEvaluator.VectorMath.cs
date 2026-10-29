@@ -5,6 +5,7 @@
 
 using System;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript.Numerics;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -51,7 +52,8 @@ namespace NeoCompose.Runtime.NeoScript
                         right = captured;
                 }
             }
-            if (op == "divide" && scalar == 0)
+            // An int vector's divide throws NeoDivideByZeroError from NeoInt32.Divide.
+            if (op == "divide" && scalar == 0 && !integer)
                 throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
             if (op == "lerp")
                 scalar = scalar < 0 ? 0 : scalar > 1 ? 1 : scalar;
@@ -62,6 +64,8 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < count; i++)
                     difference.Set(i, VectorRound(right.Get(i) - left.Get(i), integer));
             }
+            if (integer && op == "sqrMagnitude")
+                return Box((double)IntSqrMagnitude(left, count));
             if (op is "magnitude" or "sqrMagnitude" or "normalized" or "distance" or "moveTowards" or "dot")
             {
                 for (int i = 0; i < count; i++)
@@ -83,21 +87,23 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 double x = left.Get(i);
                 double y = right.Get(i);
-                double component = op switch
-                {
-                    "add" => VectorRound(x + y, integer),
-                    "subtract" => VectorRound(x - y, integer),
-                    "negate" => VectorRound(-x, integer),
-                    "multiply" or "scaleLeft" => VectorRound(x * scalar, integer),
-                    "divide" => VectorRound(integer ? Math.Truncate(x / scalar) : x / scalar, integer),
-                    "normalized" => magnitude > (float)0.00001 ? VectorRound(x / magnitude, false) : 0,
-                    "lerp" => VectorRound(x + VectorRound(VectorRound(y - x, false) * scalar, false), false),
-                    "moveTowards" => reached ? y : VectorRound(x + VectorRound(VectorRound(difference.Get(i) / magnitude, false) * scalar, false), false),
-                    "min" => EvalFloatMathOp(MathOp.Min, "min", x, y, 0),
-                    "max" => EvalFloatMathOp(MathOp.Max, "max", x, y, 0),
-                    "cross" => CrossComponent(left, right, i),
-                    _ => throw new NSGetterRuntimeError($"Unknown vector operation '{op}'.", NeoErrorContract.NeoArgumentError),
-                };
+                double component = integer && op is "add" or "subtract" or "negate" or "multiply" or "scaleLeft" or "divide"
+                    ? IntComponent(op, x, y, scalar)
+                    : op switch
+                    {
+                        "add" => VectorRound(x + y, false),
+                        "subtract" => VectorRound(x - y, false),
+                        "negate" => VectorRound(-x, false),
+                        "multiply" or "scaleLeft" => VectorRound(x * scalar, false),
+                        "divide" => VectorRound(x / scalar, false),
+                        "normalized" => magnitude > (float)0.00001 ? VectorRound(x / magnitude, false) : 0,
+                        "lerp" => VectorRound(x + VectorRound(VectorRound(y - x, false) * scalar, false), false),
+                        "moveTowards" => reached ? y : VectorRound(x + VectorRound(VectorRound(difference.Get(i) / magnitude, false) * scalar, false), false),
+                        "min" => EvalFloatMathOp(MathOp.Min, "min", x, y, 0),
+                        "max" => EvalFloatMathOp(MathOp.Max, "max", x, y, 0),
+                        "cross" => CrossComponent(left, right, i),
+                        _ => throw new NSGetterRuntimeError($"Unknown vector operation '{op}'.", NeoErrorContract.NeoArgumentError),
+                    };
                 result.Set(i, component);
             }
             if (info.kind == "Color")
@@ -105,6 +111,36 @@ namespace NeoCompose.Runtime.NeoScript
             if (count == 3)
                 return new NeoVector3Value { x = result.x, y = result.y, z = result.z };
             return new NeoVector2Value { x = result.x, y = result.y };
+        }
+
+        /// <summary>
+        /// An int vector's component arithmetic (P127 §3.1): exact and wrapped
+        /// to 32 bits, as Unity's <c>Vector2Int</c> and <c>Vector3Int</c>
+        /// operators compute on their int fields.
+        /// </summary>
+        private static double IntComponent(string op, double x, double y, double scalar)
+        {
+            int a = NeoInt32.Wrap(x);
+            return op switch
+            {
+                "add" => NeoInt32.Add(a, NeoInt32.Wrap(y), false),
+                "subtract" => NeoInt32.Subtract(a, NeoInt32.Wrap(y), false),
+                "negate" => NeoInt32.Negate(a, false),
+                "divide" => NeoInt32.Divide(a, NeoInt32.Wrap(scalar)),
+                _ => NeoInt32.Multiply(a, NeoInt32.Wrap(scalar), false),
+            };
+        }
+
+        /// <summary><c>Vector2Int.sqrMagnitude</c>: unchecked int math, as Unity's.</summary>
+        private static int IntSqrMagnitude(VectorComponents vector, int count)
+        {
+            int sum = 0;
+            for (int i = 0; i < count; i++)
+            {
+                int component = NeoInt32.Wrap(vector.Get(i));
+                sum = NeoInt32.Add(sum, NeoInt32.Multiply(component, component, false), false);
+            }
+            return sum;
         }
 
         private static double CrossComponent(VectorComponents a, VectorComponents b, int index)

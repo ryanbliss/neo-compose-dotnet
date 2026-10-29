@@ -294,17 +294,17 @@ namespace NeoCompose.Runtime
             Action<NSGetterEvaluator.Context>? evaluateFieldValues)
         {
             NeoClient client = resolved.client;
+            ValidateBoxedConstructorArguments(resolved, argumentValues, ctx);
             int frame =
                 EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
             {
-                object?[] positionalArguments = FillDeclaredArguments(
-                    resolved.link.record,
-                    argumentValues);
+                object?[] positionalArguments = FillDeclaredArguments(resolved, argumentValues);
                 ConstructorChainArguments initializerArguments = PrepareConstructorInitializerArguments(
                     client,
                     resolved.link,
                     positionalArguments,
+                    resolved.genericEnv,
                     ctx);
                 NeoScriptObject created = CreateDetached(
                     plan,
