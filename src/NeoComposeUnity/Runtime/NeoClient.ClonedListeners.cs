@@ -188,7 +188,12 @@ namespace NeoCompose.Runtime
         {
             internal readonly Dictionary<(NeoValueOwnership scope, string id), (string id, Member? member)> Values = new();
             private readonly ClonedValueOccurrence? parent;
-            internal ClonedValueOccurrence(ClonedValueOccurrence? parent) => this.parent = parent;
+            internal readonly System.Security.Cryptography.SHA1 Hash;
+            internal ClonedValueOccurrence(ClonedValueOccurrence? parent, System.Security.Cryptography.SHA1 hash)
+            {
+                this.parent = parent;
+                Hash = hash;
+            }
             internal bool TryResolve((NeoValueOwnership scope, string id) source, out string? id)
             {
                 for (var occurrence = this; occurrence is not null; occurrence = occurrence.parent)

@@ -136,7 +136,7 @@ namespace NeoCompose.Runtime
         private static bool SameReplayIdentity(MemberValue? left, MemberValue? right)
             => ReferenceEquals(left, right) || left is not null && right is not null
                 && left.GetType() == right.GetType() && left.classId == right.classId
-                && left.IsRemoved == right.IsRemoved && left.containerId == right.containerId
+                && left.IsRemoved == right.IsRemoved
                 && NeoSemanticJson.MapsEqual(left.genericBindings, right.genericBindings)
                 && (left is not ObjectMemberValue a || right is ObjectMemberValue b && (a.value is null) == (b.value is null));
 

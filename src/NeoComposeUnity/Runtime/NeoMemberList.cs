@@ -1339,6 +1339,11 @@ namespace NeoCompose.Runtime
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             MemberValue? row = plan.Resolve(entryValueId);
             string? listId = valueId;
+            if (plan.HeldBy is { } batch && client.ActiveScriptContext is { } ctx && row is not null && listId is not null)
+            {
+                batch.RemoveUnordered(ownership, entryOwnership, listId, row, member, entryMember, ctx);
+                return;
+            }
             bool joined = row?.containerId == listId
                 || (client.TryResolveContainerIdForValueId(entryValueId, out string? containerId) && containerId == listId);
             if (!joined)
@@ -1349,6 +1354,8 @@ namespace NeoCompose.Runtime
             }
             bool tombstone = client.values.ContainsKey(entryValueId)
                 || !plan.TryGetWritable(entryOwnership, entryValueId, out _);
+            if (client.ActiveScriptContext is { } context)
+                NeoScript.NSGetterEvaluator.RetainClassAliases(plan, context, entryOwnership, entryValueId, entryMember);
             client.StageOwnedRemoval(plan, entryOwnership, entryValueId, entryMember, tombstone);
         }
 
@@ -1398,6 +1405,7 @@ namespace NeoCompose.Runtime
             var candidate = client.CloneRowForWrite(row);
             candidate.containerId = containerValueId;
             plan.Set(entryOwnership, candidate);
+            plan.HeldBy?.Gain(entryOwnership, entryValueId, containerValueId);
         }
 
         /// <summary>

@@ -3,6 +3,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using NeoCompose.Runtime.Json;
 
@@ -268,10 +269,13 @@ namespace NeoCompose.Runtime
                         TryGetChild(placement.parentValueId, key, out _);
                         return;
                     }
-                    foreach (var parent in client.InferMemberParents(id))
+                    KeyValuePair<string, MemberValue>[] parents;
+                    using (client.SuppressValueReads())
+                        parents = client.InferMemberParents(id).ToArray();
+                    foreach (var parent in parents)
                     {
                         if (parent.Value is not ObjectMemberValue { value: not null, IsRemoved: false } row
-                            || parent.Key == id)
+                            || parent.Key == id || !row.value.ContainsValue(id))
                             continue;
                         if (!classes.ContainsKey(parent.Key))
                             ProjectIndexedChild(parent.Key);

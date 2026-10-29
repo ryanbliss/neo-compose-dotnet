@@ -1314,6 +1314,18 @@ namespace NeoCompose.Runtime
                     Drop(NeoValueOwnership.Session, id);
             }
 
+            // Independently replayed children have their own footprints. A
+            // sparse parent has no stored edge to those partitions, but its
+            // removal must still release their materialized pins.
+            if (nestedReplayRootsByOwner.TryGetValue(rootId, out var nestedRoots))
+                foreach (string childId in nestedRoots)
+                {
+                    Member? member = TryInferMemberForValueId(childId, out var declaration) ? declaration : null;
+                    StageOwnedRemoval(plan, ownership, childId, member);
+                    if (ownership != NeoValueOwnership.Session)
+                        StageOwnedRemoval(plan, NeoValueOwnership.Session, childId, member);
+                }
+
             void Drop(NeoValueOwnership store, string id)
             {
                 if (plan.TryGetWritable(store, id, out _))

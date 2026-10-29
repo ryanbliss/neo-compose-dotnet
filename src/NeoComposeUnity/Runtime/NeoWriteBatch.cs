@@ -23,7 +23,7 @@ namespace NeoCompose.Runtime
         private readonly bool held;
         // By store: a Session copy of a released Save entry keeps its ids.
         private readonly Dictionary<(NeoValueOwnership ownership, string id), PendingCollection> collections = new();
-        private List<(NeoValueOwnership ownership, string id, Member? member, string parentId)>? releases;
+        private List<(NeoValueOwnership ownership, string id, Member? member, string parentId, bool tombstone)>? releases;
         // The entries pending collections gained, by the collection that
         // gained them, or released (null). Their rows don't hold that
         // membership until the batch is prepared.
@@ -751,11 +751,30 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal void RemoveUnordered(NeoValueOwnership collectionOwnership, NeoValueOwnership entryOwnership,
+            string listId, MemberValue row, ListMember member, Member entryMember, NSGetterEvaluator.Context ctx)
+        {
+            var list = List(collectionOwnership, listId, ctx, null);
+            ResolveMembers(list, member);
+            for (int i = 0; i < list.Count; i++)
+                if (list[i] == row.id)
+                {
+                    list.RemoveAt(i, NeoTimestamp.Now());
+                    break;
+                }
+            list.Changes(NeoTimestamp.Now());
+            bool tombstone = Plan.Client.values.ContainsKey(row.id) || !Plan.TryGetWritable(entryOwnership, row.id, out _);
+            var detached = Plan.Client.CloneRowForWrite(row);
+            detached.containerId = null;
+            Plan.Set(entryOwnership, detached);
+            Release(entryOwnership, row.id, entryMember, listId, tombstone);
+        }
+
         /// <summary>Releases an entry a collection dropped, once the batch is prepared.</summary>
-        internal void Release(NeoValueOwnership ownership, string id, Member? member, string parentId)
+        internal void Release(NeoValueOwnership ownership, string id, Member? member, string parentId, bool tombstone = false)
         {
             Plan.Client.CaptureListenerMove(Plan, ownership, ownership, id, member, parentId);
-            (releases ??= new()).Add((ownership, id, member, parentId));
+            (releases ??= new()).Add((ownership, id, member, parentId, tombstone));
             SetEntryParent(ownership, id, null, member is ListMember or DictionaryMember && Plan.Resolve(ownership, id) is { } row
                 ? new RemovalContext(Plan.Client, row, member) : null);
         }
@@ -803,7 +822,8 @@ namespace NeoCompose.Runtime
             {
                 List<(string id, Member? member)>? roots = null;
                 foreach (var release in releases)
-                    if (release.ownership == ownership)
+                    if (release.ownership == ownership
+                        && !(TryGetEntryParent(ownership, release.id, out string? newParent) && newParent is not null))
                         (roots ??= new()).Add((release.id, release.member));
                 if (roots is not null)
                 {
@@ -864,6 +884,17 @@ namespace NeoCompose.Runtime
                     });
                 }
             }
+            if (releases is not null)
+                foreach (var released in releases)
+                    if (released.tombstone && TryGetEntryParent(released.ownership, released.id, out string? owner) && owner is null
+                        && Plan.Rows.TryGetValue((released.ownership, released.id), out var removed) && removed is null)
+                        Plan.Set(released.ownership, new NullMemberValue
+                        {
+                            id = released.id,
+                            mark = NeoValueMarks.Removed,
+                            createdAt = NeoTimestamp.Now(),
+                            updatedAt = NeoTimestamp.Now()
+                        }, "mark");
         }
 
         /// <summary>A collection the batch mutates, and the contexts whose cached rows it refreshes.</summary>
@@ -1198,7 +1229,7 @@ namespace NeoCompose.Runtime
         /// Replays and candidate reads see only what one plan stages, and a
         /// virtual row's write replays its expansion, which reads may not lag.
         /// </summary>
-        internal NeoWriteBatch? ScriptWriteBatch(string rowId)
+        internal NeoWriteBatch? ScriptWriteBatch(string rowId, bool unordered = false)
         {
             if (scriptWriteDepth == 0
                 || candidateReadPlan is not null
@@ -1206,8 +1237,8 @@ namespace NeoCompose.Runtime
                 || replayAllocationScope is not null
                 || nestedConstructorCapture is not null
                 || isReplayingVirtualInstance
-                || virtualValues.ContainsKey(rowId)
-                || virtualRootByFootprintId.ContainsKey(rowId))
+                || !unordered && (virtualValues.ContainsKey(rowId)
+                    || virtualRootByFootprintId.ContainsKey(rowId)))
                 return null;
             if (scriptWriteBatch is null)
             {
