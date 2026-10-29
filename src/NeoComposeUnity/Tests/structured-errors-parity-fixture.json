@@ -5618,35 +5618,13 @@
                 "required": true
               },
               "pointer": {
-                "type": "operation",
-                "operation": {
-                  "type": "arithmetic",
-                  "arithmetic": {
-                    "type": "*",
-                    "pointers": [
-                      {
-                        "type": "value",
-                        "value": {
-                          "typeInfo": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "value": -1
-                        }
-                      },
-                      {
-                        "type": "value",
-                        "value": {
-                          "typeInfo": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "value": 1
-                        }
-                      }
-                    ],
-                    "numeric": "int"
-                  }
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": -1
                 }
               }
             },

@@ -249,11 +249,11 @@ namespace NeoCompose.Runtime
                         yield return (argumentId, new ClassTypeInfo { type = MemberKind.Class, required = true, classId = boundClassId });
                     continue;
                 }
-                if (!NeoTypeSources.ConstructorArgumentStoresRow(parameter.type))
+                if (!NeoTypeSources.ConstructorArgumentStoresRow(parameter))
                     continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
-                pending.Enqueue((argumentId, parameter));
+                pending.Enqueue((argumentId, NeoTypeRules.Declared(parameter)));
                 while (pending.Count > 0)
                 {
                     var (id, type) = pending.Dequeue();

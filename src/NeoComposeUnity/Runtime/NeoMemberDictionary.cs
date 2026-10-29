@@ -250,8 +250,7 @@ namespace NeoCompose.Runtime
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
             ObserveChildren();
-            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
-                throw new System.ArgumentNullException(nameof(setValue), "Cannot be null when entry member is required");
+            client.RequireStoredValue(entryMember, setValue, $"{client.StoredMemberPath(member)}[{key}]");
             client.RequireSlotAdmits(entryMember, null, member.name, setValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
             client.RequireNoGenericStaticTargets(entryMember, null, member.name, setValue);
             var plan = new NeoWritePlan(client);

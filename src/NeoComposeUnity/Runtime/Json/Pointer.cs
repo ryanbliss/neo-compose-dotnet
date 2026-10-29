@@ -542,6 +542,210 @@ namespace NeoCompose.Runtime.Json
         public string mode = null!;
     }
 
+    /// <summary>
+    /// P127 §1.2. Converts the operand to <c>object</c>, <c>ValueType</c>,
+    /// <c>Enum</c> or an interface: a box of the operand closed at
+    /// <see cref="sourceType"/>, or the operand itself when it is already a
+    /// row, a box or a <c>Type</c>.
+    /// </summary>
+    public sealed class BoxPointer : Pointer
+    {
+        public Pointer pointer = null!;
+        public TypeInfo sourceType = null!;
+    }
+
+    /// <summary>The <see cref="CastPointer.mode"/> values.</summary>
+    public static class CastModeKind
+    {
+        public const string Cast = "cast";
+        public const string As = "as";
+    }
+
+    /// <summary>
+    /// P127 §4.1. Unboxing, a downcast, an interface cast, or a cast to or
+    /// from a type parameter; <c>as</c> when <see cref="mode"/> is
+    /// <see cref="CastModeKind.As"/>. Never numeric (see <see cref="ConvertPointer"/>).
+    /// </summary>
+    public sealed class CastPointer : Pointer
+    {
+        public Pointer pointer = null!;
+        public TypeInfo sourceType = null!;
+        public TypeInfo targetType = null!;
+        /// <summary>One of <see cref="CastModeKind"/>.</summary>
+        public string mode = null!;
+    }
+
+    /// <summary>P127 §3.3. An explicit conversion between int, float, decimal and enums.</summary>
+    public sealed class ConvertPointer : Pointer
+    {
+        public Pointer pointer = null!;
+        public TypeInfo sourceType = null!;
+        public TypeInfo targetType = null!;
+        /// <summary>TS-side <c>checked?: true</c>; <c>checked</c> is a C# keyword.</summary>
+        [JsonProperty("checked", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? isChecked;
+    }
+
+    /// <summary>P127 §4.1. <c>default</c> of a type naming a type parameter; closed defaults fold to values.</summary>
+    public sealed class DefaultPointer : Pointer
+    {
+        public TypeInfo typeInfo = null!;
+    }
+
+    /// <summary>
+    /// The definition <c>typeof(List&lt;&gt;)</c> or <c>typeof(Box&lt;,&gt;)</c>
+    /// names: a class, an interface, or a built-in head with its arity.
+    /// </summary>
+    public sealed class TypeOfDefinition
+    {
+        public MemberKind type;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? classId;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? interfaceId;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? arity;
+
+        internal TypeDefinition ToDefinition() => new TypeDefinition(type, classId, interfaceId, arity);
+    }
+
+    /// <summary>P127 §2. <c>typeof</c> of a type, closed over the frame, or of a definition.</summary>
+    public sealed class TypeOfPointer : Pointer
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? typeInfo;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeOfDefinition? definition;
+    }
+
+    /// <summary>P127 §1.2. <c>new object()</c>: a fresh identity box.</summary>
+    public sealed class NewObjectPointer : Pointer
+    {
+    }
+
+    /// <summary>
+    /// P127 §4.4. A value-producing <c>++</c> or <c>--</c>: runs
+    /// <see cref="assign"/> in the current scope, then reads
+    /// <see cref="result"/>, one of its bindings, in that scope.
+    /// </summary>
+    public sealed class IncrementPointer : Pointer
+    {
+        public AssignInstruction assign = null!;
+        public Pointer result = null!;
+        // The assignment then a return of the result, built once.
+        [JsonIgnore] internal Instruction[]? instructions;
+        // The type of the binding the result reads.
+        [JsonIgnore] internal TypeInfo? resultType;
+    }
+
+    /// <summary>P127 §4.3. A caller's writable location, captured without reading it.</summary>
+    public sealed class OutPointer : Pointer
+    {
+        public WriteTarget? target;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int[]? tuplePath;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Variable[]? bindings;
+    }
+
+    /// <summary>The <see cref="FormatPointer.mode"/> values.</summary>
+    public static class FormatModeKind
+    {
+        public const string Interpolation = "interpolation";
+        public const string Concatenation = "concatenation";
+    }
+
+    /// <summary>
+    /// P127 §4.6. An interpolation hole or a string concatenation operand as
+    /// text: a hole formats a built-in <c>IFormattable</c> with
+    /// <see cref="format"/>, anything else calls <c>ToString()</c>, and
+    /// <see cref="alignment"/> pads the result.
+    /// </summary>
+    public sealed class FormatPointer : Pointer
+    {
+        public Pointer pointer = null!;
+        public TypeInfo sourceType = null!;
+        /// <summary>One of <see cref="FormatModeKind"/>.</summary>
+        public string mode = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public int? alignment;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? format;
+    }
+
+    /// <summary>The <see cref="ObjectMemberPointer.member"/> values.</summary>
+    public static class ObjectMemberKind
+    {
+        public const string GetType = "GetType";
+        public const string Equals = "Equals";
+        public const string GetHashCode = "GetHashCode";
+        public const string ToString = "ToString";
+        public const string ReferenceEquals = "ReferenceEquals";
+        /// <summary><c>object.Equals(a, b)</c>.</summary>
+        public const string StaticEquals = "StaticEquals";
+        /// <summary>An enum value's localized option text (§8.6).</summary>
+        public const string Text = "Text";
+    }
+
+    /// <summary>
+    /// P127 §1.1. An <c>object</c> member reached through a receiver whose
+    /// static type declares no member of that name. <see cref="receiver"/>
+    /// is absent for the two statics.
+    /// </summary>
+    public sealed class ObjectMemberPointer : Pointer
+    {
+        /// <summary>One of <see cref="ObjectMemberKind"/>.</summary>
+        public string member = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? receiver;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? receiverType;
+        public Pointer[] args = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? optional;
+    }
+
+    /// <summary>The <see cref="TypeMemberPointer.member"/> values.</summary>
+    public static class TypeMemberKind
+    {
+        public const string Name = "Name";
+        public const string Namespace = "Namespace";
+        public const string FullName = "FullName";
+        public const string BaseType = "BaseType";
+        public const string GetInterfaces = "GetInterfaces";
+        public const string IsAssignableFrom = "IsAssignableFrom";
+        public const string IsInstanceOfType = "IsInstanceOfType";
+        public const string IsSubclassOf = "IsSubclassOf";
+        public const string IsClass = "IsClass";
+        public const string IsInterface = "IsInterface";
+        public const string IsEnum = "IsEnum";
+        public const string IsValueType = "IsValueType";
+        public const string IsPrimitive = "IsPrimitive";
+        public const string IsAbstract = "IsAbstract";
+        public const string IsSealed = "IsSealed";
+        public const string IsGenericType = "IsGenericType";
+        public const string IsGenericTypeDefinition = "IsGenericTypeDefinition";
+        public const string GenericTypeArguments = "GenericTypeArguments";
+        public const string GetGenericTypeDefinition = "GetGenericTypeDefinition";
+        public const string IsGenericParameter = "IsGenericParameter";
+        public const string GenericParameterPosition = "GenericParameterPosition";
+        public const string ContainsGenericParameters = "ContainsGenericParameters";
+    }
+
+    /// <summary>
+    /// P127 §2. A member of a <c>Type</c> value; <c>Equals</c>,
+    /// <c>GetHashCode</c> and <c>ToString</c> are <see cref="ObjectMemberPointer"/>s.
+    /// </summary>
+    public sealed class TypeMemberPointer : Pointer
+    {
+        /// <summary>One of <see cref="TypeMemberKind"/>.</summary>
+        public string member = null!;
+        public Pointer receiver = null!;
+        public Pointer[] args = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? optional;
+    }
+
     public class PointerConverter : DiscriminatedConverter<Pointer>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -608,6 +812,28 @@ namespace NeoCompose.Runtime.Json
                     return typeof(RowOfPointer);
                 case PointerKind.Deref:
                     return typeof(DerefPointer);
+                case PointerKind.Box:
+                    return typeof(BoxPointer);
+                case PointerKind.Cast:
+                    return typeof(CastPointer);
+                case PointerKind.Convert:
+                    return typeof(ConvertPointer);
+                case PointerKind.Default:
+                    return typeof(DefaultPointer);
+                case PointerKind.TypeOf:
+                    return typeof(TypeOfPointer);
+                case PointerKind.ObjectMember:
+                    return typeof(ObjectMemberPointer);
+                case PointerKind.TypeMember:
+                    return typeof(TypeMemberPointer);
+                case PointerKind.NewObject:
+                    return typeof(NewObjectPointer);
+                case PointerKind.Increment:
+                    return typeof(IncrementPointer);
+                case PointerKind.Format:
+                    return typeof(FormatPointer);
+                case PointerKind.Out:
+                    return typeof(OutPointer);
                 default:
                     return null;
             }
@@ -657,6 +883,37 @@ namespace NeoCompose.Runtime.Json
                     if (assignment is not JObject instruction
                         || instruction["type"]?.Value<string>() != InstructionKind.Assign)
                         throw new JsonSerializationException("ObjectInitializerPointer entries must be assignment instructions.");
+                return;
+            }
+            if (concrete == typeof(OutPointer))
+            {
+                if (obj.Property("target") is null || obj["target"]!.Type is not (JTokenType.Null or JTokenType.Object))
+                    throw new JsonSerializationException("OutPointer requires a write target or null discard.");
+                if (obj.Property("tuplePath") is not null)
+                {
+                    if (obj["tuplePath"] is not JArray { Count: > 0 } path)
+                        throw new JsonSerializationException("OutPointer tuplePath requires a nonempty array of element indexes.");
+                    JToken? type = obj["target"] is JObject target ? target["typeInfo"] : null;
+                    foreach (JToken indexToken in path)
+                    {
+                        if (indexToken.Type != JTokenType.Integer
+                            || type is not JObject tupleType || tupleType["type"]?.Value<int>() != (int)MemberKind.Tuple
+                            || tupleType["elements"] is not JArray elements
+                            || indexToken.Value<double>() < 0 || indexToken.Value<double>() >= elements.Count)
+                            throw new JsonSerializationException("OutPointer tuplePath must name an element within its root tuple target.");
+                        type = elements[indexToken.Value<int>()]?["typeInfo"];
+                    }
+                }
+                return;
+            }
+            if (concrete == typeof(IncrementPointer))
+            {
+                if (obj["assign"] is not JObject assign)
+                    throw new JsonSerializationException("IncrementPointer requires an assign instruction.");
+                if (assign["type"]?.Value<string>() != InstructionKind.Assign)
+                    throw new JsonSerializationException("IncrementPointer's assign must be an assignment instruction.");
+                if (obj["result"] is not JObject)
+                    throw new JsonSerializationException("IncrementPointer requires a result pointer.");
                 return;
             }
             if (concrete == typeof(SwitchExpressionPointer))

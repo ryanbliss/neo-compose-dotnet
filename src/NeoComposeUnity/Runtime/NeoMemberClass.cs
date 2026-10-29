@@ -1083,12 +1083,7 @@ namespace NeoCompose.Runtime
             // specs/class-generics.md Decision 10).
             childMember = SubstituteChildMember(childMember);
             RejectReadOnlyInstanceMutation(key, childMember);
-            if (childMember.Requirement == NeoMemberRequirementKind.Required && (setValue is null || setValue.isNull))
-            {
-                throw new System.ArgumentNullException(
-                    nameof(setValue),
-                    $"Cannot be null when child member '{key}' is required");
-            }
+            client.RequireStoredValue(childMember, setValue, key, ownerClassName: schemaClass.name);
             // Generated overrides retain the inherited CLR Variant wrapper.
             // Validate its selection against the effective slot before any row
             // is imported or written, including writes through a base view.

@@ -256,7 +256,7 @@ namespace NeoCompose.Runtime
         {
             return value is null
                 ? null
-                : new SpriteValue { fileId = value.fileId, sliceIndex = value.sliceIndex };
+                : value.Copy();
         }
 
         private static bool SameValue(SpriteValue? left, SpriteValue? right)
@@ -319,7 +319,7 @@ namespace NeoCompose.Runtime
                 if (value is null)
                     throw new System.ArgumentNullException(nameof(value));
                 var next = RequireValue(nameof(FileId));
-                Write(new SpriteValue { fileId = value, sliceIndex = next.sliceIndex }, nameof(FileId));
+                Write(new SpriteValue { fileId = value, StoredSliceIndex = next.StoredSliceIndex }, nameof(FileId));
             }
         }
 

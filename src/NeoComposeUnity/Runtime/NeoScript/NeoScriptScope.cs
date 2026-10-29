@@ -539,14 +539,20 @@ namespace NeoCompose.Runtime.NeoScript
                 int slot = target.OccupiedSlot(variable);
                 if (slot >= 0)
                 {
-                    target.SetSlot(slot, value, number);
+                    if (target.slotKinds[slot] == ValueSlot && target.slotValues[slot].value is NeoOutReference reference)
+                        reference.Write(EvaluationValue.Box(value, number));
+                    else
+                        target.SetSlot(slot, value, number);
                     return;
                 }
                 if (!target.block || target.ContainsDynamicLocal(variable.variableId))
                     break;
                 target = target.Parent!;
             }
-            target.SetEvaluationValue(variable.variableId, value, number);
+            if (target.TryGetDynamicValue(variable, out EvaluationValue current) && current.Box() is NeoOutReference alias)
+                alias.Write(EvaluationValue.Box(value, number));
+            else
+                target.SetEvaluationValue(variable.variableId, value, number);
         }
 
         private bool ContainsDynamicLocal(string bindingId) =>
@@ -751,13 +757,13 @@ namespace NeoCompose.Runtime.NeoScript
                         && ReferenceEquals(stored.aliasIndex, aliasIndex);
                     if (remembered && stored.rowAlias is not null)
                         rowAlias = stored.rowAlias;
-                    return stored.value;
+                    return NeoOutReference.Value(stored.value);
                 }
                 if (scope.TryGetDynamicValue(variable, out EvaluationValue value))
                 {
                     found = true;
                     remembered = false;
-                    return value.Box();
+                    return NeoOutReference.Value(value.Box());
                 }
             }
             found = false;
@@ -823,12 +829,16 @@ namespace NeoCompose.Runtime.NeoScript
                         return true;
                     }
                     if (kind != EmptySlot)
-                        return NSGetterEvaluator.TryAsDouble(scope.slotValues[slot].value, out number);
+                        return NSGetterEvaluator.TryAsDouble(NeoOutReference.Value(scope.slotValues[slot].value), out number);
                 }
                 if (scope.TryGetDynamicValue(variable, out EvaluationValue value))
                 {
-                    number = value.Number;
-                    return value.IsNumber;
+                    if (value.IsNumber)
+                    {
+                        number = value.Number;
+                        return true;
+                    }
+                    return NSGetterEvaluator.TryAsDouble(NeoOutReference.Value(value.Box()), out number);
                 }
             }
             number = 0;
@@ -962,18 +972,21 @@ namespace NeoCompose.Runtime.NeoScript
             if (externalBindings is not null)
             {
                 if (externalBindings.TryGetValue(bindingId, out value))
+                {
+                    value = NeoOutReference.Value(value);
                     return true;
+                }
             }
             else
             {
                 if (layout is not null && layout.Slots.TryGetValue(bindingId, out int slot) && slotKinds[slot] != EmptySlot)
                 {
-                    value = SlotValue(slot);
+                    value = NeoOutReference.Value(SlotValue(slot));
                     return true;
                 }
                 if (bindings!.Count > 0 && bindings.TryGetValue(bindingId, out var stored))
                 {
-                    value = stored.Box();
+                    value = NeoOutReference.Value(stored.Box());
                     return true;
                 }
             }

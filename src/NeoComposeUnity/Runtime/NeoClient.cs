@@ -2308,6 +2308,132 @@ namespace NeoCompose.Runtime
                 ? ClassChainContains(classId, declaredClassId)
                 : InterfaceImplementers.Implements(classId, slot.DeclaredInterfaceId!);
 
+        internal string StoredMemberPath(Member member) =>
+            SchemaOwnerClassId(member.id) is string owner && TryGetClass(owner, out NeoSchemaClass? type)
+                ? $"{type.name}.{member.name}" : member.name;
+
+        internal string StoredRowPath(string id) =>
+            TryInferMemberForValueId(id, out Member? member) ? StoredMemberPath(member) : id;
+
+        /// <summary>One stored-null rule for host and evaluator writes, including aggregate payloads.</summary>
+        internal void RequireStoredValue(Member member, object? value, string? path = null, bool script = false, string? ownerClassName = null)
+        {
+            object? scalar = value is NeoValueWritePayload { isValueReference: false } write ? write.value : value;
+            if (scalar is not null and not (NeoValuePayload or NeoValueWritePayload or INeoValuePayloadProvider)
+                && member is not (TupleMember or ListMember or DictionaryMember))
+                return;
+            path ??= StoredMemberPath(member);
+            if (ownerClassName is not null)
+                path = $"{ownerClassName}.{path}";
+            Dictionary<string, MemberValue>? staged = null;
+            HashSet<(string, string)>? visited = null;
+            Check(member, value, path);
+
+            void Check(Member slot, object? item, string location)
+            {
+                if (item is NeoValueWritePayload write)
+                {
+                    if (write.isValueReference)
+                    {
+                        CheckRow(slot, write.valueId!, location);
+                        return;
+                    }
+                    item = write.value;
+                }
+                if (item is INeoValuePayloadProvider provider)
+                    item = provider.ToNeoValuePayload();
+                if (item is NeoValuePayload payload)
+                {
+                    // A box's reference positions are nullable by definition.
+                    if (payload.valueType is not null)
+                        return;
+                    if (payload.valueRows.Count != 0)
+                    {
+                        staged ??= new Dictionary<string, MemberValue>();
+                        foreach (MemberValue row in payload.valueRows)
+                            staged[row.id] = row;
+                    }
+                    item = payload.value;
+                }
+                if (item is null)
+                {
+                    if (slot.Requirement != NeoMemberRequirementKind.Required)
+                        return;
+                    int separator = location.IndexOf('.');
+                    if (separator > 0 && TryGetClass(location.Substring(0, separator), out NeoSchemaClass? owner))
+                        location = owner.name + location.Substring(separator);
+                    string message = $"'{location}' is required and cannot store null.";
+                    if (script || ActiveScriptContext is not null)
+                        throw new NeoScript.NSGetterRuntimeError(message, NeoScript.NeoErrorContract.NeoInvalidOperationError);
+                    throw new System.ArgumentNullException("value", message);
+                }
+                if (slot is TupleMember tuple)
+                {
+                    if (item is string[] ids)
+                    {
+                        for (int index = 0; index < ids.Length && index < tuple.elementMemberIds.Length; index++)
+                            if (TryGetMember(tuple.elementMemberIds[index], out Member? element))
+                                CheckRow(element, ids[index], $"{location}.Item{index + 1}");
+                    }
+                    else if (item is NeoScript.RuntimeTuple runtime)
+                    {
+                        for (int index = 0; index < runtime.Count; index++)
+                            if (TryGetMember(tuple.elementMemberIds[index], out Member? element))
+                                Check(element, runtime[index], $"{location}.Item{index + 1}");
+                    }
+                }
+                else if (slot is ListMember list && TryGetMember(list.entryMemberId, out Member? entry))
+                {
+                    if (item is string[] ids)
+                    {
+                        for (int index = 0; index < ids.Length; index++)
+                            CheckRow(entry, ids[index], $"{location}[{index}]");
+                    }
+                    else if (item is object?[] items)
+                    {
+                        for (int index = 0; index < items.Length; index++)
+                            Check(entry, items[index], $"{location}[{index}]");
+                    }
+                }
+                else if (slot is DictionaryMember map && TryGetMember(map.entryMemberId, out Member? mapEntry))
+                {
+                    if (item is IDictionary<string, string> ids)
+                    {
+                        foreach (var pair in ids)
+                            CheckRow(mapEntry, pair.Value, $"{location}[{pair.Key}]");
+                    }
+                    else if (item is System.Collections.IDictionary entries)
+                    {
+                        foreach (System.Collections.DictionaryEntry pair in entries)
+                            Check(mapEntry, pair.Value, $"{location}[{pair.Key}]");
+                    }
+                }
+            }
+
+            void CheckRow(Member slot, string id, string location)
+            {
+                if (!(visited ??= new HashSet<(string, string)>()).Add((slot.id, id)))
+                    return;
+                if (staged?.TryGetValue(id, out MemberValue? row) != true && !TryGetValue(id, out row))
+                    return;
+                if (row.valueType is not null)
+                    return;
+                object? item = row switch
+                {
+                    NullMemberValue => null,
+                    StringMemberValue text => text.value,
+                    NumberMemberValue number => number.value,
+                    BoolMemberValue flag => flag.value,
+                    ArrayMemberValue array => array.value,
+                    ObjectMemberValue map => map.value,
+                    FileMemberValue file => file.value,
+                    SpriteMemberValue sprite => sprite.value,
+                    _ => row,
+                };
+                Check(slot, item, location);
+            }
+        }
+
         /// <summary>
         /// The row a host write puts in <paramref name="slot"/> must fit its
         /// arguments, read in <paramref name="environment"/>, the environment
@@ -5915,11 +6041,7 @@ namespace NeoCompose.Runtime
                 {
                     value = s.value == null
                         ? null
-                        : new SpriteValue
-                        {
-                            fileId = s.value.fileId,
-                            sliceIndex = s.value.sliceIndex,
-                        },
+                        : s.value.Copy(),
                 },
                 Vector2MemberValue v => new Vector2MemberValue
                 {

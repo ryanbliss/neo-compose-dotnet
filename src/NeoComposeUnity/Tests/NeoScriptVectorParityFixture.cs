@@ -3518,7 +3518,7 @@ namespace NeoCompose.Tests
       }
     },
     {
-      ""name"": ""Vector3Int exceeds Unity int32 without overflow"",
+      ""name"": ""Vector3Int multiply wraps in int32"",
       ""typeInfo"": {
         ""type"": 17,
         ""required"": true
@@ -3560,8 +3560,8 @@ namespace NeoCompose.Tests
         }
       },
       ""expected"": {
-        ""x"": 4294967294,
-        ""y"": -4294967296,
+        ""x"": -2,
+        ""y"": 0,
         ""z"": 33554434
       }
     },

@@ -310,7 +310,7 @@ namespace NeoCompose.Tests
             ConstructorRecord record = client.constructors["ctor-sub-reads-this"];
             var link = NeoGeneratedTypesSupport.ResolveConstructorLink(client, record, new HashSet<string>());
             var method = typeof(NeoGeneratedTypesSupport).GetMethod("PrepareConstructorInitializerArguments", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            var result = (NeoGeneratedTypesSupport.ConstructorChainArguments)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new NSGetterEvaluator.Context(client, null, null) })!;
+            var result = (NeoGeneratedTypesSupport.ConstructorChainArguments)method.Invoke(null, new object[] { client, link, Array.Empty<object?>(), new Dictionary<string, NeoGenericEnvEntry>(), new NSGetterEvaluator.Context(client, null, null) })!;
             Assert.IsTrue(result.TryGet("sub-class", out _));
             Assert.IsFalse(result.TryGet(link.baseLink!.record!.classId, out _));
             Assert.IsNull(result.At(1));
@@ -1505,6 +1505,31 @@ namespace NeoCompose.Tests
                 new[] { new NeoDeclaredConstructorArgument("Seed", "seeded") });
             Assert.AreEqual(parameterless ? "base-constructor" : "base", ReadString(client, node.value!, "Label"));
             Assert.AreEqual("from-base-clause", ReadString(client, node.value!, "Tag"));
+        }
+
+        [Test]
+        public void HeaderBaseFillsATypeDefaultParameter()
+        {
+            ProjectData data = BuildProjectData();
+            data.classes["gear-class"].requiredConstructorId = null;
+            data.classes["gear-class"].constructorIds = new[] { "ctor-gear" };
+            ConstructorRecord baseConstructor = data.constructors["ctor-gear"];
+            baseConstructor.action.instructions = new Instruction[]
+            {
+                LabelAssignment(StringPointer("base-constructor")),
+            };
+            // P127 §4.1: `string Bar = default` fills null when the base call omits it.
+            baseConstructor.argumentTypes[0].defaultValue = new ParameterDefaultValue { isDefault = true };
+            ConstructorRecord derived = data.constructors["ctor-cog"];
+            derived.baseArguments = null;
+            derived.compiledBaseArguments = null;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            NeoMemberClassWritable node = NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(
+                client,
+                "cog-class",
+                derived.id,
+                new[] { new NeoDeclaredConstructorArgument("Seed", "seeded") });
+            Assert.AreEqual("base-constructor", ReadString(client, node.value!, "Label"));
         }
 
         [TestCase(false)]

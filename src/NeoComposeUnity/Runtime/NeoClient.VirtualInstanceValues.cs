@@ -257,6 +257,7 @@ namespace NeoCompose.Runtime
         {
             internal MemberValue row = null!;
             internal Member member = null!;
+            internal Member payloadMember = null!;
             internal string path = null!;
             internal string? schemaKey;
             internal string virtualId = null!;
@@ -1788,7 +1789,9 @@ namespace NeoCompose.Runtime
                 {
                     FunctionArgumentTypeInfo argument = constructor.argumentTypes[index];
                     string parameterId = ConstructorParameterId(constructor, index);
-                    if (!stored.TryGetValue(parameterId, out JToken? value))
+                    bool present = stored.TryGetValue(parameterId, out JToken? value);
+                    bool outArgument = NeoScript.NeoConstructorOut.Validate(argument, value, parameterId);
+                    if (!present)
                     {
                         if (NeoParameterDefaults.HasDefault(argument))
                             continue;
@@ -1802,7 +1805,7 @@ namespace NeoCompose.Runtime
                             genericEnv);
                     replayArguments.Add(new NeoDeclaredConstructorArgument(
                         argument.name,
-                        VirtualReplayArgument(value, replayType)));
+                        outArgument ? NeoScript.NeoConstructorOut.Replay(this, replayType) : VirtualReplayArgument(value, replayType)));
                 }
             }
             return NeoGeneratedTypesSupport.EvaluateStoredDeclaredConstructor(
@@ -1882,7 +1885,7 @@ namespace NeoCompose.Runtime
             if (typeInfo.type == MemberKind.Generic)
                 throw new InvalidOperationException($"Constructor parameter \"{(typeInfo as FunctionArgumentTypeInfo)?.name}\" replays with an unclosed type parameter.");
             if (token.Type == JTokenType.String
-                && NeoTypeSources.ConstructorArgumentStoresRow(typeInfo.type))
+                && NeoTypeSources.ConstructorArgumentStoresRow(typeInfo))
             {
                 string valueId = token.Value<string>()!;
                 var reads = capturedValueReads;
@@ -1901,17 +1904,7 @@ namespace NeoCompose.Runtime
                         $"Constructor argument value '{valueId}' has no resolvable storage ownership, so the instance cannot be replayed against it.");
                 }
                 reads?.Add(row is ObjectMemberValue { classId: not null } ? "identity:" + valueId : valueId);
-                if (typeInfo.type == MemberKind.Tuple)
-                {
-                    if (row is not ArrayMemberValue tupleRow)
-                        throw new InvalidOperationException($"Constructor argument '{valueId}' is not a tuple row.");
-                    var context = new NSGetterEvaluator.Context(this, null, null, ownership);
-                    context = context.WithRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
-                    // Tuple element reads are dependencies of replay too.
-                    using var elementReads = CaptureValueReads(reads ?? new HashSet<string>());
-                    return NSGetterEvaluator.ReadStoredTuple(
-                        (TupleMember)NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(typeInfo))), tupleRow, ownership, context);
-                }
+                // Decode aggregates in the constructor context so nested row views keep their reference metadata.
                 return new NeoConstructorValueReference(valueId, ownership);
             }
             return typeInfo.type switch
@@ -2018,10 +2011,15 @@ namespace NeoCompose.Runtime
                 virtualId = VirtualValueId(instanceRoot.id, sourceIdentity, replayIdHash);
             }
             claimedVirtualIds[virtualId] = path;
+            // The slot controls ownership; a box's held type controls its child graph.
+            Member payloadMember = row.valueType is { } heldType
+                ? TypeRules.Box(heldType).Member ?? member
+                : member;
             var node = new VirtualExpansionNode
             {
                 row = row,
                 member = member,
+                payloadMember = payloadMember,
                 path = path,
                 virtualId = virtualId,
                 identityId = virtualId,
@@ -2032,7 +2030,7 @@ namespace NeoCompose.Runtime
             // Replay rows live in temporary Session storage, including immutable
             // members. Read the constructed graph directly: read-only wrappers
             // select Asset storage and can omit those temporary children.
-            if (member is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
+            if (payloadMember is ClassMember classMember && row is ObjectMemberValue { value: not null } classRow)
             {
                 string classId = classMember.RowClassId(classRow.classId);
                 foreach (var entry in ResolveInstanceSurfaceSchema(classId))
@@ -2061,7 +2059,7 @@ namespace NeoCompose.Runtime
                     node.classChildren[entry.schemaKey].schemaKey = entry.schemaKey;
                 }
             }
-            else if (member is TupleMember tuple && row is ArrayMemberValue tupleRow && tupleRow.value is not null)
+            else if (payloadMember is TupleMember tuple && row is ArrayMemberValue tupleRow && tupleRow.value is not null)
             {
                 for (int index = 0; index < tupleRow.value.Length; index++)
                 {
@@ -2071,7 +2069,7 @@ namespace NeoCompose.Runtime
                         index.ToString(System.Globalization.CultureInfo.InvariantCulture), numericValue: true)));
                 }
             }
-            else if (member is ListMember list && row is ArrayMemberValue array)
+            else if (payloadMember is ListMember list && row is ArrayMemberValue array)
             {
                 if (TryResolveCollectionEntryMember(list, row) is not Member entry)
                     throw new InvalidOperationException($"Missing list entry declaration '{list.entryMemberId}'.");
@@ -2081,7 +2079,7 @@ namespace NeoCompose.Runtime
                     node.listChildren.Add(Child(id, entry, AppendVirtualPath(path, "list", "index",
                         (index++).ToString(System.Globalization.CultureInfo.InvariantCulture), numericValue: true)));
             }
-            else if (member is DictionaryMember dictionary && row is ObjectMemberValue entries)
+            else if (payloadMember is DictionaryMember dictionary && row is ObjectMemberValue entries)
             {
                 if (TryResolveCollectionEntryMember(dictionary, row) is not Member entry)
                     throw new InvalidOperationException($"Missing dictionary entry declaration '{dictionary.entryMemberId}'.");
@@ -2147,7 +2145,7 @@ namespace NeoCompose.Runtime
                         constructions.Add((construction, node.member as ClassMember));
                     if (row is DelegateMemberValue selector)
                         selectors.Add(selector);
-                    else if (node.member is LookupMember && row is ArrayMemberValue { value: not null } selection)
+                    else if (node.payloadMember is LookupMember && row is ArrayMemberValue { value: not null } selection)
                         selections.Add(selection);
                 }
                 foreach (var child in node.classChildren.Values)
@@ -2233,7 +2231,7 @@ namespace NeoCompose.Runtime
             clone.createdAt = instanceRoot.createdAt;
             clone.updatedAt = instanceRoot.updatedAt;
             clone.mapKey = instanceRoot.mapKey;
-            if (node.parent?.member is ListMember parentList
+            if (node.parent?.payloadMember is ListMember parentList
                 && IsUnorderedList(parentList))
             {
                 clone.containerId = node.parent.virtualId;
@@ -2266,7 +2264,7 @@ namespace NeoCompose.Runtime
                             }
                         }
                     }
-                    else if (node.member is DictionaryMember)
+                    else if (node.payloadMember is DictionaryMember)
                     {
                         obj.value = node.dictionaryChildren.ToDictionary(
                             pair => pair.Key,
@@ -2274,7 +2272,7 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 case ArrayMemberValue array when array.value is not null:
-                    if (node.member is TupleMember || node.member is ListMember list && !IsUnorderedList(list))
+                    if (node.payloadMember is TupleMember || node.payloadMember is ListMember list && !IsUnorderedList(list))
                     {
                         array.value = node.listChildren
                             .Select(child => child.virtualId)
@@ -2510,7 +2508,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (node.member is ListMember orderedList && !IsUnorderedList(orderedList)
+            if (node.payloadMember is ListMember orderedList && !IsUnorderedList(orderedList)
                 && (materialized is null || materialized.id == node.virtualId))
             {
                 // Sparse lists retain their virtual entry identities after removals
@@ -2526,7 +2524,7 @@ namespace NeoCompose.Runtime
             }
             // Fully materialized constructor lists have fresh row IDs. Their
             // authored child overrides still correspond by constructor position.
-            if (node.member is TupleMember || node.member is ListMember list && !IsUnorderedList(list))
+            if (node.payloadMember is TupleMember || node.payloadMember is ListMember list && !IsUnorderedList(list))
             {
                 string[]? stored = (materialized as ArrayMemberValue)?.value;
                 for (int index = 0; index < node.listChildren.Count; index++)
@@ -2542,7 +2540,7 @@ namespace NeoCompose.Runtime
                 }
                 return;
             }
-            if (node.member is ListMember unorderedList
+            if (node.payloadMember is ListMember unorderedList
                 && IsUnorderedList(unorderedList))
             {
                 var materializedBySource = new Dictionary<string, Queue<string>>(
@@ -2603,7 +2601,7 @@ namespace NeoCompose.Runtime
                 }
                 return;
             }
-            if (node.member is DictionaryMember)
+            if (node.payloadMember is DictionaryMember)
             {
                 Dictionary<string, string>? stored =
                     (materialized as ObjectMemberValue)?.value;

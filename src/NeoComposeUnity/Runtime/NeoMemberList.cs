@@ -809,12 +809,7 @@ namespace NeoCompose.Runtime
 
         private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue)
         {
-            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
-            {
-                throw new System.ArgumentNullException(
-                    nameof(entryValue),
-                    "Cannot be null when entry member is required");
-            }
+            client.RequireStoredValue(entryMember, entryValue, $"{client.StoredMemberPath(member)}[{Count}]");
             client.RequireSlotAdmits(entryMember, null, member.name, entryValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
             client.RequireNoGenericStaticTargets(entryMember, null, member.name, entryValue);
             if (IsUnordered)
@@ -877,12 +872,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"List member '{member.id}' is unordered; entries have no position to replace at. Remove the entry and add the replacement instead.");
             }
-            if (entryMember.Requirement == NeoMemberRequirementKind.Required && (entryValue is null || entryValue.isNull))
-            {
-                throw new System.ArgumentNullException(
-                    nameof(entryValue),
-                    "Cannot be null when entry member is required");
-            }
+            client.RequireStoredValue(entryMember, entryValue, $"{client.StoredMemberPath(member)}[{index}]");
             client.RequireSlotAdmits(entryMember, null, member.name, entryValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
             client.RequireNoGenericStaticTargets(entryMember, null, member.name, entryValue);
             if (value?.value is null || index < 0 || index >= value.value.Length)

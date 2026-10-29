@@ -579,6 +579,8 @@ namespace NeoCompose.Tests
             internal override object? Call(CallFunctionPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => call();
 
             internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => null;
+
+            internal override object? Increment(IncrementPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) => null;
         }
 
         [Test]

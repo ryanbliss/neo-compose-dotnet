@@ -1889,7 +1889,29 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class SpriteValue : FileValue
     {
-        public int sliceIndex;
+        [JsonProperty("sliceIndex", NullValueHandling = NullValueHandling.Ignore)]
+        internal int? StoredSliceIndex
+        {
+            get; set;
+        }
+
+        /// <summary>The imported slice, or zero for an unsliced sprite.</summary>
+        [JsonIgnore]
+        public int sliceIndex
+        {
+            get => StoredSliceIndex ?? 0;
+            set => StoredSliceIndex = value;
+        }
+
+        internal SpriteValue Copy() => (SpriteValue)MemberwiseClone();
+
+        internal Dictionary<string, object?> RuntimeValue()
+        {
+            var value = new Dictionary<string, object?> { ["fileId"] = fileId };
+            if (StoredSliceIndex is int slice)
+                value["sliceIndex"] = slice;
+            return value;
+        }
     }
 
     /// <summary>

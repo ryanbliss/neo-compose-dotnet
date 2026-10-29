@@ -380,11 +380,7 @@ namespace NeoCompose.Runtime
                             skipReason = NullLeafSkipReason;
                             return null;
                         }
-                        var composed = new SpriteValue
-                        {
-                            fileId = spriteRow.value.fileId,
-                            sliceIndex = spriteRow.value.sliceIndex,
-                        };
+                        var composed = spriteRow.value.Copy();
                         foreach (NeoAnimationLeafFieldValue field in fields)
                         {
                             if (Is(field, FileIdKey))

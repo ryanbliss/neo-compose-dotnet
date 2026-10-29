@@ -2149,6 +2149,9 @@ namespace NeoCompose.Runtime
 
             internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
                 EvalObjectInitializer(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
+
+            internal override object? Increment(IncrementPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                EvalIncrement(pointer, scope, ctx, ExpressionResumeState.Immediate, options);
         }
 
         /// <summary>The handlers of one frame, recording into its resume state.</summary>
@@ -2173,6 +2176,9 @@ namespace NeoCompose.Runtime
 
             internal override object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
                 EvalObjectInitializer(pointer, scope, ctx, expressionState, options);
+
+            internal override object? Increment(IncrementPointer pointer, NeoScriptScope scope, NSGetterEvaluator.Context ctx) =>
+                EvalIncrement(pointer, scope, ctx, expressionState, options);
         }
 
         private static NeoScriptExecutionResult PauseLoopExpression(
@@ -3164,7 +3170,7 @@ namespace NeoCompose.Runtime
                     pointer = new VariablePointer { variableId = pointer.receiver.id },
                 };
                 NeoScriptExecutionResult result = ExecuteInstructions(ctx.client, instructions,
-                    pointer.receiver.typeInfo, scope.CreateChild(1), ctx, 0, null, options);
+                    pointer.receiver.typeInfo, scope.CreateBlock(), ctx, 0, null, options);
                 if (result.IsPaused)
                     throw new NeoFunctionCallSuspended(resumeKey, result.SuspendedMemberId!, result);
                 expressionState.StoreValue(resumeKey, result.ReturnValue);
@@ -3176,6 +3182,130 @@ namespace NeoCompose.Runtime
                 expressionState.StoreError(resumeKey, exception);
                 throw;
             }
+        }
+
+        /// <summary>Captures an out target once and routes writes through ordinary assignment.</summary>
+        internal static NeoOutReference EvaluateOut(OutPointer pointer, NeoScriptScope caller, NSGetterEvaluator.Context ctx)
+        {
+            if (pointer.target is null)
+                return NeoOutReference.Discard();
+            if (IsReadOnly(pointer.target) || pointer.target.writability == WritabilityKind.Setter)
+                throw new NSGetterRuntimeError("An out argument must name a writable variable.");
+            NeoScriptScope captured = caller.CreateBlock();
+            NSGetterEvaluator.Context frame = ctx.CaptureOutFrame();
+            foreach (Variable binding in pointer.bindings ?? Array.Empty<Variable>())
+            {
+                object? value = NSGetterEvaluator.EvaluateValue(binding.pointer, captured, ctx, out double number);
+                CoerceLocalNumeric(ref value, ref number, binding.typeInfo, frame);
+                // An out declaration belongs to the caller; only receiver captures are private.
+                NeoScriptScope bindingScope = pointer.target.pointer is VariablePointer local && local.variableId == binding.id
+                    ? caller : captured;
+                bindingScope.SetEvaluationValue(binding, value, number);
+            }
+            // This private binding cannot collide with a caller's local or a captured receiver.
+            NeoScriptScope writeScope = captured.CreateBlock();
+            const string assignedId = "$out_value";
+            var assignment = new AssignInstruction
+            {
+                target = pointer.target,
+                operatorValue = "=",
+                pointer = new VariablePointer { type = PointerKind.Variable, variableId = assignedId },
+            };
+            return new NeoOutReference(
+                () =>
+                {
+                    object? value = Eval(pointer.target.pointer, captured, frame);
+                    foreach (int index in pointer.tuplePath ?? Array.Empty<int>())
+                        value = OutTupleAt(value, index)[index];
+                    return value;
+                },
+                value =>
+                {
+                    if (pointer.tuplePath is { } path)
+                        value = ReplaceOutTuple(Eval(pointer.target.pointer, captured, frame), path, 0, value);
+                    writeScope.SetLocal(assignedId, value);
+                    ExecuteAssign(frame.client, assignment, writeScope, frame, NeoScriptExecutionOptions.ForImmediate(frame.client));
+                });
+        }
+
+        private static RuntimeTuple OutTupleAt(object? value, int index)
+        {
+            if (value is not RuntimeTuple tuple || index < 0 || index >= tuple.Count)
+                throw new NSGetterRuntimeError("Out tuple target has an invalid element path.");
+            return tuple;
+        }
+
+        private static object? ReplaceOutTuple(object? value, int[] path, int depth, object? assigned)
+        {
+            if (depth == path.Length)
+                return assigned;
+            int index = path[depth];
+            RuntimeTuple tuple = OutTupleAt(value, index);
+            var elements = new object?[tuple.Count];
+            for (int i = 0; i < elements.Length; i++)
+                elements[i] = tuple[i];
+            elements[index] = ReplaceOutTuple(elements[index], path, depth + 1, assigned);
+            return new RuntimeTuple(elements, tuple.TypeInfo);
+        }
+
+        internal static object? EvaluateImmediateIncrement(
+            IncrementPointer pointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx) =>
+            EvalIncrement(pointer, scope, ctx, ExpressionResumeState.Immediate,
+                NeoScriptExecutionOptions.ForImmediate(ctx.client));
+
+        /// <summary>
+        /// P127 §4.4. Runs the increment's assignment in the current scope,
+        /// so a local operand is written in place, then reads its result.
+        /// </summary>
+        private static object? EvalIncrement(
+            IncrementPointer pointer,
+            NeoScriptScope scope,
+            NSGetterEvaluator.Context ctx,
+            ExpressionResumeState expressionState,
+            NeoScriptExecutionOptions? options)
+        {
+            string resumeKey = expressionState.NextInvocationKey("increment");
+            if (expressionState.TryGet(resumeKey, out object? cached, out Exception? error))
+            {
+                if (error is not null)
+                    throw error;
+                return cached;
+            }
+            try
+            {
+                pointer.instructions ??= new Instruction[]
+                {
+                    pointer.assign,
+                    new ReturnInstruction { pointer = pointer.result },
+                };
+                NeoScriptExecutionResult result = ExecuteInstructions(ctx.client, pointer.instructions,
+                    pointer.resultType ??= IncrementResultType(pointer), scope, ctx, 0, null, options);
+                if (result.IsPaused)
+                    throw new NeoFunctionCallSuspended(resumeKey, result.SuspendedMemberId!, result);
+                expressionState.StoreValue(resumeKey, result.ReturnValue);
+                return result.ReturnValue;
+            }
+            catch (NeoFunctionCallSuspended) { throw; }
+            catch (Exception exception)
+            {
+                expressionState.StoreError(resumeKey, exception);
+                throw;
+            }
+        }
+
+        /// <summary>The type of the assignment binding an increment's result reads (§4.4).</summary>
+        private static TypeInfo IncrementResultType(IncrementPointer pointer)
+        {
+            if (pointer.result is not VariablePointer result)
+                throw new NSGetterRuntimeError("An increment's result must read a variable.");
+            foreach (Variable binding in pointer.assign.bindings ?? Array.Empty<Variable>())
+            {
+                if (binding.id == result.variableId)
+                    return binding.typeInfo;
+            }
+            throw new NSGetterRuntimeError($"An increment's result reads '{result.variableId}', which its assignment doesn't bind.");
         }
 
         /// <summary>
@@ -3368,7 +3498,7 @@ namespace NeoCompose.Runtime
                     // stays unfilled.
                     return NSGetterEvaluator.InvokeNativeFunction(
                         memberId, nativeFunction, receiver,
-                        NSGetterEvaluator.FillNativeCallSiteArguments(memberId, native, args), ctx,
+                        NSGetterEvaluator.FillNativeCallSiteArguments(client, memberId, native, args), ctx,
                         site: pointer, ownsArguments: true);
                 }
                 else
@@ -4088,6 +4218,8 @@ namespace NeoCompose.Runtime
                 return;
             if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
                 return;
+            if (value is NeoBox)
+                throw new NSGetterRuntimeError($"Storing a value type in interface member '{label}' isn't supported yet (P127 B3).");
             throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
         }
 
@@ -4099,6 +4231,16 @@ namespace NeoCompose.Runtime
         {
             valueId = null;
             RequireStoredInterfaceValue(typeInfo, value, ctx, "collection entry");
+            // A replayed constructor projects its own box argument, including
+            // a tuple's child graph, through the same destination-aware import
+            // used for class arguments. Outside that replay, ordinary ownership applies.
+            if (typeInfo.type == MemberKind.Object && value is NeoBox
+                && NSGetterEvaluator.FindRowReference(value, ctx) is { } box
+                && ctx.client.IsReferenceOwnedByReplayingVirtualInstance(box.ownership, box.valueId))
+            {
+                valueId = box.valueId;
+                return true;
+            }
             if (typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             return TryGetValueReferenceId(value, ctx, out valueId);
@@ -4255,6 +4397,14 @@ namespace NeoCompose.Runtime
 
         private static JsonMember MemberFromTypeInfo(TypeInfo typeInfo)
         {
+            JsonMember member = CreateMemberFromTypeInfo(typeInfo);
+            if (typeInfo.required)
+                member.Requirement = NeoMemberRequirementKind.Required;
+            return member;
+        }
+
+        private static JsonMember CreateMemberFromTypeInfo(TypeInfo typeInfo)
+        {
             var id = "__neo_dialogue_action_value";
             switch (typeInfo.type)
             {
@@ -4371,8 +4521,10 @@ namespace NeoCompose.Runtime
             NeoTimestamp updatedAt,
             NSGetterEvaluator.Context ctx,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
-            NeoGeneratedTypesSupport.CollectionInsertion? insertion = null)
+            NeoGeneratedTypesSupport.CollectionInsertion? insertion = null,
+            string? path = null)
         {
+            client.RequireStoredValue(member, value, path ?? client.StoredMemberPath(member), script: true);
             insertion?.Reserve(member, value, id);
             object? originalValue = value;
             if (member is ClassMember { DeclaredInterfaceId: not null })
@@ -4384,6 +4536,9 @@ namespace NeoCompose.Runtime
                 value = localSelection is not null ? Array.Empty<string>()
                     : NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup, ctx, targetEnv);
             }
+            // P127 §1.3. A box stores its payload beside its held type.
+            if (member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
+                value = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, ownership, value!, ctx, id, plan);
             // P67 §6. A script variant value stores as its pair.
             if (value is NeoVariantReference variant)
             {
@@ -5229,6 +5384,17 @@ namespace NeoCompose.Runtime
                     }
                     else
                     {
+                        // P127 §1.3. A box stores its payload beside its held type.
+                        if (client.members[binding.MemberId] is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
+                        {
+                            PrepareWrite(client, plan =>
+                            {
+                                string id = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
+                                NeoValuePayload boxed = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, binding.Ownership, value!, ctx, id, plan);
+                                binding.PreparePayload(plan, boxed);
+                            });
+                            return;
+                        }
                         object? payload = value is INeoValuePayloadProvider provider
                             ? provider.ToNeoValuePayload()
                             : value;
@@ -5385,6 +5551,7 @@ namespace NeoCompose.Runtime
                     || !TryResolveBoundChild(client, parentRowId, parent, out string existingId, out MemberValue? existing, out MemberValue? stored)
                     || existing is null)
                     return false;
+                client.RequireStoredValue(member, value, script: true);
                 MemberValue replaced = MemberValueFactory.Create(
                     member, value, existingId, existing.createdAt, NeoTimestamp.Now());
                 replaced.classId = existing.classId;
@@ -5869,11 +6036,7 @@ namespace NeoCompose.Runtime
                     case SpriteValue sprite:
                         {
                             RequireLegalKey(NeoAnimationLeafKind.Sprite);
-                            var composed = new SpriteValue
-                            {
-                                fileId = sprite.fileId,
-                                sliceIndex = sprite.sliceIndex,
-                            };
+                            var composed = sprite.Copy();
                             if (field == NeoAnimationLeafFields.FileIdKey)
                             {
                                 // §2.2: the right-hand side is a registry symbol,
@@ -6164,7 +6327,7 @@ namespace NeoCompose.Runtime
                             existing.createdAt,
                             NeoTimestamp.Now(),
                             ctx,
-                            CollectionRowEnv(client, listRow));
+                            CollectionRowEnv(client, listRow), path: $"{client.StoredRowPath(parentRowId)}[{index}]");
                         next.classId = existing.classId;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
@@ -6414,7 +6577,8 @@ namespace NeoCompose.Runtime
                                         now,
                                         ctx,
                                         CollectionRowEnv(client, list.Row),
-                                        insertion ??= new NeoGeneratedTypesSupport.CollectionInsertion(batch.Plan, ctx, ownership)));
+                                        insertion ??= new NeoGeneratedTypesSupport.CollectionInsertion(batch.Plan, ctx, ownership),
+                                        path: $"{client.StoredRowPath(rowId)}[{insertionIndex}]"));
                                 }
                                 PlaceEntry(batch, list, childId);
                                 if (isSet)
@@ -6632,7 +6796,7 @@ namespace NeoCompose.Runtime
                                 existing.createdAt,
                                 now,
                                 ctx,
-                                CollectionRowEnv(client, current));
+                                CollectionRowEnv(client, current), path: $"{client.StoredRowPath(rowId)}[{key}]");
                             next.classId = existing.classId;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
@@ -6683,7 +6847,7 @@ namespace NeoCompose.Runtime
                             now,
                             now,
                             ctx,
-                            CollectionRowEnv(client, current)));
+                            CollectionRowEnv(client, current), path: $"{client.StoredRowPath(rowId)}[{key}]"));
                     }
                     NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     PlaceEntry(batch, dictionary, childId);

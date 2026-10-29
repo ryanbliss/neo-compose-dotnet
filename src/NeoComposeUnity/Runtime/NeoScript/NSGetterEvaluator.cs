@@ -11,6 +11,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript.Numerics;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using JsonMember = NeoCompose.Runtime.Json.Member;
@@ -703,7 +704,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             /// <summary>
-            /// The call and object-initializer handlers an expression context
+            /// The call, object-initializer and increment handlers an expression context
             /// runs with. One reference, so a frame installs and restores both
             /// with one store, and one object rather than a delegate per handler.
             /// </summary>
@@ -712,6 +713,8 @@ namespace NeoCompose.Runtime.NeoScript
                 internal abstract object? Call(CallFunctionPointer pointer, NeoScriptScope scope, Context ctx);
 
                 internal abstract object? Initialize(ObjectInitializerPointer pointer, NeoScriptScope scope, Context ctx);
+
+                internal abstract object? Increment(IncrementPointer pointer, NeoScriptScope scope, Context ctx);
             }
 
             public NeoClient client
@@ -1079,6 +1082,14 @@ namespace NeoCompose.Runtime.NeoScript
 
             // Invocation-local caches, allocations, and handlers intentionally stay shared.
             // Only receiver bindings and immutable call stacks differ between frames.
+            internal Context CaptureOutFrame()
+            {
+                Context frame = Fork();
+                // An out field assignment retains the caller's constructor privileges.
+                frame.constructorBody = constructorBody;
+                return frame;
+            }
+
             private Context Fork()
             {
                 allocationTracker.ReusableContext = false;
@@ -2268,7 +2279,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var v = EvalPointer(icp.pointer, scope, ctx);
                         if (icp.bindingId is not null)
-                            scope.SetLocal(icp.bindingId, v);
+                            scope.SetLocal(icp.bindingId, IsCheckBinding(v, icp.checkType));
                         return Box(RuntimeTypeCheck(v, icp.checkType, ctx));
                     }
                 case CallGetterPointer cgp:
@@ -2295,6 +2306,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return ctx.expressionHandlers is { } handlers
                         ? handlers.Initialize(initializer, scope, ctx)
                         : NeoScriptExecutor.EvaluateImmediateObjectInitializer(initializer, scope, ctx);
+                case IncrementPointer increment:
+                    return ctx.expressionHandlers is { } incrementHandlers
+                        ? incrementHandlers.Increment(increment, scope, ctx)
+                        : NeoScriptExecutor.EvaluateImmediateIncrement(increment, scope, ctx);
                 case SwitchExpressionPointer selection:
                     return EvalSwitchExpression(selection, scope, ctx);
                 case ConditionalPointer conditional:
@@ -2331,6 +2346,26 @@ namespace NeoCompose.Runtime.NeoScript
                     return null;
                 case FunctionErrorCheckPointer functionErrorCheck:
                     return EvalFunctionErrorCheck(functionErrorCheck, scope, ctx);
+                case BoxPointer box:
+                    return EvalBox(box, scope, ctx);
+                case CastPointer cast:
+                    return EvalCast(cast, scope, ctx);
+                case ConvertPointer convert:
+                    return EvalConvert(convert, scope, ctx);
+                case DefaultPointer defaultPointer:
+                    return EvalDefault(defaultPointer, ctx);
+                case TypeOfPointer typeOf:
+                    return EvalTypeOf(typeOf, ctx);
+                case NewObjectPointer:
+                    return NeoBox.NewObject();
+                case ObjectMemberPointer objectMember:
+                    return EvalObjectMember(objectMember, scope, ctx);
+                case TypeMemberPointer typeMember:
+                    return EvalTypeMember(typeMember, scope, ctx);
+                case FormatPointer format:
+                    return EvalFormat(format, scope, ctx);
+                case OutPointer output:
+                    return NeoScriptExecutor.EvaluateOut(output, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
@@ -2353,10 +2388,10 @@ namespace NeoCompose.Runtime.NeoScript
                     matches = selected is not null && RuntimeTypeCheck(selected, pattern.checkType!, ctx);
                 if (!matches)
                     continue;
-                NeoScriptScope child = scope.CreateChild();
+                NeoScriptScope child = scope.CreateBlock();
                 child.SetLocal(selection.selectorId, selected);
                 if (pattern.kind == "type" && pattern.bindingId is { } binding)
-                    child.SetLocal(binding, selected);
+                    child.SetLocal(binding, IsCheckBinding(selected, pattern.checkType!));
                 if (arm.guard is not null && !Equals(EvalPointer(arm.guard, child, ctx), true))
                     continue;
                 return EvalPointer(arm.value, child, ctx);
@@ -2410,8 +2445,12 @@ namespace NeoCompose.Runtime.NeoScript
                     or JTokenType.String)
             {
                 // Primitive literals unwrap to immutable CLR values:
-                // convert the token once, not on every evaluation.
-                vp.primitive = UnwrapJToken(literal);
+                // convert the token once, not on every evaluation. A float
+                // literal may be a stored float symbol (P127 §12.1), such as
+                // a folded float.NaN.
+                vp.primitive = vp.value.typeInfo.type == MemberKind.Float && NeoStoredFloat.TryDecode(literal, out double stored)
+                    ? stored
+                    : UnwrapJToken(literal);
                 vp.primitiveIsNumber = TryAsDouble(vp.primitive, out vp.primitiveNumber);
                 vp.primitiveResolved = true;
                 return vp.primitive;
@@ -2676,8 +2715,12 @@ namespace NeoCompose.Runtime.NeoScript
                     (member as NSPropertyMember)?.getter);
             }
             var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
-            if (cgp.optional == true && innerThis is null)
-                return null;
+            if (innerThis is null)
+            {
+                if (cgp.optional == true)
+                    return null;
+                throw new NSGetterRuntimeError(NullReferenceMessage, NeoErrorContract.NeoNullReferenceError);
+            }
             if (cgp.memberId == NeoSequenceContract.Current)
                 return ReadSequenceCurrent(innerThis, ctx);
             if (baseDispatch)
@@ -3035,7 +3078,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (target.native is not null)
                 {
                     return InvokeNativeFunction(target.memberId, target.nativeFunction, receiver,
-                        FillNativeCallSiteArguments(target.memberId, target.nativeFunction?.signature, args), ctx,
+                        FillNativeCallSiteArguments(ctx.client, target.memberId, target.nativeFunction?.signature, args), ctx,
                         site: pointer, ownsArguments: true);
                 }
                 if (!ctx.client.TryGetMember(target.memberId, out JsonMember? _))
@@ -3097,7 +3140,7 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx)
         {
             ctx.client.TryResolveFunctionMember(memberId, out FunctionMember? signature);
-            return FillNativeCallSiteArguments(memberId, signature, args);
+            return FillNativeCallSiteArguments(ctx.client, memberId, signature, args);
         }
 
         /// <summary>
@@ -3106,6 +3149,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// it has none.
         /// </summary>
         internal static object?[] FillNativeCallSiteArguments(
+            NeoClient client,
             string memberId,
             FunctionMember? signature,
             object?[] args)
@@ -3118,10 +3162,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return args;
             }
-            return NeoParameterDefaults.FillTrailingDefaults(
-                args,
-                signature.argumentTypes,
-                $"Function '{signature.name}' ({memberId})");
+            string subject = $"Function '{signature.name}' ({memberId})";
+            NeoParameterDefaults.ValidateArity(args.Length, signature.argumentTypes, subject);
+            var filled = new object?[signature.argumentTypes.Length];
+            Array.Copy(args, filled, args.Length);
+            // A native signature has no frame to close a type parameter in.
+            for (int index = args.Length; index < filled.Length; index++)
+                filled[index] = ParameterDefault(client, signature.argumentTypes[index], signature.argumentTypes[index], subject);
+            return filled;
         }
 
         /// <summary>
@@ -5678,7 +5726,8 @@ namespace NeoCompose.Runtime.NeoScript
                         info.type,
                         ArithmeticValue.NumberOf(left, leftNumber),
                         ArithmeticValue.NumberOf(right, rightNumber),
-                        info.numeric);
+                        info.numeric,
+                        info.isChecked == true);
                     return ArithmeticValue.BareNumber;
                 }
                 // The usual non-numeric +: a string joins its two parts
@@ -5694,6 +5743,7 @@ namespace NeoCompose.Runtime.NeoScript
                     new[] { ArithmeticValue.Box(left, leftNumber), ArithmeticValue.Box(right, rightNumber) },
                     false,
                     info.numeric,
+                    info.isChecked == true,
                     ctx);
             }
             return EvalArithmeticOperands(info, scope, ctx, out number);
@@ -5727,14 +5777,14 @@ namespace NeoCompose.Runtime.NeoScript
                             result += 0d;
                     }
                     for (int i = 1; i < info.pointers.Length; i++)
-                        result = ApplyNumericArithmetic(info.type, result, operands[i].Number, info.numeric);
+                        result = ApplyNumericArithmetic(info.type, result, operands[i].Number, info.numeric, info.isChecked == true);
                     number = result;
                     return ArithmeticValue.BareNumber;
                 }
                 var boxed = new object?[info.pointers.Length];
                 for (int i = 0; i < boxed.Length; i++)
                     boxed[i] = operands[i].Box();
-                return ApplyArithmetic(info.type, boxed, info.isDecimal == true, info.numeric, ctx);
+                return ApplyArithmetic(info.type, boxed, info.isDecimal == true, info.numeric, info.isChecked == true, ctx);
             }
             finally
             {
@@ -5748,6 +5798,7 @@ namespace NeoCompose.Runtime.NeoScript
             object?[] operands,
             bool isDecimal,
             ArithmeticNumeric? numeric,
+            bool isChecked,
             Context ctx)
         {
             if (operands.Length == 0)
@@ -5781,7 +5832,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             for (int i = 1; i < operands.Length; i++)
             {
-                folded = ApplyNumericArithmetic(op, folded, ToArithmeticOperand(operands[i]), numeric);
+                folded = ApplyNumericArithmetic(op, folded, ToArithmeticOperand(operands[i]), numeric, isChecked);
             }
             return folded;
         }
@@ -5803,8 +5854,10 @@ namespace NeoCompose.Runtime.NeoScript
             || op == ArithmeticOpKind.Division
             || op == ArithmeticOpKind.Remainder;
 
-        private static double ApplyNumericArithmetic(string op, double left, double right, ArithmeticNumeric? numeric)
+        private static double ApplyNumericArithmetic(string op, double left, double right, ArithmeticNumeric? numeric, bool isChecked)
         {
+            if (numeric == ArithmeticNumeric.Int)
+                return ApplyInt32Arithmetic(op, left, right, isChecked);
             // Every ArithmeticOpKind is one character. Switching on it is a
             // jump table; a string switch compares the op to each case in turn.
             switch (op.Length == 1 ? op[0] : '\0')
@@ -5820,8 +5873,6 @@ namespace NeoCompose.Runtime.NeoScript
                 case '/':
                     if (right == 0)
                         throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
-                    if (numeric == ArithmeticNumeric.Int)
-                        return System.Math.Truncate(left / right) + 0d;
                     return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
@@ -5833,16 +5884,35 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// A float step rounds to 32 bits, as Unity's own float math does. An
-        /// int has no -0 (P127 §12.1), so an int step's zero is +0.
+        /// An int step (P127 §3.1): exact, and wrapped to 32 bits unless
+        /// <paramref name="isChecked"/>, where leaving the range throws
+        /// <c>NeoOverflowError</c>. An int has no -0.
         /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static double RoundArithmetic(double value, ArithmeticNumeric? numeric)
+        private static double ApplyInt32Arithmetic(string op, double left, double right, bool isChecked)
         {
-            if (numeric == ArithmeticNumeric.Float)
-                return (float)value;
-            return numeric == ArithmeticNumeric.Int ? value + 0d : value;
+            int a = NeoInt32.Wrap(left);
+            int b = NeoInt32.Wrap(right);
+            switch (op.Length == 1 ? op[0] : '\0')
+            {
+                case '+':
+                    return NeoInt32.Add(a, b, isChecked);
+                case '-':
+                    return NeoInt32.Subtract(a, b, isChecked);
+                case '*':
+                    return NeoInt32.Multiply(a, b, isChecked);
+                case '/':
+                    return NeoInt32.Divide(a, b);
+                case '%':
+                    return NeoInt32.Remainder(a, b);
+                default:
+                    throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
+            }
         }
+
+        /// <summary>A float step rounds to 32 bits, as Unity's own float math does.</summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static double RoundArithmetic(double value, ArithmeticNumeric? numeric) =>
+            numeric == ArithmeticNumeric.Float ? (float)value : value;
 
         // ---------------------------------------------------------------
         // Decimal support (specs/decimal-member.md decision 7 / §6.4).
@@ -5941,10 +6011,21 @@ namespace NeoCompose.Runtime.NeoScript
                             acc = NeoDecimalMath.Multiply(acc, decimals[i]);
                         return acc;
                     }
+                case ArithmeticOpKind.Division:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++)
+                            acc = NeoDecimalMath.Divide(acc, decimals[i]);
+                        return acc;
+                    }
+                case ArithmeticOpKind.Remainder:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++)
+                            acc = NeoDecimalMath.Remainder(acc, decimals[i]);
+                        return acc;
+                    }
                 default:
-                    // Unreachable for `/` and `%`: the compiler rejects
-                    // them on decimals (specs/decimal-member.md
-                    // decision 7).
                     throw new NSGetterRuntimeError(
                         $"Decimal '{op}' is not supported at runtime.");
             }
@@ -8516,6 +8597,13 @@ namespace NeoCompose.Runtime.NeoScript
                 v1 = FloatMathArgument(info.op, r1, v1);
             if (arity > 2)
                 v2 = FloatMathArgument(info.op, r2, v2);
+            // Math.Abs(int) negates in int32, so int.MinValue overflows (P127 §3.1).
+            // The other int overloads agree with the double arm on every int.
+            if (op == MathOp.Abs && info.numeric == ArithmeticNumeric.Int)
+            {
+                number = NeoInt32.Abs(NeoInt32.Wrap(v0));
+                return ArithmeticValue.BareNumber;
+            }
             number = EvalFloatMathOp(op, info.op, v0, v1, v2);
             return ArithmeticValue.BareNumber;
         }
@@ -8941,14 +9029,14 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx)
         {
             object? raw = EvaluateValue(pointer, scope, ctx, out double numeric);
+            bool integer = vectorType is MemberKind.Vector2Int or MemberKind.Vector3Int;
             if ((!ReferenceEquals(raw, ArithmeticValue.BareNumber) && !TryAsDouble(raw, out numeric))
-                || double.IsNaN(numeric)
-                || double.IsInfinity(numeric))
+                || (integer && (double.IsNaN(numeric) || double.IsInfinity(numeric))))
             {
                 throw new NSGetterRuntimeError(
                     $"{vectorType} component must be numeric; got {ReceiverTypeName(ArithmeticValue.Box(raw, numeric))}.");
             }
-            return vectorType is MemberKind.Vector2Int or MemberKind.Vector3Int ? numeric : (float)numeric;
+            return integer ? numeric : (float)numeric;
         }
 
         private static void EnsureVectorArity(
@@ -9412,6 +9500,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (a is null || b is null)
                 return a is null && b is null;
+            // P127 §1.2. Boxes and Type values compare by identity, as C#'s object == does.
+            if (a is NeoBox or NeoTypeValue || b is NeoBox or NeoTypeValue)
+                return NeoBox.SameIdentity(a, b);
             // Option ids, the usual operands, are never numbers.
             if (a is RuntimeTuple leftTuple && b is RuntimeTuple rightTuple)
                 return TupleEqual(leftTuple, rightTuple, leftTuple.TypeInfo, ctx);
@@ -9519,6 +9610,10 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         internal static object? ReferenceKeyOf(object value, Context ctx)
         {
+            if (value is NeoBox box)
+                return box.IdentityKey;
+            if (value is NeoTypeValue)
+                return value;
             if (value is string id)
                 return id;
             if (value is object?[] array && runtimeLists.TryGetValue(array, out var list))
@@ -9601,8 +9696,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return value is null;
             if (value is null)
                 return false;
+            if (value is NeoBox box)
+                return BoxMatches(box, checkType, ctx);
             if (value is NeoScriptObject { attachedId: null }
-                && checkType.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.Dictionary))
+                && checkType.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.Dictionary or MemberKind.Object))
             {
                 return false;
             }
@@ -9718,6 +9815,14 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return true;
                     }
+                case MemberKind.Object:
+                    // Boxes matched above; a Type value is the only other non-row value.
+                    return ((ObjectTypeInfo)checkType).objectType switch
+                    {
+                        null => true,
+                        NeoObjectTypeKind.Type => value is NeoTypeValue,
+                        _ => false,
+                    };
                 case MemberKind.Interface:
                     {
                         if (IsIntrinsicSequence(value, checkType, ctx))
@@ -9972,6 +10077,13 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member,
             Context ctx)
         {
+            if (row.valueType is { } valueType && !ReadsPayload(member))
+                return ReadBoxRow(row, valueType, ownership, ctx);
+            if (member is ObjectMember { objectType: NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo } declared
+                && row is PayloadMemberValue)
+            {
+                return ReadDeclaredRow(row, declared.objectType!.Value);
+            }
             return row switch
             {
                 BoolMemberValue b => b.value,
@@ -10000,11 +10112,7 @@ namespace NeoCompose.Runtime.NeoScript
                     : new Dictionary<string, object?> { ["fileId"] = f.value.fileId },
                 SpriteMemberValue sp => sp.value is null
                     ? null
-                    : new Dictionary<string, object?>
-                    {
-                        ["fileId"] = sp.value.fileId,
-                        ["sliceIndex"] = sp.value.sliceIndex,
-                    },
+                    : sp.value.RuntimeValue(),
                 Vector2MemberValue v => RoundVectorIngress(v.value, member?.kind),
                 Vector3MemberValue v => RoundVectorIngress(v.value, member?.kind),
                 ColorMemberValue c => c.value,
@@ -10061,19 +10169,23 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.client.NoteRowRead(row.id);
             // Scalars have value semantics and no writable CLR aliases. Read the
             // current row directly instead of allocating cache keys and an index
-            // entry just to retain a box. Structured values still need identity.
-            switch (row)
+            // entry just to retain a box. Structured values still need identity,
+            // and so does a stored box (P127 §1.3).
+            if (row.valueType is null || ReadsPayload(member))
             {
-                case NumberMemberValue number:
-                    return number.BoxedValue;
-                case BoolMemberValue boolean:
-                    return Box(boolean.value);
-                case NullMemberValue:
-                    return null;
-                case StringMemberValue text when member is not StringMember stringMember
+                switch (row)
+                {
+                    case NumberMemberValue number:
+                        return number.BoxedValue;
+                    case BoolMemberValue boolean:
+                        return Box(boolean.value);
+                    case NullMemberValue:
+                        return null;
+                    case StringMemberValue text when member is not StringMember stringMember
                     || stringMember.Format == NeoStringFormatKind.Plain
                     || text.neoLocalizationMode == NeoStringLocalizationMode.Literal:
-                    return text.value;
+                        return text.value;
+                }
             }
             if (member is TupleMember tuple && row is ArrayMemberValue tupleRow)
                 return ReadStoredTuple(tuple, tupleRow, ownership, ctx);
@@ -10137,7 +10249,8 @@ namespace NeoCompose.Runtime.NeoScript
                 || unwrapped is NeoVector2Value
                 || unwrapped is NeoColorValue
                 || unwrapped is NeoDelegateValue
-                || unwrapped is NeoActionValue)
+                || unwrapped is NeoActionValue
+                || unwrapped is NeoBox)
             {
                 string? effectiveClassId = row.classId
                     ?? (member as ClassMember)?.DeclaredClassId;
@@ -10149,7 +10262,7 @@ namespace NeoCompose.Runtime.NeoScript
                 // Records and arrays are built per unwrap; a vector, colour,
                 // or delegate is the row's own instance and may already be
                 // indexed.
-                if (unwrapped is NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue)
+                if (unwrapped is NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue or NeoBox)
                     SetRowReference(ctx, unwrapped, reference);
                 else
                     AddFreshRowReference(ctx, unwrapped!, reference);
@@ -10434,7 +10547,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (spriteRow.value is not null)
                 {
                     spriteRecord["fileId"] = spriteRow.value.fileId;
-                    spriteRecord["sliceIndex"] = spriteRow.value.sliceIndex;
+                    if (spriteRow.value.StoredSliceIndex is int slice)
+                        spriteRecord["sliceIndex"] = slice;
                 }
                 return true;
             }
@@ -11733,6 +11847,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is null)
                 return "";
+            if (value is NeoBox or NeoTypeValue)
+                return ObjectText(value, null, ctx) ?? "";
             if (ctx.client.IsSequenceType(sourceType))
                 return $"<{SequenceTypeLabel(sourceType, ctx)} unenumerated>";
             if (sourceType is LookupTypeInfo { entryTypeInfo: EnumTypeInfo enumType })
@@ -12279,7 +12395,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// detached objects never are, and skip the table's locked lookup.
         /// </summary>
         private static bool MayBeRowAlias(object? value) =>
-            value is RuntimeSet or object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
+            value is RuntimeSet or object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue or NeoBox;
 
         internal static RowReference? FindRowReference(object? value, Context ctx, bool observe = true)
         {
