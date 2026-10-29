@@ -2720,35 +2720,13 @@ namespace NeoCompose.Tests
         {
           ""type"": ""return"",
           ""pointer"": {
-            ""type"": ""operation"",
-            ""operation"": {
-              ""type"": ""arithmetic"",
-              ""arithmetic"": {
-                ""type"": ""*"",
-                ""pointers"": [
-                  {
-                    ""type"": ""value"",
-                    ""value"": {
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      },
-                      ""value"": -1
-                    }
-                  },
-                  {
-                    ""type"": ""value"",
-                    ""value"": {
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      },
-                      ""value"": 1
-                    }
-                  }
-                ],
-                ""numeric"": ""int""
-              }
+            ""type"": ""value"",
+            ""value"": {
+              ""typeInfo"": {
+                ""type"": 2,
+                ""required"": true
+              },
+              ""value"": -1
             }
           },
           ""source"": {
@@ -7323,11 +7301,11 @@ namespace NeoCompose.Tests
               ""type"": ""value"",
               ""value"": {
                 ""typeInfo"": {
-                  ""type"": 7,
+                  ""type"": 22,
                   ""required"": false,
-                  ""classId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
+                  ""interfaceId"": ""system_d1413390-a2a6-4137-a8f8-e931da847345"",
                   ""typeArguments"": {
-                    ""0"": {
+                    ""system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2"": {
                       ""type"": 2,
                       ""required"": true
                     }
