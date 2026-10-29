@@ -846,6 +846,8 @@ namespace NeoCompose.Runtime
 
         private bool TryResolveVirtualClassChildren(string parentId, out Dictionary<string, string> children)
         {
+            if (ReadsDepartedRows(parentId))
+                return departedClassChildren.TryGetValue(parentId, out children);
             if (candidateReplay is not null)
             {
                 if (candidateReplay.ClassChildren.TryGetValue(parentId, out children))

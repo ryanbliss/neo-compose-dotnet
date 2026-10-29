@@ -37,6 +37,7 @@ namespace NeoCompose.Runtime
         }
 
         private readonly Dictionary<string, NeoValueNode> departedNodes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, Dictionary<string, string>> departedClassChildren = new(StringComparer.Ordinal);
         // Nodes made for a departed id's replacement. They stay out of
         // live so every holder resolves through ValueNode until the drain ends.
         private readonly List<NeoValueNode> heldReplacements = new();
@@ -129,6 +130,13 @@ namespace NeoCompose.Runtime
             if (previous is ObjectMemberValue && HasWorldKind(previous.classId, "object"))
                 scriptGridQueries?.CaptureDeparture(id);
             departedNodes.Add(id, NeoValueNode.Departed(id, session, save, user, asset, virtualRow, virtualOwnership));
+            // Sparse fields live in the replay's child map, not the stored
+            // object row. Published maps are replaced, never mutated, so retain
+            // this map with the rows until departure hooks finish.
+            if (previous is ObjectMemberValue
+                && (virtualClassChildren.TryGetValue(id, out var children)
+                    || AttachedUserClient?.virtualClassChildren.TryGetValue(id, out children) == true))
+                departedClassChildren[id] = children;
             // Holders resolve the id again, and meet the departed rows or the
             // replacement.
             if (node is not null)
@@ -203,6 +211,7 @@ namespace NeoCompose.Runtime
         {
             scriptGridQueries?.ReleaseDepartures();
             departedNodes.Clear();
+            departedClassChildren.Clear();
             foreach (NeoValueNode node in heldReplacements)
                 if (valueNodes.TryGetValue(node.id, out NeoValueNode? held) && ReferenceEquals(held, node))
                     node.live = true;

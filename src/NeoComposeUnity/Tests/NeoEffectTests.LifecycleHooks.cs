@@ -283,6 +283,117 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEquivalent(new[] { ("plant-derived", 2000), ("plant-0", 2000) }, fixture.recorded);
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        [TestCase(true, true)]
+        public void TombstonedInstanceUnloadsOnceBeforeClientDisposal(bool authored, bool removeDuringLoad)
+        {
+            using Fixture fixture = BuildHooked(plants: 0, configure: data =>
+            {
+                if (!authored)
+                    return;
+                data.members["member-runs"].Storage = NeoMemberStorage.Save;
+                data.values["removed-plant"] = Plant("removed-plant", "class-plant", containerId: null);
+                data.values["removed-plant-count"] = Number("removed-plant-count", 7);
+                data.values["removed-plant-runs"] = Number("removed-plant-runs", 0);
+            });
+            if (!authored)
+                fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+                {
+                    Plant("removed-plant", "class-plant"),
+                    Number("removed-plant-count", 7),
+                    Number("removed-plant-runs", 0),
+                    PlantList("plant-derived", "removed-plant"),
+                });
+            if (removeDuringLoad)
+                fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    ["member-record"] = (client, receiver, args, _) =>
+                    {
+                        string id = NeoGeneratedTypesSupport.ValueId(receiver)!;
+                        int value = Convert.ToInt32(args[0]);
+                        fixture.recorded.Add((id, value));
+                        if (id == "removed-plant" && value == 1007)
+                            client.WriteRemovalTombstone(NeoValueOwnership.Save, id);
+                        return null;
+                    },
+                });
+            fixture.client.StartScriptRuntime();
+            Assert.That(fixture.recorded, Does.Contain(("removed-plant", 1007)));
+            if (!removeDuringLoad)
+            {
+                fixture.recorded.Clear();
+                fixture.client.WriteRemovalTombstone(NeoValueOwnership.Save, "removed-plant");
+            }
+
+            CollectionAssert.AreEqual(new[] { ("removed-plant", 2007) },
+                fixture.recorded.FindAll(record => record.value >= 2000));
+            Assert.IsFalse(fixture.client.IsDeparted("removed-plant"));
+            fixture.recorded.Clear();
+            fixture.Dispose();
+            CollectionAssert.AreEqual(new[] { ("plant-derived", 2000) }, fixture.recorded,
+                "Disposal must not attempt to unload the tombstone again.");
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [Test]
+        public void TombstoningAnInstanceUnsubscribesItsListener()
+        {
+            using Fixture fixture = BuildSubscribed(plants: 1);
+            Assert.That(TickListeners(fixture), Does.Contain("plant-0"));
+            fixture.client.WriteRemovalTombstone(NeoValueOwnership.Save, "plant-0");
+            Assert.That(TickListeners(fixture), Does.Not.Contain("plant-0"));
+            fixture.recorded.Clear();
+            TickAction(fixture).Invoke();
+            CollectionAssert.AreEqual(new[] { ("plant-derived", 4000) }, fixture.recorded);
+            fixture.Dispose();
+            LogAssert.NoUnexpectedReceived();
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void DepartedSparseInstanceUnloadsWithItsDerivedFields(bool replace)
+        {
+            using Fixture fixture = BuildHooked(plants: 0, configure: data =>
+            {
+                ((IntMember)data.members["member-count"]).defaultValue = new NumberMemberValueBase { value = 7 };
+                data.members["member-runs"].Storage = NeoMemberStorage.Save;
+                var plant = ObjectValue("sparse-plant", "class-derived-plant", ("Runs", "sparse-runs"));
+                plant.instanceConstructorId = null;
+                plant.containerId = PlantsListId;
+                data.values[plant.id] = plant;
+                data.values["sparse-runs"] = Number("sparse-runs", 0);
+            });
+            fixture.client.StartScriptRuntime();
+            Assert.That(fixture.recorded, Does.Contain(("sparse-plant", 1007)));
+            Assert.IsTrue(fixture.client.TryGetVirtualClassChildValueId("sparse-plant", "Count", out _));
+            fixture.recorded.Clear();
+
+            if (replace)
+                fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
+                {
+                    Number("replacement-count", 9),
+                    new ObjectMemberValue
+                    {
+                        id = "sparse-plant", classId = "class-plant", containerId = PlantsListId,
+                        value = new Dictionary<string, string> { ["Count"] = "replacement-count", ["Runs"] = "sparse-runs" },
+                    },
+                });
+            else
+                fixture.client.WriteRemovalTombstone(NeoValueOwnership.Save, "sparse-plant");
+
+            CollectionAssert.AreEqual(replace
+                ? new[] { ("sparse-plant", 2007), ("sparse-plant", 1009) }
+                : new[] { ("sparse-plant", 2007) }, fixture.recorded);
+            fixture.recorded.Clear();
+            fixture.Dispose();
+            CollectionAssert.AreEquivalent(replace
+                ? new[] { ("plant-derived", 2000), ("sparse-plant", 2009) }
+                : new[] { ("plant-derived", 2000) }, fixture.recorded);
+            LogAssert.NoUnexpectedReceived();
+        }
+
         [Test]
         public void AReloadRunsOnlyTheOnLoadAClassGained()
         {
