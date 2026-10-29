@@ -62,6 +62,21 @@
     "public static bool DictionaryGroupProtocol(){return IsListSequence([1,2].GroupBy((x)=>x.ToString(\"D\")));}",
     "public static bool FilteredGroupProtocol(){return IsListSequence([1,2].GroupBy((x)=>x.ToString(\"D\")).Where((k,v)=>true));}",
     "public static bool FilteredListProtocol(){return IsSequence([1,2].Where((x)=>true));}",
+    "public static bool SetSeven(out int v){v=7;return false;}",
+    "public static int SwitchWritePost(){bool b=true;int x=1;return (b switch{true=>x++,false=>0})+x;}",
+    "public static int SwitchWritePre(){bool b=true;int x=1;return (b switch{true=>++x,false=>0})+x;}",
+    "public static int SwitchWriteDec(){bool b=true;int x=1;return (b switch{true=>x--,false=>0})+x;}",
+    "public static int SwitchWriteFalseGuard(){bool b=true;int x=1;var y=b switch{true when x++>5=>0,_=>x};return y*10+x;}",
+    "public static int SwitchWriteOutGuard(){bool b=true;int x=1;var y=b switch{true when SetSeven(out x)=>0,_=>x};return y*10+x;}",
+    "public static int SwitchWriteOutTuple(){bool b=true;(int,int) t=(1,2);var y=b switch{true when SetSeven(out t.Item1)=>0,_=>t.Item1};return y*10+t.Item1;}",
+    "public static int SwitchWriteThrow(){bool b=true;int x=1;try{var y=b switch{true=>x++ + \"abc\".Replace(\"\",\"x\").Length,_=>0};}catch(NeoArgumentError e){}return x;}",
+    "public static string SwitchWriteInterpolated(){bool b=true;int x=1;return $\"{(b switch{true=>x++,_=>0})},x={x}\";}",
+    "public static int SwitchWriteNested(){bool b=true;int x=1;var y=b switch{true=>(b switch{true=>x++,_=>0})+x++,_=>0};return y*10+x;}",
+    "public static int SwitchWriteLoop(){int x=0;for(int i=0;i<3;i++){var y=i switch{1=>0,_=>x++};}return x;}",
+    "public static int SwitchBindingsStayLocal(){object o=5;var r=o switch{int t when t>3=>t,_=>0};var s=o switch{int t=>t*2,_=>0};return r*10+s;}",
+    "public static int InitializerWrite(){int x=1;var c=new Counter{Value=x++};return c.Value*10+x;}",
+    "public static int InitializerSwitchWrite(){bool b=true;int x=1;var c=new Counter{Value=b switch{true=>x++,_=>0}};return c.Value*10+x;}",
+    "public static int ConditionalWriteControl(){bool b=true;int x=1;return (b?x++:0)+x;}",
     "}"
   ],
   "returns": {
@@ -118,6 +133,20 @@
     "DictionaryQueryProtocol": true,
     "DictionaryGroupProtocol": true,
     "FilteredGroupProtocol": true,
-    "FilteredListProtocol": true
+    "FilteredListProtocol": true,
+    "SwitchWritePost": 3,
+    "SwitchWritePre": 4,
+    "SwitchWriteDec": 1,
+    "SwitchWriteFalseGuard": 22,
+    "SwitchWriteOutGuard": 77,
+    "SwitchWriteOutTuple": 77,
+    "SwitchWriteThrow": 2,
+    "SwitchWriteInterpolated": "1,x=2",
+    "SwitchWriteNested": 33,
+    "SwitchWriteLoop": 2,
+    "SwitchBindingsStayLocal": 60,
+    "InitializerWrite": 12,
+    "InitializerSwitchWrite": 12,
+    "ConditionalWriteControl": 3
   }
 }

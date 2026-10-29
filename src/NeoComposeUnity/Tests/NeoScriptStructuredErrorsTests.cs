@@ -83,7 +83,9 @@ namespace NeoCompose.Tests
             Assert.That(failure.InnerException, Is.InstanceOf<NeoRuntimeError>());
             var error = (NeoRuntimeError)failure.InnerException!;
             Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
-            Assert.That(error.Message, Is.EqualTo(message));
+            Assert.That(error.DiagnosticMessage, Is.EqualTo(message));
+            Assert.That(error.Payload.Message, Is.EqualTo(message));
+            Assert.That(error.Message, Does.Contain("NeoScript getter (body:1:21)"));
             Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArithmeticError));
         }
 
