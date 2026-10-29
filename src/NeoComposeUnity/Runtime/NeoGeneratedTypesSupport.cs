@@ -936,7 +936,8 @@ namespace NeoCompose.Runtime
             string? constructedClassId,
             Member member,
             InitializerBody init,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv,
+            TypeBinding? staticConstruction = null)
         {
             if (init.compiled is null)
             {
@@ -951,6 +952,7 @@ namespace NeoCompose.Runtime
                     receiver: null);
             try
             {
+                initializerContext.staticConstruction = staticConstruction;
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 // A construction naming the instance's `T` closes through it.
@@ -5370,7 +5372,7 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
-            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null,
+            Action<NeoScript.NSGetterEvaluator.Context, int>? evaluateFieldValues = null,
             bool bindsOnRead = false,
             bool replayDefaultRoot = false)
         {
@@ -5404,7 +5406,7 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NeoScript.NSGetterEvaluator.Context ctx,
-            Action<NeoScript.NSGetterEvaluator.Context>? evaluateFieldValues = null,
+            Action<NeoScript.NSGetterEvaluator.Context, int>? evaluateFieldValues = null,
             bool replayDefaultRoot = false)
         {
             NeoClient client = resolved.client;
@@ -5489,14 +5491,14 @@ namespace NeoCompose.Runtime
                     // post-body value. (The legacy schema-derived
                     // `classConstructor` arm has no body and stays eval-first on
                     // both runtimes.)
-                    using (replayCapture?.ReadCallSite())
-                        evaluateFieldValues?.Invoke(ctx);
-                    ApplyDeclaredConstructorFields(
-                        client,
-                        resolved,
-                        root.id,
-                        fields,
-                        ctx);
+                    var entry = new RuntimeConstructorField[1];
+                    for (int index = 0; index < fields.Count; index++)
+                    {
+                        using (replayCapture?.ReadCallSite())
+                            evaluateFieldValues?.Invoke(ctx, index);
+                        entry[0] = fields[index];
+                        ApplyDeclaredConstructorFields(client, resolved, root.id, entry, ctx);
+                    }
 
                     AssertDeclaredConstructorRootIsComplete(client, resolved, root.id);
                     StampConstructedInstanceProvenance(
@@ -6270,6 +6272,13 @@ namespace NeoCompose.Runtime
             {
                 RuntimeConstructorField field = fields[fieldIndex];
                 Member member = resolved.membersBySchemaKey[field.schemaKey];
+                if (NeoInterfaceDispatch.Of(client).ClassAccessor(resolved.schemaClass.id, field.memberId, "set") is NSPropertyMember property)
+                {
+                    client.TryGetValue(NeoValueOwnership.Session, rootValueId, out MemberValue? root);
+                    var receiver = NeoScript.NSGetterEvaluator.UnwrapRow(root!, ctx, NeoValueOwnership.Session);
+                    NeoScript.NSGetterEvaluator.WriteClassProperty(property, receiver!, field.value, ctx);
+                    continue;
+                }
                 if (field.value is null && member.Requirement == NeoMemberRequirementKind.Required)
                 {
                     throw new InvalidOperationException(
@@ -6857,7 +6866,7 @@ namespace NeoCompose.Runtime
                 // member is the write target's own business.
                 if (field.value is null)
                     continue;
-                if (member is ClassMember)
+                if (member is ClassMember or NSPropertyMember)
                     continue;
                 var stagedRows = new List<MemberValue>();
                 object? payload = ComputeRuntimeConstructorPayload(
@@ -7287,7 +7296,7 @@ namespace NeoCompose.Runtime
                         $"Class constructor for '{classTypeInfo.classId}' contains stale field '{field.schemaKey}'/'{field.memberId}'. Regenerate the NeoScript IR from the current schema.");
                 }
                 Member member = membersBySchemaKey[field.schemaKey];
-                if (!IsStoredConstructorMember(member))
+                if (!IsStoredConstructorMember(member) && member is not NSPropertyMember)
                 {
                     throw new InvalidOperationException(
                         $"Class constructor field '{field.schemaKey}' references non-stored member '{entry.memberId}'.");
@@ -7719,6 +7728,7 @@ namespace NeoCompose.Runtime
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
                                 return true;
+                            child = NeoInterfaceDispatch.Of(client).StoredMember(child);
                             bool hasRow = children.TryGetValue(entry.schemaKey, out string? childId);
                             if (hasRow)
                                 owned++;
@@ -7929,6 +7939,7 @@ namespace NeoCompose.Runtime
             {
                 if (!client.TryGetMember(entry.memberId, out Member? child))
                     return true;
+                child = NeoInterfaceDispatch.Of(client).StoredMember(child);
                 if (!IsStoredConstructorMember(child))
                     continue;
                 Fixedness childFixedness = FixednessOf(child, fixedness);
@@ -9140,6 +9151,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Class constructor schema field '{entry.schemaKey}' references missing member '{entry.memberId}'.");
                 }
+                member = NeoInterfaceDispatch.Of(client).StoredMember(member);
                 // A closed instance's members carry the env their types read
                 // params in, as the server's field `memberEnv` (P127 §1.2).
                 membersBySchemaKey[entry.schemaKey] = closed

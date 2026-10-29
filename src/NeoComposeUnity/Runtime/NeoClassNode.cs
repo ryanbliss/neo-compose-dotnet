@@ -70,6 +70,7 @@ namespace NeoCompose.Runtime
         }
 
         internal NeoClassNode(
+            NeoClient client,
             string id,
             IList<NeoSchemaClass> chain,
             IReadOnlyDictionary<string, Member> members,
@@ -85,7 +86,7 @@ namespace NeoCompose.Runtime
             foreach (MergedSchemaEntry entry in merged)
             {
                 members.TryGetValue(entry.memberId, out Member? member);
-                entry.member = member;
+                entry.member = member is null ? null : NeoInterfaceDispatch.Of(client).StoredMember(member);
                 if (!NeoSchemaClassInheritance.IsInstanceMember(member))
                     continue;
                 surface.Add(entry);
