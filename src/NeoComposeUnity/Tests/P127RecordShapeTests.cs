@@ -217,6 +217,23 @@ namespace NeoCompose.Tests
                 Does.Contain("must be a Class, Interface or Enum type"));
         }
 
+        [TestCase("{'type':7,'classId':'c','required':false}")]
+        [TestCase("{'type':22,'interfaceId':'i','required':false}")]
+        [TestCase("{'type':31,'objectType':1,'required':false}")]
+        public void FunctionConstraintsAdmitNullableClassInterfaceAndGeneralEnum(string constraint)
+        {
+            var parameter = JsonConvert.DeserializeObject<FunctionGenericParam>("{'name':'T','constraints':[" + constraint + "]}")!;
+            Assert.That(parameter.constraints![0].required, Is.False);
+            Assert.That(JsonConvert.DeserializeObject<FunctionGenericParam>(JsonConvert.SerializeObject(parameter))!.constraints![0].required, Is.False);
+        }
+
+        [Test]
+        public void FunctionConstraintsRefuseNullableSpecificEnum()
+        {
+            Assert.Throws<JsonSerializationException>(() => JsonConvert.DeserializeObject<FunctionGenericParam>(
+                "{'name':'T','constraints':[{'type':8,'enumId':'e','required':false}]}"));
+        }
+
         [Test]
         public void ClassAndInterfaceListsUseConstructions()
         {

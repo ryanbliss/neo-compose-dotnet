@@ -83,6 +83,7 @@ namespace NeoCompose.Runtime
         private Dictionary<string, HashSet<(NeoValueOwnership scope, string id)>>? copiedListenerCarriers;
         // Each staged row's prior state while a checkpoint is open.
         private List<RowEntry>? journal;
+        private List<((NeoValueOwnership ownership, string memberId, TypeBinding construction) key, bool present, string? previous)>? constructionJournal;
         private int openCheckpoints;
         internal Dictionary<(NeoValueOwnership ownership, NeoValueOwnership scope, string rootId, string ownerId), Dictionary<string, NeoDelegateValue[]>?>? ListenerEntries;
         private List<((NeoValueOwnership ownership, NeoValueOwnership scope, string rootId, string ownerId) key, bool present, Dictionary<string, NeoDelegateValue[]>? entry)>? listenerJournal;
@@ -170,7 +171,7 @@ namespace NeoCompose.Runtime
         internal Checkpoint Open()
         {
             openCheckpoints++;
-            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count, listenerJournal?.Count ?? 0, listenerMoveJournal?.Count ?? 0, LocalSelections?.JournalCount ?? 0);
+            return new Checkpoint((journal ??= new List<RowEntry>()).Count, afterCommit.Count, listenerJournal?.Count ?? 0, listenerMoveJournal?.Count ?? 0, LocalSelections?.JournalCount ?? 0, constructionJournal?.Count ?? 0);
         }
 
         /// <summary>Keeps what was staged since the last open checkpoint.</summary>
@@ -179,6 +180,7 @@ namespace NeoCompose.Runtime
             if (--openCheckpoints == 0)
             {
                 journal!.Clear();
+                constructionJournal?.Clear();
                 listenerJournal?.Clear();
                 listenerMoveJournal?.Clear();
             }
@@ -213,6 +215,19 @@ namespace NeoCompose.Runtime
                     Version++;
                 }
                 listenerJournal.RemoveRange(checkpoint.ListenerJournal, listenerJournal.Count - checkpoint.ListenerJournal);
+            }
+            if (constructionJournal is not null)
+            {
+                for (int index = constructionJournal.Count - 1; index >= checkpoint.Constructions; index--)
+                {
+                    var entry = constructionJournal[index];
+                    if (entry.present)
+                        ConstructionBindings![entry.key] = entry.previous;
+                    else
+                        ConstructionBindings!.Remove(entry.key);
+                    Version++;
+                }
+                constructionJournal.RemoveRange(checkpoint.Constructions, constructionJournal.Count - checkpoint.Constructions);
             }
             for (int index = journal!.Count - 1; index >= checkpoint.Journal; index--)
             {
@@ -258,14 +273,16 @@ namespace NeoCompose.Runtime
             internal readonly int ListenerJournal;
             internal readonly int ListenerMoveJournal;
             internal readonly int LocalSelections;
+            internal readonly int Constructions;
 
-            internal Checkpoint(int journal, int afterCommit, int listenerJournal, int listenerMoveJournal, int localSelections)
+            internal Checkpoint(int journal, int afterCommit, int listenerJournal, int listenerMoveJournal, int localSelections, int constructions)
             {
                 Journal = journal;
                 AfterCommit = afterCommit;
                 ListenerJournal = listenerJournal;
                 ListenerMoveJournal = listenerMoveJournal;
                 LocalSelections = localSelections;
+                Constructions = constructions;
             }
         }
 
@@ -604,6 +621,25 @@ namespace NeoCompose.Runtime
                 ? candidates : Array.Empty<string>();
         }
 
+        internal Dictionary<(NeoValueOwnership ownership, string memberId, TypeBinding construction), string?>? ConstructionBindings;
+
+        internal bool ReplacesStaticConstructions;
+        internal List<NeoStaticConstruction>? StaticConstructionSnapshot;
+
+        internal void BindConstruction(NeoValueOwnership ownership, string memberId, TypeBinding construction, string? valueId)
+        {
+            Client.ThrowIfUserWrite(ownership);
+            Version++;
+            var key = (ownership, memberId, NeoInterfaceDispatch.Identity(construction));
+            ConstructionBindings ??= new();
+            if (openCheckpoints > 0)
+            {
+                bool present = ConstructionBindings.TryGetValue(key, out string? previous);
+                (constructionJournal ??= new()).Add((key, present, previous));
+            }
+            ConstructionBindings[key] = valueId;
+        }
+
         internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId)
         {
             Client.ThrowIfUserWrite(ownership);
@@ -890,7 +926,7 @@ namespace NeoCompose.Runtime
                     if (nestedConstructedRows.TryGetValue(key.id, out var producer)
                         && !ReferenceEquals(producer, nestedConstructorCapture))
                         producer.HasExternalWrites = true;
-            if (plan.Bindings.Count != 0)
+            if (plan.Bindings.Count != 0 || plan.ConstructionBindings?.Count > 0)
                 for (var scope = nestedConstructorCapture; scope is not null; scope = scope.Parent)
                     scope.HasExternalWrites = true;
             if (nestedConstructorCapture is not null)
@@ -1028,6 +1064,7 @@ namespace NeoCompose.Runtime
                         bindings.Remove(pair.Key.memberId);
                     TouchWritableStoreUpdatedAt(pair.Key.ownership);
                 }
+                InstallConstructionBindings(plan);
                 CommitListenerEntries(plan, preparedListeners);
                 PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, plan.RequiredSaveFormatRevision);
                 plan.MarkInstalled();
@@ -1088,6 +1125,10 @@ namespace NeoCompose.Runtime
                         if (!plan.Rows.ContainsKey((item.ownership, item.valueId))
                             && preparedExpansions?.HiddenVirtualIds.Contains(item.valueId) == true)
                             PublishWritableValueChange(item.ownership, item.valueId, plan);
+                    if (plan.ConstructionBindings is not null)
+                        foreach (var pair in plan.ConstructionBindings)
+                            if (pair.Key.ownership == PersistedOwnership && !suppressLiveAutoCommit)
+                                ScheduleLiveAutoCommit();
                     foreach (var pair in plan.Bindings)
                     {
                         OnStaticBindingChanged?.Invoke(pair.Key.ownership, pair.Key.memberId);

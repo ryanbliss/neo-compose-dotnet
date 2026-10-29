@@ -291,7 +291,7 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             IReadOnlyList<RuntimeConstructorField> fields,
             NSGetterEvaluator.Context ctx,
-            Action<NSGetterEvaluator.Context>? evaluateFieldValues)
+            Action<NSGetterEvaluator.Context, int>? evaluateFieldValues)
         {
             NeoClient client = resolved.client;
             ValidateBoxedConstructorArguments(resolved, argumentValues, ctx);
@@ -325,8 +325,13 @@ namespace NeoCompose.Runtime
                         ctx,
                         initializerArguments,
                         depth: 0);
-                    evaluateFieldValues?.Invoke(ctx);
-                    ApplyDetachedConstructorFields(resolved, created, fields, ctx);
+                    var entry = new RuntimeConstructorField[1];
+                    for (int index = 0; index < fields.Count; index++)
+                    {
+                        evaluateFieldValues?.Invoke(ctx, index);
+                        entry[0] = fields[index];
+                        ApplyDetachedConstructorFields(resolved, created, entry, ctx);
+                    }
                     if (created.attachedId is null)
                         AssertDetachedRootIsComplete(resolved, created);
                     else
@@ -380,6 +385,11 @@ namespace NeoCompose.Runtime
             for (int field = 0; field < fields.Count; field++)
             {
                 RuntimeConstructorField supplied = fields[field];
+                if (NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(resolved.schemaClass.id, supplied.memberId, "set") is NSPropertyMember property)
+                {
+                    NSGetterEvaluator.WriteClassProperty(property, target, supplied.value, ctx);
+                    continue;
+                }
                 if (target.attachedId is null)
                 {
                     if (supplied.value is null
