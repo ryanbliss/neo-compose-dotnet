@@ -2351,7 +2351,7 @@ namespace NeoCompose.Runtime
             converted = default!;
             if (NeoSequences.TryReadBoxed(client, value, out converted))
                 return true;
-            if (value is T typed)
+            if (value is T typed && value is not (NeoScript.NeoBox or NeoScript.NeoTypeValue))
             {
                 converted = typed;
                 return true;
@@ -2373,6 +2373,15 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
             InterfaceResolver? interfaceResolver)
         {
+            // P127 §14. A NeoScript box crosses to C# as the C# value it holds.
+            if (value is NeoScript.NeoBox box)
+                return ConvertBox(client, box, readOnlyFactories, savedFactories, interfaceResolver);
+            if (value is NeoScript.NeoTypeValue typeValue)
+            {
+                return ClrTypeOf(client, typeValue.Binding)
+                    ?? throw new NotSupportedException(
+                        $"typeof({NeoTypeNames.Of(typeValue.Binding, client.ProjectDataForRuntime)}) has no C# type in this project.");
+            }
             if (value is NeoScript.RuntimeTuple tuple
                 && type.IsValueType
                 && typeof(System.Runtime.CompilerServices.ITuple).IsAssignableFrom(type))
@@ -4085,13 +4094,23 @@ namespace NeoCompose.Runtime
             bool isStaged = stagedById.TryGetValue(
                 valueId,
                 out MemberValue? row);
-            if ((!trustedMaterialization || !isStaged)
+            bool sharedBox = isStaged && member is ObjectMember && row.valueType is not null;
+            if ((sharedBox || !trustedMaterialization || !isStaged)
                 && ownedByPath.TryGetValue(valueId, out string? priorPath))
             {
+                // Repeated object references borrow one box; its payload has one owner.
+                // Validate each slot, but walk the shared payload only once.
+                if (sharedBox)
+                {
+                    ValidateConstructedRowShape(client, member, row, path, requireNonNull, env);
+                    if (!MapKeyCanMoveTo(row.mapKey, client.ResolveCreatedValueMapKey(member, parentMapKey, parentClassId)))
+                        throw new InvalidOperationException($"Constructed box '{valueId}' cannot be shared across partitions.");
+                    return;
+                }
                 throw new InvalidOperationException(
                     $"Constructed value '{valueId}' would have two owned parents ('{priorPath}' and '{path}'). Call Clone() explicitly for a second owner.");
             }
-            if (!trustedMaterialization || !isStaged)
+            if (sharedBox || !trustedMaterialization || !isStaged)
             {
                 ownedByPath[valueId] = path;
             }
@@ -5530,16 +5549,16 @@ namespace NeoCompose.Runtime
             bool replayDefaultRoot = false)
         {
             NeoClient client = resolved.client;
+            if (!replayDefaultRoot)
+                ValidateBoxedConstructorArguments(resolved, argumentValues, ctx);
             using var replayCapture = client.BeginNestedConstructorCapture();
             using var listenerCapture = client.BeginConstructionListeners();
             int frame =
                 EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
             {
-                object?[] positionalArguments = FillDeclaredArguments(
-                    resolved.link.record,
-                    argumentValues);
-                var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, ctx);
+                object?[] positionalArguments = FillDeclaredArguments(resolved, argumentValues);
+                var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, resolved.genericEnv, ctx);
                 var scope = new NeoConstructionScope(
                     client,
                     ctx,
@@ -5703,6 +5722,11 @@ namespace NeoCompose.Runtime
             for (int index = 0; index < record.argumentTypes.Length; index++)
             {
                 FunctionArgumentTypeInfo argument = record.argumentTypes[index];
+                if (argument.mode == NeoParameterModeKind.Out)
+                {
+                    recorded[index] = NeoScript.NeoConstructorOut.Marker();
+                    continue;
+                }
                 // An omitted name with a declared default is filled
                 // callee-side (P65 §2.5) and is deliberately NOT recorded:
                 // the replay re-reads the parameter's current default, so
@@ -5727,18 +5751,27 @@ namespace NeoCompose.Runtime
                         argument,
                         resolved.genericEnv)
                     : argument;
+                argumentType = NeoTypeRules.Declared(argumentType);
                 MemberKind declaredKind = argumentType.type;
                 string? rowId = NeoTypeSources.ConstructorArgumentStoresRow(declaredKind)
                     ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
                     : null;
+                // P127 §1.3. A box or Type value records as the box row it mints.
+                bool boxes = declaredKind == MemberKind.Object && value is NeoScript.NeoBox or NeoScript.NeoTypeValue;
+                if (declaredKind == MemberKind.Interface && value is NeoScript.NeoBox)
+                {
+                    throw new NeoScript.NSGetterRuntimeError(
+                        $"Passing a value type to interface argument '{NeoClient.ConstructorParameterId(record, index)}' isn't supported yet (P127 B3).");
+                }
+
                 // A variant selection records as its {classId, variantId, rowValueId} token.
-                if (rowId is null && value is not (null or NeoVariantReference)
+                if (rowId is null && !boxes && value is not (null or NeoVariantReference)
                     && declaredKind is MemberKind.Class or MemberKind.Interface or MemberKind.Object)
                 {
                     throw new NeoScript.NSGetterRuntimeError(
                         $"Constructor aggregate argument '{NeoClient.ConstructorParameterId(record, index)}' has no backing value row.");
                 }
-                if (rowId is null && declaredKind is MemberKind.Tuple or MemberKind.List or MemberKind.Set or MemberKind.Dictionary && value is not null)
+                if (rowId is null && (boxes || declaredKind is MemberKind.Tuple or MemberKind.List or MemberKind.Set or MemberKind.Dictionary && value is not null))
                 {
                     object?[]? leaves = deferLiterals && value is NeoScript.RuntimeTuple tuple ? tuple.ToArray() : value as object?[];
                     if (deferLiterals && leaves is not null && IsLiteralLeafArray(leaves))
@@ -5749,13 +5782,21 @@ namespace NeoCompose.Runtime
                         recorded[index] = new RecordedConstructorCollection(argumentType, snapshot);
                         continue;
                     }
+                    // Nested stored collection views carry entry ids, not payloads.
+                    // Read them through the ordinary recursive reader before recording the argument.
+                    value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
                     var rows = new List<MemberValue>();
                     Member member = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(argumentType)));
                     var scope = new NeoConstructionScope(client, ctx);
+                    var insertion = new CollectionInsertion(null, ctx, NeoValueOwnership.Session,
+                        value is NeoScript.NeoBox box
+                            ? BoxedCollectionRefusal(client, box, $"constructor argument '{NeoClient.ConstructorParameterId(record, index)}'")
+                            : null, trackCollections: false);
                     rowId = MaterializeRuntimeConstructorValue(client, member, value, rows, NeoTimestamp.Now(),
                         item => NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx),
-                        resolved.genericEnv, argument.name, scope);
+                        resolved.genericEnv, argument.name, scope, insertion: insertion);
                     PublishConstructorArgumentRows(client, member, rowId!, rows, scope, argument.name);
+                    insertion?.Complete();
                 }
                 if (!string.IsNullOrEmpty(rowId))
                 {
@@ -5990,17 +6031,21 @@ namespace NeoCompose.Runtime
         /// to the provenance the construction records.
         /// </summary>
         private static object?[] FillDeclaredArguments(
-            ConstructorRecord? record,
+            NeoResolvedDeclaredConstructor resolved,
             object?[] argumentValues)
         {
+            ConstructorRecord? record = resolved.link.record;
             if (record is null)
                 return Array.Empty<object?>();
             object?[]? filled = null;
             for (int i = 0; i < argumentValues.Length; i++)
             {
+                FunctionArgumentTypeInfo argument = record.argumentTypes[i];
+                bool isOut = argumentValues[i] is NeoScript.NeoOutReference;
+                if (isOut != (argument.mode == NeoParameterModeKind.Out))
+                    throw new NeoScript.NSGetterRuntimeError($"Constructor '{record.id}' parameter '{argument.name}' {(argument.mode == NeoParameterModeKind.Out ? "requires" : "does not accept")} an out argument.");
                 if (!ReferenceEquals(argumentValues[i], OmittedArgument))
                     continue;
-                FunctionArgumentTypeInfo argument = record.argumentTypes[i];
                 // P65 §2.5 callee-side fill: an omitted name binds the
                 // parameter's current stored default.
                 // `AssertDeclaredArgumentNamesMatch` already rejected
@@ -6011,15 +6056,14 @@ namespace NeoCompose.Runtime
                         $"Declared constructor '{record.id}' is missing a value for argument '{argument.name}'.");
                 }
                 filled ??= (object?[])argumentValues.Clone();
-                filled[i] = NeoParameterDefaults.DefaultRuntimeValue(
-                    argument,
-                    $"Constructor '{record.id}'");
+                filled[i] = InstanceParameterDefault(resolved.client, resolved.genericEnv, argument, $"Constructor '{record.id}'");
             }
             return filled ?? argumentValues;
         }
 
         private static object?[] EvaluateDeclaredBaseArguments(
             NeoClient client,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> instanceEnv,
             NeoResolvedConstructorLink link,
             object?[] argumentValues,
             object? thisValue,
@@ -6065,11 +6109,25 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' binds no argument for base parameter '{baseParameter.name}' of constructor '{baseRecord.id}'. Regenerate the NeoScript IR from the current schema.");
                 }
-                baseArguments[i] = NeoParameterDefaults.DefaultRuntimeValue(
-                    baseParameter,
-                    $"Constructor '{baseRecord.id}'");
+                baseArguments[i] = InstanceParameterDefault(client, instanceEnv, baseParameter, $"Constructor '{baseRecord.id}'");
             }
             return baseArguments;
+        }
+
+        /// <summary>
+        /// A constructor parameter's default, a <c>= default</c> one closed
+        /// through the bindings of the instance under construction (P127 §4.1).
+        /// </summary>
+        private static object? InstanceParameterDefault(
+            NeoClient client,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> instanceEnv,
+            FunctionArgumentTypeInfo parameter,
+            string subject)
+        {
+            TypeInfo frameType = NeoNSFunctionRuntime.ContainsGeneric(parameter)
+                ? NeoNSFunctionRuntime.ResolveInvocationTypeInfo(client, parameter, instanceEnv)
+                : parameter;
+            return NeoScript.NSGetterEvaluator.ParameterDefault(client, parameter, frameType, subject);
         }
 
         private static void RunDeclaredConstructorChain(
@@ -6093,7 +6151,7 @@ namespace NeoCompose.Runtime
                     ?? throw new InvalidOperationException(
                         $"Declared constructor '{record.id}' resolved an empty base link.");
                 object?[] baseArguments = initializerArguments.At(depth + 1)
-                    ?? EvaluateDeclaredBaseArguments(client, link, argumentValues, thisValue, ctx);
+                    ?? EvaluateDeclaredBaseArguments(client, resolved.genericEnv, link, argumentValues, thisValue, ctx);
                 RunDeclaredConstructorChain(
                     client,
                     resolved,
@@ -6700,43 +6758,84 @@ namespace NeoCompose.Runtime
             finally { client.ReturnDirectFunctionContext(context, null); }
         }
 
-        // Only collection insertion adopts aggregate identities. Field and constructor
-        // arguments retain their existing copy semantics.
+        // Collection entries and boxed collections adopt their aggregate identities.
+        // Other field and constructor writes retain their existing semantics.
         internal sealed class CollectionInsertion
         {
-            private readonly NeoWritePlan plan;
-            private readonly NeoScript.NSGetterEvaluator.Context context;
-            private readonly NeoValueOwnership ownership;
+            private readonly NeoWritePlan? plan;
+            internal readonly NeoScript.NSGetterEvaluator.Context context;
+            internal readonly string? boxedRefusal;
+            private readonly List<Action> pending = new();
+            internal readonly NeoValueOwnership ownership;
             private readonly Dictionary<object, string> fresh = new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+            private readonly Dictionary<object, string> boxes = new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+            private readonly bool trackCollections;
 
-            internal CollectionInsertion(NeoWritePlan plan, NeoScript.NSGetterEvaluator.Context context, NeoValueOwnership ownership)
+            internal CollectionInsertion(NeoWritePlan? plan, NeoScript.NSGetterEvaluator.Context context, NeoValueOwnership ownership, string? boxedRefusal = null, bool trackCollections = true)
             {
+                this.trackCollections = trackCollections;
                 this.plan = plan;
                 this.context = context;
                 this.ownership = ownership;
+                this.boxedRefusal = boxedRefusal;
             }
 
-            internal string? Existing(Member member, object? value)
+            private CollectionInsertion(CollectionInsertion source, string refusal)
             {
-                if (member is not (ListMember or DictionaryMember) || value is null
+                plan = source.plan;
+                context = source.context;
+                ownership = source.ownership;
+                fresh = source.fresh;
+                boxes = source.boxes;
+                trackCollections = source.trackCollections;
+                pending = source.pending;
+                boxedRefusal = refusal;
+            }
+
+            internal CollectionInsertion ForBox(string refusal) => boxedRefusal is not null ? this : new CollectionInsertion(this, refusal);
+
+            // A recursive aggregate write shares one memo for object references at every depth.
+            internal bool TryBox(object value, out string id) => boxes.TryGetValue(value, out id);
+            internal void RememberBox(object value, string id) => boxes.Add(value, id);
+
+            private bool Tracks(Member member) => boxedRefusal is not null ? IsCollectionMember(member) : trackCollections && member is ListMember or DictionaryMember;
+
+            internal MemberValue? Destination(string? id)
+            {
+                if (id is null)
+                    return null;
+                if (plan is not null)
+                    return plan.TryGet(ownership, id, out MemberValue? staged) ? staged : null;
+                return context.client.TryGetValue(ownership, id, out MemberValue? row) ? row : null;
+            }
+
+            internal string? Existing(Member member, object? value, string? destinationId)
+            {
+                if (!Tracks(member) || value is null
                     || NeoScript.NSGetterEvaluator.FindRowReference(value, context) is not { } reference)
                     return null;
-                return NeoScriptExecutor.ImportClassValueReference(plan, context.client, ownership, reference.valueId, context);
+                if (boxedRefusal is not null)
+                {
+                    if (reference.valueId == destinationId && reference.ownership == ownership)
+                        return reference.valueId;
+                    throw new NeoScript.NSGetterRuntimeError(boxedRefusal);
+                }
+                return NeoScriptExecutor.ImportClassValueReference(plan!, context.client, ownership, reference.valueId, context);
             }
 
             internal void Reserve(Member member, object? value, string id)
             {
-                if (member is not (ListMember or DictionaryMember) || value is null)
+                if (!Tracks(member) || value is null)
                     return;
                 object identity = NeoScript.NSGetterEvaluator.SequenceCollectionIdentity(value);
-                if (plan.HeldBy?.HasPendingAttachment(identity) == true || fresh.ContainsKey(identity))
-                    throw new NeoScript.NSGetterRuntimeError("Collection value is already owned by another entry. Use .Clone() to attach a separate value.");
+                if (plan?.HeldBy?.HasPendingAttachment(identity) == true || fresh.ContainsKey(identity))
+                    throw new NeoScript.NSGetterRuntimeError(boxedRefusal ?? "Collection value is already owned by another entry. Use .Clone() to attach a separate value.");
                 fresh.Add(identity, id);
             }
 
             internal void Imported(object value)
             {
-                if (plan.HeldBy is not { } batch)
+                if (plan?.HeldBy is not { } batch)
                     return;
                 if (batch.HasPendingAttachment(value))
                     throw new NeoScript.NSGetterRuntimeError("Class value is already owned by another entry. Use .Clone() to attach a separate value.");
@@ -6748,13 +6847,21 @@ namespace NeoCompose.Runtime
 
             internal void Publish(Member member, object? value, MemberValue row)
             {
-                if (member is not (ListMember or DictionaryMember) || value is null)
+                if ((!Tracks(member) && value is not NeoScript.NeoBox) || value is null)
                     return;
                 Action publish = () => NeoScript.NSGetterEvaluator.BindInsertedCollection(value, member, row.id, ownership, context);
-                if (plan.HeldBy is { } batch)
+                if (plan?.HeldBy is { } batch)
                     batch.TrackCollectionAttachment(value, row, member, ownership, context, publish);
-                else
+                else if (plan is not null)
                     plan.AfterCommit(publish);
+                else
+                    pending.Add(publish);
+            }
+
+            internal void Complete()
+            {
+                foreach (Action publish in pending)
+                    publish();
             }
         }
 
@@ -6781,6 +6888,8 @@ namespace NeoCompose.Runtime
                     && index < ids.Length ? ids[index] : null;
                 return new TupleAssignment(plan, context, ownership, childId);
             }
+
+            internal string? DestinationId => destinationId;
 
             internal string? ExistingTupleId => destinationId is not null
                 && plan.Resolve(ownership, destinationId) is ArrayMemberValue ? destinationId : null;
@@ -6816,12 +6925,14 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             string? currentDestinationValueId = null)
         {
+            client.RequireStoredValue(member, value, client.StoredMemberPath(member), script: true);
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
             if (value is NeoScript.RuntimeTuple)
                 value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+            insertion ??= new CollectionInsertion(plan, ctx, ownership, trackCollections: false);
             var rows = new List<MemberValue>();
             var env = targetEnv ?? (ctx.thisValue is null
                 ? NeoGenericResolution.EmptyEnv
@@ -6832,6 +6943,12 @@ namespace NeoCompose.Runtime
                     var reference = NeoScript.NSGetterEvaluator.ConstructorReferenceOf(item, ctx);
                     if (reference is null)
                         return null;
+                    // A replayed nested collection supplies source metadata for the copy.
+                    // It already belongs to this replay; importing it would claim another owner.
+                    if (item is object?[] or NeoScript.RuntimeSet
+                        && reference.Value.ownership is NeoValueOwnership sourceOwnership
+                        && client.IsReferenceOwnedByReplayingVirtualInstance(sourceOwnership, reference.Value.valueId))
+                        return reference;
                     string imported = plan is null
                         ? NeoScriptExecutor.ImportClassValueReference(client, ownership, reference.Value.valueId, ctx)
                         : NeoScriptExecutor.ImportClassValueReference(plan, client, ownership, reference.Value.valueId, ctx);
@@ -6964,6 +7081,12 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Declared constructor '{record.id}' on class '{resolved.schemaClass.name}' does not declare argument '{argument.name}'.");
             }
+            if (declared.mode == NeoParameterModeKind.Out)
+            {
+                if (argument.value is not NeoScript.NeoOutReference)
+                    throw new NeoScript.NSGetterRuntimeError($"Constructor '{record.id}' parameter '{declared.name}' requires an out argument.");
+                return argument.value;
+            }
             TypeInfo effectiveDeclared =
                 NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
                     client,
@@ -7016,7 +7139,7 @@ namespace NeoCompose.Runtime
             // Resolve typed row links before Normalize validates their values.
             // Keep Class rows in this evaluator context so they retain identity.
             var active = new HashSet<(NeoValueOwnership, string)>();
-            return Read(reference.valueId, member, ownership, declaredType);
+            return Read(reference.valueId, member, ownership, NeoTypeRules.Declared(declaredType));
 
             object? Read(
                 string valueId, Member? sourceMember, NeoValueOwnership storage, TypeInfo expectedType)
@@ -7024,12 +7147,16 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetReplayReference(valueId, out MemberValue? row, storage) || row.IsRemoved)
                     throw new InvalidOperationException(
                         $"Stored {subject} references missing value '{valueId}' in {storage} storage.");
-                if (expectedType.type is not (MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
-                {
-                    return sourceMember is null
-                        ? NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage)
-                        : NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage, sourceMember);
-                }
+                // Constructor-only rows have no field placement to supply a descriptor.
+                // Decode their children through the declared parameter type, including tuples.
+                sourceMember ??= NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(expectedType));
+                // Selection Sets store ids directly, rather than child value rows.
+                bool selectionSet = expectedType.type == MemberKind.Set && sourceMember is
+                    EnumMember { Selection: NeoMemberSelectionKind.Multi }
+                    or LookupMember { Selection: NeoMemberSelectionKind.Multi }
+                    or DialogueLookupMember { Selection: NeoMemberSelectionKind.Multi };
+                if (selectionSet || expectedType.type is not (MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
+                    return NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx, storage, sourceMember);
                 if (sourceMember is not null
                     && ((expectedType.type == MemberKind.List && sourceMember is not ListMember)
                         || (expectedType.type == MemberKind.Set && sourceMember is not SetMember)
@@ -8037,6 +8164,7 @@ namespace NeoCompose.Runtime
                 TupleMember member => member.defaultValue is not null,
                 ClassMember member => member.defaultValue is not null,
                 GenericMember member => member.defaultValue is not null,
+                ObjectMember member => member.defaultValue is not null,
                 EnumMember member => member.defaultValue is not null,
                 LookupMember member => member.defaultValue is not null,
                 DialogueLookupMember member => member.defaultValue is not null,
@@ -8179,16 +8307,17 @@ namespace NeoCompose.Runtime
             bool preserveOptionalNull = false,
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
-            TupleAssignment? tupleAssignment = null)
+            TupleAssignment? tupleAssignment = null,
+            string? destinationId = null)
         {
-            if (insertion?.Existing(member, runtimeValue) is { } existing)
+            destinationId ??= tupleAssignment?.DestinationId;
+            if (insertion?.Existing(member, runtimeValue, destinationId) is { } existing)
                 return existing;
             if (runtimeValue is null)
             {
                 if (member.Requirement == NeoMemberRequirementKind.Required)
                 {
-                    throw new InvalidOperationException(
-                        $"Required constructor field '{member.name}' received null.");
+                    client.RequireStoredValue(member, null, path);
                 }
                 if (!preserveOptionalNull)
                     return null;
@@ -8199,7 +8328,7 @@ namespace NeoCompose.Runtime
             if (member is ObjectMember objectSlot && runtimeValue is not null)
             {
                 if (runtimeValue is not NeoGeneratedClassValue held)
-                    return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path);
+                    return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path, insertion, destinationId);
                 RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = held.classId }, new NeoSlotContext(client));
             }
             if (runtimeValue is not null && member is ClassMember or ObjectMember)
@@ -8236,7 +8365,7 @@ namespace NeoCompose.Runtime
             }
 
             string? retainedTupleId = member is TupleMember ? tupleAssignment?.ExistingTupleId : null;
-            string valueId = retainedTupleId ?? Guid.NewGuid().ToString();
+            string valueId = retainedTupleId ?? (member is TupleMember ? destinationId : null) ?? Guid.NewGuid().ToString();
             insertion?.Reserve(member, runtimeValue, valueId);
             NeoScript.LocalCollectionSelections.Occurrence? occurrence = member is LookupMember lookup && runtimeValue is not null && selections is not null
                 ? NeoScript.LocalCollectionSelections.Capture(selections.Plan, selections.Ownership, valueId,
@@ -8251,7 +8380,8 @@ namespace NeoCompose.Runtime
                 genericEnv,
                 path,
                 scope,
-                insertion, selections, member is TupleMember ? tupleAssignment : null);
+                insertion, selections, member is TupleMember ? tupleAssignment : null,
+                member is TupleMember ? destinationId : null);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -8295,8 +8425,10 @@ namespace NeoCompose.Runtime
             NeoConstructionScope? scope,
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
-            TupleAssignment? tupleAssignment = null)
+            TupleAssignment? tupleAssignment = null,
+            string? destinationId = null)
         {
+            destinationId ??= tupleAssignment?.DestinationId;
             NeoValuePayload? wrappedPayload = runtimeValue
                 is INeoValuePayloadProvider provider
                     ? provider.ToNeoValuePayload()
@@ -8304,8 +8436,7 @@ namespace NeoCompose.Runtime
             object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
             if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required)
             {
-                throw new InvalidOperationException(
-                    $"Required constructor field '{member.name}' received null.");
+                client.RequireStoredValue(member, null, path);
             }
             bool materializeExplicitNull = suppliedValue is null;
             object? payload = suppliedValue;
@@ -8332,6 +8463,7 @@ namespace NeoCompose.Runtime
                 };
                 if (count != tupleMember.elementMemberIds.Length)
                     throw new InvalidOperationException($"Tuple field '{path}' requires {tupleMember.elementMemberIds.Length} elements, received {count}.");
+                var previous = insertion?.Destination(destinationId) as ArrayMemberValue;
                 var ids = new string[count];
                 for (int index = 0; index < count; index++)
                 {
@@ -8343,7 +8475,8 @@ namespace NeoCompose.Runtime
                         ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
                     ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
                         $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections,
-                        tupleAssignment?.Element(index))
+                        tupleAssignment?.Element(index),
+                        previous?.value is { } prior && index < prior.Length ? prior[index] : null)
                         ?? throw new InvalidOperationException($"Tuple field '{path}' did not materialize element {index + 1}.");
                 }
                 payload = ids;
@@ -9840,11 +9973,7 @@ namespace NeoCompose.Runtime
                         updatedAt = nowIso,
                         value = sourceValue.value is null
                             ? null
-                            : new SpriteValue
-                            {
-                                fileId = sourceValue.value.fileId,
-                                sliceIndex = sourceValue.value.sliceIndex,
-                            },
+                            : sourceValue.value.Copy(),
                         classId = source.classId,
                     };
                 case AudioMember when source is FileMemberValue sourceValue:
@@ -9966,6 +10095,33 @@ namespace NeoCompose.Runtime
                     }
                 case TupleMember tupleMember when source is ArrayMemberValue sourceValue:
                     return CloneTupleValueRow(client, tupleMember, sourceValue, rows, nowIso, scope, env, path, clonedIdsBySourceId);
+                // P127 §1.3. A Type, CultureInfo or NumberFormatInfo payload,
+                // in its own slot or a box.
+                case ObjectMember { objectType: NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo }
+                    when source is PayloadMemberValue sourceValue:
+                    return new PayloadMemberValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = (JObject?)sourceValue.value?.DeepClone(),
+                    };
+                case ObjectMember when source.valueType is TypeBinding valueType:
+                    return CloneBoxRow(client, valueType, source, rows, nowIso, scope, env, path, clonedIdsBySourceId);
+                case ObjectMember when source is NullMemberValue:
+                    return CreateNullValueRow(nowIso, null);
+                // An object slot's class value is owned, as a class field's is (§1.2).
+                case ObjectMember when source.classId is string heldClassId:
+                    return CloneStoredValueForMemberCore(
+                        client,
+                        NeoTypeBindingViews.View(TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: heldClassId))),
+                        source,
+                        rows,
+                        nowIso,
+                        scope,
+                        env,
+                        path,
+                        clonedIdsBySourceId);
                 case DictionaryMember dictionaryMember
                     when source is ObjectMemberValue sourceValue:
                     return CloneDictionaryValueRow(
@@ -9994,6 +10150,47 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Class default '{path}' references value '{source.id}' with carrier '{source.GetType().Name}', which cannot supply member '{member.id}' of kind '{member.kind}'.");
             }
+        }
+
+        /// <summary>
+        /// A box (P127 §1.3): its payload cloned as a field of its held type,
+        /// beside the same held type. <c>new object()</c> and a built-in
+        /// comparer hold no rows.
+        /// </summary>
+        private static MemberValue CloneBoxRow(
+            NeoClient client,
+            TypeBinding valueType,
+            MemberValue source,
+            List<MemberValue> rows,
+            NeoTimestamp nowIso,
+            NeoConstructionScope scope,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            string path,
+            Dictionary<string, string> clonedIdsBySourceId)
+        {
+            NeoBoxForm form = client.TypeRules.Box(valueType);
+            MemberValue clone = form.Kind switch
+            {
+                NeoBoxFormKind.Member => CloneStoredValueForMemberCore(
+                    client, form.Member!, source, rows, nowIso, scope, env, path, clonedIdsBySourceId),
+                NeoBoxFormKind.Identity => new ObjectMemberValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = new Dictionary<string, string>(),
+                },
+                NeoBoxFormKind.Comparer => new PayloadMemberValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = (JObject?)((PayloadMemberValue)source).value?.DeepClone(),
+                },
+                _ => throw new InvalidOperationException($"Class default '{path}' holds value '{source.id}': {form.Invalid}"),
+            };
+            clone.valueType = valueType;
+            return clone;
         }
 
         private static void CopyDefaultConstructionProvenance(
@@ -10036,7 +10233,7 @@ namespace NeoCompose.Runtime
                     TypeInfo closed = NeoNSFunctionRuntime.ContainsGeneric(parameter)
                         ? NeoGenericResolution.SubstituteTypeInfo(client, parameter, env)
                         : parameter;
-                    if (closed.type != MemberKind.Generic && !NeoTypeSources.ConstructorArgumentStoresRow(closed.type))
+                    if (closed.type != MemberKind.Generic && !NeoTypeSources.ConstructorArgumentStoresRow(closed))
                     {
                         continue;
                     }

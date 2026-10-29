@@ -26,8 +26,8 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Whether an instruction may call a Function or run an object
-        /// initializer anywhere in it, nested bodies included. IR the walker
+        /// Whether an instruction may call a Function, run an object
+        /// initializer or an increment anywhere in it, nested bodies included. IR the walker
         /// does not know counts as calling.
         /// </summary>
         internal static bool MayCall(Instruction instruction)
@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static readonly Func<Pointer, bool> IsCall =
-            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
+            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer or IncrementPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
 
         private static bool AnyPointer(
             Instruction instruction,
@@ -205,6 +205,14 @@ namespace NeoCompose.Runtime.NeoScript
                 case ObjectInitializerPointer initializer:
                     return AnyPointer(initializer.receiver.pointer, predicate)
                         || AnyPointer(initializer.assignments, predicate);
+                case OutPointer output:
+                    foreach (Variable binding in output.bindings ?? System.Array.Empty<Variable>())
+                        if (AnyPointer(binding.pointer, predicate))
+                            return true;
+                    return output.target is not null && AnyPointer(output.target.pointer, predicate);
+                case IncrementPointer increment:
+                    return AnyPointer(increment.assign, predicate)
+                        || AnyPointer(increment.result, predicate);
                 case SwitchExpressionPointer selection:
                     if (AnyPointer(selection.selector, predicate))
                         return true;
@@ -245,6 +253,23 @@ namespace NeoCompose.Runtime.NeoScript
                         || AnyPointer(call.args, predicate);
                 case FunctionErrorCheckPointer errorCheck:
                     return AnyPointer(errorCheck.call, predicate);
+                case BoxPointer box:
+                    return AnyPointer(box.pointer, predicate);
+                case FormatPointer format:
+                    return AnyPointer(format.pointer, predicate);
+                case CastPointer cast:
+                    return AnyPointer(cast.pointer, predicate);
+                case ConvertPointer convert:
+                    return AnyPointer(convert.pointer, predicate);
+                case ObjectMemberPointer member:
+                    return (member.receiver is not null && AnyPointer(member.receiver, predicate))
+                        || AnyPointer(member.args, predicate);
+                case TypeMemberPointer member:
+                    return AnyPointer(member.receiver, predicate)
+                        || AnyPointer(member.args, predicate);
+                case DefaultPointer:
+                case TypeOfPointer:
+                case NewObjectPointer:
                 case ReferencePointer:
                 case VariablePointer:
                 case ValuePointer:

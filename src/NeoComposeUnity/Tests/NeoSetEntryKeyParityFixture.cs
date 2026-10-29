@@ -815,6 +815,7 @@ namespace NeoCompose.Tests
       ""key"": ""null""
     }
   ]
-}";
+}
+";
     }
 }

@@ -385,7 +385,9 @@ namespace NeoCompose.Tests
         {
             using var c = NeoTestSaveStack.ClientFromSchema(GenericData(false));
             int before = c.sessionValues.Count;
-            Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(c, "closed-review", new NeoGeneratedConstructorValue("Pair", "tuple-member", ((object?)null, new string?[] { "a" }))));
+            var error = Assert.Throws<ArgumentNullException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(c, "closed-review", new NeoGeneratedConstructorValue("Pair", "tuple-member", ((object?)null, new string?[] { "a" }))))!;
+            Assert.That(error.ParamName, Is.EqualTo("value"));
+            Assert.That(error.Message, Does.StartWith("'Closed.Pair.Item1' is required and cannot store null."));
             Assert.AreEqual(before, c.sessionValues.Count);
         }
 

@@ -326,6 +326,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty("decimal")]
         public bool? isDecimal;
+        /// <summary>
+        /// TS-side <c>numeric?: "int"</c>: the operands are int, so the op
+        /// follows the int overload (P127 §3.1), as <c>Math.Abs(int.MinValue)</c>
+        /// throwing <c>NeoOverflowError</c> does.
+        /// </summary>
+        public ArithmeticNumeric? numeric;
         // Evaluator cache for op, parsed once.
         internal MathOp parsedOp;
     }

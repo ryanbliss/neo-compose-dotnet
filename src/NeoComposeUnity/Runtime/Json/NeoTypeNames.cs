@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime.Json
             switch (binding.Kind)
             {
                 case TypeBindingKind.Open:
-                    builder.Append(ParameterName(binding.Param!, data));
+                    builder.Append(ParameterName(binding, data));
                     return;
                 case TypeBindingKind.MethodParam:
                     builder.Append("T").Append((binding.Index!.Value + 1).ToString(CultureInfo.InvariantCulture));
@@ -120,63 +120,41 @@ namespace NeoCompose.Runtime.Json
 
         private static void AppendDefinition(StringBuilder builder, TypeDefinition definition, ProjectData? data)
         {
-            if (definition.Nullable)
+            if (definition.Type is MemberKind.Class or MemberKind.Interface && !definition.Nullable)
             {
-                builder.Append("Nullable<T>");
+                bool isClass = definition.Type == MemberKind.Class;
+                string id = (isClass ? definition.ClassId : definition.InterfaceId)!;
+                builder.Append(isClass ? ClassName(id, data) : InterfaceName(id, data));
+                List<GenericParamDeclaration>? parameters = isClass ? ClassParameters(id, data) : InterfaceParameters(id, data);
+                if (parameters is not { Count: > 0 })
+                    return;
+                var names = new string[parameters.Count];
+                for (int index = 0; index < names.Length; index++)
+                    names[index] = parameters[index].name;
+                AppendNames(builder, names);
                 return;
             }
-            switch (definition.Type)
-            {
-                case MemberKind.Class:
-                case MemberKind.Interface:
-                    {
-                        bool isClass = definition.Type == MemberKind.Class;
-                        string id = (isClass ? definition.ClassId : definition.InterfaceId)!;
-                        builder.Append(isClass ? ClassName(id, data) : InterfaceName(id, data));
-                        List<GenericParamDeclaration>? parameters = isClass ? ClassParameters(id, data) : InterfaceParameters(id, data);
-                        if (parameters is not { Count: > 0 })
-                            return;
-                        var names = new string[parameters.Count];
-                        for (int index = 0; index < names.Length; index++)
-                            names[index] = parameters[index].name;
-                        AppendNames(builder, names);
-                        return;
-                    }
-                case MemberKind.Dictionary:
-                    builder.Append("Dictionary");
-                    AppendNames(builder, "TKey", "TValue");
-                    return;
-                case MemberKind.Tuple:
-                    builder.Append("ValueTuple");
-                    AppendNames(builder, Numbered(definition.Arity ?? 0, 0));
-                    return;
-                case MemberKind.NSDelegate:
-                    {
-                        string[] names = Numbered(definition.Arity ?? 0, 1);
-                        if (names.Length > 0)
-                            names[0] = "TResult";
-                        builder.Append("NeoDelegate");
-                        AppendNames(builder, names);
-                        return;
-                    }
-                case MemberKind.NSAction:
-                    builder.Append("NeoAction");
-                    AppendNames(builder, Numbered(definition.Arity ?? 0, 0));
-                    return;
-                default:
-                    builder.Append(LeafName(definition.Type));
-                    AppendNames(builder, "T");
-                    return;
-            }
+            builder.Append(definition.Nullable ? "Nullable" : definition.Type == MemberKind.Tuple ? "ValueTuple" : LeafName(definition.Type));
+            var builtInNames = new string[definition.BuiltInArity ?? 0];
+            for (int index = 0; index < builtInNames.Length; index++)
+                builtInNames[index] = BuiltInParameterName(definition, index);
+            AppendNames(builder, builtInNames);
         }
 
-        /// <summary><c>T1</c> to <c>Tn</c>, the first <paramref name="skip"/> slots left for the caller.</summary>
-        private static string[] Numbered(int count, int skip)
+        internal static string BuiltInParameterName(TypeDefinition owner, int index)
         {
-            var names = new string[count];
-            for (int index = skip; index < count; index++)
-                names[index] = "T" + (index - skip + 1).ToString(CultureInfo.InvariantCulture);
-            return names;
+            if (owner.BuiltInArity is not int count || index < 0 || index >= count)
+                throw new System.ArgumentOutOfRangeException(nameof(index));
+            if (owner.Nullable)
+                return "T";
+            return owner.Type switch
+            {
+                MemberKind.Dictionary => index == 0 ? "TKey" : "TValue",
+                MemberKind.Tuple when count == 8 && index == 7 => "TRest",
+                MemberKind.Tuple or MemberKind.NSAction => "T" + (index + 1).ToString(CultureInfo.InvariantCulture),
+                MemberKind.NSDelegate => index == 0 ? "TResult" : "T" + index.ToString(CultureInfo.InvariantCulture),
+                _ => "T",
+            };
         }
 
         private static void AppendNames(StringBuilder builder, params string[] names)
@@ -237,23 +215,19 @@ namespace NeoCompose.Runtime.Json
         internal static string EnumName(string id, ProjectData? data) =>
             data?.enums is { } enums && enums.TryGetValue(id, out Enum? record) ? record.name : id;
 
-        /// <summary>A class or interface parameter's declared name; a refusal's rare path, so a scan.</summary>
-        private static string ParameterName(string id, ProjectData? data)
+        /// <summary>A parameter's name is resolved only within its owning definition.</summary>
+        private static string ParameterName(TypeBinding parameter, ProjectData? data)
         {
-            if (data?.classes is { } classes)
+            TypeDefinition owner = parameter.Definition!;
+            if (owner.BuiltInArity is not null)
+                return BuiltInParameterName(owner, int.Parse(parameter.Param!, CultureInfo.InvariantCulture));
+            List<GenericParamDeclaration>? parameters = owner.Type switch
             {
-                foreach (NeoSchemaClass schemaClass in classes.Values)
-                {
-                    if (Find(schemaClass.genericParams, id) is string name)
-                        return name;
-                }
-            }
-            foreach (Interface record in data?.interfaces?.Values ?? (IEnumerable<Interface>)System.Array.Empty<Interface>())
-            {
-                if (Find(record.genericParams, id) is string name)
-                    return name;
-            }
-            return id;
+                MemberKind.Class => ClassParameters(owner.ClassId!, data),
+                MemberKind.Interface => InterfaceParameters(owner.InterfaceId!, data),
+                _ => null,
+            };
+            return Find(parameters, parameter.Param!) ?? parameter.Param!;
         }
 
         private static string? Find(List<GenericParamDeclaration>? parameters, string id)

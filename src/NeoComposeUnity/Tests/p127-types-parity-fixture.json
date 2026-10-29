@@ -1,0 +1,1484 @@
+{
+  "$comment": "P127 B2 cross-runtime types-core parity fixture: object and boxing, Type and typeof, int32 wraparound and checked, explicit conversions, casts, as and default. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result and `refuses` the error message it throws. Expected values match .NET 10 except where the spec makes NeoScript differ (string box identity, NeoScript type spelling). The web half runs through `neo test` (cli/src/commands/p127-types-parity.test.ts); the Unity half runs the same cases over a `neo export`. Vendor this file verbatim.",
+  "source": [
+    "class R5BoxedSetTake {public object Item;public R5BoxedSetTake(object item){Item=item;}}",
+    "class R5BoxedTupleSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((((List<object>)[3,(1,2)]).ToSet(),7));}",
+    "class R5BoxedListSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((List<Set<object>>)[((List<object>)[3,(1,2)]).ToSet()]);}",
+    "class R5BoxedDictionarySetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((Dictionary<string,Set<object>>)({[\"x\"]:((List<object>)[3,(1,2)]).ToSet()}));}",
+    "class R5NestedBoxedTupleSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake(((object)(((List<object>)[3,(1,2)]).ToSet(),7),9));}",
+    "class R5NestedTupleSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake(((((List<object>)[3,(1,2)]).ToSet(),7),9));}",
+    "class R5BoxedSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake(((List<object>)[3,(1,2)]).ToSet());}",
+    "class R5BoxedTupleSetDictionaryStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((((List<object>)[3,(1,2)]).ToSet(),(Dictionary<string,object>)({[\"x\"]:4})));}",
+    "class R5BoxedNullableSetListStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((List<Set<object>?>)[((List<object>)[3,(1,2)]).ToSet(),null]);}",
+    "class R5BoxedEmptySetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake(((List<object>)[]).ToSet());}",
+    "class R4TupleSetTake {public (Set<object>,int) Item;public R4TupleSetTake((Set<object>,int) item){Item=item;}} class R4TupleSetStore {public static R4TupleSetTake Value=new R4TupleSetTake((((List<object>)[3,(1,2)]).ToSet(),2));}",
+    "class R4TupleSetDictionaryTake {public (Set<object>,Dictionary<string,object>) Item;public R4TupleSetDictionaryTake((Set<object>,Dictionary<string,object>) item){Item=item;}} class R4TupleSetDictionaryStore {public static R4TupleSetDictionaryTake Value=new R4TupleSetDictionaryTake((((List<object>)[3,(1,2)]).ToSet(),(Dictionary<string,object>)({[\"x\"]:4})));}",
+    "class R4ListSetTake {public List<Set<object>> Item;public R4ListSetTake(List<Set<object>> item){Item=item;}} class R4ListSetStore {public static R4ListSetTake Value=new R4ListSetTake([((List<object>)[3,(1,2)]).ToSet()]);}",
+    "class R4DictionarySetTake {public Dictionary<string,Set<object>> Item;public R4DictionarySetTake(Dictionary<string,Set<object>> item){Item=item;}} class R4DictionarySetStore {public static R4DictionarySetTake Value=new R4DictionarySetTake({[\"x\"]:((List<object>)[3,(1,2)]).ToSet()});}",
+    "class R4TupleListBoxesTake {public (List<object>,int) Item;public R4TupleListBoxesTake((List<object>,int) item){Item=item;}} class R4TupleListBoxesStore {public static R4TupleListBoxesTake Value=new R4TupleListBoxesTake(((List<object>)[3,(1,2)],2));}",
+    "class R4TupleDictionaryBoxTake {public (Dictionary<string,object>,int) Item;public R4TupleDictionaryBoxTake((Dictionary<string,object>,int) item){Item=item;}} class R4TupleDictionaryBoxStore {public static R4TupleDictionaryBoxTake Value=new R4TupleDictionaryBoxTake(((Dictionary<string,object>)({[\"x\"]:4}),2));}",
+    "class R3SetReadTake {public int Count;public R3SetReadTake(Set<object> item){Count=item.Count;}} class R3SetReadStore {public static R3SetReadTake Value=new R3SetReadTake(((List<object>)[3,(1,2)]).ToSet());}",
+    "class R3AliasStore {public static List<object> Pair(){object x=(1,2);return [x,x];} public static R3ListTake Value=new R3ListTake(Pair());}",
+    "class R3ListTake {public List<object> Item;public R3ListTake(List<object> item){Item=item;}} class R3ListStore {public static R3ListTake Value=new R3ListTake([3,(1,2)]);}",
+    "class R3TupleTake {public (object,int) Item;public R3TupleTake((object,int) item){Item=item;}} class R3TupleStore {public static R3TupleTake Value=new R3TupleTake(((object)3,2));}",
+    "class R3DictionaryTake {public Dictionary<string,object> Item;public R3DictionaryTake(Dictionary<string,object> item){Item=item;}} class R3DictionaryStore {public static R3DictionaryTake Value=new R3DictionaryTake({ [\"a\"]:3, [\"b\"]:(1,2) });}",
+    "class R3SetTake {public Set<object> Item;public R3SetTake(Set<object> item){Item=item;}} class R3SetStore {public static R3SetTake Value=new R3SetTake(((List<object>)[3,(1,2)]).ToSet());}",
+    "class R3NestedTake {public List<(object,List<object>)> Item;public R3NestedTake(List<(object,List<object>)> item){Item=item;}} class R3NestedStore {public static R3NestedTake Value=new R3NestedTake([((object)3,(List<object>)[(1,2),4])]);}",
+    "class R3NullTupleTake {public object Item;public R3NullTupleTake(object item){Item=item;}} class R3NullTupleStore {public static R3NullTupleTake Value=new R3NullTupleTake(((string?)null,2));}",
+    "class R3NullNestedTake {public object Item;public R3NullNestedTake(object item){Item=item;}} class R3NullNestedStore {public static R3NullNestedTake Value=new R3NullNestedTake((((string?)null,2),((object)3,(string?)null)));}",
+    "class ReviewStoredTake { public object Item; public ReviewStoredTake(object item) { Item = item; } }",
+    "class ReviewReplacingTake { public object Item; public ReviewReplacingTake(object item) { Item = 0; Item = item; } }",
+    "class ReviewStoredBoxes { public static ReviewStoredTake Tuple = new ReviewStoredTake((1,2)); public static ReviewStoredTake Nested = new ReviewStoredTake(((List<int>)[1,2],3)); public static ReviewStoredTake Deep = new ReviewStoredTake(((1,2),(List<int>)[3,4])); public static ReviewReplacingTake Replacement = new ReviewReplacingTake(((List<int>)[5,6],7)); }",
+    "interface IReview<T> {}",
+    "interface IReflect {}",
+    "class Shape : IReflect {}",
+    "class ReflectionBase<U> {}",
+    "class ReflectionDerived<T extends Shape> : ReflectionBase<T> {}",
+    "class Silent { public string? ToString() => null; }",
+    "class OutMade { public int Value; public OutMade(out int x) { x = 7; Value = x; } }",
+    "enum Planet { Earth, Mars, Venus }",
+    "",
+    "class Plain { public int Cents = 5; }",
+    "",
+    "class Coin {",
+    "  public int Cents = 5;",
+    "  public string ToString() => \"coin\";",
+    "  public int GetHashCode() => 42;",
+    "  public bool Equals(object? other) => other is Coin;",
+    "}",
+    "",
+    "class Note { public bool Equals(Note other) => true; }",
+    "",
+    "class Watch<T>(T initial) {",
+    "  public T Value = initial;",
+    "  public bool Same(T other) => this.Value!.Equals(other);",
+    "}",
+    "",
+    "class Shelf {",
+    "  public object Item = 3;",
+    "  public object Pair = (1, 2);",
+    "  public List<object> Items = [(1, 2), 3, \"a\"];",
+    "}",
+    "",
+    "class Counter { public int Count = 5; }",
+    "",
+    "class Taker {",
+    "  public object Item;",
+    "  public Taker(object item) { Item = item; }",
+    "}",
+    "",
+    "class Holder<T> { public T X; public Holder(T x = default) { X = x; } }",
+    "",
+    "class OwnedList { public List<int> Items = [1]; }",
+    "class NullGuardHolder { public List<string> Names = []; public (string, int) Pair = (\"a\", 1); public string Name = \"x\"; public Dictionary<string, string> Map = { [\"a\"]: \"x\" }; }",
+    "class NullGuardStore { public static NullGuardHolder H = new NullGuardHolder(); public static string Label = \"x\"; }",
+    "class ImplicitObject { public bool Same(object o, object p) => ReferenceEquals(o, p); public bool Equal(object? o, object? q) => Equals(o, q); public bool EqualToSelf() => Equals(this); public string Name() => GetType().Name; public static bool StaticSame(object o, object p) => ReferenceEquals(o, p); }",
+    "class Probe {",
+    "  public static int ThrowArgument() { throw new NeoError(\"argument\"); }",
+    "  public static decimal TinyDefault(decimal x = (decimal)0.00000000000000000000000000001f) => x;",
+    "  public static bool ReceiverBeforeArgument() { int x = 1; return (x++).Equals(x); }",
+    "  public static int OptionalSkipsArgument() { object? o = null; int x = 1; var ignored = o?.Equals(x++); return x; }",
+    "  public static bool OptionalSkipsThrowingArgument() { object? o = null; return o?.Equals(ThrowArgument()) == null; }",
+    "  public static string TupleVirtualText() => $\"{(new Coin(), 1)}\";",
+    "  public static string TupleNullVirtualText() => $\"{(new Silent(), 1)}\";",
+    "  public static string TupleNestedVirtualText() => $\"{((new Coin(), new Silent()), 1)}\";",
+    "  public static int NullableTypeArguments() => typeof(int?).GenericTypeArguments.Count;",
+    "  public static bool NullableTypeArgument() => typeof(int?).GenericTypeArguments[0] == typeof(int);",
+    "  public static bool DefinitionIsClass() => typeof(ReflectionBase<>).IsClass;",
+    "  public static bool DefinitionIsInterface() => typeof(IReview<>).IsInterface;",
+    "  public static bool TypeIsAbstract() => typeof(Type).IsAbstract;",
+    "  public static string TypeOpaqueBase() => typeof(Type).BaseType!.Name;",
+    "  public static int TupleRestArguments() => typeof((int,int,int,int,int,int,int,int,int)).GenericTypeArguments.Count;",
+    "  public static bool TupleRestType() => typeof((int,int,int,int,int,int,int,int,int)).GenericTypeArguments[7] == typeof((int,int));",
+    "  public static bool NullableAssignable() => typeof(int?).IsAssignableFrom(typeof(int));",
+    "  public static bool DefinitionObjectAssignable() => typeof(object).IsAssignableFrom(typeof(ReflectionBase<>));",
+    "  public static bool BoxedListInterfaceIs() { object o = (List<int>)[1,2]; return o is IEnumerable<int>; }",
+    "  public static bool BoxedListInterfaceAs() { object o = (List<int>)[1,2]; return (o as IEnumerable<int>) != null; }",
+    "  public static int BoxedListInterfaceCast() { object o = (List<int>)[1,2]; IEnumerable<int> s = (IEnumerable<int>)o; return s.Count(); }",
+    "  public static bool BoxedListInterfaceInstance() { object o = (List<int>)[1,2]; return typeof(IEnumerable<int>).IsInstanceOfType(o); }",
+    "  public static string ConstantTinyDecimal() => ((decimal)0.00000000000000000000000000001f).ToString();",
+    "  public static string ConstantNearTinyDecimal() => ((decimal)0.00000000000000000000000000015f).ToString();",
+    "  public static string ConstantTinyDefault() => TinyDefault().ToString();",
+    "  public static bool OutNullableTuple() { (string A, int B) pair = (\"ok\", 1); TryText(out pair.A); return pair.A == null; }",
+    "  public static string DecimalConstantAdd() => (1.10m + 2.20m).ToString();",
+    "  public static string DecimalConstantSubtract() => (4.50m - 1.20m).ToString();",
+    "  public static string DecimalConstantMultiply() => (1.2m * 2.5m).ToString();",
+    "  public static string DecimalConstantDivide() => (1m / 3m).ToString();",
+    "  public static string DecimalConstantRemainder() => (1.0m % 0.5m).ToString();",
+    "  public static bool DecimalConstantComparison() => 1.00m == 1m;",
+    "  public static bool DecimalConstantPromotion() => 16777217m > 16777216;",
+    "  public static string DecimalConstantConditional() => (true ? 1 : 2m).ToString();",
+    "  public static int OutTupleElement() { (int A, int B) pair = (1, 2); Assign(out pair.A); return pair.A + pair.B; }",
+    "  public static int OutTupleUninitialized() { (int A, int B) pair; Assign(out pair.A); Assign(out pair.B); return pair.A + pair.B; }",
+    "  public static int OutNestedTuple() { ((int A, int B) Inner, int C) pair = ((1, 2), 3); Assign(out pair.Inner.A); return pair.Inner.A + pair.Inner.B + pair.C; }",
+    "  public static int OutTupleAlias() { (int A, int B) pair = (1, 2); Alias(out pair.A, out pair.A); return pair.A; }",
+    "  public static int BlockAssignment() { int value; if (true) { value = 3; } else { value = 4; } return value; }",
+    "  public static int SwitchSharedLocal() { switch (1) { case 0: int x = 1; return x; case 1: x = 5; return x; } return 0; }",
+    "  public static int LambdaParameterShadow() { int x = 4; NeoDelegate<int, int> fn = x => x + 1; return fn(x); }",
+    "  public static bool OutNullableFalse() { if (TryText(out var text)) return false; return text == null; }",
+    "  public static int OutNullableTrue() { if (TryTextTrue(out var text)) return text.Length; return 0; }",
+    "  public static int NotNullWhenGuard() { string? text = \"ok\"; if (HasText(text)) return text.Length; return 0; }",
+    "  public static void Assign(out int x) { x = 7; }",
+    "  public static void Alias(out int x, out int y) { x = 7; y = x + 1; }",
+    "  public static bool TryText(@maybeNullWhen(false) out string text) { text = null; return false; }",
+    "  public static bool TryTextTrue(@maybeNullWhen(false) out string text) { text = \"ok\"; return true; }",
+    "  public static bool HasText(@notNullWhen(true) string? text) => text != null;",
+    "  public static string OpenParameterInterfaceName() => typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0].GetInterfaces()[0].Name;",
+    "  public static int OpenParameterInterfaces() => typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0].GetInterfaces().Count;",
+    "  public static string OpenParameterBase() => typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0].BaseType!.Name;",
+    "  public static bool Vector3IntBoxedUnequal() { object a = new Vector3Int(16777216, 0, 0); object b = new Vector3Int(16777217, 0, 0); return a.Equals(b); }",
+    "  public static bool Vector3BoxedUnequal() { object a = new Vector3(float.NaN, 0, 0); object b = new Vector3(float.NaN, 0, 0); return a.Equals(b); }",
+    "  public static bool Vector2IntBoxedUnequal() { object a = new Vector2Int(16777216, 0); object b = new Vector2Int(16777217, 0); return a.Equals(b); }",
+    "  public static bool Vector2BoxedUnequal() { object a = new Vector2(float.NaN, 0); object b = new Vector2(float.NaN, 0); return a.Equals(b); }",
+    "  public static string NullOverrideFormat() => $\"{(object)new Silent()}\";",
+    "  public static string NullOverrideConcat() => \"a\" + (object)new Silent();",
+    "  public static bool DirectNullToString() => ((object)new Silent()).ToString() is null;",
+    "  public static bool Vector3IntAdjacentEquals() => new Vector3Int(16777216, 0, 0).Equals(new Vector3Int(16777217, 0, 0));",
+    "  public static bool Vector2IntAdjacentEquals() => new Vector2Int(16777216, 0).Equals(new Vector2Int(16777217, 0));",
+    "  public static bool Vector3NaNEquals() => new Vector3(float.NaN, 0, 0).Equals(new Vector3(float.NaN, 0, 0));",
+    "  public static bool Vector2NaNEquals() => new Vector2(float.NaN, 0).Equals(new Vector2(float.NaN, 0));",
+    "  public static object ExistingBox = 3;",
+    "  public static Taker ExistingTaker = new Taker(ExistingBox);",
+    "  public static bool StoredBoxConstructorIdentity() => object.ReferenceEquals(ExistingBox, ExistingTaker.Item);",
+    "  public static void ReownedBoxedCollection() { Shelf a = new Shelf(); Shelf b = new Shelf(); List<int> l = [1]; a.Item = l; b.Item = l; }",
+    "  public static void OwnedBoxedCollectionConstructor() { Shelf a = new Shelf(); List<int> l = [1]; a.Item = l; Taker b = new Taker(a.Item); }",
+    "  public static void OwnedCollectionBoxWrite() { OwnedList source = new OwnedList(); Shelf dest = new Shelf(); dest.Item = source.Items; }",
+    "  public static void OwnedCollectionBoxConstructor() { OwnedList source = new OwnedList(); Taker dest = new Taker(source.Items); }",
+    "  public static int GenericConstructorDefault() => new Holder<int>().X;",
+    "  public static int BoxedNewListConstructor() => ((List<int>)new Taker(new List<int>()).Item).Count;",
+    "  public static int FoldAdd(int n = 1 + 2) => n;",
+    "  public static int FoldMax(int n = int.MaxValue) => n;",
+    "  public static float FoldCast(float n = (float)1) => n;",
+    "  public static float FoldDefaultInt(float n = default(int)) => n;",
+    "  public static int ConstantAddDefault() => FoldAdd();",
+    "  public static int ConstantMaxDefault() => FoldMax();",
+    "  public static float ConstantCastDefault() => FoldCast();",
+    "  public static float ConstantConversionDefault() => FoldDefaultInt();",
+    "  public static int BoxedListAlias() { Shelf s = new Shelf(); List<int> l = [1]; s.Item = l; l.Add(2); return ((List<int>)s.Item).Count; }",
+    "  public static int BoxedDictionaryWrite() { Shelf s = new Shelf(); Dictionary<string, int> d = { \"a\": 2 }; s.Item = d; return ((Dictionary<string, int>)s.Item)[\"a\"]; }",
+    "  public static int BoxedCollectionCtor() { List<int> l = [1, 2]; Taker t = new Taker(l); return ((List<int>)t.Item).Count; }",
+    "  public static string ShelfListWrite() { Shelf s = new Shelf(); List<int> l = [1]; s.Item = l; return s.Item.ToString()!; }",
+    "  public static object Stash = 1;",
+    "  public static bool ShelfSame() { Shelf s = new Shelf(); return object.ReferenceEquals(s.Item, s.Item); }",
+    "  public static bool ShelfKeepsBox() { Shelf s = new Shelf(); object b = 5; s.Item = b; return object.ReferenceEquals(s.Item, b); }",
+    "  public static string ShelfTupleWrite() { Shelf s = new Shelf(); s.Item = (3, 4); return s.Item.ToString()!; }",
+    "  public static string StaticWrite() { Probe.Stash = \"x\"; return Probe.Stash.ToString()!; }",
+    "  public static int StaticDefault() { return (int)Probe.Stash; }",
+    "  public static int ShelfDefault() { Shelf s = new Shelf(); return (int)s.Item; }",
+    "  public static string ShelfPair() { Shelf s = new Shelf(); return s.Pair.ToString()!; }",
+    "  public static string ShelfWrite() { Shelf s = new Shelf(); s.Item = new Vector2(1, 2); return s.Item.ToString()!; }",
+    "  public static int ShelfList() { Shelf s = new Shelf(); s.Items.Add(4); return s.Items.Count; }",
+    "  public static string ShelfListText() { Shelf s = new Shelf(); return s.Items[0].ToString()! + s.Items[2].ToString()!; }",
+    "  public static int Unbox(object o) => (int)o;",
+    "  public static object Make() { return (1, 2); }",
+    "  public static T Pass<T>(T value) { return value; }",
+    "  public static T Zero<T>() { return default(T); }",
+    "  public static object Wrap<T>(T value) { return value; }",
+    "",
+    "  public static int IntMax() { return int.MaxValue; }",
+    "  public static int IntMin() { return int.MinValue; }",
+    "  public static bool FloatNaN() { float f = float.NaN; return f != f; }",
+    "  public static bool FloatInfinity() { return float.PositiveInfinity > float.MaxValue; }",
+    "  public static bool DecimalMax() { return decimal.MaxValue == 79228162514264337593543950335m; }",
+    "  public static int WrapAdd() { int x = int.MaxValue; return x + 1; }",
+    "  public static int WrapMultiply() { int x = 65536; return x * 65536; }",
+    "  public static int WrapNegate() { int x = int.MinValue; return -x; }",
+    "  public static int UncheckedAdd() { int x = int.MaxValue; return unchecked(x + 1); }",
+    "  public static int CheckedAdd() { int x = int.MaxValue; return checked(x + 1); }",
+    "  public static int CheckedBlock() { int x = int.MaxValue; checked { x += 1; } return x; }",
+    "  public static int CheckedNegate() { int x = int.MinValue; return checked(-x); }",
+    "  public static int TruncatingDivide() { int x = -7; return x / 2; }",
+    "  public static int Remainder() { int x = -7; return x % 2; }",
+    "  public static int DivideByZero() { int x = 1; int y = 0; return x / y; }",
+    "  public static int MinValueDivide() { int x = int.MinValue; int y = -1; return x / y; }",
+    "  public static int ModuloByZero() { int x = 1; int y = 0; return x % y; }",
+    "  public static string NullFieldWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Name = l[0]; return \"stored\"; }",
+    "  public static string NullEntryWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Names.Add(l[0]); return \"stored\"; }",
+    "  public static string NullTupleWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Pair = (l[0], 2); return \"stored\"; }",
+    "  public static string NullWholeListWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Names = l; return \"stored\"; }",
+    "  public static string NullIndexerWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Names.Add(\"a\"); NullGuardStore.H.Names[0] = l[0]; return \"stored\"; }",
+    "  public static string NullDictionaryWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.H.Map[\"b\"] = l[0]; return \"stored\"; }",
+    "  public static string NullStaticWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; NullGuardStore.Label = l[0]; return \"stored\"; }",
+    "  public static string CatchNullWrite() { object o = (List<string?>)[null]; var l = (List<string>)o; try { NullGuardStore.H.Name = l[0]; } catch (NeoInvalidOperationError e) { return e.Message; } return \"stored\"; }",
+    "  public static bool ImplicitReferenceEquals() { object o = new Plain(); object p = new Plain(); ImplicitObject h = new ImplicitObject(); return h.Same(o, o) && !h.Same(o, p); }",
+    "  public static bool ImplicitStaticEquals() { ImplicitObject h = new ImplicitObject(); return h.Equal(3, 3) && !h.Equal(3, null); }",
+    "  public static bool ImplicitInstanceEquals() { return new ImplicitObject().EqualToSelf(); }",
+    "  public static string ImplicitGetType() { return new ImplicitObject().Name(); }",
+    "  public static bool ImplicitStaticContext() { object o = new Plain(); return ImplicitObject.StaticSame(o, o) && ReferenceEquals(o, o); }",
+    "  public static int CoalesceDefault() { int? n = null; return n ?? default; }",
+    "  public static string CatchModuloByZero() { int x = 1; int y = 0; try { return (x % y).ToString(); } catch (NeoArithmeticError e) { return e.Message; } }",
+    "  public static string DecimalDivide() { decimal a = 1m; decimal b = 3m; return (a / b).ToString(); }",
+    "  public static string DecimalRemainder() { decimal a = 7.5m; decimal b = 2m; return (a % b).ToString(); }",
+    "  public static string DecimalNegativeRemainder() { decimal a = -7.5m; decimal b = 2m; return (a % b).ToString(); }",
+    "  public static string DecimalMaxRemainder() { decimal a = decimal.MaxValue; decimal b = 0.1m; return (a % b).ToString(); }",
+    "  public static string DecimalDivideAssign() { decimal a = 1m; a /= 4m; return a.ToString(); }",
+    "  public static string DecimalDivideByZero() { decimal a = 1m; decimal b = 0m; return (a / b).ToString(); }",
+    "  public static string DecimalRemainderByZero() { decimal a = 1m; decimal b = 0m; return (a % b).ToString(); }",
+    "  public static string DecimalQuotientOverflow() { decimal a = decimal.MaxValue; decimal b = 0.1m; return (a / b).ToString(); }",
+    "  public static string CatchDecimalDivideByZero() { decimal a = 1m; decimal b = 0m; try { return (a / b).ToString(); } catch (NeoArithmeticError e) { return e.Message; } }",
+    "",
+    "  public static int FloatToInt() { float f = 3.7f; return (int)f; }",
+    "  public static int NegativeFloatToInt() { float f = -3.7f; return (int)f; }",
+    "  public static int NaNToInt() { float f = float.NaN; return (int)f; }",
+    "  public static int SaturatingFloatToInt() { float f = 1e10f; return (int)f; }",
+    "  public static int CheckedFloatToInt() { float f = 1e10f; return checked((int)f); }",
+    "  public static int DecimalToInt() { decimal d = 3.9m; return (int)d; }",
+    "  public static int OverflowingDecimalToInt() { decimal d = 1e10m; return (int)d; }",
+    "  public static bool FloatToDecimal() { float f = 0.1f; return (decimal)f == 0.1m; }",
+    "  public static float DecimalToFloat() { decimal d = 0.1m; return (float)d; }",
+    "  public static int EnumToInt() { return (int)Planet.Mars; }",
+    "  public static bool IntToEnum() { int i = 2; return (Planet)i == Planet.Venus; }",
+    "  public static Planet BadIntToEnum() { int i = 7; return (Planet)i; }",
+    "  public static int ConstantCast() { return (int)3.7; }",
+    "  public static float FloatSuffix() { return 3f; }",
+    "  public static bool DecimalSuffix() { decimal d = 1.10m; return d == 1.1m; }",
+    "",
+    "  public static int BoxInt() { object o = 3; return (int)o; }",
+    "  public static int BoxArgument() { return Unbox(5); }",
+    "  public static bool BoxIdentity() { object a = 3; object b = 3; return object.ReferenceEquals(a, b); }",
+    "  public static bool BoxSelfIdentity() { object a = 3; return object.ReferenceEquals(a, a); }",
+    "  public static bool StringBoxIdentity() { object a = \"x\"; object b = \"x\"; return object.ReferenceEquals(a, b); }",
+    "  public static bool StaticEquals() { object a = 3; object b = 3; return object.Equals(a, b); }",
+    "  public static float UnboxWrongType() { object o = 3; return (float)o; }",
+    "  public static bool AsWrongType() { object o = 3; return (o as string) == null; }",
+    "  public static int NullableUnbox() { object o = 3; int? n = (int?)o; return n ?? -1; }",
+    "  public static int NullableAs() { object o = \"x\"; int? n = o as int?; return n ?? -1; }",
+    "  public static int UnboxNull() { object? o = null; return (int)o; }",
+    "  public static bool IsBoxedInt() { object o = 3; return o is int; }",
+    "  public static bool IsBoxedFloat() { object o = 3; return o is float; }",
+    "  public static int BoxTuple() { object o = (1, 2); (int a, int b) t = ((int, int))o; return t.a * 10 + t.b; }",
+    "  public static int ReturnBoxedTuple() { (int a, int b) t = ((int, int))Make(); return t.a + t.b; }",
+    "  public static int ValueTypeTuple() { ValueType v = (1, 2); (int a, int b) t = ((int, int))v; return t.b; }",
+    "  public static bool EnumBox() { Enum e = Planet.Mars; return (Planet)e == Planet.Mars; }",
+    "  public static float VectorBox() { object o = new Vector2(1, 2); return ((Vector2)o).y; }",
+    "  public static int ObjectList() { List<object> l = [(1, 2), 3, \"a\"]; return l.Count; }",
+    "  public static string ObjectListEntry() { List<object> l = [(1, 2), 3, \"a\"]; return (string)l[2]; }",
+    "  public static int NewObject() { object o = new object(); return object.ReferenceEquals(o, o) ? 1 : 0; }",
+    "  public static int GenericBox() { object o = Wrap(4); return (int)o; }",
+    "",
+    "  public static int DefaultInt() { return default(int); }",
+    "  public static bool DefaultEnum() { Planet p = default; return p == Planet.Earth; }",
+    "  public static bool DefaultString() { string? s = default; return s == null; }",
+    "  public static int GenericDefault() { return Zero<int>(); }",
+    "  public static bool GenericDefaultString() { return Zero<string?>() == null; }",
+    "  public static float NewValueType() { return new float(); }",
+    "",
+    "  public static bool TypeOfIdentity() { return typeof(int) == typeof(int); }",
+    "  public static bool TypeOfDiffers() { return typeof(int) == typeof(float); }",
+    "  public static bool GetTypeOfBox() { object o = 3; return o.GetType() == typeof(int); }",
+    "  public static string TypeName() { return typeof(List<int>).Name; }",
+    "  public static string TypeFullName() { return typeof((int, string)).FullName!; }",
+    "  public static string GenericTypeName() { return typeof(List<>).Name; }",
+    "",
+    "  public static bool IsValue<T>(T value) { return value is ValueType; }",
+    "  public static bool IsAnEnum<T>(T value) { return value is Enum; }",
+    "  public static bool GenericIntIsValueType() { return IsValue(3); }",
+    "  public static bool GenericStringIsValueType() { return IsValue(\"a\"); }",
+    "  public static bool GenericEnumIsEnum() { return IsAnEnum(Planet.Mars); }",
+    "  public static bool GenericIntIsEnum() { return IsAnEnum(3); }",
+    "  public static string BoxedIntText() { object o = -3; return o.ToString()!; }",
+    "  public static string BoxedEnumText() { object o = Planet.Mars; return o.ToString()!; }",
+    "  public static string BoxedVectorText() { object o = new Vector2(1, 2.5f); return o.ToString()!; }",
+    "  public static string BoxedVectorIntText() { object o = new Vector2Int(1, -2); return o.ToString()!; }",
+    "  public static string BoxedTupleText() { object o = (1, \"a\"); return o.ToString()!; }",
+    "  public static string NewObjectText() { return new object().ToString()!; }",
+    "  public static string TypeText() { return typeof(int).ToString()!; }",
+    "  public static bool BoxedTupleEquals() { object a = (1, 2); object b = (1, 2); return a.Equals(b); }",
+    "  public static bool BoxedNaNEquals() { object a = float.NaN; object b = float.NaN; return a.Equals(b); }",
+    "  public static bool BoxedKindsDiffer() { object a = 1; object b = 1f; return a.Equals(b); }",
+    "  public static int BoxedIntHash() { object o = -7; return o.GetHashCode(); }",
+    "  public static int BoxedBoolHash() { object o = true; return o.GetHashCode(); }",
+    "  public static int BoxedEnumHash() { object o = Planet.Venus; return o.GetHashCode(); }",
+    "  public static int TypeHash() { return typeof(int).GetHashCode(); }",
+    "  public static string PlainText() { object o = new Plain(); return o.ToString()!; }",
+    "  public static bool PlainEquals() { object a = new Plain(); object b = new Plain(); return a.Equals(b); }",
+    "  public static bool PlainSelfEquals() { object a = new Plain(); return a.Equals(a); }",
+    "  public static string CoinText() { object o = new Coin(); return o.ToString()!; }",
+    "  public static int CoinHash() { object o = new Coin(); return o.GetHashCode(); }",
+    "  public static bool CoinEquals() { object a = new Coin(); object b = new Coin(); return a.Equals(b); }",
+    "  public static bool CoinStaticEquals() { return object.Equals(new Coin(), new Coin()); }",
+    "  public static bool NoteOverloadSkipped() { object a = new Note(); return a.Equals(new Note()); }",
+    "  public static bool WatchIntSame() { var w = new Watch<int>(3); return w.Same(3); }",
+    "  public static bool WatchIntDiffers() { var w = new Watch<int>(3); return w.Same(4); }",
+    "  public static bool WatchStringSame() { var w = new Watch<string>(\"a\"); return w.Same(\"a\"); }",
+    "  public static bool WatchCoinSame() { var w = new Watch<Coin>(new Coin()); return w.Same(new Coin()); }",
+    "",
+    "  public static int PrefixIncrement() { int i = 1; int j = ++i; return i * 10 + j; }",
+    "  public static int PostfixIncrement() { int i = 1; int j = i++; return i * 10 + j; }",
+    "  public static int PostfixDecrementField() { var c = new Counter(); int old = c.Count--; return c.Count * 10 + old; }",
+    "  public static int IndexIncrement() { List<int> l = [1, 2]; int k = 0; int v = l[k++]++; return v * 100 + l[0] * 10 + k; }",
+    "  public static int UncheckedIncrement() { int i = int.MaxValue; return ++i; }",
+    "  public static int CheckedIncrement() { int i = int.MaxValue; return checked(++i); }",
+    "  public static float FloatIncrement() { float f = 1.5f; return f++ + f; }",
+    "",
+    "  public static string AlignRight() { return $\"[{42,5}]\"; }",
+    "  public static string AlignLeft() { return $\"[{42,-5}]\"; }",
+    "  public static string AlignNegativeConstant() { return $\"[{7,-3 + 1}]\"; }",
+    "  public static string FormatFloat() { return $\"{1234.5f:N2}\"; }",
+    "  public static string FormatHex() { return $\"{255:X4}\"; }",
+    "  public static string FormatDecimal() { return $\"{1.5m:F3}\"; }",
+    "  public static string FormatEnumNumber() { return $\"{Planet.Mars:D}\"; }",
+    "  public static string FormatEnumName() { return $\"{Planet.Mars}\"; }",
+    "  public static string FormatBool() { return $\"{true}\"; }",
+    "  public static string FormatShortestFloat() { return $\"{0.1f}\"; }",
+    "  public static string FormatVector() { return $\"{new Vector2(1, 2)}\"; }",
+    "  public static string FormatVectorFormat() { return $\"{new Vector2(1, 2):F1}\"; }",
+    "  public static string FormatVectorInt() { return $\"{new Vector2Int(1, 2):D3}\"; }",
+    "  public static string FormatAlignedFormat() { return $\"[{3.14159f,8:F2}]\"; }",
+    "  public static string FormatOverride() { return $\"[{new Coin(),6}]\"; }",
+    "  public static string FormatIgnoredOnPlain() { return $\"{new Coin():X}\"; }",
+    "  public static string FormatNull() { string? s = null; return $\"[{s,3}]\"; }",
+    "  public static string FormatBoxed() { object o = 255; return $\"{o:X}\"; }",
+    "  public static string ConcatBool() { return \"a\" + true; }",
+    "  public static string ConcatVector() { return \"a\" + new Vector2(1, 2); }",
+    "  public static string ConcatOverride() { return \"a\" + new Coin(); }",
+    "  public static string ConcatClass() { return \"a\" + new Plain(); }",
+    "  public static string ConcatNull() { string? s = null; return \"a\" + s + \"b\"; }",
+    "  public static string ConcatDecimal() { return \"x\" + 1.50m; }",
+    "  public static string ConcatList() { List<int> l = [1]; return \"\" + l; }",
+    "  public static string ConcatEnum() { return Planet.Venus + \"!\"; }",
+    "  public static T Echo<T>(T? value) => value;",
+    "  public static int MaybeDefaultWarns() { return Echo<int>(5) + (Echo<string>(\"ab\") ?? \"\").Length; }",
+    "  public static int ZeroOr(int x = default) => x;",
+    "  public static int? Zeroed(int? x = default(int)) => x;",
+    "  public static int? Nulled(int? x = default) => x;",
+    "  public static T Fallback<T>(T x = default(T)) => x;",
+    "  public static Planet FirstPlanet(Planet p = new Planet()) => p;",
+    "  public static Vector2 Origin(Vector2 v = new Vector2()) => v;",
+    "  public static int DefaultParam() { return ZeroOr(); }",
+    "  public static int NullableUnderlyingParam() { return Zeroed() ?? -1; }",
+    "  public static int NullableDefaultParam() { return Nulled() ?? -1; }",
+    "  public static int GenericDefaultParamInt() { return Fallback<int>(); }",
+    "  public static bool GenericDefaultParamString() { return Fallback<string>() == null; }",
+    "  public static string NewEnumParam() { return $\"{FirstPlanet()}\"; }",
+    "  public static string NewVectorParam() { return $\"{Origin()}\"; }",
+    "  public static int CtorBoxArgument() { Taker t = new Taker(5); return (int)t.Item; }",
+    "  public static string CtorBoxTuple() { Taker t = new Taker((1, 2)); return $\"{t.Item}\"; }",
+    "  public static string EnumText() { return Planet.Mars.Text(); }",
+    "  public static int ValueToStringIsString() { string s = Planet.Mars.ToString(); return s.Length + 12.ToString().Length; }",
+    "  public static float FoldPromoted(float n = 16777217 + 1f) => n;",
+    "  public static bool FoldCompared(bool n = 16777217 > 16777216f) => n;",
+    "  public static float ConstantFloatPromotion() => FoldPromoted();",
+    "  public static bool ConstantFloatComparison() => FoldCompared();",
+    "  public static OutMade StoredOutValue = new OutMade(out var ignored);",
+    "  public static int StoredOutConstructor() => StoredOutValue.Value;",
+    "  public static string ReflectionFactsClosed() { Type t = typeof(ReflectionDerived<Shape>); return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsDefinition() { Type t = typeof(ReflectionDerived<>); return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsOpen() { Type t = typeof(ReflectionDerived<>).BaseType!; return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsParameter() { Type t = typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0]; return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsNullable() { Type t = typeof(int?); return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsNullableDefinition() { Type t = typeof(int?).GetGenericTypeDefinition(); return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsOpaque() { Type t = typeof(Type).BaseType!; return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string ReflectionFactsInterfaceDefinition() { Type t = typeof(IReview<>); return $\"{t.IsClass}|{t.IsInterface}|{t.IsEnum}|{t.IsValueType}|{t.IsPrimitive}|{t.IsAbstract}|{t.IsSealed}|{t.IsGenericType}|{t.IsGenericTypeDefinition}|{t.IsGenericParameter}|{t.ContainsGenericParameters}|{t.GenericTypeArguments.Count}|{t.GetInterfaces().Count}|{t.IsSubclassOf(typeof(object))}|{t.IsAssignableFrom(t)}|{t.IsAssignableFrom(typeof(ReflectionDerived<Shape>))}|{t.IsInstanceOfType(new ReflectionDerived<Shape>())}\"; }",
+    "  public static string NullableDefinitionName() => typeof(int?).GetGenericTypeDefinition().Name;",
+    "  public static string? OpaqueNamespace() => typeof(Type).BaseType!.Namespace;",
+    "  public static string? OpaqueFullName() => typeof(Type).BaseType!.FullName;",
+    "  public static bool OpaqueAcceptsType() => typeof(Type).BaseType!.IsAssignableFrom(typeof(Type));",
+    "  public static bool OpaqueTypeInstance() => typeof(Type).BaseType!.IsInstanceOfType(typeof(int));",
+    "  public static bool TypeSubclassOpaque() => typeof(Type).IsSubclassOf(typeof(Type).BaseType!);",
+    "  public static string TupleOneRestName() => typeof((int,int,int,int,int,int,int,int)).GenericTypeArguments[7].Name;",
+    "  public static string TupleFifteenRest() => typeof((int,int,int,int,int,int,int,int,int,int,int,int,int,int,int)).GenericTypeArguments[7].GenericTypeArguments[7].Name;",
+    "  public static bool TupleRestDefinitionArity() => typeof((int,int,int,int,int,int,int,int,int)).GetGenericTypeDefinition() == typeof((int,int,int,int,int,int,int,int)).GetGenericTypeDefinition();",
+    "  public static int BoxedListInterfaceAlias() { List<int> list = [1]; object box = list; IEnumerable<int> sequence = (IEnumerable<int>)box; list.Add(2); return sequence.Count(); }",
+    "  public static int BoxedListInterfacePattern() { object box = (List<int>)[1,2]; if (box is IEnumerable<int> sequence) return sequence.Count(); return 0; }",
+    "  public static string ConstantDoubleUnderflow() => ((decimal)0.00000000000000000000000000001).ToString();",
+    "  public static string ConstantDoubleRounding() => ((decimal)0.00000000000000000000000000015).ToString();",
+    "  public static object ThrowReceiver() { throw new NeoError(\"receiver\"); }",
+    "  public static void NullReceiverArgumentThrows() { object? o = null; ((object)o).Equals(ThrowArgument()); }",
+    "  public static void ReceiverThrowsBeforeArgument() { ThrowReceiver().Equals(ThrowArgument()); }",
+    "  public static string ReflectionNamesClosed() { Type t = typeof(ReflectionDerived<Shape>); return $\"{t.Name}|{t.FullName}|{t.Namespace}|{t.BaseType!.Name}\"; }",
+    "  public static string ReflectionNamesDefinition() { Type t = typeof(ReflectionDerived<>); return $\"{t.Name}|{t.FullName}|{t.Namespace}|{t.BaseType!.Name}\"; }",
+    "  public static string ReflectionNamesOpen() { Type t = typeof(ReflectionDerived<>).BaseType!; return $\"{t.Name}|{t.FullName}|{t.Namespace}|{t.BaseType!.Name}\"; }",
+    "  public static string ReflectionNamesParameter() { Type t = typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0]; return $\"{t.Name}|{t.FullName}|{t.Namespace}|{t.BaseType!.Name}\"; }",
+    "  public static bool ClosedDefinition() => typeof(ReflectionDerived<Shape>).GetGenericTypeDefinition() == typeof(ReflectionDerived<>);",
+    "  public static bool OpenDefinition() => typeof(ReflectionDerived<>).BaseType!.GetGenericTypeDefinition() == typeof(ReflectionBase<>);",
+    "  public static bool DefinitionDefinition() => typeof(ReflectionDerived<>).GetGenericTypeDefinition() == typeof(ReflectionDerived<>);",
+    "  public static int OpenParameterPosition() => typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0].GenericParameterPosition;",
+    "  public static int BoxedSetInterfaceCast() => ((IEnumerable<int>)(object)((List<int>)[1,2]).ToSet()).Count();",
+    "  public static bool CollectionTypeAssignable() => typeof(IEnumerable<int>).IsAssignableFrom(typeof(List<int>));",
+    "  public static void OpenParameterDefinitionRefusal() { var ignored = typeof(ReflectionDerived<>).BaseType!.GenericTypeArguments[0].GetGenericTypeDefinition(); }",
+    "  public static void ClosedParameterPositionRefusal() { var ignored = typeof(ReflectionDerived<Shape>).GenericParameterPosition; }",
+    "  public static void DefinitionParameterPositionRefusal() { var ignored = typeof(ReflectionDerived<>).GenericParameterPosition; }",
+    "  public static void OpenParameterPositionRefusal() { var ignored = typeof(ReflectionDerived<>).BaseType!.GenericParameterPosition; }",
+    "  public static bool ValueSequenceInterfaceIs() => ((object)1) is IEnumerable<int>;",
+    "public static T ReviewCast<T>(object? value) => (T)value;",
+    "public static bool GenericTargetBoxInt() { object o=3; return object.ReferenceEquals(o,ReviewCast<object>(o)); }",
+    "public static bool GenericTargetBoxNullable() { int? n=3; object? o=n; return object.ReferenceEquals(o,ReviewCast<object>(o)); }",
+    "public static bool GenericTargetBoxTuple() { object o=(1,2); return object.ReferenceEquals(o,ReviewCast<object>(o)); }",
+    "public static bool GenericTargetBoxList() { object o=(List<int>)[1,2]; return object.ReferenceEquals(o,ReviewCast<object>(o)); }",
+    "public static bool GenericTargetBoxClass() { object o=new Shape(); return object.ReferenceEquals(o,ReviewCast<object>(o)); }",
+    "public static bool GenericTargetBoxNull() => ReviewCast<object?>(null) == null;",
+    "public static int StoredBoxTupleReplay() { var t=((int,int))ReviewStoredBoxes.Tuple.Item; return t.Item1+t.Item2; }",
+    "public static int StoredBoxNestedTupleReplay() { var t=((List<int>,int))ReviewStoredBoxes.Nested.Item; return t.Item1[0]+t.Item1[1]+t.Item2; }",
+    "public static int StoredBoxDeepTupleReplay() { var t=(((int,int),List<int>))ReviewStoredBoxes.Deep.Item; return t.Item1.Item2+t.Item2[1]; }",
+    "public static int StoredBoxReplacementReplay() { var t=((List<int>,int))ReviewStoredBoxes.Replacement.Item; return t.Item1[1]+t.Item2; }",
+    "public static bool StoredBoxTupleIdentity() => object.ReferenceEquals(ReviewStoredBoxes.Tuple.Item,ReviewStoredBoxes.Tuple.Item);",
+    "public static int ConstructorAggregateList()=>(int)R3ListStore.Value.Item[0]+(((int,int))R3ListStore.Value.Item[1]).Item2;",
+    "public static int ConstructorAggregateTuple()=>(int)R3TupleStore.Value.Item.Item1+R3TupleStore.Value.Item.Item2;",
+    "public static int ConstructorAggregateDictionary()=>(int)R3DictionaryStore.Value.Item[\"a\"]+(((int,int))R3DictionaryStore.Value.Item[\"b\"]).Item2;",
+    "public static int ConstructorAggregateSet()=>R3SetStore.Value.Item.Count;",
+    "public static int ConstructorAggregateNested()=>(int)R3NestedStore.Value.Item[0].Item1+(int)R3NestedStore.Value.Item[0].Item2[1];",
+    "public static int ConstructorAggregateNullTuple()=>(((string?,int))R3NullTupleStore.Value.Item).Item2;",
+    "public static int ConstructorAggregateNullNested()=>(int)((((string?,int),(object,string?)))R3NullNestedStore.Value.Item).Item2.Item1;",
+    "public static bool ConstructorAggregateBoxIdentity()=>object.ReferenceEquals(R3ListStore.Value.Item[1],R3ListStore.Value.Item[1]);",
+    "public static bool ConstructorNullableTupleType()=>R3NullTupleStore.Value.Item.GetType()==typeof((string,int));",
+    "public static bool ConstructorNestedNullableValues(){var t=(((string?,int),(object,string?)))R3NullNestedStore.Value.Item;return t.Item1.Item1==null && t.Item2.Item2==null;}",
+    "public static bool ConstructorAggregateRepeatedBox()=>object.ReferenceEquals(R3AliasStore.Value.Item[0],R3AliasStore.Value.Item[1]);",
+    "public static int ConstructorAggregateSetReadOnly()=>R3SetReadStore.Value.Count;",
+    "public static int ConstructorTupleSet()=>(int)R4TupleSetStore.Value.Item.Item1.Count;",
+    "public static int ConstructorTupleSetDictionary()=>(int)R4TupleSetDictionaryStore.Value.Item.Item1.Count+(int)R4TupleSetDictionaryStore.Value.Item.Item2[\"x\"];",
+    "public static int ConstructorListSet()=>(int)R4ListSetStore.Value.Item[0].Count;",
+    "public static int ConstructorDictionarySet()=>(int)R4DictionarySetStore.Value.Item[\"x\"].Count;",
+    "public static int ConstructorTupleListBoxes()=>(int)R4TupleListBoxesStore.Value.Item.Item1.Count;",
+    "public static int ConstructorTupleDictionaryBox()=>(int)R4TupleDictionaryBoxStore.Value.Item.Item1[\"x\"];",
+    "public static int ConstructorBoxedTupleSetPayload(){var items=(((Set<object>,int))R5BoxedTupleSetStore.Value.Item).Item1;int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorBoxedListSetPayload(){var items=((List<Set<object>>)R5BoxedListSetStore.Value.Item)[0];int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorBoxedDictionarySetPayload(){var items=((Dictionary<string,Set<object>>)R5BoxedDictionarySetStore.Value.Item)[\"x\"];int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorNestedBoxedTupleSetPayload(){var items=(((Set<object>,int))(((object,int))R5NestedBoxedTupleSetStore.Value.Item).Item1).Item1;int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorNestedTupleSetPayload(){var items=((((Set<object>,int),int))R5NestedTupleSetStore.Value.Item).Item1.Item1;int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorBoxedSetPayload(){var items=((Set<object>)R5BoxedSetStore.Value.Item);int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "public static int ConstructorBoxedTupleSetDictionaryPayload(){var items=(((Set<object>,Dictionary<string,object>))R5BoxedTupleSetDictionaryStore.Value.Item).Item1;int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum+(int)(((Set<object>,Dictionary<string,object>))R5BoxedTupleSetDictionaryStore.Value.Item).Item2[\"x\"];}",
+    "public static int ConstructorBoxedNullableSetListPayload(){var items=((List<Set<object>?>)R5BoxedNullableSetListStore.Value.Item)[0]!;int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum+(((List<Set<object>?>)R5BoxedNullableSetListStore.Value.Item)[1]==null ? 1 : 0);}",
+    "public static int ConstructorBoxedEmptySetPayload(){var items=((Set<object>)R5BoxedEmptySetStore.Value.Item);int sum=0;foreach(var item in items){if(item is int n)sum+=n;else sum+=(((int,int))item).Item2;}return items.Count*10+sum;}",
+    "}"
+  ],
+  "returns": {
+    "IntMax": 2147483647,
+    "IntMin": -2147483648,
+    "FloatNaN": true,
+    "FloatInfinity": true,
+    "DecimalMax": true,
+    "WrapAdd": -2147483648,
+    "WrapMultiply": 0,
+    "WrapNegate": -2147483648,
+    "UncheckedAdd": -2147483648,
+    "TruncatingDivide": -3,
+    "Remainder": -1,
+    "FloatToInt": 3,
+    "NegativeFloatToInt": -3,
+    "NaNToInt": 0,
+    "SaturatingFloatToInt": 2147483647,
+    "DecimalToInt": 3,
+    "FloatToDecimal": true,
+    "DecimalToFloat": 0.1,
+    "EnumToInt": 1,
+    "IntToEnum": true,
+    "ConstantCast": 3,
+    "FloatSuffix": 3,
+    "DecimalSuffix": true,
+    "BoxInt": 3,
+    "BoxArgument": 5,
+    "BoxIdentity": false,
+    "BoxSelfIdentity": true,
+    "StringBoxIdentity": true,
+    "StaticEquals": true,
+    "AsWrongType": true,
+    "NullableUnbox": 3,
+    "NullableAs": -1,
+    "IsBoxedInt": true,
+    "IsBoxedFloat": false,
+    "BoxTuple": 12,
+    "ReturnBoxedTuple": 3,
+    "ValueTypeTuple": 2,
+    "EnumBox": true,
+    "VectorBox": 2,
+    "ObjectList": 3,
+    "ObjectListEntry": "a",
+    "NewObject": 1,
+    "GenericBox": 4,
+    "DefaultInt": 0,
+    "DefaultEnum": true,
+    "DefaultString": true,
+    "GenericDefault": 0,
+    "GenericDefaultString": true,
+    "NewValueType": 0,
+    "TypeOfIdentity": true,
+    "TypeOfDiffers": false,
+    "GetTypeOfBox": true,
+    "TypeName": "List<int>",
+    "TypeFullName": "(int, string)",
+    "GenericTypeName": "List<T>",
+    "GenericIntIsValueType": true,
+    "GenericStringIsValueType": false,
+    "GenericEnumIsEnum": true,
+    "GenericIntIsEnum": false,
+    "BoxedIntText": "-3",
+    "BoxedEnumText": "Mars",
+    "BoxedVectorText": "(1.00, 2.50)",
+    "BoxedVectorIntText": "(1, -2)",
+    "BoxedTupleText": "(1, a)",
+    "NewObjectText": "object",
+    "TypeText": "int",
+    "BoxedNaNEquals": true,
+    "BoxedKindsDiffer": false,
+    "BoxedIntHash": -7,
+    "BoxedBoolHash": 1,
+    "BoxedEnumHash": 2,
+    "PlainText": "Plain",
+    "PlainEquals": false,
+    "PlainSelfEquals": true,
+    "CoinText": "coin",
+    "CoinHash": 42,
+    "CoinEquals": true,
+    "CoinStaticEquals": true,
+    "NoteOverloadSkipped": false,
+    "WatchIntSame": true,
+    "WatchIntDiffers": false,
+    "WatchStringSame": true,
+    "WatchCoinSame": true,
+    "ShelfDefault": 3,
+    "ShelfPair": "(1, 2)",
+    "ShelfWrite": "(1.00, 2.00)",
+    "ShelfList": 4,
+    "ShelfListText": "(1, 2)a",
+    "ShelfSame": true,
+    "ShelfKeepsBox": true,
+    "StaticWrite": "x",
+    "StaticDefault": 1,
+    "ShelfTupleWrite": "(3, 4)",
+    "PrefixIncrement": 22,
+    "PostfixIncrement": 21,
+    "PostfixDecrementField": 45,
+    "IndexIncrement": 121,
+    "UncheckedIncrement": -2147483648,
+    "FloatIncrement": 4,
+    "AlignRight": "[   42]",
+    "AlignLeft": "[42   ]",
+    "AlignNegativeConstant": "[7 ]",
+    "FormatFloat": "1,234.50",
+    "FormatHex": "00FF",
+    "FormatDecimal": "1.500",
+    "FormatEnumNumber": "1",
+    "FormatEnumName": "Mars",
+    "FormatBool": "True",
+    "FormatShortestFloat": "0.1",
+    "FormatVector": "(1.00, 2.00)",
+    "FormatVectorFormat": "(1.0, 2.0)",
+    "FormatVectorInt": "(001, 002)",
+    "FormatAlignedFormat": "[    3.14]",
+    "FormatOverride": "[  coin]",
+    "FormatIgnoredOnPlain": "coin",
+    "FormatNull": "[   ]",
+    "FormatBoxed": "FF",
+    "ConcatBool": "aTrue",
+    "ConcatVector": "a(1.00, 2.00)",
+    "ConcatOverride": "acoin",
+    "ConcatClass": "aPlain",
+    "ConcatNull": "ab",
+    "ConcatDecimal": "x1.50",
+    "ConcatList": "List<int>",
+    "ConcatEnum": "Venus!",
+    "MaybeDefaultWarns": 7,
+    "DefaultParam": 0,
+    "NullableUnderlyingParam": 0,
+    "NullableDefaultParam": -1,
+    "GenericDefaultParamInt": 0,
+    "GenericDefaultParamString": true,
+    "NewEnumParam": "Earth",
+    "NewVectorParam": "(0.00, 0.00)",
+    "CtorBoxArgument": 5,
+    "CtorBoxTuple": "(1, 2)",
+    "EnumText": "Mars",
+    "ValueToStringIsString": 6,
+    "ShelfListWrite": "List<int>",
+    "ConstantAddDefault": 3,
+    "ConstantMaxDefault": 2147483647,
+    "ConstantCastDefault": 1,
+    "ConstantConversionDefault": 0,
+    "BoxedListAlias": 2,
+    "BoxedDictionaryWrite": 2,
+    "BoxedCollectionCtor": 2,
+    "GenericConstructorDefault": 0,
+    "BoxedNewListConstructor": 0,
+    "StoredBoxConstructorIdentity": true,
+    "ConstantFloatPromotion": 16777216,
+    "ConstantFloatComparison": false,
+    "StoredOutConstructor": 7,
+    "Vector2NaNEquals": false,
+    "Vector3NaNEquals": false,
+    "Vector2IntAdjacentEquals": false,
+    "Vector3IntAdjacentEquals": false,
+    "DirectNullToString": true,
+    "NullOverrideConcat": "a",
+    "NullOverrideFormat": "",
+    "Vector2BoxedUnequal": false,
+    "Vector2IntBoxedUnequal": false,
+    "Vector3BoxedUnequal": false,
+    "Vector3IntBoxedUnequal": false,
+    "OpenParameterBase": "Shape",
+    "OpenParameterInterfaces": 1,
+    "OpenParameterInterfaceName": "IReflect",
+    "DecimalConstantAdd": "3.30",
+    "DecimalConstantSubtract": "3.30",
+    "DecimalConstantMultiply": "3.00",
+    "DecimalConstantDivide": "0.3333333333333333333333333333",
+    "DecimalConstantRemainder": "0.0",
+    "CoalesceDefault": 0,
+    "CatchModuloByZero": "Modulo by zero",
+    "ImplicitReferenceEquals": true,
+    "ImplicitStaticEquals": true,
+    "ImplicitInstanceEquals": true,
+    "ImplicitGetType": "ImplicitObject",
+    "ImplicitStaticContext": true,
+    "CatchNullWrite": "'NullGuardHolder.Name' is required and cannot store null.",
+    "DecimalDivide": "0.3333333333333333333333333333",
+    "DecimalRemainder": "1.5",
+    "DecimalNegativeRemainder": "-1.5",
+    "DecimalMaxRemainder": "0.0",
+    "DecimalDivideAssign": "0.25",
+    "CatchDecimalDivideByZero": "Attempted to divide by zero.",
+    "DecimalConstantComparison": true,
+    "DecimalConstantPromotion": true,
+    "DecimalConstantConditional": "1",
+    "OutTupleElement": 9,
+    "OutTupleUninitialized": 14,
+    "OutNestedTuple": 12,
+    "OutTupleAlias": 8,
+    "BlockAssignment": 3,
+    "SwitchSharedLocal": 5,
+    "LambdaParameterShadow": 5,
+    "OutNullableFalse": true,
+    "OutNullableTrue": 2,
+    "NotNullWhenGuard": 2,
+    "OutNullableTuple": true,
+    "ReceiverBeforeArgument": false,
+    "OptionalSkipsArgument": 1,
+    "OptionalSkipsThrowingArgument": true,
+    "TupleVirtualText": "(coin, 1)",
+    "TupleNullVirtualText": "(, 1)",
+    "TupleNestedVirtualText": "((coin, ), 1)",
+    "NullableTypeArguments": 1,
+    "NullableTypeArgument": true,
+    "DefinitionIsClass": true,
+    "DefinitionIsInterface": true,
+    "TypeIsAbstract": true,
+    "TypeOpaqueBase": "MemberInfo",
+    "TupleRestArguments": 8,
+    "TupleRestType": true,
+    "NullableAssignable": true,
+    "DefinitionObjectAssignable": true,
+    "BoxedListInterfaceIs": true,
+    "BoxedListInterfaceAs": true,
+    "BoxedListInterfaceCast": 2,
+    "BoxedListInterfaceInstance": true,
+    "ConstantTinyDecimal": "0",
+    "ConstantNearTinyDecimal": "0.0000000000000000000000000001",
+    "ConstantTinyDefault": "0",
+    "ReflectionFactsClosed": "True|False|False|False|False|False|False|True|False|False|False|1|0|True|True|True|True",
+    "ReflectionFactsDefinition": "True|False|False|False|False|False|False|True|True|False|True|0|0|True|True|False|False",
+    "ReflectionFactsOpen": "True|False|False|False|False|False|False|True|False|False|True|1|0|True|True|False|False",
+    "ReflectionFactsParameter": "True|False|False|False|False|False|False|False|False|True|True|0|1|True|True|False|False",
+    "ReflectionFactsNullable": "False|False|False|True|False|False|True|True|False|False|False|1|0|True|True|False|False",
+    "ReflectionFactsNullableDefinition": "False|False|False|True|False|False|True|True|True|False|True|0|0|True|True|False|False",
+    "ReflectionFactsOpaque": "True|False|False|False|False|True|False|False|False|False|False|0|0|True|True|False|False",
+    "ReflectionFactsInterfaceDefinition": "False|True|False|False|False|True|False|True|True|False|True|0|0|True|True|False|False",
+    "NullableDefinitionName": "Nullable<T>",
+    "OpaqueNamespace": "System.Reflection",
+    "OpaqueFullName": "System.Reflection.MemberInfo",
+    "OpaqueAcceptsType": true,
+    "OpaqueTypeInstance": true,
+    "TypeSubclassOpaque": true,
+    "TupleOneRestName": "ValueTuple<int>",
+    "TupleFifteenRest": "ValueTuple<int>",
+    "TupleRestDefinitionArity": true,
+    "BoxedListInterfaceAlias": 2,
+    "BoxedListInterfacePattern": 2,
+    "ConstantDoubleUnderflow": "0",
+    "ConstantDoubleRounding": "0.0000000000000000000000000002",
+    "ReflectionNamesClosed": "ReflectionDerived<Shape>|ReflectionDerived<Shape>||ReflectionBase<Shape>",
+    "ReflectionNamesDefinition": "ReflectionDerived<T>|ReflectionDerived<T>||ReflectionBase<T>",
+    "ReflectionNamesOpen": "ReflectionBase<T>|ReflectionBase<T>||object",
+    "ReflectionNamesParameter": "T|T||Shape",
+    "ClosedDefinition": true,
+    "OpenDefinition": true,
+    "DefinitionDefinition": true,
+    "OpenParameterPosition": 0,
+    "BoxedSetInterfaceCast": 2,
+    "CollectionTypeAssignable": true,
+    "ValueSequenceInterfaceIs": false,
+    "GenericTargetBoxInt": true,
+    "GenericTargetBoxNullable": true,
+    "GenericTargetBoxTuple": true,
+    "GenericTargetBoxList": true,
+    "GenericTargetBoxClass": true,
+    "GenericTargetBoxNull": true,
+    "StoredBoxTupleReplay": 3,
+    "StoredBoxNestedTupleReplay": 6,
+    "StoredBoxDeepTupleReplay": 6,
+    "StoredBoxReplacementReplay": 13,
+    "StoredBoxTupleIdentity": true,
+    "ConstructorAggregateList": 5,
+    "ConstructorAggregateTuple": 5,
+    "ConstructorAggregateDictionary": 5,
+    "ConstructorAggregateSet": 2,
+    "ConstructorAggregateNested": 7,
+    "ConstructorAggregateNullTuple": 2,
+    "ConstructorAggregateNullNested": 3,
+    "ConstructorAggregateBoxIdentity": true,
+    "ConstructorNullableTupleType": true,
+    "ConstructorNestedNullableValues": true,
+    "ConstructorAggregateRepeatedBox": true,
+    "ConstructorAggregateSetReadOnly": 2,
+    "ConstructorTupleSet": 2,
+    "ConstructorTupleSetDictionary": 6,
+    "ConstructorListSet": 2,
+    "ConstructorDictionarySet": 2,
+    "ConstructorTupleListBoxes": 2,
+    "ConstructorTupleDictionaryBox": 4,
+    "ConstructorBoxedTupleSetPayload": 25,
+    "ConstructorBoxedListSetPayload": 25,
+    "ConstructorBoxedDictionarySetPayload": 25,
+    "ConstructorNestedBoxedTupleSetPayload": 25,
+    "ConstructorNestedTupleSetPayload": 25,
+    "ConstructorBoxedSetPayload": 25,
+    "ConstructorBoxedTupleSetDictionaryPayload": 29,
+    "ConstructorBoxedNullableSetListPayload": 26,
+    "ConstructorBoxedEmptySetPayload": 0
+  },
+  "refuses": {
+    "CheckedAdd": "Arithmetic operation resulted in an overflow.",
+    "CheckedBlock": "Arithmetic operation resulted in an overflow.",
+    "CheckedNegate": "Arithmetic operation resulted in an overflow.",
+    "DivideByZero": "Division by zero",
+    "MinValueDivide": "Arithmetic operation resulted in an overflow.",
+    "ModuloByZero": "Modulo by zero",
+    "NullFieldWrite": "'NullGuardHolder.Name' is required and cannot store null.",
+    "NullEntryWrite": "'NullGuardHolder.Names[0]' is required and cannot store null.",
+    "NullTupleWrite": "'NullGuardHolder.Pair.Item1' is required and cannot store null.",
+    "NullWholeListWrite": "'NullGuardHolder.Names[0]' is required and cannot store null.",
+    "NullIndexerWrite": "'NullGuardHolder.Names[0]' is required and cannot store null.",
+    "NullDictionaryWrite": "'NullGuardHolder.Map[b]' is required and cannot store null.",
+    "NullStaticWrite": "'NullGuardStore.Label' is required and cannot store null.",
+    "DecimalDivideByZero": "Attempted to divide by zero.",
+    "DecimalRemainderByZero": "Attempted to divide by zero.",
+    "DecimalQuotientOverflow": "Value was either too large or too small for a Decimal.",
+    "CheckedFloatToInt": "Arithmetic operation resulted in an overflow.",
+    "OverflowingDecimalToInt": "Value was either too large or too small for an Int32.",
+    "BadIntToEnum": "Unable to cast object of type 'int' to type 'Planet'.",
+    "UnboxWrongType": "Unable to cast object of type 'int' to type 'float'.",
+    "UnboxNull": "Object reference not set to an instance of an object.",
+    "TypeHash": "GetHashCode() on a Type isn't supported yet (P127 B6).",
+    "BoxedTupleEquals": "Equals on a boxed (int, int) isn't supported yet (P127 B6).",
+    "CheckedIncrement": "Arithmetic operation resulted in an overflow.",
+    "OwnedCollectionBoxWrite": "Writing a boxed List<int> into Item would share a collection already owned by another slot. Call Clone() or use Reference.",
+    "OwnedCollectionBoxConstructor": "Writing a boxed List<int> into constructor argument '__arg_0__' would share a collection already owned by another slot. Call Clone() or use Reference.",
+    "ReownedBoxedCollection": "Writing a boxed List<int> into Item would share a collection already owned by another slot. Call Clone() or use Reference.",
+    "OwnedBoxedCollectionConstructor": "Writing a boxed List<int> into constructor argument '__arg_0__' would share a collection already owned by another slot. Call Clone() or use Reference.",
+    "NullReceiverArgumentThrows": "argument",
+    "ReceiverThrowsBeforeArgument": "receiver",
+    "OpenParameterDefinitionRefusal": "This operation is only valid on generic types.",
+    "ClosedParameterPositionRefusal": "Method may only be called on a Type for which Type.IsGenericParameter is true.",
+    "DefinitionParameterPositionRefusal": "Method may only be called on a Type for which Type.IsGenericParameter is true.",
+    "OpenParameterPositionRefusal": "Method may only be called on a Type for which Type.IsGenericParameter is true."
+  },
+  "diagnostics": [
+    {
+      "name": "NonNullObjectDefault",
+      "source": "enum Planet { Earth }\nclass Probe {\n  public void Object(object x = 3) {}\n}",
+      "code": "CS1763",
+      "message": "'x' is of type 'object'. A default parameter value of a reference type other than string can only be initialized with null",
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 28
+        },
+        "end": {
+          "line": 2,
+          "character": 29
+        }
+      }
+    },
+    {
+      "name": "NonNullValueDefault",
+      "source": "enum Planet { Earth }\nclass Probe {\n  public void Value(ValueType x = 3) {}\n}",
+      "code": "CS1763",
+      "message": "'x' is of type 'ValueType'. A default parameter value of a reference type other than string can only be initialized with null",
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 30
+        },
+        "end": {
+          "line": 2,
+          "character": 31
+        }
+      }
+    },
+    {
+      "name": "NonNullEnumDefault",
+      "source": "enum Planet { Earth }\nclass Probe {\n  public void Enum(Enum x = Planet.Earth) {}\n}",
+      "code": "CS1763",
+      "message": "'x' is of type 'Enum'. A default parameter value of a reference type other than string can only be initialized with null",
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 24
+        },
+        "end": {
+          "line": 2,
+          "character": 25
+        }
+      }
+    },
+    {
+      "name": "NonNullInterfaceDefault",
+      "source": "enum Planet { Earth }\nclass Probe {\n  public void Interface(IComparable<int> x = 3) {}\n}",
+      "code": "CS1763",
+      "message": "'x' is of type 'IComparable<int>'. A default parameter value of a reference type other than string can only be initialized with null",
+      "range": {
+        "start": {
+          "line": 2,
+          "character": 41
+        },
+        "end": {
+          "line": 2,
+          "character": 42
+        }
+      }
+    },
+    {
+      "name": "NumberStylesFlagsB5",
+      "source": "class P { public static void Run(NumberStyles style = NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite) {} }",
+      "code": "number-styles-default-not-supported",
+      "message": "NumberStyles flags-combination parameter defaults aren't supported yet (B5): the protected system enum metadata is not installed.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 54
+        },
+        "end": {
+          "line": 0,
+          "character": 118
+        }
+      }
+    }
+  ],
+  "compileDiagnostics": [
+    {
+      "name": "OutReadBeforeAssignment",
+      "source": "class P { public static int Read(out int result) { return result; } }",
+      "code": "CS0269",
+      "message": "Use of unassigned out parameter 'result'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 58
+        },
+        "end": {
+          "line": 0,
+          "character": 64
+        }
+      }
+    },
+    {
+      "name": "OutMissingAssignment",
+      "source": "class P { public static void Missing(out int result) { } }",
+      "code": "CS0177",
+      "message": "The out parameter 'result' must be assigned to before control leaves the current method",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 29
+        },
+        "end": {
+          "line": 0,
+          "character": 36
+        }
+      }
+    },
+    {
+      "name": "LaterConstructorOutRead",
+      "source": "class Made { public Made(out int x, int y) { x = 7; } }\nclass P { public static Made Make() => new Made(out var later, later); }",
+      "code": "CS8196",
+      "message": "Reference to an implicitly-typed variable 'later' is not permitted in this location.",
+      "range": {
+        "start": {
+          "line": 1,
+          "character": 63
+        },
+        "end": {
+          "line": 1,
+          "character": 68
+        }
+      }
+    },
+    {
+      "name": "ExplicitLaterOutRead",
+      "source": "class P { public static void M(out int x, int y) { x = y; } public static void Run() { M(out int x, x); } }",
+      "code": "CS0165",
+      "message": "Use of unassigned local variable 'x'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 100
+        },
+        "end": {
+          "line": 0,
+          "character": 101
+        }
+      }
+    },
+    {
+      "name": "LocalBeforeDeclaration",
+      "source": "class P { public static int Run() { return x; int x = 1; } }",
+      "code": "CS0841",
+      "message": "Cannot use local variable 'x' before it is declared",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 43
+        },
+        "end": {
+          "line": 0,
+          "character": 44
+        }
+      }
+    },
+    {
+      "name": "FieldHiddenBeforeDeclaration",
+      "source": "class P { public static int x = 1; public static int Run() { return x; int x = 2; } }",
+      "code": "CS0844",
+      "message": "Cannot use local variable 'x' before it is declared. The declaration of the local variable hides the field 'P.x'.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 68
+        },
+        "end": {
+          "line": 0,
+          "character": 69
+        }
+      }
+    },
+    {
+      "name": "DuplicateLocal",
+      "source": "class P { public static int Run() { int x = 1; int x = 2; return x; } }",
+      "code": "CS0128",
+      "message": "A local variable or function named 'x' is already defined in this scope",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 51
+        },
+        "end": {
+          "line": 0,
+          "character": 52
+        }
+      }
+    },
+    {
+      "name": "NestedLocalConflict",
+      "source": "class P { public static int Run() { { int x = 1; } int x = 2; return x; } }",
+      "code": "CS0136",
+      "message": "A local or parameter named 'x' cannot be declared in this scope because that name is used in an enclosing local scope to define a local or parameter",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 42
+        },
+        "end": {
+          "line": 0,
+          "character": 43
+        }
+      }
+    },
+    {
+      "name": "EmbeddedPatternScope",
+      "source": "class P { public static int Run(bool f, object o) { if (f) if (o is int x) {} return x; } }",
+      "code": "CS0103",
+      "message": "The name 'x' does not exist in the current context",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 85
+        },
+        "end": {
+          "line": 0,
+          "character": 86
+        }
+      }
+    },
+    {
+      "name": "UnassignedPattern",
+      "source": "class P { public static int Run(object o) { if (o is int x) {} return x; } }",
+      "code": "CS0165",
+      "message": "Use of unassigned local variable 'x'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 70
+        },
+        "end": {
+          "line": 0,
+          "character": 71
+        }
+      }
+    },
+    {
+      "name": "SwitchUnassignedLocal",
+      "source": "class P { public static int Run(int k) { switch (k) { case 0: int x = 1; break; case 1: return x; } return 0; } }",
+      "code": "CS0165",
+      "message": "Use of unassigned local variable 'x'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 95
+        },
+        "end": {
+          "line": 0,
+          "character": 96
+        }
+      }
+    },
+    {
+      "name": "OutTupleUnassignedElement",
+      "source": "class P { public static void Put(out int x) { x = 1; } public static int Run() { (int A, int B) p; Put(out p.A); return p.B; } }",
+      "code": "CS0170",
+      "message": "Use of possibly unassigned field 'B'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 120
+        },
+        "end": {
+          "line": 0,
+          "character": 123
+        }
+      }
+    },
+    {
+      "name": "OutReadonlyField",
+      "source": "class P { public readonly int x = 1; public static void Put(out int value) { value = 1; } public void Run() { Put(out x); } }",
+      "code": "CS0192",
+      "message": "A readonly field cannot be used as a ref or out value (except in a constructor)",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 118
+        },
+        "end": {
+          "line": 0,
+          "character": 119
+        }
+      }
+    },
+    {
+      "name": "OutPrivateField",
+      "source": "class A { private int x; } class P { public static void Put(out int value) { value = 1; } public static void Run(A a) { Put(out a.x); } }",
+      "code": "CS0122",
+      "message": "'A.x' is inaccessible due to its protection level",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 130
+        },
+        "end": {
+          "line": 0,
+          "character": 131
+        }
+      }
+    },
+    {
+      "name": "OutComputedProperty",
+      "source": "class P { public int X => 1; public static void Put(out int value) { value = 1; } public void Run() { Put(out X); } }",
+      "code": "CS0206",
+      "message": "A non ref-returning property or indexer may not be used as an out or ref value",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 110
+        },
+        "end": {
+          "line": 0,
+          "character": 111
+        }
+      }
+    },
+    {
+      "name": "OutCapture",
+      "source": "class P { public static void Run(out int x) { NeoDelegate<int> f = () => x; x = 1; } }",
+      "code": "CS1628",
+      "message": "Cannot use ref, out, or in parameter 'x' inside an anonymous method, lambda expression, query expression, or local function",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 73
+        },
+        "end": {
+          "line": 0,
+          "character": 74
+        }
+      }
+    },
+    {
+      "name": "OutAsync",
+      "source": "class P { public static async void Run(out int x) { x = 1; } }",
+      "code": "CS1988",
+      "message": "Async methods cannot have ref, in or out parameters",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 47
+        },
+        "end": {
+          "line": 0,
+          "character": 48
+        }
+      }
+    },
+    {
+      "name": "OutGenerator",
+      "source": "interface IEnumerable<T> {} class P { public static IEnumerable<int> Run(out int x) { x = 1; yield return x; } }",
+      "code": "CS1623",
+      "message": "Iterators cannot have ref, in or out parameters",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 81
+        },
+        "end": {
+          "line": 0,
+          "character": 82
+        }
+      }
+    },
+    {
+      "name": "OutOperator",
+      "source": "class P { public static P operator +(out P x, P y) => y; }",
+      "code": "CS0631",
+      "message": "ref and out are not valid in this context",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 35
+        },
+        "end": {
+          "line": 0,
+          "character": 36
+        }
+      }
+    },
+    {
+      "name": "OutDefault",
+      "source": "class P { public static void Run(out int x = 1) { x = 1; } }",
+      "code": "CS1741",
+      "message": "A ref or out parameter cannot have a default value",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 33
+        },
+        "end": {
+          "line": 0,
+          "character": 36
+        }
+      }
+    },
+    {
+      "name": "OutMethodGroup",
+      "source": "class P { public static int Put(out int x) { x = 1; return x; } public static void Run() { NeoDelegate<int, int> f = Put; } }",
+      "code": "project-function-compile",
+      "message": "Function 'P.Run': 'Put' has an out parameter, which NeoDelegate can't express.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 117
+        },
+        "end": {
+          "line": 0,
+          "character": 118
+        }
+      }
+    },
+    {
+      "name": "DecimalConstantOverflow",
+      "source": "class P { public static decimal Run() => decimal.MaxValue + 1m; }",
+      "code": "CS0463",
+      "message": "Evaluation of the decimal constant expression failed",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 41
+        },
+        "end": {
+          "line": 0,
+          "character": 62
+        }
+      }
+    },
+    {
+      "name": "DecimalConstantZeroDivisor",
+      "source": "class P { public static decimal Run() => 1m / 0m; }",
+      "code": "CS0020",
+      "message": "Division by constant zero",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 41
+        },
+        "end": {
+          "line": 0,
+          "character": 48
+        }
+      }
+    },
+    {
+      "name": "MaybeNullDisallowNull",
+      "source": "class P { public static int Use(@disallowNull string? value) => 1; public static int Run(string? s) => Use(s); }",
+      "code": "CS8604",
+      "message": "Possible null reference argument for parameter 'value' in 'int P.Use(string? value)'.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 107
+        },
+        "end": {
+          "line": 0,
+          "character": 108
+        }
+      }
+    },
+    {
+      "name": "FinallyUnassigned",
+      "source": "class P { public static int Run() { int x; try { x = 1; } finally { int y = x; } return x; } }",
+      "code": "CS0165",
+      "message": "Use of unassigned local variable 'x'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 76
+        },
+        "end": {
+          "line": 0,
+          "character": 77
+        }
+      }
+    },
+    {
+      "name": "InferredSelfReference",
+      "source": "class P { public static int Run() { var x = x; return x; } }",
+      "code": "CS0841",
+      "message": "Cannot use local variable 'x' before it is declared",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 44
+        },
+        "end": {
+          "line": 0,
+          "character": 45
+        }
+      }
+    },
+    {
+      "name": "EmbeddedLocalDeclaration",
+      "source": "class P { public static int Run(bool f) { if (f) int x = 1; return 0; } }",
+      "code": "CS1023",
+      "message": "Embedded statement cannot be a declaration or labeled statement",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 49
+        },
+        "end": {
+          "line": 0,
+          "character": 59
+        }
+      }
+    },
+    {
+      "name": "MaybeNullLocal",
+      "source": "class P { public static bool Try(@maybeNullWhen(false) out string value) { value = null; return false; } public static int Run() { Try(out var x); string y = x; return 0; } }",
+      "code": "CS8600",
+      "message": "Converting null literal or possible null value to non-nullable type.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 158
+        },
+        "end": {
+          "line": 0,
+          "character": 159
+        }
+      }
+    },
+    {
+      "name": "MaybeNullDereference",
+      "source": "class P { public static bool Try(@maybeNullWhen(false) out string value) { value = null; return false; } public static int Run() { Try(out var x); return x.Length; } }",
+      "code": "CS8602",
+      "message": "Dereference of a possibly null reference.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 154
+        },
+        "end": {
+          "line": 0,
+          "character": 155
+        }
+      }
+    },
+    {
+      "name": "MaybeNullReturn",
+      "source": "class P { public static bool Try(@maybeNullWhen(false) out string value) { value = null; return false; } public static string Run() { Try(out var x); return x; } }",
+      "code": "CS8603",
+      "message": "Possible null reference return.",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 157
+        },
+        "end": {
+          "line": 0,
+          "character": 158
+        }
+      }
+    },
+    {
+      "name": "TypeMember",
+      "source": "class Box<T> { public int F() => T.Parse(); }",
+      "code": "CS0704",
+      "message": "Cannot do non-virtual member lookup in 'T' because it is a type parameter",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 33
+        },
+        "end": {
+          "line": 0,
+          "character": 34
+        }
+      }
+    },
+    {
+      "name": "TypeValue",
+      "source": "class P { public static int Money = 1; }\nclass Box<Money> { public int F() { var m = Money; return 1; } }",
+      "code": "CS0119",
+      "message": "'Money' is a type, which is not valid in the given context",
+      "range": {
+        "start": {
+          "line": 1,
+          "character": 44
+        },
+        "end": {
+          "line": 1,
+          "character": 49
+        }
+      }
+    },
+    {
+      "name": "TypeLocal",
+      "source": "class P { public static int F<T>() { int T = 1; return T; } }",
+      "code": "CS0412",
+      "message": "'T': a parameter, local variable, or local function cannot have the same name as a method type parameter",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 41
+        },
+        "end": {
+          "line": 0,
+          "character": 42
+        }
+      }
+    },
+    {
+      "name": "TypeParameter",
+      "source": "class P { public static int F<T>(int T) => 1; }",
+      "code": "CS0412",
+      "message": "'T': a parameter, local variable, or local function cannot have the same name as a method type parameter",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 37
+        },
+        "end": {
+          "line": 0,
+          "character": 38
+        }
+      }
+    },
+    {
+      "name": "TypeField",
+      "source": "class Box<T> { public int T = 1; }",
+      "code": "CS0102",
+      "message": "The type 'Box<T>' already contains a definition for 'T'",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 26
+        },
+        "end": {
+          "line": 0,
+          "character": 27
+        }
+      }
+    },
+    {
+      "name": "TypeOwner",
+      "source": "class T<T> { }",
+      "code": "CS0694",
+      "message": "Type parameter 'T' has the same name as the containing type, or method",
+      "range": {
+        "start": {
+          "line": 0,
+          "character": 8
+        },
+        "end": {
+          "line": 0,
+          "character": 9
+        }
+      }
+    }
+  ],
+  "assetIdentity": [
+    {
+      "name": "SpriteSameAsset",
+      "kind": "Sprite",
+      "left": {
+        "fileId": "tree",
+        "sliceIndex": 2
+      },
+      "right": {
+        "fileId": "tree",
+        "sliceIndex": 2
+      },
+      "equal": true
+    },
+    {
+      "name": "SpriteDifferentSlice",
+      "kind": "Sprite",
+      "left": {
+        "fileId": "tree",
+        "sliceIndex": 2
+      },
+      "right": {
+        "fileId": "tree",
+        "sliceIndex": 3
+      },
+      "equal": false
+    },
+    {
+      "name": "AudioSameAsset",
+      "kind": "Audio",
+      "left": {
+        "fileId": "bird"
+      },
+      "right": {
+        "fileId": "bird"
+      },
+      "equal": true
+    },
+    {
+      "name": "AudioDifferentAsset",
+      "kind": "Audio",
+      "left": {
+        "fileId": "bird"
+      },
+      "right": {
+        "fileId": "wind"
+      },
+      "equal": false
+    }
+  ]
+}

@@ -17,6 +17,34 @@ namespace NeoCompose.Tests
     public class NeoScriptScopeTests
     {
         [Test]
+        public void BlockFrames_WriteExistingBindingsAtTheirOwnerAndKeepDeclarationsLocal()
+        {
+            var owner = new NeoScriptScope();
+            owner.SetLocal("outer", "before");
+            owner.SetLocal("shadow", "owner");
+            NeoScriptScope block = owner.CreateBlock();
+            block.SetLocal("shadow", "block");
+            NeoScriptScope nested = block.CreateBlock();
+
+            nested.Assign(new VariablePointer { variableId = "outer" }, "after");
+            nested.Assign(new VariablePointer { variableId = "shadow" }, "updated block");
+            nested.SetLocal("temporary", "local");
+            nested.Assign(new VariablePointer { variableId = "temporary" }, "updated local");
+
+            Assert.That(owner.TryGetValue("outer", out object? outer), Is.True);
+            Assert.That(outer, Is.EqualTo("after"));
+            Assert.That(owner.TryGetValue("shadow", out object? original), Is.True);
+            Assert.That(original, Is.EqualTo("owner"));
+            Assert.That(block.TryGetValue("shadow", out object? shadow), Is.True);
+            Assert.That(shadow, Is.EqualTo("updated block"));
+            Assert.That(nested.TryGetValue("temporary", out object? temporary), Is.True);
+            Assert.That(temporary, Is.EqualTo("updated local"));
+            Assert.That(block.TryGetValue("temporary", out _), Is.False);
+            Assert.That(nested.ContainsLocal("outer"), Is.False);
+            Assert.That(nested.ContainsLocal("shadow"), Is.False);
+        }
+
+        [Test]
         public void ChildFrame_ReadsParentAndKeepsWritesLocal()
         {
             var parent = new NeoScriptScope();
