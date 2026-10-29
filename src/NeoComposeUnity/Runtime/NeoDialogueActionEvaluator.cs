@@ -4858,9 +4858,9 @@ namespace NeoCompose.Runtime
         /// the client's held batch, or into a batch of its own that commits
         /// now unless <paramref name="preparedPlan"/> belongs to the caller.
         /// </summary>
-        private static void WriteCollection(NeoClient client, string rowId, NeoWritePlan? preparedPlan, Action<NeoWriteBatch> mutate)
+        private static void WriteCollection(NeoClient client, string rowId, NeoWritePlan? preparedPlan, Action<NeoWriteBatch> mutate, bool unordered = false)
         {
-            NeoWriteBatch? held = preparedPlan is null ? client.ScriptWriteBatch(rowId) : null;
+            NeoWriteBatch? held = preparedPlan is null ? client.ScriptWriteBatch(rowId, unordered) : null;
             NeoWriteBatch batch = held ?? new NeoWriteBatch(preparedPlan ?? new NeoWritePlan(client), held: false);
             batch.Stage(mutate);
             if (held is not null)
@@ -6194,7 +6194,7 @@ namespace NeoCompose.Runtime
                                     && client.TryGetValue(ownership, entryId, out MemberValue? entry)
                                     && NSGetterEvaluator.CollectionValueEqual(ReadEntryValue(entry, list.EntryMember, ctx, ownership), args[0], list.EntryMember is DecimalMember, ctx)))
                             {
-                                list.RemoveById(entryId);
+                                WriteCollection(client, rowId, preparedPlan, batch => list.PrepareRemoveUnorderedEntry(batch.Plan, entryId), unordered: true);
                                 break;
                             }
                         }
@@ -6203,7 +6203,10 @@ namespace NeoCompose.Runtime
                         int index = ToInt(args[0], "RemoveAt index");
                         try
                         {
-                            list.RemoveAt(index);
+                            var ids = list.ResolveEntryValueIds();
+                            if (index < 0 || index >= ids.Count)
+                                throw new ArgumentOutOfRangeException(nameof(index));
+                            WriteCollection(client, rowId, preparedPlan, batch => list.PrepareRemoveUnorderedEntry(batch.Plan, ids[index]), unordered: true);
                         }
                         catch (ArgumentOutOfRangeException)
                         {
@@ -6211,7 +6214,12 @@ namespace NeoCompose.Runtime
                         }
                         break;
                     case CollectionMutationKind.Clear:
-                        list.ClearSerialized();
+                        var removedIds = list.ResolveEntryValueIds();
+                        WriteCollection(client, rowId, preparedPlan, batch =>
+                        {
+                            foreach (string removedId in removedIds)
+                                list.PrepareRemoveUnorderedEntry(batch.Plan, removedId);
+                        }, unordered: true);
                         break;
                     default:
                         throw new NSGetterRuntimeError($"Unsupported unordered list mutation '{mutation}'.");

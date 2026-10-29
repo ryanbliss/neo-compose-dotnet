@@ -3649,7 +3649,8 @@ namespace NeoCompose.Runtime
             Dictionary<string, string>? clonedValueIds = null,
             Dictionary<(NeoValueOwnership scope, string id), string>? retainedRows = null)
         {
-            var copies = new ClonedValueOccurrence(null);
+            using var cloneHash = System.Security.Cryptography.SHA1.Create();
+            var copies = new ClonedValueOccurrence(null, cloneHash);
             List<ClonedValueOccurrence>? repeatedCopies = null;
             string clonedId = CloneOwnedValueGraphWithFreshIds(
                 plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember,
@@ -3677,6 +3678,37 @@ namespace NeoCompose.Runtime
             return clonedId;
         }
 
+        private string ClonedGraphId(NeoValueOwnership ownership, MemberValue row, ClonedValueOccurrence copies, out bool spine)
+        {
+            spine = false;
+            // Keep an expansion's descendants in the copy's new namespace.
+            // Giving every spine an unrelated id makes it an independent
+            // constructor root, recursively replaying the same character parts.
+            if ((!virtualFootprintByRoot.ContainsKey(row.id) || nestedReplayBoundaries.ContainsKey(row.id))
+                && TryResolveVirtualPlacement(row.id, out var placement))
+            {
+                string root = nestedReplayBoundaries.TryGetValue(placement.rootId, out var boundary)
+                    ? boundary.NamespaceRoot.id : placement.rootId;
+                var rootScope = TryGetCommittedOwnership(root, out var resolvedScope) ? resolvedScope : ownership;
+                if (copies.Values.TryGetValue((rootScope, root), out var rootCopy))
+                {
+                    string identity = VirtualSourceIdentity(row, placement.member, placement.path);
+                    if (VirtualValueId(root, identity, copies.Hash) == row.id)
+                    {
+                        spine = true;
+                        return VirtualValueId(rootCopy.id, identity, copies.Hash);
+                    }
+                    identity += ":" + placement.path;
+                    if (VirtualValueId(root, identity, copies.Hash) == row.id)
+                    {
+                        spine = true;
+                        return VirtualValueId(rootCopy.id, identity, copies.Hash);
+                    }
+                }
+            }
+            return System.Guid.NewGuid().ToString();
+        }
+
         private string CloneOwnedValueGraphWithFreshIds(
             NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
@@ -3693,7 +3725,7 @@ namespace NeoCompose.Runtime
                 || IsAuthoredPartialValue(sourceValueId);
             if (copies.Values.ContainsKey((sourceOwnership, sourceValueId)) && !path.Contains(sourceValueId))
             {
-                var occurrence = new ClonedValueOccurrence(copies);
+                var occurrence = new ClonedValueOccurrence(copies, copies.Hash);
                 string repeated = CloneOwnedValueGraphWithFreshIds(plan, targetOwnership, sourceOwnership, sourceValueId,
                     sourceMember, occurrence, path, ref repeatedCopies, clonedContainerId, partial);
                 (repeatedCopies ??= new()).Add(occurrence);
@@ -3716,13 +3748,13 @@ namespace NeoCompose.Runtime
                 // inputs without flushing that plan while the clone is staged.
                 NotePendingRead(sourceValueId);
                 MemberValue clone = CloneValueRow(sourceRow);
-                clone.id = System.Guid.NewGuid().ToString();
+                clone.id = ClonedGraphId(sourceOwnership, sourceRow, copies, out bool clonedSpine);
                 clone.changeListeners = null;
                 clone.changeListenerEndpoints = null;
                 clone.copiedChangeListeners = null;
                 clone.copiedListenersAdopted = false;
                 copies.Values.Add((sourceOwnership, sourceValueId), (clone.id, sourceMember));
-                clone.sourceValueId = sourceRow.sourceValueId ?? sourceRow.id;
+                clone.sourceValueId = clonedSpine ? sourceRow.sourceValueId : sourceRow.sourceValueId ?? sourceRow.id;
                 clone.containerId = clonedContainerId;
 
                 switch (clone)

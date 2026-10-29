@@ -16,13 +16,22 @@ namespace NeoCompose.Runtime
             Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
         {
             if (plan.ObjectInsertion is not { } insertion || plan.Bindings.Count != 0
-                || grids.Count != 1 || !grids.TryGetValue(insertion.gridId, out var primitive)
+                || !grids.TryGetValue(insertion.gridId, out var primitive)
                 || !gridLookupCaches.TryGetValue(insertion.gridId, out var cache)
                 || plan.Resolve(insertion.instanceId) is not ObjectMemberValue { classId: not null } root
                 || root.IsRemoved || root.containerId != insertion.listId
                 || !TryInferMemberForValueId(insertion.listId, out Member? listMember)
                 || listMember is not ListMember list || !IsUnorderedList(list))
                 return false;
+            string? previousList = PreviousReplayRow(root.id)?.containerId;
+            if (grids.Count != 1)
+            {
+                if (grids.Count != 2 || previousList is null)
+                    return false;
+                string? previousGrid = WorldPlacementOrigin(previousList).gridId;
+                if (previousGrid is null || previousGrid == insertion.gridId || !grids.ContainsKey(previousGrid))
+                    return false;
+            }
             return TryValidateObjectInsertion(plan, insertion, primitive, cache, root, compatibleLayers);
         }
 
@@ -53,12 +62,12 @@ namespace NeoCompose.Runtime
             {
                 if (owned.Contains(write.Key.id))
                     continue;
-                if (write.Key.id != insertion.listId
+                if (write.Key.id != insertion.listId && write.Key.id != PreviousReplayRow(root.id)?.containerId
                     || !TryGetCommittedValue(write.Key.id, out MemberValue? before)
                     || !NeoSemanticJson.MemberRowsEqual(before, write.Value))
                     return false;
             }
-            if (candidateReplay is not null && candidateReplay.AffectedRoots.Any(id => !owned.Contains(id)))
+            if (candidateReplay is not null && candidateReplay.AffectedRoots.Any(id => !owned.Contains(id) && !candidateReplay.RetainedRoots.Contains(id)))
                 return false;
 
             var links = primitive.ResolveGridLinks(null).Where(link => !link.IsTileLink && link.LayerId == insertion.layerId).ToArray();

@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime
 
         internal NeoPlacementOutcome TryPlaceLayerEntry(
             NeoGeneratedClassValue link, Vector2Int cell, NeoGeneratedClassValue entry, bool tile,
-            NeoValueOwnership? tileOverlayOwnership = null)
+            NeoValueOwnership? tileOverlayOwnership = null, NeoWritePlan? preparedPlan = null)
         {
             if (!ReferenceEquals(link.Client, this) || !ReferenceEquals(entry.Client, this))
                 throw new ArgumentException("The layer link and placement must belong to the same client.");
@@ -97,7 +97,8 @@ namespace NeoCompose.Runtime
                     if (conflict is not null)
                         return conflict;
                 }
-                var plan = new NeoWritePlan(this) { PlacementGridId = gridId };
+                var plan = preparedPlan ?? new NeoWritePlan(this);
+                plan.PlacementGridId = gridId;
                 if (tile)
                 {
                     foreach (string id in list.ResolveEntryValueIds())
@@ -120,16 +121,31 @@ namespace NeoCompose.Runtime
                 if (gridId is null)
                     using (ReadCandidate(plan))
                         ValidateDetachedLayerLink(linkId, tile);
-                if (grid is not null)
+                // A lifecycle hook must see a validated candidate. This probe
+                // must not register a second cache insertion when Commit validates
+                // the final plan, nor leave speculative cache state after rejection.
+                if (grid?.Lifecycle is not null || preparedPlan is not null)
                 {
-                    if (grid.Lifecycle is not null)
+                    var validation = plan.Open();
+                    try
                     {
                         using (ReadCandidate(plan))
                             ValidateWritePlan(plan);
-                        grid.BeforeLinkPlacement(linkId, layerId, cell, entry, tile);
+                    }
+                    finally
+                    {
+                        plan.Rollback(validation);
+                        plan.ValidatedObjectInsertionGrid = null;
+                        plan.ValidatedObjectRefreshes = null;
+                        plan.ValidatedTileConversions = null;
+                        plan.PreparedObjectLayers = null;
+                        plan.PreparedTileLayers = null;
                     }
                 }
-                plan.Commit();
+                if (grid?.Lifecycle is not null)
+                    grid.BeforeLinkPlacement(linkId, layerId, cell, entry, tile);
+                if (preparedPlan is null)
+                    plan.Commit();
                 return NeoPlacementOutcome.Success();
             }
             catch (NeoPlacementValidationException error)

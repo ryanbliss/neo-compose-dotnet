@@ -22,6 +22,45 @@ namespace NeoCompose.Runtime
                 return false;
             var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[0])
                 ?? throw new NSGetterRuntimeError("Placement cell must be a Vector2Int.");
+            string? entryId = NSGetterEvaluator.FindRowReference(args[1], ctx, observe: false)?.valueId
+                ?? (args[1] as INeoValueReference)?.valueId;
+            if (memberId != TrySpawnChildId && entryId is not null && ctx.client.PendingScriptWrites is { } batch
+                && batch.TryGetEntryParent(entryId, out string? pendingParent) && pendingParent is null)
+            {
+                NeoPlacementOutcome outcome;
+                var previousInsertion = batch.Plan.ObjectInsertion;
+                string? previousGrid = batch.Plan.PlacementGridId;
+                try
+                {
+                    outcome = NeoPlacementOutcome.Success();
+                    batch.Stage(_ =>
+                    {
+                        using var read = ctx.client.ReadCandidate(batch.Plan);
+                        outcome = ctx.client.TryPlaceLayerEntry(View(receiver, ctx), cell, View(args[1], ctx),
+                            memberId == TrySetId, preparedPlan: batch.Plan);
+                        if (!outcome.Ok)
+                            throw new RejectedPlacement(outcome);
+                    });
+                    ctx.client.CommitScriptWrites();
+                }
+                catch (RejectedPlacement rejected)
+                {
+                    batch.Plan.ObjectInsertion = previousInsertion;
+                    batch.Plan.PlacementGridId = previousGrid;
+                    outcome = rejected.Outcome;
+                }
+                catch
+                {
+                    if (!batch.Plan.Installed)
+                    {
+                        batch.Plan.ObjectInsertion = previousInsertion;
+                        batch.Plan.PlacementGridId = previousGrid;
+                    }
+                    throw;
+                }
+                result = ConstructResult(outcome, ctx);
+                return true;
+            }
             ctx.client.CommitScriptWritesForGrid();
             NeoGeneratedClassValue link = View(receiver, ctx);
             NeoGeneratedClassValue entry = View(args[1], ctx);
@@ -30,6 +69,12 @@ namespace NeoCompose.Runtime
                 : ctx.client.TryPlaceLayerEntry(link, cell, entry, memberId == TrySetId);
             result = ConstructResult(placed, ctx);
             return true;
+        }
+
+        private sealed class RejectedPlacement : Exception
+        {
+            internal readonly NeoPlacementOutcome Outcome;
+            internal RejectedPlacement(NeoPlacementOutcome outcome) => Outcome = outcome;
         }
 
         internal static NeoGeneratedClassValue View(object? value, NSGetterEvaluator.Context ctx)

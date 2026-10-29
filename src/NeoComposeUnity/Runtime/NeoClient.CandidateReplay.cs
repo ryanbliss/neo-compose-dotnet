@@ -260,10 +260,15 @@ namespace NeoCompose.Runtime
                 || !plan.TryGetOwnership(id, out NeoValueOwnership nextOwnership)
                 || next.GetType() != previous.GetType()
                 || next.IsRemoved || previous.IsRemoved
-                || next.classId != previous.classId
-                || next.containerId != previous.containerId
-                || next.mapKey != previous.mapKey)
+                || next.classId != previous.classId)
                 return false;
+
+            // Reparenting an existing object in the same store preserves its
+            // construction. Field and value dependencies below still observe
+            // the move and any separately written position.
+            if (next.containerId != previous.containerId || next.mapKey != previous.mapKey)
+                return next is ObjectMemberValue && oldOwnership == nextOwnership
+                    && ReplayRowsEqual(previous, next, ignorePlacement: true);
 
             // A stored leaf shadows its cached default directly. It cannot
             // retire an owned default subtree. Actual constructor reads still
@@ -400,6 +405,12 @@ namespace NeoCompose.Runtime
                     && candidate.ClassChildren.ContainsKey(rootId))
                     return;
             }
+            if (!virtualFootprintByRoot.ContainsKey(rootId)
+                && candidate.Placements.TryGetValue(rootId, out var preparedPlacement)
+                && preparedPlacement.rootId != rootId
+                && candidate.Expansions.TryGetValue(preparedPlacement.rootId, out var preparedOwner)
+                && preparedOwner.Footprint.Contains(rootId))
+                return;
             bool rootWritten = candidate.Plan.WritesRow(rootId);
             ObjectMemberValue? root = rootWritten ? candidate.Plan.Resolve(rootId) as ObjectMemberValue
                 : boundary?.Root ?? ResolveValueRow(rootId) as ObjectMemberValue;
@@ -451,9 +462,26 @@ namespace NeoCompose.Runtime
                 && (!TryInferMemberForValueId(rootId, out Member? member)
                     || member is not ClassMember placement || placement.Payload == NeoMemberPayloadKind.Partial))
                 return;
-            if (CanRetainCandidateRoot(candidate, root))
+            bool rehome = replayOwnership is { } targetOwnership
+                && TryGetCommittedOwnership(rootId, out var sourceOwnership) && sourceOwnership != targetOwnership;
+            if (CanRetainCandidateRoot(candidate, root) && (!rehome || CanRetainNestedExpansions(candidate, rootId)))
             {
                 // Reuse the expansion's values and indexes throughout candidate reads.
+                if (rehome)
+                {
+                    var moved = RehomeVirtualExpansion(root, replayOwnership!.Value, candidate.Plan);
+                    candidate.Add(moved);
+                    RetainMoved(moved);
+                    return;
+
+                    void RetainMoved(PreparedVirtualExpansion expansion)
+                    {
+                        candidate.RetainedRoots.Add(expansion.Root.id);
+                        candidate.RehomedRoots.Add(expansion.Root.id);
+                        foreach (var child in expansion.Nested)
+                            RetainMoved(child);
+                    }
+                }
                 candidate.RetainedRoots.Add(rootId);
                 if (virtualValueIdsByRoot.TryGetValue(rootId, out var retainedIds))
                     candidate.HiddenVirtualIds.ExceptWith(retainedIds);
@@ -489,14 +517,24 @@ namespace NeoCompose.Runtime
                 && PreviousReplayRow(id) is ObjectMemberValue previous
                 && !SameVariantSelection(previous, next);
 
+        private bool CanRetainNestedExpansions(CandidateReplay candidate, string rootId)
+        {
+            if (nestedReplayRootsByOwner.TryGetValue(rootId, out var nested))
+                foreach (string child in nested)
+                    if (!CanRetainCandidateRoot(candidate, nestedReplayBoundaries[child].Root)
+                        || !CanRetainNestedExpansions(candidate, child))
+                        return false;
+            return true;
+        }
+
         private bool CanRetainCandidateRoot(CandidateReplay candidate, ObjectMemberValue root)
         {
             if (CurrentChangeSource == NeoChangeSource.External
                 || !virtualFootprintByRoot.TryGetValue(root.id, out var footprint)
-                || !SameRow(PreviousRow(root.id), root))
+                || !ReplayRowsEqual(PreviousRow(root.id), root, ignorePlacement: true))
                 return false;
             foreach (var write in candidate.Plan.Rows.Keys)
-                if (footprint.Contains(write.id)
+                if (footprint.Contains(write.id) && !CanKeepOverlay(write.id)
                     || virtualClassPlacementByChildId.TryGetValue(write.id, out var placement)
                         && placement.rootId == root.id && ReselectsVariant(candidate.Plan, write.id))
                     return false;
@@ -544,19 +582,29 @@ namespace NeoCompose.Runtime
                         return false;
             return true;
 
+            bool CanKeepOverlay(string id)
+            {
+                var before = PreviousRow(id);
+                var after = candidate.Plan.Resolve(id);
+                if (before is null || after is null || before.IsRemoved || after.IsRemoved)
+                    return false;
+                return ReplayRowsEqual(before, after, ignorePlacement: true)
+                    || NeoSemanticJson.MemberRowsEqual(before, after, ignorePlacement: true, ignoreScalarValue: true);
+            }
+
             MemberValue? PreviousRow(string id) => PreviousReplayRow(id);
 
             bool SameRow(MemberValue? left, MemberValue? right) => ReplayRowsEqual(left, right);
         }
 
-        private bool ReplayRowsEqual(MemberValue? previous, MemberValue? next)
+        private bool ReplayRowsEqual(MemberValue? previous, MemberValue? next, bool ignorePlacement = false)
         {
-            if (NeoSemanticJson.MemberRowsEqual(previous, next))
+            if (NeoSemanticJson.MemberRowsEqual(previous, next, ignorePlacement: ignorePlacement))
                 return true;
             if (previous is not ObjectMemberValue { classId: not null, value: not null } oldObject
                 || next is not ObjectMemberValue { value: not null } newObject
                 || !virtualClassChildren.TryGetValue(previous.id, out var defaults)
-                || !NeoSemanticJson.MemberRowsEqual(previous, next, ignoreObjectFields: true))
+                || !NeoSemanticJson.MemberRowsEqual(previous, next, ignoreObjectFields: true, ignorePlacement: ignorePlacement))
                 return false;
             foreach (var field in oldObject.value)
                 if (field.Value != (newObject.value.TryGetValue(field.Key, out var id) ? id : defaults.GetValueOrDefault(field.Key)))
@@ -716,7 +764,10 @@ namespace NeoCompose.Runtime
                     ClearVirtualInstanceRoot(root);
             // Candidate expansions already include their nested boundaries.
             foreach (PreparedVirtualExpansion expansion in candidate.Expansions.Values)
-                InstallVirtualExpansion(expansion, includeNested: false);
+                if (candidate.RehomedRoots.Contains(expansion.Root.id))
+                    InstallRehomedExpansion(expansion);
+                else
+                    InstallVirtualExpansion(expansion, includeNested: false);
             foreach (string root in candidate.AffectedRoots)
                 if (!candidate.RetainedRoots.Contains(root))
                     foreach (NeoMember node in IndexedNodes(root))
@@ -833,6 +884,7 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, VirtualClassPlacement> Placements = new();
             internal readonly HashSet<string> AffectedRoots = new();
             internal readonly HashSet<string> RetainedRoots = new();
+            internal readonly HashSet<string> RehomedRoots = new();
             internal readonly HashSet<string> ReplacedConstructionRoots = new();
             internal readonly HashSet<string> HiddenVirtualIds = new();
             internal readonly IReadOnlyDictionary<string, MemberValue> SessionRows;

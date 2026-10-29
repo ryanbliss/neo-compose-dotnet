@@ -30,7 +30,7 @@ namespace NeoCompose.Runtime
         // Runtime replay compares thousands of already typed rows. Keep the
         // JSON fallback for uncommon payloads while avoiding serialization of
         // ordinary class maps, collections and scalar leaves.
-        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false, bool ignorePlacement = false, bool ignoreChangeListeners = false)
+        internal static bool MemberRowsEqual(MemberValue? left, MemberValue? right, bool ignoreObjectFields = false, bool ignorePlacement = false, bool ignoreChangeListeners = false, bool ignoreScalarValue = false)
         {
             if (ReferenceEquals(left, right))
                 return true;
@@ -54,6 +54,9 @@ namespace NeoCompose.Runtime
                 || !MapsEqual(left.genericBindings, right.genericBindings)
                 || !MapsEqual(left.constructorArgs, right.constructorArgs))
                 return false;
+            if (ignoreScalarValue && left is NumberMemberValue or StringMemberValue or BoolMemberValue
+                or Vector2MemberValue or Vector3MemberValue or ColorMemberValue)
+                return true;
             return left switch
             {
                 ObjectMemberValue a => ignoreObjectFields || MapsEqual(a.value, ((ObjectMemberValue)right).value),

@@ -2542,12 +2542,16 @@ namespace NeoCompose.Runtime
         /// An authored row that names another class at this id is a fresh
         /// construction of that class (P113 §4.2), so it isn't a spine either.
         /// </summary>
-        private static bool IsMaterializedSpine(
-            ObjectMemberValue stored,
-            VirtualExpansionNode node)
-            => stored.id == node.virtualId
-                && SameClass(stored, node)
-                && SameVariantSelection(stored, node.row);
+        private bool IsMaterializedSpine(ObjectMemberValue stored, VirtualExpansionNode node)
+        {
+            if (stored.id != node.virtualId || !SameClass(stored, node) || !SameVariantSelection(stored, node.row))
+                return false;
+            if ((stored.constructorArgs?.Count ?? 0) == 0 && (node.row.constructorArgs?.Count ?? 0) == 0)
+                return stored.instanceConstructorId == node.row.instanceConstructorId;
+            var replayed = RewriteVirtualRow(node, stored);
+            return stored.instanceConstructorId == replayed.instanceConstructorId
+                && NeoSemanticJson.MapsEqual(stored.constructorArgs, replayed.constructorArgs);
+        }
 
         private static bool SameClass(ObjectMemberValue stored, VirtualExpansionNode node)
         {

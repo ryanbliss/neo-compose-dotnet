@@ -2445,7 +2445,7 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Variable '{vrp.variableId}' is not in scope");
             }
-            if (v is not null && ctx.client.CommitRemovedScriptAlias(v, ctx))
+            if (v is not null and not NeoObjectRecord && ctx.client.CommitRemovedScriptAlias(v, ctx))
                 return EvalVariable(vrp, scope, ctx);
             // Row-backed list aliases retain provenance even when a
             // mutation replaces their fixed-size CLR array.
@@ -12194,9 +12194,9 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool MayBeRowAlias(object? value) =>
             value is RuntimeSet or object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
 
-        internal static RowReference? FindRowReference(object? value, Context ctx)
+        internal static RowReference? FindRowReference(object? value, Context ctx, bool observe = true)
         {
-            if (value is not null)
+            if (observe && value is not null)
             {
                 ctx.client.CommitRemovedScriptAlias(value, ctx);
                 ctx.client.CommitScriptAttachment(value);
