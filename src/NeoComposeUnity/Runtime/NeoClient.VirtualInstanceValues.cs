@@ -1415,8 +1415,14 @@ namespace NeoCompose.Runtime
                 foreach (string id in Ids)
                 {
                     client.EvictSharedEvaluationRow(id);
-                    if (client.sessionData.values.ContainsKey(id))
-                        client.RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, id);
+                    if (!client.sessionData.values.ContainsKey(id))
+                        continue;
+                    // The scope already records every temporary allocation,
+                    // including nested construction. Do not rediscover its
+                    // graph and member types for each discarded row.
+                    client.NoteDeparture(NeoValueOwnership.Session, id, null);
+                    client.sessionData.values.Remove(id);
+                    client.IndexStoreRemove(NeoValueOwnership.Session, id);
                 }
             }
         }

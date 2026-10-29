@@ -1,0 +1,86 @@
+{
+  "baseline_sdk": "8b35be2855125f264d8e06006fb5cb76eda12ae6",
+  "neowyn": "05c43b327e4b55aeb9b44e46fdebf8d6e5bf663c",
+  "unity": "6000.6.4f1 Linux Editor",
+  "units": "milliseconds",
+  "baseline": {
+    "trials": [
+      {
+        "store": 2987.79,
+        "client": 1692.42,
+        "startup": 302.24,
+        "total": 4982.45
+      },
+      {
+        "store": 959.14,
+        "client": 1382.86,
+        "startup": 129.67,
+        "total": 2471.67
+      },
+      {
+        "store": 931.25,
+        "client": 1418.89,
+        "startup": 159.85,
+        "total": 2509.9900000000002
+      },
+      {
+        "store": 873.4,
+        "client": 1515.94,
+        "startup": 113.88,
+        "total": 2503.2200000000003
+      },
+      {
+        "store": 958.55,
+        "client": 1420.28,
+        "startup": 111.4,
+        "total": 2490.23
+      }
+    ],
+    "warm_medians": {
+      "store": 944.9,
+      "client": 1419.585,
+      "startup": 121.77499999999999,
+      "total": 2496.7250000000004
+    }
+  },
+  "candidate": {
+    "trials": [
+      {
+        "store": 3002.98,
+        "client": 1542.83,
+        "startup": 308.25,
+        "total": 4854.0599999999995
+      },
+      {
+        "store": 934.76,
+        "client": 1364.01,
+        "startup": 166.47,
+        "total": 2465.24
+      },
+      {
+        "store": 952.79,
+        "client": 1439.97,
+        "startup": 153.67,
+        "total": 2546.43
+      },
+      {
+        "store": 982.69,
+        "client": 1197.72,
+        "startup": 125.33,
+        "total": 2305.7400000000002
+      },
+      {
+        "store": 940.98,
+        "client": 1288.08,
+        "startup": 225.04,
+        "total": 2454.1
+      }
+    ],
+    "warm_medians": {
+      "store": 946.885,
+      "client": 1326.045,
+      "startup": 160.07,
+      "total": 2459.67
+    }
+  }
+}

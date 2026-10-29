@@ -1228,6 +1228,55 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NestedReplayCleanupPreservesAnExistingSessionClone()
+        {
+            ProjectData data = BuildNestedProjectData();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            string retainedId = client.CloneValueReference("thing-instance", NeoValueOwnership.Save);
+            var retained = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], retainedId, NeoValueOwnership.Session);
+            var retainedCount = retained.Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count");
+            retainedCount.Set(19);
+            var before = client.sessionValues.ToDictionary(pair => pair.Key, pair => pair.Value);
+            var count = (IntMember)data.members["deep-count"];
+            var original = count.defaultValue;
+            var replay = typeof(NeoClient).GetMethod("ExpandVirtualInstanceRoot",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            count.defaultValue = new NumberMemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "throw nested failure",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = Array.Empty<Variable>(),
+                        typeInfo = IntTypeInfo(),
+                        instructions = new Instruction[] { new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("nested failure") } },
+                    },
+                },
+            };
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                var error = Assert.Throws<System.Reflection.TargetInvocationException>(() =>
+                    replay.Invoke(client, new object[] { data.values["thing-instance"] }));
+                Assert.That(error!.InnerException!.Message, Does.Contain("nested failure"));
+                CollectionAssert.AreEquivalent(before.Keys, client.sessionValues.Keys);
+                foreach (var pair in before)
+                    Assert.That(client.sessionValues[pair.Key], Is.SameAs(pair.Value));
+                Assert.That(retainedCount.value!.value, Is.EqualTo(19));
+            }
+            count.defaultValue = original;
+            Assert.DoesNotThrow(() => replay.Invoke(client, new object[] { data.values["thing-instance"] }));
+            CollectionAssert.AreEquivalent(before.Keys, client.sessionValues.Keys);
+            Assert.That(retainedCount.value!.value, Is.EqualTo(19));
+            // The normal replay caller refreshes wrappers after expanding roots.
+            typeof(NeoClient).GetMethod("RefreshAllVirtualWrapperTrees",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(client, null);
+            Assert.That(client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Nested")
+                .Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5));
+        }
+
+        [Test]
         public void ReadOnlyComputedClassProjectionRetainsRuntimeOwnership()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());

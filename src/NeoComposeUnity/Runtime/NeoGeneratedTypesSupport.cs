@@ -8744,22 +8744,10 @@ namespace NeoCompose.Runtime
                 };
                 client.BindReplayDefaultClass(row, rows);
 
-                RuntimeClassPlan? resolvedClassPlan = classPlan
-                    ?? (classArguments is null
-                        ? ResolveRuntimeClassPlan(client, classId)
-                        : null);
-                IList<MergedSchemaEntry> mergedSchema = resolvedClassPlan?.schema
-                    ?? ResolveMergedSchema(client, classId, classArguments);
-                // Chain env overlaid with the owning slot's constructed
-                // arguments (specs/class-generics.md §4.1) — an
-                // instance of the declared open class binds its params
-                // through the slot, not a named subclass's chain.
-                IReadOnlyDictionary<string, NeoGenericEnvEntry> env =
-                    resolvedClassPlan?.genericEnv
-                    ?? ResolveRuntimeInstanceEnv(
-                        client,
-                        classId,
-                        classArguments);
+                RuntimeClassPlan resolvedClassPlan = classPlan
+                    ?? ResolveRuntimeClassPlan(client, classId, classArguments: classArguments);
+                IList<MergedSchemaEntry> mergedSchema = resolvedClassPlan.schema;
+                IReadOnlyDictionary<string, NeoGenericEnvEntry> env = resolvedClassPlan.genericEnv;
                 // Indexed: an interface foreach would box its enumerator per row.
                 for (int entryIndex = 0; entryIndex < mergedSchema.Count; entryIndex++)
                 {
@@ -8768,24 +8756,7 @@ namespace NeoCompose.Runtime
                         continue;
                     if (declarationRoot?.row.value?.ContainsKey(entry.schemaKey) == true)
                         continue;
-                    Member? member = resolvedClassPlan is null
-                        ? null
-                        : resolvedClassPlan.membersBySchemaKey[entry.schemaKey];
-                    if (member is null
-                        && !client.TryGetMember(entry.memberId, out member))
-                    {
-                        throw new InvalidOperationException(
-                            $"Class '{classId}' schema key '{entry.schemaKey}' references missing member '{entry.memberId}'.");
-                    }
-                    // Substitute the type before checking requirements. Defaults
-                    // remain owned by the member declaration.
-                    if (resolvedClassPlan is null)
-                    {
-                        member = NeoGenericResolution.SubstituteMember(
-                            client,
-                            member,
-                            env);
-                    }
+                    Member member = resolvedClassPlan.membersBySchemaKey[entry.schemaKey];
                     if (!IsStoredConstructorMember(member))
                         continue;
                     // A declaration's own root keeps direct authored bindings.
@@ -9315,29 +9286,17 @@ namespace NeoCompose.Runtime
                 return result;
             clonedIdsBySourceId ??= new Dictionary<string, string>(StringComparer.Ordinal);
 
-            var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
-            foreach (var entry in ResolveMergedSchema(client, classId, classArguments))
-            {
-                schemaByKey[entry.schemaKey] = entry;
-            }
-            var env = ResolveRuntimeInstanceEnv(
-                client,
-                classId,
-                classArguments);
+            var plan = ResolveRuntimeClassPlan(client, classId, classArguments: classArguments);
+            var env = plan.genericEnv;
 
             foreach (var pair in source)
             {
-                if (!schemaByKey.TryGetValue(pair.Key, out var entry))
+                if (!plan.schemaByKey.ContainsKey(pair.Key))
                     throw new InvalidOperationException($"Class default '{path}' supplies unknown schema key '{pair.Key}'.");
-                if (!client.TryGetMember(entry.memberId, out Member? member))
-                    throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing member '{entry.memberId}'.");
                 if (!client.TryGetValue(pair.Value, out MemberValue? sourceRow))
                     throw new InvalidOperationException($"Class default '{path}.{pair.Key}' references missing value '{pair.Value}'.");
 
-                Member effectiveMember = NeoGenericResolution.SubstituteMember(
-                    client,
-                    member,
-                    env);
+                Member effectiveMember = plan.membersBySchemaKey[pair.Key];
                 // P43 §1.1a — an init-backed ROW is evaluated, not copied. Its
                 // id still names a stored, addressable row in the authored
                 // graph; only its interior is computed.
@@ -9396,14 +9355,10 @@ namespace NeoCompose.Runtime
             Dictionary<string, string> clonedIdsBySourceId)
         {
             var result = new Dictionary<string, string>();
-            var env = ResolveRuntimeInstanceEnv(client, classId, classArguments);
-            foreach (MergedSchemaEntry entry in ResolveMergedSchema(
-                client,
-                classId,
-                classArguments))
+            var plan = ResolveRuntimeClassPlan(client, classId, classArguments: classArguments);
+            var env = plan.genericEnv;
+            foreach (MergedSchemaEntry entry in plan.schema)
             {
-                if (!client.TryGetMember(entry.memberId, out Member? member))
-                    continue;
                 MemberValue? sourceRow = client.ResolveClassChildRow(
                     source,
                     entry.schemaKey);
@@ -9411,10 +9366,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException($"Class default '{path}.{entry.schemaKey}' references missing value '{sourceValueId}'.");
                 if (sourceRow is null || sourceRow.IsRemoved)
                     continue;
-                Member effectiveMember = NeoGenericResolution.SubstituteMember(
-                    client,
-                    member,
-                    env);
+                Member effectiveMember = plan.membersBySchemaKey[entry.schemaKey];
                 if (sourceRow.init is not null)
                 {
                     string? initValueId = MaterializeInitializedValue(
