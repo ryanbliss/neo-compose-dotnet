@@ -664,11 +664,12 @@ namespace NeoCompose.Tests
                 new NeoGeneratedConstructorValue("Need", "need-field", point));
             Assert.That(((NeoGeneratedClassValue)ReadAt(holding, "Need")!).classId, Is.EqualTo(PointClass));
 
-            var missing = Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(
+            var missing = Assert.Throws<ArgumentNullException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 CarrierClass,
                 new NeoGeneratedConstructorValue("Need", "need-field", null)));
-            StringAssert.Contains("'Need'", missing!.Message);
+            Assert.That(missing!.ParamName, Is.EqualTo("value"));
+            Assert.That(missing.Message, Does.StartWith("'Carrier.Need' is required and cannot store null."));
         }
 
         [Test]

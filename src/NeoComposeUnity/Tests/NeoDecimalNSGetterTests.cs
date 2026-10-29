@@ -185,6 +185,57 @@ namespace NeoCompose.Tests
                         DecimalLiteral("0.0000000000000000000000000001"))));
         }
 
+        [TestCase("/", "1", "3", "0.3333333333333333333333333333")]
+        [TestCase("%", "7.5", "2", "1.5")]
+        [TestCase("%", "-7.5", "2", "-1.5")]
+        [TestCase("%", "7.5", "-2", "1.5")]
+        public void Arithmetic_DecimalDivisionAndRemainderReadLocals(string op, string left, string right, string expected)
+        {
+            Assert.That(EvaluateDecimalLocals(op, left, right), Is.EqualTo(expected));
+        }
+
+        [TestCase("/", "8", "2", "2", "2")]
+        [TestCase("%", "7.5", "2", "1", "0.5")]
+        public void Arithmetic_DecimalDivisionAndRemainderFoldLeft(string op, string first, string second, string third, string expected)
+        {
+            Assert.That(EvaluateDecimalLocals(op, first, second, third), Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Arithmetic_DecimalQuotientOverflowKeepsTypedErrorAndMessage()
+        {
+            var failure = Assert.Throws<NeoScriptException>(() =>
+                EvaluateDecimalLocals("/", "79228162514264337593543950335", "0.1"))!;
+            Assert.That(failure.InnerException, Is.InstanceOf<NeoRuntimeError>());
+            var error = (NeoRuntimeError)failure.InnerException!;
+            Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoOverflowError));
+            Assert.That(error.Message, Is.EqualTo("Value was either too large or too small for a Decimal."));
+        }
+
+        private static object? EvaluateDecimalLocals(string op, params string[] values)
+        {
+            var instructions = new List<Instruction>();
+            var operands = new Pointer[values.Length];
+            for (int i = 0; i < values.Length; i++)
+            {
+                string id = "operand" + i;
+                instructions.Add(new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable { id = id, typeInfo = DecimalTypeInfo(), pointer = DecimalLiteral(values[i]) },
+                });
+                operands[i] = VariableRef(id);
+            }
+            instructions.Add(Return(DecimalArithmetic(op, operands)));
+            return Evaluate(new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                parameters = new Variable[0],
+                typeInfo = DecimalTypeInfo(),
+                instructions = instructions.ToArray(),
+            });
+        }
+
         // ------------------------------------------------------------------
         // Decimal-stamped comparisons.
         // ------------------------------------------------------------------
