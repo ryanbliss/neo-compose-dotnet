@@ -373,6 +373,7 @@ namespace NeoCompose.Runtime
                 TupleMember member => member.defaultValue,
                 ClassMember member => member.defaultValue,
                 GenericMember member => member.defaultValue,
+                ObjectMember member => member.defaultValue,
                 EnumMember member => member.defaultValue,
                 LookupMember member => member.defaultValue,
                 DialogueLookupMember member => member.defaultValue,
@@ -801,15 +802,16 @@ namespace NeoCompose.Runtime
             {
                 var fileId = obj["fileId"]?.Value<string>();
                 var sliceIndex = obj["sliceIndex"]?.Value<int?>();
-                return fileId == null || sliceIndex == null
+                return fileId == null
                     ? null
-                    : new SpriteValue { fileId = fileId!, sliceIndex = sliceIndex.Value };
+                    : new SpriteValue { fileId = fileId!, StoredSliceIndex = sliceIndex };
             }
             if (value is IDictionary<string, object?> dict &&
                 dict.TryGetValue("fileId", out var rawFileId) &&
-                rawFileId is string dictFileId &&
-                dict.TryGetValue("sliceIndex", out var rawSliceIndex))
+                rawFileId is string dictFileId)
             {
+                if (!dict.TryGetValue("sliceIndex", out var rawSliceIndex) || rawSliceIndex is null)
+                    return new SpriteValue { fileId = dictFileId };
                 return rawSliceIndex switch
                 {
                     int i => new SpriteValue { fileId = dictFileId, sliceIndex = i },
@@ -871,11 +873,7 @@ namespace NeoCompose.Runtime
         {
             return source is null
                 ? null
-                : new SpriteValue
-                {
-                    fileId = source.fileId,
-                    sliceIndex = source.sliceIndex,
-                };
+                : source.Copy();
         }
 
         private static NeoVector2Value? CloneVector2Value(NeoVector2Value? source)

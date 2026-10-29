@@ -5,6 +5,7 @@
 
 using System;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript.Numerics;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -24,12 +25,7 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be finite.", NeoErrorContract.NeoArgumentError);
                 if (!NeoNumbers.IsWhole(number))
                     throw new NSGetterRuntimeError($"Bitwise {info.op} operand {index + 1} must be an integer.", NeoErrorContract.NeoArgumentError);
-                double remainder = number % 4294967296d;
-                if (remainder < 0)
-                    remainder += 4294967296d;
-                if (remainder >= 2147483648d)
-                    remainder -= 4294967296d;
-                return (int)remainder;
+                return NeoInt32.Wrap(number);
             }
             int left = Operand(0);
             if (info.op == "not")

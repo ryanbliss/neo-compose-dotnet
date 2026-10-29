@@ -47,6 +47,46 @@ namespace NeoCompose.Tests
             return Assert.Throws<NeoScriptException>(() => NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(client, null, null)))!;
         }
 
+        [TestCase("/", false, "Division by zero")]
+        [TestCase("%", false, "Modulo by zero")]
+        [TestCase("/", true, "Attempted to divide by zero.")]
+        [TestCase("%", true, "Attempted to divide by zero.")]
+        public void ZeroDivisorKeepsTypedErrorAndArithmeticCatch(string op, bool isDecimal, string message)
+        {
+            // Keep the compiler-emitted catch and Message read; vary the arithmetic it guards.
+            var getter = Fixture()["cases"]!.Single(test => test["name"]!.Value<string>() ==
+                "arithmetic taxonomy")["getter"]!.ToObject<FunctionWithReturnType>()!;
+            var guarded = (TryInstruction)getter.instructions[1];
+            var zero = ((VariableInstruction)getter.instructions[0]).variable;
+            var result = ((VariableInstruction)guarded.instructions[0]).variable;
+            var arithmetic = ((ArithmeticOperation)((OperationPointer)result.pointer!).operation).arithmetic;
+            arithmetic.type = op;
+            if (isDecimal)
+            {
+                zero.typeInfo = result.typeInfo = new PrimitiveTypeInfo { type = MemberKind.Decimal, required = true };
+                var zeroValue = ((ValuePointer)zero.pointer!).value;
+                zeroValue.typeInfo = zero.typeInfo;
+                zeroValue.value = new JValue("0");
+                var numerator = ((ValuePointer)arithmetic.pointers[0]).value;
+                numerator.typeInfo = zero.typeInfo;
+                numerator.value = new JValue("1");
+                arithmetic.isDecimal = true;
+                arithmetic.numeric = null;
+            }
+
+            using NeoClient client = Client();
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            Assert.That(NSGetterEvaluator.Evaluate(getter, ctx), Is.EqualTo(message), "catch (NeoArithmeticError)");
+
+            getter.instructions = new[] { getter.instructions[0] }.Concat(guarded.instructions).ToArray();
+            var failure = Assert.Throws<NeoScriptException>(() => NSGetterEvaluator.Evaluate(getter, ctx))!;
+            Assert.That(failure.InnerException, Is.InstanceOf<NeoRuntimeError>());
+            var error = (NeoRuntimeError)failure.InnerException!;
+            Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
+            Assert.That(error.Message, Is.EqualTo(message));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArithmeticError));
+        }
+
         [Test]
         public void HostPayloadRetainsGeneratedSubtypeWithoutAttachingRows()
         {

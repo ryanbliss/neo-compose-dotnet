@@ -180,6 +180,7 @@ namespace NeoCompose.Runtime
         {
             EnsureWritable();
             movedValueIds = null;
+            client.RequireStoredValue(member, payload);
             if (payload?.isValueReference == true)
             {
                 movedValueIds = BindValueReference(payload);

@@ -56,31 +56,6 @@ namespace NeoCompose.Runtime
             return count;
         }
 
-        /// <summary>
-        /// P65 §2.5 positional fill: a call may omit trailing defaulted
-        /// parameters, and the omitted slots are completed from the callee's
-        /// current argument types. Below the non-defaulted minimum and above
-        /// the full arity remain hard errors, so a genuinely stale call still
-        /// fails closed.
-        /// </summary>
-        internal static object?[] FillTrailingDefaults(
-            object?[] args,
-            FunctionArgumentTypeInfo[] argumentTypes,
-            string subject)
-        {
-            ValidateArity(args.Length, argumentTypes, subject);
-            int maxArity = argumentTypes.Length;
-            if (args.Length == maxArity)
-                return args;
-            var filled = new object?[maxArity];
-            Array.Copy(args, filled, args.Length);
-            for (int index = args.Length; index < maxArity; index++)
-            {
-                filled[index] = DefaultRuntimeValue(argumentTypes[index], subject);
-            }
-            return filled;
-        }
-
         internal static void ValidateArity(int count, FunctionArgumentTypeInfo[] argumentTypes, string subject)
         {
             int maxArity = argumentTypes.Length;
@@ -115,13 +90,6 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError(
                     $"{subject} parameter '{parameter.name}' was omitted but declares no default.");
-            }
-            if (defaultValue.isDefault == true)
-            {
-                // P127 §4.1's `default` form is the parameter type's default
-                // under the call's bindings, which the evaluator resolves.
-                throw new NSGetterRuntimeError(
-                    $"{subject} parameter '{parameter.name}' declares a 'default' default, which this SDK can't evaluate yet.");
             }
             if (defaultValue.value is null)
                 return null;

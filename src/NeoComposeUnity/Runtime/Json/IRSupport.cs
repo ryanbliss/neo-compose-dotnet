@@ -69,6 +69,27 @@ namespace NeoCompose.Runtime.Json
         public const string RowOf = "rowOf";
         /// <summary>P112 §5.3. The target a reference names; a write through it targets the slot.</summary>
         public const string Deref = "deref";
+        /// <summary>P127 §1.2. Converts a value to <c>object</c>, <c>ValueType</c>, <c>Enum</c> or an interface.</summary>
+        public const string Box = "box";
+        /// <summary>P127 §4.1. A reference cast, unboxing or <c>as</c>.</summary>
+        public const string Cast = "cast";
+        /// <summary>P127 §3.3. An explicit numeric or enum conversion.</summary>
+        public const string Convert = "convert";
+        /// <summary>P127 §4.1. <c>default</c> of a type naming a type parameter.</summary>
+        public const string Default = "default";
+        /// <summary>P127 §2. <c>typeof</c>.</summary>
+        public const string TypeOf = "typeOf";
+        /// <summary>P127 §1.1. An <c>object</c> member no authored member shadows.</summary>
+        public const string ObjectMember = "objectMember";
+        /// <summary>P127 §2. A member of a <c>Type</c> value.</summary>
+        public const string TypeMember = "typeMember";
+        /// <summary>P127 §1.2. <c>new object()</c>.</summary>
+        public const string NewObject = "newObject";
+        /// <summary>P127 §4.4. A value-producing <c>++</c> or <c>--</c>.</summary>
+        public const string Increment = "increment";
+        /// <summary>P127 §4.6. An interpolation hole or concatenation operand as text.</summary>
+        public const string Format = "format";
+        public const string Out = "out";
     }
 
     public static class InstructionKind
@@ -445,6 +466,13 @@ namespace NeoCompose.Runtime.Json
         /// decimal, and untyped operations.
         /// </summary>
         public ArithmeticNumeric? numeric;
+        /// <summary>
+        /// TS-side <c>checked?: true</c>, only with <c>numeric: "int"</c>:
+        /// an int result outside the int range throws <c>NeoOverflowError</c>
+        /// instead of wrapping (P127 §3.1). <c>checked</c> is a C# keyword.
+        /// </summary>
+        [JsonProperty("checked")]
+        public bool? isChecked;
     }
 
     /// <summary>
