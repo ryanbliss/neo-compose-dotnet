@@ -237,8 +237,8 @@ namespace NeoCompose.Runtime.NeoScript
                 TypeInfo resolved = Lookup(table, Index(argument));
                 FunctionArgumentTypeInfo bound = AsArgument(resolved, argument.name);
                 bound.required = NeoGeneratedTypesSupport.ClosedSlotRequired(resolved, declaredNullable: !argument.required);
-                // Only a non-constant type can hold a type parameter, and its
-                // only default is null.
+                // Keep a type-default marker distinct from an explicit null:
+                // the invocation binder uses it for the bare-T exception.
                 bound.defaultValue = argument.defaultValue;
                 return bound;
             }
