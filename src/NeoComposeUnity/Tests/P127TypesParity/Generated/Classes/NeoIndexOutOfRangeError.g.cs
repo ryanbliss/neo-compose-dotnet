@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public NeoIndexOutOfRangeError(string message)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_0f2970bc-bd11-5173-847c-713e88b47a44", "system_7e66b321-59ef-5d57-a126-15aee7505321", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoIndexOutOfRangeError(string message, IReadOnlyNeoError? innerError = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_0f2970bc-bd11-5173-847c-713e88b47a44", "system_7e66b321-59ef-5d57-a126-15aee7505321", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -98,6 +98,8 @@ namespace NeoCompose.Tests.P127TypesParity
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -105,6 +107,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -123,6 +126,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 

@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public NeoArgumentError(string message)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_8c9fb766-c6aa-597a-a027-38a2dbc01687", "system_072bd389-2311-50dc-9a64-80f43b2f1ee1", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoArgumentError(string message, IReadOnlyNeoError? innerError = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_8c9fb766-c6aa-597a-a027-38a2dbc01687", "system_072bd389-2311-50dc-9a64-80f43b2f1ee1", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -51,6 +51,9 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoArgumentError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -63,6 +66,9 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoArgumentError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -70,7 +76,14 @@ namespace NeoCompose.Tests.P127TypesParity
 
         internal new static NeoArgumentError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
         {
-            return new NeoArgumentError(client, value, !saved);
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(client, value, !saved),
+                "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(client, value, !saved),
+                "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(client, value, !saved),
+                "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new NeoArgumentError Clone()
@@ -98,6 +111,8 @@ namespace NeoCompose.Tests.P127TypesParity
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -105,6 +120,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -123,6 +139,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 

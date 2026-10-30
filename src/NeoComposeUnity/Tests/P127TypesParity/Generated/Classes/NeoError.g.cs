@@ -22,6 +22,10 @@ namespace NeoCompose.Tests.P127TypesParity
         bool TryWritable(out NeoError writable);
 
         string Message { get; }
+
+        IReadOnlyNeoError? InnerError { get; }
+
+        string? ToString();
     }
 
     public partial class NeoError : NeoErrorBase, IReadOnlyNeoError
@@ -36,8 +40,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public NeoError(string message)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_791c90d0-8414-5971-8c1c-680f933ab42c", "system_5749aebc-8464-5186-b995-7f5a69e702b4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoError(string message, IReadOnlyNeoError? innerError = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_791c90d0-8414-5971-8c1c-680f933ab42c", "system_5749aebc-8464-5186-b995-7f5a69e702b4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -53,13 +57,22 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -72,13 +85,22 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -88,13 +110,22 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
+                "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(client, value, !saved),
                 "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(client, value, !saved),
                 "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(client, value, !saved),
+                "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(client, value, !saved),
                 "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(client, value, !saved),
+                "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(client, value, !saved),
+                "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(client, value, !saved),
+                "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(client, value, !saved),
                 "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(client, value, !saved),
                 "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(client, value, !saved),
                 "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(client, value, !saved),
                 "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(client, value, !saved),
+                "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(client, value, !saved),
+                "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(client, value, !saved),
+                "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(client, value, !saved),
+                "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(client, value, !saved),
                 "system_791c90d0-8414-5971-8c1c-680f933ab42c" => new NeoError(client, value, !saved),
                 _ => null,
             };
@@ -120,11 +151,34 @@ namespace NeoCompose.Tests.P127TypesParity
             return TryWritable<NeoError>(out writable);
         }
 
+        public virtual IReadOnlyNeoError? InnerError
+        {
+            get
+            {
+                if (TryReadDetachedLookup("InnerError", out NeoMember? detachedSelection))
+                {
+                    return detachedSelection is null ? null : detachedSelection is NeoMemberClassWritable writableDetachedSelection ? global::NeoCompose.Tests.P127TypesParity.NeoError.CreateWritable(client, writableDetachedSelection) : global::NeoCompose.Tests.P127TypesParity.NeoError.Create(client, (NeoMemberClass)detachedSelection);
+                }
+                var selected = node.Get<NeoMemberLookup>("InnerError").GetFirstSelected();
+                return selected is null ? null : selected is NeoMemberClassWritable writableSelected ? global::NeoCompose.Tests.P127TypesParity.NeoError.CreateWritable(client, writableSelected) : global::NeoCompose.Tests.P127TypesParity.NeoError.Create(client, (NeoMemberClass)selected);
+            }
+        }
+
+
+        public virtual string? ToString()
+        {
+            var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
+            if (result is null) return null;
+            return (string)result!;
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -132,6 +186,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -150,6 +205,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 

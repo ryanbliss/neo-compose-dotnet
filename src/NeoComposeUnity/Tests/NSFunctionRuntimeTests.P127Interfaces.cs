@@ -903,7 +903,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void P127Interface_FailedInitializationIsStickyAndPublishesNoConstruction()
+        public void P127Interface_CorruptInitializationIsStickyAndPublishesNoConstruction()
         {
             var first = new IntMember
             {
@@ -932,12 +932,11 @@ namespace NeoCompose.Tests
             // Inject a failing initializer after import to exercise the defensive runtime path.
             second.valueId = "missing-initializer";
             var construction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id), new Dictionary<string, TypeBinding> { ["T"] = TypeBinding.Closed(new TypeHead(MemberKind.Int, true)) });
-            var error = Assert.Throws<NeoRuntimeError>(() => client.ConstructedStaticBinding(first.id, construction));
-            Assert.That(error!.ErrorClass, Is.EqualTo(NeoErrorClass.NeoTypeInitializationError));
-            Assert.That(error.InnerException, Is.Not.Null);
+            var error = Assert.Throws<InvalidOperationException>(() => client.ConstructedStaticBinding(first.id, construction));
+            Assert.That(error!.Message, Is.EqualTo("Cannot clone value graph: owned value row 'missing-initializer' does not exist."));
             second.valueId = null;
-            var repeated = Assert.Throws<NeoRuntimeError>(() => client.ConstructedStaticBinding(first.id, construction));
-            Assert.That(repeated!.InnerException, Is.SameAs(error.InnerException));
+            var repeated = Assert.Throws<InvalidOperationException>(() => client.ConstructedStaticBinding(first.id, construction));
+            Assert.That(repeated, Is.SameAs(error));
             Assert.That(JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!.staticConstructions, Is.Null.Or.Empty);
         }
 

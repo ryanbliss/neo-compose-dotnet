@@ -6,6 +6,7 @@
 using System;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using NeoCompose.Runtime.NeoScript.Hashing;
 
 namespace NeoCompose.Runtime
 {
@@ -104,6 +105,9 @@ namespace NeoCompose.Runtime
                 return defaultValue.value;
             if (defaultValue.value is string optionId)
             {
+                if (parameter.enumId == NeoPrimitiveConformance.NumberStylesEnumId)
+                    return NeoNumberStyles.OptionValue(optionId)
+                        ?? throw new NSGetterRuntimeError($"Unknown NumberStyles option '{optionId}'.");
                 return new[] { optionId };
             }
             throw new NSGetterRuntimeError(

@@ -1775,8 +1775,8 @@ namespace NeoCompose.Runtime
                     keyEnumId = argument.keyEnumId,
                 },
                 MemberKind.Lookup => new LookupTypeInfo { entryTypeInfo = argument.entryTypeInfo! },
-                // A function's own type parameter is never closed by a stored slot.
-                MemberKind.Generic => new GenericTypeInfo { genericParamId = argument.genericParamId ?? throw new OpenTypeException() },
+                MemberKind.Generic when argument.ownerMemberId is not null => new FunctionGenericTypeInfo { ownerMemberId = argument.ownerMemberId, index = argument.index ?? throw new OpenTypeException() },
+                MemberKind.Generic => new GenericTypeInfo { genericParamId = argument.genericParamId ?? throw new OpenTypeException(), ownerClassId = argument.ownerClassId, ownerInterfaceId = argument.ownerInterfaceId },
                 MemberKind.NSDelegate => new DelegateTypeInfo { returnTypeInfo = argument.returnTypeInfo!, argumentTypes = argument.argumentTypes! },
                 MemberKind.NSAction => new ActionTypeInfo { argumentTypes = argument.argumentTypes! },
                 MemberKind.Reference => new ReferenceTypeInfo { targetTypeInfo = argument.targetTypeInfo! },

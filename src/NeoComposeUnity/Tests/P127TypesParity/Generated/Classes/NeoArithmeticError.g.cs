@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public NeoArithmeticError(string message)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab", "system_2f292163-652d-51be-a4d3-e0f908703890", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoArithmeticError(string message, IReadOnlyNeoError? innerError = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab", "system_2f292163-652d-51be-a4d3-e0f908703890", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -51,6 +51,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoArithmeticError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -63,6 +65,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoArithmeticError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -70,7 +74,13 @@ namespace NeoCompose.Tests.P127TypesParity
 
         internal new static NeoArithmeticError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
         {
-            return new NeoArithmeticError(client, value, !saved);
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(client, value, !saved),
+                "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(client, value, !saved),
+                "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new NeoArithmeticError Clone()
@@ -98,6 +108,8 @@ namespace NeoCompose.Tests.P127TypesParity
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -105,6 +117,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -123,6 +136,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 

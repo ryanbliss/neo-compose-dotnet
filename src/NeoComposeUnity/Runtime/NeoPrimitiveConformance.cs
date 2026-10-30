@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -75,6 +76,25 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class NeoPrimitiveConformance
     {
+        internal static NeoConformingTypeKind? Kind(TypeBinding type) => type.Head?.Type switch
+        {
+            MemberKind.Int => NeoConformingTypeKind.Int,
+            MemberKind.Float => NeoConformingTypeKind.Float,
+            MemberKind.Decimal => NeoConformingTypeKind.Decimal,
+            MemberKind.Bool => NeoConformingTypeKind.Bool,
+            MemberKind.String => NeoConformingTypeKind.String,
+            MemberKind.Vector2 => NeoConformingTypeKind.Vector2,
+            MemberKind.Vector2Int => NeoConformingTypeKind.Vector2Int,
+            MemberKind.Vector3 => NeoConformingTypeKind.Vector3,
+            MemberKind.Vector3Int => NeoConformingTypeKind.Vector3Int,
+            MemberKind.Color => NeoConformingTypeKind.Color,
+            MemberKind.Enum => NeoConformingTypeKind.Enum,
+            MemberKind.Tuple => NeoConformingTypeKind.Tuple,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.Enum => NeoConformingTypeKind.Enum,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.CultureInfo => NeoConformingTypeKind.CultureInfo,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.NumberFormatInfo => NeoConformingTypeKind.NumberFormatInfo,
+            _ => null,
+        };
         /// <summary>The 31 system interfaces (§7.1–§7.3), keyed by .NET metadata name, in table order.</summary>
         internal static readonly IReadOnlyList<KeyValuePair<string, string>> InterfaceIds = new[]
         {

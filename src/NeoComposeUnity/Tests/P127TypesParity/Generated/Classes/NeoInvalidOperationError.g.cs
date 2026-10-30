@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public NeoInvalidOperationError(string message)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_bdca6d33-5224-5412-8e50-bef6fe0720bf", "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoInvalidOperationError(string message, IReadOnlyNeoError? innerError = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "system_bdca6d33-5224-5412-8e50-bef6fe0720bf", "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -98,6 +98,8 @@ namespace NeoCompose.Tests.P127TypesParity
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -105,6 +107,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -123,6 +126,7 @@ namespace NeoCompose.Tests.P127TypesParity
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 

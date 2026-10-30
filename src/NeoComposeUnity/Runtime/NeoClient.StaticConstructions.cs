@@ -91,7 +91,7 @@ namespace NeoCompose.Runtime
             if (staticConstructionStates.TryGetValue(construction, out var existing))
             {
                 if (existing.Error is not null)
-                    throw StaticInitializationError(construction, existing.Error);
+                    throw existing.Error;
                 if (existing.Initialized || existing.Initializing)
                     return;
             }
@@ -189,8 +189,9 @@ namespace NeoCompose.Runtime
             }
             catch (Exception error)
             {
-                state.Error = error;
-                throw StaticInitializationError(construction, error);
+                state.Error = NeoScriptErrorClassification.IsAuthoredCatchable(error)
+                    ? StaticInitializationError(construction, error) : error;
+                throw state.Error;
             }
             finally
             {

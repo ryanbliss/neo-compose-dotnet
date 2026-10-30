@@ -17,6 +17,19 @@ namespace NeoCompose.Runtime
         private readonly NeoClient client;
         private readonly object schema;
         private readonly Dictionary<TypeBinding, List<TypeBinding>> closures = new();
+        private readonly Dictionary<(TypeBinding, TypeBinding), bool> primitiveConformance = new();
+        private readonly Dictionary<TypeBinding, bool> ownEquatable = new();
+
+        internal bool ImplementsOwnEquatable(TypeBinding type)
+        {
+            if (type.Head?.Type != MemberKind.Class)
+                return false;
+            type = Identity(type);
+            if (ownEquatable.TryGetValue(type, out bool cached))
+                return cached;
+            return ownEquatable[type] = Closure(type).Any(item => item.Head!.InterfaceId == NeoPrimitiveConformance.InterfaceId("IEquatable`1")
+                && item.Bindings!.Values.Any(argument => Identity(argument).Equals(type)));
+        }
         private readonly Dictionary<TypeBinding, IReadOnlyList<TypeBinding>> annotatedClosures = new();
         private readonly Dictionary<TypeBinding, List<TypeBinding>> classes = new();
         private readonly Dictionary<TypeBinding, IReadOnlyDictionary<string, NeoGenericEnvEntry>> environments = new();
@@ -34,12 +47,16 @@ namespace NeoCompose.Runtime
             internal readonly string MemberId;
             internal readonly TypeBinding? InterfaceConstruction;
             internal readonly TypeBinding? StaticConstruction;
+            internal readonly string? PrimitiveMember;
+            internal readonly TypeBinding? PrimitiveType;
             internal NSGetterEvaluator.CallSiteTarget? CallTarget;
-            internal Implementation(string memberId, TypeBinding? interfaceConstruction = null, TypeBinding? staticConstruction = null)
+            internal Implementation(string memberId, TypeBinding? interfaceConstruction = null, TypeBinding? staticConstruction = null, string? primitiveMember = null, TypeBinding? primitiveType = null)
             {
                 MemberId = memberId;
                 InterfaceConstruction = interfaceConstruction;
                 StaticConstruction = staticConstruction;
+                PrimitiveMember = primitiveMember;
+                PrimitiveType = primitiveType;
             }
         }
 
@@ -106,11 +123,42 @@ namespace NeoCompose.Runtime
             return chain;
         }
 
+        internal IReadOnlyList<TypeBinding> PrimitiveClosure(TypeBinding type)
+        {
+            if (closures.TryGetValue(type, out var cached))
+                return cached;
+            var result = new List<TypeBinding>();
+            if (NeoPrimitiveConformance.Kind(type) is not { } primitiveKind
+                || type.Head is { Required: false } nullable && TypeBindings.IsValueType(nullable))
+                return closures[type] = result;
+            foreach (var row in NeoPrimitiveConformance.Table[primitiveKind])
+            {
+                if (!client.ProjectDataForRuntime.interfaces.TryGetValue(row.InterfaceId, out var declaration))
+                    throw new NSGetterRuntimeError($"Canonical interface '{row.InterfaceId}' was not found.");
+                var arguments = new Dictionary<string, TypeBinding>();
+                for (int i = 0; i < row.Arguments.Length; i++)
+                {
+                    var argument = row.Arguments[i] switch
+                    {
+                        NeoConformanceArgumentKind.Self => type,
+                        NeoConformanceArgumentKind.Int => TypeBinding.Closed(new TypeHead(MemberKind.Int, true)),
+                        _ => TypeBinding.Closed(new TypeHead(MemberKind.Bool, true)),
+                    };
+                    arguments.Add(declaration.genericParams![i].id, argument);
+                }
+                result.Add(TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: row.InterfaceId), arguments));
+            }
+            closures[type] = result;
+            return result;
+        }
+
         internal IReadOnlyList<TypeBinding> Closure(TypeBinding type)
         {
             type = Identity(type);
             if (closures.TryGetValue(type, out var found))
                 return found;
+            if (NeoPrimitiveConformance.Kind(type) is not null)
+                return PrimitiveClosure(type);
             var result = new List<TypeBinding>();
             var seen = new HashSet<TypeBinding>();
             var active = new HashSet<string>();
@@ -204,6 +252,8 @@ namespace NeoCompose.Runtime
             to = Identity(to);
             if (from.Equals(to))
                 return true;
+            if (to.Head!.Type == MemberKind.Interface && NeoPrimitiveConformance.Kind(from) is not null)
+                return PrimitiveConforms(from, to);
             if (TypeBindings.IsValueType(from.Head!) || TypeBindings.IsValueType(to.Head!))
                 return false;
             if (from.Head!.Type == MemberKind.NSDelegate && to.Head!.Type == MemberKind.NSDelegate)
@@ -257,6 +307,22 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        internal bool PrimitiveConforms(TypeBinding type, TypeBinding requested)
+        {
+            type = Identity(type);
+            requested = Identity(requested);
+            var key = (type, requested);
+            if (primitiveConformance.TryGetValue(key, out bool cached))
+                return cached;
+            if (NeoPrimitiveConformance.Kind(type) is not { } kind)
+                return primitiveConformance[key] = false;
+            if (!type.Head!.Required && TypeBindings.IsValueType(type.Head))
+                return primitiveConformance[key] = false;
+            if (!NeoPrimitiveConformance.Table[kind].Any(row => row.InterfaceId == requested.Head!.InterfaceId))
+                return primitiveConformance[key] = false;
+            return primitiveConformance[key] = Closure(type).Contains(requested);
+        }
+
         internal (string Name, InterfaceMember Member) Declaration(TypeBinding construction, string memberId)
         {
             var key = (construction.Head!.InterfaceId!, memberId);
@@ -279,6 +345,14 @@ namespace NeoCompose.Runtime
                 return cached;
             var declaration = Declaration(requested, memberId);
             var contract = declaration.Member;
+            if (NeoPrimitiveConformance.Kind(receiver) is { } primitiveKind)
+            {
+                if (!PrimitiveConforms(receiver, requested))
+                    throw new NeoScriptPreExecutionValidationError($"Primitive '{NeoTypeNames.Of(receiver)}' has no intrinsic for interface member '{memberId}'.");
+                string intrinsic = NeoPrimitiveIntrinsics.Resolve(primitiveKind, requested.Head!.InterfaceId!, declaration.Name);
+                return mappings[key] = intrinsic == "default" ? Body(contract, requested)
+                    : new Implementation(memberId, primitiveMember: intrinsic, primitiveType: receiver);
+            }
             if (direct || contract.Access == NeoMemberAccessKind.Private || contract.DeclaredModifier == NeoMemberModifierKind.Sealed
                 || accessor == "get" && contract.GetterAccess == NeoMemberAccessKind.Private
                 || accessor == "set" && contract.SetterAccess == NeoMemberAccessKind.Private)

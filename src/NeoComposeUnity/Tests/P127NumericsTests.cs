@@ -22,11 +22,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ThrowsDivisionByZeroAsAnArithmeticError()
+        public void ThrowsDivisionByZeroWithItsMintedClass()
         {
             NeoRuntimeError error = Assert.Throws<NeoRuntimeError>(() => NeoInt32.Divide(1, 0))!;
             Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
-            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArithmeticError));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoDivideByZeroError));
         }
     }
 }
