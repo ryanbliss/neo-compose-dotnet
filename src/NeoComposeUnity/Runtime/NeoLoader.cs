@@ -44,7 +44,10 @@ namespace NeoCompose.Runtime
                 localizationOptions);
             string? content = await loader.LoadSaveContentAsync();
             cancellationToken.ThrowIfCancellationRequested();
-            assetDatabase ??= NeoAssetDatabase.LoadDefault();
+            if (assetDatabase == null)
+                assetDatabase = await NeoAssetDatabase.LoadDefaultAsync(cancellationToken);
+            else
+                await assetDatabase.PreloadAudioAsync(cancellationToken);
             return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
                 saveOptions, cancellationToken, userClient: userClient);
         }
