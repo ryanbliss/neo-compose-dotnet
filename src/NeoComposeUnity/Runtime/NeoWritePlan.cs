@@ -159,9 +159,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Takes the current revision as this plan's base. Only a held
-        /// script batch's plan does: it commits before anything else reads
-        /// or writes a row it stages.
+        /// Takes the current revision as this plan's base. A held script batch
+        /// commits before anything else reads or writes a row it stages. Static
+        /// initialization also rebases after its initializer side effects run.
         /// </summary>
         internal void Rebase() => BaseRevision = Client.WriteRevision;
 
@@ -219,8 +219,12 @@ namespace NeoCompose.Runtime
                 for (int index = constructionJournal.Count - 1; index >= checkpoint.Constructions; index--)
                 {
                     var entry = constructionJournal[index];
+                    RemoveConstructionValue(entry.key);
                     if (entry.present)
+                    {
                         ConstructionBindings![entry.key] = entry.previous;
+                        AddConstructionValue(entry.key, entry.previous);
+                    }
                     else
                         ConstructionBindings!.Remove(entry.key);
                     Version++;
@@ -610,6 +614,37 @@ namespace NeoCompose.Runtime
 
         internal Dictionary<(NeoValueOwnership ownership, string memberId, TypeBinding construction), string?>? ConstructionBindings;
 
+        private Dictionary<(NeoValueOwnership ownership, string valueId), HashSet<(NeoValueOwnership ownership, string memberId, TypeBinding construction)>>? constructionsByValue;
+
+        private void RemoveConstructionValue((NeoValueOwnership ownership, string memberId, TypeBinding construction) key)
+        {
+            if (ConstructionBindings!.TryGetValue(key, out var previous) && previous is not null
+                && constructionsByValue!.TryGetValue((key.ownership, previous), out var owners))
+            {
+                owners.Remove(key);
+                if (owners.Count == 0)
+                    constructionsByValue.Remove((key.ownership, previous));
+            }
+        }
+
+        private void AddConstructionValue((NeoValueOwnership ownership, string memberId, TypeBinding construction) key, string? valueId)
+        {
+            if (valueId is null)
+                return;
+            constructionsByValue ??= new();
+            if (!constructionsByValue.TryGetValue((key.ownership, valueId), out var owners))
+                constructionsByValue[(key.ownership, valueId)] = owners = new();
+            owners.Add(key);
+        }
+
+        internal NeoStaticConstruction? ConstructionOfValue(NeoValueOwnership ownership, string valueId)
+        {
+            if (constructionsByValue?.TryGetValue((ownership, valueId), out var owners) == true)
+                foreach (var key in owners)
+                    return new NeoStaticConstruction { memberId = key.memberId, construction = key.construction, value = valueId };
+            return null;
+        }
+
         internal bool ReplacesStaticConstructions;
         internal List<NeoStaticConstruction>? StaticConstructionSnapshot;
 
@@ -624,7 +659,9 @@ namespace NeoCompose.Runtime
                 bool present = ConstructionBindings.TryGetValue(key, out string? previous);
                 (constructionJournal ??= new()).Add((key, present, previous));
             }
+            RemoveConstructionValue(key);
             ConstructionBindings[key] = valueId;
+            AddConstructionValue(key, valueId);
         }
 
         internal void Bind(NeoValueOwnership ownership, string memberId, bool present, string? valueId)

@@ -2427,6 +2427,12 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"List assignment index {index} must be non-negative.");
                 if (index >= local.Length)
                     throw new NSGetterRuntimeError($"List assignment index {index} exceeds list length {local.Length}.");
+                if (NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(local, out var origin)
+                    && origin!.owner.plan.slots[origin.index] is { entryMember: { } entryMember } slot)
+                {
+                    // Detached fields still obey stored-slot requirements before they acquire rows.
+                    client.RequireStoredValue(entryMember, assigned, $"{slot.path}[{index}]", script: true);
+                }
                 if (writeTarget.typeInfo.type == MemberKind.List && assigned is object?[] list)
                     NSGetterEvaluator.CaptureRuntimeList(list);
                 local[index] = assigned;

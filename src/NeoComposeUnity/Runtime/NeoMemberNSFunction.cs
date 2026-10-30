@@ -721,7 +721,6 @@ namespace NeoCompose.Runtime
                 foreach (Pointer argument in site.args)
                     NSGetterEvaluator.EvalPointer(argument, siteScope!, ctx);
             }
-            ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx);
             TypeBinding? staticConstruction = boundStaticConstruction ?? ((site?.receiver?.staticConstruction ?? site?.staticConstruction) is { } writtenConstruction
                 ? NeoInterfaceDispatch.Identity(NeoTypeBindings.FromTypeInfo(NSGetterEvaluator.CloseContextType(writtenConstruction, ctx))) : null);
             TypeBinding? interfaceConstruction = boundInterfaceConstruction ?? site?.interfaceConstruction;
@@ -731,6 +730,7 @@ namespace NeoCompose.Runtime
                 staticConstruction = implementation.StaticConstruction;
                 interfaceConstruction = implementation.InterfaceConstruction;
             }
+            ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx, staticConstruction is not null);
             if (staticConstruction is not null)
                 client.EnsureStaticConstruction(staticConstruction);
             FunctionWithReturnType action = function.Action;
@@ -834,7 +834,8 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object? receiver,
             int argumentCount,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool hasStaticConstruction)
         {
             // The usual full-arity call passes every check below without
             // entering the method that names a failure.
@@ -843,11 +844,11 @@ namespace NeoCompose.Runtime
                 && argumentCount == function.ArgumentTypes.Length
                 && ctx.functionDepth < MaxCallableDepth
                 && function.Action.parameters?.Length == argumentCount + 2
-                && !(isStatic && function.HasGenericSignature))
+                && !(isStatic && function.HasGenericSignature && !hasStaticConstruction))
             {
                 return;
             }
-            ValidateUnusualInvocation(client, function, receiver, argumentCount, ctx);
+            ValidateUnusualInvocation(client, function, receiver, argumentCount, ctx, hasStaticConstruction);
         }
 
         private static void ValidateUnusualInvocation(
@@ -855,7 +856,8 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object? receiver,
             int argumentCount,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool hasStaticConstruction)
         {
             bool isStatic = function.IsStatic;
             if (receiver is null && !isStatic && NeoExtensionRuntime.Descriptor(function.Member)?.receiverType.required != false)
@@ -904,7 +906,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' compiled action parameter count is stale (expected {expectedParameters}, found {action.parameters?.Length ?? 0}).");
             }
-            if (isStatic && function.HasGenericSignature)
+            if (isStatic && function.HasGenericSignature && !hasStaticConstruction)
             {
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' cannot use receiver-bound Generic signature classes.");

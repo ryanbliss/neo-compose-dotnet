@@ -342,6 +342,209 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), new NSGetterEvaluator.Context(client, null, null)), Is.EqualTo(expected));
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P127Interface_ImplicitResultTypeMustMatchRequestedConstruction(bool property)
+        {
+            var generic = new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerInterfaceId = "result-contract", genericParamId = "result-T" };
+            var textType = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            var arguments = Array.Empty<FunctionArgumentTypeInfo>();
+            var defaultAction = Action(generic, arguments, Return(new DefaultPointer { typeInfo = generic }));
+            var classAction = Action(textType, arguments, Return(Text("class")));
+            NeoCompose.Runtime.Json.Member body = property
+                ? new NSPropertyMember { id = "default-result", name = "Result", projectId = ProjectId, kind = MemberKind.NSProperty, code = "return default(T);", returnTypeInfo = generic, getter = defaultAction }
+                : ScriptFunction("default-result", "Result", false, generic, arguments, defaultAction);
+            NeoCompose.Runtime.Json.Member implementation = property
+                ? new NSPropertyMember { id = "class-result", name = "Result", projectId = ProjectId, kind = MemberKind.NSProperty, code = "return \"class\";", returnTypeInfo = textType, getter = classAction }
+                : ScriptFunction("class-result", "Result", false, textType, arguments, classAction);
+            var declaration = new Interface
+            {
+                id = "result-contract",
+                name = "IResult",
+                projectId = ProjectId,
+                genericParams = new() { new() { id = "result-T", name = "T" } },
+                members = new()
+                {
+                    ["Result"] = new InterfaceMember
+                    {
+                        id = "result-slot",
+                        kind = property ? NeoInterfaceMemberKind.Property : NeoInterfaceMemberKind.Function,
+                        typeInfo = property ? generic : null,
+                        returnTypeInfo = property ? null : generic,
+                        argumentTypes = property ? null : new(),
+                        implementationMemberId = body.id
+                    }
+                }
+            };
+            var owner = ReceiverClass(("Result", implementation.id));
+            InterfaceConstruction Declared(MemberKind kind) => new()
+            {
+                interfaceId = declaration.id,
+                arguments = new()
+                {
+                    ["result-T"] = TypeBinding.Closed(new TypeHead(kind, true))
+                }
+            };
+            owner.implementsInterfaces = new() { Declared(MemberKind.String), Declared(MemberKind.Int) };
+            using var client = BuildClient(new[] { body, implementation }, owner, interfaces: new()
+            {
+                [declaration.id] = declaration
+            });
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id));
+            TypeBinding Requested(MemberKind kind) => TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: declaration.id), Declared(kind).arguments);
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            string accessor = property ? "get" : "call";
+            Assert.That(dispatch.Resolve(receiver, Requested(MemberKind.String), "result-slot", accessor).MemberId, Is.EqualTo(implementation.id));
+            var fallback = dispatch.Resolve(receiver, Requested(MemberKind.Int), "result-slot", accessor);
+            Assert.That(fallback.MemberId, Is.EqualTo(body.id));
+            Assert.That(fallback.InterfaceConstruction, Is.EqualTo(Requested(MemberKind.Int)));
+        }
+
+        [Test]
+        public void P127Interface_IndexedMappingsKeepExplicitImplicitAndVirtualSlots()
+        {
+            const int count = 6;
+            var records = new List<NeoCompose.Runtime.Json.Member>();
+            var contract = new Interface { id = "scaling-interface", name = "IScaling", projectId = ProjectId, members = new() };
+            var root = ReceiverClass();
+            root.id = "scaling-root";
+            root.implementsInterfaces = new() { new() { interfaceId = contract.id } };
+            var receiver = ReceiverClass();
+            receiver.extendsClassId = root.id;
+            var expected = new string[count];
+            for (int i = 0; i < count; i++)
+            {
+                string key = "P" + i;
+                string slot = "slot-" + i;
+                contract.members[key] = new InterfaceMember { id = slot, kind = NeoInterfaceMemberKind.Property, typeInfo = IntType(), Accessors = NeoPropertyAccessorsKind.Get };
+                if (i % 3 == 2)
+                {
+                    var first = new NSPropertyMember
+                    {
+                        id = "base-" + i,
+                        name = key,
+                        projectId = ProjectId,
+                        kind = MemberKind.NSProperty,
+                        Modifier = NeoMemberModifierKind.Virtual,
+                        code = "return 1;",
+                        returnTypeInfo = IntType(),
+                        getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(1)))
+                    };
+                    var last = new NSPropertyMember
+                    {
+                        id = "override-" + i,
+                        name = key,
+                        projectId = ProjectId,
+                        kind = MemberKind.NSProperty,
+                        extendsMemberId = first.id,
+                        code = "return 2;",
+                        returnTypeInfo = IntType(),
+                        getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(2)))
+                    };
+                    root.schema[key] = first.id;
+                    receiver.schema[key] = last.id;
+                    records.Add(first);
+                    records.Add(last);
+                    expected[i] = last.id;
+                }
+                else
+                {
+                    var field = new IntMember { id = "field-" + i, name = key, projectId = ProjectId, kind = MemberKind.Int, Requirement = NeoMemberRequirementKind.Required };
+                    if (i % 3 == 1)
+                        field.explicitImplementation = new()
+                        {
+                            interfaceId = contract.id,
+                            interfaceMemberId = slot
+                        };
+                    root.schema[i % 3 == 1 ? key + "#" + field.id : key] = field.id;
+                    records.Add(field);
+                    expected[i] = field.id;
+                }
+            }
+            var target = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id));
+            var actual = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: receiver.id));
+            using var client = BuildClient(records.ToArray(), receiver, new[] { root }, interfaces: new()
+            {
+                [contract.id] = contract
+            });
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            for (int i = 0; i < count; i++)
+            {
+                var resolved = dispatch.Resolve(actual, target, "slot-" + i, "get");
+                Assert.That(resolved.MemberId, Is.EqualTo(expected[i]));
+                Assert.That(dispatch.Resolve(actual, target, "slot-" + i, "get"), Is.SameAs(resolved));
+            }
+        }
+
+        [TestCase(NeoMemberStorage.Save)]
+        [TestCase(NeoMemberStorage.Session)]
+        public void P127Interface_PartiallyRestoredConstructionInitializesMissingFields(NeoMemberStorage missingStorage)
+        {
+            IntMember Field(string id, string name, NeoMemberStorage storage) => new()
+            {
+                id = id,
+                projectId = ProjectId,
+                name = name,
+                kind = MemberKind.Int,
+                Modifier = NeoMemberModifierKind.Static,
+                Storage = storage,
+                Requirement = NeoMemberRequirementKind.Required,
+                valueId = id + "-template"
+            };
+            var saved = Field("saved", "Saved", NeoMemberStorage.Save);
+            var missing = Field("missing", "Missing", missingStorage);
+            var owner = ReceiverClass(("Saved", saved.id), ("Missing", missing.id));
+            owner.genericParams = new() { new() { id = "T", name = "T" } };
+            using var client = BuildClient(new NeoCompose.Runtime.Json.Member[] { saved, missing }, owner,
+                additionalValues: new MemberValue[]
+                {
+                    new NumberMemberValue { id = saved.valueId!, value = 4, createdAt = "x", updatedAt = "x" },
+                    new NumberMemberValue { id = missing.valueId!, value = 17, createdAt = "x", updatedAt = "x" }
+                });
+            var construction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id),
+                new Dictionary<string, TypeBinding> { ["T"] = TypeBinding.Closed(new TypeHead(MemberKind.Int, true)) });
+            client.ConstructedStaticBinding(saved.id, construction).SetValue(NeoValueWritePayload.FromInt(9));
+            var snapshot = JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!;
+            snapshot.staticConstructions!.RemoveAll(entry => entry.memberId == missing.id);
+            using var restored = NeoTestSaveStack.ClientFromSchema(client.ProjectDataForRuntime,
+                loadedSaveContent: JsonConvert.SerializeObject(snapshot));
+            int? Read(string id) => NeoGeneratedTypesSupport.ReadInt(restored.ConstructedStaticBinding(id, construction).GetRequiredNode<NeoMemberInt>());
+            Assert.That(Read(saved.id), Is.EqualTo(9), "The saved field must not rerun its initializer.");
+            Assert.That(Read(missing.id), Is.EqualTo(17), "Only the missing field runs its initializer.");
+            Assert.That(Read(missing.id), Is.EqualTo(17));
+        }
+
+        [Test]
+        public void P127Interface_CandidateConstructionOwnersFollowRebindTombstoneAndRollback()
+        {
+            using var client = BuildClient(Array.Empty<NeoCompose.Runtime.Json.Member>(), ReceiverClass());
+            var construction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: "receiver-class"));
+            var plan = new NeoWritePlan(client);
+            plan.BindConstruction(NeoValueOwnership.Save, "a", construction, "shared");
+            plan.BindConstruction(NeoValueOwnership.Save, "b", construction, "shared");
+            plan.BindConstruction(NeoValueOwnership.Session, "c", construction, "shared");
+            using (client.ReadCandidate(plan))
+            {
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "shared")!.memberId, Is.EqualTo("a").Or.EqualTo("b"));
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Session, "shared")!.memberId, Is.EqualTo("c"));
+                var outer = plan.Open();
+                plan.BindConstruction(NeoValueOwnership.Save, "a", construction, "new");
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "shared")!.memberId, Is.EqualTo("b"));
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "new")!.memberId, Is.EqualTo("a"));
+                var inner = plan.Open();
+                plan.BindConstruction(NeoValueOwnership.Save, "b", construction, null);
+                plan.BindConstruction(NeoValueOwnership.Save, "d", construction, "added");
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "shared"), Is.Null);
+                plan.Rollback(inner);
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "shared")!.memberId, Is.EqualTo("b"));
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "added"), Is.Null);
+                plan.Rollback(outer);
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "new"), Is.Null);
+                plan.BindConstruction(NeoValueOwnership.Save, "b", construction, null);
+                Assert.That(client.ConstructionOfValue(NeoValueOwnership.Save, "shared")!.memberId, Is.EqualTo("a"));
+            }
+        }
+
         [Test]
         public void P127Interface_GenericStaticsHaveSeparateStateAndPersist()
         {
