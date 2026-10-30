@@ -598,7 +598,7 @@ namespace NeoCompose.Runtime.Json
 
             using (JsonReader subReader = root.CreateReader())
             {
-                JsonSerializer.CreateDefault().Populate(subReader, projectData);
+                JsonSerializer.CreateDefault(NeoInterningJsonReader.ProjectSettings).Populate(subReader, projectData);
             }
             return projectData;
         }
@@ -647,7 +647,7 @@ namespace NeoCompose.Runtime.Json
         internal static void ValidateProjectData(JObject root)
         {
             ValidateMembers(root["members"]);
-            ValidateClasses(root["classes"]);
+            ValidateClasses(root["classes"], root["members"] as JObject);
             ValidateInterfaces(root["interfaces"]);
             NeoSystemComparerClasses.Register(root["classes"]);
         }
@@ -920,7 +920,7 @@ namespace NeoCompose.Runtime.Json
             }
         }
 
-        private static void ValidateClasses(JToken? token)
+        private static void ValidateClasses(JToken? token, JObject? members)
         {
             if (token is not JObject classes)
                 return;
@@ -947,6 +947,22 @@ namespace NeoCompose.Runtime.Json
                     schemaClass, "modifier", "Class");
                 StrictRecordShapeEnums.ValidateOptional<NeoMemberStorage>(
                     schemaClass, "allowedStorage", "Class");
+                if (schemaClass["schema"] is JObject schema)
+                {
+                    foreach (JProperty entry in schema.Properties())
+                    {
+                        int separator = entry.Name.IndexOf('#');
+                        if (separator < 0)
+                            continue;
+                        string name = entry.Name.Substring(0, separator);
+                        string suffix = entry.Name.Substring(separator + 1);
+                        if (suffix.Length == 0 || suffix.Contains("#"))
+                            throw new JsonSerializationException($"Class \"{schemaClass.Value<string>("id")}\" overload key \"{entry.Name}\" must end with a member id.");
+                        if (name.Length == 0
+                            || members?[entry.Value.Value<string>()!] is JObject member && name != member.Value<string>("name"))
+                            throw new JsonSerializationException($"Class \"{schemaClass.Value<string>("id")}\" overload key \"{entry.Name}\" must start with its member's name.");
+                    }
+                }
                 Reject(schemaClass, "implementsInterfaceIds", "implementsInterfaces", "Class");
                 Reject(schemaClass, "implementsInterfaceArguments", "implementsInterfaces", "Class");
                 RequireNonEmptyList(schemaClass, "implementsInterfaces", "Class");
@@ -978,12 +994,30 @@ namespace NeoCompose.Runtime.Json
                 if (neoInterface["members"] is not JObject members)
                     continue;
 
+                var identities = new Dictionary<(string, bool, string), string>();
                 foreach (JProperty memberProperty in members.Properties())
                 {
-                    if (memberProperty.Value is JObject member)
-                    {
-                        ValidateInterfaceMember(member);
-                    }
+                    if (memberProperty.Value is not JObject member)
+                        continue;
+                    ValidateInterfaceMember(member);
+                    string key = memberProperty.Name;
+                    // Exports omit the redundant name; authored records may still carry it.
+                    string name = member.Value<string>("name") ?? NeoCallableSignature.Name(key);
+                    string? id = member.Value<string>("id");
+                    string label = $"Interface \"{neoInterface.Value<string>("name")}\" ({neoInterface.Value<string>("id") ?? property.Name})";
+                    if (key != name && (id is null || key != name + "#" + id))
+                        throw new JsonSerializationException($"{label} stores member \"{id}\" under key \"{key}\"; expected \"{name}\" or \"{name}#{id}\".");
+                    bool function = member.Value<int?>("kind") == (int)NeoInterfaceMemberKind.Function;
+                    bool explicitImplementation = member["explicitImplementation"] is JObject;
+                    if (key.Contains("#") && !function && !explicitImplementation)
+                        throw new JsonSerializationException($"{label} member key \"{key}\" names no override.");
+                    if (!function || explicitImplementation)
+                        continue;
+                    var declaration = member.ToObject<InterfaceMember>()!;
+                    string identity = NeoCallableSignature.ParametersKey(declaration.genericParams?.Length ?? 0, declaration.argumentTypes!);
+                    if (identities.TryGetValue((name, declaration.IsStatic, identity), out var previous))
+                        throw new JsonSerializationException($"{label} declares functions \"{previous}\" and \"{id}\" with one name and the same parameters (CS0111).");
+                    identities[(name, declaration.IsStatic, identity)] = id ?? key;
                 }
             }
         }

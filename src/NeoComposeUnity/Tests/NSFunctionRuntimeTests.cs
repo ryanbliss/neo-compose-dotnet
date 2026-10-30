@@ -3507,8 +3507,16 @@ namespace NeoCompose.Tests
             var clampedApply = ScriptFunction("clamped-apply", "Apply", false, IntType(),
                 new[] { intArgument }, Action(IntType(), new[] { intArgument },
                     Return(Add(minBaseCall, Number(10)))));
-            var forwardApply = ScriptFunction("forward-apply", "Apply", false, openType,
-                new[] { openArgument }, Action(openType, new[] { openArgument }, Return(Variable("__arg_0__"))));
+            var forwardedType = new GenericTypeInfo
+            {
+                type = MemberKind.Generic,
+                required = true,
+                ownerClassId = "forward-watcher-class",
+                genericParamId = "forward-u",
+            };
+            var forwardedArgument = NeoFunctionTypeArguments.AsArgument(forwardedType, "next");
+            var forwardApply = ScriptFunction("forward-apply", "Apply", false, forwardedType,
+                new[] { forwardedArgument }, Action(forwardedType, new[] { forwardedArgument }, Return(Variable("__arg_0__"))));
             foreach (NSFunctionMember overrideApply in new[] { minApply, clampedApply, forwardApply })
             {
                 overrideApply.returnTypeInfo = null!;

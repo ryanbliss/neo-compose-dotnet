@@ -956,9 +956,19 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected TValue? EnsureWritableValue() => EnsureWritableValue(sharesArrayEntries: false);
 
+        private void RequireMutableStaticValue()
+        {
+            // A read-only class handle still permits writes to the referenced object's fields.
+            if (member is not ClassMember && member.Modifier == NeoMemberModifierKind.Static
+                && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
+                throw new System.InvalidOperationException(
+                    $"Static member '{member.name}' is read-only and is set only in its initializer.");
+        }
+
         /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
         private protected TValue? EnsureWritableValue(bool sharesArrayEntries)
         {
+            RequireMutableStaticValue();
             if (ownership == NeoValueOwnership.Asset)
                 return value;
             string? id = valueId;
@@ -1005,6 +1015,7 @@ namespace NeoCompose.Runtime
         /// <param name="sharesArrayEntries">See <see cref="NeoClient.CloneRowForWrite"/>.</param>
         private protected TValue? WritableCandidate(NeoWritePlan plan, bool sharesArrayEntries = false)
         {
+            RequireMutableStaticValue();
             string? id = plan.TryGetNodeBinding(this, out string? plannedId) ? plannedId : valueId;
             if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
                 return (TValue)client.CloneRowForWrite(candidate, sharesArrayEntries);
@@ -1020,6 +1031,7 @@ namespace NeoCompose.Runtime
 
         private protected void BindNewValue(NeoWritePlan plan, TValue newRow)
         {
+            RequireMutableStaticValue();
             if (ownership == NeoValueOwnership.Asset)
                 throw new System.InvalidOperationException($"Cannot bind a new value on an asset-owned member '{member.id}'.");
             parent?.AssertContainingClassesCanBeConstructed();

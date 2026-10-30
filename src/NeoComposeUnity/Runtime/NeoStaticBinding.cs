@@ -299,6 +299,19 @@ namespace NeoCompose.Runtime
             System.Action<System.Collections.Generic.IReadOnlyList<string>>? beforeRemovals = null)
         {
             EnsureWritable();
+            return PreparePayloadCore(plan, payload, beforeRemovals);
+        }
+
+        // Only the construction initializer can publish a read-only slot's initial value.
+        internal string PrepareInitialValue(NeoWritePlan plan, object? payload)
+        {
+            EnsureWritable(initializing: true);
+            return PreparePayloadCore(plan, payload, null);
+        }
+
+        private string PreparePayloadCore(NeoWritePlan plan, object? payload,
+            System.Action<System.Collections.Generic.IReadOnlyList<string>>? beforeRemovals)
+        {
             NeoTimestamp nowIso = NeoTimestamp.Now();
             string valueId;
             NeoTimestamp createdAt = nowIso;
@@ -426,9 +439,14 @@ namespace NeoCompose.Runtime
             return movedValueIds;
         }
 
-        private void EnsureWritable()
+        private void EnsureWritable(bool initializing = false)
         {
             client.EnsureNotDisposed();
+            if (!initializing && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
+            {
+                throw new System.InvalidOperationException(
+                    $"Static member '{member.name}' is read-only and is set only in its initializer.");
+            }
             if (Ownership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
