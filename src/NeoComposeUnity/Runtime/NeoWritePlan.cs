@@ -960,10 +960,12 @@ namespace NeoCompose.Runtime
                             && previous.containerId == next.containerId)
                             sameMembership.Add(pair.Key);
                         else
+                        {
                             oldContainers[pair.Key] = containerId!;
-                        changed.Add((pair.Key.ownership, containerId!));
+                            changed.Add((pair.Key.ownership, containerId!));
+                        }
                     }
-                    if (!string.IsNullOrEmpty(pair.Value?.containerId))
+                    if (!sameMembership.Contains(pair.Key) && !string.IsNullOrEmpty(pair.Value?.containerId))
                         changed.Add((pair.Key.ownership, pair.Value!.containerId!));
                     changed.Add(pair.Key);
                 }

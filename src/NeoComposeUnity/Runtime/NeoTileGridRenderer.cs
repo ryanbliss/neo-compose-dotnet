@@ -1620,17 +1620,18 @@ namespace NeoCompose.Runtime
             Action refresh = RefreshRendering;
             void Changed(NeoGeneratedClassValue changedValue, NeoMember changedMember)
             {
-                positionDirty = true;
+                string? leafKey = PlacementLeafKey(changedValue, changedMember);
+                positionDirty |= leafKey is null or "Position";
                 // A Position write never reads the sort point; a container
                 // write may have bubbled from the group.
                 sortPointDirty |= sortPoint is not null
                     && (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary
                         || sortPoint.IsGroupChange(changedMember));
-                string? leafKey = PlacementLeafKey(changedValue, changedMember);
                 visibilityDirty |= ChangeCanCarryEnabled(leafKey);
                 spritesDirty |= ChangeCanCarrySpriteState(leafKey);
                 collidersDirty |= ChangeCanCarryCollider(leafKey);
-                value.Client.RefreshAnimationRendering(refresh);
+                if (positionDirty || sortPointDirty || visibilityDirty || spritesDirty || collidersDirty)
+                    value.Client.RefreshAnimationRendering(refresh);
             }
             DisposeObjectPositionSubscription(instanceId);
             placed.Subscription = value.WatchAnyChange(

@@ -33,6 +33,46 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoGetterListenerTests
     {
+        [TestCase(false)]
+        [TestCase(true)]
+        public void StoredLeafWritesInvalidateReadersWithoutInvalidatingSiblingGetters(bool commitPlan)
+        {
+            using var fixture = Build(data =>
+            {
+                data.values["watcher-left"].containerId = "value-watcher";
+                data.values["watcher-right"].containerId = "value-watcher";
+            });
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(fixture.client, node);
+            var left = new List<int>();
+            var sum = new List<int>();
+            using var leftWatch = view.Watch("Value", value => left.Add(value));
+            using var sumWatch = view.Watch("Sum", value => sum.Add(value));
+            void Write(string key, string memberId, int value)
+            {
+                var row = Number(key, value);
+                row.containerId = "value-watcher";
+                if (commitPlan)
+                {
+                    var plan = new NeoWritePlan(fixture.client);
+                    plan.Set(NeoValueOwnership.Save, row);
+                    plan.Commit();
+                }
+                else
+                {
+                    Assert.That(fixture.client.TryGetMember(memberId, out JsonMember? member), Is.True);
+                    Assert.That(fixture.client.TryWriteLeaf(NeoValueOwnership.Save, row, member!, "value"), Is.True);
+                }
+            }
+            Write("watcher-right", "member-right", 2);
+            CollectionAssert.IsEmpty(left, "A getter that only reads Left must not hear a Right write.");
+            CollectionAssert.AreEqual(new[] { 2 }, sum);
+            Write("watcher-left", "member-left", 3);
+            Write("watcher-right", "member-right", 4);
+            CollectionAssert.AreEqual(new[] { 3 }, left);
+            CollectionAssert.AreEqual(new[] { 2, 5, 7 }, sum, "Actual dependencies must remain subscribed after repeated writes.");
+        }
+
         [Test]
         public void WatchingOneGetterDoesNotEvaluateAnUnwatchedInvalidatedGetter()
         {

@@ -230,8 +230,8 @@ namespace NeoCompose.Runtime
             WriteRevision++;
             foreignWriteRevision = WriteRevision;
             InvalidateGetterMemoForRow(next.id);
-            if (!string.IsNullOrEmpty(next.containerId))
-                InvalidateGetterMemoForRow(next.containerId!);
+            // The stable leaf changed; its containing row did not. Readers
+            // capture the leaf itself, so siblings keep their memoized results.
         }
 
         private static bool IsLeafRow(MemberValue row, Member member) => row switch

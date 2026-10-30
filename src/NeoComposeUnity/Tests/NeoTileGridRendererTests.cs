@@ -7224,6 +7224,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Render_VisibilityChangeDoesNotReadUnchangedPlacementPosition()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
+            var (root, _) = BuildSortPointOwner(client, composition: false);
+            root.EnabledFromNode = true;
+            var go = new GameObject("Visibility without movement");
+            try
+            {
+                var renderer = RenderSortPointOwner(go, client, root);
+                Assert.That(renderer.TryGetObjectRoot("object-1", out var placed), Is.True);
+                var node = NeoGeneratedTypesSupport.AsWritable(root.BackingNode);
+                root.PositionReads = 0;
+                node.Get<NeoMemberBoolWritable>("Enabled").Set(false);
+                Assert.That(placed.activeSelf, Is.False);
+                node.Get<NeoMemberBoolWritable>("Enabled").Set(true);
+                Assert.That(placed.activeSelf, Is.True);
+                Assert.That(root.PositionReads, Is.Zero, "Visibility does not move the placement.");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
         public void Render_MovedObjectWritesItsPositionBackWithoutMovingAgain()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildSortPointProjectData());
@@ -9512,6 +9537,7 @@ namespace NeoCompose.Tests
             }
             public string Name { get; set; } = "";
             private NeoReadOnlyVector3 position = new(Vector3.zero);
+            public int PositionReads;
 
             /// <summary>Reads the stored Position, as a generated getter does.</summary>
             public bool PositionFromNode
@@ -9520,9 +9546,13 @@ namespace NeoCompose.Tests
             }
             public NeoReadOnlyVector3 Position
             {
-                get => PositionFromNode
-                    ? new NeoReadOnlyVector3(BackingNode.Get<NeoMemberVector3>("Position"))
-                    : position;
+                get
+                {
+                    PositionReads++;
+                    return PositionFromNode
+                        ? new NeoReadOnlyVector3(BackingNode.Get<NeoMemberVector3>("Position"))
+                        : position;
+                }
                 set => position = value;
             }
             public NeoReadOnlyVector3 Size { get; set; } = new(Vector3.one);
