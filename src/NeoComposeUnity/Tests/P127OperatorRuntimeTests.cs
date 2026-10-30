@@ -152,6 +152,247 @@ namespace NeoCompose.Tests
             Assert.That(failure.InnerException, Is.SameAs(cause));
         }
 
+        [TestCase(MemberKind.Float)]
+        [TestCase(MemberKind.Vector2)]
+        public void TupleOperatorEqualityDoesNotEqualNaN(MemberKind kind)
+        {
+            object Left() => kind == MemberKind.Float ? (object)double.NaN : new NeoVector2Value { x = double.NaN, y = 1 };
+            var type = TupleType(Type(kind), Type(MemberKind.Int));
+            var left = new RuntimeTuple(new object?[] { Left(), 1 }, type);
+            var right = new RuntimeTuple(new object?[] { Left(), 1 }, type);
+            Assert.That(TupleOperatorEquals(left, right, type), Is.False);
+            Assert.That(Eval(new PrimitiveMemberPointer
+            {
+                type = PointerKind.PrimitiveMember,
+                primitive = type,
+                member = "Equals",
+                receiver = Value(left),
+                args = new[] { Value(right) }
+            }), Is.EqualTo(kind == MemberKind.Float), "Equals keeps its scalar or Unity value-equality contract.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TupleOperatorEqualityUsesClassIdentity(bool equatable)
+        {
+            const string classId = "tuple-operator-class";
+            const string equalsId = "tuple-operator-equals";
+            var self = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = classId };
+            var owner = new NeoSchemaClass
+            {
+                id = classId,
+                name = "TupleElement",
+                projectId = "project-id",
+                schema = new(),
+                implementsInterfaces = new()
+            };
+            int calls = 0;
+            if (equatable)
+            {
+                string id = NeoPrimitiveConformance.InterfaceId("IEquatable`1");
+                string parameter = client.ProjectDataForRuntime.interfaces[id].genericParams![0].id;
+                owner.implementsInterfaces.Add(new InterfaceConstruction
+                {
+                    interfaceId = id,
+                    arguments = new() { [parameter] = NeoTypeBindings.FromTypeInfo(self) }
+                });
+            }
+            else
+            {
+                owner.schema["Equals#" + NeoObjectContract.EqualsMember] = equalsId;
+                client.ProjectDataForRuntime.members[equalsId] = new FunctionMember
+                {
+                    id = equalsId,
+                    name = "Equals",
+                    kind = MemberKind.Function,
+                    extendsMemberId = NeoObjectContract.EqualsMember,
+                    returnTypeInfo = Type(MemberKind.Bool),
+                    argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "obj", type = MemberKind.Object, required = false } }
+                };
+                client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [equalsId] = (_, _, _, _) =>
+                    {
+                        calls++;
+                        return true;
+                    }
+                });
+            }
+            client.ProjectDataForRuntime.classes[classId] = owner;
+            client.InvalidateSchemaResolutionCaches();
+            using var first = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            using var second = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            object? a = NSGetterEvaluator.UnwrapRow(first.value!, context, first.ownership, first.member);
+            object? b = NSGetterEvaluator.UnwrapRow(second.value!, context, second.ownership, second.member);
+            var type = TupleType(self, Type(MemberKind.Int));
+            var left = new RuntimeTuple(new object?[] { a, 1 }, type);
+            var right = new RuntimeTuple(new object?[] { b, 1 }, type);
+            Assert.That(TupleOperatorEquals(left, right, type), Is.False);
+            Assert.That(TupleOperatorEquals(left, left, type), Is.True);
+            Assert.That(calls, Is.Zero, "The == operator must not call Equals.");
+            var equals = new PrimitiveMemberPointer { type = PointerKind.PrimitiveMember, primitive = type, member = "Equals", receiver = Value(left), args = new[] { Value(right) } };
+            if (equatable)
+                Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(equals))!.ErrorClass, Is.EqualTo(NeoErrorClass.NeoNotSupportedError));
+            else
+            {
+                Assert.That(Eval(equals), Is.True);
+                Assert.That(calls, Is.EqualTo(1));
+            }
+        }
+
+        [TestCase(NeoErrorContract.NeoTypeInitializationError)]
+        [TestCase(NeoErrorContract.NeoError)]
+        public void CachedStaticInitializationFailureCanBeCaughtAfterAnUnmatchedCatch(string catchId)
+        {
+            Pointer Integer(int number) => new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value { typeInfo = Type(MemberKind.Int), value = new JValue(number) }
+            };
+            const string ownerId = "failing-static-owner";
+            const string memberId = "failing-static-field";
+            const string valueId = "failing-static-template";
+            var construction = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = ownerId,
+                typeArguments = new() { ["T"] = Type(MemberKind.Int) }
+            };
+            client.ProjectDataForRuntime.classes[ownerId] = new NeoSchemaClass
+            {
+                id = ownerId,
+                projectId = "project-id",
+                name = "Failing",
+                schema = new() { ["Value"] = memberId },
+                genericParams = new() { new() { id = "T", name = "T" } }
+            };
+            client.ProjectDataForRuntime.members[memberId] = new IntMember
+            {
+                id = memberId,
+                name = "Value",
+                kind = MemberKind.Int,
+                Modifier = NeoMemberModifierKind.Static,
+                Storage = NeoMemberStorage.Session,
+                Requirement = NeoMemberRequirementKind.Required,
+                valueId = valueId
+            };
+            client.ProjectDataForRuntime.values[valueId] = new NumberMemberValue
+            {
+                id = valueId,
+                createdAt = "x",
+                updatedAt = "x",
+                init = new InitializerBody
+                {
+                    code = "1 / 0",
+                    compiled = new FunctionWithReturnType
+                    {
+                        typeInfo = Type(MemberKind.Int),
+                        parameters = Array.Empty<Variable>(),
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        instructions = new Instruction[] { new ReturnInstruction { pointer = new PrimitiveMemberPointer
+                        { type = PointerKind.PrimitiveMember, primitive = Type(MemberKind.Int), member = "op_Division", args = new[] { Integer(1), Integer(0) } } } }
+                    }
+                }
+            };
+            client.InvalidateSchemaResolutionCaches();
+            var guarded = new TryInstruction
+            {
+                instructions = new Instruction[] { new ReturnInstruction { pointer = new StaticMemberPointer { type = PointerKind.StaticMember, memberId = memberId, staticConstruction = construction } } },
+                catches = new[] { new CatchClause
+                {
+                    binding = new CatchBinding { id = "error", isReadonly = true, typeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = NeoErrorContract.NeoArgumentError } },
+                    instructions = new Instruction[] { new ReturnInstruction { pointer = Integer(42) } }
+                } }
+            };
+            var body = new FunctionWithReturnType { typeInfo = Type(MemberKind.Int), parameters = Array.Empty<Variable>(), compilerRevision = FunctionWithReturnType.CurrentCompilerRevision, instructions = new Instruction[] { guarded } };
+            var first = Assert.Catch<NSGetterRuntimeError>(() => NSGetterEvaluator.Evaluate(body, context))!;
+            Assert.That(first.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoTypeInitializationError), first.ToString());
+            Assert.That(first.Payload.Searched, Is.True);
+            guarded.catches[0].binding.typeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = catchId };
+            Assert.That(NSGetterEvaluator.Evaluate(body, context), Is.EqualTo(42));
+            first.Payload.Searched = true;
+            first.Payload.Selection = new NeoScriptExecutor.ErrorSelection(
+                new NeoScriptExecutor.ErrorHandlerFrame(client, guarded, Type(MemberKind.Int), scope, context, null),
+                guarded.catches[0], scope);
+            var repeated = Assert.Catch<NSGetterRuntimeError>(() => client.EnsureStaticConstruction(NeoTypeBindings.FromTypeInfo(construction)))!;
+            Assert.That(repeated.Payload, Is.SameAs(first.Payload));
+            Assert.That(repeated.Payload.Searched, Is.False);
+            Assert.That(repeated.Payload.Selection, Is.Null);
+        }
+
+        [TestCase("CompareToObject", "Object must be the same type as the enum. The type passed in was 'System.Int32'; the enum type was 'System.Globalization.NumberStyles'.")]
+        [TestCase("HasFlag", "The argument type, 'System.Int32', is not the same as the enum type 'System.Globalization.NumberStyles'.")]
+        public void EnumMismatchMessagesUseClrNames(string member, string message)
+        {
+            var type = new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoPrimitiveConformance.NumberStylesEnumId };
+            var call = new PrimitiveMemberPointer
+            {
+                type = PointerKind.PrimitiveMember,
+                primitive = type,
+                member = member,
+                receiver = Value(7),
+                args = new[] { Value(NeoBox.Of(Binding(MemberKind.Int), 1)) }
+            };
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(call))!.Message, Is.EqualTo(message));
+        }
+
+        [Test]
+        public void DigitShapesMismatchMessagesUseClrNames()
+        {
+            var type = new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoPrimitiveConformance.DigitShapesEnumId };
+            var call = new PrimitiveMemberPointer
+            {
+                type = PointerKind.PrimitiveMember,
+                primitive = type,
+                member = "CompareToObject",
+                receiver = Value(new object?[] { "system_36613ff4-3187-4fd7-9776-d8139d33eac1" }),
+                args = new[] { Value(NeoBox.Of(Binding(MemberKind.Int), 1)) }
+            };
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(call))!.Message,
+                Is.EqualTo("Object must be the same type as the enum. The type passed in was 'System.Int32'; the enum type was 'System.Globalization.DigitShapes'."));
+            call.member = "HasFlag";
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(call))!.Message,
+                Is.EqualTo("The argument type, 'System.Int32', is not the same as the enum type 'System.Globalization.DigitShapes'."));
+        }
+
+        [TestCase(8, false, "System.ValueTuple`8[System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.ValueTuple`1[System.Int32]]")]
+        [TestCase(9, false, "System.ValueTuple`8[System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.Int32,System.ValueTuple`2[System.Int32,System.Int32]]")]
+        [TestCase(2, true, "System.ValueTuple`2[System.Nullable`1[System.Int32],System.Int32]")]
+        public void TupleMismatchMessagesUseNestedClrNames(int size, bool nullable, string name)
+        {
+            var elements = Enumerable.Range(0, size).Select(_ => Type(MemberKind.Int)).ToArray();
+            elements[0].required = !nullable;
+            var type = TupleType(elements);
+            var tuple = new RuntimeTuple(Enumerable.Repeat<object?>(1, size).ToArray(), type);
+            var call = new PrimitiveMemberPointer
+            {
+                type = PointerKind.PrimitiveMember,
+                primitive = type,
+                member = "CompareToObject",
+                receiver = Value(tuple),
+                args = new[] { Value(NeoBox.Of(Binding(MemberKind.Int), 1)) }
+            };
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(call))!.Message, Is.EqualTo($"Argument must be of type {name}. (Parameter 'other')"));
+        }
+
+        private static TupleTypeInfo TupleType(params TypeInfo[] elements) => new()
+        {
+            type = MemberKind.Tuple,
+            required = true,
+            elements = elements.Select(type => new TupleElementTypeInfo { typeInfo = type }).ToArray()
+        };
+
+        private object? TupleOperatorEquals(RuntimeTuple left, RuntimeTuple right, TupleTypeInfo type) => Eval(new FunctionPointer
+        {
+            type = PointerKind.Function,
+            function = new TupleEqualFunction
+            {
+                type = FunctionKind.TupleEqual,
+                info = new FunctionTupleEqualInfo { typeInfo = type, left = Value(left), right = Value(right) }
+            }
+        });
+
         [Test]
         public void NumberStylesOptionsAndFlagsUseTheirNumericValues()
         {
@@ -246,6 +487,31 @@ namespace NeoCompose.Tests
             Assert.That(comparable.Bindings!["p0"], Is.EqualTo(type));
             client.InvalidateSchemaResolutionCaches();
             Assert.That(NeoInterfaceDispatch.Of(client).PrimitiveClosure(type), Is.Not.SameAs(closure));
+        }
+
+        [TestCase("Int", "IComparable IFormattable IComparable`1 IEquatable`1 IBitwiseOperators`3 INumber`1 IComparisonOperators`3 IEqualityOperators`3 IModulusOperators`3 INumberBase`1 IAdditionOperators`3 IAdditiveIdentity`2 IDecrementOperators`1 IDivisionOperators`3 IIncrementOperators`1 IMultiplicativeIdentity`2 IMultiplyOperators`3 IParsable`1 ISubtractionOperators`3 IUnaryPlusOperators`2 IUnaryNegationOperators`2 IShiftOperators`3 IMinMaxValue`1 ISignedNumber`1")]
+        [TestCase("Float", "IComparable IFormattable IComparable`1 IEquatable`1 IBitwiseOperators`3 INumber`1 IComparisonOperators`3 IEqualityOperators`3 IModulusOperators`3 INumberBase`1 IAdditionOperators`3 IAdditiveIdentity`2 IDecrementOperators`1 IDivisionOperators`3 IIncrementOperators`1 IMultiplicativeIdentity`2 IMultiplyOperators`3 IParsable`1 ISubtractionOperators`3 IUnaryPlusOperators`2 IUnaryNegationOperators`2 ISignedNumber`1 IMinMaxValue`1")]
+        [TestCase("Decimal", "IFormattable IComparable IComparable`1 IEquatable`1 INumberBase`1 IAdditionOperators`3 IAdditiveIdentity`2 IDecrementOperators`1 IDivisionOperators`3 IEqualityOperators`3 IIncrementOperators`1 IMultiplicativeIdentity`2 IMultiplyOperators`3 IParsable`1 ISubtractionOperators`3 IUnaryPlusOperators`2 IUnaryNegationOperators`2 INumber`1 IComparisonOperators`3 IModulusOperators`3 ISignedNumber`1 IMinMaxValue`1")]
+        [TestCase("Bool", "IComparable IComparable`1 IEquatable`1 IParsable`1")]
+        [TestCase("String", "IComparable IComparable`1 IEquatable`1 IParsable`1")]
+        [TestCase("Enum", "IComparable IFormattable")]
+        [TestCase("Tuple", "IEquatable`1 IStructuralEquatable IStructuralComparable IComparable IComparable`1")]
+        public void PrimitiveReflectionMatchesDotNet10Order(string kindName, string expected)
+        {
+            var kind = (NeoConformingTypeKind)System.Enum.Parse(typeof(NeoConformingTypeKind), kindName);
+            SeedConformanceInterfaces();
+            TypeInfo type = kind == NeoConformingTypeKind.Tuple ? TupleType(Type(MemberKind.Int), Type(MemberKind.String))
+                : kind == NeoConformingTypeKind.Enum ? new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = NeoPrimitiveConformance.NumberStylesEnumId }
+                : Type((MemberKind)System.Enum.Parse(typeof(MemberKind), kind.ToString()));
+            var result = (object?[])Eval(new TypeMemberPointer
+            {
+                type = PointerKind.TypeMember,
+                member = TypeMemberKind.GetInterfaces,
+                receiver = Value(NeoTypeValue.Of(NeoTypeBindings.FromTypeInfo(type))),
+                args = Array.Empty<Pointer>()
+            })!;
+            Assert.That(result.Cast<NeoTypeValue>().Select(value => value.Binding.Head!.InterfaceId),
+                Is.EqualTo(expected.Split(' ').Select(NeoPrimitiveConformance.InterfaceId)));
         }
 
         [TestCase(MemberKind.Int, "16777216")]

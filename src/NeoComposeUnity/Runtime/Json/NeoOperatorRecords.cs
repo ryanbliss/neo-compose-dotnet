@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 namespace NeoCompose.Runtime.Json
 {
-    /// <summary>The two stored-operator validation stages in B5 contract 17.2.</summary>
+    /// <summary>Validates stored operator declarations, containing types and required operator pairs.</summary>
     internal static class NeoOperatorRecords
     {
         private static readonly HashSet<string> Unary = new("op_UnaryPlus op_UnaryNegation op_CheckedUnaryNegation op_LogicalNot op_OnesComplement op_Increment op_CheckedIncrement op_Decrement op_CheckedDecrement op_True op_False".Split(' '));

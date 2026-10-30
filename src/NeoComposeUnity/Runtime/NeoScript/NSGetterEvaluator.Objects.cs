@@ -136,7 +136,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return result;
             if (isAs)
                 return null;
-            throw InvalidCast(HeldName(value, held, ctx), TypeName(RuntimeTypeOf(target), ctx));
+            // Explicit unboxing accepts the shared Int32 representation of int and enums.
+            // Nullable targets and type tests still use TryCast's exact boxed type check.
+            if (cast.mode == CastModeKind.Cast && value is NeoBox box && target.required
+                && target.type is MemberKind.Int or MemberKind.Enum
+                && box.ValueType.Head!.Type is MemberKind.Int or MemberKind.Enum)
+            {
+                int number = ConvertToInt32(box.Payload!, NeoTypeBindings.ToTypeInfo(box.ValueType), false, ctx);
+                return target.type == MemberKind.Int ? Box((double)number)
+                    : EnumOfNumber(number, ((EnumTypeInfo)target).enumId, ctx);
+            }
+            throw InvalidCast(HeldClrTypeName(value, held, ctx), ClrTypeName(RuntimeTypeOf(target), ctx));
         }
 
         /// <summary>
@@ -256,7 +266,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return number;
             List<string> order = EnumShapeOf(enumId, ctx.client).Order;
             if (number < 0 || number >= order.Count)
-                throw InvalidCast("int", EnumOf(enumId, ctx.client).name);
+                throw InvalidCast("System.Int32", ClrTypeName(TypeBinding.Closed(new TypeHead(MemberKind.Enum, true, enumId: enumId)), ctx));
             return new object?[] { order[number] };
         }
 
@@ -813,13 +823,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string TypeName(TypeBinding type, Context ctx) => NeoTypeNames.Of(type, ctx.client.ProjectDataForRuntime);
 
-        private static string HeldName(object value, TypeBinding? held, Context ctx)
+        private static string HeldClrTypeName(object value, TypeBinding? held, Context ctx)
         {
             if (held is not null)
-                return TypeName(held, ctx);
+                return ClrTypeName(held, ctx);
             if (FindRowClassIdByReference(value, ctx) is not null)
-                return TypeName(RuntimeTypeOfValue(value, null, ctx), ctx);
-            return "object";
+                return ClrTypeName(RuntimeTypeOfValue(value, null, ctx), ctx);
+            return "System.Object";
         }
 
         private static NeoRuntimeError InvalidCast(string held, string target) =>

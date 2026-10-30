@@ -286,7 +286,7 @@ namespace NeoCompose.Tests
             Assert.That(Eval(TypeMember("IsInstanceOfType", TypeOf(InterfaceType(Thing)), boxed)), Is.False);
             Assert.That(Eval(Cast(boxed, InterfaceType(Thing), "as")), Is.Null);
             Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(Cast(boxed, InterfaceType(Thing))))!.Message,
-                Is.EqualTo("Unable to cast object of type 'int' to type 'IThing'."));
+                Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'IThing'."));
         }
 
         [Test]
@@ -481,7 +481,17 @@ namespace NeoCompose.Tests
         {
             NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Int(3), IntType()), FloatType()), FloatType()));
             Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidCastError));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'float'."));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'System.Single'."));
+        }
+
+        [TestCase(false, "System.Int32")]
+        [TestCase(true, "System.Nullable`1[System.Int32]")]
+        public void UnboxingStringUsesClrTypeNames(bool nullable, string targetName)
+        {
+            JObject target = nullable ? Nullable(IntType()) : IntType();
+            NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Text("text"), StringType()), target), target));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidCastError));
+            Assert.That(error.Message, Is.EqualTo($"Unable to cast object of type 'System.String' to type '{targetName}'."));
         }
 
         [Test]
@@ -555,7 +565,7 @@ namespace NeoCompose.Tests
             object? result = Run(Cast(asEnum, EnumType()), EnumType());
             Assert.That(result, Is.EqualTo(new object?[] { "mars" }));
             NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Int(1), IntType()), ObjectType(NeoObjectTypeKind.Enum)), ObjectType(NeoObjectTypeKind.Enum)));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'Enum'."));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'System.Enum'."));
         }
 
         [TestCase(3.7d, false, 3d)]
@@ -591,7 +601,7 @@ namespace NeoCompose.Tests
             Assert.That(Run(Convert(Option("mars"), EnumType(), IntType()), IntType()), Is.EqualTo(1d));
             Assert.That(Run(Convert(Int(2), IntType(), EnumType()), EnumType()), Is.EqualTo(new object?[] { "venus" }));
             NSGetterRuntimeError error = Fails(() => Run(Convert(Int(7), IntType(), EnumType()), EnumType()));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'Planet'."));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'Planet'."));
         }
 
         [Test]

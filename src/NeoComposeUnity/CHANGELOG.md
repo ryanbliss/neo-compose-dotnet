@@ -2,9 +2,13 @@
 
 ## [Unreleased]
 
+- Explicitly unbox int and enum values through their shared Int32 representation for non-nullable int or enum targets. Nullable targets and type tests still require the exact boxed type.
+
+- Use CLR type names in unboxing and enum argument errors, including nested and nullable tuple names.
+
 - Evaluate user operators through their selected static or interface member, with ordered `let` bindings for short-circuit operators. Reject malformed stored operators with the compiler contract's declaration, containing-type, pair and checked-operator rules.
 - Dispatch primitive interface calls and method groups through cached canonical signatures, including numeric default interface bodies, parsing, conversion hooks and checked arithmetic. Primitive reflection uses the conformance table's order.
-- Dispatch `object` overrides by their canonical member keys, including sparse NeoScript overrides of native members. Tuple equality, comparison, hashing and structural comparer calls use their element types; class default-comparer behavior reserved for P127 B6 reports its precise deferral.
+- Dispatch `object` overrides by their canonical member keys, including sparse NeoScript overrides of native members. Tuple Equals, comparison, hashing and structural comparer calls use their element types; tuple == retains per-element operator equality; class default-comparer behavior reserved for P127 B6 reports its precise deferral.
 - Load numeric `NumberStyles` defaults and flags. Support the minted error classes and `NeoError.InnerError`, preserving the same cached type-initialization error and cause on later access.
 - Add `LetPointer`, `PrimitiveMemberPointer` and `ObjectMemberPointer.dispatch`; `"base"` invokes the inherited object implementation without redispatching. Primitive `GetFormat` entries return their number-format provider.
 
