@@ -852,17 +852,15 @@ namespace NeoCompose.Runtime
             NeoLocalization localization, NeoSaveOptions? saveOptions,
             System.Threading.CancellationToken cancellationToken,
             NeoValueOwnership persisted = NeoValueOwnership.Save,
-            NeoClient? userClient = null)
+            NeoClient? userClient = null,
+            LiveContentBuffer? liveContent = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var client = new NeoClient(
                 loader, content, assetDatabase, localization, saveOptions, true, persisted);
-            var liveSource = loader as INeoLiveContentSource;
-            string? pendingLiveContent = null;
-            void BufferLiveContent(string latest) => pendingLiveContent = latest;
-            // Live messages are complete snapshots. Keep the latest while replay yields.
-            if (liveSource != null)
-                liveSource.OnLiveContentChanged += BufferLiveContent;
+            // Keep the latest live snapshot while replay yields.
+            using var ownLiveContent = liveContent is null ? new LiveContentBuffer(loader) : null;
+            LiveContentBuffer live = liveContent ?? ownLiveContent!;
             try
             {
                 // Replay reads User rows, so attach first (§4.3).
@@ -878,8 +876,8 @@ namespace NeoCompose.Runtime
                     await YieldInitializationAsync(cancellationToken);
                     budget.Restart();
                 }
-                if (pendingLiveContent != null)
-                    client.ApplyExternalSaveContent(pendingLiveContent);
+                if (live.Latest != null)
+                    client.ApplyExternalSaveContent(live.Latest);
                 client.CompleteInitialization();
                 return client;
             }
@@ -888,10 +886,35 @@ namespace NeoCompose.Runtime
                 client.Dispose();
                 throw;
             }
-            finally
+        }
+
+        /// <summary>
+        /// Keeps the latest snapshot a live content source raises, from the
+        /// moment the save content is read until the client applies it.
+        /// Live messages are complete snapshots, so only the latest matters.
+        /// </summary>
+        internal sealed class LiveContentBuffer : System.IDisposable
+        {
+            private readonly INeoLiveContentSource? source;
+
+            public LiveContentBuffer(INeoSaveLoader loader)
             {
-                if (liveSource != null)
-                    liveSource.OnLiveContentChanged -= BufferLiveContent;
+                source = loader as INeoLiveContentSource;
+                if (source != null)
+                    source.OnLiveContentChanged += Keep;
+            }
+
+            public string? Latest
+            {
+                get; private set;
+            }
+
+            private void Keep(string latest) => Latest = latest;
+
+            public void Dispose()
+            {
+                if (source != null)
+                    source.OnLiveContentChanged -= Keep;
             }
         }
 

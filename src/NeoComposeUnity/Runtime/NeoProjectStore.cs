@@ -473,6 +473,8 @@ namespace NeoCompose.Runtime
                 schema.localization,
                 new NeoResourcesLocalizationLocaleFileSource(),
                 (config ?? NeoComposeConfig.LoadDefault())?.ToLocalizationOptions());
+            // Audio loads after the content was read; a live snapshot sent meanwhile is newer.
+            using var liveContent = new NeoClient.LiveContentBuffer(userSynchronizer);
             return await NeoClient.CreateAsync(
                 userSynchronizer,
                 content,
@@ -480,7 +482,8 @@ namespace NeoCompose.Runtime
                 localization,
                 options,
                 CancellationToken.None,
-                NeoValueOwnership.User);
+                NeoValueOwnership.User,
+                liveContent: liveContent);
         }
 
         /// <summary>
