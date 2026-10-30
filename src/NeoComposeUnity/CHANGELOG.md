@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Interface overloads map by name, staticness and closed parameter identity, including parameter modes and method type parameter positions. Nullable reference annotations do not change that identity.
+- Virtual interface implementations dispatch through their own overload slot key, including overrides declared past a nearer non-matching base.
+- Index each class's own overloads once per schema cache and cache each closed interface mapping. Class calls use the indexed merged schema on a cold dispatch.
+- Declaration-default lambdas capture the instance being constructed, including fallback lambdas invoked immediately by a static helper; the initializer itself retains its static frame.
+- Refuse malformed interface overload keys, non-explicit property or field overload keys and duplicate interface function parameter identities when loading project records.
+- Run the B4 overload, hiding, most-derived lookup, static-frame and method-group parity fixture in the SDK.
+
 - Interface calls select the class's direct, virtual or explicit implementation for the requested closed interface construction.
 - Implicit interface implementations match the closed parameter, result and property types when a class implements several constructions of the same interface.
 - Interface defaults select the most specific override for each construction and run with the construction the class implements, including calls through a variant interface.
@@ -1343,6 +1350,13 @@ P100: the `neo` CLI exports Unity projects, and Unity ingests what it wrote. Eve
 - Await client initialization during editor post-sync validation so generated projects receive a fully initialized client.
 
 ## [Unreleased]
+
+- Interface overloads map by name, staticness and closed parameter identity, including parameter modes and method type parameter positions. Nullable reference annotations do not change that identity.
+- Virtual interface implementations dispatch through their own overload slot key, including overrides declared past a nearer non-matching base.
+- Index each class's own overloads once per schema cache and cache each closed interface mapping. Class calls use the indexed merged schema on a cold dispatch.
+- Declaration-default lambdas capture the instance being constructed, including fallback lambdas invoked immediately by a static helper; the initializer itself retains its static frame.
+- Refuse malformed interface overload keys, non-explicit property or field overload keys and duplicate interface function parameter identities when loading project records.
+- Run the B4 overload, hiding, most-derived lookup, static-frame and method-group parity fixture in the SDK.
 
 
 ## [0.35.1] - 2026-09-11

@@ -961,6 +961,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 get; private set;
             }
+            // Only closures created directly in a declaration initializer capture this receiver.
+            internal ObjectMemberValue? initializerClosureOwner;
             internal ClassMember? initializerPlacement
             {
                 get; set;
@@ -1127,6 +1129,7 @@ namespace NeoCompose.Runtime.NeoScript
             internal void ClearDirectInvocation()
             {
                 thisValueField = null;
+                initializerClosureOwner = null;
                 // These are properties: a null store through an inlined
                 // setter still pays a write barrier, so skip clear ones.
                 if (contextValue is not null)
@@ -1293,6 +1296,7 @@ namespace NeoCompose.Runtime.NeoScript
                 internal Context? immediateExpressionSource;
                 internal object? immediateExpressionState;
                 internal object? immediateExpressionOptions;
+                internal ObjectMemberValue? initializerClosureOwner;
                 internal ClassMember? initializerPlacement;
                 internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv;
                 internal TypeInfo[]? functionTypeArguments;
@@ -1408,6 +1412,8 @@ namespace NeoCompose.Runtime.NeoScript
                     immediateExpressionState = null;
                     immediateExpressionOptions = null;
                 }
+                saved.initializerClosureOwner = initializerClosureOwner;
+                initializerClosureOwner = null;
                 if (initializerPlacement is not null)
                     saved.initializerPlacement = initializerPlacement;
                 if (initializerGenericEnv is not null)
@@ -1502,6 +1508,8 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.immediateExpressionState = null;
                     saved.immediateExpressionOptions = null;
                 }
+                initializerClosureOwner = saved.initializerClosureOwner;
+                saved.initializerClosureOwner = null;
                 if (!ReferenceEquals(initializerPlacement, saved.initializerPlacement))
                     initializerPlacement = saved.initializerPlacement;
                 saved.initializerPlacement = null;
@@ -2479,6 +2487,10 @@ namespace NeoCompose.Runtime.NeoScript
             return UnwrapJToken(literal);
         }
 
+        private static object? ClosureThis(Context ctx) => ctx.initializerClosureOwner is { } owner
+            ? UnwrapRow(owner, ctx, NeoValueOwnership.Session)
+            : ctx.thisValue;
+
         private static NeoDelegateValue BindDelegateLiteral(NeoDelegateValue value, Context ctx)
         {
             if (value.IsClosure)
@@ -2486,7 +2498,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.allocationTracker.ReusableContext = false;
                 value.declaringConstruction = ClosureConstruction(value.action!, ctx);
                 value.typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray();
-                return value.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
+                return value.Capture(ClosureThis(ctx), ctx.rootValue, ctx.functionTypeArguments);
             }
 
             // Bind implicit and explicit this.Member literals at creation,
@@ -2495,7 +2507,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && ctx.client.TryGetMember(value.memberId!, out JsonMember? member)
                 && member.Modifier != NeoMemberModifierKind.Static)
             {
-                value.valueId = FindRowIdByReference(ctx.thisValue, ctx);
+                value.valueId = FindRowIdByReference(ClosureThis(ctx), ctx);
             }
             return value;
         }
@@ -2889,7 +2901,7 @@ namespace NeoCompose.Runtime.NeoScript
                 typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray(),
                 declaringConstruction = ClosureConstruction(closurePointer.action, ctx),
                 site = closurePointer.site,
-            }.Capture(ctx.thisValue, ctx.rootValue, ctx.functionTypeArguments);
+            }.Capture(ClosureThis(ctx), ctx.rootValue, ctx.functionTypeArguments);
         }
 
         private static TypeBinding? ClosureConstruction(FunctionWithReturnType action, Context ctx)
@@ -4288,11 +4300,8 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Cannot resolve Function member '{schemaKey}' because runtime class '{runtimeClassId}' has circular inheritance.");
             }
-            foreach (MergedSchemaEntry entry in
-                ctx.client.ResolveInstanceSurfaceSchema(runtimeClassId!))
+            if (ctx.client.ResolveInstanceSurfaceMember(runtimeClassId!, schemaKey!) is { } entry)
             {
-                if (entry.schemaKey != schemaKey)
-                    continue;
                 if (!TryResolveCallableKind(ctx.client, entry.memberId))
                 {
                     throw new NSGetterRuntimeError(
