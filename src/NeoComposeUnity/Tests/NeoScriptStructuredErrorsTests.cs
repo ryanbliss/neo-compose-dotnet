@@ -84,7 +84,7 @@ namespace NeoCompose.Tests
             var error = (NeoRuntimeError)failure.InnerException!;
             Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
             Assert.That(error.Message, Is.EqualTo(message));
-            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArithmeticError));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoDivideByZeroError));
         }
 
         [Test]

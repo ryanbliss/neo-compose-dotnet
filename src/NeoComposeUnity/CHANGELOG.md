@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- Explicitly unbox int and enum values through their shared Int32 representation for non-nullable int or enum targets. Nullable targets and type tests still require the exact boxed type.
+
+- Use CLR type names in unboxing and enum argument errors, including nested and nullable tuple names.
+
+- Evaluate user operators through their selected static or interface member, with ordered `let` bindings for short-circuit operators. Reject malformed stored operators with the compiler contract's declaration, containing-type, pair and checked-operator rules.
+- Dispatch primitive interface calls and method groups through cached canonical signatures, including numeric default interface bodies, parsing, conversion hooks and checked arithmetic. Primitive reflection uses the conformance table's order.
+- Dispatch `object` overrides by their canonical member keys, including sparse NeoScript overrides of native members. Tuple Equals, comparison, hashing and structural comparer calls use their element types; tuple == retains per-element operator equality; class default-comparer behavior reserved for P127 B6 reports its precise deferral.
+- Load numeric `NumberStyles` defaults and flags. Support the minted error classes and `NeoError.InnerError`, preserving the same cached type-initialization error and cause on later access.
+- Add `LetPointer`, `PrimitiveMemberPointer` and `ObjectMemberPointer.dispatch`; `"base"` invokes the inherited object implementation without redispatching. Primitive `GetFormat` entries return their number-format provider.
+
 - Passing null to a non-nullable reference parameter throws `NeoNullReferenceError`, naming the function or constructor and parameter, including member delegates and base constructor calls.
 
 - Capture detached objects in declaration-default lambdas, reject malformed class overload keys, and include staticness in stored interface signature identities.
@@ -74,7 +84,7 @@
 - Object, Type and authored instance methods evaluate the receiver before arguments and evaluate an ordinary null receiver's arguments before throwing. Optional null calls skip arguments. Ordinary property access on a null receiver throws before running its getter.
 - Reassigning a tuple box to its owning slot preserves nested collection aliases at their existing tuple positions, including nested boxes. Moving an owned collection to another slot or tuple position is still refused atomically.
 - Built-in generic parameters retain their definition and position in reflected constructions and use their declared names. Unconstrained List, Set and Dictionary parameters report `object` as their base and no interfaces.
-- Boxed collections retain their element type and payload when converted to `IEnumerable`, including interface patterns. Impossible value-box sequence and authored-interface tests return false; protected interface conformance awaits P127 B5 and reports that phase explicitly.
+- Boxed collections retain their element type and payload when converted to `IEnumerable`, including interface patterns. Impossible value-box sequence and authored-interface tests return false; primitive interface conformance uses the canonical system interfaces.
 - Type reflection returns no interfaces for nullable and opaque types, exposes collections' existing `IEnumerable` contract, and reports interfaces as subclasses of `object`. Open types never match runtime instances.
 
 - Floating-vector construction accepts NaN and infinity, so component equality follows Unity even for nonfinite inputs. Integer vectors still require finite integer components.
@@ -132,7 +142,7 @@
 - Refusals spell types as C# and NeoScript do: `int`, `Box<int>`, `INumberBase<int>`, `(int, string)`, `object`. They no longer use internal forms such as `Int` or `class 'id'`.
 - NeoScript evaluates P127's types core as the TypeScript runtime does. Boxing to `object`, `ValueType`, `Enum` or an interface makes a `NeoBox` of the value's type. Value-kind conversions create fresh boxes. Reference-like values retain payload identity, strings use value identity, and sprite/audio values use their asset id and sprite slice. `new object()` makes an empty box.
   - Unboxing, casts and `as` check the held type. A wrong type fails with `Unable to cast object of type 'int' to type 'float'.`, and unboxing null fails with `Object reference not set to an instance of an object.`; `as` gives null instead. `is` on a box tests its held type.
-  - `default(T)` gives its binding's default, and `typeof`, `GetType()` and the `Type` members (`Name`, `FullName`, `BaseType`, `GetInterfaces()`, `IsAssignableFrom` and the rest) work on interned `Type` values. GetInterfaces() on primitives remains unsupported until P127 B5; authored classes, interfaces, collections and open parameter constraints use a schema-cached interface closure. Type names use NeoScript spelling, such as `List<int>`, `(int, string)` and `List<T>`.
+  - `default(T)` gives its binding's default, and `typeof`, `GetType()` and the `Type` members (`Name`, `FullName`, `BaseType`, `GetInterfaces()`, `IsAssignableFrom` and the rest) work on interned `Type` values. GetInterfaces() on primitives, authored classes, interfaces, collections and open parameter constraints uses a schema-cached interface closure. Type names use NeoScript spelling, such as `List<int>`, `(int, string)` and `List<T>`.
   - Explicit conversions between `int`, `float`, `decimal` and enums follow .NET: a float truncates, saturates and turns NaN into 0, and `checked` overflows. A decimal outside int fails with `Value was either too large or too small for an Int32.`. An int that numbers no enum option fails with `Unable to cast object of type 'int' to type 'Planet'.`.
   - `int` arithmetic wraps at 32 bits. `checked` arithmetic, `int.MinValue / -1` and `int.MinValue % -1` raise `NeoOverflowError`, which falls back to `NeoArithmeticError`.
   - `Equals`, `GetHashCode` and `ToString` on a class value run the class's most-derived override. Until `object.neo` links overrides, the override is found by name: `Equals` must take one `object` parameter and the others none, so `Equals(Note other)` is an overload and isn't called. Without an override, `Equals` compares identity, `GetHashCode` hashes the row id, and `ToString` prints the type name. A box runs its payload type's member. `Equals` on a boxed tuple or delegate, and `GetHashCode` on a tuple, `Type`, collection, delegate, reference or `new object()`, fail as not supported until P127 B6.

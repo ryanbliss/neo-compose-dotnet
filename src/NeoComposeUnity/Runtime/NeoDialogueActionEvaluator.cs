@@ -3457,6 +3457,8 @@ namespace NeoCompose.Runtime
             }
             if (NSGetterEvaluator.TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
+            if (NSGetterEvaluator.TryPrimitiveInterfaceCall(pointer, receiver, scope, ctx, out object? primitiveResult))
+                return primitiveResult;
             // The target depends only on the receiver, so an NSFunction's
             // arguments can evaluate straight into its parameter slots.
             NSGetterEvaluator.CallSiteTarget? target = NSGetterEvaluator.ResolveCallTarget(

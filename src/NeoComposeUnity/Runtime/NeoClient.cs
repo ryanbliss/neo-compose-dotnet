@@ -9642,12 +9642,18 @@ namespace NeoCompose.Runtime
             return NeoSchemaClassInheritance.WalkExtendsMemberChain(
                 memberId,
                 id => data.members.TryGetValue(id, out Member? value) ? value : null,
-                current => current is NSFunctionMember function
-                    && function.returnTypeInfo is not null
-                    && function.argumentTypes is not null
-                        ? function
-                        : null,
-                requireKind: MemberKind.NSFunction);
+                current => current switch
+                {
+                    NSFunctionMember function when function.returnTypeInfo is not null && function.argumentTypes is not null => function,
+                    FunctionMember native when native.returnTypeInfo is not null && native.argumentTypes is not null => new NSFunctionMember
+                    {
+                        id = native.id,
+                        name = native.name,
+                        returnTypeInfo = native.returnTypeInfo,
+                        argumentTypes = native.argumentTypes,
+                    },
+                    _ => null,
+                });
         }
 
         private FunctionWithReturnType? ResolveNSFunctionAction(string memberId)

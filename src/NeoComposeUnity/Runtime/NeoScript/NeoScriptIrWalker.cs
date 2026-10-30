@@ -200,6 +200,14 @@ namespace NeoCompose.Runtime.NeoScript
                         if (AnyPointer(argument, predicate))
                             return true;
                     return false;
+                case LetPointer let:
+                    foreach (Variable binding in let.bindings)
+                        if (AnyPointer(binding.pointer, predicate))
+                            return true;
+                    return AnyPointer(let.pointer, predicate);
+                case PrimitiveMemberPointer primitive:
+                    return primitive.receiver is not null && AnyPointer(primitive.receiver, predicate)
+                        || AnyPointer(primitive.args, predicate);
                 case CallGetterPointer getter:
                     return AnyPointer(getter.receiver, predicate);
                 case MemberTargetPointer target:
