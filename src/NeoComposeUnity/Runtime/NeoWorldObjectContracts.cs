@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -18,6 +19,16 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoWorldObjectValue : INeoValueReference
     {
+        /// <summary>
+        /// The GameObject a grid renderer drew this value into. An object gets
+        /// its own GameObject, created before its spawn hooks run and live
+        /// until its despawn hooks return. A tile layer link flattens into
+        /// its target layer's Tilemap and an object layer link into the
+        /// layer's root, so they answer with those. False when no renderer
+        /// currently draws the value.
+        /// </summary>
+        bool TryGetGameObject([NotNullWhen(true)] out GameObject? gameObject);
+
         string Name
         {
             get;
