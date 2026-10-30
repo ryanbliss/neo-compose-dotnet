@@ -142,6 +142,15 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReferenceToAnEmptySpriteReadsNull()
+        {
+            using NeoClient client = Client(Data());
+            var empty = new Dictionary<string, object?> { ["fileId"] = "", ["sliceIndex"] = 0 };
+
+            Assert.IsNull(NeoGeneratedTypesSupport.ReadReferenceValue<UnityEngine.Sprite>(client, empty));
+        }
+
+        [Test]
         public void GeneratedReferenceReadsWritesAndRebinds()
         {
             using var app = new Parity.TestProjectNeo(Client(Data()));

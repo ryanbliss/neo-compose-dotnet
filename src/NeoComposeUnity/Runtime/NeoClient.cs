@@ -4416,6 +4416,8 @@ namespace NeoCompose.Runtime
             {
                 CollectPlacementParents(childValueId, candidates);
                 candidateReadPlan?.CollectParentCandidates(childValueId, candidates);
+                if (candidateReplay?.Parents.TryGetValue(childValueId, out var allocatedParents) == true)
+                    candidates.UnionWith(allocatedParents);
                 foreach (string id in candidates)
                 {
                     if (WritableParent(NeoValueOwnership.Session, id) is { IsRemoved: false } row
@@ -4471,9 +4473,12 @@ namespace NeoCompose.Runtime
             parentOwnership = childOwnership;
             return false;
 
+            // A candidate replay's constructor rows are Session allocations of
+            // that candidate, so its own members' rows are owned there.
             MemberValue? WritableParent(NeoValueOwnership scope, string id) =>
                 candidateReadPlan?.Rows.TryGetValue((scope, id), out MemberValue? proposed) == true
-                    ? proposed : GetWritableStore(scope).values.GetValueOrDefault(id);
+                    ? proposed
+                    : (scope == NeoValueOwnership.Session ? sessionValues : GetWritableStore(scope).values).GetValueOrDefault(id);
         }
 
         private bool OwnsChildEdge(
