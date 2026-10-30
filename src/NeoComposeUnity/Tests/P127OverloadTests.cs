@@ -374,10 +374,77 @@ namespace NeoCompose.Tests
             })));
         }
 
+        [TestCase("M#")]
+        [TestCase("M##x")]
+        [TestCase("M#x#y")]
+        [TestCase("#x")]
+        [TestCase("#")]
+        [TestCase("Wrong#x")]
+        public void ProjectReaderRejectsMalformedClassOverloadKeys(string key)
+        {
+            var export = NeoInterningJsonReader.Deserialize<JObject>(File.ReadAllText(Export))!;
+            var owner = ((JObject)export["classes"]!).Properties().Select(property => (JObject)property.Value)
+                .Single(type => (string?)type["name"] == "GOB");
+            var members = (JObject)owner["schema"]!;
+            var entry = members.Properties().First(property => property.Name.StartsWith("M#", StringComparison.Ordinal));
+            var id = entry.Value;
+            entry.Remove();
+            members[key] = id;
+            Assert.Throws<JsonSerializationException>(() => NeoTestExport.Read(export.ToString()));
+        }
+
+        [Test]
+        public void ClassOverloadKeyMayNameAnInheritedSlotRoot()
+        {
+            var export = NeoInterningJsonReader.Deserialize<JObject>(File.ReadAllText(Export))!;
+            var owner = ((JObject)export["classes"]!).Properties().Select(property => (JObject)property.Value)
+                .Single(type => (string?)type["name"] == "GOB");
+            var members = (JObject)owner["schema"]!;
+            var entry = members.Properties().First(property => property.Name.StartsWith("M#", StringComparison.Ordinal));
+            var id = entry.Value;
+            entry.Remove();
+            members["M#inherited-slot-root"] = id;
+            Assert.DoesNotThrow(() => NeoTestExport.Read(export.ToString()));
+        }
+
+        [Test]
+        public void StaticAndInstanceInterfaceSignaturesHaveDistinctLoaderIdentities()
+        {
+            var instance = StoredFunction("a", Scalar(MemberKind.Int));
+            var staticFunction = StoredFunction("b", Scalar(MemberKind.Int));
+            staticFunction["static"] = true;
+            Assert.DoesNotThrow(() => RecordShapeContractGuard.ValidateProjectData(StoredInterface(new()
+            {
+                ["M#a"] = instance,
+                ["M#b"] = staticFunction,
+            })));
+        }
+
+        [Test]
+        public void OverrideWithoutMatchingBaseSlotFallsBackToItself()
+        {
+            var root = Function("root", Arg(Scalar(MemberKind.String)));
+            root.Modifier = NeoMemberModifierKind.Virtual;
+            var overridden = Function("override", Arg(Scalar(MemberKind.Int)));
+            overridden.extendsMemberId = root.id;
+            var schema = Schema(overridden.argumentTypes[0], overridden);
+            schema.members[root.id] = root;
+            schema.classes["base"] = new NeoSchemaClass
+            {
+                id = "base",
+                name = "FallbackBase",
+                projectId = "project-id",
+                schema = new() { ["M#root"] = root.id },
+            };
+            schema.classes["b4-class"].extendsClassId = "base";
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            Assert.That(Resolve(client).MemberId, Is.EqualTo(overridden.id));
+        }
+
         [Test]
         public void ProjectReaderRejectsAStoredMalformedOverloadKey()
         {
-            var export = JObject.Parse(File.ReadAllText(Export));
+            var export = NeoInterningJsonReader.Deserialize<JObject>(File.ReadAllText(Export))!;
             var contract = ((JObject)export["interfaces"]!).Properties().Select(property => (JObject)property.Value).First(type => (string?)type["name"] == "IOv");
             var members = (JObject)contract["members"]!;
             var first = members.Properties().First();
