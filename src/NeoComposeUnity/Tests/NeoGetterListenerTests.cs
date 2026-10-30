@@ -34,6 +34,82 @@ namespace NeoCompose.Tests
     public class NeoGetterListenerTests
     {
         [Test]
+        public void RepeatedInvalidationReclaimsDeadReadersAndPreservesOtherSubscriptions()
+        {
+            using var fixture = Build(data =>
+            {
+                data.values["watcher-left"].containerId = "value-watcher";
+                data.values["watcher-right"].containerId = "value-watcher";
+            });
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(fixture.client, node);
+            int leftCalls = 0, sumCalls = 0, sum = 0, echo = 0;
+            using var leftWatch = view.Watch("Value", _ => leftCalls++);
+            using var sumWatch = view.Watch("Sum", value => { sum = value; sumCalls++; });
+            using var echoWatch = view.WatchEcho(value => echo = value);
+            var right = node.Get<NeoMemberIntWritable>("Right");
+            for (int i = 1; i <= 6000; i++)
+                right.Set(i);
+            Assert.That(leftCalls, Is.Zero);
+            Assert.That(sumCalls, Is.EqualTo(6000));
+            Assert.That(sum, Is.EqualTo(6000));
+            fixture.Write("value-other", "member-other", 42);
+            Assert.That(echo, Is.EqualTo(42), "Cleanup must preserve a live subscription in another bucket.");
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            int Count(string name) => (int)typeof(NeoClient).GetField(name, flags)!.GetValue(fixture.client)!;
+            int indexed = 0;
+            foreach (string name in new[] { "getterMemoEntriesByRow", "getterMemoEntriesByGridCell", "getterMemoEntriesByPlacement", "getterMemoEntriesByLayer", "getterMemoEntriesByGrid" })
+            {
+                var index = (System.Collections.IDictionary)typeof(NeoClient).GetField(name, flags)!.GetValue(fixture.client)!;
+                foreach (System.Collections.ICollection bucket in index.Values)
+                    indexed += bucket.Count;
+            }
+            Assert.That(Count("memoIndexEntries"), Is.EqualTo(indexed));
+            Assert.That(Count("deadMemoIndexEntries"), Is.InRange(0, indexed));
+            Assert.That(indexed, Is.LessThan(5000), "Dead reader storage must remain bounded across many cleanup cycles.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void StoredLeafWritesInvalidateReadersWithoutInvalidatingSiblingGetters(bool commitPlan)
+        {
+            using var fixture = Build(data =>
+            {
+                data.values["watcher-left"].containerId = "value-watcher";
+                data.values["watcher-right"].containerId = "value-watcher";
+            });
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var view = new GetterWatchView(fixture.client, node);
+            var left = new List<int>();
+            var sum = new List<int>();
+            using var leftWatch = view.Watch("Value", value => left.Add(value));
+            using var sumWatch = view.Watch("Sum", value => sum.Add(value));
+            void Write(string key, string memberId, int value)
+            {
+                var row = Number(key, value);
+                row.containerId = "value-watcher";
+                if (commitPlan)
+                {
+                    var plan = new NeoWritePlan(fixture.client);
+                    plan.Set(NeoValueOwnership.Save, row);
+                    plan.Commit();
+                }
+                else
+                {
+                    Assert.That(fixture.client.TryGetMember(memberId, out JsonMember? member), Is.True);
+                    Assert.That(fixture.client.TryWriteLeaf(NeoValueOwnership.Save, row, member!, "value"), Is.True);
+                }
+            }
+            Write("watcher-right", "member-right", 2);
+            CollectionAssert.IsEmpty(left, "A getter that only reads Left must not hear a Right write.");
+            CollectionAssert.AreEqual(new[] { 2 }, sum);
+            Write("watcher-left", "member-left", 3);
+            Write("watcher-right", "member-right", 4);
+            CollectionAssert.AreEqual(new[] { 3 }, left);
+            CollectionAssert.AreEqual(new[] { 2, 5, 7 }, sum, "Actual dependencies must remain subscribed after repeated writes.");
+        }
+
+        [Test]
         public void WatchingOneGetterDoesNotEvaluateAnUnwatchedInvalidatedGetter()
         {
             using var fixture = Build();

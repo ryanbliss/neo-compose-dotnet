@@ -23,6 +23,91 @@ namespace NeoCompose.Tests
             }
         };
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ReplacingStoredOwnedFieldPreservesSiblingDefaults(bool script)
+        {
+            var data = BuildReboundFieldProjectData();
+            ((ClassMember)data.members["thing-nested"]).Requirement = NeoMemberRequirementKind.Optional;
+            ((ClassMember)data.members["thing-nested"]).defaultValue = new ObjectMemberValueBase { value = null };
+            foreach (string preset in new[] { "asset-preset", "asset-other-preset" })
+            {
+                ((ObjectMemberValue)data.values[preset]).value!["Deep"] = preset + "-deep";
+                data.values[preset + "-deep"] = ObjectValue(preset + "-deep", "deep-class",
+                    new Dictionary<string, string> { ["Count"] = preset + "-count" });
+                data.values[preset + "-count"] = new NumberMemberValue { id = preset + "-count", value = 5 };
+            }
+            data.classes["save-root-class"].schema["Input"] = "replay-input";
+            data.members["replay-input"] = new IntMember
+            {
+                id = "replay-input",
+                name = "Input",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 3 }
+            };
+            data.classes["thing-class"].schema["Unchanged"] = "unchanged-count";
+            data.members["unchanged-count"] = new IntMember
+            {
+                id = "unchanged-count",
+                name = "Unchanged",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Save,
+                defaultValue = new NumberMemberValueBase { init = Init(IntTypeInfo(), SavePointer("Input")) }
+            };
+            data.classes["thing-class"].schema["Sibling"] = "thing-other";
+            data.members["thing-other"] = new ClassMember
+            {
+                id = "thing-other",
+                name = "Sibling",
+                kind = MemberKind.Class,
+                DeclaredClassId = "nested-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() }
+            };
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+                bool other = false;
+                void Assign()
+                {
+                    other = !other;
+                    if (script)
+                        AssignPreset(client, "Nested", other ? "OtherPreset" : "Preset");
+                    else
+                        thing.SetSerializedValue("Nested", NeoValueWritePayload.FromValueReference(other ? "asset-other-preset" : "asset-preset"));
+                }
+                Assign();
+                var sibling = thing.Get<NeoMemberClassWritable>("Sibling").Get<NeoMemberClassWritable>("Deep");
+                sibling.Get<NeoMemberIntWritable>("Count").Set(17);
+                string siblingId = sibling.value!.id;
+                Assert.That(client.TryGetVirtualClassChildValueId(thing.value!.id, "Unchanged", out _), Is.True, "Fixture must retain a virtual sibling default.");
+                for (int i = 0; i < 3; i++)
+                {
+                    string oldId = thing.Get<NeoMemberClassWritable>("Nested").value!.id;
+                    int replays = client.VirtualReplayCount;
+                    Assign();
+                    Assert.That(client.VirtualReplayCount, Is.EqualTo(replays), "Replacing a stored child must not reconstruct unrelated defaults.");
+                    Assert.That(thing.Get<NeoMemberClassWritable>("Nested").value!.id, Is.Not.EqualTo(oldId));
+                    AssertReleased(client, oldId);
+                    Assert.That(thing.Get<NeoMemberClassWritable>("Sibling").Get<NeoMemberClassWritable>("Deep").value!.id, Is.EqualTo(siblingId));
+                    Assert.That(sibling.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(17));
+                    Assert.That(thing.Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5));
+                }
+                int beforeDependency = client.VirtualReplayCount;
+                client.save.Get<NeoMemberIntWritable>("Input").Set(9);
+                Assert.That(client.VirtualReplayCount, Is.GreaterThan(beforeDependency), "Actual constructor reads must still invalidate.");
+                Assert.That(thing.Get<NeoMemberIntWritable>("Unchanged").value!.value, Is.EqualTo(9));
+                thing.Remove("Nested");
+                Assert.That(BoundRowId(thing, "Nested"), Is.Null, "Removing the override must restore its null default.");
+                saved = client.SerializeSaveData();
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.That(reloaded.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Sibling")
+                .Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(17));
+        }
+
         [Test]
         public void ClonePreservesSaveStateInsideImmutableObject()
         {

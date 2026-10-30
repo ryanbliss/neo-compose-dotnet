@@ -183,6 +183,11 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByPlacement = new(StringComparer.Ordinal);
         private readonly Dictionary<(string grid, string layer), List<GridMemoReader>> getterMemoEntriesByLayer = new();
         private readonly Dictionary<string, List<GridMemoReader>> getterMemoEntriesByGrid = new(StringComparer.Ordinal);
+        private readonly HashSet<string> dirtyMemoRows = new(StringComparer.Ordinal);
+        private readonly HashSet<GridCellRead> dirtyMemoCells = new();
+        private readonly HashSet<string> dirtyMemoPlacements = new(StringComparer.Ordinal);
+        private readonly HashSet<(string grid, string layer)> dirtyMemoLayers = new();
+        private readonly HashSet<string> dirtyMemoGrids = new(StringComparer.Ordinal);
         private int memoIndexEntries;
         private int deadMemoIndexEntries;
         // Open while a write has changed a grid's indexes but not yet
@@ -1094,8 +1099,12 @@ namespace NeoCompose.Runtime
         {
             entry.abandoned = true;
             deadMemoIndexEntries += entry.rowMemberships;
+            if (entry.key.kind == DependentKind.Getter)
+                dirtyMemoRows.Add(entry.key.rowId);
             if (entry.reads is { } reads)
             {
+                for (int i = 0; i < reads.Count; i++)
+                    dirtyMemoRows.Add(reads.items[i]);
                 entry.reads = null;
                 ReturnReadList(reads);
             }
@@ -1111,47 +1120,53 @@ namespace NeoCompose.Runtime
             deadMemoIndexEntries += entry.gridMemberships;
             entry.gridMemberships = 0;
             entry.gridGeneration++;
+            for (int i = 0; i < gridReads.Count; i++)
+            {
+                ref readonly GridRead read = ref gridReads[i];
+                string grid = read.content.Primitive.GridValueId;
+                dirtyMemoGrids.Add(grid);
+                if (read.layerId is string layer)
+                    dirtyMemoLayers.Add((grid, layer));
+                else if (read.cell is UnityEngine.Vector2Int cell)
+                    dirtyMemoCells.Add(new GridCellRead(grid, grid.GetHashCode(), cell, read.tile));
+                else
+                    dirtyMemoPlacements.Add(read.placementId);
+            }
             ReturnGridReads(gridReads);
         }
 
         private const int MinDeadMemoIndexSweep = 4096;
 
-        // Once dead readers outnumber live ones, every index list drops them,
-        // so the indexes stay within twice their live size and a sweep costs
-        // no more than the changes that called for it. A retired entry is not
-        // dead: it costs what it did live, and a later read revives it.
+        // Sweep only buckets whose entries died. Unrelated world/catalog reads
+        // may dominate the index, and must not make a small interaction pay for
+        // scanning every bucket. Retired entries still revive as before.
         private void SweepMemoIndexes()
         {
-            memoIndexEntries = 0;
-            deadMemoIndexEntries = 0;
-            SweepMemoIndex(getterMemoEntriesByRow, entries => entries.RemoveAll(entry => entry.abandoned), memoEntryListPool);
-            SweepMemoIndex(getterMemoEntriesByGridCell, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
-            SweepMemoIndex(getterMemoEntriesByPlacement, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
-            SweepMemoIndex(getterMemoEntriesByLayer, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
-            SweepMemoIndex(getterMemoEntriesByGrid, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByRow, dirtyMemoRows, entries => entries.RemoveAll(entry => entry.abandoned), memoEntryListPool);
+            SweepMemoIndex(getterMemoEntriesByGridCell, dirtyMemoCells, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByPlacement, dirtyMemoPlacements, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByLayer, dirtyMemoLayers, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
+            SweepMemoIndex(getterMemoEntriesByGrid, dirtyMemoGrids, readers => readers.RemoveAll(reader => !reader.IsLive), gridMemoReaderListPool);
         }
 
         private void SweepMemoIndex<TRead, TReader>(
             Dictionary<TRead, List<TReader>> index,
+            HashSet<TRead> dirty,
             Func<List<TReader>, int> removeDead,
             Stack<List<TReader>> pool)
         {
-            List<TRead>? emptied = null;
-            foreach (var pair in index)
+            foreach (TRead read in dirty)
             {
-                List<TReader> readers = pair.Value;
-                removeDead(readers);
-                memoIndexEntries += readers.Count;
+                if (!index.TryGetValue(read, out List<TReader>? readers))
+                    continue;
+                DropDeadReaders(removeDead(readers));
                 if (readers.Count == 0)
-                    (emptied ??= new List<TRead>()).Add(pair.Key);
+                {
+                    index.Remove(read);
+                    pool.Push(readers);
+                }
             }
-            if (emptied is null)
-                return;
-            foreach (TRead read in emptied)
-            {
-                pool.Push(index[read]);
-                index.Remove(read);
-            }
+            dirty.Clear();
         }
 
         // Forgetting may re-enter the memo through a watcher, so each pass
@@ -1204,6 +1219,7 @@ namespace NeoCompose.Runtime
             }
             DropDeadReaders(entries.Count - kept);
             KeepListed(getterMemoEntriesByRow, valueId, entries, kept, memoEntryListPool);
+            dirtyMemoRows.Remove(valueId);
             ForgetChangedGetters();
         }
 
@@ -1218,16 +1234,16 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < objectLayers.Count; i++)
             {
                 NeoObjectLayerChangedArgs layer = objectLayers[i];
-                CollectGridReaders(getterMemoEntriesByLayer, (grid, layer.LayerId));
+                CollectGridReaders(getterMemoEntriesByLayer, dirtyMemoLayers, (grid, layer.LayerId));
                 IReadOnlyList<NeoObjectInstanceId> instances = layer.ChangedInstances;
                 for (int j = 0; j < instances.Count; j++)
-                    CollectGridReaders(getterMemoEntriesByPlacement, instances[j].Value);
+                    CollectGridReaders(getterMemoEntriesByPlacement, dirtyMemoPlacements, instances[j].Value);
                 CollectCellReaders(grid, gridHash, layer.ChangedCells, tile: false);
             }
             IReadOnlyList<NeoTileLayerChangedArgs> tileLayers = change.TileLayers;
             for (int i = 0; i < tileLayers.Count; i++)
             {
-                CollectGridReaders(getterMemoEntriesByLayer, (grid, tileLayers[i].LayerId));
+                CollectGridReaders(getterMemoEntriesByLayer, dirtyMemoLayers, (grid, tileLayers[i].LayerId));
                 CollectCellReaders(grid, gridHash, tileLayers[i].ChangedCells, tile: true);
             }
             ForgetChangedGetters();
@@ -1236,7 +1252,7 @@ namespace NeoCompose.Runtime
         private void CollectCellReaders(string grid, int gridHash, IReadOnlyList<UnityEngine.Vector2Int> cells, bool tile)
         {
             for (int i = 0; i < cells.Count; i++)
-                CollectGridReaders(getterMemoEntriesByGridCell, new GridCellRead(grid, gridHash, cells[i], tile));
+                CollectGridReaders(getterMemoEntriesByGridCell, dirtyMemoCells, new GridCellRead(grid, gridHash, cells[i], tile));
         }
 
         /// <summary>Drops every memoized getter that read a grid whose indexes changed without naming what.</summary>
@@ -1244,7 +1260,7 @@ namespace NeoCompose.Runtime
         {
             if (!HasReadDependents)
                 return;
-            CollectGridReaders(getterMemoEntriesByGrid, gridValueId);
+            CollectGridReaders(getterMemoEntriesByGrid, dirtyMemoGrids, gridValueId);
             ForgetChangedGetters();
         }
 
@@ -1257,8 +1273,9 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void CollectGridReaders<TRead>(Dictionary<TRead, List<GridMemoReader>> index, TRead read)
+        private void CollectGridReaders<TRead>(Dictionary<TRead, List<GridMemoReader>> index, HashSet<TRead> dirty, TRead read)
         {
+            dirty.Remove(read);
             if (!index.Remove(read, out List<GridMemoReader>? readers))
                 return;
             // Every live reader stays listed: a forgotten getter that reads
@@ -1350,6 +1367,11 @@ namespace NeoCompose.Runtime
                 getterMemoEntriesByPlacement.Clear();
                 getterMemoEntriesByGrid.Clear();
                 getterMemoEntriesByLayer.Clear();
+                dirtyMemoRows.Clear();
+                dirtyMemoCells.Clear();
+                dirtyMemoPlacements.Clear();
+                dirtyMemoLayers.Clear();
+                dirtyMemoGrids.Clear();
                 memoIndexEntries = 0;
                 deadMemoIndexEntries = 0;
             }

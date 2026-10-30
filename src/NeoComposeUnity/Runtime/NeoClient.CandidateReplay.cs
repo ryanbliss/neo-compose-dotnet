@@ -315,9 +315,9 @@ namespace NeoCompose.Runtime
             if (oldOwnership != nextOwnership)
                 return false;
 
-            // Replacing a scalar link or filling a null class field cannot
-            // retire an owned subtree. Readers of the changed field link still
-            // invalidate, without rebuilding every sibling default.
+            // Replacing scalar links, null fields or independently stored
+            // children preserves the parent's virtual defaults. Readers of the
+            // changed field still invalidate through their actual dependencies.
             if (previous is ObjectMemberValue { classId: not null, value: not null } beforeObject
                 && next is ObjectMemberValue { value: not null } afterObject
                 && NeoSemanticJson.MemberRowsEqual(previous, next, ignoreObjectFields: true)
@@ -386,6 +386,14 @@ namespace NeoCompose.Runtime
                     return false;
                 var prior = PreviousReplayRow(before);
                 if (prior is ObjectMemberValue { value: null } or NullMemberValue)
+                    continue;
+                // Explicit replacements of stored children retire their old
+                // graph through the write plan. They do not supersede a virtual
+                // subtree belonging to this construction. Omitting the field
+                // must still replay to restore its default.
+                if (prior is ObjectMemberValue or ArrayMemberValue
+                    && previous.value.ContainsKey(key) && next.value.ContainsKey(key)
+                    && !virtualRootByFootprintId.ContainsKey(before))
                     continue;
                 if (prior is null or ObjectMemberValue or ArrayMemberValue)
                     return false;
