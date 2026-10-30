@@ -12,6 +12,15 @@ namespace NeoCompose.Tests
 {
     public class NeoAggregateAssignmentAuditTests
     {
+        [Test]
+        public void AuditExportLoadsWithoutReplacingItsMetadata()
+        {
+            var schema = NeoTestExport.Read(System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/aggregate-assignment-audit.json"));
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var member = schema.members.Values.Single(item => item.name == "SameSlot");
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, member.id).InvokeStatic(), Is.EqualTo(true));
+        }
+
         [TestCase("SameSlot")]
         [TestCase("NestedSameSlot")]
         [TestCase("SparseRemove")]

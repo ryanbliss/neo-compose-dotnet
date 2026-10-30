@@ -35,8 +35,11 @@ namespace NeoCompose.Runtime.Json
             saving = savePool is not null;
         }
 
+        // Compiled expression trees can exceed Json.NET's default depth of 64.
+        internal static readonly JsonSerializerSettings ProjectSettings = new() { MaxDepth = 256 };
+
         internal static T? Deserialize<T>(string json, JsonSerializerSettings? settings = null) =>
-            Deserialize<T>(new NeoInterningJsonReader(json, null), settings);
+            Deserialize<T>(new NeoInterningJsonReader(json, null), settings ?? ProjectSettings);
 
         /// <summary>
         /// <see cref="Deserialize{T}"/> for save JSON: strings the process

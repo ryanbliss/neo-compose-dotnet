@@ -153,8 +153,157 @@ namespace NeoCompose.Tests
             };
         }
 
+        [Test]
+        public void DetachedInitializerLambdaCapturesTheObjectBeingConstructed()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "LK");
+            // LX from review item 6: keep X = Apply(() => M(1) + Q()) and
+            // its methods, but remove the delegate fields that force row construction.
+            owner.schema = owner.schema.Where(pair => schema.members[pair.Value] is not DelegateMember)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            owner.schemaKeyOrder = owner.schemaKeyOrder!.Where(owner.schema.ContainsKey).ToArray();
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            Assert.That(NeoGeneratedTypesSupport.ResolveDetachedClassPlan(client, owner.id), Is.Not.Null);
+            var probe = schema.classes.Values.Single(type => type.name == "Probe");
+            var function = NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema["DefaultLambdaFallbackInference"]);
+            Assert.That(function.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(101));
+            Assert.That(function.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(101), "A reused frame must capture the next object.");
+        }
+
+        [Test]
+        public void InitializerClosureOwnerSurvivesNestedFramesWithoutLeakingIntoReusedFrames()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)));
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var outerOwner = new object();
+            var innerOwner = new object();
+            context.initializerClosureOwner = outerOwner;
+            int outer = context.EnterThis(null);
+            Assert.That(context.initializerClosureOwner, Is.Null);
+            context.initializerClosureOwner = innerOwner;
+            int inner = context.EnterThis(null);
+            Assert.That(context.initializerClosureOwner, Is.Null);
+            context.ExitFunction(inner);
+            Assert.That(context.initializerClosureOwner, Is.SameAs(innerOwner));
+            context.ExitFunction(outer);
+            Assert.That(context.initializerClosureOwner, Is.SameAs(outerOwner));
+            context.ClearDirectInvocation();
+            int reused = context.EnterThis(null);
+            context.ExitFunction(reused);
+            Assert.That(context.initializerClosureOwner, Is.Null);
+        }
+
         public static IEnumerable<TestCaseData> Cases() => JObject.Parse(File.ReadAllText(Root + "p127-overloads-parity-fixture.json"))["returns"]!
             .Children<JProperty>().Select(test => new TestCaseData(test.Name, test.Value).SetName("B4_" + test.Name));
+
+        [Test]
+        public void FinalExportLoadsThroughTheFileDataSource()
+        {
+            string directory = Path.Combine(Path.GetTempPath(), "b4-export-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                NeoTestExport.Write(directory, File.ReadAllText(Export));
+                var schema = NeoJsonProjectDataSource.FromFile(Path.Combine(directory, "project.json")).ReadProjectData();
+                Assert.That(schema.classes.Values.Any(type => type.name == "Probe"), Is.True);
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, recursive: true);
+            }
+        }
+
+        public static IEnumerable<TestCaseData> Refusals() => JObject.Parse(File.ReadAllText(Root + "p127-overloads-parity-fixture.json"))["refuses"]!
+            .Children<JProperty>().Select(test => new TestCaseData(test.Name, test.Value.Value<string>()).SetName("B4_" + test.Name));
+
+        [TestCaseSource(nameof(Refusals))]
+        public void RefusesWhatTheSharedFixtureRequires(string name, string expected)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
+            var probe = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "Probe");
+            AssertNullArgument(() => NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema[name]).InvokeStatic(Array.Empty<object?>()), expected);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NullMemberArgumentHasTheSameErrorThroughHostAndDelegateCalls(bool viaDelegate)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NA1");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            string memberId = owner.schema["S"];
+            AssertNullArgument(() => viaDelegate
+                ? NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { memberId = memberId }, new object?[] { null }, new NSGetterEvaluator.Context(client, null, null))
+                : NeoMemberNSFunction.GetOrCreateStatic(client, memberId).InvokeStatic(new object?[] { null }),
+                "Function 'S' was passed null for non-nullable parameter 's'.");
+        }
+
+        [TestCase("NA3", false)]
+        [TestCase("NA3", true)]
+        [TestCase("NA4", false)]
+        [TestCase("NA4", true)]
+        public void RowBackedAndGeneratedConstructorsRejectNull(string name, bool generatedCall)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == name);
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            string constructorId = owner.constructorIds!.Single();
+            Func<object?> call;
+            if (generatedCall)
+            {
+                var args = name == "NA3" ? new[] { new NeoDeclaredConstructorArgument("s", null) } : Array.Empty<NeoDeclaredConstructorArgument>();
+                call = () => NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, owner.id, constructorId, args);
+            }
+            else
+            {
+                var fields = Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>();
+                var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client,
+                    new ClassTypeInfo { type = MemberKind.Class, required = true, classId = owner.id },
+                    constructorId, name == "NA3" ? new[] { "s" } : Array.Empty<string>(), fields);
+                call = () => NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(resolved,
+                    name == "NA3" ? new object?[] { null } : Array.Empty<object?>(), fields,
+                    new NSGetterEvaluator.Context(client, null, null));
+            }
+            AssertNullArgument(call, "Constructor 'NA3' was passed null for non-nullable parameter 's'.");
+        }
+
+        [TestCase(MemberKind.String)]
+        [TestCase(MemberKind.Object)]
+        [TestCase(MemberKind.Int)]
+        public void NullableParametersStillAcceptNull(MemberKind kind)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NA1");
+            var member = (NSFunctionMember)schema.members[owner.schema["S"]];
+            member.argumentTypes![0].type = kind;
+            member.argumentTypes[0].required = false;
+            member.action!.parameters![2].typeInfo = new PrimitiveTypeInfo { type = kind, required = false };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, member.id).InvokeStatic(new object?[] { null }), Is.EqualTo(5));
+        }
+
+        [Test]
+        public void NullValueParameterKeepsItsExistingError()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NA1");
+            var member = (NSFunctionMember)schema.members[owner.schema["S"]];
+            member.argumentTypes![0].type = MemberKind.Int;
+            member.action!.parameters![2].typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var error = Assert.Catch<NSGetterRuntimeError>(() => NeoMemberNSFunction.GetOrCreateStatic(client, member.id).InvokeStatic(new object?[] { null }))!;
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidOperationError));
+            Assert.That(error.Message, Is.EqualTo($"NSFunction 'S' ({member.id}) argument 0 's' is incompatible with declared Int; compiled call IR or caller is stale/corrupt: Required argument 0 's' of NSFunction 'S' cannot be null."));
+        }
+
+        private static void AssertNullArgument(Func<object?> call, string expected)
+        {
+            var error = Assert.Catch<NSGetterRuntimeError>(() => call())!;
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoNullReferenceError));
+            Assert.That(error.Payload.Message, Is.EqualTo(expected));
+            Assert.That(error.Message, Is.EqualTo(expected));
+        }
 
         [TestCaseSource(nameof(Cases))]
         public void ReturnsWhatTheSharedFixtureRequires(string name, JToken expected)
