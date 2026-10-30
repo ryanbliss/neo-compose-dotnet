@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B4 cross-runtime overloads parity fixture: dispatched and interface overloads, most-derived lookup, receiver-form filters, Color Color, constraint and method-group selection, hiding, #1385 default frames, and static read-only storage (static readonly fields, class or interface, and get-only auto-properties, per generic construction and implementing interface properties), closed generic static method groups, inherited overloads that collide only after substitution (more specific declared types, static hiding, dispatch through a type parameter), `default!` target-typed through `!`, interface functions two inherited functions implement (CS1956), in each declaration order, overriding one of several virtual overloads, overloads spread across a base and derived interface, most-derived lookup that ignores conversions C# lacks (sequence, float literal to decimal), nullable-to-object boxing in betterness, every bound of a type parameter, and an initializer lambda on the detached construction path, run as .NET runs them. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result. Expected values match .NET 10 except the Default* cases C# refuses (CS0027, CS0120, CS0236), which follow NeoScript's #1385 instance-frame fallback. `refuses` pins the NullArgument* cases, which .NET runs with only a CS8625 warning: by P127 §1.3 a null argument for a non-nullable reference parameter throws NeoNullReferenceError with that text at the call: a function call, a constructor call or a `: base(...)` argument. A generic method's parameter closes over the call's type argument, so `G<string>(null)` throws, while `G<string?>(null)`, a `T?` parameter and `G2(\"s\", null)` (inferred `string?`) run. A bare `T x = default` parameter admits null, its own default, whether omitted or passed. The web half runs through `neo test` (cli/src/commands/p127-overloads-parity.test.ts); the Unity half runs the same cases over a `neo export`. Vendor this file verbatim.",
+  "$comment": "P127 B4 cross-runtime overloads parity fixture: dispatched and interface overloads, most-derived lookup, receiver-form filters, Color Color, constraint and method-group selection, hiding, #1385 default frames, and static read-only storage (static readonly fields, class or interface, and get-only auto-properties, per generic construction and implementing interface properties), closed generic static method groups, inherited overloads that collide only after substitution (more specific declared types, static hiding, dispatch through a type parameter), `default!` target-typed through `!`, interface functions two inherited functions implement (CS1956), in each declaration order, overriding one of several virtual overloads, overloads spread across a base and derived interface, most-derived lookup that ignores conversions C# lacks (sequence, float literal to decimal), nullable-to-object boxing in betterness, every bound of a type parameter, and an initializer lambda on the detached construction path, run as .NET runs them. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result. Expected values match .NET 10 except the Default* cases C# refuses (CS0027, CS0120, CS0236), which follow NeoScript's #1385 instance-frame fallback. `refuses` pins the NullArgument* cases, which .NET runs with only a CS8625 warning: by P127 §1.3 a null argument for a non-nullable reference parameter throws NeoNullReferenceError with that text at the call: a function call, a constructor call or a `: base(...)` argument. A generic method's parameter closes over the call's type argument, so `G<string>(null)` throws, while `G<string?>(null)`, a `T?` parameter and `G2(\"s\", null)` (inferred `string?`) run. A default filled for an omitted argument isn't checked, so `string x = default`, `object o = default` and `T x = default` under `string` give null, in a call, a constructor or `: base()`, and a class `T` return gives that null back; a `null` passed into `T x = default` under `string` throws, as it does into a constructor's class `T` or `List<T>`. The web half runs through `neo test` (cli/src/commands/p127-overloads-parity.test.ts); the Unity half runs the same cases over a `neo export`. Vendor this file verbatim.",
   "source": [
     "class VA { public virtual int F(int x) => 1; public virtual int F(string s) => 2; }",
     "class VB : VA { public override int F(int x) => 10; public override int F(string s) => 20; }",
@@ -201,6 +201,12 @@
     "class NG { public static int G<T>(T x) => 1; public static T Id<T>(T x) => x; public static int G2<T>(T a, T b) => 2; public static int GN<T>(T? x) => 3; }",
     "class NTC<T> { public bool M(T x = default(T)) => x == null; }",
     "class NTF { public static bool F<T>(T x = default(T)) => x == null; }",
+    "class NDF { public static int S(string x = default) => x == null ? 1 : 0; public static int O(object o = default) => o == null ? 1 : 0; }",
+    "class NDK { public string? X; public NDK(string x = default) { X = x; } }",
+    "class NDB : NDK { public NDB() : base() { } }",
+    "class NCT<T> { public T? X; public NCT(T x = default) { X = x; } }",
+    "class NCL<T> { public NCL(List<T> x) { } }",
+    "class NCR<T> { public T M(T x = default) => x; }",
     "class Probe {",
     "  public static int ITVia(ITM i) => i.M(1, 1);",
     "  public static int ITTwice<T extends ITM>(T x) => Probe.ITVia(x) * 10 + x.M(1, 1);",
@@ -326,6 +332,14 @@
     "  public static int NullArgumentGenericNullableArgument() => NG.G<string?>(null);",
     "  public static bool NullArgumentTypeDefaultOmitted() => new NTC<string>().M();",
     "  public static bool NullArgumentTypeDefaultPassed() => NTF.F<string>(null);",
+    "  public static int NullArgumentStringDefaultOmitted() => NDF.S();",
+    "  public static int NullArgumentObjectDefaultOmitted() => NDF.O();",
+    "  public static int NullArgumentConstructorDefaultOmitted() => new NDK().X == null ? 1 : 0;",
+    "  public static int NullArgumentBaseDefaultOmitted() => new NDB().X == null ? 1 : 0;",
+    "  public static int NullArgumentConstructorClassType() => new NCT<string>(null).X == null ? 1 : 0;",
+    "  public static int NullArgumentConstructorClassTypeOmitted() => new NCT<string>().X == null ? 1 : 0;",
+    "  public static int NullArgumentConstructorClassTypeList() => new NCL<string>(null) == null ? 1 : 0;",
+    "  public static int NullArgumentClassTypeReturn() => new NCR<string>().M() == null ? 1 : 0;",
     "}"
   ],
   "returns": {
@@ -407,7 +421,12 @@
     "NullArgumentGenericNullableParameter": 3,
     "NullArgumentGenericNullableArgument": 1,
     "NullArgumentTypeDefaultOmitted": true,
-    "NullArgumentTypeDefaultPassed": true
+    "NullArgumentStringDefaultOmitted": 1,
+    "NullArgumentObjectDefaultOmitted": 1,
+    "NullArgumentConstructorDefaultOmitted": 1,
+    "NullArgumentBaseDefaultOmitted": 1,
+    "NullArgumentConstructorClassTypeOmitted": 1,
+    "NullArgumentClassTypeReturn": 1
   },
   "refuses": {
     "NullArgumentSingle": "Function 'S' was passed null for non-nullable parameter 's'.",
@@ -415,6 +434,9 @@
     "NullArgumentConstructor": "Constructor 'NA3' was passed null for non-nullable parameter 's'.",
     "NullArgumentBase": "Constructor 'NA3' was passed null for non-nullable parameter 's'.",
     "NullArgumentGenericMethod": "Function 'G' was passed null for non-nullable parameter 'x'.",
-    "NullArgumentGenericMethodFlows": "Function 'Id' was passed null for non-nullable parameter 'x'."
+    "NullArgumentGenericMethodFlows": "Function 'Id' was passed null for non-nullable parameter 'x'.",
+    "NullArgumentTypeDefaultPassed": "Function 'F' was passed null for non-nullable parameter 'x'.",
+    "NullArgumentConstructorClassType": "Constructor 'NCT' was passed null for non-nullable parameter 'x'.",
+    "NullArgumentConstructorClassTypeList": "Constructor 'NCL' was passed null for non-nullable parameter 'x'."
   }
 }
