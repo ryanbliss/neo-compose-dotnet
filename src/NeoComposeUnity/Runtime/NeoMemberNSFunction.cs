@@ -933,11 +933,11 @@ namespace NeoCompose.Runtime
             var resolved = new TypeInfo[argumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
             {
-                resolved[i] = ResolveInvocationTypeInfo(
+                resolved[i] = InvocationParameterType(function.ArgumentTypes[i], ResolveInvocationTypeInfo(
                     client,
                     argumentTypes[i],
                     genericEnv,
-                    new HashSet<string>());
+                    new HashSet<string>()));
             }
             argumentTypes = resolved;
             return returnType;
@@ -991,16 +991,17 @@ namespace NeoCompose.Runtime
                 for (int i = 0; i < table.Length; i++)
                     table[i] = NSGetterEvaluator.CloseContextType(table[i], ctx);
             }
-            TypeInfo[] signatureTable = SignatureTypeArguments(table);
+            TypeInfo[] returnTable = ReturnTypeArguments(table);
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
-                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], signatureTable);
+                argumentTypes[i] = InvocationParameterType(function.ArgumentTypes[i],
+                    NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table));
             var created = new NeoBoundNSFunctionSignature(
                 function,
                 key,
                 cacheBinding ? chain : null,
                 table,
-                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, signatureTable),
+                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, returnTable),
                 argumentTypes);
             // A class-forwarding call varies with the caller's receiver, not
             // just its function type-argument table.
@@ -1014,12 +1015,24 @@ namespace NeoCompose.Runtime
             return created;
         }
 
+        // A bare T with a type-default parameter admits its own null default,
+        // whether passed or omitted. Apply once when closing the signature.
+        private static TypeInfo InvocationParameterType(FunctionArgumentTypeInfo declared, TypeInfo closed)
+        {
+            if (declared.type != MemberKind.Generic || !declared.required
+                || declared.defaultValue is not { isDefault: true }
+                || !closed.required || NeoTypeRules.IsValueKind(closed.type))
+                return closed;
+            TypeInfo nullable = closed.ShallowClone();
+            nullable.required = false;
+            return nullable;
+        }
+
         /// <summary>
-        /// A frame's type arguments as its signature reads them. They are
-        /// runtime identities, where every reference type admits null
-        /// (P127 §2), so a <c>T</c> over one holds <c>default(T)</c>.
+        /// A bare T return still admits default(T) for a reference type.
+        /// Parameters instead retain the call's type-argument nullability.
         /// </summary>
-        private static TypeInfo[] SignatureTypeArguments(TypeInfo[] table)
+        private static TypeInfo[] ReturnTypeArguments(TypeInfo[] table)
         {
             TypeInfo[]? relaxed = null;
             for (int i = 0; i < table.Length; i++)

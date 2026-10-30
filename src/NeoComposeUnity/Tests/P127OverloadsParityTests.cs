@@ -214,6 +214,120 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void MethodTypeArgumentNullabilitySurvivesForwardingAndCachedCalls()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NG");
+            var outer = (NSFunctionMember)schema.members[owner.schema["G2"]];
+            // Let the outer parameter accept null so the forwarded call must
+            // enforce its own bare T, using the caller's actual type argument.
+            outer.argumentTypes![1].required = false;
+            outer.action!.parameters![3].typeInfo.required = false;
+            outer.action.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new CallFunctionPointer
+                    {
+                        type = PointerKind.CallFunction,
+                        callSiteId = "b4-r2-forward-nullability",
+                        memberId = owner.schema["G"],
+                        receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = owner.schema["G"] },
+                        typeArguments = new TypeInfo[] { new FunctionGenericTypeInfo { type = MemberKind.Generic, required = true, ownerMemberId = outer.id, index = 0 } },
+                        args = new Pointer[] { new VariablePointer { type = PointerKind.Variable, variableId = "__arg_1__" } },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var function = NeoMemberNSFunction.GetOrCreateStatic(client, outer.id);
+            TypeInfo[] nullable = { new PrimitiveTypeInfo { type = MemberKind.String, required = false } };
+            TypeInfo[] required = { new PrimitiveTypeInfo { type = MemberKind.String, required = true } };
+            for (int i = 0; i < 2; i++)
+            {
+                Assert.That(function.InvokeGenericStatic(new object?[] { "s", null }, nullable), Is.EqualTo(1));
+                AssertNullArgument(() => function.InvokeGenericStatic(new object?[] { "s", null }, required),
+                    "Function 'G' was passed null for non-nullable parameter 'x'.");
+            }
+        }
+
+        [Test]
+        public void BareMethodTypeParameterReturnStillAllowsNull()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NG");
+            var member = (NSFunctionMember)schema.members[owner.schema["Id"]];
+            member.action!.instructions = new Instruction[]
+            {
+                new ReturnInstruction { type = InstructionKind.Return, pointer = new DefaultPointer { type = PointerKind.Default, typeInfo = member.returnTypeInfo! } },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var function = NeoMemberNSFunction.GetOrCreateStatic(client, member.id);
+            Assert.That(function.InvokeGenericStatic(new object?[] { "s" }, new TypeInfo[] { new PrimitiveTypeInfo { type = MemberKind.String, required = true } }), Is.Null);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void BareMethodTypeDefaultAcceptsPassedAndOmittedNull(bool omitted)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NTF");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var function = NeoMemberNSFunction.GetOrCreateStatic(client, owner.schema["F"]);
+            Assert.That(function.InvokeGenericStatic(omitted ? Array.Empty<object?>() : new object?[] { null },
+                new TypeInfo[] { new PrimitiveTypeInfo { type = MemberKind.String, required = true } }), Is.True);
+            var signature = NeoNSFunctionRuntime.ResolveSignature(client, owner.schema["F"]);
+            Assert.That(((FunctionArgumentTypeInfo)signature.BoundSignatures!.ArgumentTypes[0]).defaultValue!.isDefault, Is.True);
+        }
+
+        [Test]
+        public void NullableMethodArgumentsEraseOnlyInRuntimeAndPersistedIdentities()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NG");
+            string memberId = owner.schema["G"];
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            context.BindFunctionTypeArguments(new TypeInfo[] { new PrimitiveTypeInfo { type = MemberKind.String, required = false } });
+            var generic = new FunctionGenericTypeInfo { type = MemberKind.Generic, required = true, ownerMemberId = memberId, index = 0 };
+            var typeOf = new TypeOfPointer { type = PointerKind.TypeOf, typeInfo = generic };
+            var identity = (NeoTypeValue)NSGetterEvaluator.EvaluatePointer(typeOf, new NeoScriptScope(), context)!;
+            Assert.That(identity.Binding.Head!.Required, Is.True);
+            var typeType = new ObjectTypeInfo { type = MemberKind.Object, required = true, objectType = NeoObjectTypeKind.Type };
+            var closure = (NeoDelegateValue)NSGetterEvaluator.EvaluatePointer(new DelegateClosurePointer
+            {
+                type = PointerKind.DelegateClosure,
+                site = memberId + ":function:0",
+                captures = Array.Empty<Pointer>(),
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    typeInfo = typeType,
+                    parameters = new[]
+                    {
+                        new Variable { id = "__this__", typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null } },
+                        new Variable { id = "__root__", typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null } },
+                    },
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = typeOf } },
+                },
+            }, new NeoScriptScope(), context)!;
+            Assert.That(closure.lexicalTypeArguments![0].required, Is.False);
+            var target = (NeoDelegateValue)NSGetterEvaluator.EvaluatePointer(new MemberTargetPointer
+            {
+                type = PointerKind.MemberTarget,
+                memberId = memberId,
+                receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = memberId },
+                typeArguments = new TypeInfo[] { generic },
+            }, new NeoScriptScope(), context)!;
+            foreach (var value in new[] { closure, target })
+            {
+                var restored = JsonConvert.DeserializeObject<NeoDelegateValue>(JsonConvert.SerializeObject(value))!;
+                Assert.That(restored.typeArguments![0].Head!.Required, Is.True);
+            }
+            Assert.That(context.functionTypeArguments![0].required, Is.False, "Identity projection must not change the call frame.");
+        }
+
         public static IEnumerable<TestCaseData> Refusals() => JObject.Parse(File.ReadAllText(Root + "p127-overloads-parity-fixture.json"))["refuses"]!
             .Children<JProperty>().Select(test => new TestCaseData(test.Name, test.Value.Value<string>()).SetName("B4_" + test.Name));
 
