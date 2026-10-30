@@ -284,6 +284,23 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, TypeInfo>? arguments;
     }
 
+    /// <summary>Evaluates ordered bindings and a result in a child expression scope.</summary>
+    public sealed class LetPointer : Pointer
+    {
+        public Variable[] bindings = null!;
+        public Pointer pointer = null!;
+    }
+
+    /// <summary>A primitive's C# member, selected by the compiler.</summary>
+    public sealed class PrimitiveMemberPointer : Pointer
+    {
+        public TypeInfo primitive = null!;
+        public string member = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? receiver;
+        public Pointer[] args = null!;
+    }
+
     public sealed class TypeParameterStaticPointer : Pointer
     {
         public TypeInfo typeParameter = null!;
@@ -744,6 +761,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class ObjectMemberPointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? dispatch;
         /// <summary>One of <see cref="ObjectMemberKind"/>.</summary>
         public string member = null!;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -886,6 +905,10 @@ namespace NeoCompose.Runtime.Json
                     return typeof(FormatPointer);
                 case PointerKind.Out:
                     return typeof(OutPointer);
+                case PointerKind.Let:
+                    return typeof(LetPointer);
+                case PointerKind.PrimitiveMember:
+                    return typeof(PrimitiveMemberPointer);
                 default:
                     return null;
             }
@@ -893,6 +916,35 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(LetPointer))
+            {
+                if (obj["bindings"] is not JArray bindings)
+                    throw new JsonSerializationException("LetPointer requires a bindings array.");
+                foreach (JToken token in bindings)
+                {
+                    if (token is not JObject binding || !HasNonEmptyString(binding, "id"))
+                        throw new JsonSerializationException("LetPointer requires a binding id.");
+                    if (binding["typeInfo"] is not JObject)
+                        throw new JsonSerializationException("LetPointer requires a binding type.");
+                    if (binding["pointer"] is not JObject)
+                        throw new JsonSerializationException("LetPointer requires a binding pointer.");
+                }
+                if (obj["pointer"] is not JObject)
+                    throw new JsonSerializationException("LetPointer requires a result pointer.");
+                return;
+            }
+            if (concrete == typeof(PrimitiveMemberPointer))
+            {
+                if (obj["primitive"] is not JObject)
+                    throw new JsonSerializationException("PrimitiveMemberPointer requires a primitive type.");
+                if (!HasNonEmptyString(obj, "member") || !NeoPrimitiveIntrinsics.IsMember(obj.Value<string>("member")!))
+                    throw new JsonSerializationException("PrimitiveMemberPointer requires a known primitive member.");
+                if (obj["args"] is not JArray)
+                    throw new JsonSerializationException("PrimitiveMemberPointer requires arguments.");
+                return;
+            }
+            if (concrete == typeof(ObjectMemberPointer) && obj["dispatch"] is { } dispatch && dispatch.Value<string>() != "base")
+                throw new JsonSerializationException("ObjectMemberPointer dispatch must be 'base'.");
             if (obj["interfaceMember"] is not null)
                 ValidateInterfaceReference(obj);
             if (obj["direct"] is { } direct && direct.Type != JTokenType.Boolean)
@@ -900,8 +952,10 @@ namespace NeoCompose.Runtime.Json
             if (concrete == typeof(TypeParameterStaticPointer))
             {
                 ValidateInterfaceReference(obj);
-                if (obj["typeParameter"] is not JObject parameter || parameter.Value<int?>("type") != (int)MemberKind.Generic)
-                    throw new JsonSerializationException("TypeParameterStaticPointer requires a generic type parameter.");
+                if (obj["typeParameter"] is not JObject parameter)
+                    throw new JsonSerializationException("TypeParameterStaticPointer requires a type parameter or primitive type.");
+                if ((MemberKind?)parameter.Value<int?>("type") is not (MemberKind.Generic or MemberKind.Int or MemberKind.Float or MemberKind.Decimal or MemberKind.Bool or MemberKind.String))
+                    throw new JsonSerializationException("TypeParameterStaticPointer requires a type parameter or primitive type.");
                 if (obj["operation"] is not JObject operation || operation.Value<string>("kind") is not ("call" or "get" or "methodGroup"))
                     throw new JsonSerializationException("TypeParameterStaticPointer has an invalid operation.");
                 if (operation.Value<string>("kind") == "call" && (operation["args"] is not JArray || !HasNonEmptyString(operation, "callSiteId")))
