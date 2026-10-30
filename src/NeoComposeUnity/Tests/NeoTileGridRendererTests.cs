@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -8398,10 +8399,10 @@ namespace NeoCompose.Tests
                     root.GetComponentsInChildren<SpriteRenderer>().Select(drawn => drawn.sprite).ToArray(),
                     "no link draws under the object");
 
-                var part = Resolve<TestComposedObject>("shop-part");
-                var partLink = Resolve<TestTileLayerLink>("part-link");
-                var floorLink = Resolve<TestTileLayerLink>("shop-floor-link");
-                var objectsLink = Resolve<TestObjectLayerLink>("objects-link");
+                INeoWorldObjectValue part = Resolve<TestComposedObject>("shop-part");
+                INeoWorldObjectValue partLink = Resolve<TestTileLayerLink>("part-link");
+                INeoWorldObjectValue floorLink = Resolve<TestTileLayerLink>("shop-floor-link");
+                INeoWorldObjectValue objectsLink = Resolve<TestObjectLayerLink>("objects-link");
                 Assert.IsTrue(partReadyAtSpawn, "a spawn hook can already read its parts");
                 Assert.IsTrue(part.TryGetGameObject(out var partGo));
                 Assert.AreSame(spawnedPart, partGo);
@@ -8423,7 +8424,8 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(partReadyAtDespawn, "clearing runs despawn hooks while parts still answer");
                 Assert.IsTrue(carriedLinkReadyAtDespawn, "clearing runs despawn hooks while carried links still answer");
                 Assert.IsTrue(gridLinkReadyAtDespawn, "clearing runs despawn hooks while grid links still answer");
-                Assert.IsFalse(part.TryGetGameObject(out _));
+                Assert.IsFalse(part.TryGetGameObject(out var clearedPart));
+                Assert.IsNull(clearedPart);
                 Assert.IsFalse(partLink.TryGetGameObject(out _));
                 Assert.IsFalse(objectsLink.TryGetGameObject(out _));
 
@@ -9616,6 +9618,12 @@ namespace NeoCompose.Tests
         /// </summary>
         private sealed class TestSpriteChild : INeoSpriteObjectValue, INeoColliderSource, INeoObjectCompositionSource
         {
+            public bool TryGetGameObject([NotNullWhen(true)] out GameObject? gameObject)
+            {
+                gameObject = null;
+                return false;
+            }
+
             public IReadOnlyList<INeoWorldObjectValue> Children
             {
                 get; set;
@@ -9739,6 +9747,12 @@ namespace NeoCompose.Tests
             : INeoWorldObjectValue,
               INeoObjectCompositionSource, INeoColliderSource
         {
+            public bool TryGetGameObject([NotNullWhen(true)] out GameObject? gameObject)
+            {
+                gameObject = null;
+                return false;
+            }
+
             public INeoCollider? Collider
             {
                 get; set;
