@@ -253,6 +253,10 @@ namespace NeoCompose.Runtime
             pendingFieldChanges = null;
             deliveringNodeChanges = true;
             FieldChanges? fields;
+            // One write can change a value on every layer of a rig. Each
+            // rendered object refreshes once for all of them, before the
+            // write returns, as for an animation frame.
+            BeginAnimationFrame();
             try
             {
                 if (listeners is not null)
@@ -279,6 +283,7 @@ namespace NeoCompose.Runtime
                     spareListenerChanges = listeners;
                 }
                 spareChanges = draining;
+                EndAnimationFrame();
             }
             // Restore the outer delivery scope first: a callback may write,
             // dispose another watcher, or start a nested transaction.
@@ -301,6 +306,7 @@ namespace NeoCompose.Runtime
                     if (ids.set.Add(id))
                         ids.list.Add(id);
                 }
+                merged.IsDescendantEdit &= next.IsDescendantEdit;
                 return merged;
             }
             if (next.Kind == NeoListChangeKind.Set)
@@ -356,6 +362,7 @@ namespace NeoCompose.Runtime
                 NeoListChangeKind.Remove => new NeoListChangedArgs(change.Kind, removedValueIds: entryIds),
                 _ => new NeoListChangedArgs(change.Kind, replacedValueIds: entryIds),
             };
+            owned.IsDescendantEdit = change.IsDescendantEdit;
             mergedListIds.Add(owned, ids);
             return owned;
         }

@@ -467,8 +467,52 @@ namespace NeoCompose.Runtime
             return ctx;
         }
 
-        /// <summary>The value <paramref name="reference"/> names, as NeoScript reads it.</summary>
+        /// <summary>
+        /// The value <paramref name="reference"/> names, as NeoScript reads it.
+        /// A renderer reads its sprite reference on every change, so an
+        /// immutable result is memoized as a getter's is, until a row it read
+        /// changes. The holder's declared target fixes <typeparamref name="T"/>.
+        /// </summary>
         internal static T ReadReference<T>(NeoClient client, NeoReference reference)
+        {
+            if (!ImmutableRead<T>.Value
+                || !client.CanMemoizeGetters
+                || reference.Holder is not { declaredTypeInfo: { } declared } holder
+                || NeoNSFunctionRuntime.ContainsGeneric(declared))
+            {
+                return ReadReferenceThrough<T>(client, reference);
+            }
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Session, reference.TargetId, holder.id, NeoValueOwnership.Session);
+            if (client.FindMemoizedGetter(key) is { } hit)
+            {
+                client.ReplayGetterReads(hit);
+                return (T)hit.scalar!;
+            }
+            NeoClient.GetterCaptureFrame enclosing = client.BeginGetterReadCapture();
+            T value;
+            NeoClient.GetterCaptureFrame capture;
+            try
+            {
+                value = ReadReferenceThrough<T>(client, reference);
+            }
+            finally
+            {
+                capture = client.EndGetterReadCapture(enclosing);
+            }
+            client.MemoizeGetter(key, value, null, capture);
+            return value;
+        }
+
+        /// <summary>Whether a <typeparamref name="T"/> read can be shared: no caller can change it.</summary>
+        private static class ImmutableRead<T>
+        {
+            internal static readonly bool Value = typeof(T).IsValueType
+                || typeof(T) == typeof(string)
+                || typeof(UnityEngine.Object).IsAssignableFrom(typeof(T));
+        }
+
+        private static T ReadReferenceThrough<T>(NeoClient client, NeoReference reference)
         {
             NSGetterEvaluator.Context ctx = HostContext(client);
             NSSlotReference current = reference.Slot(ctx, out TypeInfo? target);

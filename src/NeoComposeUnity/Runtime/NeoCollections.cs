@@ -83,6 +83,21 @@ namespace NeoCompose.Runtime
         {
             get;
         }
+
+        /// <summary>
+        /// Whether a change inside the replaced entry raised this, rather than
+        /// a write to the list itself.
+        /// </summary>
+        internal bool IsDescendantEdit
+        {
+            get; set;
+        }
+
+        internal static NeoListChangedArgs DescendantEdit(string entryValueId) =>
+            new(NeoListChangeKind.Set, replacedValueIds: Array.AsReadOnly(new[] { entryValueId }))
+            {
+                IsDescendantEdit = true,
+            };
     }
 
     internal static class NeoCollectionSubscription
