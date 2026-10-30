@@ -2295,6 +2295,10 @@ namespace NeoCompose.Runtime
         /// <summary>P112 §8. A value read through a reference, as <typeparamref name="T"/>.</summary>
         internal static T ReadReferenceValue<T>(NeoClient client, object? value)
         {
+            // SpriteInfo.Empty is a present value whose Unity projection is null,
+            // as it is for a stored SpriteInfo read. A projected Sprite is already T.
+            if (typeof(T) == typeof(Sprite) && value is not (null or Sprite))
+                return (T)(object)ReadRequiredSprite(client, value, "A reference read a SpriteInfo that resolves to no exported sprite.")!;
             if (TryConvertValue(client, value, null, null, out T converted))
                 return converted;
             if (value is null)

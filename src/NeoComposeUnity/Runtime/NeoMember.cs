@@ -303,7 +303,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Hears a change bubbled by a node this one holds.</summary>
-        protected internal virtual void HandleChildChanged(NeoMember changed)
+        /// <param name="changed">The node the change started at.</param>
+        /// <param name="child">The held node that passed it on.</param>
+        protected internal virtual void HandleChildChanged(NeoMember changed, NeoMember child)
         {
         }
 
@@ -317,7 +319,7 @@ namespace NeoCompose.Runtime
             if (isDisposed)
                 return;
             if (soleHolder is not null)
-                soleHolder.HandleChildChanged(changed);
+                soleHolder.HandleChildChanged(changed, this);
             else if (holders is { Count: > 0 })
                 NotifyHolders(changed);
             if (onChanged is not null || prepareChanged is not null)
@@ -335,7 +337,7 @@ namespace NeoCompose.Runtime
                 foreach (var pair in holders)
                     snapshot[index++] = pair.Key;
                 for (index = 0; index < count; index++)
-                    snapshot[index].HandleChildChanged(changed);
+                    snapshot[index].HandleChildChanged(changed, this);
             }
             finally
             {

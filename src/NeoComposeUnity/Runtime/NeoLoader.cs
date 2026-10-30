@@ -44,12 +44,14 @@ namespace NeoCompose.Runtime
                 localizationOptions);
             string? content = await loader.LoadSaveContentAsync();
             cancellationToken.ThrowIfCancellationRequested();
+            // Audio loads after the content was read; a live snapshot sent meanwhile is newer.
+            using var liveContent = new NeoClient.LiveContentBuffer(loader);
             if (assetDatabase == null)
                 assetDatabase = await NeoAssetDatabase.LoadDefaultAsync(cancellationToken);
             else
                 await assetDatabase.PreloadAudioAsync(cancellationToken);
             return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
-                saveOptions, cancellationToken, userClient: userClient);
+                saveOptions, cancellationToken, userClient: userClient, liveContent: liveContent);
         }
 
         /// <summary>

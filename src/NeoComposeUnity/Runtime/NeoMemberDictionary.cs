@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
 
         private void ChildDisposed(NeoMember child) => childrenNeedRefresh = true;
 
-        protected internal override void HandleChildChanged(NeoMember child) => NotifyChanged();
+        protected internal override void HandleChildChanged(NeoMember changed, NeoMember child) => NotifyChanged();
 
         /// <summary>
         /// The (stamp-substituted) entry member children are constructed
