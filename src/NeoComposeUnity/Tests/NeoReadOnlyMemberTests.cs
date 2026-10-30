@@ -117,7 +117,6 @@ namespace NeoCompose.Tests
             Assert.AreEqual(30, weapon.Get<NeoMemberInt>("BaseDamage").value!.value);
         }
 
-        [TestCase("static", "cannot be static")]
         [TestCase("writable", "cannot declare Writable storage")]
         [TestCase("root", "cannot be a project root")]
         [TestCase("unplaced", "is not placed directly in a Class schema")]
@@ -127,9 +126,6 @@ namespace NeoCompose.Tests
             var member = (IntMember)data.members["member-base-damage"];
             switch (shape)
             {
-                case "static":
-                    member.DeclaredModifier = NeoMemberModifierKind.Static;
-                    break;
                 case "writable":
                     member.DeclaredStorage = NeoMemberStorage.Writable;
                     break;

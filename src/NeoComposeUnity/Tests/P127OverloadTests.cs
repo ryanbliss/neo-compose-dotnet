@@ -83,6 +83,50 @@ namespace NeoCompose.Tests
         private static NeoInterfaceDispatch.Implementation Resolve(NeoClient client, string owner = "b4-class") =>
             NeoInterfaceDispatch.Of(client).Resolve(Class(owner), Contract, "contract", "call");
 
+        [TestCase("type")]
+        [TestCase("owner")]
+        [TestCase("parameter")]
+        [TestCase("nullability")]
+        public void ForwardedOverrideStillRejectsMismatchedCompiledArguments(string mismatch)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "GOE");
+            var method = (NSFunctionMember)schema.members[owner.schema.Values.Single()];
+            var parameter = method.action!.parameters[2];
+            var type = (GenericTypeInfo)parameter.typeInfo;
+            switch (mismatch)
+            {
+                case "type":
+                    parameter.typeInfo = Scalar(MemberKind.String);
+                    break;
+                case "owner":
+                    type.ownerClassId = owner.extendsClassId;
+                    break;
+                case "parameter":
+                    type.genericParamId = "wrong-parameter";
+                    break;
+                case "nullability":
+                    type.required = false;
+                    break;
+            }
+            var error = Assert.Throws<InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false));
+            StringAssert.Contains("compiled argument 0 type does not match", error!.Message);
+        }
+
+        [Test]
+        public void MoreSpecificOverloadKeepsItsSlotAcrossSchemaOrderAndWarmCalls()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var inventory = schema.classes.Values.Single(type => type.name == "GOInv");
+            inventory.schema = inventory.schema.Reverse().ToDictionary(pair => pair.Key, pair => pair.Value);
+            var probe = schema.classes.Values.Single(type => type.name == "Probe");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var method = NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema["GenericBaseOverloadMoreSpecific"]);
+            Assert.That(method.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(22));
+            Assert.That(method.InvokeStatic(Array.Empty<object?>()), Is.EqualTo(22));
+        }
+
         [Test]
         public void NullableReferenceAnnotationsEraseAtEveryDepth()
         {
@@ -176,6 +220,68 @@ namespace NeoCompose.Tests
             };
             client.InvalidateSchemaResolutionCaches();
             Assert.That(Resolve(client).MemberId, Is.EqualTo(second.id));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TwinSelectionUsesDeclarationOrderAndCachesTheResult(bool omitLastKey)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "ITV1");
+            var order = owner.schema.Keys.ToArray();
+            Assert.That(order.Length, Is.EqualTo(2));
+            owner.schemaKeyOrder = omitLastKey ? order.Take(1).ToArray() : order;
+            owner.schema = order.Reverse().ToDictionary(key => key, key => owner.schema[key]);
+            var receiver = schema.classes.Values.Single(type => type.name == "ITV1D");
+            var contract = schema.interfaces.Values.Single(type => type.name == "ITM");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id));
+            var selected = dispatch.Resolve(Class(receiver.id), requested, contract.members.Values.Single().id!, "call");
+            Assert.That(selected.MemberId, Is.EqualTo(owner.schema[order[1]]));
+            Assert.That(dispatch.Resolve(Class(receiver.id), requested, contract.members.Values.Single().id!, "call"), Is.SameAs(selected));
+        }
+
+        [Test]
+        public void LastAbstractTwinDispatchesItsMostDerivedOverride()
+        {
+            var first = Function("first-virtual", Arg(Scalar(MemberKind.Int)));
+            first.Modifier = NeoMemberModifierKind.Virtual;
+            var last = Function("last-abstract", Arg(Scalar(MemberKind.Int)));
+            last.Modifier = NeoMemberModifierKind.Abstract;
+            var schema = Schema(first.argumentTypes[0], first, last);
+            schema.classes["b4-class"].schemaKeyOrder = new[] { "M#" + first.id, "M#" + last.id };
+            var implementation = Function("abstract-override", Arg(Scalar(MemberKind.Int)));
+            implementation.extendsMemberId = last.id;
+            schema.members[implementation.id] = implementation;
+            schema.classes["derived"] = new NeoSchemaClass
+            {
+                id = "derived",
+                name = "AbstractTwinDerived",
+                projectId = "project-id",
+                extendsClassId = "b4-class",
+                schema = new() { ["M#" + last.id] = implementation.id },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            Assert.That(Resolve(client, "derived").MemberId, Is.EqualTo(implementation.id));
+        }
+
+        [TestCase("ITS1D", "ITS1")]
+        [TestCase("ITS2D", "ITS2")]
+        public void StaticTwinKeepsTheSelectedDeclaringConstruction(string receiverName, string ownerName)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var receiver = schema.classes.Values.Single(type => type.name == receiverName);
+            var owner = schema.classes.Values.Single(type => type.name == ownerName);
+            owner.schemaKeyOrder = owner.schema.Keys.ToArray();
+            owner.schema = owner.schema.Reverse().ToDictionary(pair => pair.Key, pair => pair.Value);
+            var contract = schema.interfaces.Values.Single(type => type.name == "ITS");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id));
+            var selected = NeoInterfaceDispatch.Of(client).Resolve(Class(receiver.id), requested, contract.members.Values.Single().id!, "call");
+            Assert.That(selected.MemberId, Is.EqualTo(owner.schema[owner.schemaKeyOrder![0]]));
+            Assert.That(selected.StaticConstruction!.Head!.ClassId, Is.EqualTo(owner.id));
+            Assert.That(selected.StaticConstruction.Bindings![owner.genericParams![0].id].Head!.Type, Is.EqualTo(MemberKind.Int));
         }
 
         private static JObject StoredInterface(JObject members) => new()

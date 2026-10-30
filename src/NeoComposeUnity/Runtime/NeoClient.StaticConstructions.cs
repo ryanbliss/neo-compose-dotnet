@@ -159,7 +159,7 @@ namespace NeoCompose.Runtime
                                         object? payload = binding.Member is ObjectMember objectMember && value is NeoBox or NeoTypeValue
                                             ? NeoGeneratedTypesSupport.EvaluatorObjectPayload(this, objectMember, binding.Ownership, value!, context, Guid.NewGuid().ToString(), plan)
                                             : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment);
-                                        binding.PreparePayload(plan, payload);
+                                        binding.PrepareInitialValue(plan, payload);
                                     }
                                 }
                                 else if (member.valueId is string template)
@@ -172,7 +172,7 @@ namespace NeoCompose.Runtime
                                 else
                                 {
                                     TypeInfo type = NeoTypeRules.BindingTypeInfo(this, binding.Member)!;
-                                    binding.PreparePayload(plan, NSGetterEvaluator.DefaultOf(type, this));
+                                    binding.PrepareInitialValue(plan, NSGetterEvaluator.DefaultOf(type, this));
                                 }
                             }
                         // Synchronous side effects commit independently. Their overlapping
