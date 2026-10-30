@@ -16,6 +16,7 @@ namespace NeoCompose.Runtime
             return separator < 0 ? key : key.Substring(0, separator);
         }
 
+        // Open T and T? share their parameter identity, as C# requires for an unconstrained T.
         internal static TypeBinding TypeIdentity(TypeInfo type) => type is VoidTypeInfo
             ? TypeBinding.Closed(new TypeHead(MemberKind.Void, true))
             : Erase(NeoTypeBindings.SignatureOf(type));

@@ -153,7 +153,7 @@ namespace NeoCompose.Tests
             List<string> stale)
         {
             int bodies = 0;
-            foreach (JObject body in CompiledBodies(JToken.Parse(json)))
+            foreach (JObject body in CompiledBodies(NeoInterningJsonReader.Deserialize<JToken>(json)!))
             {
                 bodies++;
                 JToken? stamp = body["compilerRevision"];

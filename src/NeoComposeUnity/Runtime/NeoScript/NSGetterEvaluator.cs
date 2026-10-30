@@ -962,7 +962,7 @@ namespace NeoCompose.Runtime.NeoScript
                 get; private set;
             }
             // Only closures created directly in a declaration initializer capture this receiver.
-            internal ObjectMemberValue? initializerClosureOwner;
+            internal object? initializerClosureOwner;
             internal ClassMember? initializerPlacement
             {
                 get; set;
@@ -1129,7 +1129,8 @@ namespace NeoCompose.Runtime.NeoScript
             internal void ClearDirectInvocation()
             {
                 thisValueField = null;
-                initializerClosureOwner = null;
+                if (initializerClosureOwner is not null)
+                    initializerClosureOwner = null;
                 // These are properties: a null store through an inlined
                 // setter still pays a write barrier, so skip clear ones.
                 if (contextValue is not null)
@@ -1296,7 +1297,7 @@ namespace NeoCompose.Runtime.NeoScript
                 internal Context? immediateExpressionSource;
                 internal object? immediateExpressionState;
                 internal object? immediateExpressionOptions;
-                internal ObjectMemberValue? initializerClosureOwner;
+                internal object? initializerClosureOwner;
                 internal ClassMember? initializerPlacement;
                 internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? initializerGenericEnv;
                 internal TypeInfo[]? functionTypeArguments;
@@ -1412,8 +1413,11 @@ namespace NeoCompose.Runtime.NeoScript
                     immediateExpressionState = null;
                     immediateExpressionOptions = null;
                 }
-                saved.initializerClosureOwner = initializerClosureOwner;
-                initializerClosureOwner = null;
+                if (initializerClosureOwner is not null)
+                {
+                    saved.initializerClosureOwner = initializerClosureOwner;
+                    initializerClosureOwner = null;
+                }
                 if (initializerPlacement is not null)
                     saved.initializerPlacement = initializerPlacement;
                 if (initializerGenericEnv is not null)
@@ -1508,8 +1512,10 @@ namespace NeoCompose.Runtime.NeoScript
                     saved.immediateExpressionState = null;
                     saved.immediateExpressionOptions = null;
                 }
-                initializerClosureOwner = saved.initializerClosureOwner;
-                saved.initializerClosureOwner = null;
+                if (!ReferenceEquals(initializerClosureOwner, saved.initializerClosureOwner))
+                    initializerClosureOwner = saved.initializerClosureOwner;
+                if (saved.initializerClosureOwner is not null)
+                    saved.initializerClosureOwner = null;
                 if (!ReferenceEquals(initializerPlacement, saved.initializerPlacement))
                     initializerPlacement = saved.initializerPlacement;
                 saved.initializerPlacement = null;
@@ -2487,9 +2493,12 @@ namespace NeoCompose.Runtime.NeoScript
             return UnwrapJToken(literal);
         }
 
-        private static object? ClosureThis(Context ctx) => ctx.initializerClosureOwner is { } owner
-            ? UnwrapRow(owner, ctx, NeoValueOwnership.Session)
-            : ctx.thisValue;
+        private static object? ClosureThis(Context ctx) => ctx.initializerClosureOwner switch
+        {
+            ObjectMemberValue row => UnwrapRow(row, ctx, NeoValueOwnership.Session),
+            { } owner => owner,
+            null => ctx.thisValue,
+        };
 
         private static NeoDelegateValue BindDelegateLiteral(NeoDelegateValue value, Context ctx)
         {

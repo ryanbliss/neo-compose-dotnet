@@ -939,7 +939,7 @@ namespace NeoCompose.Runtime
             InitializerBody init,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv,
             TypeBinding? staticConstruction = null,
-            ObjectMemberValue? closureOwner = null)
+            object? closureOwner = null)
         {
             if (init.compiled is null)
             {
@@ -3237,6 +3237,8 @@ namespace NeoCompose.Runtime
             }
 
             var scope = new NeoConstructionScope(client, null);
+            // This initializer creates the declaration object; its nested construction
+            // supplies the closure owner when it evaluates that object's field defaults.
             object? produced = scope.EvaluateInitializer(classMember, init, genericEnv: null);
             NeoConstructorValueReference? reference = scope.ValueReference(produced);
             if (reference is null || string.IsNullOrEmpty(reference.Value.valueId))
@@ -5916,7 +5918,11 @@ namespace NeoCompose.Runtime
                 if (isOut != (argument.mode == NeoParameterModeKind.Out))
                     throw new NeoScript.NSGetterRuntimeError($"Constructor '{record.id}' parameter '{argument.name}' {(argument.mode == NeoParameterModeKind.Out ? "requires" : "does not accept")} an out argument.");
                 if (!ReferenceEquals(argumentValues[i], OmittedArgument))
+                {
+                    if (argumentValues[i] is null)
+                        ValidateNullConstructorArgument(resolved.client, record, argument);
                     continue;
+                }
                 // P65 §2.5 callee-side fill: an omitted name binds the
                 // parameter's current stored default.
                 // `AssertDeclaredArgumentNamesMatch` already rejected
@@ -5928,8 +5934,31 @@ namespace NeoCompose.Runtime
                 }
                 filled ??= (object?[])argumentValues.Clone();
                 filled[i] = InstanceParameterDefault(resolved.client, resolved.genericEnv, argument, $"Constructor '{record.id}'");
+                if (filled[i] is null)
+                    ValidateNullConstructorArgument(resolved.client, record, argument);
             }
             return filled ?? argumentValues;
+        }
+
+        // Open class parameters accept null at the call, as runtimeValueMatchesType
+        // does in Compose. A later write checks the closed storage requirement.
+        private static void ValidateNullConstructorArgument(
+            NeoClient client,
+            ConstructorRecord record,
+            FunctionArgumentTypeInfo parameter)
+        {
+            if (parameter.type != MemberKind.Generic && parameter.required
+                && parameter.type != MemberKind.Null && !NeoTypeRules.IsValueKind(parameter.type))
+                throw NullConstructorArgument(client, record, parameter.name);
+        }
+
+        private static NeoScript.NSGetterRuntimeError NullConstructorArgument(
+            NeoClient client, ConstructorRecord record, string parameter)
+        {
+            string name = client.classes[record.classId].name;
+            return new NeoScript.NSGetterRuntimeError(
+                $"Constructor '{name}' was passed null for non-nullable parameter '{parameter}'.",
+                NeoScript.NeoErrorContract.NeoNullReferenceError);
         }
 
         private static object?[] EvaluateDeclaredBaseArguments(
@@ -5967,6 +5996,8 @@ namespace NeoCompose.Runtime
                     record.id);
                 if (baseTaint is not null)
                     baseTaint[link.baseArgumentTargets[i]] = NeoClient.EndValueTaint(taint);
+                if (baseArguments[link.baseArgumentTargets[i]] is null)
+                    ValidateNullConstructorArgument(client, baseRecord, baseRecord.argumentTypes[link.baseArgumentTargets[i]]);
             }
             if (baseTaint is not null)
                 NeoClient.NoteArgumentTaint(baseArguments, baseTaint);
@@ -6989,13 +7020,21 @@ namespace NeoCompose.Runtime
                     client, reference, effectiveDeclared, ctx,
                     $"argument '{argument.name}' of constructor '{record.id}'");
             }
-            return NeoScriptValueMarshaller.Normalize(
-                client,
-                NeoValueOwnership.Session,
-                suppliedValue,
-                effectiveDeclared,
-                ctx,
-                $"argument '{argument.name}' of constructor '{record.id}'");
+            try
+            {
+                return NeoScriptValueMarshaller.Normalize(
+                    client,
+                    NeoValueOwnership.Session,
+                    suppliedValue,
+                    effectiveDeclared,
+                    ctx,
+                    $"argument '{argument.name}' of constructor '{record.id}'");
+            }
+            catch (InvalidOperationException) when (suppliedValue is null && effectiveDeclared.required
+                && effectiveDeclared.type != MemberKind.Null && !NeoTypeRules.IsValueKind(effectiveDeclared.type))
+            {
+                throw NullConstructorArgument(client, record, argument.name);
+            }
         }
 
         // Value collections are copied during construction, unlike Class

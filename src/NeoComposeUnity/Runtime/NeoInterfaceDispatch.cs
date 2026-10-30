@@ -424,8 +424,9 @@ namespace NeoCompose.Runtime
                         }
                     }
                 }
-                return chosen is null ? null
-                    : new Implementation(chosen.id, staticConstruction: contract.IsStatic ? declaringOwner : null);
+                // Valid overrides always have a root; retain the override like TS if none matches.
+                chosen ??= matches[0];
+                return new Implementation(chosen.id, staticConstruction: contract.IsStatic ? declaringOwner : null);
             }
             if (!client.ProjectDataForRuntime.classes[owner.Head!.ClassId!].schema.TryGetValue(name, out var id))
                 return null;
