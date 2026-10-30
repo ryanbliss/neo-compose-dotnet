@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -44,6 +45,39 @@ namespace NeoCompose.Tests
             Assert.That(Run(restored), Is.EqualTo(40), "The touched list restores with its two entries before the next two are added.");
         }
 
+        [TestCase("StaticStoredClosureB", "bool")]
+        [TestCase("InterfaceStoredClosureB", "string")]
+        public void ConstructionClosureStoredInSaveFieldSurvivesReload(string probeName, string expected)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var holder = schema.classes.Values.Single(type => type.name == "HolderB");
+            var field = (DelegateMember)schema.members[holder.schema["G"]];
+            field.Storage = NeoMemberStorage.Save;
+            var probe = schema.classes.Values.Single(type => type.name == "Probe");
+            var function = (NSFunctionMember)schema.members[probe.schema[probeName]];
+            var assignment = function.action!.instructions.OfType<AssignInstruction>().Single();
+            assignment.target.writability = WritabilityKind.Save;
+            var source = (CallFunctionPointer)assignment.pointer;
+            var construction = NeoTypeBindings.FromTypeInfo(source.receiver!.staticConstruction!);
+            string saved;
+            string valueId;
+            using (var original = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false))
+            {
+                Assert.That(NeoMemberNSFunction.GetOrCreateStatic(original, function.id).InvokeStatic(Array.Empty<object?>()), Is.EqualTo(expected));
+                Assert.That(original.TryResolveStaticBinding(field.id, out _, out var ownership, out var resolvedId), Is.True);
+                Assert.That(ownership, Is.EqualTo(NeoValueOwnership.Save));
+                valueId = resolvedId!;
+                saved = original.SerializeSaveData();
+            }
+            var content = JsonConvert.DeserializeObject<ProjectSaveData>(saved)!;
+            var closure = ((DelegateMemberValue)content.values[valueId]).value!;
+            Assert.That(closure.site, Is.EqualTo(source.memberId + ":function:0"));
+            Assert.That(closure.declaringConstruction, Is.EqualTo(construction));
+            using var restored = NeoTestSaveStack.ClientFromSchema(schema, loadedSaveContent: saved, assumeCurrentSchema: false);
+            using var stored = new NeoMemberDelegate(restored, field.id, valueId, NeoValueOwnership.Save);
+            Assert.That(stored.Invoke(Array.Empty<object?>()), Is.EqualTo(expected), "Invoke the saved closure without rerunning its factory.");
+        }
+
         [TestCaseSource(nameof(Cases))]
         public void ReturnsWhatTheSharedFixtureRequires(string name, JToken expected)
         {
@@ -58,5 +92,19 @@ namespace NeoCompose.Tests
             else
                 Assert.That(JToken.DeepEquals(actual, expected), Is.True, $"{name}: {actual}");
         }
+
+        [Test]
+        public void DetachedConstructorListAllowsNullableEntryWrite()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "CtorListK");
+            var list = (ListMember)schema.members[owner.schema["L"]];
+            schema.members[list.entryMemberId].Requirement = NeoMemberRequirementKind.Optional;
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var probe = schema.classes.Values.Single(type => type.name == "Probe");
+            var function = (NSFunctionMember)schema.members[probe.schema["CtorCollectionNullK"]];
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, function.id).InvokeStatic(Array.Empty<object?>()), Is.EqualTo("no"));
+        }
+
     }
 }

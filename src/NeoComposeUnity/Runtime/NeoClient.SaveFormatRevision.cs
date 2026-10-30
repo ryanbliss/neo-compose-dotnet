@@ -309,7 +309,7 @@ namespace NeoCompose.Runtime
                     if (client.TypeRules.KeyViolation(entry.construction) is string violation)
                         throw Refuse($"{subject}: its construction {violation}.");
                     if (!seen.Add((entry.memberId, entry.construction)))
-                        throw Refuse($"Save holds two entries for static '{entry.memberId}' of construction '{NeoTypeNames.Of(entry.construction, client.ProjectDataForRuntime)}'.");
+                        throw Refuse($"Save holds two entries for static '{GenericStaticIndex.Of(client.ProjectDataForRuntime)?.Label(entry.memberId) ?? entry.memberId}' of construction '{NeoTypeNames.Of(entry.construction, client.ProjectDataForRuntime)}'.");
                     if (!client.TryGetMember(entry.memberId, out Member? member))
                         throw Refuse($"{subject}: its member no longer exists.");
                     if (head.Type == MemberKind.Interface && (!client.ProjectDataForRuntime.interfaces.TryGetValue(head.InterfaceId!, out var interfaceOwner)
