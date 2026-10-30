@@ -6055,7 +6055,7 @@ namespace NeoCompose.Runtime
                 if (!ReferenceEquals(argumentValues[i], OmittedArgument))
                 {
                     if (argumentValues[i] is null)
-                        ValidateNullConstructorArgument(resolved.client, record, argument);
+                        ValidateNullConstructorArgument(resolved.client, resolved.genericEnv, record, argument);
                     continue;
                 }
                 // P65 §2.5 callee-side fill: an omitted name binds the
@@ -6069,21 +6069,21 @@ namespace NeoCompose.Runtime
                 }
                 filled ??= (object?[])argumentValues.Clone();
                 filled[i] = InstanceParameterDefault(resolved.client, resolved.genericEnv, argument, $"Constructor '{record.id}'");
-                if (filled[i] is null)
-                    ValidateNullConstructorArgument(resolved.client, record, argument);
             }
             return filled ?? argumentValues;
         }
 
-        // Open class parameters accept null at the call, as runtimeValueMatchesType
-        // does in Compose. A later write checks the closed storage requirement.
+        // Called only for a passed null, never for a filled default.
         private static void ValidateNullConstructorArgument(
             NeoClient client,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
             ConstructorRecord record,
             FunctionArgumentTypeInfo parameter)
         {
-            if (parameter.type != MemberKind.Generic && parameter.required
-                && parameter.type != MemberKind.Null && !NeoTypeRules.IsValueKind(parameter.type))
+            TypeInfo closed = NeoNSFunctionRuntime.ContainsGeneric(parameter)
+                ? NeoNSFunctionRuntime.ResolveInvocationTypeInfo(client, parameter, genericEnv)
+                : parameter;
+            if (closed.required && closed.type != MemberKind.Null && !NeoTypeRules.IsValueKind(closed.type))
                 throw NullConstructorArgument(client, record, parameter.name);
         }
 
@@ -6128,7 +6128,7 @@ namespace NeoCompose.Runtime
                     declaredBaseArguments[i].name,
                     record.id);
                 if (baseArguments[link.baseArgumentTargets[i]] is null)
-                    ValidateNullConstructorArgument(client, baseRecord, baseRecord.argumentTypes[link.baseArgumentTargets[i]]);
+                    ValidateNullConstructorArgument(client, instanceEnv, baseRecord, baseRecord.argumentTypes[link.baseArgumentTargets[i]]);
             }
             // P65 §2.5 callee-side fill, same as a direct constructor
             // call: the base overload's own current default completes each

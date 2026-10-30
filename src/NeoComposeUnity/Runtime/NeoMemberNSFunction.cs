@@ -930,14 +930,21 @@ namespace NeoCompose.Runtime
                 returnTypeInfo,
                 genericEnv,
                 new HashSet<string>());
+            // Only a bare class T return admits default(T); nested slots stay strict.
+            if (returnTypeInfo.type == MemberKind.Generic && returnType.required
+                && !NeoTypeRules.IsValueKind(returnType.type))
+            {
+                returnType = returnType.ShallowClone();
+                returnType.required = false;
+            }
             var resolved = new TypeInfo[argumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
             {
-                resolved[i] = InvocationParameterType(function.ArgumentTypes[i], ResolveInvocationTypeInfo(
+                resolved[i] = ResolveInvocationTypeInfo(
                     client,
                     argumentTypes[i],
                     genericEnv,
-                    new HashSet<string>()));
+                    new HashSet<string>());
             }
             argumentTypes = resolved;
             return returnType;
@@ -994,8 +1001,7 @@ namespace NeoCompose.Runtime
             TypeInfo[] returnTable = ReturnTypeArguments(table);
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
-                argumentTypes[i] = InvocationParameterType(function.ArgumentTypes[i],
-                    NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table));
+                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
             var created = new NeoBoundNSFunctionSignature(
                 function,
                 key,
@@ -1013,19 +1019,6 @@ namespace NeoCompose.Runtime
                     bindingSite.BoundSignatures = created;
             }
             return created;
-        }
-
-        // A bare T with a type-default parameter admits its own null default,
-        // whether passed or omitted. Apply once when closing the signature.
-        private static TypeInfo InvocationParameterType(FunctionArgumentTypeInfo declared, TypeInfo closed)
-        {
-            if (declared.type != MemberKind.Generic || !declared.required
-                || declared.defaultValue is not { isDefault: true }
-                || !closed.required || NeoTypeRules.IsValueKind(closed.type))
-                return closed;
-            TypeInfo nullable = closed.ShallowClone();
-            nullable.required = false;
-            return nullable;
         }
 
         /// <summary>
@@ -1126,9 +1119,18 @@ namespace NeoCompose.Runtime
                     if (value is null && argument.mode != NeoParameterModeKind.Out
                         && argumentTypes[i].required && argumentTypes[i].type != MemberKind.Null
                         && !NeoTypeRules.IsValueKind(argumentTypes[i].type))
+                    {
+                        // Filled defaults bind unchecked. Inspect provenance only
+                        // after the existing normalizer rejects a null reference.
+                        if (i >= argumentCount)
+                        {
+                            scope.SetParameter(i + argumentParameterOffset, null);
+                            continue;
+                        }
                         throw new NSGetterRuntimeError(
                             $"Function '{function.Member.name}' was passed null for non-nullable parameter '{argument.name}'.",
                             NeoErrorContract.NeoNullReferenceError);
+                    }
                     throw new NSGetterRuntimeError(
                         $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
                         $"'{argument.name}' is incompatible with declared {argument.type}; " +

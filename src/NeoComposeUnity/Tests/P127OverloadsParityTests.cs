@@ -269,14 +269,18 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void BareMethodTypeDefaultAcceptsPassedAndOmittedNull(bool omitted)
+        public void BareMethodTypeDefaultChecksOnlyPassedNull(bool omitted)
         {
             var schema = NeoTestExport.Read(File.ReadAllText(Export));
             var owner = schema.classes.Values.Single(type => type.name == "NTF");
             using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
             var function = NeoMemberNSFunction.GetOrCreateStatic(client, owner.schema["F"]);
-            Assert.That(function.InvokeGenericStatic(omitted ? Array.Empty<object?>() : new object?[] { null },
-                new TypeInfo[] { new PrimitiveTypeInfo { type = MemberKind.String, required = true } }), Is.True);
+            TypeInfo[] typeArguments = { new PrimitiveTypeInfo { type = MemberKind.String, required = true } };
+            if (omitted)
+                Assert.That(function.InvokeGenericStatic(Array.Empty<object?>(), typeArguments), Is.True);
+            else
+                AssertNullArgument(() => function.InvokeGenericStatic(new object?[] { null }, typeArguments),
+                    "Function 'F' was passed null for non-nullable parameter 'x'.");
             var signature = NeoNSFunctionRuntime.ResolveSignature(client, owner.schema["F"]);
             Assert.That(((FunctionArgumentTypeInfo)signature.BoundSignatures!.ArgumentTypes[0]).defaultValue!.isDefault, Is.True);
         }
@@ -351,6 +355,124 @@ namespace NeoCompose.Tests
                 ? NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { memberId = memberId }, new object?[] { null }, new NSGetterEvaluator.Context(client, null, null))
                 : NeoMemberNSFunction.GetOrCreateStatic(client, memberId).InvokeStatic(new object?[] { null }),
                 "Function 'S' was passed null for non-nullable parameter 's'.");
+        }
+
+        [TestCase("S", "x", false)]
+        [TestCase("S", "x", true)]
+        [TestCase("O", "o", false)]
+        [TestCase("O", "o", true)]
+        public void DefaultedReferenceChecksOnlyPassedNullThroughHostAndDelegate(string name, string parameter, bool viaDelegate)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NDF");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            string memberId = owner.schema[name];
+            object? Call(object?[] args) => viaDelegate
+                ? NSGetterEvaluator.InvokeDelegate(new NeoDelegateValue { memberId = memberId }, args, new NSGetterEvaluator.Context(client, null, null))
+                : NeoMemberNSFunction.GetOrCreateStatic(client, memberId).InvokeStatic(args);
+            Assert.That(Call(Array.Empty<object?>()), Is.EqualTo(1));
+            AssertNullArgument(() => Call(new object?[] { null }),
+                $"Function '{name}' was passed null for non-nullable parameter '{parameter}'.");
+            Assert.That(Call(new object?[] { "s" }), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void LambdaCallBindsAnOmittedReferenceDefault()
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NDF");
+            var member = (NSFunctionMember)schema.members[owner.schema["S"]];
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var action = new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                typeInfo = member.returnTypeInfo!,
+                parameters = new[]
+                {
+                    new Variable { id = "__this__", typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null } },
+                    new Variable { id = "__root__", typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null } },
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new CallFunctionPointer
+                        {
+                            type = PointerKind.CallFunction,
+                            callSiteId = "b4-r3-lambda-default",
+                            memberId = member.id,
+                            receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = member.id },
+                            args = Array.Empty<Pointer>(),
+                        },
+                    },
+                },
+            };
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var closure = NSGetterEvaluator.EvaluatePointer(new DelegateClosurePointer
+            {
+                type = PointerKind.DelegateClosure,
+                site = member.id + ":function:0",
+                captures = Array.Empty<Pointer>(),
+                action = action,
+            }, new NeoScriptScope(), context)!;
+            Assert.That(NSGetterEvaluator.InvokeDelegate(closure, Array.Empty<object?>(), context), Is.EqualTo(1));
+        }
+
+        [TestCase("NDK", false)]
+        [TestCase("NDK", true)]
+        [TestCase("NDB", false)]
+        [TestCase("NDB", true)]
+        public void ConstructorDefaultsBindThroughRowBackedAndGeneratedCalls(string name, bool generatedCall)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == name);
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            string constructorId = owner.constructorIds!.Single();
+            if (generatedCall)
+            {
+                Assert.That(NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(client, owner.id, constructorId,
+                    Array.Empty<NeoDeclaredConstructorArgument>()), Is.Not.Null);
+            }
+            else
+            {
+                var fields = Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>();
+                var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client,
+                    new ClassTypeInfo { type = MemberKind.Class, required = true, classId = owner.id },
+                    constructorId, Array.Empty<string>(), fields);
+                Assert.That(NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(resolved,
+                    resolved.NewArgumentValues(), fields, new NSGetterEvaluator.Context(client, null, null)), Is.Not.Null);
+            }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void GenericConstructorChecksClosedTypeOnlyForPassedNames(bool nullable, bool omitted)
+        {
+            var schema = NeoTestExport.Read(File.ReadAllText(Export));
+            var owner = schema.classes.Values.Single(type => type.name == "NCT");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema, assumeCurrentSchema: false);
+            var fields = Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>();
+            var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(client,
+                new ClassTypeInfo
+                {
+                    type = MemberKind.Class,
+                    required = true,
+                    classId = owner.id,
+                    typeArguments = new Dictionary<string, TypeInfo>
+                    {
+                        [owner.genericParams![0].id] = new PrimitiveTypeInfo { type = MemberKind.String, required = !nullable },
+                    },
+                }, owner.constructorIds!.Single(), omitted ? Array.Empty<string>() : new[] { "x" }, fields);
+            object? Call() => NeoGeneratedTypesSupport.ConstructDeclaredClassValueData(resolved,
+                omitted ? resolved.NewArgumentValues() : new object?[] { null }, fields,
+                new NSGetterEvaluator.Context(client, null, null));
+            if (omitted || nullable)
+                Assert.That(Call(), Is.Not.Null);
+            else
+                AssertNullArgument(Call, "Constructor 'NCT' was passed null for non-nullable parameter 'x'.");
         }
 
         [TestCase("NA3", false)]
