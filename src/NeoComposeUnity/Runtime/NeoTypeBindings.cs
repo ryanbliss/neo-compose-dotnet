@@ -30,7 +30,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static TypeBinding ArgumentOf(TypeInfo typeInfo) => BindingOf(typeInfo, open: true);
 
-        private static TypeBinding BindingOf(TypeInfo typeInfo, bool open)
+        /// <summary>A callable signature retains owner parameters and compares method parameters by position.</summary>
+        internal static TypeBinding SignatureOf(TypeInfo typeInfo) => BindingOf(typeInfo, open: true, methodParameters: true);
+
+        private static TypeBinding BindingOf(TypeInfo typeInfo, bool open, bool methodParameters = false)
         {
             typeInfo = NeoTypeRules.Plain(typeInfo);
             bool required = typeInfo.required;
@@ -39,11 +42,11 @@ namespace NeoCompose.Runtime
                 case ClassTypeInfo classType:
                     return TypeBinding.Closed(
                         new TypeHead(MemberKind.Class, required, classId: classType.classId),
-                        Arguments(classType.typeArguments, open));
+                        Arguments(classType.typeArguments, open, methodParameters));
                 case InterfaceTypeInfo interfaceType:
                     return TypeBinding.Closed(
                         new TypeHead(MemberKind.Interface, required, interfaceId: interfaceType.interfaceId),
-                        Arguments(interfaceType.typeArguments, open));
+                        Arguments(interfaceType.typeArguments, open, methodParameters));
                 case EnumTypeInfo enumType:
                     return TypeBinding.Closed(new TypeHead(MemberKind.Enum, required, enumId: enumType.enumId));
                 case ObjectTypeInfo objectType:
@@ -56,19 +59,19 @@ namespace NeoCompose.Runtime
                         return Positional(
                             new TypeHead(MemberKind.Dictionary, required),
                             TypeBinding.Closed(key),
-                            BindingOf(dictionary.entryTypeInfo, open));
+                            BindingOf(dictionary.entryTypeInfo, open, methodParameters));
                     }
                 case CollectionTypeInfo collection:
-                    return Positional(new TypeHead(collection.type, required), BindingOf(collection.entryTypeInfo, open));
+                    return Positional(new TypeHead(collection.type, required), BindingOf(collection.entryTypeInfo, open, methodParameters));
                 case LookupTypeInfo:
                     throw new InvalidOperationException("A Lookup type has no stored type binding.");
                 case ReferenceTypeInfo reference:
-                    return Positional(new TypeHead(MemberKind.Reference, required), BindingOf(reference.targetTypeInfo, open));
+                    return Positional(new TypeHead(MemberKind.Reference, required), BindingOf(reference.targetTypeInfo, open, methodParameters));
                 case TupleTypeInfo tuple:
                     {
                         var elements = new TypeBinding[tuple.elements.Length];
                         for (int index = 0; index < elements.Length; index++)
-                            elements[index] = BindingOf(tuple.elements[index].typeInfo, open);
+                            elements[index] = BindingOf(tuple.elements[index].typeInfo, open, methodParameters);
                         return Positional(new TypeHead(MemberKind.Tuple, required), elements);
                     }
                 case DelegateTypeInfo delegateType:
@@ -76,16 +79,16 @@ namespace NeoCompose.Runtime
                         var positions = new TypeBinding[delegateType.argumentTypes.Length + 1];
                         positions[0] = delegateType.returnTypeInfo is VoidTypeInfo
                             ? TypeBinding.Closed(new TypeHead(MemberKind.Void, true))
-                            : BindingOf(delegateType.returnTypeInfo, open);
+                            : BindingOf(delegateType.returnTypeInfo, open, methodParameters);
                         for (int index = 0; index < delegateType.argumentTypes.Length; index++)
-                            positions[index + 1] = BindingOf(delegateType.argumentTypes[index], open);
+                            positions[index + 1] = BindingOf(delegateType.argumentTypes[index], open, methodParameters);
                         return Positional(new TypeHead(MemberKind.NSDelegate, required), positions);
                     }
                 case ActionTypeInfo actionType:
                     {
                         var positions = new TypeBinding[actionType.argumentTypes.Length];
                         for (int index = 0; index < positions.Length; index++)
-                            positions[index] = BindingOf(actionType.argumentTypes[index], open);
+                            positions[index] = BindingOf(actionType.argumentTypes[index], open, methodParameters);
                         return Positional(new TypeHead(MemberKind.NSAction, required), positions);
                     }
                 case PrimitiveTypeInfo primitive when primitive.type != MemberKind.Null:
@@ -97,6 +100,8 @@ namespace NeoCompose.Runtime
                 case GenericTypeInfo generic:
                     throw new InvalidOperationException(
                         $"Type parameter '{generic.genericParamId}' is open, so it has no closed type binding.");
+                case FunctionGenericTypeInfo functionGeneric when methodParameters:
+                    return TypeBinding.MethodParam(functionGeneric.index);
                 case FunctionGenericTypeInfo functionGeneric:
                     throw new InvalidOperationException(
                         $"Type parameter {functionGeneric.index} of function '{functionGeneric.ownerMemberId}' is open, so it has no closed type binding.");
@@ -105,13 +110,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static IReadOnlyDictionary<string, TypeBinding>? Arguments(Dictionary<string, TypeInfo>? typeArguments, bool open)
+        private static IReadOnlyDictionary<string, TypeBinding>? Arguments(Dictionary<string, TypeInfo>? typeArguments, bool open, bool methodParameters)
         {
             if (typeArguments is null || typeArguments.Count == 0)
                 return null;
             var bindings = new Dictionary<string, TypeBinding>(typeArguments.Count, StringComparer.Ordinal);
             foreach (KeyValuePair<string, TypeInfo> pair in typeArguments)
-                bindings[pair.Key] = BindingOf(pair.Value, open);
+                bindings[pair.Key] = BindingOf(pair.Value, open, methodParameters);
             return bindings;
         }
 
