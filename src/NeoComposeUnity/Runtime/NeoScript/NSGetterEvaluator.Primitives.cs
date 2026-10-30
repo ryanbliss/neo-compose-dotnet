@@ -157,8 +157,8 @@ namespace NeoCompose.Runtime.NeoScript
                     throw NeoRuntimeError.ArgumentNull("flag");
                 TypeBinding flagType = flag is NeoBox flagBox ? flagBox.ValueType : held;
                 object flagValue = flag is NeoBox boxed ? boxed.Payload! : flag;
-                return NeoEnums.HasFlag(EnumNumber(receiver!, held.Head!.EnumId!, ctx), TypeName(held, ctx),
-                    new NeoEnumArgument(held.Equals(flagType), TypeName(flagType, ctx),
+                return NeoEnums.HasFlag(EnumNumber(receiver!, held.Head!.EnumId!, ctx), ClrTypeName(held, ctx),
+                    new NeoEnumArgument(held.Equals(flagType), ClrTypeName(flagType, ctx),
                         held.Equals(flagType) ? EnumNumber(flagValue, held.Head.EnumId!, ctx) : 0));
             }
             throw UnknownPrimitiveMember(type, member);
@@ -439,7 +439,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (type.Head!.Type == MemberKind.Tuple)
                         throw NeoHashingErrors.TupleIncorrectType(ClrTypeName(type, ctx));
                     if (type.Head!.Type == MemberKind.Enum)
-                        throw NeoHashingErrors.EnumCompareType(HeldName(other, HeldType(other, null, ctx, out _), ctx), TypeName(type, ctx));
+                        throw NeoHashingErrors.EnumCompareType(otherType is null ? HeldClrTypeName(other, null, ctx) : ClrTypeName(otherType, ctx), ClrTypeName(type, ctx));
                     string label = type.Head!.Type switch
                     {
                         MemberKind.Int => "Int32",

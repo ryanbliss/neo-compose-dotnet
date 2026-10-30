@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.P127TypesParity
     [NeoEnum(typeof(PlanetOptions))]
     public enum Planet
     {
-        Earth = 1555812056,
-        Mars = 1678980070,
-        Venus = 290954642,
+        Earth = 1389242844,
+        Mars = 1291116810,
+        Venus = 1631214017,
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "13d43129-3b3f-425d-b185-4162764ba89b" => Planet.Earth,
-                "decae416-cc42-4b3a-8c82-3281fade6787" => Planet.Mars,
-                "6aae731f-b729-4cfe-84e0-4b3065072f74" => Planet.Venus,
+                "dc410715-7575-4a7b-bcb0-b836336e61b4" => Planet.Earth,
+                "294f1a0a-558d-4655-b78a-2f11d2f21414" => Planet.Mars,
+                "d169be44-4a01-4c53-8df6-6dc9a72d3694" => Planet.Venus,
                 _ => NeoUndeclaredEnumOptions<Planet>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return value switch
             {
-                Planet.Earth => "13d43129-3b3f-425d-b185-4162764ba89b",
-                Planet.Mars => "decae416-cc42-4b3a-8c82-3281fade6787",
-                Planet.Venus => "6aae731f-b729-4cfe-84e0-4b3065072f74",
+                Planet.Earth => "dc410715-7575-4a7b-bcb0-b836336e61b4",
+                Planet.Mars => "294f1a0a-558d-4655-b78a-2f11d2f21414",
+                Planet.Venus => "d169be44-4a01-4c53-8df6-6dc9a72d3694",
                 _ => NeoUndeclaredEnumOptions<Planet>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "13d43129-3b3f-425d-b185-4162764ba89b" => true,
-                "decae416-cc42-4b3a-8c82-3281fade6787" => true,
-                "6aae731f-b729-4cfe-84e0-4b3065072f74" => true,
+                "dc410715-7575-4a7b-bcb0-b836336e61b4" => true,
+                "294f1a0a-558d-4655-b78a-2f11d2f21414" => true,
+                "d169be44-4a01-4c53-8df6-6dc9a72d3694" => true,
                 _ => false,
             };
         }

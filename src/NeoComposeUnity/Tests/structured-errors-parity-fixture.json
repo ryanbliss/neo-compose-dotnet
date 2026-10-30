@@ -343,6 +343,7 @@
       "projectId": "project-1",
       "name": "GetType",
       "kind": 13,
+      "modifier": 1,
       "system": {
         "kind": "scriptRuntime"
       },
@@ -362,6 +363,7 @@
       "name": "MemberwiseClone",
       "kind": 13,
       "access": 1,
+      "modifier": 1,
       "system": {
         "kind": "scriptRuntime"
       },

@@ -65,7 +65,9 @@ namespace NeoCompose.Tests
         {
             using var client = LoadClient();
             var error = Assert.Catch<NSGetterRuntimeError>(() => Invoke(client, name))!;
-            Assert.That(error.Message, Is.EqualTo(expected));
+            Assert.That(error.DiagnosticMessage, Is.EqualTo(expected));
+            Assert.That(error.NeoScriptFrames, Is.Not.Empty);
+            Assert.That(error.Message, Does.StartWith(expected));
             Assert.That(error.Payload.Message, Is.EqualTo(expected));
         }
 
