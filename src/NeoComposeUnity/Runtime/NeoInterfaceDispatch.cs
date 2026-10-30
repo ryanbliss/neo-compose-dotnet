@@ -25,6 +25,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<(string, string), (string Name, InterfaceMember Member)> declarations = new();
         private readonly HashSet<string> indexedInterfaces = new();
         private readonly Dictionary<string, Dictionary<string, List<Member>>> explicitByClass = new();
+        private readonly Dictionary<string, Dictionary<string, List<Member>>> ownFunctionsByName = new();
         private readonly Dictionary<string, string> classSchemaKeys = new();
         private readonly Dictionary<(TypeBinding, TypeBinding, string, string), Implementation?> classMappings = new();
 
@@ -263,7 +264,7 @@ namespace NeoCompose.Runtime
                 return cached;
             if (indexedInterfaces.Add(key.Item1))
                 foreach (var entry in client.ProjectDataForRuntime.interfaces[key.Item1].members)
-                    declarations[(key.Item1, entry.Value.id ?? entry.Key)] = (entry.Key, entry.Value);
+                    declarations[(key.Item1, entry.Value.id ?? entry.Key)] = (NeoCallableSignature.Name(entry.Key), entry.Value);
             if (declarations.TryGetValue(key, out cached))
                 return cached;
             throw new NSGetterRuntimeError($"Interface member '{memberId}' was not found.");
@@ -337,10 +338,21 @@ namespace NeoCompose.Runtime
             if (explicitByClass.TryGetValue(classId, out var sites))
                 return sites;
             sites = new();
-            foreach (var pair in client.ProjectDataForRuntime.classes[classId].schema)
+            var functions = new Dictionary<string, List<Member>>();
+            ownFunctionsByName[classId] = functions;
+            var declaration = client.ProjectDataForRuntime.classes[classId];
+            foreach (var key in (declaration.schemaKeyOrder ?? Array.Empty<string>()).Concat(declaration.schema.Keys).Distinct())
             {
-                var member = client.ProjectDataForRuntime.members[pair.Value];
-                classSchemaKeys[member.id] = pair.Key;
+                if (!declaration.schema.TryGetValue(key, out var id))
+                    continue;
+                var member = client.ProjectDataForRuntime.members[id];
+                classSchemaKeys[member.id] = key;
+                if (member is NSFunctionMember or FunctionMember && member.explicitImplementation is null)
+                {
+                    if (!functions.TryGetValue(member.name, out var overloads))
+                        functions[member.name] = overloads = new();
+                    overloads.Add(member);
+                }
                 if (member.explicitImplementation is not { } implementation)
                     continue;
                 if (!sites.TryGetValue(implementation.interfaceMemberId, out var entries))
@@ -383,36 +395,45 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        private Implementation? Implicit(TypeBinding owner, TypeBinding requested, string schemaKey, InterfaceMember contract, string accessor)
+        private Implementation? Implicit(TypeBinding owner, TypeBinding requested, string name, InterfaceMember contract, string accessor)
         {
-            if (!client.ProjectDataForRuntime.classes[owner.Head!.ClassId!].schema.TryGetValue(schemaKey, out var id))
-                return null;
-            var member = client.ProjectDataForRuntime.members[id];
-            if (member.explicitImplementation is not null || member.Access != NeoMemberAccessKind.Public
-                || (member.Modifier == NeoMemberModifierKind.Static) != contract.IsStatic || !HasAccessor(member, accessor))
-                return null;
-            if (accessor == "get" && member.GetterAccess != NeoMemberAccessKind.Public
-                || accessor == "set" && member.SetterAccess != NeoMemberAccessKind.Public)
-                return null;
             if (contract.kind == NeoInterfaceMemberKind.Function)
             {
-                if (member is not NSFunctionMember && member is not FunctionMember)
+                ExplicitSites(owner.Head!.ClassId!);
+                if (!ownFunctionsByName[owner.Head.ClassId!].TryGetValue(name, out var overloads))
                     return null;
-                var signature = member is NSFunctionMember ? NeoNSFunctionRuntime.ResolveSignature(client, member.id).ArgumentTypes : ((FunctionMember)member).argumentTypes;
-                if (signature is null || signature.Length != contract.argumentTypes!.Count)
-                    return null;
-                TypeInfo result = member is NSFunctionMember function ? function.returnTypeInfo : ((FunctionMember)member).returnTypeInfo;
-                if (!MatchesType(result, contract.returnTypeInfo!, owner, requested))
-                    return null;
-                for (int i = 0; i < signature.Length; i++)
+                foreach (var candidate in overloads)
                 {
-                    TypeInfo actual = NeoGenericResolution.SubstituteTypeInfo(client, signature[i], Environment(owner));
-                    TypeInfo expected = NeoGenericResolution.SubstituteTypeInfo(client, contract.argumentTypes[i], Environment(requested));
-                    if (!NeoReferenceTypes.InvariantlyEqual(actual, expected))
-                        return null;
+                    if (!Eligible(candidate, contract, accessor))
+                        continue;
+                    var signature = Signature(candidate);
+                    var parameters = signature.Arguments;
+                    var generics = signature.Generics;
+                    if ((generics?.Length ?? 0) != (contract.genericParams?.Length ?? 0)
+                        || parameters.Length != contract.argumentTypes!.Count)
+                        continue;
+                    bool matches = true;
+                    for (int i = 0; i < parameters.Length; i++)
+                    {
+                        if (parameters[i].mode != contract.argumentTypes[i].mode
+                            || !MatchesType(parameters[i], contract.argumentTypes[i], owner, requested))
+                        {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    TypeInfo result = signature.Result;
+                    if (matches && MatchesType(result, contract.returnTypeInfo!, owner, requested))
+                        return new Implementation(candidate.id, staticConstruction: contract.IsStatic ? owner : null);
                 }
+                return null;
             }
-            else if (contract.kind == NeoInterfaceMemberKind.Property)
+            if (!client.ProjectDataForRuntime.classes[owner.Head!.ClassId!].schema.TryGetValue(name, out var id))
+                return null;
+            var member = client.ProjectDataForRuntime.members[id];
+            if (!Eligible(member, contract, accessor))
+                return null;
+            if (contract.kind == NeoInterfaceMemberKind.Property)
             {
                 TypeInfo? actual = member is NSPropertyMember property ? property.returnTypeInfo
                     : NeoTypeRules.BindingTypeInfo(client, NeoGenericResolution.SubstituteMember(client, member, Environment(owner)));
@@ -422,10 +443,34 @@ namespace NeoCompose.Runtime
             return new Implementation(member.id, staticConstruction: contract.IsStatic ? owner : null);
         }
 
+        private readonly Dictionary<string, (FunctionArgumentTypeInfo[] Arguments, FunctionGenericParam[]? Generics, TypeInfo Result)> signatures = new();
+
+        private (FunctionArgumentTypeInfo[] Arguments, FunctionGenericParam[]? Generics, TypeInfo Result) Signature(Member member)
+        {
+            if (signatures.TryGetValue(member.id, out var cached))
+                return cached;
+            var arguments = member is NSFunctionMember function ? function.argumentTypes : ((FunctionMember)member).argumentTypes;
+            var generics = member is NSFunctionMember script ? script.genericParams : ((FunctionMember)member).genericParams;
+            var result = member is NSFunctionMember method ? method.returnTypeInfo : ((FunctionMember)member).returnTypeInfo;
+            if (member.extendsMemberId is string parent)
+            {
+                var inherited = Signature(client.ProjectDataForRuntime.members[parent]);
+                arguments ??= inherited.Arguments;
+                generics ??= inherited.Generics;
+                result ??= inherited.Result;
+            }
+            return signatures[member.id] = (arguments, generics, result);
+        }
+
+        private static bool Eligible(Member member, InterfaceMember contract, string accessor) =>
+            member.explicitImplementation is null && member.Access == NeoMemberAccessKind.Public
+            && (member.Modifier == NeoMemberModifierKind.Static) == contract.IsStatic && HasAccessor(member, accessor)
+            && (accessor != "get" || member.GetterAccess == NeoMemberAccessKind.Public)
+            && (accessor != "set" || member.SetterAccess == NeoMemberAccessKind.Public);
+
         private bool MatchesType(TypeInfo actual, TypeInfo expected, TypeBinding owner, TypeBinding requested) =>
-            NeoReferenceTypes.InvariantlyEqual(
-                NeoGenericResolution.SubstituteTypeInfo(client, actual, Environment(owner)),
-                NeoGenericResolution.SubstituteTypeInfo(client, expected, Environment(requested)));
+            NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, actual, Environment(owner))).Equals(
+                NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, expected, Environment(requested))));
 
         private static bool InterfaceHasAccessor(InterfaceMember member, string accessor) => accessor == "get"
             ? member.Accessors is NeoPropertyAccessorsKind.Get or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit
@@ -483,7 +528,7 @@ namespace NeoCompose.Runtime
         private Implementation DispatchVirtual(TypeBinding receiver, Implementation selected, string accessor)
         {
             var target = client.ProjectDataForRuntime.members[selected.MemberId];
-            if (target.Modifier is not (NeoMemberModifierKind.Virtual or NeoMemberModifierKind.Abstract))
+            if (target.Modifier is not (NeoMemberModifierKind.Virtual or NeoMemberModifierKind.Abstract) && target.extendsMemberId is null)
                 return selected;
             if (classSchemaKeys.TryGetValue(target.id, out var schemaKey)
                 && client.ResolveInstanceSurfaceMember(receiver.Head!.ClassId!, schemaKey) is { } entry)
