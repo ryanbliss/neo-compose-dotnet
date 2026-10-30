@@ -1110,6 +1110,12 @@ namespace NeoCompose.Runtime
                 }
                 catch (Exception exception)
                 {
+                    if (value is null && argument.mode != NeoParameterModeKind.Out
+                        && argumentTypes[i].required && argumentTypes[i].type != MemberKind.Null
+                        && !NeoTypeRules.IsValueKind(argumentTypes[i].type))
+                        throw new NSGetterRuntimeError(
+                            $"Function '{function.Member.name}' was passed null for non-nullable parameter '{argument.name}'.",
+                            NeoErrorContract.NeoNullReferenceError);
                     throw new NSGetterRuntimeError(
                         $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
                         $"'{argument.name}' is incompatible with declared {argument.type}; " +

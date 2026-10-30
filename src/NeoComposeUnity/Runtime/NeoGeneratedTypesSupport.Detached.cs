@@ -264,7 +264,8 @@ namespace NeoCompose.Runtime
                     constructedClassId,
                     slot.member,
                     slot.initializer,
-                    genericEnv: null);
+                    genericEnv: null,
+                    closureOwner: created);
                 if (!TryStoreDetachedSlot(created, index, produced, constructionCtx))
                 {
                     throw new InvalidOperationException(produced is null

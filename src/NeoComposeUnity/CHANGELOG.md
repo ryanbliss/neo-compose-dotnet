@@ -4,6 +4,10 @@
 
 
 
+- Passing null to a non-nullable reference parameter throws `NeoNullReferenceError`, naming the function or constructor and parameter, including member delegates and base constructor calls.
+
+- Capture detached objects in declaration-default lambdas, reject malformed class overload keys, and include staticness in stored interface signature identities.
+
 - When two inherited functions implement one interface function, select the declaration and virtual slot that .NET runs, including static twins and overrides that reuse a base slot.
 
 - Validate generic overrides through open base-parameter forwards, including nested parameter and return types. Extend B4 parity coverage to inherited overload collisions, more-specific overload selection, static hiding and target-typed `default!`.
