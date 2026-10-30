@@ -4562,9 +4562,10 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
             NeoGeneratedTypesSupport.CollectionInsertion? insertion = null,
-            string? path = null)
+            string? path = null,
+            string? pathContainerId = null)
         {
-            client.RequireStoredValue(member, value, path ?? client.StoredMemberPath(member), script: true);
+            client.RequireStoredValue(member, value, path, script: true, pathContainerId: pathContainerId);
             insertion?.Reserve(member, value, id);
             object? originalValue = value;
             if (member is ClassMember { DeclaredInterfaceId: not null })
@@ -6367,7 +6368,7 @@ namespace NeoCompose.Runtime
                             existing.createdAt,
                             NeoTimestamp.Now(),
                             ctx,
-                            CollectionRowEnv(client, listRow), path: $"{client.StoredRowPath(parentRowId)}[{index}]");
+                            CollectionRowEnv(client, listRow), path: $"[{index}]", pathContainerId: parentRowId);
                         next.classId = existing.classId;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
@@ -6618,7 +6619,7 @@ namespace NeoCompose.Runtime
                                         ctx,
                                         CollectionRowEnv(client, list.Row),
                                         insertion ??= new NeoGeneratedTypesSupport.CollectionInsertion(batch.Plan, ctx, ownership),
-                                        path: $"{client.StoredRowPath(rowId)}[{insertionIndex}]"));
+                                        path: $"[{insertionIndex}]", pathContainerId: rowId));
                                 }
                                 PlaceEntry(batch, list, childId);
                                 if (isSet)
@@ -6836,7 +6837,7 @@ namespace NeoCompose.Runtime
                                 existing.createdAt,
                                 now,
                                 ctx,
-                                CollectionRowEnv(client, current), path: $"{client.StoredRowPath(rowId)}[{key}]");
+                                CollectionRowEnv(client, current), path: $"[{key}]", pathContainerId: rowId);
                             next.classId = existing.classId;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
@@ -6887,7 +6888,7 @@ namespace NeoCompose.Runtime
                             now,
                             now,
                             ctx,
-                            CollectionRowEnv(client, current), path: $"{client.StoredRowPath(rowId)}[{key}]"));
+                            CollectionRowEnv(client, current), path: $"[{key}]", pathContainerId: rowId));
                     }
                     NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     PlaceEntry(batch, dictionary, childId);

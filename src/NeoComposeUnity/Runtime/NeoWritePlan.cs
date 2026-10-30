@@ -165,6 +165,22 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void Rebase() => BaseRevision = Client.WriteRevision;
 
+        /// <summary>A static initializer's committed side effects supersede its pending copies.</summary>
+        internal void RefreshCommittedOverlaps(NeoWritePlan committed)
+        {
+            foreach (var pair in committed.Rows)
+                if (Rows.ContainsKey(pair.Key))
+                {
+                    Record(pair.Key);
+                    Restage(pair.Key, pair.Value);
+                    containerCandidates = null;
+                }
+            if (ConstructionBindings is not null && committed.ConstructionBindings is not null)
+                foreach (var pair in committed.ConstructionBindings)
+                    if (ConstructionBindings.ContainsKey(pair.Key))
+                        BindConstruction(pair.Key.ownership, pair.Key.memberId, pair.Key.construction, pair.Value);
+        }
+
         /// <summary>Opens a checkpoint <see cref="Rollback"/> returns the plan to.</summary>
         internal Checkpoint Open()
         {
@@ -1089,6 +1105,7 @@ namespace NeoCompose.Runtime
                 CommitListenerEntries(plan, preparedListeners);
                 PersistedData.requiredSaveFormatRevision = NeoSaveFormat.Combine(PersistedData.requiredSaveFormatRevision, plan.RequiredSaveFormatRevision);
                 plan.MarkInstalled();
+                RefreshStaticInitializationPlans(plan);
                 plan.LocalSelections?.Install();
                 WriteRevision++;
                 if (plan.HeldBy is null)
