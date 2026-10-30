@@ -399,34 +399,33 @@ namespace NeoCompose.Runtime
         {
             if (contract.kind == NeoInterfaceMemberKind.Function)
             {
-                ExplicitSites(owner.Head!.ClassId!);
-                if (!ownFunctionsByName[owner.Head.ClassId!].TryGetValue(name, out var overloads))
+                var matches = MatchingFunctions(owner, requested, name, contract, accessor);
+                if (matches.Count == 0)
                     return null;
-                foreach (var candidate in overloads)
+                var declaringOwner = owner;
+                Member? chosen = LastVirtualRoot(matches);
+                if (chosen is null)
                 {
-                    if (!Eligible(candidate, contract, accessor))
-                        continue;
-                    var signature = Signature(candidate);
-                    var parameters = signature.Arguments;
-                    var generics = signature.Generics;
-                    if ((generics?.Length ?? 0) != (contract.genericParams?.Length ?? 0)
-                        || parameters.Length != contract.argumentTypes!.Count)
-                        continue;
-                    bool matches = true;
-                    for (int i = 0; i < parameters.Length; i++)
+                    if (matches[0].extendsMemberId is null)
+                        chosen = matches[0];
+                    else
                     {
-                        if (parameters[i].mode != contract.argumentTypes[i].mode
-                            || !MatchesType(parameters[i], contract.argumentTypes[i], owner, requested))
+                        // An override reuses a slot. The nearest base with a matching
+                        // virtual declaration supplies the slot, even if it is not this
+                        // override's root; dispatch then follows that slot's own key.
+                        var chain = ClassChain(owner);
+                        for (int index = 1; index < chain.Count; index++)
                         {
-                            matches = false;
+                            chosen = LastVirtualRoot(MatchingFunctions(chain[index], requested, name, contract, accessor));
+                            if (chosen is null)
+                                continue;
+                            declaringOwner = chain[index];
                             break;
                         }
                     }
-                    TypeInfo result = signature.Result;
-                    if (matches && MatchesType(result, contract.returnTypeInfo!, owner, requested))
-                        return new Implementation(candidate.id, staticConstruction: contract.IsStatic ? owner : null);
                 }
-                return null;
+                return chosen is null ? null
+                    : new Implementation(chosen.id, staticConstruction: contract.IsStatic ? declaringOwner : null);
             }
             if (!client.ProjectDataForRuntime.classes[owner.Head!.ClassId!].schema.TryGetValue(name, out var id))
                 return null;
@@ -441,6 +440,49 @@ namespace NeoCompose.Runtime
                     return null;
             }
             return new Implementation(member.id, staticConstruction: contract.IsStatic ? owner : null);
+        }
+
+        // Called only while filling a class mapping. The per-class name index retains
+        // schemaKeyOrder followed by omitted keys; warm Resolve calls use mappings.
+        private IReadOnlyList<Member> MatchingFunctions(TypeBinding owner, TypeBinding requested,
+            string name, InterfaceMember contract, string accessor)
+        {
+            ExplicitSites(owner.Head!.ClassId!);
+            if (!ownFunctionsByName[owner.Head.ClassId!].TryGetValue(name, out var overloads))
+                return Array.Empty<Member>();
+            var matches = new List<Member>();
+            foreach (var candidate in overloads)
+            {
+                if (!Eligible(candidate, contract, accessor))
+                    continue;
+                var signature = Signature(candidate);
+                var parameters = signature.Arguments;
+                if ((signature.Generics?.Length ?? 0) != (contract.genericParams?.Length ?? 0)
+                    || parameters.Length != contract.argumentTypes!.Count)
+                    continue;
+                bool matchesParameters = true;
+                for (int index = 0; index < parameters.Length; index++)
+                {
+                    if (parameters[index].mode != contract.argumentTypes[index].mode
+                        || !MatchesType(parameters[index], contract.argumentTypes[index], owner, requested))
+                    {
+                        matchesParameters = false;
+                        break;
+                    }
+                }
+                if (matchesParameters && MatchesType(signature.Result, contract.returnTypeInfo!, owner, requested))
+                    matches.Add(candidate);
+            }
+            return matches;
+        }
+
+        private static Member? LastVirtualRoot(IReadOnlyList<Member> matches)
+        {
+            for (int index = matches.Count - 1; index >= 0; index--)
+                if (matches[index].extendsMemberId is null
+                    && matches[index].Modifier is NeoMemberModifierKind.Virtual or NeoMemberModifierKind.Abstract)
+                    return matches[index];
+            return null;
         }
 
         private readonly Dictionary<string, (FunctionArgumentTypeInfo[] Arguments, FunctionGenericParam[]? Generics, TypeInfo Result)> signatures = new();

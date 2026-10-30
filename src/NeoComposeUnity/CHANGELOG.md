@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- When two inherited functions implement one interface function, select the declaration and virtual slot that .NET runs, including static twins and overrides that reuse a base slot.
+
+- Validate generic overrides through open base-parameter forwards, including nested parameter and return types. Extend B4 parity coverage to inherited overload collisions, more-specific overload selection, static hiding and target-typed `default!`.
+
+- Extend B4 parity coverage to interface static read-only fields, sibling static initializers, per-construction interface statics and closed generic static method groups.
+
+- Load static read-only fields and get-only auto-property storage, including interface-owned storage. Initialize generic static values separately per construction and reject later binding or value writes.
+
 - Interface overloads map by name, staticness and closed parameter identity, including parameter modes and method type parameter positions. Nullable reference annotations do not change that identity.
 - Virtual interface implementations dispatch through their own overload slot key, including overrides declared past a nearer non-matching base.
 - Index each class's own overloads once per schema cache and cache each closed interface mapping. Class calls use the indexed merged schema on a cold dispatch.
