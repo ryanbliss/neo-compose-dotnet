@@ -2054,7 +2054,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void GeneratedConstructor_ImportedStampFailureRollsBackFreshClone(bool sharedGetterResult)
+        public void GeneratedConstructor_RestampsImportedCloneWithoutChangingSource(bool sharedGetterResult)
         {
             NeoClient client = BuildClient();
             NeoValueOwnership ownership = sharedGetterResult ? NeoValueOwnership.Session : NeoValueOwnership.Save;
@@ -2074,13 +2074,14 @@ namespace NeoCompose.Tests
             client.SetWritableValue(ownership, sourceValue);
             if (sharedGetterResult)
                 client.ValueNode(childId)!.sharedGetterResult = true;
-            var before = new HashSet<string>(client.sessionValues.Keys);
-
-            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                CreateOwnedParent(client, childId))!;
-
-            StringAssert.Contains("partition 'unexpected-partition'", error.Message);
-            CollectionAssert.AreEquivalent(before, client.sessionValues.Keys);
+            var parent = CreateOwnedParent(client, childId);
+            string copiedChildId = parent.value!.value!["Child"];
+            Assert.AreNotEqual(childId, copiedChildId);
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, copiedChildId, out ObjectMemberValue? copiedChild));
+            string copiedValueId = copiedChild!.value!["Value"];
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, copiedValueId, out MemberValue? copiedValue));
+            Assert.IsNull(copiedValue!.mapKey);
+            Assert.AreEqual("unexpected-partition", sourceValue.mapKey);
         }
 
         [Test]

@@ -5527,6 +5527,7 @@ namespace NeoCompose.Runtime
                             if (importedId == existingId)
                                 return;
                             ObjectMemberValue rebound = WritableParent();
+                            client.RestampAdoptedValue(plan, ownership, importedId, member, rebound);
                             rebound.value![key] = importedId;
                             plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                 importedId,
@@ -5573,6 +5574,7 @@ namespace NeoCompose.Runtime
                             linkedReferenceId!,
                             ctx,
                             client.StoredReplayDestinationValueId(parentRowId, key, null, linkedReferenceId));
+                        client.RestampAdoptedValue(plan, ownership, linked.value[key], member, linked);
                         plan.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             linked.value[key],
                             parentRowId));
@@ -6107,6 +6109,7 @@ namespace NeoCompose.Runtime
                         childId);
                     if (importedId == childId)
                         return;
+                    client.RestampAdoptedValue(plan, ownership, importedId, entryMember, listRow);
                     // The list changes last: one that throws leaves it as it was.
                     NeoWriteBatch.PendingList list = batch.List(ownership, parentRowId, ctx, null);
                     batch.Gain(ownership, importedId, parentRowId);
@@ -6324,6 +6327,8 @@ namespace NeoCompose.Runtime
                                         ownership,
                                         referenceId,
                                         ctx);
+                                    client.RestampAdoptedValue(batch.Plan, ownership, childId,
+                                        entryMember ?? EntryMember(client, list.Row, entryTypeInfo), list.Row);
                                     string importedId = childId;
                                     batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                                         importedId,
@@ -6571,6 +6576,7 @@ namespace NeoCompose.Runtime
                             existingId);
                         if (replacementId == existingId)
                             return;
+                        client.RestampAdoptedValue(plan, ownership, replacementId, entryMember, current!);
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
@@ -6589,6 +6595,7 @@ namespace NeoCompose.Runtime
                             ownership,
                             referenceId,
                             ctx);
+                        client.RestampAdoptedValue(plan, ownership, childId, entryMember, current!);
                         string importedId = childId;
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             importedId,

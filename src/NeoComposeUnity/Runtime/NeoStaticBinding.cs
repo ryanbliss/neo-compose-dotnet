@@ -362,6 +362,17 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' imported missing value '{importedValueId}'.");
             }
+            // Static bindings may alias existing roots. Only a detached writable
+            // graph is being adopted; an alias cannot move its owner's partition.
+            bool canAdopt;
+            using (client.ReadCandidate(plan))
+                canAdopt = sourceOwnership != NeoValueOwnership.Asset
+                    && !client.TryFindOwnedParent(Ownership, importedValueId, out _);
+            if (canAdopt)
+            {
+                client.RestampAdoptedGraph(plan, Ownership, importedValueId, member, expectedMapKey, new());
+                importedRow = plan.Resolve(Ownership, importedValueId);
+            }
             if (!string.IsNullOrEmpty(importedRow!.mapKey)
                 && importedRow.mapKey != expectedMapKey)
             {

@@ -15,6 +15,263 @@ namespace NeoCompose.Tests
 {
     public class NeoDialogueAtomicWriteTests
     {
+        private static ProjectData PartitionAdoptionSchema(bool unordered = false)
+        {
+            var schema = Schema(unordered);
+            schema.classes["holder"] = new NeoSchemaClass { id = "holder", name = "Holder", schema = new() { ["Data"] = "entry" } };
+            ((DictionaryMember)schema.members["by-key-member"]).entryMemberId = "entry";
+            return schema;
+        }
+
+        private static string SeedPartitionedItem(NeoClient client, NeoValueOwnership ownership = NeoValueOwnership.Session)
+        {
+            client.SetWritableValues(ownership, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "detached", classId = "item", mapKey = "world:old", value = new() { ["Name"] = "detached-name", ["Tags"] = "detached-tags" } },
+                new StringMemberValue { id = "detached-name", mapKey = "world:old", value = "door" },
+                new ArrayMemberValue { id = "detached-tags", mapKey = "world:old", value = new[] { "detached-tag" } },
+                new StringMemberValue { id = "detached-tag", mapKey = "world:old", value = "building" },
+            });
+            return "detached";
+        }
+
+        private static void AssertItemPartition(NeoClient client, string id, string? partition)
+        {
+            var root = (ObjectMemberValue)client.ResolveValueRow(id)!;
+            Assert.AreEqual(partition, root.mapKey, "root");
+            Assert.AreEqual(partition, client.ResolveValueRow(root.value!["Name"])!.mapKey, "field");
+            var tags = (ArrayMemberValue)client.ResolveValueRow(root.value["Tags"])!;
+            Assert.AreEqual(partition, tags.mapKey, "nested list");
+            Assert.AreEqual(partition, client.ResolveValueRow(tags.value![0])!.mapKey, "nested entry");
+        }
+
+        [Test]
+        public void ConstructorRestampsPhysicalCloneRowsAcrossDeclaredStorageBoundaries()
+        {
+            var schema = PartitionAdoptionSchema();
+            schema.members["name"].Storage = NeoMemberStorage.Save;
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string source = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            string clone = client.CloneValueReference(source);
+            NeoGeneratedTypesSupport.CreateWritableClassValue(client, "holder", new()
+            {
+                ["Data"] = clone
+            }, Array.Empty<MemberValue>());
+            AssertItemPartition(client, clone, null);
+            AssertItemPartition(client, source, "world:old");
+        }
+
+        [Test]
+        public void ConstructorAdoptsPartitionedCloneWithoutChangingItsSource()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(PartitionAdoptionSchema());
+            string source = SeedPartitionedItem(client);
+            string clone = client.CloneValueReference(source);
+            var holder = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "holder",
+                new()
+                {
+                    ["Data"] = clone
+                }, Array.Empty<MemberValue>());
+            Assert.AreEqual(clone, holder.value!.value!["Data"]);
+            AssertItemPartition(client, clone, null);
+            AssertItemPartition(client, source, "world:old");
+        }
+
+        [Test]
+        public void AdoptionHonorsExplicitPartitionsUnorderedChildrenAndReferenceTargets()
+        {
+            var schema = PartitionAdoptionSchema();
+            schema.members["tags-member"].storageKey = "main";
+            schema.members["notes-member"].storageKey = "state:$parentClass";
+            ((ListMember)schema.members["children-member"]).ListKind = NeoListKind.Unordered;
+            schema.members["selection"] = new LookupMember { id = "selection", name = "Target", kind = MemberKind.Lookup, collectionMemberId = "items-member" };
+            schema.classes["item"].schema["Target"] = "selection";
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string id = SeedPartitionedItem(client);
+            var root = (ObjectMemberValue)client.CloneRowForWrite(client.ResolveValueRow(id)!);
+            root.value!["Notes"] = "notes";
+            root.value["Children"] = "children";
+            root.value["Target"] = "selection";
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                root,
+                new ObjectMemberValue { id = "notes", mapKey = "state:item", value = new() { ["key"] = "note" } },
+                new StringMemberValue { id = "note", mapKey = "state:item", value = "retained boundary" },
+                new ArrayMemberValue { id = "children", mapKey = "world:old", value = Array.Empty<string>() },
+                new ObjectMemberValue { id = "child", classId = "item", mapKey = "world:old", containerId = "children", value = new() },
+                new ArrayMemberValue { id = "selection", mapKey = "world:old", value = new[] { "external" } },
+                new ObjectMemberValue { id = "external", classId = "item", mapKey = "world:external", value = new() },
+            });
+            var parent = client.CloneRowForWrite(client.ResolveValueRow("session-items")!);
+            parent.mapKey = "world:new";
+            client.SetWritableValue(NeoValueOwnership.Session, parent);
+            client.session.Get<NeoMemberListWritable>("Items").AddSerialized(NeoValueWritePayload.FromValueReference(id));
+            Assert.AreEqual("world:new", client.ResolveValueRow(id)!.mapKey);
+            Assert.AreEqual("world:new", client.ResolveValueRow("detached-name")!.mapKey);
+            Assert.IsNull(client.ResolveValueRow("detached-tags")!.mapKey);
+            Assert.IsNull(client.ResolveValueRow("detached-tag")!.mapKey);
+            Assert.AreEqual("state:item", client.ResolveValueRow("note")!.mapKey);
+            Assert.AreEqual("world:new", client.ResolveValueRow("child")!.mapKey);
+            Assert.AreEqual("children", client.ResolveValueRow("child")!.containerId);
+            Assert.AreEqual("world:new", client.ResolveValueRow("selection")!.mapKey);
+            Assert.AreEqual("world:external", client.ResolveValueRow("external")!.mapKey);
+        }
+
+        [TestCase("field", null)]
+        [TestCase("ordered", null)]
+        [TestCase("unordered", null)]
+        [TestCase("dictionary", null)]
+        [TestCase("field", "world:new")]
+        [TestCase("ordered", "world:new")]
+        [TestCase("unordered", "world:new")]
+        [TestCase("dictionary", "world:new")]
+        public void AttachmentRestampsOwnedDescendantsAndSurvivesReload(string slot, string? partition)
+        {
+            var schema = PartitionAdoptionSchema(slot == "unordered");
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string id = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            string parentId = slot == "field" ? "save" : slot == "dictionary" ? "by-key" : "items";
+            var parent = client.CloneRowForWrite(client.ResolveValueRow(parentId)!);
+            parent.mapKey = partition;
+            client.SetWritableValue(NeoValueOwnership.Save, parent);
+            var payload = NeoValueWritePayload.FromValueReference(id);
+            if (slot == "field")
+                client.save.SetSerializedValue("Part", payload);
+            else if (slot == "dictionary")
+                client.save.Get<NeoMemberDictionaryWritable>("ByKey").SetSerialized("door", payload);
+            else
+                client.save.Get<NeoMemberListWritable>("Items").AddSerialized(payload);
+            AssertItemPartition(client, id, partition);
+            var item = new NeoMemberClassWritable(client, (ClassMember)client.members["entry"], id, NeoValueOwnership.Save);
+            item.SetSerializedValue("Name", NeoValueWritePayload.FromValue("edited"));
+            AssertItemPartition(client, id, partition);
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(schema, loadedSaveContent: client.SerializeSaveData());
+            AssertItemPartition(reloaded, id, partition);
+        }
+
+        [Test]
+        public void MainAdoptionOverridesAuthoredPartitionOnLaterLeafAndPlanWrites()
+        {
+            var schema = PartitionAdoptionSchema();
+            schema.valuePartitions = NeoTestExport.Partitions(new Dictionary<string, JToken>
+            {
+                ["world:old"] = JObject.Parse("{ 'detached': { 'id': 'detached', 'classId': 'item', 'mapKey': 'world:old', 'value': { 'Name': 'detached-name', 'Tags': 'detached-tags' } }, 'detached-name': { 'id': 'detached-name', 'mapKey': 'world:old', 'value': 'door' }, 'detached-tags': { 'id': 'detached-tags', 'mapKey': 'world:old', 'value': ['detached-tag'] }, 'detached-tag': { 'id': 'detached-tag', 'mapKey': 'world:old', 'value': 'building' } }")
+            });
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            client.LoadValuePartition("world:old");
+            string id = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            client.save.Get<NeoMemberListWritable>("Items").AddSerialized(NeoValueWritePayload.FromValueReference(id));
+            var item = new NeoMemberClassWritable(client, (ClassMember)client.members["entry"], id, NeoValueOwnership.Save);
+            item.SetSerializedValue("Name", NeoValueWritePayload.FromValue("edited"));
+            var row = client.CloneRowForWrite(client.ResolveValueRow("detached-tag")!);
+            ((StringMemberValue)row).value = "separate plan";
+            client.SetWritableValue(NeoValueOwnership.Save, row);
+            AssertItemPartition(client, id, null);
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(schema, loadedSaveContent: client.SerializeSaveData());
+            reloaded.LoadValuePartition("world:old");
+            AssertItemPartition(reloaded, id, null);
+        }
+
+        [Test]
+        public void ScriptRemovalThenAdoptionRestampsTheRetainedGraph()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(PartitionAdoptionSchema());
+            string id = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            var source = client.CloneRowForWrite(client.ResolveValueRow("items")!);
+            source.mapKey = "world:old";
+            client.SetWritableValue(NeoValueOwnership.Save, source);
+            client.save.Get<NeoMemberListWritable>("Items").AddSerialized(NeoValueWritePayload.FromValueReference(id));
+            string items = Field("save", "Items"), others = Field("save", "Others");
+            Run(client, NullTypeJson,
+                Declare("released", ItemTypeJson, Index(items, Number(0))),
+                Call(items, ItemsTypeJson, "save", "RemoveAt", Number(0)),
+                Call(others, ItemsTypeJson, "save", "Add", Var("released")));
+            var moved = client.save.Get<NeoMemberListWritable>("Others").value!.value!.Single();
+            AssertItemPartition(client, moved, null);
+        }
+
+        [Test]
+        public void AttachedValueCannotBeRestampedIntoAnotherOwner()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(PartitionAdoptionSchema());
+            string id = SeedPartitionedItem(client);
+            var owner = NeoGeneratedTypesSupport.CreateWritableClassValue(client, "holder", new()
+            {
+                ["Data"] = id
+            }, Array.Empty<MemberValue>());
+            string before = Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues);
+            Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(client, "holder", new() { ["Data"] = id }, Array.Empty<MemberValue>()));
+            Assert.AreEqual(before, Newtonsoft.Json.JsonConvert.SerializeObject(client.sessionValues));
+            Assert.AreEqual(id, owner.value!.value!["Data"]);
+        }
+
+        [Test]
+        public void ConstructorFailureAfterFirstAdoptionRestoresItsPartition()
+        {
+            var schema = PartitionAdoptionSchema();
+            schema.classes["holder"].schema["Other"] = "entry";
+            schema.members["names-entry"].storageKey = "invalid:$parentClass";
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string second = SeedPartitionedItem(client);
+            client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                new ObjectMemberValue { id = "first", classId = "item", mapKey = "world:old", value = new() { ["Name"] = "first-name" } },
+                new StringMemberValue { id = "first-name", mapKey = "world:old", value = "first" },
+            });
+            Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.CreateWritableClassValue(client, "holder",
+                new()
+                {
+                    ["Data"] = "first",
+                    ["Other"] = second
+                }, Array.Empty<MemberValue>()));
+            Assert.AreEqual("world:old", client.ResolveValueRow("first")!.mapKey);
+            Assert.AreEqual("world:old", client.ResolveValueRow("first-name")!.mapKey);
+            AssertItemPartition(client, second, "world:old");
+        }
+
+        [Test]
+        public void AdoptionResolvesParentClassFromItsSlotWhenRowOmitsClassId()
+        {
+            var schema = PartitionAdoptionSchema();
+            ((ObjectMemberValue)schema.values["save"]).classId = null;
+            schema.members["part-member"].storageKey = "state:$parentClass";
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string id = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            client.save.SetSerializedValue("Part", NeoValueWritePayload.FromValueReference(id));
+            AssertItemPartition(client, id, "state:save");
+        }
+
+        [Test]
+        public void AdoptionIntoNewParentUsesItsKnownClassForPartition()
+        {
+            var schema = PartitionAdoptionSchema();
+            schema.members["host"] = new ClassMember { id = "host", name = "Host", kind = MemberKind.Class, DeclaredClassId = "holder", Requirement = NeoMemberRequirementKind.Optional };
+            schema.classes["save"].schema["Host"] = "host";
+            schema.members["entry"].Requirement = NeoMemberRequirementKind.Optional;
+            schema.members["entry"].storageKey = "state:$parentClass";
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            string id = SeedPartitionedItem(client, NeoValueOwnership.Save);
+            var host = client.save.Get<NeoMemberClassWritable>("Host");
+            Assert.IsNull(host.value);
+            host.SetSerializedValue("Data", NeoValueWritePayload.FromValueReference(id));
+            AssertItemPartition(client, id, "state:holder");
+        }
+
+        [Test]
+        public void PartitionRestampRollsBackWithItsWritePlanCheckpoint()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(PartitionAdoptionSchema());
+            string id = SeedPartitionedItem(client);
+            var plan = new NeoWritePlan(client);
+            var checkpoint = plan.Open();
+            client.RestampAdoptedValue(plan, NeoValueOwnership.Session, id, client.members["entry"], client.ResolveValueRow("save")!);
+            Assert.IsNull(plan.Resolve(NeoValueOwnership.Session, id)!.mapKey);
+            plan.Rollback(checkpoint);
+            Assert.IsFalse(plan.HasExplicitPartition((NeoValueOwnership.Session, id)));
+            plan.Commit();
+            AssertItemPartition(client, id, "world:old");
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void AddPublishesAdoptedGraphAndMembershipTogether(bool unordered)

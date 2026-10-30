@@ -36,20 +36,38 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(loader));
             ProjectData data = loader.Schema
                 ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
-            NeoClient? userClient = await ResolveUserClientAsync(loader, data, cancellationToken);
-            localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
-            var localization = NeoLocalization.LoadMain(
-                data.localization,
-                localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(),
-                localizationOptions);
-            string? content = await loader.LoadSaveContentAsync();
-            cancellationToken.ThrowIfCancellationRequested();
-            if (assetDatabase == null)
-                assetDatabase = await NeoAssetDatabase.LoadDefaultAsync(cancellationToken);
-            else
-                await assetDatabase.PreloadAudioAsync(cancellationToken);
-            return await NeoClient.CreateAsync(loader, content, assetDatabase, localization,
-                saveOptions, cancellationToken, userClient: userClient);
+            var liveSource = loader as INeoLiveContentSource;
+            string? pendingContent = null;
+            void BufferContent(string latest) => pendingContent = latest;
+            if (liveSource is not null)
+                liveSource.OnLiveContentChanged += BufferContent;
+            try
+            {
+                NeoClient? userClient = await ResolveUserClientAsync(loader, data, cancellationToken);
+                localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
+                var localization = NeoLocalization.LoadMain(
+                    data.localization,
+                    localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(),
+                    localizationOptions);
+                string? content = await loader.LoadSaveContentAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (assetDatabase == null)
+                    assetDatabase = await NeoAssetDatabase.LoadDefaultAsync(cancellationToken);
+                else
+                    await assetDatabase.PreloadAudioAsync(cancellationToken);
+                var pendingClient = NeoClient.CreateAsync(loader, content, assetDatabase, localization,
+                    saveOptions, cancellationToken, userClient: userClient, pendingLiveContent: pendingContent);
+                // CreateAsync installs its initialization listener before yielding.
+                // Hand off now so each update is buffered by exactly one listener.
+                if (liveSource is not null)
+                    liveSource.OnLiveContentChanged -= BufferContent;
+                return await pendingClient;
+            }
+            finally
+            {
+                if (liveSource is not null)
+                    liveSource.OnLiveContentChanged -= BufferContent;
+            }
         }
 
         /// <summary>

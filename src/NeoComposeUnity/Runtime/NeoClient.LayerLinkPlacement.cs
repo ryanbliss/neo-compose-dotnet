@@ -236,6 +236,7 @@ namespace NeoCompose.Runtime
                 }
             string id = PreparePlacementCoordinate(plan, entry, (local.x, local.y), true);
             string importedId = ImportValueReference(plan, ownership, id, out bool moved);
+            RestampAdoptedValue(plan, ownership, importedId, collection.EntryMember, collection.value!);
             var row = CloneRowForWrite(plan.Resolve(importedId)!);
             row.containerId = collection.value!.id;
             plan.Set(ownership, row);

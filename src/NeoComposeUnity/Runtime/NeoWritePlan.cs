@@ -63,6 +63,7 @@ namespace NeoCompose.Runtime
         internal List<NeoClient.ClonedGraph>? ClonedGraphs;
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
+        private HashSet<(NeoValueOwnership ownership, string id)>? explicitPartitions;
         // Most plans bind no static; they share one empty map until the first Bind.
         private static readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> NoBindings = new();
         private Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)>? bindings;
@@ -228,6 +229,10 @@ namespace NeoCompose.Runtime
                     (silentRows ??= new()).Add(entry.Key);
                 else
                     silentRows?.Remove(entry.Key);
+                if (entry.ExplicitPartition)
+                    (explicitPartitions ??= new()).Add(entry.Key);
+                else
+                    explicitPartitions?.Remove(entry.Key);
             }
             journal.RemoveRange(checkpoint.Journal, journal.Count - checkpoint.Journal);
             afterCommit.Truncate(checkpoint.AfterCommit);
@@ -242,7 +247,7 @@ namespace NeoCompose.Runtime
             if (openCheckpoints == 0)
                 return;
             bool staged = Rows.TryGetValue(key, out MemberValue? row);
-            journal!.Add(new RowEntry(key, staged, row, ChangedField(key), IsSilent(key)));
+            journal!.Add(new RowEntry(key, staged, row, ChangedField(key), IsSilent(key), HasExplicitPartition(key)));
         }
 
         internal readonly struct Checkpoint
@@ -270,18 +275,20 @@ namespace NeoCompose.Runtime
             internal readonly MemberValue? Row;
             internal readonly string? ChangedField;
             internal readonly bool Silent;
+            internal readonly bool ExplicitPartition;
 
-            internal RowEntry((NeoValueOwnership ownership, string id) key, bool staged, MemberValue? row, string? changedField, bool silent)
+            internal RowEntry((NeoValueOwnership ownership, string id) key, bool staged, MemberValue? row, string? changedField, bool silent, bool explicitPartition)
             {
                 Key = key;
                 Staged = staged;
                 Row = row;
                 ChangedField = changedField;
                 Silent = silent;
+                ExplicitPartition = explicitPartition;
             }
         }
 
-        internal void Set(NeoValueOwnership ownership, MemberValue row, string? changedField = null, bool silent = false)
+        internal void Set(NeoValueOwnership ownership, MemberValue row, string? changedField = null, bool silent = false, bool explicitPartition = false)
         {
             if (ownership == NeoValueOwnership.Asset)
                 throw new InvalidOperationException("Cannot write immutable asset data.");
@@ -292,6 +299,8 @@ namespace NeoCompose.Runtime
             var key = (ownership, row.id);
             Record(key);
             Restage(key, row);
+            if (explicitPartition)
+                (explicitPartitions ??= new()).Add(key);
             containerCandidates = null;
             if (changedField is not null)
                 (changedFields ??= new())[key] = changedField;
@@ -323,6 +332,8 @@ namespace NeoCompose.Runtime
         internal string? ChangedField((NeoValueOwnership ownership, string id) key) =>
             changedFields is not null && changedFields.TryGetValue(key, out string? field) ? field : null;
 
+        internal bool HasExplicitPartition((NeoValueOwnership ownership, string id) key) => explicitPartitions?.Contains(key) == true;
+
         internal bool IsSilent((NeoValueOwnership ownership, string id) key) => silentRows?.Contains(key) == true;
 
         internal bool TryGetNodeBinding(NeoMember node, [NotNullWhen(true)] out string? valueId)
@@ -346,6 +357,7 @@ namespace NeoCompose.Runtime
             var key = (ownership, id);
             Record(key);
             Restage(key, null);
+            explicitPartitions?.Remove(key);
             silentRows?.Remove(key);
         }
 
@@ -781,7 +793,7 @@ namespace NeoCompose.Runtime
         /// plan is not one: a fresh plan commits through CandidateReplay.Apply,
         /// which keeps a replay's rows as reclaimable allocations.
         /// </summary>
-        private NeoWritePlan? EnclosingWritePlan =>
+        internal NeoWritePlan? EnclosingWritePlan =>
             candidateReadPlan is { } plan && !ReferenceEquals(plan, candidateReplay?.Plan) ? plan : null;
 
         internal CandidateReadScope ReadCandidate(NeoWritePlan plan)
@@ -900,7 +912,7 @@ namespace NeoCompose.Runtime
                     if (pair.Key.ownership == PersistedOwnership && pair.Value is not null)
                         StageConstructorDependencies(plan, pair.Value);
             foreach (var pair in plan.Rows)
-                if (pair.Value is not null)
+                if (pair.Value is not null && !plan.HasExplicitPartition(pair.Key))
                     StampMapKeyForWrite(pair.Key.ownership, pair.Value);
 
             if (plan.BaseRevision < foreignWriteRevision)
