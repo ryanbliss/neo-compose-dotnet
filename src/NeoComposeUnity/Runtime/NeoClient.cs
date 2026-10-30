@@ -1188,6 +1188,7 @@ namespace NeoCompose.Runtime
         }
 
         private int animationFrameDepth;
+        private int changeDeliveryDepth;
         private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
         private readonly Stack<List<System.Action>> animationRenderSnapshots = new();
 
@@ -1348,18 +1349,50 @@ namespace NeoCompose.Runtime
 
         internal void EndAnimationFrame()
         {
-            if (--animationFrameDepth != 0)
-                return;
+            if (--animationFrameDepth == 0)
+                FlushAnimationRendering();
+        }
+
+        /// <summary>
+        /// Holds rendering while one batch of changes is delivered, so each
+        /// rendered object refreshes once for all of them.
+        /// </summary>
+        private void BeginChangeDelivery() => changeDeliveryDepth++;
+
+        /// <summary>
+        /// Renders what the delivery changed before its caller continues,
+        /// unless an animation frame renders it when the frame ends.
+        /// </summary>
+        private void EndChangeDelivery()
+        {
+            changeDeliveryDepth--;
+            if (animationFrameDepth == 0)
+                FlushAnimationRendering();
+        }
+
+        private void FlushAnimationRendering()
+        {
             if (pendingAnimationRenderUpdates.Count == 0)
                 return;
             var pending = animationRenderSnapshots.Count > 0
                 ? animationRenderSnapshots.Pop() : new List<System.Action>();
             pending.AddRange(pendingAnimationRenderUpdates);
             pendingAnimationRenderUpdates.Clear();
+            List<System.Exception>? failures = null;
             try
             {
+                // One object failing to render must not leave the others stale.
                 foreach (System.Action update in pending)
-                    update();
+                {
+                    try
+                    {
+                        update();
+                    }
+                    catch (System.Exception exception)
+                    {
+                        (failures ??= new List<System.Exception>()).Add(exception);
+                    }
+                }
             }
             finally
             {
@@ -1369,11 +1402,13 @@ namespace NeoCompose.Runtime
                 if (pending.Capacity <= 256 && animationRenderSnapshots.Count < 4)
                     animationRenderSnapshots.Push(pending);
             }
+            if (failures is not null)
+                throw failures.Count == 1 ? failures[0] : new System.AggregateException(failures);
         }
 
         internal void RefreshAnimationRendering(System.Action update)
         {
-            if (animationFrameDepth == 0)
+            if (animationFrameDepth == 0 && changeDeliveryDepth == 0)
                 update();
             else
                 pendingAnimationRenderUpdates.Add(update);

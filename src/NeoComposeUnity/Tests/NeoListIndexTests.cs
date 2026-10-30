@@ -118,6 +118,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AWriteInsideAHandlerRendersBeforeItReturns()
+        {
+            NeoMemberListWritable node = LoadItems(3, out NeoClient client);
+            using (client)
+            {
+                var first = ((NeoMemberClassWritable)node[0]).Get<NeoMemberStringWritable>("Slug");
+                var second = ((NeoMemberClassWritable)node[1]).Get<NeoMemberStringWritable>("Slug");
+                string? drawn = null;
+                string? drawnAfterInnerWrite = null;
+                Action render = () => drawn = second.value!.value;
+                void RenderSecond(NeoMember _) => client.RefreshAnimationRendering(render);
+                void WriteSecond(NeoMember _)
+                {
+                    if (drawnAfterInnerWrite is not null)
+                        return;
+                    client.RunTransaction(() => second.Set("inner"));
+                    drawnAfterInnerWrite = drawn ?? "";
+                }
+                node[1].OnChanged += RenderSecond;
+                node[0].OnChanged += WriteSecond;
+                client.RunTransaction(() => first.Set("outer"));
+                node[1].OnChanged -= RenderSecond;
+                node[0].OnChanged -= WriteSecond;
+                Assert.AreEqual("inner", drawnAfterInnerWrite, "A nested write must be rendered when it returns.");
+            }
+        }
+
+        [Test]
         public void ValueIdIndexer_IsLazy_AndMissingContractsAreUnambiguous()
         {
             NeoMemberListWritable node = LoadItems(4, out NeoClient client);

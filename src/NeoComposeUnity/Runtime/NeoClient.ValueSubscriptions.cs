@@ -255,8 +255,8 @@ namespace NeoCompose.Runtime
             FieldChanges? fields;
             // One write can change a value on every layer of a rig. Each
             // rendered object refreshes once for all of them, before the
-            // write returns, as for an animation frame.
-            BeginAnimationFrame();
+            // field callbacks and before the write returns.
+            BeginChangeDelivery();
             try
             {
                 if (listeners is not null)
@@ -283,7 +283,7 @@ namespace NeoCompose.Runtime
                     spareListenerChanges = listeners;
                 }
                 spareChanges = draining;
-                EndAnimationFrame();
+                EndChangeDelivery();
             }
             // Restore the outer delivery scope first: a callback may write,
             // dispose another watcher, or start a nested transaction.
