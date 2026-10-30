@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -105,6 +106,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class StaticMemberPointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? staticConstruction;
         public string memberId = null!;
     }
 
@@ -219,6 +222,8 @@ namespace NeoCompose.Runtime.Json
         public string kind = null!;
         public Pointer? pointer;
         public string? memberId;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? staticConstruction;
 
         public static CallReceiver Instance(Pointer pointer) => new()
         {
@@ -271,9 +276,40 @@ namespace NeoCompose.Runtime.Json
         }
     }
 
+    /// <summary>A canonical interface member and its declaring construction.</summary>
+    public sealed class InterfaceMemberRef
+    {
+        public string interfaceId = null!;
+        public string memberId = null!;
+        public Dictionary<string, TypeInfo>? arguments;
+    }
+
+    public sealed class TypeParameterStaticPointer : Pointer
+    {
+        public TypeInfo typeParameter = null!;
+        public InterfaceMemberRef interfaceMember = null!;
+        public TypeParameterStaticOperation operation = null!;
+    }
+
+    public sealed class TypeParameterStaticOperation
+    {
+        public string kind = null!;
+        public Pointer[]? args;
+        public TypeInfo[]? typeArguments;
+        public string? callSiteId;
+        public TypeInfo? delegateType;
+    }
+
     /// <summary>A persisted method identity bound to an evaluated receiver.</summary>
     public sealed class MemberTargetPointer : Pointer
     {
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool direct;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public InterfaceMemberRef? interfaceMember;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? staticConstruction;
+        public TypeInfo[]? typeArguments;
         public string memberId = null!;
         public CallReceiver receiver = null!;
     }
@@ -281,6 +317,12 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
     public sealed class CallGetterPointer : Pointer, ISchemaResolutionSite
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public InterfaceMemberRef? interfaceMember;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? staticConstruction;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool direct;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo[]? typeArguments;
         public string memberId = null!;
@@ -382,6 +424,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class DelegateClosurePointer : Pointer
     {
+        public string? site;
         public DelegateTypeInfo typeInfo = null!;
         public FunctionWithReturnType action = null!;
         public Pointer[] captures = null!;
@@ -440,6 +483,13 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(PointerConverter))]
     public sealed class CallFunctionPointer : Pointer, ISchemaResolutionSite
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public InterfaceMemberRef? interfaceMember;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? staticConstruction;
+        [JsonIgnore] internal TypeBinding? interfaceConstruction;
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool direct;
         public string? memberId;
         public string? memberKey;
         public CallReceiver receiver = null!;
@@ -752,6 +802,8 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
+                case "typeParameterStatic":
+                    return typeof(TypeParameterStaticPointer);
                 case PointerKind.Reference:
                     return typeof(ReferencePointer);
                 case PointerKind.Variable:
@@ -841,10 +893,27 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (obj["interfaceMember"] is not null)
+                ValidateInterfaceReference(obj);
+            if (obj["direct"] is { } direct && direct.Type != JTokenType.Boolean)
+                throw new JsonSerializationException("Callable pointer 'direct' must be a boolean.");
+            if (concrete == typeof(TypeParameterStaticPointer))
+            {
+                ValidateInterfaceReference(obj);
+                if (obj["typeParameter"] is not JObject parameter || parameter.Value<int?>("type") != (int)MemberKind.Generic)
+                    throw new JsonSerializationException("TypeParameterStaticPointer requires a generic type parameter.");
+                if (obj["operation"] is not JObject operation || operation.Value<string>("kind") is not ("call" or "get" or "methodGroup"))
+                    throw new JsonSerializationException("TypeParameterStaticPointer has an invalid operation.");
+                if (operation.Value<string>("kind") == "call" && (operation["args"] is not JArray || !HasNonEmptyString(operation, "callSiteId")))
+                    throw new JsonSerializationException("A static parameter call requires arguments and a callSiteId.");
+                if (operation.Value<string>("kind") == "methodGroup" && operation["delegateType"] is not JObject)
+                    throw new JsonSerializationException("A static parameter method group requires a delegateType.");
+                return;
+            }
             if (concrete == typeof(MemberTargetPointer))
             {
-                if (string.IsNullOrWhiteSpace(obj["memberId"]?.Value<string>()))
-                    throw new JsonSerializationException("MemberTargetPointer requires a member id.");
+                if (string.IsNullOrWhiteSpace(obj["memberId"]?.Value<string>()) && obj["interfaceMember"] is not JObject)
+                    throw new JsonSerializationException("MemberTargetPointer requires a member id or interface member.");
                 if (obj["receiver"] is not JObject receiver)
                     throw new JsonSerializationException("MemberTargetPointer requires a receiver.");
                 string? kind = receiver["kind"]?.Value<string>();
@@ -1077,7 +1146,8 @@ namespace NeoCompose.Runtime.Json
 
             bool hasMemberId = HasNonEmptyString(obj, "memberId");
             bool hasMemberKey = HasNonEmptyString(obj, "memberKey");
-            if (hasMemberId == hasMemberKey)
+            bool hasInterfaceMember = obj["interfaceMember"] is JObject;
+            if ((hasMemberId ? 1 : 0) + (hasMemberKey ? 1 : 0) + (hasInterfaceMember ? 1 : 0) != 1)
             {
                 throw new JsonSerializationException(
                     hasMemberId
@@ -1123,6 +1193,16 @@ namespace NeoCompose.Runtime.Json
                         "CallFunctionPointer value-equality fallback requires exactly one argument.");
                 }
             }
+        }
+
+        private static void ValidateInterfaceReference(JObject obj)
+        {
+            if (obj["interfaceMember"] is not JObject reference || !HasNonEmptyString(reference, "interfaceId") || !HasNonEmptyString(reference, "memberId"))
+                throw new JsonSerializationException("An interface member reference requires interfaceId and memberId.");
+            if (reference["arguments"] is { } arguments && arguments is not JObject)
+                throw new JsonSerializationException("Interface member arguments must be an object.");
+            if (HasNonEmptyString(obj, "memberId") || HasNonEmptyString(obj, "memberKey"))
+                throw new JsonSerializationException("An interface member reference cannot also name a class member.");
         }
 
         private static void ValidateDispatch(JObject obj)

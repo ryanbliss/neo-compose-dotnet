@@ -38,6 +38,12 @@ namespace NeoCompose.Runtime.NeoScript
             ErrorClass = errorClass;
         }
 
+        internal NeoRuntimeError(NeoErrorClass errorClass, string message, System.Exception cause)
+            : base(message, ClassId(errorClass), cause)
+        {
+            ErrorClass = errorClass;
+        }
+
         internal NeoErrorClass ErrorClass
         {
             get;

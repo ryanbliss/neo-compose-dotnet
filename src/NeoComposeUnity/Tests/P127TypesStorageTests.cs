@@ -261,6 +261,50 @@ namespace NeoCompose.Tests
             Assert.That(error.Message, Does.StartWith($"'{path}' is required and cannot store null."));
         }
 
+        [TestCase(false, false, false)]
+        [TestCase(false, false, true)]
+        [TestCase(true, false, false)]
+        [TestCase(true, false, true)]
+        [TestCase(false, true, false)]
+        [TestCase(true, true, false)]
+        public void NestedHostNullWritesNameTheFullMemberPath(bool outerDictionary, bool innerDictionary, bool add)
+        {
+            using var seed = BuildClient();
+            var data = seed.ProjectDataForRuntime;
+            JsonMember inner = innerDictionary
+                ? new DictionaryMember { id = "nested-entry", name = "Item", kind = MemberKind.Dictionary, entryMemberId = "required-text" }
+                : new ListMember { id = "nested-entry", name = "Item", kind = MemberKind.List, entryMemberId = "required-text" };
+            JsonMember outer = outerDictionary
+                ? new DictionaryMember { id = "nested-field", name = "Nested", kind = MemberKind.Dictionary, entryMemberId = inner.id }
+                : new ListMember { id = "nested-field", name = "Nested", kind = MemberKind.List, entryMemberId = inner.id };
+            data.members[inner.id] = inner;
+            data.members[outer.id] = outer;
+            data.classes[RootClass].schema["Nested"] = outer.id;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var leaf = new StringMemberValue { id = "nested-text", value = "ok", containerId = "nested-inner" };
+            MemberValue innerRow = innerDictionary
+                ? new ObjectMemberValue { id = "nested-inner", value = new() { ["z"] = leaf.id } }
+                : new ArrayMemberValue { id = "nested-inner", value = new[] { leaf.id } };
+            object outerValue = outerDictionary ? new Dictionary<string, string> { ["a"] = innerRow.id } : new[] { innerRow.id };
+            Write(client, "Nested", NeoValueWritePayload.FromValue(new NeoValuePayload(outerValue, valueRows: new[] { innerRow, leaf })));
+            NeoMember nested = outerDictionary
+                ? client.save.Get<NeoMemberDictionaryWritable>("Nested")["a"]
+                : client.save.Get<NeoMemberListWritable>("Nested")[0];
+            string path = $"Root.Nested[{(outerDictionary ? "a" : "0")}][{(innerDictionary ? "z" : add ? "1" : "0")}]";
+            var error = Assert.Throws<System.ArgumentNullException>(() =>
+            {
+                var missing = NeoValueWritePayload.FromValue(null);
+                if (innerDictionary)
+                    ((NeoMemberDictionaryWritable)nested).SetSerialized("z", missing);
+                else if (add)
+                    ((NeoMemberListWritable)nested).AddSerialized(missing);
+                else
+                    ((NeoMemberListWritable)nested).SetSerialized(0, missing);
+            })!;
+            Assert.That(error.ParamName, Is.EqualTo("value"));
+            Assert.That(error.Message, Does.StartWith($"'{path}' is required and cannot store null."));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void ClrBoxCrossingsRetainIdentityInBothDirections(bool plain)

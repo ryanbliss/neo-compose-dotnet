@@ -266,6 +266,9 @@ namespace NeoCompose.Runtime
                 if (listeners is not null)
                     foreach (var (ownership, ownerId, memberId) in listeners.Changes)
                         DispatchMemberChange(ownership, ownerId, memberId);
+                if (listeners is not null)
+                    foreach (var (memberId, construction) in listeners.Statics)
+                        DispatchStaticChange(memberId, construction);
                 fields = deliveringFieldChanges;
             }
             finally

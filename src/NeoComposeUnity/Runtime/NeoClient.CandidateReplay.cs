@@ -1030,6 +1030,9 @@ namespace NeoCompose.Runtime
                             Plan.SetListenerEntry(entry.Key.ownership, entry.Key.rootId, entry.Key.ownerId, entry.Value, entry.Key.scope);
                     foreach (var binding in plan.Bindings)
                         Plan.Bind(binding.Key.ownership, binding.Key.memberId, binding.Value.present, binding.Value.valueId);
+                    if (plan.ConstructionBindings is not null)
+                        foreach (var binding in plan.ConstructionBindings)
+                            Plan.BindConstruction(binding.Key.ownership, binding.Key.memberId, binding.Key.construction, binding.Value);
                     foreach (var binding in plan.NodeBindings)
                         Plan.BindNode(binding.Key, binding.Value);
                     plan.NotifyCommitted();
@@ -1039,7 +1042,7 @@ namespace NeoCompose.Runtime
                     plan.NotifyCompleted();
                     return;
                 }
-                if (plan.Bindings.Count != 0)
+                if (plan.Bindings.Count != 0 || plan.ConstructionBindings?.Count > 0)
                     throw new InvalidOperationException("Stored constructor replay cannot change global bindings.");
                 foreach (var pair in plan.Rows)
                 {

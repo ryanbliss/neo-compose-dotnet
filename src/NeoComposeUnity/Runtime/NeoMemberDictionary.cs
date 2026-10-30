@@ -250,7 +250,7 @@ namespace NeoCompose.Runtime
         internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
             ObserveChildren();
-            client.RequireStoredValue(entryMember, setValue, $"{client.StoredMemberPath(member)}[{key}]");
+            client.RequireStoredValue(entryMember, setValue, $"[{key}]", pathContainerId: valueId, pathContainerMember: member);
             client.RequireSlotAdmits(entryMember, null, member.name, setValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
             client.RequireNoGenericStaticTargets(entryMember, null, member.name, setValue);
             var plan = new NeoWritePlan(client);

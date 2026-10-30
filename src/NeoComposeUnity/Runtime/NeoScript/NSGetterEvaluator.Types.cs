@@ -499,6 +499,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return type.WithRequired(true).Equals(from);
             if (type.Kind == TypeBindingKind.Closed && type.Head!.Type == MemberKind.Object && type.Head.ObjectType is null)
                 return true;
+            if (type.Kind == TypeBindingKind.Closed && from.Kind == TypeBindingKind.Closed
+                && from.Head!.Type is MemberKind.Class or MemberKind.Interface or MemberKind.NSDelegate
+                && type.Head!.Type is MemberKind.Interface or MemberKind.NSDelegate)
+                return NeoInterfaceDispatch.Of(ctx.client).Converts(from, type);
             if (type.Kind == TypeBindingKind.Closed && type.Head!.Type == MemberKind.Interface)
             {
                 InterfacesOf(from, ctx);

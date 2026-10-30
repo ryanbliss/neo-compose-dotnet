@@ -18,6 +18,8 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(InterfaceMemberConverter))]
     public class InterfaceMember
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? id;
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public NeoInterfaceMemberKind kind;
 

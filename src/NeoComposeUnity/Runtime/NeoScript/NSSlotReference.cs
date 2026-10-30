@@ -19,19 +19,21 @@ namespace NeoCompose.Runtime.NeoScript
         internal readonly string? Key;
 
         internal readonly string MemberId;
+        internal readonly TypeBinding? StaticConstruction;
 
-        private NSSlotPlace(object? owner, string? key, string memberId)
+        private NSSlotPlace(object? owner, string? key, string memberId, TypeBinding? staticConstruction = null)
         {
             Owner = owner;
             Key = key;
             MemberId = memberId;
+            StaticConstruction = staticConstruction;
         }
 
         internal bool IsStatic => Owner is null;
 
         internal static NSSlotPlace Member(object owner, string key, string memberId) => new(owner, key, memberId);
 
-        internal static NSSlotPlace Static(string memberId) => new(null, null, memberId);
+        internal static NSSlotPlace Static(string memberId, TypeBinding? construction = null) => new(null, null, memberId, construction);
     }
 
     /// <summary>

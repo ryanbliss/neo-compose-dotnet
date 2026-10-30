@@ -18,6 +18,37 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Member member;
+        internal Member Member => member;
+        internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnvironment => construction is null
+            ? NeoGenericResolution.EmptyEnv : NeoInterfaceDispatch.Of(client).Environment(construction);
+        private readonly TypeBinding? construction;
+
+        internal NeoStaticBinding(NeoClient client, Member member, TypeBinding construction)
+        {
+            this.client = client;
+            this.member = member;
+            this.construction = construction;
+            Ownership = client.ResolveStaticOwnership(member);
+        }
+
+        private bool Resolve(out string? valueId) => construction is null
+            ? client.TryResolveStaticBinding(member, Ownership, out valueId)
+            : client.TryResolveConstructionBinding(member, Ownership, construction, out valueId);
+
+        private void RecordAssignment(NeoWritePlan plan)
+        {
+            if (construction is not null && !client.IsInitializingStaticConstruction(construction))
+                plan.AfterCommit(() => client.QueueStaticChange(member.id, construction));
+        }
+
+        private void Bind(NeoWritePlan plan, string? valueId)
+        {
+            RecordAssignment(plan);
+            if (construction is null)
+                plan.Bind(Ownership, member.id, true, valueId);
+            else
+                plan.BindConstruction(Ownership, member.id, construction, valueId);
+        }
         // The registered node last resolved, reused while the binding still targets its row.
         private NeoMember? boundNode;
 
@@ -57,7 +88,7 @@ namespace NeoCompose.Runtime
             get
             {
                 client.EnsureNotDisposed();
-                client.TryResolveStaticBinding(member, Ownership, out string? valueId);
+                Resolve(out string? valueId);
                 return valueId;
             }
         }
@@ -74,7 +105,7 @@ namespace NeoCompose.Runtime
         {
             node = null;
             client.EnsureNotDisposed();
-            if (!client.TryResolveStaticBinding(member, Ownership, out string? valueId))
+            if (!Resolve(out string? valueId))
             {
                 return false;
             }
@@ -190,7 +221,7 @@ namespace NeoCompose.Runtime
             {
                 // P112 §4.1: only a class static unbinds; any other keeps
                 // its row, which references to it keep naming.
-                if (member is not ClassMember && client.TryResolveStaticBinding(member, Ownership, out _))
+                if (member is not ClassMember && Resolve(out _))
                     WritePayload(null);
                 else
                     Clear();
@@ -204,7 +235,7 @@ namespace NeoCompose.Runtime
         internal void BindEmpty()
         {
             EnsureWritable();
-            if (client.TryResolveStaticBinding(member, Ownership, out _))
+            if (Resolve(out _))
                 return;
             WritePayload(null);
         }
@@ -231,7 +262,14 @@ namespace NeoCompose.Runtime
         public void Clear()
         {
             EnsureWritable();
-            client.SetStaticBinding(member.id, Ownership, null);
+            if (construction is null)
+                client.SetStaticBinding(member.id, Ownership, null);
+            else
+            {
+                var plan = new NeoWritePlan(client);
+                Bind(plan, null);
+                plan.Commit();
+            }
         }
 
         /// <summary>
@@ -265,7 +303,7 @@ namespace NeoCompose.Runtime
             string valueId;
             NeoTimestamp createdAt = nowIso;
             MemberValue? previous = null;
-            if (client.TryResolveStaticBinding(member, Ownership, out string? currentValueId))
+            if (Resolve(out string? currentValueId))
             {
                 valueId = currentValueId;
                 if (!client.TryGetOverlaidValue(Ownership, valueId, out previous))
@@ -280,7 +318,7 @@ namespace NeoCompose.Runtime
                 // P112 §4.1: a slot's first row is created at its derived
                 // id, which references formed before it already name. A
                 // class static is a handle and gets a fresh id.
-                valueId = member is ClassMember
+                valueId = construction is not null || member is ClassMember
                     ? System.Guid.NewGuid().ToString()
                     : NeoScript.NSGetterEvaluator.StaticSlotId(member.id);
             }
@@ -309,8 +347,12 @@ namespace NeoCompose.Runtime
             }
             client.StageInPlaceReplacement(plan, Ownership, row, member, beforeRemovals: beforeRemovals);
             if (currentValueId is null)
-                plan.Bind(Ownership, member.id, true, valueId);
-            NeoTypeSources.PlaceCreatedRoot(client, plan, valueId, member);
+                Bind(plan, valueId);
+            if (construction is null)
+                NeoTypeSources.PlaceCreatedRoot(client, plan, valueId, member);
+            else
+                NeoTypeSources.PlaceStaticConstructionRoot(client, plan, valueId, member, construction);
+            RecordAssignment(plan);
             return valueId;
         }
 
@@ -373,7 +415,7 @@ namespace NeoCompose.Runtime
                 stamped.mapKey = expectedMapKey;
                 plan.Set(Ownership, stamped);
             }
-            plan.Bind(Ownership, member.id, true, importedValueId);
+            Bind(plan, importedValueId);
             NeoTypeSources.PlaceCreatedRoot(client, plan, importedValueId, member);
             if (movedValueIds is not null)
             {

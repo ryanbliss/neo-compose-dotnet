@@ -1888,6 +1888,8 @@ namespace NeoCompose.Runtime
             SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
+                if (data.interfaces.Values.Any(owner => owner.members.Values.Any(declaration => declaration.IsStatic && declaration.implementationMemberId == member.id)))
+                    return null;
                 throw new System.InvalidOperationException(
                     $"Static member '{member.id}' has no declaring Class.");
             }
@@ -1940,6 +1942,8 @@ namespace NeoCompose.Runtime
             SchemaPlacement? placement = FindSchemaPlacement(member.id);
             if (placement is null)
             {
+                if (data.interfaces.Values.Any(owner => owner.members.Values.Any(declaration => declaration.IsStatic && declaration.implementationMemberId == member.id)))
+                    return NeoValueOwnership.Session;
                 throw new System.InvalidOperationException(
                     $"Static member '{member.id}' has no declaring Class.");
             }
@@ -2268,7 +2272,7 @@ namespace NeoCompose.Runtime
                     id => data.classes.TryGetValue(id, out NeoSchemaClass match)
                         ? match
                         : null);
-                node = new NeoClassNode(classId, chain, data.members, ClassHooks(chain));
+                node = new NeoClassNode(this, classId, chain, data.members, ClassHooks(chain));
                 classNodes.Add(classId, node);
             }
             return node;
@@ -2312,11 +2316,58 @@ namespace NeoCompose.Runtime
             SchemaOwnerClassId(member.id) is string owner && TryGetClass(owner, out NeoSchemaClass? type)
                 ? $"{type.name}.{member.name}" : member.name;
 
-        internal string StoredRowPath(string id) =>
-            TryInferMemberForValueId(id, out Member? member) ? StoredMemberPath(member) : id;
+        internal string StoredRowPath(string id, Member? fallback = null)
+        {
+            var visiting = RentIdSet();
+            try
+            {
+                return PathOf(id);
+            }
+            finally
+            {
+                ReturnIdSet(visiting);
+            }
+
+            string PathOf(string rowId)
+            {
+                TryInferMemberForValueId(rowId, out Member? member);
+                if (member is not null && SchemaOwnerClassId(member.id) is not null)
+                    return StoredMemberPath(member);
+                if (visiting.Add(rowId))
+                {
+                    if (TryGetValue(rowId, out MemberValue? row) && row.containerId is string parentId
+                        && TryGetValue(parentId, out MemberValue? parent)
+                        && ChildPath(rowId, parentId, parent) is string stampedPath)
+                        return stampedPath;
+                    // Ordered collections can place their children through links without a
+                    // containerId stamp. The same parent index serves member inference.
+                    foreach (var parentEntry in InferMemberParents(rowId))
+                        if (ChildPath(rowId, parentEntry.Key, parentEntry.Value) is string indexedPath)
+                            return indexedPath;
+                }
+                return member is not null ? StoredMemberPath(member)
+                    : fallback is not null ? StoredMemberPath(fallback) : rowId;
+            }
+
+            string? ChildPath(string childId, string parentId, MemberValue parent)
+            {
+                if (parent is ArrayMemberValue { value: { } entries })
+                {
+                    int index = System.Array.IndexOf(entries, childId);
+                    if (index >= 0)
+                        return $"{PathOf(parentId)}[{index}]";
+                }
+                else if (parent is ObjectMemberValue { value: { } entriesByKey })
+                    foreach (var pair in entriesByKey)
+                        if (pair.Value == childId)
+                            return $"{PathOf(parentId)}[{pair.Key}]";
+                return null;
+            }
+        }
 
         /// <summary>One stored-null rule for host and evaluator writes, including aggregate payloads.</summary>
-        internal void RequireStoredValue(Member member, object? value, string? path = null, bool script = false, string? ownerClassName = null)
+        internal void RequireStoredValue(Member member, object? value, string? path = null, bool script = false, string? ownerClassName = null,
+            string? pathContainerId = null, Member? pathContainerMember = null)
         {
             object? scalar = value is NeoValueWritePayload { isValueReference: false } write ? write.value : value;
             if (scalar is not null and not (NeoValuePayload or NeoValueWritePayload or INeoValuePayloadProvider)
@@ -2359,6 +2410,11 @@ namespace NeoCompose.Runtime
                 {
                     if (slot.Requirement != NeoMemberRequirementKind.Required)
                         return;
+                    // Container positions can require a search. Resolve them only for a refusal.
+                    if (pathContainerId is not null)
+                        location = StoredRowPath(pathContainerId, pathContainerMember) + location;
+                    else if (pathContainerMember is not null)
+                        location = StoredMemberPath(pathContainerMember) + location;
                     int separator = location.IndexOf('.');
                     if (separator > 0 && TryGetClass(location.Substring(0, separator), out NeoSchemaClass? owner))
                         location = owner.name + location.Substring(separator);
@@ -2768,6 +2824,8 @@ namespace NeoCompose.Runtime
                     if (pair.Value.kind != NeoInterfaceMemberKind.Property
                         || pair.Value.IsStatic
                         || !pair.Value.IsSettable
+                        || pair.Value.SetterAccess == NeoMemberAccessKind.Private
+                        || pair.Value.implementationMemberId is not null
                         || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
                     {
                         continue;
@@ -4442,6 +4500,12 @@ namespace NeoCompose.Runtime
             string valueId,
             [NotNullWhen(true)] out Member? owner)
         {
+            if (ConstructionOfValue(ownership, valueId) is { } construction && TryGetMember(construction.memberId, out var constructedMember))
+            {
+                owner = NeoGenericResolution.SubstituteMember(this, constructedMember,
+                    NeoInterfaceDispatch.Of(this).Environment(construction.construction));
+                return true;
+            }
             if (ValueInferenceIndex.MembersByValueId.TryGetValue(valueId, out var declared))
             {
                 foreach (Member member in declared)
@@ -10094,9 +10158,9 @@ namespace NeoCompose.Runtime
                     foreach (string ownerId in owners)
                         plan.SetListenerEntry(PersistedOwnership, rootId, ownerId, after?.GetValueOrDefault(ownerId));
                 }
+                plan.ReplacesStaticConstructions = true;
+                plan.StaticConstructionSnapshot = incoming.staticConstructions;
                 plan.Commit();
-                // Carried, not bound: the SDK reads no generic static construction yet.
-                PersistedData.staticConstructions = incoming.staticConstructions;
                 AdoptPendingSaveRows(pending);
             }
             finally

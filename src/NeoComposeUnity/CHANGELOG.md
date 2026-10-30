@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+- Interface calls select the class's direct, virtual or explicit implementation for the requested closed interface construction.
+- Implicit interface implementations match the closed parameter, result and property types when a class implements several constructions of the same interface.
+- Interface defaults select the most specific override for each construction and run with the construction the class implements, including calls through a variant interface.
+- Static abstract and virtual interface members resolve through a constrained type parameter for calls, property access and method groups.
+- Interface getters, setters and `init` accessors resolve independently and respect each accessor's accessibility.
+- Class auto-properties support separate getter, setter and `init` accessors.
+- Declared-constructor object initializer assignments run their setters in source order.
+- Bodied property overrides retain the inherited field or auto-property's storage; `base.V` reads and writes use the selected base accessor or backing slot.
+- Interface and delegate casts, `is` and `as` use reference-type variance while keeping value-type arguments invariant.
+- Generic class and interface statics keep separate state for each closed construction, including inherited statics.
+- Generic static initializers run in declaration order in their owner's scope; an earlier initializer's write does not suppress a later field initializer or get lost at publication.
+- Each closed construction gets fresh mutable initializer values, including collections assigned by a constructor.
+- Recursive generic static initialization reads current or default values.
+- A failed generic static construction keeps throwing the same type-initialization failure, catchable as `NeoError`.
+- Loading a partially saved static construction initializes fields the save lacks while preserving restored fields.
+- Generic static values survive save round-trips and client reloads.
+- Construction-specific external save changes and reverse patches update the matching static binding.
+- Static change listeners notify once per changed construction in a dispatch batch; initialization and in-place collection edits do not notify.
+- Same-owner static change handlers run in the construction that changed.
+- Static change listener subscriptions remain in memory and are not restored from a save.
+- Saved closures retain their source `site` and `NeoDelegateValue.declaringConstruction`, so a closure stored in a Save field uses its original generic construction after reload.
+- Stored null guards use the closed binding's requirement for `T` slots; `T?` slots remain nullable when bound to reference types.
+- Null writes into nested stored collections report the full member path, such as `NestedListK.L[0][0]`; host list and dictionary writes throw `ArgumentNullException` with that path and `ParamName` equal to `"value"`.
+- Duplicate static-construction save entries report the member label: `Save holds two entries for static 'Box<T>.Shared' of construction 'Box<int>'.`
+- Function generic constraints accept nullable class, interface and general Enum constraints; a specific enum constraint remains non-nullable.
+- Add `InterfaceMember.id` and `InterfaceMemberRef` with `interfaceId`, `memberId` and `arguments` to identify an interface declaration and its construction in exported IR.
+- Add `interfaceMember`, `direct` and `staticConstruction` to `CallFunctionPointer`, `CallGetterPointer` and `MemberTargetPointer` for construction-aware dispatch.
+- Add `MemberTargetPointer.typeArguments` to retain method generic arguments in a method group.
+- Add `StaticMemberPointer.staticConstruction` and `CallReceiver.staticConstruction` to address a static on a closed generic construction.
+- Add `TypeParameterStaticPointer` with `typeParameter`, `interfaceMember` and `operation`, and `TypeParameterStaticOperation` with `kind`, `args`, `typeArguments`, `callSiteId` and `delegateType`, for static interface operations through a type parameter.
+- Add `ChangeListenerTarget.kind`; `"static"` selects an ownerless static listener target, and an absent kind retains an instance target.
+- Add `DelegateClosurePointer.site` to preserve a compiled closure's source identity.
+
 - Copy resolved instance defaults during `Clone()` without rerunning constructors, preserving mutable ownership, internal bindings, and external dependencies. Identity-seeded random defaults retain replay so saves reload consistently.
 - Update only changed ownership indexes when moving an existing instance between stores.
 - Remove whole-project schema, dialogue, and animation contract scans from ordinary loading. The SDK test harness retains these checks; runtime mutation and placement checks remain.
@@ -35,7 +68,7 @@
 - Calls reject non-null stored defaults on `object`, `ValueType`, `Enum` and interface parameters, naming the callable, parameter and declared type. `= default` on a generic parameter still uses its closed binding's default.
 
 - Requires Unity export schema 47 and the matching CLI release. That CLI release must require this SDK version.
-- Breaking save shape: `staticBindings` keys only plain member ids. Each closed construction of a static on a generic class or interface is an entry of the new `staticConstructions` array, `{ memberId, construction, value }`, where `construction` is the closed Class or Interface type binding and a null `value` is the tombstone. The SDK keeps these entries through load, save and external apply, but binds no generic static yet. A save is refused when a `staticBindings` key contains `<`, or a construction has no member id, doesn't name a closed Class or Interface, leaves a type parameter unbound, holds a nullable reference type argument, names a class other than the member's class, or repeats a member and construction pair. The C# type is `NeoStaticConstruction`.
+- Breaking save shape: `staticBindings` keys only plain member ids. Each closed construction of a static on a generic class or interface is an entry of the new `staticConstructions` array, `{ memberId, construction, value }`, where `construction` is the closed Class or Interface type binding and a null `value` is the tombstone. The SDK keeps these entries through load, save and external apply and binds each closed construction separately. A save is refused when a `staticBindings` key contains `<`, or a construction has no member id, doesn't name a closed Class or Interface, leaves a type parameter unbound, holds a nullable reference type argument, names a class other than the member's class, or repeats a member and construction pair. The C# type is `NeoStaticConstruction`.
 - Static constructions sync as `static-construction` game-save records. Each record has a server-minted id and data `{ memberId, construction, valueId }`; the SDK loads and deletes them by record id and treats one member and construction pair as one entry. The save changes `static-binding.set` and `static-binding.restore-to-authored` take an optional `construction`, the closed Class or Interface type binding, which targets that construction instead of the plain static. The C# field is `construction` on `GameSaveStaticBindingSetChange` and `GameSaveStaticBindingRestoreToAuthoredChange`. A chunked create that repeats a member and construction pair is refused.
 - Saves are written at format revision 3, which older SDKs refuse to load. An older save is upgraded once on load, each change logged: an int, or a `Vector2Int` or `Vector3Int` component, outside the int range saturates to `int.MinValue` or `int.MaxValue`, and a null in a `T?` slot bound to a value type becomes `default(T)`. Any other null in a non-nullable slot keeps the save below revision 3. A revision-3 save holding either is refused; a refused partition load or external apply throws the new `NeoSaveValueRefusedException` and changes nothing.
 - Where saturation makes two `Set<int>`, `Set<Vector2Int>` or `Set<Vector3Int>` entries equal, the first in stored order is kept and the other is removed and logged. A `Set<int>` with a comparer keeps every saturated entry, since only its comparer can say whether two are equal.

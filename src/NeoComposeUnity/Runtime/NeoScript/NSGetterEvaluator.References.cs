@@ -41,10 +41,10 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         if (!ctx.client.TryGetMember(staticPointer.memberId, out JsonMember? member))
                             throw new NSGetterRuntimeError($"Static member '{staticPointer.memberId}' is missing, so it has no row to reference.");
-                        string targetId = ctx.client.TryResolveStaticBinding(member.id, out _, out _, out string? boundId)
-                            ? boundId
-                            : StaticSlotId(member.id);
-                        return new NSSlotReference(targetId, NSSlotPlace.Static(member.id), null, null);
+                        TypeBinding? construction = staticPointer.staticConstruction is null ? null : RuntimeTypeOf(CloseContextType(staticPointer.staticConstruction, ctx));
+                        var binding = ResolveStaticBinding(member.id, staticPointer.staticConstruction, ctx);
+                        string targetId = binding.ValueId ?? StaticSlotId(member.id);
+                        return new NSSlotReference(targetId, NSSlotPlace.Static(member.id, construction), null, null);
                     }
                 case ReferencePointer reference:
                     return new NSSlotReference(ProvenanceRowId(reference, ctx), null, pointer.typeInfo, null);
@@ -198,7 +198,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A slot's value, as a member read sees it.</summary>
         internal static object? ReadSlot(NSSlotPlace place, Context ctx) =>
             place.IsStatic
-                ? ReadStaticMember(place.MemberId, ctx)
+                ? ReadStaticMember(place.MemberId, ctx, place.StaticConstruction is null ? null : NeoTypeBindings.ToTypeInfo(place.StaticConstruction))
                 : ReadRecordKey(place.Owner!, place.Key!, ctx);
 
         /// <summary>A record's key as a member read sees it.</summary>
@@ -281,6 +281,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             containerId = null;
             string rowId = reference.TargetId;
+            if (ctx.client.TryGetValueOwnership(rowId, out var ownership)
+                && ctx.client.ConstructionOfValue(ownership, rowId) is { } construction)
+                return NSSlotPlace.Static(construction.memberId, construction.construction);
             if (!ctx.client.TryInferMemberForValueId(rowId, out JsonMember? member))
                 return null;
             if (member.Modifier == NeoMemberModifierKind.Static
