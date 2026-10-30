@@ -36,17 +36,38 @@ namespace NeoCompose.Runtime.NeoScript
             return PrimitiveCompare(a, b, type, false, ctx);
         }
 
-        private static string ClrTypeName(TypeBinding type, Context ctx) => type.Head!.Type switch
+        private static string ClrTypeName(TypeBinding type, Context ctx)
         {
-            MemberKind.Int => "System.Int32",
-            MemberKind.Float => "System.Single",
-            MemberKind.Decimal => "System.Decimal",
-            MemberKind.Bool => "System.Boolean",
-            MemberKind.String => "System.String",
-            MemberKind.Vector2 or MemberKind.Vector2Int or MemberKind.Vector3 or MemberKind.Vector3Int or MemberKind.Color => "UnityEngine." + type.Head.Type,
-            MemberKind.Tuple => $"System.ValueTuple`{type.Bindings!.Count}[{string.Join(",", Enumerable.Range(0, type.Bindings.Count).Select(index => ClrTypeName(type.At(index), ctx)))}]",
-            _ => TypeName(type, ctx),
-        };
+            if (!type.Head!.Required && TypeBindings.IsValueType(type.Head))
+                return $"System.Nullable`1[{ClrTypeName(type.WithRequired(true), ctx)}]";
+            return type.Head.Type switch
+            {
+                MemberKind.Int => "System.Int32",
+                MemberKind.Float => "System.Single",
+                MemberKind.Decimal => "System.Decimal",
+                MemberKind.Bool => "System.Boolean",
+                MemberKind.String => "System.String",
+                MemberKind.Enum when type.Head.EnumId == NeoPrimitiveConformance.NumberStylesEnumId => "System.Globalization.NumberStyles",
+                MemberKind.Enum when type.Head.EnumId == NeoPrimitiveConformance.DigitShapesEnumId => "System.Globalization.DigitShapes",
+                MemberKind.Vector2 or MemberKind.Vector2Int or MemberKind.Vector3 or MemberKind.Vector3Int or MemberKind.Color => "UnityEngine." + type.Head.Type,
+                MemberKind.Tuple => ClrTupleTypeName(type, 0, ctx),
+                MemberKind.Object when type.Head.ObjectType is null => "System.Object",
+                MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.Enum => "System.Enum",
+                MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.ValueType => "System.ValueType",
+                _ => TypeName(type, ctx),
+            };
+        }
+
+        private static string ClrTupleTypeName(TypeBinding type, int start, Context ctx)
+        {
+            int remaining = type.Bindings!.Count - start;
+            var names = new string[Math.Min(remaining, 8)];
+            for (int i = 0; i < Math.Min(remaining, 7); i++)
+                names[i] = ClrTypeName(type.At(start + i), ctx);
+            if (remaining > 7)
+                names[7] = ClrTupleTypeName(type, start + 7, ctx);
+            return $"System.ValueTuple`{names.Length}[{string.Join(",", names)}]";
+        }
 
         private static object?[] TupleObjectElements(RuntimeTuple tuple, TypeBinding type) =>
             tuple.Select((value, index) => value is null or NeoBox ? value
