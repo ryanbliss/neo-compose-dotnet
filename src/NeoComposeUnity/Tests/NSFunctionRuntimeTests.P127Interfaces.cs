@@ -514,6 +514,87 @@ namespace NeoCompose.Tests
             Assert.That(Read(missing.id), Is.EqualTo(17));
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void P127Interface_StaticInitializersPreserveSiblingWritesInDeclarationOrder(bool reversed, bool compiledSibling)
+        {
+            IntMember Field(string id) => new()
+            {
+                id = id,
+                projectId = ProjectId,
+                name = id,
+                kind = MemberKind.Int,
+                Modifier = NeoMemberModifierKind.Static,
+                Storage = NeoMemberStorage.Save,
+                Requirement = NeoMemberRequirementKind.Required,
+                valueId = id + "-template"
+            };
+            var a = Field("A");
+            var b = Field("B");
+            var constructionType = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = "receiver-class",
+                typeArguments = new() { ["T"] = IntType() }
+            };
+            var bPointer = new StaticMemberPointer { memberId = b.id, staticConstruction = constructionType };
+            var bump = ScriptFunction("Bump", "Bump", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
+                    new AssignInstruction
+                    {
+                        operatorValue = "=",
+                        pointer = Add(bPointer, Number(10)),
+                        target = new() { pointer = bPointer, typeInfo = IntType(), writability = WritabilityKind.Save }
+                    }, Return(bPointer)));
+            bump.Modifier = NeoMemberModifierKind.Static;
+            var owner = ReceiverClass(("A", a.id), ("B", b.id), ("Bump", bump.id));
+            owner.genericParams = new() { new() { id = "T", name = "T" } };
+            owner.schemaKeyOrder = reversed ? new[] { "A", "B", "Bump" } : new[] { "B", "A", "Bump" };
+            var call = new CallFunctionPointer
+            {
+                memberId = bump.id,
+                args = Array.Empty<Pointer>(),
+                staticConstruction = constructionType,
+                receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = bump.id },
+                callSiteId = "static-bump"
+            };
+            using var client = BuildClient(new NeoCompose.Runtime.Json.Member[] { a, b, bump }, owner,
+                additionalValues: new MemberValue[]
+                {
+                    new NumberMemberValue
+                    {
+                        id = a.valueId!, createdAt = "x", updatedAt = "x",
+                        init = new() { code = "Bump()", compiled = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(call)) }
+                    },
+                    new NumberMemberValue
+                    {
+                        id = b.valueId!, value = 5, createdAt = "x", updatedAt = "x",
+                        init = compiledSibling ? new InitializerBody { code = "5", compiled = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(5))) } : null
+                    }
+                });
+            var before = JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!;
+            var construction = NeoTypeBindings.FromTypeInfo(constructionType);
+            int? Read(NeoClient source, string id) => NeoGeneratedTypesSupport.ReadInt(source.ConstructedStaticBinding(id, construction).GetRequiredNode<NeoMemberInt>());
+            Assert.That(Read(client, a.id), Is.EqualTo(reversed ? 10 : 15), "The initializer observes the sibling at its position in declaration order.");
+            Assert.That(Read(client, b.id), Is.EqualTo(reversed ? 5 : 15), "A later initializer runs, and a later write remains visible.");
+            string saved = client.SerializeSaveData();
+            var snapshot = JsonConvert.DeserializeObject<ProjectSaveData>(saved)!;
+            var roots = new HashSet<string>();
+            foreach (var entry in snapshot.staticConstructions!)
+                if (entry.construction.Equals(construction))
+                    Assert.That(roots.Add(entry.value!), Is.True);
+            Assert.That(roots, Has.Count.EqualTo(2));
+            foreach (string id in snapshot.values.Keys)
+                if (!before.values.ContainsKey(id))
+                    Assert.That(roots.Contains(id), Is.True, "Initialization must not leave an orphaned row: " + id);
+            using var restored = NeoTestSaveStack.ClientFromSchema(client.ProjectDataForRuntime, loadedSaveContent: saved);
+            Assert.That(Read(restored, a.id), Is.EqualTo(reversed ? 10 : 15));
+            Assert.That(Read(restored, b.id), Is.EqualTo(reversed ? 5 : 15));
+        }
+
         [Test]
         public void P127Interface_CandidateConstructionOwnersFollowRebindTombstoneAndRollback()
         {

@@ -20,6 +20,7 @@ namespace NeoCompose.Runtime
         }
         private readonly Dictionary<TypeBinding, StaticConstructionState> staticConstructionStates = new();
         private object? staticConstructionSchema;
+        private readonly Stack<NeoWritePlan> staticInitializationPlans = new();
         private sealed class ConstructionIndex
         {
             internal List<NeoStaticConstruction>? Source;
@@ -122,56 +123,67 @@ namespace NeoCompose.Runtime
                     var resolved = NeoGenericResolution.SubstituteMember(this, member, environment);
                     state.Bindings[member.id] = new NeoStaticBinding(this, resolved, construction);
                 }
-                // Saved fields keep their values; new and session fields still initialize in declaration order.
-                if (fields.Any(member => ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is null))
+                // Only bindings present before initialization are restored values. A sibling's
+                // initializer may write this field, but that does not replace its initializer.
+                var restored = fields.Where(member => ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is not null)
+                    .Select(member => member.id).ToHashSet();
+                if (restored.Count != fields.Count)
                 {
                     var plan = new NeoWritePlan(this, requiredSaveFormatRevision: 3);
-                    using (ReadCandidate(plan))
-                        foreach (var member in fields)
-                        {
-                            if (ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is not null)
-                                continue;
-                            var binding = state.Bindings[member.id];
-                            InitializerBody? initializer = member.valueId is string sourceId
-                                ? plan.Resolve(NeoValueOwnership.Asset, sourceId)?.init : MemberValueFactory.InitializerOf(member);
-                            if (initializer is not null)
+                    staticInitializationPlans.Push(plan);
+                    try
+                    {
+                        using (ReadCandidate(plan))
+                            foreach (var member in fields)
                             {
-                                var context = CreateGetterContext(binding.Ownership);
-                                context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
-                                object? value = NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null,
-                                    binding.Member, initializer, environment, construction);
-                                if (binding.Member is ClassMember && value is not null)
+                                if (restored.Contains(member.id))
+                                    continue;
+                                var binding = state.Bindings[member.id];
+                                InitializerBody? initializer = member.valueId is string sourceId
+                                    ? plan.Resolve(NeoValueOwnership.Asset, sourceId)?.init : MemberValueFactory.InitializerOf(member);
+                                if (initializer is not null)
                                 {
-                                    var reference = NSGetterEvaluator.ConstructorReferenceOf(value, context)
-                                        ?? throw new NSGetterRuntimeError($"Static initializer '{member.name}' produced no class identity.");
-                                    string imported = NeoScriptExecutor.ImportClassValueReference(plan, this, binding.Ownership, reference.valueId, context);
-                                    plan.BindConstruction(binding.Ownership, member.id, construction, imported);
+                                    var context = CreateGetterContext(binding.Ownership);
+                                    context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
+                                    object? value = NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null,
+                                        binding.Member, initializer, environment, construction);
+                                    if (binding.Member is ClassMember && value is not null)
+                                    {
+                                        var reference = NSGetterEvaluator.ConstructorReferenceOf(value, context)
+                                            ?? throw new NSGetterRuntimeError($"Static initializer '{member.name}' produced no class identity.");
+                                        string imported = NeoScriptExecutor.ImportClassValueReference(plan, this, binding.Ownership, reference.valueId, context);
+                                        ReplaceConstructionRoot(plan, binding, construction, imported);
+                                    }
+                                    else
+                                    {
+                                        object? payload = binding.Member is ObjectMember objectMember && value is NeoBox or NeoTypeValue
+                                            ? NeoGeneratedTypesSupport.EvaluatorObjectPayload(this, objectMember, binding.Ownership, value!, context, Guid.NewGuid().ToString(), plan)
+                                            : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment);
+                                        binding.PreparePayload(plan, payload);
+                                    }
+                                }
+                                else if (member.valueId is string template)
+                                {
+                                    string copy = PrepareFreshClone(plan, binding.Ownership, NeoValueOwnership.Asset, template,
+                                        binding.Member, ListenerCopyIntent.ConstructionProjection, null);
+                                    ReplaceConstructionRoot(plan, binding, construction, copy);
+                                    NeoTypeSources.PlaceStaticConstructionRoot(this, plan, copy, binding.Member, construction);
                                 }
                                 else
                                 {
-                                    object? payload = binding.Member is ObjectMember objectMember && value is NeoBox or NeoTypeValue
-                                        ? NeoGeneratedTypesSupport.EvaluatorObjectPayload(this, objectMember, binding.Ownership, value!, context, Guid.NewGuid().ToString(), plan)
-                                        : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment);
-                                    binding.PreparePayload(plan, payload);
+                                    TypeInfo type = NeoTypeRules.BindingTypeInfo(this, binding.Member)!;
+                                    binding.PreparePayload(plan, NSGetterEvaluator.DefaultOf(type, this));
                                 }
                             }
-                            else if (member.valueId is string template)
-                            {
-                                string copy = PrepareFreshClone(plan, binding.Ownership, NeoValueOwnership.Asset, template,
-                                    binding.Member, ListenerCopyIntent.ConstructionProjection, null);
-                                plan.BindConstruction(binding.Ownership, member.id, construction, copy);
-                                NeoTypeSources.PlaceStaticConstructionRoot(this, plan, copy, binding.Member, construction);
-                            }
-                            else
-                            {
-                                TypeInfo type = NeoTypeRules.BindingTypeInfo(this, binding.Member)!;
-                                binding.PreparePayload(plan, NSGetterEvaluator.DefaultOf(type, this));
-                            }
-                        }
-                    // Initializers can commit writes to other statics. This plan publishes
-                    // the new construction's bindings after those synchronous side effects.
-                    plan.Rebase();
-                    plan.Commit();
+                        // Synchronous side effects commit independently. Their overlapping
+                        // rows have already refreshed this candidate before its publication.
+                        plan.Rebase();
+                        plan.Commit();
+                    }
+                    finally
+                    {
+                        staticInitializationPlans.Pop();
+                    }
                 }
                 state.Initialized = true;
             }
@@ -184,6 +196,21 @@ namespace NeoCompose.Runtime
             {
                 state.Initializing = false;
             }
+        }
+
+        private void RefreshStaticInitializationPlans(NeoWritePlan committed)
+        {
+            foreach (var pending in staticInitializationPlans)
+                if (!ReferenceEquals(pending, committed))
+                    pending.RefreshCommittedOverlaps(committed);
+        }
+
+        private void ReplaceConstructionRoot(NeoWritePlan plan, NeoStaticBinding binding, TypeBinding construction, string valueId)
+        {
+            string? previous = binding.ValueId;
+            plan.BindConstruction(binding.Ownership, binding.MemberId, construction, valueId);
+            if (previous is not null && previous != valueId)
+                StageUnlinkedRemovals(plan, binding.Ownership, previous, binding.Member);
         }
 
         private NeoRuntimeError StaticInitializationError(TypeBinding construction, Exception cause) =>
