@@ -122,14 +122,15 @@ namespace NeoCompose.Runtime
                     var resolved = NeoGenericResolution.SubstituteMember(this, member, environment);
                     state.Bindings[member.id] = new NeoStaticBinding(this, resolved, construction);
                 }
-                // A touched construction restored from a save is already initialized.
-                bool restored = fields.Any(member => ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is not null);
-                if (!restored)
+                // Saved fields keep their values; new and session fields still initialize in declaration order.
+                if (fields.Any(member => ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is null))
                 {
                     var plan = new NeoWritePlan(this, requiredSaveFormatRevision: 3);
                     using (ReadCandidate(plan))
                         foreach (var member in fields)
                         {
+                            if (ConstructionEntry(ResolveStaticOwnership(member), member.id, construction) is not null)
+                                continue;
                             var binding = state.Bindings[member.id];
                             InitializerBody? initializer = member.valueId is string sourceId
                                 ? plan.Resolve(NeoValueOwnership.Asset, sourceId)?.init : MemberValueFactory.InitializerOf(member);
@@ -167,6 +168,9 @@ namespace NeoCompose.Runtime
                                 binding.PreparePayload(plan, NSGetterEvaluator.DefaultOf(type, this));
                             }
                         }
+                    // Initializers can commit writes to other statics. This plan publishes
+                    // the new construction's bindings after those synchronous side effects.
+                    plan.Rebase();
                     plan.Commit();
                 }
                 state.Initialized = true;
@@ -192,10 +196,8 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset)
                 return null;
-            if (candidateReadPlan?.ConstructionBindings is { } candidates)
-                foreach (var pair in candidates)
-                    if (pair.Key.ownership == ownership && pair.Value == valueId)
-                        return new NeoStaticConstruction { memberId = pair.Key.memberId, construction = pair.Key.construction, value = valueId };
+            if (candidateReadPlan?.ConstructionOfValue(ownership, valueId) is { } candidate)
+                return candidate;
             if (ConstructionEntries(ownership).ByValue.TryGetValue(valueId, out var owners))
                 foreach (var entry in owners)
                     if (candidateReadPlan?.ConstructionBindings?.TryGetValue((ownership, entry.memberId, entry.construction), out var proposed) != true
