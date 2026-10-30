@@ -476,7 +476,7 @@ namespace NeoCompose.Runtime
             return await NeoClient.CreateAsync(
                 userSynchronizer,
                 content,
-                NeoAssetDatabase.LoadDefault(),
+                await NeoAssetDatabase.LoadDefaultAsync(),
                 localization,
                 options,
                 CancellationToken.None,

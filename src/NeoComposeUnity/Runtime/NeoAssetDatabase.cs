@@ -5,6 +5,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -35,7 +37,47 @@ namespace NeoCompose.Runtime
         /// </summary>
         public static NeoAssetDatabase? LoadDefault()
         {
-            return Resources.Load<NeoAssetDatabase>(NeoComposeDefaults.AssetDatabaseResourcePath);
+            var database = Resources.Load<NeoAssetDatabase>(NeoComposeDefaults.AssetDatabaseResourcePath);
+            // Preserve synchronous callers' eager asset preparation. Async loaders
+            // load the database directly so they can schedule these clips separately.
+            if (database != null)
+            {
+                foreach (var entry in database.files)
+                    _ = entry.AudioClip;
+            }
+            return database;
+        }
+
+        /// <summary>
+        /// Loads the default database and prepares its audio clips before gameplay.
+        /// Enable background loading in audio import settings to keep decoding off
+        /// the main thread. Clips with preloadAudioData disabled remain on demand.
+        /// </summary>
+        public static async Awaitable<NeoAssetDatabase?> LoadDefaultAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var request = Resources.LoadAsync<NeoAssetDatabase>(NeoComposeDefaults.AssetDatabaseResourcePath);
+            await request;
+            cancellationToken.ThrowIfCancellationRequested();
+            var database = request.asset as NeoAssetDatabase;
+            if (database != null)
+                await database.PreloadAudioAsync(cancellationToken);
+            return database;
+        }
+
+        /// <summary>
+        /// Loads synchronized audio references and waits for preloaded background
+        /// audio data. Resources assets load asynchronously; references outside
+        /// Resources resolve synchronously. Unity's audio import settings control
+        /// whether decoding runs in the background.
+        /// </summary>
+        public async Awaitable PreloadAudioAsync(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            foreach (var entry in files)
+            {
+                await entry.PreloadAudioAsync(cancellationToken);
+            }
         }
 
         /// <summary>
@@ -146,7 +188,7 @@ namespace NeoCompose.Runtime
                 return null;
             foreach (var entry in files)
             {
-                if (entry.AudioClip == audioClip)
+                if (entry.HasAudioClip(audioClip))
                     return entry;
             }
 
@@ -333,7 +375,7 @@ namespace NeoCompose.Runtime
     /// Serialized mapping for a single synchronized file-backed Unity asset.
     /// </summary>
     [Serializable]
-    public sealed class NeoAssetDatabaseEntry
+    public sealed class NeoAssetDatabaseEntry : ISerializationCallbackReceiver
     {
         [SerializeField]
         private string fileId = "";
@@ -355,8 +397,11 @@ namespace NeoCompose.Runtime
         private string importSettingsVersion = "";
         [SerializeField]
         private Sprite[] sprites = Array.Empty<Sprite>();
+        // Keep the field name: Unity serializes lazy references with the same PPtr
+        // shape as the old direct reference, so existing exports need no migration.
         [SerializeField]
-        private AudioClip? audioClip;
+        private LazyLoadReference<AudioClip> audioClip;
+        [NonSerialized] private AudioClip? loadedAudioClip;
 
         /// <summary>Neo Compose file id.</summary>
         public string FileId
@@ -439,9 +484,66 @@ namespace NeoCompose.Runtime
         /// <summary>Imported audio clip reference.</summary>
         public AudioClip? AudioClip
         {
-            get => audioClip;
-            set => audioClip = value;
+            get => loadedAudioClip != null ? loadedAudioClip : loadedAudioClip = audioClip.asset;
+            set
+            {
+                loadedAudioClip = value;
+#if UNITY_6000_3_OR_NEWER
+                audioClip = new LazyLoadReference<AudioClip>(value == null ? EntityId.None : value.GetEntityId());
+#else
+                audioClip = new LazyLoadReference<AudioClip>(value == null ? 0 : value.GetInstanceID());
+#endif
+            }
         }
+
+        internal bool HasAudioClip(AudioClip clip)
+        {
+#if UNITY_6000_3_OR_NEWER
+            return audioClip.entityId == clip.GetEntityId();
+#else
+            return audioClip.instanceID == clip.GetInstanceID();
+#endif
+        }
+
+        internal async Awaitable PreloadAudioAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!audioClip.isSet)
+                return;
+            const string resourcesSegment = "/Resources/";
+            int start = assetPath.LastIndexOf(resourcesSegment, StringComparison.Ordinal);
+            if (loadedAudioClip == null && start >= 0)
+            {
+                string resourcePath = assetPath.Substring(start + resourcesSegment.Length);
+                resourcePath = resourcePath.Substring(0, resourcePath.Length - Path.GetExtension(resourcePath).Length);
+                var request = Resources.LoadAsync<AudioClip>(resourcePath);
+                await request;
+                cancellationToken.ThrowIfCancellationRequested();
+                if (request.asset is AudioClip clip && HasAudioClip(clip))
+                    loadedAudioClip = clip;
+            }
+            var loaded = AudioClip;
+            // A background-loading clip can finish loading its Unity object before
+            // its audio data is ready. Leave explicitly non-preloaded clips alone.
+            if (loaded != null && loaded.preloadAudioData)
+            {
+                if (loaded.loadState == AudioDataLoadState.Unloaded)
+                    loaded.LoadAudioData();
+                while (loaded.loadState == AudioDataLoadState.Loading)
+                {
+                    if (Application.isPlaying)
+                        await Awaitable.NextFrameAsync(cancellationToken);
+                    else
+                        await System.Threading.Tasks.Task.Yield();
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+            }
+        }
+
+        void ISerializationCallbackReceiver.OnBeforeSerialize()
+        {
+        }
+        void ISerializationCallbackReceiver.OnAfterDeserialize() => loadedAudioClip = null;
     }
 
     /// <summary>
