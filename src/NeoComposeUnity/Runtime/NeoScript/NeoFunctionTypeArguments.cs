@@ -240,6 +240,8 @@ namespace NeoCompose.Runtime.NeoScript
                 // Keep a type-default marker distinct from an explicit null:
                 // default(T) must use the closed type, including value types.
                 bound.defaultValue = argument.defaultValue;
+                bound.mode = argument.mode;
+                bound.flow = argument.flow;
                 return bound;
             }
             TupleElementTypeInfo[]? elements = argument.elements is null ? null : TupleTypeInfo.MapElements(argument.elements, type => Bind(type, table));

@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -647,6 +648,13 @@ namespace NeoCompose.Runtime.Json
         internal static void ValidateProjectData(JObject root)
         {
             ValidateMembers(root["members"]);
+            NeoOperatorRecords.ValidateProject(root);
+            if (root["members"] is JObject callableMembers)
+                foreach (JObject member in callableMembers.Properties().Select(p => p.Value).OfType<JObject>())
+                    if (member["kind"]?.Value<int>() == (int)MemberKind.Function
+                        && member["extendsMemberId"]?.Value<string>() is string parentId
+                        && callableMembers[parentId] is JObject parent && parent["kind"]?.Value<int>() == (int)MemberKind.NSFunction)
+                        throw new JsonSerializationException($"Callable override \"{member["id"]}\" must keep member kind {MemberKind.NSFunction}; found {MemberKind.Function}.");
             ValidateClasses(root["classes"], root["members"] as JObject);
             ValidateInterfaces(root["interfaces"]);
             NeoSystemComparerClasses.Register(root["classes"]);
@@ -654,6 +662,7 @@ namespace NeoCompose.Runtime.Json
 
         internal static void ValidateMemberRecord(JObject member)
         {
+            NeoOperatorRecords.ValidateMember(member);
             ValidateExtensionMember(member);
             RejectRemoved(member, "locked", "Member");
             Reject(member, "required", "requirement", "Member");

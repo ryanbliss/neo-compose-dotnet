@@ -172,16 +172,12 @@ namespace NeoCompose.Runtime.NeoScript
                         result = value;
                         return RuntimeTypeCheck(value, target, ctx);
                     }
-                    if (TypeBindings.IsValueType(held.Head!))
+                    if (NeoPrimitiveConformance.Kind(held) is not null)
                     {
-                        if (interfaceType.interfaceId is NeoSequenceContract.Enumerable or NeoSequenceContract.Enumerator
-                            || ctx.client.ProjectDataForRuntime.interfaces.TryGetValue(interfaceType.interfaceId, out Interface declaration)
-                            && declaration.system is null)
-                        {
+                        if (!NeoInterfaceDispatch.Of(ctx.client).PrimitiveConforms(held, RuntimeTypeOf(CloseContextType(interfaceType, ctx))))
                             return false;
-                        }
-                        throw new NSGetterRuntimeError(
-                            $"Interface conformance for boxed {TypeName(held, ctx)} isn't supported yet (P127 B5).");
+                        result = value is NeoBox ? value : NeoBox.Of(held, payload);
+                        return true;
                     }
                     // Restore the held collection's element type before checking its protocol.
                     result = RetainSequenceCollectionType(payload, NeoTypeBindings.ToTypeInfo(held), ctx);
@@ -250,11 +246,14 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>§8.6. An enum value's number: its option's declaration index, or an orphan's number.</summary>
         private static int EnumNumber(object value, string enumId, Context ctx) =>
-            EnumShapeOf(enumId, ctx.client).Options.NumericValue(EnumOptionId(value));
+            enumId == NeoPrimitiveConformance.NumberStylesEnumId ? NeoInt32.Wrap(Number(value))
+                : EnumShapeOf(enumId, ctx.client).Options.NumericValue(EnumOptionId(value));
 
         /// <summary>The declared option numbered <paramref name="number"/>; any other number fails, as §3.3 requires.</summary>
-        private static object?[] EnumOfNumber(int number, string enumId, Context ctx)
+        private static object EnumOfNumber(int number, string enumId, Context ctx)
         {
+            if (enumId == NeoPrimitiveConformance.NumberStylesEnumId)
+                return number;
             List<string> order = EnumShapeOf(enumId, ctx.client).Order;
             if (number < 0 || number >= order.Count)
                 throw InvalidCast("int", EnumOf(enumId, ctx.client).name);
@@ -317,6 +316,8 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         // A parameter's own type carries its enum id inline.
                         string enumId = type is FunctionArgumentTypeInfo parameter ? parameter.enumId! : ((EnumTypeInfo)type).enumId;
+                        if (enumId == NeoPrimitiveConformance.NumberStylesEnumId)
+                            return 0;
                         List<string> order = EnumShapeOf(enumId, client).Order;
                         if (order.Count == 0)
                         {
@@ -384,11 +385,11 @@ namespace NeoCompose.Runtime.NeoScript
                 case ObjectMemberKind.GetType:
                     return NeoTypeValue.Of(RuntimeTypeOfValue(receiver, pointer.receiverType, ctx));
                 case ObjectMemberKind.Equals:
-                    return Box(ObjectEquals(receiver, pointer.receiverType, argument, ctx));
+                    return Box(ObjectEquals(receiver, pointer.receiverType, argument, ctx, pointer.dispatch == "base"));
                 case ObjectMemberKind.GetHashCode:
-                    return Box((double)ObjectHash(receiver, pointer.receiverType, ctx));
+                    return Box((double)ObjectHash(receiver, pointer.receiverType, ctx, pointer.dispatch == "base"));
                 case ObjectMemberKind.ToString:
-                    return ObjectText(receiver, pointer.receiverType, ctx);
+                    return ObjectText(receiver, pointer.receiverType, ctx, pointer.dispatch == "base");
                 case ObjectMemberKind.Text:
                     return EnumOptionText(receiver, pointer.receiverType, ctx);
                 default:
@@ -418,13 +419,13 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>The virtual <c>Equals(object?)</c>: a row's override or identity, else the payload type's.</summary>
-        private static bool ObjectEquals(object receiver, TypeInfo? receiverType, object? other, Context ctx)
+        private static bool ObjectEquals(object receiver, TypeInfo? receiverType, object? other, Context ctx, bool direct = false)
         {
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
-                if (RowOverride(receiver, "Equals", 1, ctx) is { } overrideId)
-                    return JsTruthy(NeoNSFunctionRuntime.InvokeImmediate(ctx.client, overrideId, receiver, new[] { other }, ctx));
+                if (!direct && RowOverride(receiver, "Equals", ctx) is { } overrideId)
+                    return JsTruthy(InvokeObjectOverride(overrideId, receiver, new[] { other }, ctx));
                 return SameObject(receiver, other, ctx);
             }
             if (other is null)
@@ -434,6 +435,12 @@ namespace NeoCompose.Runtime.NeoScript
             TypeBinding? otherHeld = HeldType(other, null, ctx, out object otherPayload);
             if (otherHeld is null || !held.Equals(otherHeld))
                 return false;
+            return PayloadEquals(held, payload, otherPayload, ctx, receiver, other);
+        }
+
+        private static bool PayloadEquals(TypeBinding held, object payload, object otherPayload, Context ctx,
+            object? leftIdentity = null, object? rightIdentity = null)
+        {
             switch (held.Head!.Type)
             {
                 case MemberKind.Float:
@@ -473,11 +480,13 @@ namespace NeoCompose.Runtime.NeoScript
                         return left.r.Equals(right.r) && left.g.Equals(right.g) && left.b.Equals(right.b) && left.a.Equals(right.a);
                     }
                 case MemberKind.Tuple:
+                    return NeoTuples.TupleEquals((RuntimeTuple)payload, (RuntimeTuple)otherPayload,
+                        (index, a, b) => DefaultTupleElementEquals(held.At(index), a, b, ctx));
                 case MemberKind.NSDelegate:
                     throw new NSGetterRuntimeError($"Equals on a boxed {TypeName(held, ctx)} isn't supported yet (P127 B6).");
                 default:
                     // new object(), collections, slot references, variants and sequences compare by identity.
-                    return SameObject(receiver, other, ctx) || ReferenceEquals(payload, otherPayload);
+                    return SameObject(leftIdentity ?? payload, rightIdentity ?? otherPayload, ctx) || ReferenceEquals(payload, otherPayload);
             }
         }
 
@@ -485,13 +494,13 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool SingleEquals(double left, double right) => ((float)left).Equals((float)right);
 
         /// <summary>The virtual <c>GetHashCode()</c>: a row's override or the identity hash of its id, else the payload type's.</summary>
-        private static int ObjectHash(object receiver, TypeInfo? receiverType, Context ctx)
+        private static int ObjectHash(object receiver, TypeInfo? receiverType, Context ctx, bool direct = false)
         {
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
-                if (RowOverride(receiver, "GetHashCode", 0, ctx) is { } overrideId)
-                    return NeoInt32.Wrap(Number(NeoNSFunctionRuntime.InvokeImmediate(ctx.client, overrideId, receiver, System.Array.Empty<object?>(), ctx)!));
+                if (!direct && RowOverride(receiver, "GetHashCode", ctx) is { } overrideId)
+                    return NeoInt32.Wrap(Number(InvokeObjectOverride(overrideId, receiver, System.Array.Empty<object?>(), ctx)!));
                 string rowId = FindRowIdByReference(receiver, ctx)
                     ?? throw new NSGetterRuntimeError("GetHashCode() needs a row identity; attach the object first.");
                 return NeoHashes.String(rowId);
@@ -530,6 +539,8 @@ namespace NeoCompose.Runtime.NeoScript
                         var vector = (NeoVector3Value)payload;
                         return NeoHashes.Vector3Int(NeoInt32.Wrap(vector.x), NeoInt32.Wrap(vector.y), NeoInt32.Wrap(vector.z));
                     }
+                case MemberKind.Tuple:
+                    return NeoTuples.TupleHash((RuntimeTuple)payload, (index, value) => ObjectHash(value!, NeoTypeBindings.ToTypeInfo(held.At(index)), ctx));
                 case MemberKind.Color:
                     {
                         var color = (NeoColorValue)payload;
@@ -541,13 +552,13 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>The virtual <c>ToString()</c>: a row's override or its type's full name, else the payload type's text.</summary>
-        private static string? ObjectText(object receiver, TypeInfo? receiverType, Context ctx)
+        private static string? ObjectText(object receiver, TypeInfo? receiverType, Context ctx, bool direct = false)
         {
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
-                if (RowOverride(receiver, "ToString", 0, ctx) is { } overrideId)
-                    return (string?)NeoNSFunctionRuntime.InvokeImmediate(ctx.client, overrideId, receiver, System.Array.Empty<object?>(), ctx);
+                if (!direct && RowOverride(receiver, "ToString", ctx) is { } overrideId)
+                    return (string?)InvokeObjectOverride(overrideId, receiver, System.Array.Empty<object?>(), ctx);
                 return TypeName(RuntimeTypeOfValue(receiver, receiverType, ctx), ctx);
             }
             return PayloadText(payload, held, ctx);
@@ -571,6 +582,15 @@ namespace NeoCompose.Runtime.NeoScript
                         && FormattableText(payload, held, pointer.format, ctx) is { } formatted)
                     {
                         return formatted;
+                    }
+                    string formattableId = NeoPrimitiveConformance.InterfaceId("IFormattable");
+                    if (FindRowClassIdByReference(value, ctx) is not null
+                        && ctx.client.ProjectDataForRuntime.interfaces.TryGetValue(formattableId, out Interface? formattable))
+                    {
+                        var construction = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: formattableId));
+                        if (NeoInterfaceDispatch.Of(ctx.client).Converts(RuntimeTypeOfValue(value, null, ctx), construction))
+                            return (string?)InvokeMappedInterface(value, construction, formattable.members["ToString"].id!,
+                                new object?[] { pointer.format, null }, ctx) ?? "";
                     }
                     break;
                 case FormatModeKind.Concatenation:
@@ -598,7 +618,9 @@ namespace NeoCompose.Runtime.NeoScript
                 case MemberKind.Decimal:
                     return NeoNumberFormatting.FormatDecimal(decimal.Parse((string)payload, NumberStyles.Float, CultureInfo.InvariantCulture), format, null);
                 case MemberKind.Enum:
-                    return EnumShapeOf(held.Head.EnumId!, ctx.client).Options.Format(EnumOptionId(payload), format);
+                    return held.Head.EnumId == NeoPrimitiveConformance.NumberStylesEnumId
+                        ? NeoNumberStyles.Format(NeoInt32.Wrap(Number(payload)), format)
+                        : EnumShapeOf(held.Head.EnumId!, ctx.client).Options.Format(EnumOptionId(payload), format);
                 case MemberKind.Vector2:
                     {
                         var vector = (NeoVector2Value)payload;
@@ -705,41 +727,29 @@ namespace NeoCompose.Runtime.NeoScript
         private static string UnityFormat(string? format, string fallback) =>
             string.IsNullOrEmpty(format) ? fallback : format!;
 
-        /// <summary>
-        /// The most-derived instance function of the row's class named
-        /// <paramref name="name"/> with <paramref name="arity"/> parameters,
-        /// one taking <c>object</c>: the row's override until object.neo
-        /// links overrides (§3.6, §5a).
-        /// </summary>
-        private static string? RowOverride(object row, string name, int arity, Context ctx)
+        /// <summary>The canonical object slot in the cached merged class schema.</summary>
+        private static string? RowOverride(object row, string name, Context ctx)
         {
-            string? classId = FindRowClassIdByReference(row, ctx);
+            string? classId = row is NeoScriptObject pending ? pending.plan.classId : FindRowClassIdByReference(row, ctx);
             if (classId is null)
                 return null;
-            foreach (NeoSchemaClass schemaClass in ctx.client.ResolveClassInheritanceChain(classId))
+            string canonical = name switch
             {
-                foreach (string memberId in schemaClass.schema.Values)
-                {
-                    if (ctx.client.TryGetMember(memberId, out JsonMember? member)
-                        && member is NSFunctionMember function
-                        && function.name == name
-                        && function.Modifier != NeoMemberModifierKind.Static
-                        && function.argumentTypes.Length == arity
-                        && (arity == 0 || TakesObject(function.argumentTypes[0])))
-                    {
-                        return memberId;
-                    }
-                }
-            }
-            return null;
+                "Equals" => NeoObjectContract.EqualsMember,
+                "GetHashCode" => NeoObjectContract.GetHashCodeMember,
+                "ToString" => NeoObjectContract.ToStringMember,
+                _ => throw new System.ArgumentOutOfRangeException(nameof(name)),
+            };
+            string? memberId = ctx.client.ResolveClassNode(classId).SurfaceMember(name + "#" + canonical)?.memberId;
+            return memberId == canonical ? null : memberId;
         }
 
-        /// <summary>
-        /// Whether <c>Equals</c>'s parameter is plain <c>object</c>: an
-        /// <c>Equals(Note other)</c> is an overload, not the override.
-        /// </summary>
-        private static bool TakesObject(FunctionArgumentTypeInfo parameter) =>
-            parameter.type == MemberKind.Object && parameter.objectType is null;
+        private static object? InvokeObjectOverride(string memberId, object receiver, object?[] args, Context ctx)
+        {
+            if (ctx.client.TryGetMember(memberId, out JsonMember? member) && member is NSFunctionMember)
+                return NeoNSFunctionRuntime.InvokeImmediate(ctx.client, memberId, receiver, args, ctx);
+            return InvokeNativeFunction(memberId, null, receiver, args, ctx);
+        }
 
         /// <summary>
         /// A value's held type and payload: a box's own, a <c>Type</c>'s,
@@ -759,7 +769,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             payload = value;
             if (staticType is null)
-                return null;
+                return value is string ? TypeBinding.Closed(new TypeHead(MemberKind.String, true)) : null;
             TypeInfo closed = CloseContextType(staticType, ctx);
             return IsReferenceStatic(closed) && value is not NeoVariantReference ? null : HeldTypeOf(closed);
         }
@@ -767,6 +777,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>§3.6 <c>GetType()</c>: a row's class with its bindings, a box's held type, a raw value's closed static type.</summary>
         private static TypeBinding RuntimeTypeOfValue(object value, TypeInfo? staticType, Context ctx)
         {
+            if (staticType is null && value is string)
+                return TypeBinding.Closed(new TypeHead(MemberKind.String, true));
             if (HeldType(value, staticType, ctx, out _) is { } held)
                 return held;
             if (FindRowClassIdByReference(value, ctx) is not { } classId)

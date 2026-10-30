@@ -380,7 +380,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>
         /// §2 <c>GetInterfaces()</c> of a class or interface: every interface
         /// it implements through its chain and their bases, closed over its
-        /// arguments. Built-in types implement §8.1's table, which P127 B5 wires.
+        /// arguments. Built-in types use §8.1's canonical conformance table.
         /// </summary>
         private static List<TypeBinding> InterfacesOf(TypeBinding type, Context ctx)
         {
@@ -425,20 +425,39 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (current.Kind == TypeBindingKind.Definition)
                 {
-                    if (current.Definition!.Type is not (MemberKind.Class or MemberKind.Interface))
-                        throw new NSGetterRuntimeError($"GetInterfaces() on {TypeName(current, ctx)} isn't supported yet (P127 B5).");
-                    current = OpenConstruction(current.Definition, ctx);
+                    if (current.Definition!.Type == MemberKind.Tuple)
+                    {
+                        TypeDefinition definition = current.Definition;
+                        var arguments = new Dictionary<string, TypeBinding>();
+                        for (int i = 0; i < definition.Arity; i++)
+                        {
+                            string index = i.ToString(CultureInfo.InvariantCulture);
+                            arguments[index] = TypeBinding.Open(definition, index);
+                        }
+                        current = TypeBinding.Closed(new TypeHead(MemberKind.Tuple, true), arguments);
+                    }
+                    else if (current.Definition.Type is MemberKind.Class or MemberKind.Interface)
+                        current = OpenConstruction(current.Definition, ctx);
+                    else
+                        return;
                 }
                 TypeHead head = current.Head!;
-                if (head.Type == MemberKind.Object && head.ObjectType is null)
+                if (head.Type == MemberKind.Object && head.ObjectType is null or NeoObjectTypeKind.ValueType)
                     return;
+                if (NeoPrimitiveConformance.Kind(current) is not null)
+                {
+                    foreach (TypeBinding construction in NeoInterfaceDispatch.Of(ctx.client).PrimitiveClosure(current))
+                        if (visited.Add(construction))
+                            found.Add(construction);
+                    return;
+                }
                 if (head.Type == MemberKind.Interface)
                 {
                     AddBases(current);
                     return;
                 }
                 if (head.Type != MemberKind.Class)
-                    throw new NSGetterRuntimeError($"GetInterfaces() on {TypeName(current, ctx)} isn't supported yet (P127 B5).");
+                    return;
                 for (TypeBinding? ancestor = current; ancestor is { Head: { Type: MemberKind.Class } }; ancestor = BaseTypeOf(ancestor, ctx))
                 {
                     foreach (InterfaceConstruction construction in ClassOf(ancestor.Head!.ClassId!, ctx).implementsInterfaces ?? new List<InterfaceConstruction>())
