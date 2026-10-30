@@ -336,7 +336,7 @@ namespace NeoCompose.Tests
             // 1e30 has 31 integer digits, past System.Decimal's 2^96 envelope;
             // the TS runtime raises NeoOverflowError here too (P127 §3.4).
             // With error classes loaded the evaluator rewraps it as a
-            // catchable error, whose class id is the fallback.
+            // catchable error with the minted overflow class id.
             var error = Assert.Catch<NSGetterRuntimeError>(() =>
                 EvaluateReturn(DecimalOp(
                     DecimalOpKind.ToDecimal, NumberLiteral(1e30), digits: 0)));
@@ -344,7 +344,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(raised, error!.ToString());
             Assert.AreEqual(NeoErrorClass.NeoOverflowError, raised!.ErrorClass);
             Assert.AreEqual("Value was either too large or too small for a Decimal.", raised.Message);
-            Assert.AreEqual(NeoErrorContract.NeoArithmeticError, error.Payload.ClassId);
+            Assert.AreEqual(NeoErrorContract.NeoOverflowError, error.Payload.ClassId);
         }
 
         [Test]

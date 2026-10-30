@@ -86,30 +86,8 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Tuple equality requires two tuples.");
             if (a.Count != type.elements.Length || b.Count != type.elements.Length)
                 return false;
-            for (int i = 0; i < a.Count; i++)
-            {
-                object? x = a[i];
-                object? y = b[i];
-                if (x is null || y is null)
-                {
-                    if (x is not null || y is not null)
-                        return false;
-                    continue;
-                }
-                TypeInfo element = type.elements[i].typeInfo;
-                bool equal = element switch
-                {
-                    TupleTypeInfo nested => TupleEqual(x, y, nested, ctx),
-                    { type: MemberKind.Decimal } => NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(x, "tuple equality")) == NeoSetEntryKey.DecimalKey(CoerceDecimalOperand(y, "tuple equality")),
-                    ReferenceTypeInfo reference when NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle => TupleHandleEqual(x, y, ctx),
-                    { type: MemberKind.Reference } => x is NSSlotReference rx && y is NSSlotReference ry && rx.TargetId == ry.TargetId,
-                    _ when TupleHandle(element.type) => TupleHandleEqual(x, y, ctx),
-                    _ => JsEqual(x, y, ctx),
-                };
-                if (!equal)
-                    return false;
-            }
-            return true;
+            TypeBinding binding = RuntimeTypeOf(type);
+            return Hashing.NeoTuples.TupleEquals(a, b, (index, x, y) => DefaultTupleElementEquals(binding.At(index), x, y, ctx));
         }
 
         private static bool TupleHandle(MemberKind kind) => kind is MemberKind.Class or MemberKind.Interface

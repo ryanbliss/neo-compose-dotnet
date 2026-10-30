@@ -23,17 +23,17 @@ namespace NeoCompose.Tests.P127TypesParity
 
         int Cents { get; }
 
-        bool Equals(object? other);
+        bool Equals(object? obj);
 
         int GetHashCode();
 
-        string ToString();
+        string? ToString();
     }
 
     public partial class Coin : NeoGeneratedClassValue, IReadOnlyCoin
     {
         internal Coin(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e4b5b07f-7e6f-4a0c-81ca-ea56a31e5efc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2bca1a4a-a48d-4c2e-ac80-b9a9f2f819f9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e4b5b07f-7e6f-4a0c-81ca-ea56a31e5efc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "8563efff-a368-4ea8-b699-8bd2049dfc89", Cents)
+                "2bca1a4a-a48d-4c2e-ac80-b9a9f2f819f9",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "a8bebf2d-58ca-4a6b-80e7-6e5f753ecf83", Cents)
             );
         }
 
@@ -126,21 +126,22 @@ namespace NeoCompose.Tests.P127TypesParity
 
 
 
-        public bool Equals(object? other)
+        public virtual bool Equals(object? obj)
         {
-            var result = InvokeFunction("Equals", (object?)(other));
+            var result = InvokeFunction("Equals#system_a9229ca6-afaa-4e05-a1ba-e56f8d3f640f", (object?)(obj));
             return (bool)result!;
         }
 
-        public int GetHashCode()
+        public virtual int GetHashCode()
         {
-            var result = InvokeFunction("GetHashCode");
+            var result = InvokeFunction("GetHashCode#system_ed4ca7e8-2939-493c-a06c-e3d6c7be89e9");
             return Convert.ToInt32(result);
         }
 
-        public string ToString()
+        public virtual string? ToString()
         {
-            var result = InvokeFunction("ToString");
+            var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
+            if (result is null) return null;
             return (string)result!;
         }
 

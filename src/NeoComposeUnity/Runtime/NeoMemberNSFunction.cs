@@ -1925,20 +1925,26 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(
                         $"Circular NSFunction override chain detected at '{cursor}' while resolving '{memberId}'.");
                 }
-                if (!client.TryGetMember(cursor!, out NSFunctionMember? current))
-                {
+                if (!client.TryGetMember(cursor!, out Member? current))
                     return null;
-                }
-                effectiveMember ??= current;
-                if (!actionResolved)
+                if (current is NSFunctionMember function)
                 {
-                    // The centralized member projection already resolves an
-                    // inherited action or an authored-body null clear.
-                    action = current.action;
-                    actionResolved = true;
+                    effectiveMember ??= function;
+                    if (!actionResolved)
+                    {
+                        action = function.action;
+                        actionResolved = true;
+                    }
+                    returnTypeInfo ??= function.returnTypeInfo;
+                    argumentTypes ??= function.argumentTypes;
                 }
-                returnTypeInfo ??= current.returnTypeInfo;
-                argumentTypes ??= current.argumentTypes;
+                else if (current is FunctionMember native && effectiveMember is not null)
+                {
+                    returnTypeInfo ??= native.returnTypeInfo;
+                    argumentTypes ??= native.argumentTypes;
+                }
+                else
+                    return null;
                 if (action is not null
                     && returnTypeInfo is not null
                     && argumentTypes is not null)
@@ -2352,6 +2358,7 @@ namespace NeoCompose.Runtime
                     && NeoDecimalValues.GetViolation(decimalText)
                         == NeoDecimalValues.Violation.None
                     || value is decimal,
+                MemberKind.Enum when IsNumberStyles(typeInfo) => IsNumber(value) && IsIntegralNumber(System.Convert.ToDouble(value)),
                 MemberKind.Enum => value is string
                     || value is IEnumerable
                     || EnumOptionId(value) is not null,
@@ -2602,12 +2609,24 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.RecordNode(value, reference.valueId!, ctx));
         }
 
-        private static object?[] NormalizeEnum(
+        private static bool IsNumberStyles(TypeInfo typeInfo) => typeInfo is EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId }
+            or FunctionArgumentTypeInfo { type: MemberKind.Enum, enumId: NeoPrimitiveConformance.NumberStylesEnumId };
+
+        private static object NormalizeEnum(
             object value,
             TypeInfo typeInfo,
             ValueSubject subject)
         {
+            if (IsNumberStyles(typeInfo) && IsNumber(value))
+                return value;
             object?[] optionIds = NormalizeEnumOptions(value, subject);
+            if (IsNumberStyles(typeInfo))
+            {
+                int bits = 0;
+                foreach (string option in optionIds)
+                    bits |= NeoScript.Hashing.NeoNumberStyles.OptionValue(option) ?? throw new InvalidOperationException($"{subject} contains an unknown NumberStyles option.");
+                return bits;
+            }
             if (typeInfo.required && optionIds.Length == 0)
             {
                 throw new InvalidOperationException(

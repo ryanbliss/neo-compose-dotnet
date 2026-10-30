@@ -6,6 +6,7 @@ namespace NeoCompose.Runtime.NeoScript
     {
         internal readonly string ClassId;
         internal readonly string Message;
+        internal NeoScriptErrorPayload? InnerError;
         internal object? Value;
         internal NeoScriptExecutor.ErrorSelection? Selection;
         internal bool Searched;
@@ -51,6 +52,7 @@ namespace NeoCompose.Runtime.NeoScript
             : base(original.Message, original.Payload.ClassId, original)
         {
             Payload.Value = original.Payload.Value;
+            Payload.InnerError = original.Payload.InnerError;
             context = original.context;
             error = original.error;
             if (original.Data.Contains("neoScriptFrames"))

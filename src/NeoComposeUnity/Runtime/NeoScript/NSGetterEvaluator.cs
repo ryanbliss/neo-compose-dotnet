@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript.Numerics;
+using NeoCompose.Runtime.NeoScript.Hashing;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using JsonMember = NeoCompose.Runtime.Json.Member;
@@ -2387,6 +2388,15 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalFormat(format, scope, ctx);
                 case OutPointer output:
                     return NeoScriptExecutor.EvaluateOut(output, scope, ctx);
+                case LetPointer let:
+                    {
+                        var child = scope.CreateBlock();
+                        foreach (Variable binding in let.bindings)
+                            child.SetLocal(binding.id, CoerceNumericBinding(EvalPointer(binding.pointer, child, ctx), binding.typeInfo, "let binding", ctx));
+                        return EvalPointer(let.pointer, child, ctx);
+                    }
+                case PrimitiveMemberPointer primitive:
+                    return EvalPrimitiveMember(primitive, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
@@ -2423,6 +2433,18 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>A literal that isn't a converted primitive.</summary>
         private static object? EvalValueLiteral(ValuePointer vp, Context ctx)
         {
+            if (vp.value.typeInfo is EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId })
+            {
+                object? enumLiteral = UnwrapJToken(vp.value.value);
+                if (enumLiteral is object?[] { Length: 1 } options)
+                    enumLiteral = options[0];
+                vp.primitive = enumLiteral is string option
+                    ? NeoNumberStyles.OptionValue(option) ?? throw new NSGetterRuntimeError($"Unknown NumberStyles option '{option}'.")
+                    : enumLiteral;
+                vp.primitiveIsNumber = TryAsDouble(vp.primitive, out vp.primitiveNumber);
+                vp.primitiveResolved = true;
+                return vp.primitive;
+            }
             if (vp.primitiveEntries is object?[] template)
             {
                 // Nothing writes an enum value in place: a slot keeps a bare
@@ -3082,6 +3104,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
+            if (TryPrimitiveInterfaceCall(pointer, receiver, scope, ctx, out object? primitiveResult))
+                return primitiveResult;
             CallSiteTarget? target = ResolveCallTarget(pointer, receiver, ctx);
             if (target?.function is { } resolved)
             {
@@ -3228,8 +3252,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (delegateValue.builtIn is { } builtIn)
             {
-                throw new NSGetterRuntimeError(
-                    $"NeoDelegate built-in target '{builtIn.Name}' can't be invoked: this SDK has no built-in target table yet.");
+                return InvokePrimitiveDelegate(builtIn, args, ctx);
             }
             if (!delegateValue.IsMemberTarget)
             {
@@ -6111,7 +6134,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? EvaluateComparand(Pointer pointer, NeoScriptScope scope, Context ctx, out double number)
         {
             if (pointer is ValuePointer { primitiveResolved: false, value: { value: JArray items } literal } vp
-                && literal.typeInfo.type != MemberKind.NSAction)
+                && literal.typeInfo.type != MemberKind.NSAction
+                && literal.typeInfo is not EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId })
             {
                 number = 0;
                 return vp.comparand ??= UnwrapJToken(items);
@@ -9831,6 +9855,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return value is IDictionary<string, object?>;
                 case MemberKind.Enum:
                     {
+                        if (checkType is EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId })
+                            return TryAsDouble(value, out double flags) && NeoNumbers.IsWhole(flags);
                         if (value is not object?[] arr)
                             return false;
                         foreach (var e in arr)

@@ -34,7 +34,7 @@
     "class Shape : IReflect {}",
     "class ReflectionBase<U> {}",
     "class ReflectionDerived<T extends Shape> : ReflectionBase<T> {}",
-    "class Silent { public string? ToString() => null; }",
+    "class Silent { public override string? ToString() => null; }",
     "class OutMade { public int Value; public OutMade(out int x) { x = 7; Value = x; } }",
     "enum Planet { Earth, Mars, Venus }",
     "",
@@ -42,9 +42,9 @@
     "",
     "class Coin {",
     "  public int Cents = 5;",
-    "  public string ToString() => \"coin\";",
-    "  public int GetHashCode() => 42;",
-    "  public bool Equals(object? other) => other is Coin;",
+    "  public override string ToString() => \"coin\";",
+    "  public override int GetHashCode() => 42;",
+    "  public override bool Equals(object? obj) => obj is Coin;",
     "}",
     "",
     "class Note { public bool Equals(Note other) => true; }",
@@ -507,6 +507,7 @@
     "BoxedVectorText": "(1.00, 2.50)",
     "BoxedVectorIntText": "(1, -2)",
     "BoxedTupleText": "(1, a)",
+    "BoxedTupleEquals": true,
     "NewObjectText": "object",
     "TypeText": "int",
     "BoxedNaNEquals": true,
@@ -758,7 +759,6 @@
     "UnboxWrongType": "Unable to cast object of type 'int' to type 'float'.",
     "UnboxNull": "Object reference not set to an instance of an object.",
     "TypeHash": "GetHashCode() on a Type isn't supported yet (P127 B6).",
-    "BoxedTupleEquals": "Equals on a boxed (int, int) isn't supported yet (P127 B6).",
     "CheckedIncrement": "Arithmetic operation resulted in an overflow.",
     "OwnedCollectionBoxWrite": "Writing a boxed List<int> into Item would share a collection already owned by another slot. Call Clone() or use Reference.",
     "OwnedCollectionBoxConstructor": "Writing a boxed List<int> into constructor argument '__arg_0__' would share a collection already owned by another slot. Call Clone() or use Reference.",
@@ -833,22 +833,6 @@
         "end": {
           "line": 2,
           "character": 42
-        }
-      }
-    },
-    {
-      "name": "NumberStylesFlagsB5",
-      "source": "class P { public static void Run(NumberStyles style = NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite) {} }",
-      "code": "number-styles-default-not-supported",
-      "message": "NumberStyles flags-combination parameter defaults aren't supported yet (B5): the protected system enum metadata is not installed.",
-      "range": {
-        "start": {
-          "line": 0,
-          "character": 54
-        },
-        "end": {
-          "line": 0,
-          "character": 118
         }
       }
     }
