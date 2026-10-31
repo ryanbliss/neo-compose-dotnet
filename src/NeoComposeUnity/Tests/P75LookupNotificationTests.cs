@@ -15,7 +15,7 @@ namespace NeoCompose.Tests
         [TestCase(0)]
         [TestCase(1)]
         [TestCase(2)]
-        public void StoredLookupSelectionDoesNotChangeWhenSiblingReplays(int transitions)
+        public void StoredLookupSelectionDoesNotChangeWhenSiblingIsWritten(int transitions)
         {
             ProjectData data = BuildUnorderedListProjectData();
             ((ListMember)data.members["thing-items"]).ListKind = NeoListKind.Ordered;
@@ -63,11 +63,11 @@ namespace NeoCompose.Tests
                     Assert.That(heard[index], Is.EqualTo(next));
                 }
                 string selected = view.Selected;
-                int replays = client.VirtualReplayCount;
+                int constructions = client.VirtualConstructionCount;
                 ReplaceItem(owner, "after");
-                Assert.That(client.VirtualReplayCount, Is.GreaterThan(replays), "Exercise enclosing-root replay.");
+                Assert.That(client.VirtualConstructionCount, Is.EqualTo(constructions));
                 Assert.That(view.Selected, Is.EqualTo(selected));
-                Assert.That(heard.Count, Is.EqualTo(transitions), "Retiring a default is not a selection change.");
+                Assert.That(heard.Count, Is.EqualTo(transitions), "Writing a sibling is not a selection change.");
                 ((NeoMemberStringWritable)client.save.Get<NeoMemberListWritable>("Areas")[transitions == 1 ? 1 : 0]).Set("renamed");
                 Assert.That(heard.Count, Is.EqualTo(transitions), "Changing the selected target is not a selection change.");
                 saved = client.SerializeSaveData();

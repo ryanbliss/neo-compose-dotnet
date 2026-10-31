@@ -12,7 +12,7 @@ namespace NeoCompose.Tests
     {
         [TestCase(false)]
         [TestCase(true)]
-        public void ReplayReadsNestedDefaultsThroughStoredAncestorEdges(bool storedSpine)
+        public void MaterializedDefaultsRetainValuesThroughStoredAncestorEdges(bool storedSpine)
         {
             static InitializerBody Init(TypeInfo type, Pointer pointer) => new()
             {
@@ -59,8 +59,10 @@ namespace NeoCompose.Tests
             var thing = client.save.Get<NeoMemberClassWritable>("Thing");
             var count = thing.Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count");
             Assert.AreEqual(5, thing.Get<NeoMemberInt>("ReadCount").value!.value);
+            int constructions = client.VirtualConstructionCount;
             count.Set(17);
-            Assert.AreEqual(17, thing.Get<NeoMemberInt>("ReadCount").value!.value);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
+            Assert.AreEqual(5, thing.Get<NeoMemberInt>("ReadCount").value!.value);
             Assert.AreEqual(17, count.value!.value);
             string thingId = thing.value!.id;
             string nestedId = thing.Get<NeoMemberClass>("Nested").value!.id;
@@ -77,10 +79,10 @@ namespace NeoCompose.Tests
             Assert.AreEqual(deepId, loadedDeep.value!.id);
             Assert.AreEqual(countId, loadedCount.value!.id);
             Assert.AreEqual(17, loadedCount.value!.value);
-            Assert.AreEqual(17, loadedThing.Get<NeoMemberInt>("ReadCount").value!.value);
+            Assert.AreEqual(5, loadedThing.Get<NeoMemberInt>("ReadCount").value!.value);
             loadedCount.Set(29);
             Assert.AreEqual(29, loadedCount.value!.value);
-            Assert.AreEqual(29, loadedThing.Get<NeoMemberInt>("ReadCount").value!.value);
+            Assert.AreEqual(5, loadedThing.Get<NeoMemberInt>("ReadCount").value!.value);
         }
     }
 }

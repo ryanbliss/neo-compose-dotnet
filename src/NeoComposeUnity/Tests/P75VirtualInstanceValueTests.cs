@@ -1014,7 +1014,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void MaterializedReplacementKeepsRealConstructorDependencies(bool combinedWrite)
+        public void MaterializedReplacementDoesNotReplayOnInputChanges(bool combinedWrite)
         {
             var data = BuildProjectData();
             data.classes["save-root-class"].schema["Input"] = "input-member";
@@ -1068,9 +1068,11 @@ namespace NeoCompose.Tests
                 inputChange.Remove(NeoValueOwnership.Save, "new-count");
             }
             inputChange.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "input-value", value = 9 });
-            var error = Assert.Throws<InvalidOperationException>(() => inputChange.Commit());
-            StringAssert.Contains("876", error!.Message, "A real constructor input change must still replay.");
-            Assert.That(client.save.Get<NeoMemberIntWritable>("Input").value!.value, Is.EqualTo(1));
+            int constructions = client.VirtualConstructionCount;
+            Assert.DoesNotThrow(() => inputChange.Commit());
+            Assert.That(client.VirtualConstructionCount, Is.EqualTo(constructions));
+            Assert.That(client.save.Get<NeoMemberIntWritable>("Input").value!.value, Is.EqualTo(9));
+            Assert.That(client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(combinedWrite ? 43 : 42));
         }
 
         [Test]
@@ -1486,7 +1488,7 @@ namespace NeoCompose.Tests
         [TestCase(true, false, false)]
         [TestCase(false, true, false)]
         [TestCase(false, false, true)]
-        public void NestedLeafDependencyReplaysOnlyItsOwnGraph(bool parentReadsResult, bool parentWritesResult, bool readOnlyName)
+        public void NestedLeafDependencyKeepsItsMaterializedGraph(bool parentReadsResult, bool parentWritesResult, bool readOnlyName)
         {
             var data = BuildProjectData();
             data.classes["save-root-class"].schema["Input"] = "input-member";
@@ -1624,14 +1626,16 @@ namespace NeoCompose.Tests
             string valueId = leaf.Get<NeoMemberIntWritable>("Count").value!.id;
             client.TryGetValue(sibling.value!.id, out MemberValue? originalSibling);
             Assert.AreEqual(parentWritesResult ? 99 : 1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            int constructions = client.VirtualConstructionCount;
             client.save.Get<NeoMemberIntWritable>("Input").Set(7);
-            Assert.AreEqual(parentWritesResult ? 99 : 7, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.AreEqual(parentWritesResult ? 99 : 1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
             Assert.AreEqual("call-site", leaf.Get<NeoMemberStringWritable>("Name").value!.value);
             Assert.AreEqual(leafId, leaf.value!.id);
             Assert.AreEqual(valueId, leaf.Get<NeoMemberIntWritable>("Count").value!.id);
             client.TryGetValue(sibling.value!.id, out MemberValue? nextSibling);
             if (parentReadsResult)
-                Assert.AreEqual(7, thing.Get<NeoMemberIntWritable>("Count").value!.value, "A parent that consumes the result must replay too.");
+                Assert.AreEqual(1, thing.Get<NeoMemberIntWritable>("Count").value!.value);
             else if (!parentWritesResult)
                 Assert.AreSame(originalSibling, nextSibling, "Changing a leaf input must not reconstruct its enclosing graph.");
             client.TryGetValue(valueId, out MemberValue? beforeUnrelatedWrite);
@@ -1645,14 +1649,12 @@ namespace NeoCompose.Tests
             replacement.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "replacement-input", value = 11 });
             replacement.Set(NeoValueOwnership.Save, saveRoot);
             replacement.Commit();
-            Assert.AreEqual(parentWritesResult ? 99 : 11, leaf.Get<NeoMemberIntWritable>("Count").value!.value,
-                "Replacing a field link must invalidate readers even when the class identity is unchanged.");
+            Assert.AreEqual(parentWritesResult ? 99 : 1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
             if (parentReadsResult)
-                Assert.AreEqual(11, thing.Get<NeoMemberIntWritable>("Count").value!.value);
+                Assert.AreEqual(1, thing.Get<NeoMemberIntWritable>("Count").value!.value);
             leaf.Get<NeoMemberIntWritable>("Count").Set(42);
             if (parentReadsResult)
-                Assert.AreEqual(11, thing.Get<NeoMemberIntWritable>("Count").value!.value,
-                    "The parent constructor reads the fresh child before saved overrides are applied.");
+                Assert.AreEqual(1, thing.Get<NeoMemberIntWritable>("Count").value!.value);
             client.save.Get<NeoMemberIntWritable>("Input").Set(9);
             Assert.AreEqual(42, leaf.Get<NeoMemberIntWritable>("Count").value!.value, "Stored field overrides must survive independent replay.");
 
@@ -1674,7 +1676,7 @@ namespace NeoCompose.Tests
                     "Replacing a nested constructor must not restore the old call-site initializer.");
                 client.save.Get<NeoMemberIntWritable>("Input").Set(12);
                 Assert.AreEqual("replacement", currentLeaf.Get<NeoMemberStringWritable>("Name").value!.value);
-                Assert.AreEqual(12, currentLeaf.Get<NeoMemberIntWritable>("Count").value!.value);
+                Assert.AreEqual(9, currentLeaf.Get<NeoMemberIntWritable>("Count").value!.value);
                 string currentCountId = currentLeaf.Get<NeoMemberIntWritable>("Count").value!.id;
                 client.TryGetValue(currentCountId, out MemberValue? beforeMetadataOnlyChange);
                 var unrelatedPlan = new NeoWritePlan(client);
@@ -1702,7 +1704,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NestedLeafWithUnstoredArgumentReplaysThroughItsOwner()
+        public void NestedLeafWithUnstoredArgumentKeepsCapturedValue()
         {
             // `Leaf = new Leaf(new Config())`: the leaf reads a runtime input but
             // keeps no field for its argument, so its recipe names a row only
@@ -1847,11 +1849,14 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var leaf = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Leaf");
             Assert.AreEqual(1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
-            Assert.DoesNotThrow(() => client.save.Get<NeoMemberIntWritable>("Input").Set(7),
-                "Replaying the leaf alone must not read its owner's reclaimed argument row.");
-            Assert.AreEqual(7, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            int constructions = client.VirtualConstructionCount;
+            client.save.Get<NeoMemberIntWritable>("Input").Set(7);
+            Assert.AreEqual(1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
             client.save.Get<NeoMemberIntWritable>("Input").Set(9);
-            Assert.AreEqual(9, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.AreEqual(1, leaf.Get<NeoMemberIntWritable>("Count").value!.value);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+            Assert.AreEqual(1, reopened.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Leaf").Get<NeoMemberIntWritable>("Count").value!.value);
         }
 
         [Test]
@@ -2741,7 +2746,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void SparseConstructorReplaysALaterSiblingBeforeUnwrappingItsArgument(bool unstamped)
+        public void SparseConstructorCapturesLaterSiblingArgument(bool unstamped)
         {
             ProjectData data = BuildGenericConstructorProjectData();
             AddSparsePayloadSibling(data);
@@ -2766,11 +2771,15 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
             Assert.AreEqual("default", client.save.Get<NeoMemberClassWritable>("ZPayload")
                 .Get<NeoMemberStringWritable>("Name").value!.value);
+            int constructions = client.VirtualConstructionCount;
             client.save.Get<NeoMemberClassWritable>("ZPayload")
                 .Get<NeoMemberStringWritable>("Name").Set("updated argument");
-            Assert.AreEqual("updated argument", client.save.Get<NeoMemberClassWritable>("Thing")
-                .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value,
-                "A virtual argument descendant must invalidate constructors that read it.");
+            Assert.AreEqual("default", client.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+            Assert.AreEqual("default", reopened.save.Get<NeoMemberClassWritable>("Thing")
+                .Get<NeoMemberClassWritable>("Payload").Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
         [Test]
@@ -3884,6 +3893,7 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Observer").Get<NeoMemberIntWritable>("Copied");
             if (copied is not null)
                 Assert.AreEqual(5, copied.value!.value);
+            int constructions = client.VirtualConstructionCount;
             var writable = thing.AsWritableView(storage);
             if (selection)
                 writable.Get<NeoMemberEnumWritable>("Count").Set(new[] { "two" });
@@ -3894,7 +3904,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(otherId, out MemberValue? otherAfter));
             Assert.AreSame(otherBefore, otherAfter, "A leaf override must reuse the unrelated constructed default.");
             if (copied is not null)
-                Assert.AreEqual(9, copied.value!.value, "A constructor that copies the changed leaf must replay.");
+                Assert.AreEqual(5, copied.value!.value, "A captured value stays fixed after the input changes.");
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
             if (selection)
                 CollectionAssert.AreEqual(new[] { "two" }, writable.Get<NeoMemberEnumWritable>("Count").value!.value);
             else
@@ -7310,7 +7321,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void FullVirtualRebuildRetiresWrappersHoldingTheOldExpansion()
+        public void ExternalFieldPatchKeepsWrappersBoundToTheMaterializedGraph()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(
                 BuildNestedProjectData());
@@ -7327,14 +7338,14 @@ namespace NeoCompose.Tests
             ((JObject)incoming["values"]!)[countId] = JObject.FromObject(
                 new NumberMemberValue { id = countId, value = 73 });
 
+            int constructions = client.VirtualConstructionCount;
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            // A rebuild mints new rows at the same deterministic ids, so a
-            // wrapper that survives keeps serving the previous expansion while
-            // the resolver serves the new one.
-            Assert.IsTrue(
-                held.isDisposed,
-                "A wrapper bound to a replaced virtual row must be retired, not left serving the old value.");
+            // P130: a field patch re-shadows its slot. Nothing is rebuilt, so
+            // the held wrapper stays bound and serves the incoming value.
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
+            Assert.IsFalse(held.isDisposed);
+            Assert.AreEqual(73d, held.value!.value);
             Assert.AreEqual(
                 73d,
                 thing
@@ -7439,7 +7450,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void LiveApplyReexpandsOnlyTheRootsThePatchTouches()
+        public void LiveApplyFieldPatchReachesOnlyItsSlot()
         {
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(
                 BuildTwoRootProjectData());
@@ -7457,9 +7468,12 @@ namespace NeoCompose.Tests
             ((JObject)incoming["values"]!)[thingCountId] = JObject.FromObject(
                 new NumberMemberValue { id = thingCountId, value = 31 });
 
+            int constructions = client.VirtualConstructionCount;
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            Assert.IsTrue(thingCount.isDisposed);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount, "A field patch rematerializes nothing.");
+            Assert.IsFalse(thingCount.isDisposed);
+            Assert.AreEqual(31d, thingCount.value!.value);
             Assert.IsFalse(
                 otherCount.isDisposed,
                 "An untouched root must not be re-expanded by a patch that never reached it.");
@@ -7473,7 +7487,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void LiveApplyTracksSharedRetargetedAndRetiredConstructorArgumentRoots()
+        public void LiveApplyRematerializesOnlyARootWhoseConstructorArgumentsChange()
         {
             ProjectData data = BuildLiveConstructorArgumentProjectData();
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
@@ -7484,20 +7498,21 @@ namespace NeoCompose.Tests
                 .Get<NeoMemberClassWritable>("Other");
             Assert.AreEqual("from constructor argument", PayloadName(thing));
             Assert.AreEqual("from constructor argument", PayloadName(other));
-
-            JObject incoming = JObject.Parse(client.SerializeSaveData());
-            NeoMemberClassWritable heldThingPayload = thing
-                .Get<NeoMemberClassWritable>("Payload");
             NeoMemberClassWritable heldOtherPayload = other
                 .Get<NeoMemberClassWritable>("Payload");
+            int constructions = client.VirtualConstructionCount;
+
+            // Patching an argument's contents keeps both captures.
+            JObject incoming = JObject.Parse(client.SerializeSaveData());
             ReplacePayload(incoming, "constructor-payload", "shared-update");
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            Assert.IsTrue(heldThingPayload.isDisposed);
-            Assert.IsTrue(heldOtherPayload.isDisposed);
-            Assert.AreEqual("shared-update", PayloadName(thing));
-            Assert.AreEqual("shared-update", PayloadName(other));
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
+            Assert.IsFalse(heldOtherPayload.isDisposed);
+            Assert.AreEqual("from constructor argument", PayloadName(thing));
+            Assert.AreEqual("from constructor argument", PayloadName(other));
 
+            // Changing one root's arguments rematerializes that root only.
             incoming = JObject.Parse(client.SerializeSaveData());
             var retargetedThing = ObjectValue("thing-instance", "thing-class");
             retargetedThing.instanceConstructorId = "thing-ctor";
@@ -7511,51 +7526,18 @@ namespace NeoCompose.Tests
                 JObject.FromObject(retargetedThing);
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            heldThingPayload = thing
-                .Get<NeoMemberClassWritable>("Payload");
-            heldOtherPayload = other
-                .Get<NeoMemberClassWritable>("Payload");
+            Assert.AreEqual(constructions + 1, client.VirtualConstructionCount);
+            Assert.IsFalse(heldOtherPayload.isDisposed);
             Assert.AreEqual("alternate", PayloadName(thing));
+            Assert.AreEqual("from constructor argument", PayloadName(other));
 
-            incoming = JObject.Parse(client.SerializeSaveData());
-            ReplacePayload(incoming, "constructor-payload", "updated-original");
-            client.ApplyExternalSaveContent(incoming.ToString());
-
-            Assert.IsFalse(
-                heldThingPayload.isDisposed,
-                "Retargeting a root must remove its old constructor-argument edge.");
-            Assert.IsTrue(heldOtherPayload.isDisposed);
-            Assert.AreEqual("alternate", PayloadName(thing));
-            Assert.AreEqual("updated-original", PayloadName(other));
-
-            heldThingPayload = thing.Get<NeoMemberClassWritable>("Payload");
+            // The new argument's contents are no edge either.
             incoming = JObject.Parse(client.SerializeSaveData());
             ReplacePayload(incoming, "alternate-payload", "updated-alternate");
             client.ApplyExternalSaveContent(incoming.ToString());
 
-            Assert.IsTrue(heldThingPayload.isDisposed);
-            Assert.AreEqual("updated-alternate", PayloadName(thing));
-
-            incoming = JObject.Parse(client.SerializeSaveData());
-            var retiredThing = ObjectValue(
-                "thing-instance",
-                "thing-class",
-                new Dictionary<string, string>
-                {
-                    ["Payload"] = "alternate-payload",
-                });
-            ((JObject)incoming["values"]!)[retiredThing.id] =
-                JObject.FromObject(retiredThing);
-            client.ApplyExternalSaveContent(incoming.ToString());
-            heldThingPayload = thing.Get<NeoMemberClassWritable>("Payload");
-
-            incoming = JObject.Parse(client.SerializeSaveData());
-            ReplacePayload(incoming, "alternate-payload", "after-retirement");
-            client.ApplyExternalSaveContent(incoming.ToString());
-
-            Assert.IsFalse(
-                heldThingPayload.isDisposed,
-                "Retiring a sparse root must remove its constructor-argument edge.");
+            Assert.AreEqual(constructions + 1, client.VirtualConstructionCount);
+            Assert.AreEqual("alternate", PayloadName(thing));
         }
 
         private static ProjectData BuildTwoRootProjectData()

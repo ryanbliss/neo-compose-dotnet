@@ -174,11 +174,6 @@ namespace NeoCompose.Runtime
                 || next.instanceVariantId is not null || next.instanceVariantRowValueId is not null
                 || next.hasInstanceAppliedVariant)
                 return false;
-            // A row a constructed graph read while it expanded (an initializer
-            // that copies this leaf) is a replay dependency of that graph;
-            // only a committed plan re-expands the dependents.
-            if (constructorArgumentRootsByValueId.ContainsKey(next.id))
-                return false;
             // The first write over a virtual (sparse) child materializes it
             // through the plan; from then on the store holds the row. The
             // row's node answers every lookup below.

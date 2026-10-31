@@ -95,10 +95,10 @@ namespace NeoCompose.Tests
                     Assert.That(sibling.Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(17));
                     Assert.That(thing.Get<NeoMemberClassWritable>("Nested").Get<NeoMemberClassWritable>("Deep").Get<NeoMemberIntWritable>("Count").value!.value, Is.EqualTo(5));
                 }
-                int beforeDependency = client.VirtualReplayCount;
+                int beforeDependency = client.VirtualConstructionCount;
                 client.save.Get<NeoMemberIntWritable>("Input").Set(9);
-                Assert.That(client.VirtualReplayCount, Is.GreaterThan(beforeDependency), "Actual constructor reads must still invalidate.");
-                Assert.That(thing.Get<NeoMemberIntWritable>("Unchanged").value!.value, Is.EqualTo(9));
+                Assert.That(client.VirtualConstructionCount, Is.EqualTo(beforeDependency));
+                Assert.That(thing.Get<NeoMemberIntWritable>("Unchanged").value!.value, Is.EqualTo(3));
                 thing.Remove("Nested");
                 Assert.That(BoundRowId(thing, "Nested"), Is.Null, "Removing the override must restore its null default.");
                 saved = client.SerializeSaveData();
@@ -190,7 +190,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void CopiedImmutableDefaultsKeepTheirExternalDependencies(bool samePlan)
+        public void CopiedImmutableDefaultsKeepTheirCapturedValues(bool samePlan)
         {
             var data = BuildProjectData();
             data.classes["save-root-class"].schema["Input"] = "clone-input";
@@ -237,12 +237,14 @@ namespace NeoCompose.Tests
             else
                 copied = client.CloneValueReference(source.value!.id, source.ownership);
             var clone = new NeoMemberClassWritable(client, (ClassMember)data.members["thing-member"], copied, NeoValueOwnership.Session);
-            Assert.AreEqual(samePlan ? 9 : 3, clone.Get<NeoMemberInt>("Frozen").value!.value);
+            Assert.AreEqual(3, clone.Get<NeoMemberInt>("Frozen").value!.value);
             if (!samePlan)
                 Assert.AreEqual(replays, client.VirtualReplayCount);
+            int constructions = client.VirtualConstructionCount;
             client.save.Get<NeoMemberIntWritable>("Input").Set(9);
-            Assert.AreEqual(9, source.Get<NeoMemberInt>("Frozen").value!.value);
-            Assert.AreEqual(9, clone.Get<NeoMemberInt>("Frozen").value!.value);
+            Assert.AreEqual(3, source.Get<NeoMemberInt>("Frozen").value!.value);
+            Assert.AreEqual(3, clone.Get<NeoMemberInt>("Frozen").value!.value);
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
         }
 
         [Test]

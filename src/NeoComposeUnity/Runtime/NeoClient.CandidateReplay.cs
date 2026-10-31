@@ -60,20 +60,14 @@ namespace NeoCompose.Runtime
             HashSet<string>? changedPaths = null;
             foreach (var write in plan.Rows)
                 pending.Enqueue(write.Key.id);
-            foreach (var write in plan.Rows)
-                EnqueueReplayFields(pending, write.Key.id, plan);
-            foreach (var write in plan.Rows)
-                if (!TryGetCommittedValue(write.Key.id, out MemberValue? previous)
-                    || !SameReplayIdentity(previous, write.Value))
-                    EnqueueReplayIdentity(pending, write.Key.id);
-            foreach (var binding in plan.Bindings)
-            {
-                pending.Enqueue($"static:{binding.Key.ownership}:{binding.Key.memberId}");
-                if (binding.Value.valueId is string next)
-                    pending.Enqueue(next);
-                if (GetWritableStore(binding.Key.ownership).staticBindings.TryGetValue(binding.Key.memberId, out string? old) && old is not null)
-                    pending.Enqueue(old);
-            }
+            // A variant apply has already prepared its receiver's declarative
+            // answers, even when clearing a nested pin did not write the receiver.
+            if (preparedVariant is { } prepared && ReferenceEquals(prepared.Plan, plan))
+                AddRoot(prepared.Expansion.Root.id, requiresReplay: true);
+            // P130 §2. A materialized root keeps its construction output. Only
+            // a new identity, a changed recipe, a store move or a variant
+            // reselection prepares an expansion; a write never replays a root
+            // because its constructor read the written row.
             using (ReadCandidate(plan))
             {
                 while (pending.Count != 0)
@@ -83,25 +77,15 @@ namespace NeoCompose.Runtime
                         continue;
                     if (copiedRows?.Contains(id) == true)
                         continue;
-                    if (!CanReuseVirtualExpansionForLocalOverlay(plan, id, out bool unchanged))
-                    {
-                        if (ResolveValueRow(id) is ObjectMemberValue row && IsStoredClassDefaultRoot(row))
-                            AddRoot(id);
-                        if (virtualFootprintByRoot.ContainsKey(id))
-                            AddRoot(id);
-                        if (virtualRootByFootprintId.TryGetValue(id, out string? root))
-                            AddRoot(root);
-                        if (virtualClassPlacementByChildId.TryGetValue(id, out var placement)
-                            && placement.rootId != id && ReselectsVariant(plan, id))
-                            AddRoot(placement.rootId);
-                    }
-                    if (unchanged)
-                        continue;
-                    if (constructorArgumentRootsByValueId.TryGetValue(id, out var dependencies))
-                        foreach (string dependent in dependencies)
-                        {
-                            AddRoot(dependent, requiresReplay: true);
-                        }
+                    // A materialized root whose row is nulled or removed is a
+                    // recipe change too; its row no longer resolves as a class.
+                    if ((virtualFootprintByRoot.ContainsKey(id)
+                            || ResolveValueRow(id) is ObjectMemberValue row && IsStoredClassDefaultRoot(row))
+                        && RequiresExpansion(plan, id))
+                        AddRoot(id);
+                    if (virtualClassPlacementByChildId.TryGetValue(id, out var placement)
+                        && placement.rootId != id && ReselectsVariant(plan, id))
+                        AddRoot(placement.rootId);
                 }
             }
             if (candidate is null)
@@ -109,14 +93,7 @@ namespace NeoCompose.Runtime
             foreach (var write in plan.Rows)
                 if (write.Value is ObjectMemberValue next
                     && TryGetCommittedOverlaidValue(write.Key.ownership, write.Key.id, out ObjectMemberValue? previous)
-                    && (next.classId != previous.classId
-                        || next.instanceVariantId != previous.instanceVariantId
-                        || next.instanceVariantRowValueId != previous.instanceVariantRowValueId
-                        || next.instanceAppliedVariantId != previous.instanceAppliedVariantId
-                        || next.instanceAppliedVariantRowValueId != previous.instanceAppliedVariantRowValueId
-                        || next.instanceConstructorId != previous.instanceConstructorId
-                        || (next.value is null) != (previous.value is null)
-                        || !NeoSemanticJson.MapsEqual(next.constructorArgs, previous.constructorArgs)))
+                    && ChangesConstruction(previous, next))
                     candidate.ReplacedConstructionRoots.Add(write.Key.id);
             return candidate;
 
@@ -140,15 +117,43 @@ namespace NeoCompose.Runtime
                         AddRoot(nestedRoot, requiresReplay: true);
                 if (virtualValueIdsByRoot.TryGetValue(id, out var values))
                     candidate.HiddenVirtualIds.UnionWith(values);
-                if (virtualFootprintByRoot.TryGetValue(id, out var footprint))
-                    foreach (string valueId in footprint)
-                    {
-                        pending.Enqueue(valueId);
-                        if (valueId != id || !SameReplayIdentity(PreviousReplayRow(valueId), plan.Resolve(valueId)))
-                            EnqueueReplayIdentity(pending, valueId);
-                        EnqueueReplayFields(pending, valueId, valueId == id ? plan : null);
-                    }
             }
+        }
+
+        /// <summary>
+        /// Whether a written row needs construction: a new identity, or a
+        /// root whose recipe changes or, once materialized, whose store
+        /// changes (P130 §2).
+        /// </summary>
+        private bool RequiresExpansion(NeoWritePlan plan, string id)
+        {
+            if (virtualFootprintByRoot.ContainsKey(id))
+                return plan.WritesRow(id)
+                    && (ChangesConstruction(PreviousReplayRow(id), plan.Resolve(id))
+                        || plan.TryGetOwnership(id, out var next)
+                            && TryGetCommittedOwnership(id, out var previous) && next != previous);
+            // A nested construction inside another root's graph rematerializes
+            // on its own recipe change, through its boundary.
+            if (virtualRootByFootprintId.ContainsKey(id))
+                return nestedReplayBoundaries.ContainsKey(id) && plan.WritesRow(id)
+                    && ChangesConstruction(PreviousReplayRow(id), plan.Resolve(id));
+            // An unchanged or merely moved stored root keeps its graph.
+            return CurrentChangeSource == NeoChangeSource.External
+                || !TryGetCommittedValue(id, out MemberValue? committed)
+                || !TryGetCommittedOwnership(id, out NeoValueOwnership before)
+                || !plan.TryGetOwnership(id, out NeoValueOwnership after)
+                || before != after
+                || !ReplayRowsEqual(committed, plan.Resolve(id), ignorePlacement: true);
+        }
+
+        /// <summary>The construction provenance P130 §2 rematerializes on.</summary>
+        private static bool ChangesConstruction(MemberValue? before, MemberValue? after)
+        {
+            if (before is not ObjectMemberValue previous || after is not ObjectMemberValue next)
+                return !ReferenceEquals(before, after);
+            return ChangesRecipe(previous, next)
+                || next.instanceAppliedVariantId != previous.instanceAppliedVariantId
+                || next.instanceAppliedVariantRowValueId != previous.instanceAppliedVariantRowValueId;
         }
 
         private bool CanUseCompleteLocalGraph(NeoWritePlan plan, string rootId, ref HashSet<string>? changedPaths)
@@ -263,145 +268,6 @@ namespace NeoCompose.Runtime
             return paths;
         }
 
-        private bool CanReuseVirtualExpansionForLocalOverlay(NeoWritePlan plan, string id, out bool unchanged)
-        {
-            unchanged = false;
-            if (CurrentChangeSource == NeoChangeSource.External
-                || !plan.WritesRow(id)
-                || plan.Resolve(id) is not MemberValue next
-                || !TryGetCommittedValue(id, out MemberValue? previous)
-                || !TryGetCommittedOwnership(id, out NeoValueOwnership oldOwnership)
-                || !plan.TryGetOwnership(id, out NeoValueOwnership nextOwnership)
-                || next.GetType() != previous.GetType()
-                || next.IsRemoved || previous.IsRemoved
-                || next.classId != previous.classId)
-                return false;
-
-            // Reparenting an existing object in the same store preserves its
-            // construction. Field and value dependencies below still observe
-            // the move and any separately written position.
-            if (next.containerId != previous.containerId || next.mapKey != previous.mapKey)
-                return next is ObjectMemberValue && oldOwnership == nextOwnership
-                    && ReplayRowsEqual(previous, next, ignorePlacement: true);
-
-            // A stored leaf shadows its cached default directly. It cannot
-            // retire an owned default subtree. Actual constructor reads still
-            // invalidate through constructorArgumentRootsByValueId below.
-            if (next is NumberMemberValue or StringMemberValue or BoolMemberValue
-                or Vector2MemberValue or Vector3MemberValue or ColorMemberValue
-                or FileMemberValue or SpriteMemberValue or NullMemberValue
-                or DelegateMemberValue or ActionMemberValue)
-                return true;
-
-            // One member answers both array checks below.
-            Member? arrayMember = null;
-            if (next is ArrayMemberValue)
-            {
-                arrayMember = PlannedMember(plan, id);
-                if (arrayMember is EnumMember or LookupMember or DialogueLookupMember)
-                    return true;
-            }
-
-            // A complete equal clone supplies its destination graph without
-            // invalidating the immutable source's enclosing construction.
-            if (next is ObjectMemberValue { classId: not null } clonedClass
-                && ReplayRowsEqual(previous, next)
-                && (oldOwnership == nextOwnership || IsCompleteStoredOverlay(plan, clonedClass, nextOwnership)))
-            {
-                unchanged = true;
-                return true;
-            }
-
-            if (oldOwnership != nextOwnership)
-                return false;
-
-            // Replacing scalar links, null fields or independently stored
-            // children preserves the parent's virtual defaults. Readers of the
-            // changed field still invalidate through their actual dependencies.
-            if (previous is ObjectMemberValue { classId: not null, value: not null } beforeObject
-                && next is ObjectMemberValue { value: not null } afterObject
-                && NeoSemanticJson.MemberRowsEqual(previous, next, ignoreObjectFields: true)
-                && virtualClassChildren.TryGetValue(id, out var defaultFields)
-                && PreservesOwnedSubtrees(beforeObject, afterObject, defaultFields))
-                return true;
-
-            // Adding collection entries preserves every existing default edge.
-            // Replacements, removals, null collections and class field maps
-            // retain replay so superseded virtual subtrees are retired.
-            if (next is ObjectMemberValue { classId: null, value: not null } dictionary
-                && previous is ObjectMemberValue { classId: null, value: not null } oldDictionary
-                && TryInferMemberForValueId(id, out Member? member) && member is DictionaryMember)
-                return KeepsEntries(oldDictionary.value, dictionary.value);
-            if (next is ArrayMemberValue { value: not null } list
-                && previous is ArrayMemberValue { value: not null } oldList
-                && arrayMember is ListMember)
-                return SharedPrefix(oldList.value, list.value) == oldList.value.Length;
-            return false;
-        }
-
-        private static bool KeepsEntries(Dictionary<string, string> previous, Dictionary<string, string> next)
-        {
-            foreach (var pair in previous)
-                if (!next.TryGetValue(pair.Key, out string? valueId) || valueId != pair.Value)
-                    return false;
-            return true;
-        }
-
-        private bool IsCompleteStoredOverlay(NeoWritePlan plan, ObjectMemberValue root, NeoValueOwnership ownership)
-        {
-            if (ownership == NeoValueOwnership.Asset)
-                return false;
-            var visited = new HashSet<string>();
-            return Complete(root.id);
-
-            bool Complete(string id)
-            {
-                if (!visited.Add(id))
-                    return true;
-                if (!plan.Rows.TryGetValue((ownership, id), out var row))
-                    GetWritableStore(ownership).values.TryGetValue(id, out row);
-                if (row is null || row.IsRemoved)
-                    return false;
-                if (row is ObjectMemberValue { classId: not null, value: not null } obj
-                    && virtualClassChildren.TryGetValue(id, out var defaults)
-                    && defaults.Keys.Any(key => !obj.value.ContainsKey(key)))
-                    return false;
-                foreach (var link in EnumerateOwnedChildLinks(row, null))
-                    if (!Complete(link.valueId))
-                        return false;
-                return true;
-            }
-        }
-
-        private bool PreservesOwnedSubtrees(ObjectMemberValue previous, ObjectMemberValue next,
-            Dictionary<string, string> defaults)
-        {
-            foreach (string key in previous.value!.Keys.Concat(next.value!.Keys).Distinct())
-            {
-                string? before = previous.value.GetValueOrDefault(key) ?? defaults.GetValueOrDefault(key);
-                string? after = next.value.GetValueOrDefault(key) ?? defaults.GetValueOrDefault(key);
-                if (before == after)
-                    continue;
-                if (before is null)
-                    return false;
-                var prior = PreviousReplayRow(before);
-                if (prior is ObjectMemberValue { value: null } or NullMemberValue)
-                    continue;
-                // Explicit replacements of stored children retire their old
-                // graph through the write plan. They do not supersede a virtual
-                // subtree belonging to this construction. Omitting the field
-                // must still replay to restore its default.
-                if (prior is ObjectMemberValue or ArrayMemberValue
-                    && previous.value.ContainsKey(key) && next.value.ContainsKey(key)
-                    && !virtualRootByFootprintId.ContainsKey(before))
-                    continue;
-                if (prior is null or ObjectMemberValue or ArrayMemberValue)
-                    return false;
-            }
-            return true;
-        }
-
-        // The sparse root whose expansion overlays this materialized node.
         private string? OverlayingRoot(string id, ObjectMemberValue row) =>
             !IsVirtualInstanceRoot(row)
                 && virtualRootByFootprintId.TryGetValue(id, out string? root)
@@ -486,7 +352,8 @@ namespace NeoCompose.Runtime
                 return;
             bool rehome = replayOwnership is { } targetOwnership
                 && TryGetCommittedOwnership(rootId, out var sourceOwnership) && sourceOwnership != targetOwnership;
-            if (CanRetainCandidateRoot(candidate, root) && (!rehome || CanRetainNestedExpansions(candidate, rootId)))
+            if (preparedVariant?.Expansion.Root.id != rootId
+                && CanRetainCandidateRoot(candidate, root) && (!rehome || CanRetainNestedExpansions(candidate, rootId)))
             {
                 // Reuse the expansion's values and indexes throughout candidate reads.
                 if (rehome)
@@ -553,72 +420,19 @@ namespace NeoCompose.Runtime
 
         private bool CanRetainCandidateRoot(CandidateReplay candidate, ObjectMemberValue root)
         {
-            if (CurrentChangeSource == NeoChangeSource.External
-                || !virtualFootprintByRoot.TryGetValue(root.id, out var footprint)
-                || !ReplayRowsEqual(PreviousRow(root.id), root, ignorePlacement: true))
+            if (!virtualFootprintByRoot.ContainsKey(root.id)
+                || ChangesConstruction(PreviousReplayRow(root.id), root))
                 return false;
             foreach (var write in candidate.Plan.Rows.Keys)
-                if (footprint.Contains(write.id) && !CanKeepOverlay(write.id)
-                    || virtualClassPlacementByChildId.TryGetValue(write.id, out var placement)
-                        && placement.rootId == root.id && ReselectsVariant(candidate.Plan, write.id))
+                if (virtualClassPlacementByChildId.TryGetValue(write.id, out var placement)
+                    && placement.rootId == root.id && ReselectsVariant(candidate.Plan, write.id))
                     return false;
-            if (constructorArgumentValueIdsByRoot.TryGetValue(root.id, out var dependencies))
-            {
-                foreach (string id in dependencies)
-                {
-                    if (id.StartsWith("field:", StringComparison.Ordinal))
-                    {
-                        if (!SameReplayField(candidate.Plan, id, candidate))
-                            return false;
-                        continue;
-                    }
-                    if (id.StartsWith("identity:", StringComparison.Ordinal))
-                    {
-                        string referencedId = id.Substring("identity:".Length);
-                        if (!SameReplayIdentity(PreviousRow(referencedId), candidate.Plan.Resolve(referencedId)))
-                            return false;
-                        continue;
-                    }
-                    if (id.StartsWith("static:", StringComparison.Ordinal))
-                    {
-                        foreach (var binding in candidate.Plan.Bindings.Keys)
-                            if (id == $"static:{binding.ownership}:{binding.memberId}")
-                                return false;
-                        continue;
-                    }
-                    bool written = candidate.Plan.WritesRow(id);
-                    if (!written && footprint.Contains(id))
-                        continue;
-                    if (!written && !candidate.HiddenVirtualIds.Contains(id))
-                        continue;
-                    if (candidate.HiddenVirtualIds.Contains(id) && !candidate.Values.ContainsKey(id))
-                        return false;
-                    if (!SameRow(PreviousRow(id), candidate.Plan.Resolve(id)))
-                    {
-                        return false;
-                    }
-                }
-            }
             if (virtualValueIdsByRoot.TryGetValue(root.id, out var values))
                 foreach (string id in values)
                     if (candidate.Values.TryGetValue(id, out var proposed)
-                        && virtualValues.TryGetValue(id, out var current) && !SameRow(current, proposed))
+                        && virtualValues.TryGetValue(id, out var current) && !ReplayRowsEqual(current, proposed))
                         return false;
             return true;
-
-            bool CanKeepOverlay(string id)
-            {
-                var before = PreviousRow(id);
-                var after = candidate.Plan.Resolve(id);
-                if (before is null || after is null || before.IsRemoved || after.IsRemoved)
-                    return false;
-                return ReplayRowsEqual(before, after, ignorePlacement: true)
-                    || NeoSemanticJson.MemberRowsEqual(before, after, ignorePlacement: true, ignoreScalarValue: true);
-            }
-
-            MemberValue? PreviousRow(string id) => PreviousReplayRow(id);
-
-            bool SameRow(MemberValue? left, MemberValue? right) => ReplayRowsEqual(left, right);
         }
 
         private bool ReplayRowsEqual(MemberValue? previous, MemberValue? next, bool ignorePlacement = false)

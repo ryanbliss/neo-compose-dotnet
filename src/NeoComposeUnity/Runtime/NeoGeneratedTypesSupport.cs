@@ -7805,6 +7805,8 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
             string path)
         {
+            // P130 §4: this initializer's reads belong to the value it produces.
+            NeoClient.PinFrame? pinFrame = client.EnterPinFrame();
             object? produced = scope.EvaluateInitializer(member, authored.init!, env);
             if (produced is not null
                 && (member is ListMember || member is DictionaryMember))
@@ -7838,6 +7840,7 @@ namespace NeoCompose.Runtime
 
             string? Capture(string? id)
             {
+                client.ExitPinFrame(pinFrame, id);
                 if (produced is not null && id is not null && authored.changeListeners is { Count: > 0 })
                     (scope.listenerInitializers ??= new())[path] = new InitializedListenerOccurrence
                     {
