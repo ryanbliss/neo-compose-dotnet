@@ -853,16 +853,14 @@ namespace NeoCompose.Runtime
             System.Threading.CancellationToken cancellationToken,
             NeoValueOwnership persisted = NeoValueOwnership.Save,
             NeoClient? userClient = null,
-            string? pendingLiveContent = null)
+            LiveContentBuffer? liveContent = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var client = new NeoClient(
                 loader, content, assetDatabase, localization, saveOptions, true, persisted);
-            var liveSource = loader as INeoLiveContentSource;
-            void BufferLiveContent(string latest) => pendingLiveContent = latest;
-            // Live messages are complete snapshots. Keep the latest while replay yields.
-            if (liveSource != null)
-                liveSource.OnLiveContentChanged += BufferLiveContent;
+            // Keep the latest live snapshot while replay yields.
+            using var ownLiveContent = liveContent is null ? new LiveContentBuffer(loader) : null;
+            LiveContentBuffer live = liveContent ?? ownLiveContent!;
             try
             {
                 // Replay reads User rows, so attach first (§4.3).
@@ -878,8 +876,8 @@ namespace NeoCompose.Runtime
                     await YieldInitializationAsync(cancellationToken);
                     budget.Restart();
                 }
-                if (pendingLiveContent != null)
-                    client.ApplyExternalSaveContent(pendingLiveContent);
+                if (live.Latest != null)
+                    client.ApplyExternalSaveContent(live.Latest);
                 client.CompleteInitialization();
                 return client;
             }
@@ -888,10 +886,35 @@ namespace NeoCompose.Runtime
                 client.Dispose();
                 throw;
             }
-            finally
+        }
+
+        /// <summary>
+        /// Keeps the latest snapshot a live content source raises, from the
+        /// moment the save content is read until the client applies it.
+        /// Live messages are complete snapshots, so only the latest matters.
+        /// </summary>
+        internal sealed class LiveContentBuffer : System.IDisposable
+        {
+            private readonly INeoLiveContentSource? source;
+
+            public LiveContentBuffer(INeoSaveLoader loader)
             {
-                if (liveSource != null)
-                    liveSource.OnLiveContentChanged -= BufferLiveContent;
+                source = loader as INeoLiveContentSource;
+                if (source != null)
+                    source.OnLiveContentChanged += Keep;
+            }
+
+            public string? Latest
+            {
+                get; private set;
+            }
+
+            private void Keep(string latest) => Latest = latest;
+
+            public void Dispose()
+            {
+                if (source != null)
+                    source.OnLiveContentChanged -= Keep;
             }
         }
 
@@ -1165,6 +1188,7 @@ namespace NeoCompose.Runtime
         }
 
         private int animationFrameDepth;
+        private int changeDeliveryDepth;
         private readonly HashSet<System.Action> pendingAnimationRenderUpdates = new();
         private readonly Stack<List<System.Action>> animationRenderSnapshots = new();
 
@@ -1325,18 +1349,50 @@ namespace NeoCompose.Runtime
 
         internal void EndAnimationFrame()
         {
-            if (--animationFrameDepth != 0)
-                return;
+            if (--animationFrameDepth == 0)
+                FlushAnimationRendering();
+        }
+
+        /// <summary>
+        /// Holds rendering while one batch of changes is delivered, so each
+        /// rendered object refreshes once for all of them.
+        /// </summary>
+        private void BeginChangeDelivery() => changeDeliveryDepth++;
+
+        /// <summary>
+        /// Renders what the delivery changed before its caller continues,
+        /// unless an animation frame renders it when the frame ends.
+        /// </summary>
+        private void EndChangeDelivery()
+        {
+            changeDeliveryDepth--;
+            if (animationFrameDepth == 0)
+                FlushAnimationRendering();
+        }
+
+        private void FlushAnimationRendering()
+        {
             if (pendingAnimationRenderUpdates.Count == 0)
                 return;
             var pending = animationRenderSnapshots.Count > 0
                 ? animationRenderSnapshots.Pop() : new List<System.Action>();
             pending.AddRange(pendingAnimationRenderUpdates);
             pendingAnimationRenderUpdates.Clear();
+            List<System.Exception>? failures = null;
             try
             {
+                // One object failing to render must not leave the others stale.
                 foreach (System.Action update in pending)
-                    update();
+                {
+                    try
+                    {
+                        update();
+                    }
+                    catch (System.Exception exception)
+                    {
+                        (failures ??= new List<System.Exception>()).Add(exception);
+                    }
+                }
             }
             finally
             {
@@ -1346,11 +1402,13 @@ namespace NeoCompose.Runtime
                 if (pending.Capacity <= 256 && animationRenderSnapshots.Count < 4)
                     animationRenderSnapshots.Push(pending);
             }
+            if (failures is not null)
+                throw failures.Count == 1 ? failures[0] : new System.AggregateException(failures);
         }
 
         internal void RefreshAnimationRendering(System.Action update)
         {
-            if (animationFrameDepth == 0)
+            if (animationFrameDepth == 0 && changeDeliveryDepth == 0)
                 update();
             else
                 pendingAnimationRenderUpdates.Add(update);
@@ -4500,6 +4558,8 @@ namespace NeoCompose.Runtime
             {
                 CollectPlacementParents(childValueId, candidates);
                 candidateReadPlan?.CollectParentCandidates(childValueId, candidates);
+                if (candidateReplay?.Parents.TryGetValue(childValueId, out var allocatedParents) == true)
+                    candidates.UnionWith(allocatedParents);
                 foreach (string id in candidates)
                 {
                     if (WritableParent(NeoValueOwnership.Session, id) is { IsRemoved: false } row
@@ -4555,9 +4615,12 @@ namespace NeoCompose.Runtime
             parentOwnership = childOwnership;
             return false;
 
+            // A candidate replay's constructor rows are Session allocations of
+            // that candidate, so its own members' rows are owned there.
             MemberValue? WritableParent(NeoValueOwnership scope, string id) =>
                 candidateReadPlan?.Rows.TryGetValue((scope, id), out MemberValue? proposed) == true
-                    ? proposed : GetWritableStore(scope).values.GetValueOrDefault(id);
+                    ? proposed
+                    : (scope == NeoValueOwnership.Session ? sessionValues : GetWritableStore(scope).values).GetValueOrDefault(id);
         }
 
         private bool OwnsChildEdge(

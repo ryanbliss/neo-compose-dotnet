@@ -772,6 +772,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ARefreshThatThrowsLeavesTheOthersRendered()
+        {
+            using NeoClient client = BuildEquipClient();
+            int updates = 0;
+            client.BeginAnimationFrame();
+            client.RefreshAnimationRendering(() => throw new InvalidOperationException("broken"));
+            client.RefreshAnimationRendering(() => updates++);
+            Assert.Throws<InvalidOperationException>(client.EndAnimationFrame);
+            Assert.AreEqual(1, updates, "Every other pending object must still render.");
+        }
+
+        [Test]
         public void ScalarAnimationWriteDoesNotRebuildTheContainingClassMembers()
         {
             using NeoClient client = BuildEquipClient();

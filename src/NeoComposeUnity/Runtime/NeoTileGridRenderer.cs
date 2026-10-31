@@ -381,8 +381,10 @@ namespace NeoCompose.Runtime
                 subscription = generated.WatchAnyChange((owner, changed, _) =>
                 {
                     // A getter's change is raised on this value alone, where a
-                    // write bubbles to the placement, so it is passed on.
-                    if (changed is NeoMemberNSProperty)
+                    // write bubbles to the placement, so it is passed on. A
+                    // sprite passes on all of its changes, so the placement
+                    // re-reads only that sprite rather than every one.
+                    if (changed is NeoMemberNSProperty || value is INeoSpriteObjectValue)
                         instanceChanged(owner, changed);
                     // Descendant writes bubble to composition owners. Refresh for
                     // the owner's position or sprite geometry, or its replacement.
@@ -569,6 +571,12 @@ namespace NeoCompose.Runtime
 
             public INeoColliderSource Source => source;
 
+            /// <summary>Whether a change to its source awaits the next sync.</summary>
+            public bool Marked
+            {
+                get; set;
+            }
+
             /// <summary>The component, once the value first carried a collider.</summary>
             public BoxCollider2D? Collider => collider;
 
@@ -654,6 +662,11 @@ namespace NeoCompose.Runtime
             public int BaseSortingOrder
             {
                 get;
+            }
+            /// <summary>Whether a change to its value awaits the next sync.</summary>
+            public bool Marked
+            {
+                get; set;
             }
         }
 
@@ -1590,7 +1603,7 @@ namespace NeoCompose.Runtime
             // Coalesce the many leaf writes of a composed animation frame.
             // Flush before ApplyFrame returns, never on a later Unity frame.
             bool positionDirty = false, sortPointDirty = false, visibilityDirty = false, spritesDirty = false,
-                collidersDirty = false;
+                allSpritesDirty = false, collidersDirty = false, allCollidersDirty = false;
             void RefreshRendering()
             {
                 if (!objectRootsByInstanceId.TryGetValue(instanceId, out var rendered) || rendered == null)
@@ -1607,10 +1620,11 @@ namespace NeoCompose.Runtime
                     if (visibilityDirty)
                         SyncObjectVisibility(instanceId);
                     if (spritesDirty)
-                        SyncObjectSprites(instanceId);
+                        SyncObjectSprites(instanceId, onlyMarked: !allSpritesDirty);
                     if (collidersDirty)
-                        SyncObjectColliders(instanceId);
-                    positionDirty = sortPointDirty = visibilityDirty = spritesDirty = collidersDirty = false;
+                        SyncObjectColliders(instanceId, onlyMarked: !allCollidersDirty);
+                    positionDirty = sortPointDirty = visibilityDirty = spritesDirty = allSpritesDirty = false;
+                    collidersDirty = allCollidersDirty = false;
                 }
                 finally
                 {
@@ -1628,8 +1642,20 @@ namespace NeoCompose.Runtime
                     && (changedMember is NeoMemberClass or NeoMemberList or NeoMemberDictionary
                         || sortPoint.IsGroupChange(changedMember));
                 visibilityDirty |= ChangeCanCarryEnabled(leafKey);
-                spritesDirty |= ChangeCanCarrySpriteState(leafKey);
-                collidersDirty |= ChangeCanCarryCollider(leafKey);
+                bool sprites = ChangeCanCarrySpriteState(leafKey);
+                bool colliders = ChangeCanCarryCollider(leafKey);
+                // A generated sprite raises its own changes, so an edit a list
+                // re-raised from one of its entries marks nothing more.
+                if ((sprites || colliders)
+                    && changedMember is not NeoMemberList { ActiveListChange: { IsDescendantEdit: true } }
+                    && (changedMember is NeoMemberList or NeoMemberDictionary
+                        || !MarkRendered(instanceId, changedValue)))
+                {
+                    allSpritesDirty |= sprites;
+                    allCollidersDirty |= colliders;
+                }
+                spritesDirty |= sprites;
+                collidersDirty |= colliders;
                 if (positionDirty || sortPointDirty || visibilityDirty || spritesDirty || collidersDirty)
                     value.Client.RefreshAnimationRendering(refresh);
             }
@@ -1874,6 +1900,39 @@ namespace NeoCompose.Runtime
                 or MaskInteractionMemberKey or "SortingOrder" or "Size";
 
         /// <summary>
+        /// Marks the sprites and colliders <paramref name="value"/> governs for
+        /// the next sync.
+        /// </summary>
+        /// <returns>False when the value is not one the instance rendered, such as an ancestor.</returns>
+        private bool MarkRendered(NeoObjectInstanceId instanceId, NeoGeneratedClassValue value)
+        {
+            if (!objectVisibilityByInstanceId.TryGetValue(instanceId, out var visibility))
+                return false;
+            bool rendered = false;
+            foreach (var bucket in visibility.Buckets)
+                rendered |= ReferenceEquals(bucket.Value, value);
+            if (!rendered)
+                return false;
+            if (objectSpritesByInstanceId.TryGetValue(instanceId, out var sprites))
+            {
+                foreach (var binding in sprites)
+                {
+                    if (ReferenceEquals(binding.Value, value))
+                        binding.Marked = true;
+                }
+            }
+            if (objectCollidersByInstanceId.TryGetValue(instanceId, out var colliders))
+            {
+                foreach (var collider in colliders)
+                {
+                    if (ReferenceEquals(collider.Source, value))
+                        collider.Marked = true;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Re-reads every rendered sprite child's <c>Size</c>, <c>Sprite</c>, flips, and mask
         /// interaction from the value that governs it. The value model is the
         /// single source of truth for what is drawn, the same way it already is
@@ -1881,7 +1940,11 @@ namespace NeoCompose.Runtime
         /// Sorting uses the retained layer order plus the current authored
         /// offset, so repeated writes never accumulate the previous offset.
         /// </summary>
-        private void SyncObjectSprites(NeoObjectInstanceId instanceId)
+        /// <param name="onlyMarked">
+        /// Skips a generated sprite that no change to its value marked. A
+        /// generated value raises its own changes; any other value re-reads.
+        /// </param>
+        private void SyncObjectSprites(NeoObjectInstanceId instanceId, bool onlyMarked = false)
         {
             if (!objectSpritesByInstanceId.TryGetValue(instanceId, out var sprites))
             {
@@ -1889,6 +1952,9 @@ namespace NeoCompose.Runtime
             }
             foreach (var binding in sprites)
             {
+                if (onlyMarked && !binding.Marked && binding.Value is NeoGeneratedClassValue)
+                    continue;
+                binding.Marked = false;
                 var renderer = binding.Renderer;
                 if (renderer == null)
                     continue;
@@ -1933,7 +1999,12 @@ namespace NeoCompose.Runtime
                 || string.Equals(leafKey, ColliderMemberKey, StringComparison.Ordinal);
 
         /// <summary>Re-reads every collider an instance rendered from the value that governs it.</summary>
-        private void SyncObjectColliders(NeoObjectInstanceId instanceId)
+        /// <param name="onlyMarked">
+        /// Skips a generated sprite's collider that no change to the sprite
+        /// marked. A generated sprite raises its own changes; any other
+        /// collider re-reads.
+        /// </param>
+        private void SyncObjectColliders(NeoObjectInstanceId instanceId, bool onlyMarked = false)
         {
             if (!objectCollidersByInstanceId.TryGetValue(instanceId, out var colliders))
                 return;
@@ -1941,6 +2012,9 @@ namespace NeoCompose.Runtime
             NeoClient? physics = tileCacheClient is { PhysicsHooksActive: true } client ? client : null;
             foreach (var collider in colliders)
             {
+                if (onlyMarked && !collider.Marked && collider.Source is INeoSpriteObjectValue and NeoGeneratedClassValue)
+                    continue;
+                collider.Marked = false;
                 collider.Sync(cellSize);
                 if (physics is not null)
                     IndexCollider(physics, collider);

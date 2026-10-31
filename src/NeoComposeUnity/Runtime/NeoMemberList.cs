@@ -554,27 +554,18 @@ namespace NeoCompose.Runtime
         // keys release cached messages when entries leave the node graph.
         private System.Runtime.CompilerServices.ConditionalWeakTable<NeoMember, NeoListChangedArgs>? childChangeNotifications;
 
-        protected internal override void HandleChildChanged(NeoMember changed)
+        protected internal override void HandleChildChanged(NeoMember changed, NeoMember child)
         {
-            NeoMember? entry = changed;
-            while (entry is not null && entry.parent != this)
-            {
-                entry = entry.parent;
-            }
-            if (entry is null)
-            {
-                InvalidateDerivedIndexes();
-                NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
-                return;
-            }
-            string id = EntryValueId(entry);
+            // The entry is the held child passing the change on, not a walk up
+            // from where it started: a node shared by key has one parent but
+            // many holders.
+            string id = EntryValueId(child);
             childChangeNotifications ??= new();
-            if (!childChangeNotifications.TryGetValue(entry, out var change) || change.ReplacedValueIds[0] != id)
+            if (!childChangeNotifications.TryGetValue(child, out var change) || change.ReplacedValueIds[0] != id)
             {
-                childChangeNotifications.Remove(entry);
-                change = new NeoListChangedArgs(NeoListChangeKind.Set,
-                    replacedValueIds: Array.AsReadOnly(new[] { id }));
-                childChangeNotifications.Add(entry, change);
+                childChangeNotifications.Remove(child);
+                change = NeoListChangedArgs.DescendantEdit(id);
+                childChangeNotifications.Add(child, change);
             }
             NotifyListChanged(change);
         }
@@ -626,7 +617,8 @@ namespace NeoCompose.Runtime
                             $"List member '{member.id}' contains duplicate entry value id '{addedId}'.");
                     }
                 }
-                for (int i = 0; i < change.ReplacedValueIds.Count; i++)
+                // An edit inside an entry leaves the entry itself in place.
+                for (int i = 0; !change.IsDescendantEdit && i < change.ReplacedValueIds.Count; i++)
                 {
                     string replacedId = change.ReplacedValueIds[i];
                     childrenByValueId[replacedId] = FindChildByIdLinear(replacedId);

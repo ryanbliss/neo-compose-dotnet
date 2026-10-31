@@ -694,14 +694,14 @@ namespace NeoCompose.Runtime
                 pair.Value.Release(this);
         }
 
-        protected internal override void HandleChildChanged(NeoMember child)
+        protected internal override void HandleChildChanged(NeoMember changed, NeoMember child)
         {
             if (reportingKey is not null
-                && ReferenceEquals(FindChild(reportingKey), child))
+                && ReferenceEquals(FindChild(reportingKey), changed))
             {
                 reportingKey = null;
             }
-            NotifyChanged(child);
+            NotifyChanged(changed);
         }
 
         /// <summary>

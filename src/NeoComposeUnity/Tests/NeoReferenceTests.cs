@@ -142,6 +142,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReferenceToAnEmptySpriteReadsNull()
+        {
+            using NeoClient client = Client(Data());
+            var empty = new Dictionary<string, object?> { ["fileId"] = "", ["sliceIndex"] = 0 };
+
+            Assert.IsNull(NeoGeneratedTypesSupport.ReadReferenceValue<UnityEngine.Sprite>(client, empty));
+        }
+
+        [Test]
+        public void ReferenceToAProjectedSpriteReadsThatSprite()
+        {
+            using NeoClient client = Client(Data());
+            var texture = new UnityEngine.Texture2D(1, 1);
+            var sprite = UnityEngine.Sprite.Create(texture, new UnityEngine.Rect(0, 0, 1, 1), UnityEngine.Vector2.zero);
+            try
+            {
+                Assert.AreSame(sprite, NeoGeneratedTypesSupport.ReadReferenceValue<UnityEngine.Sprite>(client, sprite));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(sprite);
+                UnityEngine.Object.DestroyImmediate(texture);
+            }
+        }
+
+        [Test]
         public void GeneratedReferenceReadsWritesAndRebinds()
         {
             using var app = new Parity.TestProjectNeo(Client(Data()));
@@ -156,6 +182,20 @@ namespace NeoCompose.Tests
             Assert.AreEqual(10, g.A.Value);
             Assert.AreEqual(g.ReferenceTo(Parity.Gauge.Fields.Other), g.A, "references to one slot are equal");
             Assert.AreEqual(g.A, g.RR.Value, "a nested reference reads as the reference it names");
+        }
+
+        [Test]
+        public void MemoizedReferenceReadFollowsItsTarget()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+
+            Assert.AreEqual(3, g.A.Value);
+            Assert.AreEqual(3, g.A.Value, "a repeated read answers from the memo");
+            g.Count = 9;
+            Assert.AreEqual(9, g.A.Value, "a target write forgets the memoized read");
+            g.A = g.ReferenceTo(Parity.Gauge.Fields.Other);
+            Assert.AreEqual(10, g.A.Value, "a rebind reads its new target");
         }
 
         [Test]
