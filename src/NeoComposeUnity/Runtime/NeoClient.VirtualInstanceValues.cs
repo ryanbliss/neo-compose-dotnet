@@ -2837,112 +2837,38 @@ namespace NeoCompose.Runtime
                 virtualRootByFootprintId[valueId] = rootId;
         }
 
-        /// <summary>A class row a materialized root placed beneath itself.</summary>
-        private bool IsMaterializedChild(string id) =>
-            virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement)
-            && placement.rootId != id
-            && virtualValues.ContainsKey(id);
-
         /// <summary>
         /// P130 §1. A materialized root never replays on writes, so an
         /// assignment that replaces one of its class rows leaves the old row
-        /// in the expansion. Once the commit installs, every released row the
-        /// graph no longer links retires with what it owns, exactly as a
-        /// replay would have dropped it. Nothing persists: a reload
-        /// materializes the root under the same overlay without it.
+        /// in the expansion. The row lingers, as a released static default
+        /// does, and reads refuse it while a row on its way to the root links
+        /// something else in its place. Removing that row links it again.
         /// </summary>
-        private void RetireReleasedVirtualRows(NeoWritePlan plan, HashSet<(NeoValueOwnership ownership, string valueId)> changed)
+        internal bool IsDetachedVirtualRow(string valueId)
         {
-            if (plan.ReleasedVirtualIds is not { Count: > 0 } released)
-                return;
-            var detached = new Dictionary<string, bool>(StringComparer.Ordinal);
-            foreach (string id in released)
-                if (IsDetached(id))
-                    Retire(id, virtualClassPlacementByChildId[id].member);
-
-            bool IsDetached(string id)
+            string id = valueId;
+            while (virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement)
+                && placement.rootId != id
+                && !IsStoredAnywhere(id))
             {
-                if (detached.TryGetValue(id, out bool known))
-                    return known;
-                detached[id] = false;
-                bool result = !IsStoredAnywhere(id)
-                    && virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement)
-                    && (released.Contains(placement.parentValueId) && IsDetached(placement.parentValueId)
-                        || !LinksChild(placement.parentValueId, placement.schemaKey, id));
-                detached[id] = result;
-                return result;
+                if (UnlinksChild(placement.parentValueId, placement.schemaKey, id))
+                    return true;
+                id = placement.parentValueId;
             }
-
-            void Retire(string id, Member? member)
-            {
-                if (!virtualValues.TryGetValue(id, out MemberValue? row) || IsStoredAnywhere(id))
-                    return;
-                foreach (var child in EnumerateOwnedChildLinks(row, member))
-                    Retire(child.valueId, child.member);
-                if (virtualEntriesByContainer.TryGetValue(id, out HashSet<string>? entries))
-                {
-                    Member? entry = TryResolveCollectionEntryMember(member, row);
-                    foreach (string entryId in entries.ToArray())
-                        Retire(entryId, entry);
-                }
-                changed.Add((virtualValueOwnership.GetValueOrDefault(id), id));
-                RetireVirtualRow(id);
-            }
+            return false;
         }
 
         private bool IsStoredAnywhere(string id) =>
             sessionData.values.ContainsKey(id) || saveData.values.ContainsKey(id) || userSource.userData.values.ContainsKey(id);
 
-        private bool LinksChild(string parentId, string? schemaKey, string childId) =>
-            schemaKey is not null
-            && ResolveValueRow(parentId) is ObjectMemberValue { value: { } fields }
-            && fields.TryGetValue(schemaKey, out string? linked)
-            && linked == childId;
-
-        /// <summary>Removes one row from its root's expansion and every index over it.</summary>
-        private void RetireVirtualRow(string valueId)
+        /// <summary>A sparse stored row inherits the children it doesn't name.</summary>
+        private bool UnlinksChild(string parentId, string? schemaKey, string childId)
         {
-            if (virtualFootprintByRoot.ContainsKey(valueId))
-                ClearVirtualInstanceRoot(valueId);
-            NeoValueOwnership ownership = virtualValueOwnership.GetValueOrDefault(valueId);
-            NoteDeparture(valueId, RowLayer.Virtual, null);
-            InvalidateListenerOwner(ownership, valueId);
-            ForgetRandomInstance(valueId, ownership);
-            virtualValues.Remove(valueId);
-            NoteEffectRowChange(ownership, valueId, null);
-            EvictSharedEvaluationRow(valueId);
-            virtualValueOwnership.Remove(valueId);
-            if (virtualContainerByRow.Remove(valueId, out string? containerId)
-                && virtualEntriesByContainer.TryGetValue(containerId, out HashSet<string>? entries))
-            {
-                entries.Remove(valueId);
-                if (entries.Count == 0)
-                    virtualEntriesByContainer.Remove(containerId);
-            }
-            if (virtualRootByFootprintId.Remove(valueId, out string? rootId))
-            {
-                if (virtualFootprintByRoot.TryGetValue(rootId, out HashSet<string>? footprint))
-                    footprint.Remove(valueId);
-                if (virtualValueIdsByRoot.TryGetValue(rootId, out HashSet<string>? ids))
-                    ids.Remove(valueId);
-                if (virtualClassParentIdsByRoot.TryGetValue(rootId, out var parents))
-                    parents.Remove(valueId);
-                if (virtualClassChildIdsByRoot.TryGetValue(rootId, out HashSet<string>? children))
-                    children.Remove(valueId);
-            }
-            if (virtualClassPlacementByChildId.Remove(valueId, out VirtualClassPlacement? placement))
-            {
-                virtualPlacementsVersion++;
-                RemoveVirtualLookupBinding(placement.member.id, valueId);
-                if (placement.schemaKey is not null
-                    && virtualClassChildren.TryGetValue(placement.parentValueId, out var siblings)
-                    && siblings.TryGetValue(placement.schemaKey, out string? linked)
-                    && linked == valueId)
-                    siblings.Remove(placement.schemaKey);
-            }
-            virtualClassChildren.Remove(valueId);
-            virtualClassChildrenEpoch++;
-            SyncValueNode(valueId);
+            if (schemaKey is null || ResolveValueRow(parentId) is not ObjectMemberValue row)
+                return false;
+            if (row.value is not { } fields)
+                return true;
+            return fields.TryGetValue(schemaKey, out string? linked) && linked != childId;
         }
 
         private void ClearVirtualInstanceRoot(string rootId)

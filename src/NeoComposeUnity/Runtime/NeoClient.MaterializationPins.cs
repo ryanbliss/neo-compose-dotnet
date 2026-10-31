@@ -169,12 +169,19 @@ namespace NeoCompose.Runtime
         {
             string rootId = expansion.Root.id;
             // A recipe change discards the previous materialization, and the
-            // pins that held its captures go with it.
+            // pins that held its captures go with it. A pin an explicit write
+            // has since replaced is that write's row, and stays.
             if (installedPins.TryGetValue(rootId, out var previous) && ChangesRecipe(previous.Recipe, expansion.Root))
             {
-                foreach (var (ownership, id) in previous.Rows)
-                    if (GetWritableStore(ownership).values.Remove(id))
-                        SyncValueNode(id);
+                foreach (var (ownership, pinned) in previous.Rows)
+                {
+                    var values = GetWritableStore(ownership).values;
+                    if (!values.TryGetValue(pinned.id, out MemberValue? current) || !ReferenceEquals(current, pinned))
+                        continue;
+                    values.Remove(pinned.id);
+                    IndexStoreRemove(ownership, pinned.id);
+                    SyncValueNode(pinned.id);
+                }
                 installedPins.Remove(rootId);
                 previous = null;
             }
@@ -193,8 +200,9 @@ namespace NeoCompose.Runtime
                     continue;
                 if (GetWritableStore(ownership).values.ContainsKey(id))
                     continue;
-                StoreWritableValue(ownership, CloneRowForWrite(row));
-                previous.Rows.Add((ownership, id));
+                MemberValue pin = CloneRowForWrite(row);
+                StoreWritableValue(ownership, pin);
+                previous.Rows.Add((ownership, pin));
             }
         }
 
@@ -205,7 +213,7 @@ namespace NeoCompose.Runtime
         private sealed class InstalledPins
         {
             internal readonly ObjectMemberValue Recipe;
-            internal readonly List<(NeoValueOwnership ownership, string id)> Rows = new();
+            internal readonly List<(NeoValueOwnership ownership, MemberValue row)> Rows = new();
             internal InstalledPins(ObjectMemberValue recipe) => Recipe = recipe;
         }
     }

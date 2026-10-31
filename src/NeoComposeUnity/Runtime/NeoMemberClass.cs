@@ -497,10 +497,14 @@ namespace NeoCompose.Runtime
             DisposeChildren(previousChildren);
         }
 
+        // A partial row holds the keys it names, and those a sparse stored
+        // row inherits from the materialized row beneath it (P130 §4).
         private bool HasChild(MergedSchemaEntry entry) =>
             entry.member is not null
             && (member.Payload != NeoMemberPayloadKind.Partial
-                || value?.value is not null && value.value.ContainsKey(entry.schemaKey));
+                || value?.value is { } fields
+                    && (fields.ContainsKey(entry.schemaKey)
+                        || client.TryGetVirtualClassChildValueId(value.id, entry.schemaKey, out _)));
 
         // A node built outside the active candidate replay outlives it.
         private bool OutlivesCandidate => !candidateNode && client.BuildsCandidateNodes;

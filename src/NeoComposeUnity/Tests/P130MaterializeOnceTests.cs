@@ -80,13 +80,60 @@ namespace NeoCompose.Tests
             using var client = NeoTestSaveStack.ClientFromSchema(P130CaptureProject());
             var thing = client.save.Get<NeoMemberClassWritable>("Thing");
             var captured = thing.Get<NeoMemberIntWritable>("Captured");
-            Assert.AreEqual(3d, captured.value!.value);
+            string capturedId = captured.value!.id;
             int count = client.VirtualConstructionCount;
             client.save.Get<NeoMemberIntWritable>("Input").Set(9);
-            string authored = client.SerializeSaveData();
             captured.Set(12);
-            client.ApplyExternalSaveContent(authored);
+            var incoming = JObject.Parse(client.SerializeSaveData());
+            ((JObject)incoming["values"]!).Remove(capturedId);
+            client.ApplyExternalSaveContent(incoming.ToString());
+            Assert.IsNull(JObject.Parse(client.SerializeSaveData())["values"]![capturedId]);
             Assert.AreEqual(3d, thing.Get<NeoMemberIntWritable>("Captured").value!.value);
+            Assert.AreEqual(count, client.VirtualConstructionCount);
+        }
+
+        [Test]
+        public void P130ReplacedChildDetachesUntilRestoreRelinksIt()
+        {
+            ProjectData data = BuildProjectData();
+            ((ClassMember)data.members["thing-member"]).Storage = NeoMemberStorage.Inherit;
+            data.classes["child-class"] = SchemaClass("child-class", "Child", NeoMemberStorage.Save);
+            data.classes["thing-class"].schema["Child"] = "thing-child";
+            data.members["thing-child"] = new ClassMember
+            {
+                id = "thing-child",
+                projectId = "p75-project",
+                name = "Child",
+                kind = MemberKind.Class,
+                DeclaredClassId = "child-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var owner = client.save.Get<NeoMemberClassWritable>("Thing");
+            string oldId = owner.Get<NeoMemberClassWritable>("Child").value!.id;
+            string parentId = owner.value!.id;
+            int count = client.VirtualConstructionCount;
+            var plan = new NeoWritePlan(client);
+            var parent = (ObjectMemberValue)client.CloneRowForWrite(owner.value!);
+            parent.value ??= new Dictionary<string, string>();
+            parent.value["Child"] = "replacement-child";
+            plan.Set(NeoValueOwnership.Save, parent);
+            plan.Set(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = "replacement-child",
+                classId = "child-class",
+                value = new Dictionary<string, string>(),
+            });
+            plan.Commit();
+            Assert.IsTrue(client.IsDetachedVirtualRow(oldId));
+            Assert.AreEqual("replacement-child", owner.Get<NeoMemberClassWritable>("Child").value!.id);
+            plan = new NeoWritePlan(client);
+            plan.Remove(NeoValueOwnership.Save, parentId);
+            plan.Remove(NeoValueOwnership.Save, "replacement-child");
+            plan.Commit();
+            Assert.IsFalse(client.IsDetachedVirtualRow(oldId));
+            Assert.AreEqual(oldId, owner.Get<NeoMemberClassWritable>("Child").value!.id);
             Assert.AreEqual(count, client.VirtualConstructionCount);
         }
 

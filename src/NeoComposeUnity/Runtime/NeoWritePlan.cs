@@ -51,9 +51,6 @@ namespace NeoCompose.Runtime
         internal string? PlacementGridId;
         // Collections most writes never fill are allocated on first use.
         internal HashSet<string>? UnchangedValueIds;
-        // P130: materialized rows an assignment released. They retire once
-        // the commit installs, unless the graph still links them.
-        internal HashSet<string>? ReleasedVirtualIds;
         internal List<NeoValidatedTileConversion>? ValidatedTileConversions;
         internal List<NeoValidatedObjectRefresh>? ValidatedObjectRefreshes;
         internal Dictionary<(string gridId, string layerId), NeoTileLayerBuild>? PreparedTileLayers;
@@ -1035,7 +1032,6 @@ namespace NeoCompose.Runtime
                 HoldGetterChanges();
                 held = true;
                 InstallCandidateExpansions(preparedExpansions, changed);
-                RetireReleasedVirtualRows(plan, changed);
                 if (plan.Bindings.Count != 0)
                 {
                     InvalidateGetterMemo();
@@ -1282,8 +1278,6 @@ namespace NeoCompose.Runtime
                         StageOwnedRemoval(plan, ownership, childId, entry, false, visited, reachable, removals);
                 }
             }
-            if (!tombstone && removals is not null && IsMaterializedChild(valueId))
-                (plan.ReleasedVirtualIds ??= new()).Add(valueId);
             if (tombstone)
             {
                 plan.HeldBy?.Discard(ownership, valueId);
