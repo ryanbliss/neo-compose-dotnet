@@ -6424,6 +6424,8 @@ namespace NeoCompose.Runtime
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
         private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value, NeoValueNode? node = null)
         {
+            if (ownership == NeoValueOwnership.Session)
+                NoteOwnSessionRow(value.id);
             IndexCopiedListeners(ownership, value.id, value.copiedChangeListeners);
             NoteEffectRowChange(ownership, value.id, value);
             SyncStoredValueNode(ownership, value, node);

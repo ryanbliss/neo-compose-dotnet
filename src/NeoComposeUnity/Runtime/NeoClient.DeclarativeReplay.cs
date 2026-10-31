@@ -126,8 +126,7 @@ namespace NeoCompose.Runtime
                     IncomingAnswers = pair.Value,
                 };
                 candidateReplay?.Remove(boundary.Root.id);
-                if (!replayingVirtualRootIds.Add(boundary.Root.id))
-                    throw new InvalidOperationException($"Sparse constructor dependency cycle at '{boundary.Root.id}'.");
+                replayingVirtualRootIds.Enter(this, boundary.Root);
                 try
                 {
                     var nested = ExpandVirtualInstanceRootCore(boundary.Root, prepareOnly: true,

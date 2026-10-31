@@ -47,8 +47,9 @@ namespace NeoCompose.Runtime
                     foreach (var allocation in candidate.Allocations)
                         plan.Set(NeoValueOwnership.Session, allocation.Value);
                 }
-                if (candidate.Expansions.Count == 1)
-                    prepared = candidate.PreparedVariant;
+                // Keep the root even when its expansion contains nested roots.
+                // Commit must prepare the complete variant graph after clearing overrides.
+                prepared = candidate.PreparedVariant;
             }
             finally
             {
@@ -114,8 +115,7 @@ namespace NeoCompose.Runtime
             // previous one's defaults as stored rows: it would omit them, and
             // Add discards the old ones.
             candidate.Remove(root.id);
-            if (!replayingVirtualRootIds.Add(root.id))
-                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{root.id}'.");
+            replayingVirtualRootIds.Enter(this, root);
             try
             {
                 int version = candidate.Plan.Version;

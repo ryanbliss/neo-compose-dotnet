@@ -39,10 +39,44 @@ namespace NeoCompose.Runtime
         /// full project replay; more than a handful means the graph is not
         /// settling rather than that the project is large.
         /// </summary>
-        private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
         private bool isReplayingVirtualInstance;
-        private readonly HashSet<string> replayingVirtualRootIds = new(StringComparer.Ordinal);
+        private readonly ConstructionStack replayingVirtualRootIds = new();
+
+        /// <summary>
+        /// Roots under construction, outermost first. A root that reenters
+        /// its own construction names the path that led back to it.
+        /// </summary>
+        private sealed class ConstructionStack
+        {
+            private readonly List<ObjectMemberValue> order = new();
+            private readonly HashSet<string> active = new(StringComparer.Ordinal);
+
+            internal bool Contains(string id) => active.Contains(id);
+
+            internal void Enter(NeoClient client, ObjectMemberValue root)
+            {
+                if (active.Add(root.id))
+                {
+                    order.Add(root);
+                    return;
+                }
+                int start = order.FindIndex(entry => entry.id == root.id);
+                var path = order.Skip(start).Append(root).Select(entry => $"{client.ClassLabel(entry.classId)} '{entry.id}'");
+                throw new InvalidOperationException($"Sparse constructor dependency cycle: {string.Join(" -> ", path)}.");
+            }
+
+            internal void Remove(string id)
+            {
+                if (active.Remove(id))
+                    order.RemoveAt(order.FindLastIndex(entry => entry.id == id));
+            }
+        }
+
+        private string ClassLabel(string? classId) =>
+            classId is not null && data.classes.TryGetValue(classId, out var schemaClass) && schemaClass is not null
+                ? schemaClass.name
+                : classId ?? "object";
         private string? replayingVirtualInstanceRootId;
         private string? replayingVirtualInstanceClassId;
         private IReadOnlyDictionary<string, GenericBinding>?
@@ -247,11 +281,6 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
         private readonly Dictionary<string, string> virtualRootByFootprintId = new();
         private readonly HashSet<string> identitySensitiveExpansionRoots = new();
-        private readonly Dictionary<string, HashSet<string>>
-            constructorArgumentRootsByValueId = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, HashSet<string>>
-            constructorArgumentValueIdsByRoot = new(StringComparer.Ordinal);
-        private bool virtualInstanceValuesDirty;
 
         private sealed class VirtualExpansionNode
         {
@@ -429,6 +458,13 @@ namespace NeoCompose.Runtime
                     parentValueId,
                     out Dictionary<string, string>? children)
                 && children.TryGetValue(schemaKey, out childValueId);
+            // P130 §4. A stored row over a materialized class row keeps the
+            // children it omits from the virtual row beneath it.
+            if (!found
+                && candidateReplay?.HiddenVirtualIds.Contains(parentValueId) != true
+                && virtualValues.TryGetValue(parentValueId, out MemberValue? beneath)
+                && beneath is ObjectMemberValue { value: { } fields })
+                found = fields.TryGetValue(schemaKey, out childValueId);
             // An unchanged parent can still point to a nested constructor
             // whose defaults this candidate is rebuilding. Prepare that root
             // before the caller resolves its otherwise hidden logical id.
@@ -600,34 +636,21 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// P130 §2. Load materializes each root once, against the project
+        /// definitions and persisted overrides already mounted. A constructor
+        /// that reads another root constructs it on demand; nothing reruns to
+        /// search for a fixed point.
+        /// </summary>
         private IEnumerable<byte> InitializeVirtualInstanceValuesSteps(bool failClosed)
         {
             if (isInitializingVirtualInstanceValues)
-            {
-                virtualInstanceValuesDirty = true;
-                yield break;
-            }
+                throw new InvalidOperationException("Virtual instance materialization reentered itself.");
             isInitializingVirtualInstanceValues = true;
             try
             {
-                int pass = 0;
-                do
-                {
-                    // A replay can publish rows that make another root's
-                    // expansion stale, which re-enters here and asks for one
-                    // more pass. That must converge: an expansion whose own
-                    // output keeps re-dirtying the index would otherwise spin
-                    // forever with no diagnostic.
-                    if (++pass > MaxVirtualInstanceRebuildPasses)
-                    {
-                        throw new InvalidOperationException(
-                            $"P75 virtual instance replay did not converge after {MaxVirtualInstanceRebuildPasses} passes. A constructor or variant Initialize is writing rows that invalidate the instance index on every pass.");
-                    }
-                    virtualInstanceValuesDirty = false;
-                    foreach (var step in InitializeVirtualInstanceValuesCore(failClosed))
-                        yield return step;
-                }
-                while (virtualInstanceValuesDirty);
+                foreach (var step in InitializeVirtualInstanceValuesCore(failClosed))
+                    yield return step;
             }
             finally
             {
@@ -677,10 +700,6 @@ namespace NeoCompose.Runtime
             identitySensitiveExpansionRoots.Clear();
             nestedReplayBoundaries.Clear();
             nestedReplayRootsByOwner.Clear();
-            constructorArgumentRootsByValueId.Clear();
-            replayFieldsByValueId.Clear();
-            replayIdentityIds.Clear();
-            constructorArgumentValueIdsByRoot.Clear();
             // A user client replays only User roots and reads only User rows;
             // a save client leaves User roots to its user client (P104 §4.3).
             MemberValue[] allRows = (IsUserClient ? AuthoredUserRows() : data.values.Values)
@@ -856,73 +875,6 @@ namespace NeoCompose.Runtime
         private static void ReportUnavailableOmittedDefaults(ObjectMemberValue root, Exception error) =>
             Debug.LogError(
                 $"[NeoCompose] Stored row '{root.id}' of class '{root.classId}' could not evaluate the defaults of the fields it omits, so those fields are unavailable. {error.Message}");
-
-        private void IndexConstructorArgumentRows(ObjectMemberValue root)
-        {
-            RemoveConstructorArgumentRows(root.id);
-            if (root.constructorArgs is null)
-                return;
-            foreach (JToken? argument in root.constructorArgs.Values)
-                if (argument?.Type == JTokenType.String && argument.Value<string>() is string id)
-                    TrackReplayDependency(root.id, ResolveValueRow(id) is ObjectMemberValue { classId: not null }
-                        ? "identity:" + id : id);
-        }
-
-        private void TrackReplayDependency(string rootId, string valueId)
-        {
-            string indexKey = valueId;
-            if (valueId.StartsWith("field:", StringComparison.Ordinal))
-            {
-                string parent = valueId.Substring(6, valueId.IndexOf('\n') - 6);
-                if (!replayFieldsByValueId.TryGetValue(parent, out var fields))
-                    replayFieldsByValueId[parent] = fields = new();
-                fields.Add(valueId);
-            }
-            if (!constructorArgumentRootsByValueId.TryGetValue(indexKey, out var roots))
-            {
-                constructorArgumentRootsByValueId[indexKey] = roots = new HashSet<string>(StringComparer.Ordinal);
-                if (valueId.StartsWith("identity:", StringComparison.Ordinal))
-                    replayIdentityIds.Add(valueId.Substring(9));
-            }
-            roots.Add(rootId);
-            if (!constructorArgumentValueIdsByRoot.TryGetValue(rootId, out var values))
-                constructorArgumentValueIdsByRoot[rootId] = values = new HashSet<string>(StringComparer.Ordinal);
-            values.Add(valueId);
-        }
-
-        private void RemoveConstructorArgumentRows(string rootId)
-        {
-            if (!constructorArgumentValueIdsByRoot.Remove(
-                    rootId,
-                    out HashSet<string>? valueIds))
-            {
-                return;
-            }
-            foreach (string valueId in valueIds)
-            {
-                if (!constructorArgumentRootsByValueId.TryGetValue(
-                        valueId,
-                        out HashSet<string>? roots))
-                {
-                    continue;
-                }
-                roots.Remove(rootId);
-                if (roots.Count == 0)
-                {
-                    constructorArgumentRootsByValueId.Remove(valueId);
-                    if (valueId.StartsWith("field:", StringComparison.Ordinal))
-                    {
-                        string parent = valueId.Substring(6, valueId.IndexOf('\n') - 6);
-                        if (replayFieldsByValueId.TryGetValue(parent, out var fields) && fields.Remove(valueId) && fields.Count == 0)
-                            replayFieldsByValueId.Remove(parent);
-                    }
-                    else if (valueId.StartsWith("identity:", StringComparison.Ordinal))
-                    {
-                        replayIdentityIds.Remove(valueId.Substring(9));
-                    }
-                }
-            }
-        }
 
         private void RefreshAllVirtualWrapperTrees()
         {
@@ -1328,8 +1280,7 @@ namespace NeoCompose.Runtime
 
         private void ExpandVirtualInstanceRoot(ObjectMemberValue instanceRoot)
         {
-            if (!replayingVirtualRootIds.Add(instanceRoot.id))
-                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{instanceRoot.id}'.");
+            replayingVirtualRootIds.Enter(this, instanceRoot);
             try
             {
                 ExpandVirtualInstanceRootCore(instanceRoot);
@@ -1481,6 +1432,7 @@ namespace NeoCompose.Runtime
                     instanceRoot.genericBindings,
                     SlotClassArguments(placementMember, instanceRoot.classId!));
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
+            ConstructionSnapshot? snapshot = null;
             bool wasReplaying = isReplayingVirtualInstance;
             string? previousReplayingRootId = replayingVirtualInstanceRootId;
             string? previousReplayingClassId = replayingVirtualInstanceClassId;
@@ -1502,6 +1454,7 @@ namespace NeoCompose.Runtime
             // still await their remaining member initializers.
             if (!wasReplaying)
                 replayingVirtualInstanceAllocatedSessionValueIds = allocations.Ids;
+            using var savedValues = BeginSavedValueScope(instanceRoot.id);
             var captureReads = CaptureValueReads(dependencyIds);
             var replayDefaults = new ReplayDefaultGraph(this, instanceRoot,
                 replayBoundary?.NamespaceRoot ?? instanceRoot, replayBoundary?.Path ?? "$", ownership);
@@ -1521,7 +1474,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    constructed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments);
+                    constructed = ReplayVirtualInstance(instanceRoot, placementMember, replayClassArguments, out snapshot);
                     if (replayBoundary?.IncomingAnswers is { } incoming)
                     {
                         declarativeReplayReceiver = replayBoundary.OwnerRootId;
@@ -1588,7 +1541,7 @@ namespace NeoCompose.Runtime
                 graph.virtualId = instanceRoot.id;
                 RestoreNestedCallSiteFields(graph, replayBoundary);
             }
-            var expansion = new PreparedVirtualExpansion(instanceRoot) { RootOwnership = ownership };
+            var expansion = new PreparedVirtualExpansion(instanceRoot) { RootOwnership = ownership, Construction = snapshot };
             foreach (string dependency in dependencyIds)
                 if (dependency.StartsWith("static:", StringComparison.Ordinal)
                     || dependency.StartsWith("identity:", StringComparison.Ordinal)
@@ -1621,6 +1574,7 @@ namespace NeoCompose.Runtime
                     expansion.Boundary = replayBoundary;
                 else
                     PartitionNestedReplay(graph, expansion, instanceRoot, allocations.Ids);
+                CollectSavedValues(graph, expansion);
             }
             if (Random.IdentityReadCount != identityReads)
                 MarkIdentitySensitive(expansion);
@@ -1678,12 +1632,14 @@ namespace NeoCompose.Runtime
         private NeoGeneratedTypesSupport.RuntimeConstructedClassValue ReplayVirtualInstance(
             ObjectMemberValue root,
             ClassMember? placementMember,
-            IReadOnlyDictionary<string, GenericBinding>? classArguments)
+            IReadOnlyDictionary<string, GenericBinding>? classArguments,
+            out ConstructionSnapshot? snapshot)
         {
-            var constructed = ReplayVirtualConstruction(
+            var constructed = RestoreConstruction(root) ?? ReplayVirtualConstruction(
                 root,
                 placementMember,
                 classArguments);
+            snapshot = TakeConstructionSnapshot(root, constructed);
             if (root.instanceAppliedVariantId is string appliedVariantId)
             {
                 NeoMemberClassWritable node = ReplayView(constructed);
@@ -1701,6 +1657,7 @@ namespace NeoCompose.Runtime
             ClassMember? placementMember,
             IReadOnlyDictionary<string, GenericBinding>? classArguments)
         {
+            VirtualConstructionCount++;
             if (root.instanceVariantId is not null)
             {
                 VariantRecord? variant = NeoVariantSupport.ResolveRecord(
@@ -2230,6 +2187,8 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, VirtualClassPlacement> Placements = new();
             internal readonly HashSet<string> Footprint = new();
             internal readonly HashSet<string> Dependencies = new();
+            internal HashSet<string>? SavedValues;
+            internal ConstructionSnapshot? Construction;
             internal readonly List<PreparedVirtualExpansion> Nested = new();
             internal NestedReplayBoundary? Boundary;
             internal bool IdentitySensitive;
@@ -2297,15 +2256,14 @@ namespace NeoCompose.Runtime
             }
             foreach (string id in expansion.Footprint)
                 TrackVirtualFootprint(rootId, id);
-            IndexConstructorArgumentRows(expansion.Root);
-            foreach (string id in expansion.Dependencies)
-                TrackReplayDependency(rootId, id);
             if (expansion.Boundary is not null)
                 InstallNestedReplayBoundary(expansion.Boundary);
             InstallListenerDefaults(expansion);
             if (includeNested)
                 foreach (var nested in expansion.Nested)
                     InstallVirtualExpansion(nested);
+            InstallConstructionSnapshot(rootId, expansion.Construction);
+            InstallSavedValues(expansion);
         }
 
         private void OverlaySparseInstance(
@@ -2363,6 +2321,14 @@ namespace NeoCompose.Runtime
             }
             string effectiveId = materialized?.id ?? node.virtualId;
             expansion.Footprint.Add(effectiveId);
+            // P130 §4. Keep the construction answer beneath the stored row,
+            // as a write after load does, so removing the override reveals the
+            // materialized value instead of replaying the constructor.
+            if (effectiveId == node.virtualId && effectiveId != instanceRoot.id)
+            {
+                expansion.Values[effectiveId] = RewriteVirtualRow(node, instanceRoot);
+                expansion.Ownership[effectiveId] = ownership;
+            }
 
             if (node.member is ClassMember)
             {
@@ -2890,12 +2856,46 @@ namespace NeoCompose.Runtime
                 virtualRootByFootprintId[valueId] = rootId;
         }
 
+        /// <summary>
+        /// P130 §1. A materialized root never replays on writes, so an
+        /// assignment that replaces one of its class rows leaves the old row
+        /// in the expansion. The row lingers, as a released static default
+        /// does, and reads refuse it while a row on its way to the root links
+        /// something else in its place. Removing that row links it again.
+        /// </summary>
+        internal bool IsDetachedVirtualRow(string valueId)
+        {
+            string id = valueId;
+            while (virtualClassPlacementByChildId.TryGetValue(id, out VirtualClassPlacement? placement)
+                && placement.rootId != id
+                && !IsStoredAnywhere(id))
+            {
+                if (UnlinksChild(placement.parentValueId, placement.schemaKey, id))
+                    return true;
+                id = placement.parentValueId;
+            }
+            return false;
+        }
+
+        private bool IsStoredAnywhere(string id) =>
+            sessionData.values.ContainsKey(id) || saveData.values.ContainsKey(id) || userSource.userData.values.ContainsKey(id);
+
+        /// <summary>A sparse stored row inherits the children it doesn't name.</summary>
+        private bool UnlinksChild(string parentId, string? schemaKey, string childId)
+        {
+            if (schemaKey is null || ResolveValueRow(parentId) is not ObjectMemberValue row)
+                return false;
+            if (row.value is not { } fields)
+                return true;
+            return fields.TryGetValue(schemaKey, out string? linked) && linked != childId;
+        }
+
         private void ClearVirtualInstanceRoot(string rootId)
         {
             identitySensitiveExpansionRoots.Remove(rootId);
+            constructionSnapshots.Remove(rootId);
             ClearListenerDefaults(rootId);
             ClearNestedReplayBoundary(rootId);
-            RemoveConstructorArgumentRows(rootId);
             if (virtualFootprintByRoot.TryGetValue(
                     rootId,
                     out HashSet<string>? footprint))

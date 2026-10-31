@@ -1,11 +1,18 @@
 # Changelog
 
-## [Unreleased]
+## [0.81.0] - 2026-10-30
 
+- Materialize each virtual instance once (P130). Writes, restores, ownership changes and saves no longer rerun the constructor of an already materialized object. Its rows stay fixed and explicit writes overlay them. Restoring a field reveals the materialized value instead of recomputing it.
+- Behavior change: a constructor default computed from mutable state keeps the value it captured at materialization. It no longer follows later changes to its inputs. To keep a value in sync, read the input in a getter or write the field explicitly.
+- Behavior change: when a Save or User object is created, a value its construction computed from mutable Save, User or Session state is written into the save, so a reload restores it. After that it is an ordinary saved value. The read can be direct, through a local, or through a constructor argument. A literal written beside it stays sparse, and so does the object's row unless the read chose its class. A list or dictionary built from mutable reads saves with its entries, so its membership round-trips. Defaults built only from literals or Asset data are not written to saves.
+- Load materializes each root once against the mounted project and persisted overrides, constructing referenced roots on demand. The fixed-point rebuild loop is gone, and a construction cycle reports its path (`Thing 'a' -> Payload 'b' -> Thing 'a'`).
+- A replaced class row lingers in its root's materialization: reference reads refuse it while another row holds its slot, and a restore links it again.
+- Switch variants without rerunning the receiver constructor. Classes with variants keep a snapshot of their construction output, and reselecting a variant restores it with the new layer applied.
+- Live-apply and external field patches update only the affected slot. Only a change to a root's construction recipe (class, constructor, constructor arguments, variant row, or nullness), a new identity, or a store move rematerializes it.
+- A stored row that replaces a virtual class row keeps the virtual children it does not override.
 - Copy resolved instance defaults during `Clone()` without rerunning constructors, preserving mutable ownership, internal bindings, and external dependencies. Identity-seeded random defaults retain replay so saves reload consistently.
 - Update only changed ownership indexes when moving an existing instance between stores.
 - Remove whole-project schema, dialogue, and animation contract scans from ordinary loading. The SDK test harness retains these checks; runtime mutation and placement checks remain.
-
 - Allow a NeoScript unordered-list removal followed by layer-link `TrySpawn` in the same pending write batch to transfer the existing object without cloning or changing its identity. Preserve placement rejection, retry, lifecycle callbacks, and removal tombstones across reloads.
 - Avoid replaying unchanged constructor descendants during reparenting and storage promotion. Preserve descendant construction identities across repeated clones while retaining copied constructor arguments and reevaluating immutable defaults.
 

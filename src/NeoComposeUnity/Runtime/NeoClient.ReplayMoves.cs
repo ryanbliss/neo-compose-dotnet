@@ -92,8 +92,6 @@ namespace NeoCompose.Runtime
                 }
             if (virtualFootprintByRoot.TryGetValue(root.id, out var footprint))
                 result.Footprint.UnionWith(footprint);
-            if (constructorArgumentValueIdsByRoot.TryGetValue(root.id, out var dependencies))
-                result.Dependencies.UnionWith(dependencies);
             if (defaultListenerOwnersByExpansion.TryGetValue(root.id, out var owners))
                 foreach (var owner in owners)
                     if (defaultChangeListeners.TryGetValue(owner, out var defaults))

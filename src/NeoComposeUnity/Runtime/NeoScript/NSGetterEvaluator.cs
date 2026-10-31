@@ -6118,13 +6118,21 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             object?[] argumentValues = buffers?.Arguments(resolved) ?? resolved.NewArgumentValues();
+            // P130 §4: while a root materializes, each argument carries its
+            // own reads into the parameter it binds, not into this step.
+            bool[]? argumentTaint = NeoClient.MeasuresReads ? new bool[argumentValues.Length] : null;
             for (int i = 0; i < info.args.Length; i++)
             {
+                NeoClient.LocalTaint taint = argumentTaint is null ? default : NeoClient.BeginLocalTaint();
                 argumentValues[resolved.argumentPositions[i]] = EvalPointer(
                     info.args[i].valuePointer,
                     scope,
                     ctx);
+                if (argumentTaint is not null)
+                    argumentTaint[resolved.argumentPositions[i]] = NeoClient.EndValueTaint(taint);
             }
+            if (argumentTaint is not null)
+                NeoClient.NoteArgumentTaint(argumentValues, argumentTaint);
 
             try
             {
@@ -6161,10 +6169,12 @@ namespace NeoCompose.Runtime.NeoScript
         {
             for (int i = 0; i < fields.Count; i++)
             {
+                NeoClient.LocalTaint taint = NeoClient.BeginLocalTaint();
                 fields[i].value = EvalPointer(
                     info.fields[i].valuePointer,
                     scope,
                     constructionCtx);
+                fields[i].readMutable = NeoClient.EndValueTaint(taint);
             }
         };
 

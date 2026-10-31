@@ -11,7 +11,7 @@ namespace NeoCompose.Tests
     {
         [TestCase(false)]
         [TestCase(true)]
-        public void CandidateReplayReadsOmittedChildrenOfAnUnchangedDependency(bool reload)
+        public void MaterializedDefaultsRetainOmittedChildrenWhenInputsChange(bool reload)
         {
             ProjectData data = BuildNestedProjectData();
             var save = (ObjectMemberValue)data.values["value-save"];
@@ -65,25 +65,29 @@ namespace NeoCompose.Tests
             Assert.That(observed.value!.value, Is.EqualTo(5));
             var source = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClass>("Nested").Get<NeoMemberClass>("Deep").Get<NeoMemberInt>("Count");
             var retained = source.value;
-            // One batch invalidates both constructions, but only InputB changes.
-            // Reader must see Thing's retained children during replay.
+            int constructionCount = client.VirtualConstructionCount;
+            // Changing inputs leaves both materialized defaults intact.
             client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {
                 new NumberMemberValue { id = "InputA", value = 5 },
                 new NumberMemberValue { id = "InputB", value = 7 },
             });
             Assert.That(observed.value!.value, Is.EqualTo(5));
-            Assert.That(client.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Trigger").value!.value, Is.EqualTo(7));
+            Assert.That(client.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Trigger").value!.value, Is.EqualTo(5));
             Assert.That(source.value, Is.SameAs(retained));
-            // A changed dependency must still rebuild its defaults.
+            // A later batch also leaves the captured values intact.
             client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[]
             {
                 new NumberMemberValue { id = "InputA", value = 9 },
                 new NumberMemberValue { id = "InputB", value = 11 },
             });
-            Assert.That(observed.value!.value, Is.EqualTo(9));
-            Assert.That(client.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Trigger").value!.value, Is.EqualTo(11));
-            Assert.That(source.value!.value, Is.EqualTo(9));
+            Assert.That(observed.value!.value, Is.EqualTo(5));
+            Assert.That(client.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Trigger").value!.value, Is.EqualTo(5));
+            Assert.That(source.value!.value, Is.EqualTo(5));
+            Assert.That(client.VirtualConstructionCount, Is.EqualTo(constructionCount));
+            using var roundTrip = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+            Assert.That(roundTrip.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Observed").value!.value, Is.EqualTo(5));
+            Assert.That(roundTrip.save.Get<NeoMemberClassWritable>("Reader").Get<NeoMemberInt>("Trigger").value!.value, Is.EqualTo(5));
         }
 
         private static InitializerBody RetainedInitializer(Pointer pointer) => new()

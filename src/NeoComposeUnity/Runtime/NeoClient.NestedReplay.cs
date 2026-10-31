@@ -85,48 +85,6 @@ namespace NeoCompose.Runtime
                 ? dependency.Substring(6, dependency.IndexOf('\n') - 6)
                 : dependency.StartsWith("identity:", StringComparison.Ordinal) ? dependency.Substring(9) : dependency;
 
-        private readonly Dictionary<string, HashSet<string>> replayFieldsByValueId = new();
-
-        // Rows some replay read by identity, so a write builds an identity
-        // dependency only for rows a replay can actually depend on.
-        private readonly HashSet<string> replayIdentityIds = new(StringComparer.Ordinal);
-
-        private void EnqueueReplayIdentity(Queue<string> pending, string id)
-        {
-            if (replayIdentityIds.Contains(id))
-                pending.Enqueue("identity:" + id);
-        }
-
-        private void EnqueueReplayFields(Queue<string> pending, string id, NeoWritePlan? plan = null)
-        {
-            if (!replayFieldsByValueId.TryGetValue(id, out var fields))
-                return;
-            foreach (string field in fields)
-                if (plan is null || !SameReplayField(plan, field, null))
-                    pending.Enqueue(field);
-        }
-
-        private bool SameReplayField(NeoWritePlan plan, string dependency, CandidateReplay? candidate)
-        {
-            int separator = dependency.IndexOf('\n');
-            string id = dependency.Substring("field:".Length, separator - "field:".Length);
-            string key = dependency.Substring(separator + 1);
-            MemberValue? previous = PreviousReplayRow(id);
-            var next = plan.Resolve(id);
-            return Child(previous, false) == Child(next, true);
-
-            string? Child(MemberValue? row, bool proposed)
-            {
-                if (row is not ObjectMemberValue { value: not null } obj)
-                    return null;
-                if (obj.value.TryGetValue(key, out var child))
-                    return child;
-                if (proposed && candidate is not null && candidate.ClassChildren.TryGetValue(id, out var changed))
-                    return changed.GetValueOrDefault(key);
-                return virtualClassChildren.TryGetValue(id, out var defaults) ? defaults.GetValueOrDefault(key) : null;
-            }
-        }
-
         private MemberValue? PreviousReplayRow(string id) => sessionData.values.TryGetValue(id, out var session) ? session
             : saveData.values.TryGetValue(id, out var save) ? save
             : userSource.userData.values.TryGetValue(id, out var user) ? user

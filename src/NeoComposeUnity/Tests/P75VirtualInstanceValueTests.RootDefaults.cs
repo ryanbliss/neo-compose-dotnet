@@ -26,7 +26,7 @@ namespace NeoCompose.Tests
         [TestCase(true, true, false, false)]
         [TestCase(true, true, true, false)]
         [TestCase(false, false, false, true)]
-        public async Task AddedComputedDefaultReadsSavedWorldDuringAsyncReload(bool overrides, bool storedClimate, bool constructedDefaults, bool suppliedSeason)
+        public async Task AddedComputedDefaultCapturesSavedWorldDuringAsyncReload(bool overrides, bool storedClimate, bool constructedDefaults, bool suppliedSeason)
         {
             ProjectData data = BuildProjectData();
             data.classes["thing-class"].schema = new Dictionary<string, string>
@@ -154,19 +154,22 @@ namespace NeoCompose.Tests
             Assert.AreEqual(overrides ? 23 : 10, loadedClimate.Get<NeoMemberInt>("ForecastScore").value!.value);
             Assert.AreEqual(new NeoRandom(reopened.Random.Seed).Value(), reopened.Random.Value(), "Replay must not draw from the gameplay stream.");
 
-            // Omitted and persisted source leaves have the same dependency
-            // semantics after load, on repeated writes, and after another load.
+            // Captures remain fixed across writes and another load.
+            int constructions = reopened.VirtualConstructionCount;
+            int capturedSeason = overrides ? 17 : suppliedSeason ? 8 : 5;
+            int capturedScore = overrides ? 23 : 10;
             for (int season = 20; season <= 22; season++)
             {
                 loadedWorld.Get<NeoMemberClassWritable>("Time").Get<NeoMemberIntWritable>("Season").Set(season);
-                Assert.AreEqual(season, reopened.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastSeason").value!.value);
+                Assert.AreEqual(capturedSeason, reopened.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastSeason").value!.value);
             }
             loadedWorld.Get<NeoMemberClassWritable>("Climate").Get<NeoMemberIntWritable>("Score").Set(31);
-            Assert.AreEqual(31, reopened.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastScore").value!.value);
+            Assert.AreEqual(capturedScore, reopened.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastScore").value!.value);
+            Assert.AreEqual(constructions, reopened.VirtualConstructionCount);
             using NeoClient again = await NeoClient.CreateAsync(new RootDefaultLoader(data), reopened.SerializeSaveData(),
                 null, NeoLocalization.CreateEmpty(null), null, default);
-            Assert.AreEqual(22, again.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastSeason").value!.value);
-            Assert.AreEqual(31, again.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastScore").value!.value);
+            Assert.AreEqual(capturedSeason, again.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastSeason").value!.value);
+            Assert.AreEqual(capturedScore, again.save.Get<NeoMemberClass>("Thing").Get<NeoMemberClass>("Climate").Get<NeoMemberInt>("ForecastScore").value!.value);
 
             void AddForecast(string name, Pointer pointer)
             {
@@ -203,7 +206,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task CrossRootDefaultsSupportInterleavedWritesAndReload(
+        public async Task CrossRootDefaultsKeepCapturesAcrossInterleavedWritesAndReload(
             [Values] bool storedBase, [Values] bool nestedSibling,
             [Values] bool storedClimate, [Values] bool scoreFirst, [Values] bool constructedDefaults)
         {
@@ -293,54 +296,55 @@ namespace NeoCompose.Tests
             AddDefault("save-root-class", "Forecast", PointerKeyOf(PointerKeyOf(SavePointer("Thing"), "Climate"), "FromSave"));
             using NeoClient client = await NeoClient.CreateAsync(new RootDefaultLoader(data), content,
                 null, NeoLocalization.CreateEmpty(null), null, default);
-            AssertValues(client, storedBase ? 40 : 3);
+            int captured = storedBase ? 40 : 3;
+            int constructions = client.VirtualConstructionCount;
+            AssertValues(client, captured);
             string climateId = Climate(client).value!.id;
             if (scoreFirst)
             {
                 Climate(client).Get<NeoMemberIntWritable>("Score").Set(11);
-                AssertValues(client, storedBase ? 40 : 3);
+                AssertValues(client, captured);
             }
             for (int value = 50; value <= 51; value++)
             {
                 client.save.Get<NeoMemberIntWritable>("Base").Set(value);
-                AssertValues(client, value);
+                AssertValues(client, captured);
                 Climate(client).Get<NeoMemberIntWritable>("Score").Set(value + 10);
-                AssertValues(client, value);
+                AssertValues(client, captured);
                 Assert.AreEqual(climateId, Climate(client).value!.id);
             }
+            Assert.AreEqual(constructions, client.VirtualConstructionCount);
             using NeoClient again = await NeoClient.CreateAsync(new RootDefaultLoader(data), client.SerializeSaveData(),
                 null, NeoLocalization.CreateEmpty(null), null, default);
-            AssertValues(again, 51);
+            AssertValues(again, captured);
             Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
             Assert.AreEqual(climateId, Climate(again).value!.id);
             again.save.Get<NeoMemberIntWritable>("Base").Set(52);
-            AssertValues(again, 52);
+            AssertValues(again, captured);
             Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
 
-            // A failure after this dependency graph was installed must not
-            // publish candidate defaults or prevent the next valid write.
+            // A later input write must not execute the initializer again.
             var forecast = ((IntMember)data.members["Forecast"]).defaultValue!.init!.compiled!;
             Instruction[] instructions = forecast.instructions;
-            string before = again.SerializeSaveData();
             forecast.instructions = new Instruction[]
             {
                 new ThrowInstruction { type = InstructionKind.Throw, pointer = StringLiteral("Rejected cross-root candidate") },
             };
             try
             {
-                var error = Assert.Throws<InvalidOperationException>(() => again.save.Get<NeoMemberIntWritable>("Base").Set(53));
-                StringAssert.Contains("Rejected cross-root candidate", error!.Message);
+                int beforeWrite = again.VirtualConstructionCount;
+                Assert.DoesNotThrow(() => again.save.Get<NeoMemberIntWritable>("Base").Set(53));
+                Assert.AreEqual(beforeWrite, again.VirtualConstructionCount);
             }
             finally
             {
                 forecast.instructions = instructions;
             }
-            Assert.AreEqual(before, again.SerializeSaveData());
-            AssertValues(again, 52);
+            AssertValues(again, captured);
             Assert.AreEqual(climateId, Climate(again).value!.id);
             Assert.AreEqual(61, Climate(again).Get<NeoMemberInt>("Score").value!.value);
             again.save.Get<NeoMemberIntWritable>("Base").Set(54);
-            AssertValues(again, 54);
+            AssertValues(again, captured);
 
             NeoMemberClassWritable Climate(NeoClient current) =>
                 current.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Climate");
