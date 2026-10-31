@@ -47,8 +47,9 @@ namespace NeoCompose.Runtime
                     foreach (var allocation in candidate.Allocations)
                         plan.Set(NeoValueOwnership.Session, allocation.Value);
                 }
-                if (candidate.Expansions.Count == 1)
-                    prepared = candidate.PreparedVariant;
+                // Keep the root even when its expansion contains nested roots.
+                // Commit must prepare the complete variant graph after clearing pins.
+                prepared = candidate.PreparedVariant;
             }
             finally
             {
