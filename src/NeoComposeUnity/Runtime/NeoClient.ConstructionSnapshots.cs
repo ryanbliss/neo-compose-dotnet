@@ -19,14 +19,14 @@ namespace NeoCompose.Runtime
         // as long as the installed expansion that took it.
         internal sealed class ConstructionSnapshot
         {
-            internal readonly ObjectMemberValue Recipe;
+            internal readonly ObjectMemberValue Inputs;
             internal readonly ObjectMemberValue Root;
             internal readonly ClassMember Member;
             internal readonly List<MemberValue> Rows;
 
-            internal ConstructionSnapshot(ObjectMemberValue recipe, ObjectMemberValue root, ClassMember member, List<MemberValue> rows)
+            internal ConstructionSnapshot(ObjectMemberValue inputs, ObjectMemberValue root, ClassMember member, List<MemberValue> rows)
             {
-                Recipe = recipe;
+                Inputs = inputs;
                 Root = root;
                 Member = member;
                 Rows = rows;
@@ -58,12 +58,12 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The root's construction output as temporary rows, restored from
-        /// its snapshot when its recipe is unchanged; otherwise null.
+        /// its snapshot when its constructor inputs are unchanged; otherwise null.
         /// </summary>
         private NeoGeneratedTypesSupport.RuntimeConstructedClassValue? RestoreConstruction(ObjectMemberValue root)
         {
             if (!constructionSnapshots.TryGetValue(root.id, out ConstructionSnapshot? snapshot)
-                || ChangesRecipe(snapshot.Recipe, root))
+                || ConstructorInputsDidChange(snapshot.Inputs, root))
                 return null;
             var plan = new NeoWritePlan(this);
             foreach (MemberValue row in snapshot.Rows)
@@ -101,7 +101,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>A construction change other than the applied variant, which layers over the output.</summary>
-        private static bool ChangesRecipe(ObjectMemberValue before, ObjectMemberValue after) =>
+        private static bool ConstructorInputsDidChange(ObjectMemberValue before, ObjectMemberValue after) =>
             after.classId != before.classId
             || after.instanceVariantId != before.instanceVariantId
             || after.instanceVariantRowValueId != before.instanceVariantRowValueId

@@ -61,11 +61,11 @@ namespace NeoCompose.Runtime
             foreach (var write in plan.Rows)
                 pending.Enqueue(write.Key.id);
             // A variant apply has already prepared its receiver's declarative
-            // answers, even when clearing a nested pin did not write the receiver.
+            // answers, even when clearing a nested override did not write the receiver.
             if (preparedVariant is { } prepared && ReferenceEquals(prepared.Plan, plan))
                 AddRoot(prepared.Expansion.Root.id, requiresReplay: true);
             // P130 §2. A materialized root keeps its construction output. Only
-            // a new identity, a changed recipe, a store move or a variant
+            // a new identity, changed constructor inputs, a store move or a variant
             // reselection prepares an expansion; a write never replays a root
             // because its constructor read the written row.
             using (ReadCandidate(plan))
@@ -78,7 +78,7 @@ namespace NeoCompose.Runtime
                     if (copiedRows?.Contains(id) == true)
                         continue;
                     // A materialized root whose row is nulled or removed is a
-                    // recipe change too; its row no longer resolves as a class.
+                    // constructor input change too; its row no longer resolves as a class.
                     if ((virtualFootprintByRoot.ContainsKey(id)
                             || ResolveValueRow(id) is ObjectMemberValue row && IsStoredClassDefaultRoot(row))
                         && RequiresExpansion(plan, id))
@@ -122,7 +122,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Whether a written row needs construction: a new identity, or a
-        /// root whose recipe changes or, once materialized, whose store
+        /// root whose constructor inputs change or, once materialized, whose store
         /// changes (P130 §2).
         /// </summary>
         private bool RequiresExpansion(NeoWritePlan plan, string id)
@@ -133,7 +133,7 @@ namespace NeoCompose.Runtime
                         || plan.TryGetOwnership(id, out var next)
                             && TryGetCommittedOwnership(id, out var previous) && next != previous);
             // A nested construction inside another root's graph rematerializes
-            // on its own recipe change, through its boundary.
+            // when its own constructor inputs change, through its boundary.
             if (virtualRootByFootprintId.ContainsKey(id))
                 return nestedReplayBoundaries.ContainsKey(id) && plan.WritesRow(id)
                     && ChangesConstruction(PreviousReplayRow(id), plan.Resolve(id));
@@ -151,7 +151,7 @@ namespace NeoCompose.Runtime
         {
             if (before is not ObjectMemberValue previous || after is not ObjectMemberValue next)
                 return !ReferenceEquals(before, after);
-            return ChangesRecipe(previous, next)
+            return ConstructorInputsDidChange(previous, next)
                 || next.instanceAppliedVariantId != previous.instanceAppliedVariantId
                 || next.instanceAppliedVariantRowValueId != previous.instanceAppliedVariantRowValueId;
         }
@@ -160,7 +160,7 @@ namespace NeoCompose.Runtime
         {
             // Fresh constructors and clones already supply their complete graph.
             // Replaying them only to recover defaults duplicates construction.
-            // Graphs with virtual defaults and changed recipes still require replay.
+            // Graphs with virtual defaults and changed constructor inputs still require replay.
             if (CurrentChangeSource == NeoChangeSource.External
                 || virtualValueIdsByRoot.TryGetValue(rootId, out var virtualIds) && virtualIds.Count != 0
                 || virtualClassParentIdsByRoot.TryGetValue(rootId, out var virtualParents) && virtualParents.Count != 0

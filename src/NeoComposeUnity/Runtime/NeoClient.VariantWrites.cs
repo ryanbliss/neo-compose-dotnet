@@ -48,7 +48,7 @@ namespace NeoCompose.Runtime
                         plan.Set(NeoValueOwnership.Session, allocation.Value);
                 }
                 // Keep the root even when its expansion contains nested roots.
-                // Commit must prepare the complete variant graph after clearing pins.
+                // Commit must prepare the complete variant graph after clearing overrides.
                 prepared = candidate.PreparedVariant;
             }
             finally

@@ -1454,7 +1454,7 @@ namespace NeoCompose.Runtime
             // still await their remaining member initializers.
             if (!wasReplaying)
                 replayingVirtualInstanceAllocatedSessionValueIds = allocations.Ids;
-            using var pins = BeginPinScope(instanceRoot.id);
+            using var savedValues = BeginSavedValueScope(instanceRoot.id);
             var captureReads = CaptureValueReads(dependencyIds);
             var replayDefaults = new ReplayDefaultGraph(this, instanceRoot,
                 replayBoundary?.NamespaceRoot ?? instanceRoot, replayBoundary?.Path ?? "$", ownership);
@@ -1574,7 +1574,7 @@ namespace NeoCompose.Runtime
                     expansion.Boundary = replayBoundary;
                 else
                     PartitionNestedReplay(graph, expansion, instanceRoot, allocations.Ids);
-                CollectPins(graph, expansion);
+                CollectSavedValues(graph, expansion);
             }
             if (Random.IdentityReadCount != identityReads)
                 MarkIdentitySensitive(expansion);
@@ -2187,7 +2187,7 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, VirtualClassPlacement> Placements = new();
             internal readonly HashSet<string> Footprint = new();
             internal readonly HashSet<string> Dependencies = new();
-            internal HashSet<string>? Pins;
+            internal HashSet<string>? SavedValues;
             internal ConstructionSnapshot? Construction;
             internal readonly List<PreparedVirtualExpansion> Nested = new();
             internal NestedReplayBoundary? Boundary;
@@ -2263,7 +2263,7 @@ namespace NeoCompose.Runtime
                 foreach (var nested in expansion.Nested)
                     InstallVirtualExpansion(nested);
             InstallConstructionSnapshot(rootId, expansion.Construction);
-            InstallPins(expansion);
+            InstallSavedValues(expansion);
         }
 
         private void OverlaySparseInstance(

@@ -899,7 +899,7 @@ namespace NeoCompose.Runtime
                     if (pair.Key.ownership == NeoValueOwnership.Session && pair.Value is not null
                         && !sessionData.values.ContainsKey(pair.Key.id))
                         RecordReplayAllocation(pair.Key.id);
-            AttributePinnedWrites(plan);
+            AttributeMutableWrites(plan);
             if (candidateReplay is not null)
             {
                 candidateReplay.Apply(plan);

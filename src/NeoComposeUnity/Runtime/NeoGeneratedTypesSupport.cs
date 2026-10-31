@@ -605,6 +605,8 @@ namespace NeoCompose.Runtime
             internal string schemaKey = null!;
             internal string memberId = null!;
             internal object? value;
+            // P130 §4: whether evaluating the value read mutable state.
+            internal bool readMutable;
         }
 
         /// <summary>
@@ -976,6 +978,10 @@ namespace NeoCompose.Runtime
                 // The body binds its handlers in the construction frame
                 // instead of forking for them.
                 TypeInfo resultType = NeoScript.NSGetterEvaluator.CloseContextType(init.compiled.typeInfo, initializerContext);
+                Variable[]? parameters = init.compiled.parameters;
+                using var parameterTaint = NeoClient.MeasuresReads && arguments.Length > 0
+                    ? NeoClient.BindParameterTaint(arguments, i => parameters![i + 2].id)
+                    : default;
                 object? result = NeoScript.NSGetterEvaluator.Evaluate(init.compiled, initializerContext, arguments, frame);
                 NeoScriptExecutor.RequireStoredInterfaceValue(resultType, result, initializerContext, member.name);
                 return result;
@@ -5291,6 +5297,10 @@ namespace NeoCompose.Runtime
             NeoClient client = resolved.client;
             using var replayCapture = client.BeginNestedConstructorCapture();
             using var listenerCapture = client.BeginConstructionListeners();
+            // P130 §4: the construction's rows take only their own reads.
+            // What chose the class stays with the caller, and arguments
+            // reach the rows through the parameters that read them.
+            NeoClient.ReadFrame? readFrame = client.EnterReadFrame();
             int frame =
                 EnterConstructionFrame(ctx, resolved.schemaClass.name, ref resolved.metadata.constructionFrames);
             try
@@ -5298,6 +5308,7 @@ namespace NeoCompose.Runtime
                 object?[] positionalArguments = FillDeclaredArguments(
                     resolved.link.record,
                     argumentValues);
+                NeoClient.CopyArgumentTaint(argumentValues, positionalArguments);
                 var initializerArguments = PrepareConstructorInitializerArguments(client, resolved.link, positionalArguments, ctx);
                 var scope = new NeoConstructionScope(
                     client,
@@ -5402,6 +5413,7 @@ namespace NeoCompose.Runtime
             finally
             {
                 ctx.ExitFunction(frame);
+                client.ExitReadFrame(readFrame, null);
             }
         }
 
@@ -5725,9 +5737,11 @@ namespace NeoCompose.Runtime
                 record.baseArguments ?? Array.Empty<ConstructorBaseArgument>();
             FunctionWithReturnType[] compiled =
                 record.compiledBaseArguments ?? Array.Empty<FunctionWithReturnType>();
+            bool[]? baseTaint = NeoClient.MeasuresReads ? new bool[baseArguments.Length] : null;
             for (int i = 0; i < declaredBaseArguments.Length; i++)
             {
                 boundBaseSlots[link.baseArgumentTargets[i]] = true;
+                NeoClient.LocalTaint taint = baseTaint is null ? default : NeoClient.BeginLocalTaint();
                 // Clauses that read `this` run after member initialization.
                 // Other clauses also provide the base initializer's arguments.
                 baseArguments[link.baseArgumentTargets[i]] = ExecuteConstructorBody(
@@ -5740,7 +5754,11 @@ namespace NeoCompose.Runtime
                     "Base argument",
                     declaredBaseArguments[i].name,
                     record.id);
+                if (baseTaint is not null)
+                    baseTaint[link.baseArgumentTargets[i]] = NeoClient.EndValueTaint(taint);
             }
+            if (baseTaint is not null)
+                NeoClient.NoteArgumentTaint(baseArguments, baseTaint);
             // P65 §2.5 callee-side fill, same as a direct constructor
             // call: the base overload's own current default completes each
             // omitted slot. Base resolution already required every
@@ -5963,6 +5981,10 @@ namespace NeoCompose.Runtime
                 for (int i = 0; i < argumentValues.Length; i++)
                     scope.SetLocal(ConstructorArgumentName(i), argumentValues[i]);
             }
+            bool envelope = layout.constructorEnvelope == true && parameters?.Length == argumentValues.Length + 2;
+            using var parameterTaint = NeoClient.MeasuresReads
+                ? NeoClient.BindParameterTaint(argumentValues, i => envelope ? parameters![i + 2].id : ConstructorArgumentName(i))
+                : default;
             NeoScriptExecutionOptions options = NeoScriptExecutionOptions.ForImmediate(client);
             int frame = ctx.EnterThis(thisValue);
             ctx.constructorBody = true;
@@ -6034,6 +6056,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"Constructor field '{field.schemaKey}' on '{resolved.schemaClass.name}' is required and cannot be null.");
                 }
+                NeoClient.ChargeNextWrite(field.readMutable);
                 NeoScriptExecutor.WriteConstructedClassMember(
                     client,
                     rootValueId,
@@ -6042,6 +6065,7 @@ namespace NeoCompose.Runtime
                     NeoValueOwnership.Session,
                     field.value,
                     ctx);
+                NeoClient.ChargeNextWrite(false);
                 StampConstructedCollectionRow(
                     client,
                     resolved,
@@ -7806,7 +7830,7 @@ namespace NeoCompose.Runtime
             string path)
         {
             // P130 §4: this initializer's reads belong to the value it produces.
-            NeoClient.PinFrame? pinFrame = client.EnterPinFrame();
+            NeoClient.ReadFrame? initializerFrame = client.EnterReadFrame();
             object? produced = scope.EvaluateInitializer(member, authored.init!, env);
             if (produced is not null
                 && (member is ListMember || member is DictionaryMember))
@@ -7840,7 +7864,7 @@ namespace NeoCompose.Runtime
 
             string? Capture(string? id)
             {
-                client.ExitPinFrame(pinFrame, id);
+                client.ExitReadFrame(initializerFrame, id);
                 if (produced is not null && id is not null && authored.changeListeners is { Count: > 0 })
                     (scope.listenerInitializers ??= new())[path] = new InitializedListenerOccurrence
                     {

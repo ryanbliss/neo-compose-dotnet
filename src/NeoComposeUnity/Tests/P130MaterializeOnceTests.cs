@@ -38,7 +38,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void P130CapturedMutableDefaultIsPinnedAndLiteralSiblingIsSparse()
+        public void P130CapturedMutableDefaultIsSavedAndLiteralSiblingIsSparse()
         {
             var data = P130CaptureProject();
             string saved;
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void P130CaptureThroughLocalPinsItsLaterRow()
+        public void P130CaptureThroughLocalSavesItsLaterRow()
         {
             ProjectData data = P130CaptureProject();
             // Captured has no initializer here: the constructor body sets it
@@ -107,7 +107,7 @@ namespace NeoCompose.Tests
             var captured = thing.Get<NeoMemberIntWritable>("Captured");
             Assert.AreEqual(3d, captured.value!.value);
             var values = (JObject)JObject.Parse(client.SerializeSaveData())["values"]!;
-            Assert.IsNotNull(values[captured.value.id], "The capture carried through a local pins.");
+            Assert.IsNotNull(values[captured.value.id], "The capture carried through a local saves.");
             Assert.IsNull(values[thing.Get<NeoMemberIntWritable>("Count").value!.id], "A literal written after the read does not.");
         }
 
@@ -166,7 +166,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void P130LiteralDefaultsDoNotPinRows()
+        public void P130LiteralDefaultsSaveNothing()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var thing = client.save.Get<NeoMemberClassWritable>("Thing");
@@ -294,6 +294,109 @@ namespace NeoCompose.Tests
                 Array.Empty<NeoDeclaredConstructorArgument>());
             // The constructor body builds the entry; no materialized graph supplies it.
             Assert.AreEqual("Sprite", Entry(instance).Get<NeoMemberStringWritable>("Name").value!.value);
+        }
+
+        [Test]
+        public void P130ArgumentFromMutableStateSavesOnlyTheFieldsThatReadIt()
+        {
+            // Thing.Stats = new Stats(seed: Save.Input). The body writes a
+            // literal Label, then Value from the parameter. Only Value read
+            // save data, so only Value saves: not Label, not the Stats row.
+            ProjectData data = BuildProjectData();
+            data.classes["save-root-class"].schema["Input"] = "replay-input";
+            data.members["replay-input"] = new IntMember
+            {
+                id = "replay-input",
+                name = "Input",
+                kind = MemberKind.Int,
+                defaultValue = new NumberMemberValueBase { value = 3 },
+            };
+            var text = new PrimitiveTypeInfo { type = MemberKind.String, required = true };
+            data.classes["stats-class"] = new NeoSchemaClass
+            {
+                id = "stats-class",
+                name = "Stats",
+                projectId = "p75-project",
+                schema = new Dictionary<string, string> { ["Value"] = "stats-value", ["Label"] = "stats-label" },
+                constructorIds = new[] { "stats-ctor" },
+            };
+            data.members["stats-value"] = new IntMember { id = "stats-value", name = "Value", kind = MemberKind.Int, defaultValue = new NumberMemberValueBase { value = 0 } };
+            data.members["stats-label"] = new StringMember { id = "stats-label", name = "Label", kind = MemberKind.String, defaultValue = new StringMemberValueBase { value = "default" } };
+            var receiver = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+            data.constructors["stats-ctor"] = new ConstructorRecord
+            {
+                id = "stats-ctor",
+                classId = "stats-class",
+                projectId = "p75-project",
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "seed", type = MemberKind.Int, required = true } },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType("stats-class")), ConstructorVariable("__root__", ClassType("__root__")), ConstructorVariable("__arg_0__", IntTypeInfo()) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[]
+                    {
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign, operatorValue = "=",
+                            target = new WriteTarget { pointer = PointerKeyOf(receiver, "Label"), typeInfo = text, writability = WritabilityKind.Session },
+                            pointer = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = text, value = "built" } },
+                        },
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign, operatorValue = "=",
+                            target = new WriteTarget { pointer = PointerKeyOf(receiver, "Value"), typeInfo = IntTypeInfo(), writability = WritabilityKind.Session },
+                            pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" },
+                        },
+                    },
+                },
+            };
+            data.classes["thing-class"].schema["Stats"] = "thing-stats";
+            data.members["thing-stats"] = new ClassMember
+            {
+                id = "thing-stats",
+                name = "Stats",
+                kind = MemberKind.Class,
+                DeclaredClassId = "stats-class",
+                Storage = NeoMemberStorage.Save,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    init = Init(ClassType("stats-class"), new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new DeclaredConstructorFunction
+                        {
+                            type = FunctionKind.DeclaredConstructor,
+                            info = new DeclaredConstructorInfo
+                            {
+                                constructorId = "stats-ctor",
+                                schemaClassInfo = ClassType("stats-class"),
+                                args = new[] { new DeclaredConstructorArgument { name = "seed", valuePointer = SavePointer("Input") } },
+                                fields = Array.Empty<FunctionClassConstructorField>(),
+                            },
+                        },
+                    }),
+                },
+            };
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var stats = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Stats");
+                Assert.AreEqual(3d, stats.Get<NeoMemberIntWritable>("Value").value!.value);
+                Assert.AreEqual("built", stats.Get<NeoMemberStringWritable>("Label").value!.value);
+                client.save.Get<NeoMemberIntWritable>("Input").Set(9);
+                Assert.AreEqual(3d, stats.Get<NeoMemberIntWritable>("Value").value!.value);
+                saved = client.SerializeSaveData();
+                var values = (JObject)JObject.Parse(saved)["values"]!;
+                Assert.IsNotNull(values[stats.Get<NeoMemberIntWritable>("Value").value!.id], "A field computed from a save-backed argument saves.");
+                Assert.IsNull(values[stats.Get<NeoMemberStringWritable>("Label").value!.id], "A literal beside it stays sparse.");
+                Assert.IsNull(values[stats.value!.id], "The argument did not choose the object, so its row stays sparse.");
+            }
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            var reloadedStats = reloaded.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberClassWritable>("Stats");
+            Assert.AreEqual(9d, reloaded.save.Get<NeoMemberIntWritable>("Input").value!.value);
+            Assert.AreEqual(3d, reloadedStats.Get<NeoMemberIntWritable>("Value").value!.value, "The saved value wins over a rebuild from the changed input.");
+            Assert.AreEqual("built", reloadedStats.Get<NeoMemberStringWritable>("Label").value!.value);
         }
     }
 }

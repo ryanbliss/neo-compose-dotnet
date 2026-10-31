@@ -434,8 +434,8 @@ namespace NeoCompose.Runtime
                 ObserveScriptWrites(id);
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
-            if (pinFrame is not null)
-                NotePinRead(id);
+            if (readFrame is not null)
+                NoteMutableRead(id);
         }
 
         /// <summary>
@@ -447,8 +447,8 @@ namespace NeoCompose.Runtime
             NoteSequenceRow(id);
             capturedValueReads?.Add(id);
             getterValueReadCapture?.Add(id);
-            if (pinFrame is not null)
-                NotePinRead(id);
+            if (readFrame is not null)
+                NoteMutableRead(id);
             if (getterReadCapture is { } reads)
                 RecordRowRead(reads, id);
         }
@@ -460,9 +460,9 @@ namespace NeoCompose.Runtime
                     NoteSequenceRow(id);
             capturedValueReads?.UnionWith(ids);
             getterValueReadCapture?.AddRange(ids);
-            if (pinFrame is not null)
+            if (readFrame is not null)
                 foreach (string id in ids)
-                    NotePinRead(id);
+                    NoteMutableRead(id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
