@@ -115,8 +115,7 @@ namespace NeoCompose.Runtime
             // previous one's defaults as stored rows: it would omit them, and
             // Add discards the old ones.
             candidate.Remove(root.id);
-            if (!replayingVirtualRootIds.Add(root.id))
-                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{root.id}'.");
+            replayingVirtualRootIds.Enter(this, root);
             try
             {
                 int version = candidate.Plan.Version;

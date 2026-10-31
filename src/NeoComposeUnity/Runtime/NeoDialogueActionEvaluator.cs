@@ -599,11 +599,13 @@ namespace NeoCompose.Runtime
                         case InstructionCode.Variable:
                             {
                                 var variable = (VariableInstruction)instruction;
+                                var taint = NeoClient.BeginLocalTaint();
                                 object? value = NSGetterEvaluator.EvaluateValue(
                                     variable.variable.pointer,
                                     scope,
                                     actionCtx,
                                     out double number);
+                                NeoClient.EndLocalTaint(taint, variable.variable.id);
                                 CoerceLocalNumeric(ref value, ref number, variable.variable.typeInfo, actionCtx);
                                 value = NSGetterEvaluator.DeclaredRuntimeSet(value, variable.variable.typeInfo, actionCtx);
                                 scope.SetEvaluationValue(variable.variable, value, number);
@@ -2285,7 +2287,9 @@ namespace NeoCompose.Runtime
             {
                 foreach (Variable binding in instruction.bindings)
                 {
+                    var taint = NeoClient.BeginLocalTaint();
                     object? value = NSGetterEvaluator.EvaluateValue(binding.pointer, scope, ctx, out double number);
+                    NeoClient.EndLocalTaint(taint, binding.id);
                     CoerceLocalNumeric(ref value, ref number, binding.typeInfo, ctx);
                     value = NSGetterEvaluator.DeclaredRuntimeSet(value, binding.typeInfo, ctx);
                     scope.SetEvaluationValue(binding, value, number);
@@ -2477,7 +2481,9 @@ namespace NeoCompose.Runtime
             if (NSGetterEvaluator.HasActiveSort(ctx))
                 NSGetterEvaluator.AssertNotSorting(Eval(variablePointer, scope, ctx), ctx);
             // A number stays unboxed into the local, as a declaration's does.
+            var taint = NeoClient.BeginLocalTaint();
             object? local = NSGetterEvaluator.EvaluateValue(instruction.pointer, scope, ctx, out double number);
+            NeoClient.EndLocalTaint(taint, variablePointer.variableId);
             if (IsReadOnly(instruction.target))
             {
                 throw new NSGetterRuntimeError(

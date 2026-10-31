@@ -39,10 +39,44 @@ namespace NeoCompose.Runtime
         /// full project replay; more than a handful means the graph is not
         /// settling rather than that the project is large.
         /// </summary>
-        private const int MaxVirtualInstanceRebuildPasses = 8;
         private bool isInitializingVirtualInstanceValues;
         private bool isReplayingVirtualInstance;
-        private readonly HashSet<string> replayingVirtualRootIds = new(StringComparer.Ordinal);
+        private readonly ConstructionStack replayingVirtualRootIds = new();
+
+        /// <summary>
+        /// Roots under construction, outermost first. A root that reenters
+        /// its own construction names the path that led back to it.
+        /// </summary>
+        private sealed class ConstructionStack
+        {
+            private readonly List<ObjectMemberValue> order = new();
+            private readonly HashSet<string> active = new(StringComparer.Ordinal);
+
+            internal bool Contains(string id) => active.Contains(id);
+
+            internal void Enter(NeoClient client, ObjectMemberValue root)
+            {
+                if (active.Add(root.id))
+                {
+                    order.Add(root);
+                    return;
+                }
+                int start = order.FindIndex(entry => entry.id == root.id);
+                var path = order.Skip(start).Append(root).Select(entry => $"{client.ClassLabel(entry.classId)} '{entry.id}'");
+                throw new InvalidOperationException($"Sparse constructor dependency cycle: {string.Join(" -> ", path)}.");
+            }
+
+            internal void Remove(string id)
+            {
+                if (active.Remove(id))
+                    order.RemoveAt(order.FindLastIndex(entry => entry.id == id));
+            }
+        }
+
+        private string ClassLabel(string? classId) =>
+            classId is not null && data.classes.TryGetValue(classId, out var schemaClass) && schemaClass is not null
+                ? schemaClass.name
+                : classId ?? "object";
         private string? replayingVirtualInstanceRootId;
         private string? replayingVirtualInstanceClassId;
         private IReadOnlyDictionary<string, GenericBinding>?
@@ -247,7 +281,6 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, HashSet<string>> virtualFootprintByRoot = new();
         private readonly Dictionary<string, string> virtualRootByFootprintId = new();
         private readonly HashSet<string> identitySensitiveExpansionRoots = new();
-        private bool virtualInstanceValuesDirty;
 
         private sealed class VirtualExpansionNode
         {
@@ -603,34 +636,21 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// P130 §2. Load materializes each root once, against the project
+        /// definitions and persisted overrides already mounted. A constructor
+        /// that reads another root constructs it on demand; nothing reruns to
+        /// search for a fixed point.
+        /// </summary>
         private IEnumerable<byte> InitializeVirtualInstanceValuesSteps(bool failClosed)
         {
             if (isInitializingVirtualInstanceValues)
-            {
-                virtualInstanceValuesDirty = true;
-                yield break;
-            }
+                throw new InvalidOperationException("Virtual instance materialization reentered itself.");
             isInitializingVirtualInstanceValues = true;
             try
             {
-                int pass = 0;
-                do
-                {
-                    // A replay can publish rows that make another root's
-                    // expansion stale, which re-enters here and asks for one
-                    // more pass. That must converge: an expansion whose own
-                    // output keeps re-dirtying the index would otherwise spin
-                    // forever with no diagnostic.
-                    if (++pass > MaxVirtualInstanceRebuildPasses)
-                    {
-                        throw new InvalidOperationException(
-                            $"P75 virtual instance replay did not converge after {MaxVirtualInstanceRebuildPasses} passes. A constructor or variant Initialize is writing rows that invalidate the instance index on every pass.");
-                    }
-                    virtualInstanceValuesDirty = false;
-                    foreach (var step in InitializeVirtualInstanceValuesCore(failClosed))
-                        yield return step;
-                }
-                while (virtualInstanceValuesDirty);
+                foreach (var step in InitializeVirtualInstanceValuesCore(failClosed))
+                    yield return step;
             }
             finally
             {
@@ -1260,8 +1280,7 @@ namespace NeoCompose.Runtime
 
         private void ExpandVirtualInstanceRoot(ObjectMemberValue instanceRoot)
         {
-            if (!replayingVirtualRootIds.Add(instanceRoot.id))
-                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{instanceRoot.id}'.");
+            replayingVirtualRootIds.Enter(this, instanceRoot);
             try
             {
                 ExpandVirtualInstanceRootCore(instanceRoot);

@@ -30,22 +30,76 @@ namespace NeoCompose.Runtime
             // produced from mutable reads pins its whole subtree.
             internal readonly HashSet<string> MutableRows = new(StringComparer.Ordinal);
             internal readonly HashSet<string> MutableSubtrees = new(StringComparer.Ordinal);
+            // Script locals assigned from mutable reads. Reading one carries
+            // the taint into whichever row the value is written to.
+            internal readonly HashSet<string> TaintedLocals = new(StringComparer.Ordinal);
         }
 
         private PinScope? pinScope;
         private PinFrame? pinFrame;
 
+        // Script scopes hold no client, so the materializing one is static.
+        // Evaluation is single-threaded; a scope restores its outer one.
+        private static NeoClient? localTaintClient;
+
         private IDisposable BeginPinScope(string rootId)
         {
             var scope = new PinScope { Parent = pinScope, RootId = rootId };
             var frame = new PinFrame { Parent = pinFrame };
+            NeoClient? outerTaintClient = localTaintClient;
             pinScope = scope;
             pinFrame = frame;
+            localTaintClient = this;
             return new NeoDisposableAction(() =>
             {
                 pinScope = scope.Parent;
                 pinFrame = frame.Parent;
+                localTaintClient = outerTaintClient;
             });
+        }
+
+        /// <summary>Whether a script local read can carry taint: some local holds a mutable read.</summary>
+        internal static bool TracksLocalTaint => localTaintClient?.pinScope is { TaintedLocals: { Count: > 0 } };
+
+        internal static void NoteLocalRead(string variableId)
+        {
+            if (localTaintClient is { pinFrame: { Mutable: false } frame, pinScope: { } scope }
+                && scope.TaintedLocals.Contains(variableId))
+                frame.Mutable = true;
+        }
+
+        internal readonly struct LocalTaint
+        {
+            internal readonly PinFrame? Frame;
+            internal readonly bool Prior;
+            internal LocalTaint(PinFrame? frame, bool prior)
+            {
+                Frame = frame;
+                Prior = prior;
+            }
+        }
+
+        /// <summary>Starts measuring the reads behind a value a local is about to hold.</summary>
+        internal static LocalTaint BeginLocalTaint()
+        {
+            if (localTaintClient?.pinFrame is not { } frame)
+                return default;
+            bool prior = frame.Mutable;
+            frame.Mutable = false;
+            return new LocalTaint(frame, prior);
+        }
+
+        /// <summary>Marks <paramref name="variableId"/> by whether its new value came from mutable reads.</summary>
+        internal static void EndLocalTaint(LocalTaint taint, string variableId)
+        {
+            if (taint.Frame is not { } frame || localTaintClient?.pinScope is not { } scope)
+                return;
+            if (frame.Mutable)
+                scope.TaintedLocals.Add(variableId);
+            else
+                scope.TaintedLocals.Remove(variableId);
+            // The local carries the taint; a row takes it when the local is read.
+            frame.Mutable = taint.Prior;
         }
 
         /// <summary>A construction step whose reads belong only to the rows it produces.</summary>
@@ -118,8 +172,10 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The persisted leaves of <paramref name="graph"/> that came from
-        /// mutable reads. Session roots never pin: nothing reloads them.
+        /// The persisted rows of <paramref name="graph"/> that came from
+        /// mutable reads: leaves, and collections with every row beneath
+        /// them, since their membership is part of the capture. Session roots
+        /// never pin: nothing reloads them.
         /// </summary>
         private void CollectPins(VirtualExpansionNode graph, PreparedVirtualExpansion expansion)
         {
@@ -134,15 +190,39 @@ namespace NeoCompose.Runtime
                 if (node.independentRoot is not null && node != graph)
                     return;
                 bool subtree = inherited || scope.MutableSubtrees.Contains(node.row.id);
-                if ((subtree || scope.MutableRows.Contains(node.row.id))
-                    && IsPinnableLeaf(node) && ValueOwner(expansion, node.virtualId) is { } owner)
-                    (owner.Pins ??= new()).Add(node.virtualId);
+                bool mutable = subtree || scope.MutableRows.Contains(node.row.id);
+                if (mutable && IsCollection(node))
+                {
+                    PinAll(node);
+                    return;
+                }
+                if (mutable && IsPinnableLeaf(node))
+                    Pin(node);
                 foreach (var child in node.classChildren.Values)
                     Walk(child, subtree);
                 foreach (var child in node.listChildren)
                     Walk(child, subtree);
                 foreach (var child in node.dictionaryChildren.Values)
                     Walk(child, subtree);
+            }
+
+            void PinAll(VirtualExpansionNode node)
+            {
+                if (node.independentRoot is not null && node != graph)
+                    return;
+                Pin(node);
+                foreach (var child in node.classChildren.Values)
+                    PinAll(child);
+                foreach (var child in node.listChildren)
+                    PinAll(child);
+                foreach (var child in node.dictionaryChildren.Values)
+                    PinAll(child);
+            }
+
+            void Pin(VirtualExpansionNode node)
+            {
+                if (ValueOwner(expansion, node.virtualId) is { } owner)
+                    (owner.Pins ??= new()).Add(node.virtualId);
             }
         }
 
@@ -156,6 +236,9 @@ namespace NeoCompose.Runtime
                     return owner;
             return null;
         }
+
+        private static bool IsCollection(VirtualExpansionNode node) =>
+            node.member is ListMember or DictionaryMember;
 
         private static bool IsPinnableLeaf(VirtualExpansionNode node) =>
             node.classChildren.Count == 0 && node.listChildren.Count == 0 && node.dictionaryChildren.Count == 0

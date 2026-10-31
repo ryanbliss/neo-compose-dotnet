@@ -730,6 +730,8 @@ namespace NeoCompose.Runtime.NeoScript
             out bool remembered,
             ref NSGetterEvaluator.RowReference? rowAlias)
         {
+            if (NeoClient.TracksLocalTaint)
+                NeoClient.NoteLocalRead(variable.variableId);
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
                 int slot = scope.OccupiedSlot(variable);
@@ -807,6 +809,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary><see cref="ReadVariable"/> for arithmetic: false unless the variable holds a number.</summary>
         internal bool TryReadNumber(VariablePointer variable, out double number)
         {
+            if (NeoClient.TracksLocalTaint)
+                NeoClient.NoteLocalRead(variable.variableId);
             for (NeoScriptScope? scope = this; scope is not null; scope = scope.Parent)
             {
                 // OccupiedSlot, reading the slot's kind once.

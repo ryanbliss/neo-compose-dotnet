@@ -380,8 +380,7 @@ namespace NeoCompose.Runtime
             }
             if (TryReusePreparedVariant(candidate, root, replayOwnership, boundary))
                 return;
-            if (!replayingVirtualRootIds.Add(rootId))
-                throw new InvalidOperationException($"Sparse constructor dependency cycle at '{rootId}'.");
+            replayingVirtualRootIds.Enter(this, root);
             try
             {
                 candidate.Add(ExpandVirtualInstanceRootCore(root, prepareOnly: true, replayOwnership: replayOwnership));

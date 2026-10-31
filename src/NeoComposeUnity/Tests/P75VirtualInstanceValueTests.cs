@@ -3722,7 +3722,9 @@ namespace NeoCompose.Tests
                 },
             };
             Exception error = Assert.Throws<InvalidOperationException>(() => NeoTestSaveStack.ClientFromSchema(data))!;
-            StringAssert.Contains("Sparse constructor dependency cycle", error.ToString());
+            StringAssert.Contains("Sparse constructor dependency cycle: ", error.ToString());
+            // The message names the path that led back to the root.
+            StringAssert.Contains(" -> ", error.ToString());
         }
 
         [Test]
@@ -3732,7 +3734,8 @@ namespace NeoCompose.Tests
             var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             typeof(NeoClient).GetField("isReplayingVirtualInstance", flags)!.SetValue(client, true);
             typeof(NeoClient).GetField("replayingVirtualInstanceRootId", flags)!.SetValue(client, "thing-instance");
-            ((HashSet<string>)typeof(NeoClient).GetField("replayingVirtualRootIds", flags)!.GetValue(client)!).Add("thing-instance");
+            object constructing = typeof(NeoClient).GetField("replayingVirtualRootIds", flags)!.GetValue(client)!;
+            constructing.GetType().GetMethod("Enter", flags)!.Invoke(constructing, new object[] { client, client.ResolveValueRow("thing-instance")! });
             ((Dictionary<string, HashSet<string>>)typeof(NeoClient).GetField("virtualValueIdsByRoot", flags)!.GetValue(client)!).Remove("thing-instance");
             Assert.DoesNotThrow(() => typeof(NeoClient).GetMethod("EnsureVirtualReplayArgumentReady", flags)!.Invoke(client, new object[] { "thing-instance" }));
         }

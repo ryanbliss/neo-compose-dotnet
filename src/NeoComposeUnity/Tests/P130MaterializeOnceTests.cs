@@ -3,6 +3,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
@@ -60,6 +61,108 @@ namespace NeoCompose.Tests
             }
             using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
             Assert.AreEqual(3d, reloaded.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberIntWritable>("Captured").value!.value);
+        }
+
+        [Test]
+        public void P130CaptureThroughLocalPinsItsLaterRow()
+        {
+            ProjectData data = P130CaptureProject();
+            // Captured has no initializer here: the constructor body sets it
+            // from a local, after a literal write commits in between.
+            ((IntMember)data.members["captured-count"]).defaultValue = new NumberMemberValueBase { value = 0 };
+            data.classes["thing-class"].constructorIds = new[] { "thing-ctor" };
+            ((ObjectMemberValue)data.values["thing-instance"]).instanceConstructorId = "thing-ctor";
+            var receiver = new VariablePointer { type = PointerKind.Variable, variableId = "__this__" };
+            data.constructors["thing-ctor"] = new ConstructorRecord
+            {
+                id = "thing-ctor",
+                classId = "thing-class",
+                projectId = "p75-project",
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { ConstructorVariable("__this__", ClassType("thing-class")), ConstructorVariable("__root__", ClassType("__root__")) },
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[]
+                    {
+                        new VariableInstruction { variable = new Variable { id = "input", typeInfo = IntTypeInfo(), pointer = SavePointer("Input") } },
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign, operatorValue = "=",
+                            target = new WriteTarget { pointer = PointerKeyOf(receiver, "Count"), typeInfo = IntTypeInfo(), writability = WritabilityKind.Session },
+                            pointer = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = IntTypeInfo(), value = 1 } },
+                        },
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign, operatorValue = "=",
+                            target = new WriteTarget { pointer = PointerKeyOf(receiver, "Captured"), typeInfo = IntTypeInfo(), writability = WritabilityKind.Session },
+                            pointer = new VariablePointer { type = PointerKind.Variable, variableId = "input" },
+                        },
+                    },
+                },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var thing = client.save.Get<NeoMemberClassWritable>("Thing");
+            var captured = thing.Get<NeoMemberIntWritable>("Captured");
+            Assert.AreEqual(3d, captured.value!.value);
+            var values = (JObject)JObject.Parse(client.SerializeSaveData())["values"]!;
+            Assert.IsNotNull(values[captured.value.id], "The capture carried through a local pins.");
+            Assert.IsNull(values[thing.Get<NeoMemberIntWritable>("Count").value!.id], "A literal written after the read does not.");
+        }
+
+        [Test]
+        public void P130CollectionCopiedFromMutableStateKeepsItsMembership()
+        {
+            ProjectData data = BuildProjectData();
+            data.members["input-entry"] = new IntMember
+            {
+                id = "input-entry",
+                projectId = "p75-project",
+                name = "Entry",
+                kind = MemberKind.Int,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.values["input-a"] = new NumberMemberValue { id = "input-a", value = 1 };
+            data.values["input-b"] = new NumberMemberValue { id = "input-b", value = 2 };
+            data.members["save-inputs"] = new ListMember
+            {
+                id = "save-inputs",
+                projectId = "p75-project",
+                name = "Inputs",
+                kind = MemberKind.List,
+                entryMemberId = "input-entry",
+                ListKind = NeoListKind.Ordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ArrayMemberValueBase { value = new[] { "input-a", "input-b" } },
+            };
+            data.classes["save-root-class"].schema["Inputs"] = "save-inputs";
+            var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = IntTypeInfo() };
+            data.members["copied"] = new ListMember
+            {
+                id = "copied",
+                projectId = "p75-project",
+                name = "Copied",
+                kind = MemberKind.List,
+                entryMemberId = "input-entry",
+                ListKind = NeoListKind.Ordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ArrayMemberValueBase { init = Init(listType, SavePointer("Inputs")) },
+            };
+            data.classes["thing-class"].schema["Copied"] = "copied";
+            string saved;
+            using (var client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var copied = client.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Copied");
+                Assert.AreEqual(2, copied.Count());
+                saved = client.SerializeSaveData();
+            }
+            // The input grows between sessions; the capture keeps its two entries.
+            data.values["input-c"] = new NumberMemberValue { id = "input-c", value = 9 };
+            ((ListMember)data.members["save-inputs"]).defaultValue!.value = new[] { "input-a", "input-b", "input-c" };
+            using var reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            Assert.AreEqual(3, reloaded.save.Get<NeoMemberList>("Inputs").Count());
+            Assert.AreEqual(2, reloaded.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Copied").Count());
         }
 
         [Test]
