@@ -824,6 +824,7 @@ namespace NeoCompose.Runtime
                     entryOwnership,
                     entryValue.valueId!,
                     out bool sourceMoved);
+                client.RestampAdoptedValue(plan, entryOwnership, newValueId, entryMember, parentRow);
                 if (sourceMoved)
                 {
                     RetargetMovedReferenceAfterCommit(plan, entryValue, newValueId, entryOwnership);
@@ -906,6 +907,7 @@ namespace NeoCompose.Runtime
                     return;
                 }
                 ArrayMemberValue parentRow = EnsureWritableArray(plan, nowIso, replacesEntries: false);
+                client.RestampAdoptedValue(plan, entryOwnership, importedValueId, entryMember, parentRow);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 plan.Set(ownership, parentRow);
@@ -1208,6 +1210,7 @@ namespace NeoCompose.Runtime
                     entryOwnership,
                     entryValue.valueId!,
                     out bool sourceMoved);
+                client.RestampAdoptedValue(plan, entryOwnership, newValueId, entryMember, containerRow);
                 StampContainerId(plan, entryOwnership, newValueId, containerValueId);
                 if (sourceMoved)
                 {

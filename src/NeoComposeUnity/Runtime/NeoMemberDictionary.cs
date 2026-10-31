@@ -264,6 +264,7 @@ namespace NeoCompose.Runtime
                 nextId = client.ImportValueReference(plan, entryOwnership, setValue.valueId!, out bool sourceMoved, previousId);
                 if (nextId == previousId)
                     return;
+                client.RestampAdoptedValue(plan, entryOwnership, nextId, entryMember, parentRow);
                 if (sourceMoved)
                     RetargetMovedReferenceAfterCommit(plan, setValue, nextId, entryOwnership);
             }

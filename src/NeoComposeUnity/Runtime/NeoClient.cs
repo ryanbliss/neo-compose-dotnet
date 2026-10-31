@@ -3317,6 +3317,90 @@ namespace NeoCompose.Runtime
                 plan.Set(ownership, row);
         }
 
+        // Import/adoption establishes ownership first. Partition stamps describe
+        // placement, so a detached graph inherits its new slot's partition.
+        internal void RestampAdoptedValue(NeoWritePlan plan, NeoValueOwnership ownership,
+            string valueId, Member member, MemberValue parent, string? parentClassId = null)
+        {
+            parentClassId ??= parent.classId;
+            if (parentClassId is null)
+            {
+                using var candidate = ReadCandidate(plan);
+                if (TryInferMemberForValueId(parent.id, out Member? slot) && slot is ClassMember parentMember)
+                    parentClassId = parentMember.DeclaredClassId;
+            }
+            RestampAdoptedGraph(plan, ownership, valueId, member,
+                ResolveCreatedValueMapKey(member, parent.mapKey, parentClassId), new());
+        }
+
+        internal void RestampAdoptedGraph(NeoWritePlan plan, NeoValueOwnership ownership,
+            string valueId, Member member, string? mapKey, HashSet<string> visited, string? containerId = null)
+        {
+            var stamps = new List<(NeoValueOwnership ownership, MemberValue row)>();
+            CollectAdoptedPartitions(plan, ownership, valueId, member, mapKey, visited, stamps, containerId);
+            // Staging invalidates the plan's containment index. Delay it until
+            // traversal finishes so multiple unordered lists share one index.
+            foreach (var stamp in stamps)
+                plan.Set(stamp.ownership, stamp.row, explicitPartition: true);
+        }
+
+        private void CollectAdoptedPartitions(NeoWritePlan plan, NeoValueOwnership ownership,
+            string valueId, Member member, string? mapKey, HashSet<string> visited,
+            List<(NeoValueOwnership ownership, MemberValue row)> stamps, string? containerId = null)
+        {
+            if (!visited.Add(valueId))
+                return;
+            // Sparse schema defaults have no row to move. Do not materialize them.
+            MemberValue? row = plan.Resolve(ownership, valueId);
+            if (row is null)
+                return;
+            if (containerId is not null && !string.IsNullOrEmpty(row.containerId) && row.containerId != containerId)
+                throw new InvalidOperationException($"Value '{valueId}' already belongs to unordered list '{row.containerId}', expected '{containerId}'.");
+            if (row.mapKey != mapKey || (containerId is not null && row.containerId != containerId))
+            {
+                MemberValue stamped = CloneRowForWrite(row);
+                stamped.mapKey = mapKey;
+                if (containerId is not null)
+                    stamped.containerId = containerId;
+                stamps.Add((ownership, stamped));
+                row = stamped;
+            }
+            string? parentClassId = member is ClassMember classMember
+                ? classMember.RowClassId(row.classId) : row.classId;
+            foreach (var child in EnumerateOwnedChildLinks(row, member))
+            {
+                if (child.member is not null && AdoptsPartitionChild(plan, ownership, child.valueId, child.member))
+                    CollectAdoptedPartitions(plan, ownership, child.valueId, child.member,
+                        ResolveCreatedValueMapKey(child.member, mapKey, parentClassId), visited, stamps);
+            }
+            if (member is ListMember list && IsUnorderedList(list)
+                && TryResolveCollectionEntryMember(list, row) is Member entry
+                && ChildOwnership(entry, ownership) != NeoValueOwnership.Asset)
+            {
+                var entries = new HashSet<string>(EnumerateContainerMemberValueIds(ownership, valueId));
+                entries.UnionWith(plan.ContainerCandidates(valueId));
+                foreach (string id in entries)
+                    if (AdoptsPartitionChild(plan, ownership, id, entry) && plan.Resolve(ownership, id)?.containerId == valueId)
+                        CollectAdoptedPartitions(plan, ownership, id, entry,
+                            ResolveCreatedValueMapKey(entry, mapKey, parentClassId), visited, stamps);
+            }
+        }
+
+        private bool AdoptsPartitionChild(NeoWritePlan plan, NeoValueOwnership ownership, string valueId, Member member)
+        {
+            NeoValueOwnership declared = ChildOwnership(member, ownership);
+            if (declared == NeoValueOwnership.Asset)
+                return false;
+            if (declared == ownership)
+                return true;
+            // Fresh clones are wholly Session-backed before adoption, including
+            // fields declared Save/User. Do not follow a lower-layer source row.
+            return ownership == NeoValueOwnership.Session
+                && plan.TryGetWritable(ownership, valueId, out _)
+                && !plan.TryGetWritable(declared, valueId, out _)
+                && !data.values.ContainsKey(valueId);
+        }
+
         internal string ImportValueReference(
             NeoValueOwnership targetOwnership,
             string sourceValueId,
@@ -6729,8 +6813,8 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Partition-stamp inheritance chokepoint for overlay writes (spec
         /// §6): a row written without a stamp inherits, in order, the stamp
-        /// of the row it shadows (authored, or the save row beneath a session
-        /// write), then its containment container's effective stamp (created
+        /// of its committed writable row, a lower save row, its authored row,
+        /// then its containment container's effective stamp (created
         /// member rows live in their container's partition). Rows that
         /// resolve no stamp are main-partition and stay unstamped.
         /// </summary>
@@ -6738,27 +6822,26 @@ namespace NeoCompose.Runtime
         {
             if (!string.IsNullOrEmpty(value.mapKey))
                 return;
-            data.values.TryGetValue(value.id, out MemberValue? authored);
-            MemberValue? saveRow = authored is null
-                && ownership == NeoValueOwnership.Session
+            // A committed writable row already has a partition, including main
+            // (null). Reparenting may have changed it from the authored stamp.
+            if (GetWritableStore(ownership).values.TryGetValue(value.id, out MemberValue? existing)
+                && !existing.IsRemoved)
+            {
+                value.mapKey = existing.mapKey;
+                return;
+            }
+            if (ownership == NeoValueOwnership.Session
                 && saveData.values.TryGetValue(value.id, out MemberValue? saved)
-                ? saved
-                : null;
-            StampMapKey(value, authored, saveRow);
-        }
+                && !saved.IsRemoved)
+            {
+                value.mapKey = saved.mapKey;
+                return;
+            }
+            data.values.TryGetValue(value.id, out MemberValue? authored);
 
-        /// <param name="authored">The authored row at <paramref name="value"/>'s id.</param>
-        /// <param name="saveRow">The save row beneath a session write, when no authored row exists.</param>
-        private void StampMapKey(MemberValue value, MemberValue? authored, MemberValue? saveRow)
-        {
             if (authored is not null)
             {
                 value.mapKey = authored.mapKey;
-                return;
-            }
-            if (!string.IsNullOrEmpty(saveRow?.mapKey))
-            {
-                value.mapKey = saveRow!.mapKey;
                 return;
             }
             if (string.IsNullOrEmpty(value.containerId))

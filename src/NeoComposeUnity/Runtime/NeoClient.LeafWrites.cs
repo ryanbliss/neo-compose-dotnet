@@ -187,11 +187,13 @@ namespace NeoCompose.Runtime
             if (node is null)
                 return false;
             MemberValue? authored = node.Asset(data);
-            MemberValue? previous = StoredRow(node, ownership) ?? authored;
+            MemberValue? previous = StoredRow(node, ownership)
+                ?? (ownership == NeoValueOwnership.Session ? node.save : null)
+                ?? authored;
             if (previous is null)
                 return false;
             if (string.IsNullOrEmpty(next.mapKey))
-                StampMapKey(next, authored, ownership == NeoValueOwnership.Session ? node.save : null);
+                next.mapKey = previous.mapKey;
             return !previous.IsRemoved && previous.GetType() == next.GetType()
                 && previous.classId == next.classId && previous.containerId == next.containerId
                 && previous.mapKey == next.mapKey && previous.sourceValueId == next.sourceValueId;

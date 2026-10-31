@@ -1163,6 +1163,7 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     ObjectMemberValue record = EnsureWritableObject(plan, nowIso);
+                    client.RestampAdoptedValue(plan, childOwnership, importedValueId, childMember, record, schemaClass.id);
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;
                     plan.Set(ownership, record);
@@ -1281,6 +1282,8 @@ namespace NeoCompose.Runtime
             }
 
             ObjectMemberValue keyedRecord = EnsureWritableObject(plan, nowIso);
+            if (setValue?.isValueReference == true)
+                client.RestampAdoptedValue(plan, childOwnership, newValueId, childMember, keyedRecord, schemaClass.id);
             keyedRecord.value![key] = newValueId;
             keyedRecord.updatedAt = nowIso;
             plan.Set(ownership, keyedRecord);

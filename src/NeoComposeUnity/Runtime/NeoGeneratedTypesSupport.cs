@@ -3545,7 +3545,6 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, string> parentByChildId = new();
             internal readonly List<PendingConstructorReference> pending = new();
             internal readonly HashSet<string> traversal = new();
-            internal readonly List<string> newlyImportedRoots = new();
             internal readonly List<(string valueId, Member member)> attachedRoots = new();
             internal readonly Stack<(string valueId, Member? member)> attachedWalk = new();
 
@@ -3568,7 +3567,6 @@ namespace NeoCompose.Runtime
                 scratch.parentByChildId.Clear();
                 scratch.pending.Clear();
                 scratch.traversal.Clear();
-                scratch.newlyImportedRoots.Clear();
                 scratch.attachedRoots.Clear();
                 scratch.attachedWalk.Clear();
                 free = scratch;
@@ -3698,8 +3696,11 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            List<string> newlyImportedRoots = scratch.newlyImportedRoots;
             List<(string valueId, Member member)> attachedRoots = scratch.attachedRoots;
+            NeoWritePlan? enclosingPlan = client.EnclosingWritePlan;
+            NeoWritePlan? adoptionPlan = pending.Count == 0 ? null : enclosingPlan ?? new NeoWritePlan(client);
+            var checkpoint = adoptionPlan?.Open();
+            NeoClient.CandidateReadScope? candidateRead = adoptionPlan is null ? null : client.ReadCandidate(adoptionPlan);
             try
             {
                 foreach (PendingConstructorReference reference in pending)
@@ -3744,15 +3745,6 @@ namespace NeoCompose.Runtime
                     parentByChildId[importedValueId] = reference.parentValueId;
                     attachedRoots.Add((importedValueId, reference.member));
                     reference.replaceValueId(importedValueId);
-                    if ((reference.sourceOwnership != NeoValueOwnership.Session
-                            || !existedInSession
-                            || importedValueId != reference.sourceValueId)
-                        && client.HasWritableValue(
-                            NeoValueOwnership.Session,
-                            importedValueId))
-                    {
-                        newlyImportedRoots.Add(importedValueId);
-                    }
                     bool retainsValidatedConstructionStamp =
                         isKnownParentlessConstructorRoot
                         && scope.ExistingEvaluationContext is { } stampContext
@@ -3768,13 +3760,13 @@ namespace NeoCompose.Runtime
                                 reference.expectedContainerId);
                     if (!retainsValidatedConstructionStamp)
                     {
-                        StampImportedConstructorGraph(
-                            client,
+                        client.RestampAdoptedGraph(
+                            adoptionPlan!, NeoValueOwnership.Session,
                             importedValueId,
                             reference.member,
                             reference.expectedMapKey,
                             new HashSet<string>(),
-                            expectedContainerId: reference.expectedContainerId);
+                            reference.expectedContainerId);
                     }
                 }
                 BindConstructedDelegateTargets(client, attachedRoots, stagedById, parentByChildId, scratch.attachedWalk);
@@ -3796,13 +3788,19 @@ namespace NeoCompose.Runtime
             }
             catch
             {
-                foreach (string importedValueId in newlyImportedRoots)
-                {
-                    client.RemoveTemporaryWritableValueGraph(
-                        NeoValueOwnership.Session,
-                        importedValueId);
-                }
+                if (checkpoint is { } before)
+                    adoptionPlan!.Rollback(before);
                 throw;
+            }
+            finally
+            {
+                candidateRead?.Dispose();
+            }
+            if (adoptionPlan is not null)
+            {
+                adoptionPlan.Close();
+                if (enclosingPlan is null)
+                    adoptionPlan.Commit();
             }
         }
 
@@ -4073,11 +4071,6 @@ namespace NeoCompose.Runtime
                         $"Constructed field '{path}' references missing aggregate value '{valueId}'.");
                 }
                 ValidateConstructedRowShape(client, member, source!, path, requireNonNull);
-                if (!MapKeyCanMoveTo(source.mapKey, expectedMapKey))
-                {
-                    throw new InvalidOperationException(
-                        $"Constructed Class field '{path}' cannot attach value '{valueId}' from partition '{source.mapKey ?? "main"}' to '{expectedMapKey ?? "main"}'.");
-                }
                 pending.Add(new PendingConstructorReference
                 {
                     sourceValueId = valueId,
@@ -4435,149 +4428,6 @@ namespace NeoCompose.Runtime
                 || currentMapKey == expectedMapKey;
         }
 
-        private static void StampImportedConstructorGraph(
-            NeoClient client,
-            string valueId,
-            Member member,
-            string? expectedMapKey,
-            HashSet<string> visited,
-            bool requireValue = true,
-            string? expectedContainerId = null)
-        {
-            if (!visited.Add(valueId))
-                return;
-            if (!client.TryGetValue(
-                    NeoValueOwnership.Session,
-                    valueId,
-                    out MemberValue? row))
-            {
-                // Stable-id authored aggregates may contain sparse child
-                // references whose value row resolves through the schema
-                // default rather than a stored row. Ordinary assignment/import
-                // preserves those ids; constructor attachment must do the same.
-                if (!requireValue)
-                    return;
-                throw new InvalidOperationException(
-                    $"Imported constructor value '{valueId}' is missing from Session storage.");
-            }
-            if (!MapKeyCanMoveTo(row!.mapKey, expectedMapKey))
-            {
-                throw new InvalidOperationException(
-                    $"Imported constructor value '{valueId}' has partition '{row.mapKey ?? "main"}', expected '{expectedMapKey ?? "main"}'.");
-            }
-            if (!string.IsNullOrEmpty(row.containerId)
-                && expectedContainerId is not null
-                && row.containerId != expectedContainerId)
-            {
-                throw new InvalidOperationException(
-                    $"Imported constructor value '{valueId}' already belongs to unordered list '{row.containerId}', expected '{expectedContainerId}'.");
-            }
-            if (row.mapKey != expectedMapKey
-                || (expectedContainerId is not null
-                    && row.containerId != expectedContainerId))
-            {
-                MemberValue writable = client.CloneRowForWrite(row);
-                writable.mapKey = expectedMapKey;
-                if (expectedContainerId is not null)
-                {
-                    writable.containerId = expectedContainerId;
-                }
-                client.SetWritableValue(NeoValueOwnership.Session, writable);
-                row = writable;
-            }
-
-            switch (member)
-            {
-                case ClassMember classMember
-                    when row is ObjectMemberValue classRow
-                    && classRow.value is not null:
-                    {
-                        string actualClassId = classMember.RowClassId(classRow.classId);
-                        var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
-                        IList<MergedSchemaEntry> schema = ResolveMergedSchema(
-                            client,
-                            actualClassId,
-                            classArguments);
-                        var env = ResolveRuntimeInstanceEnv(
-                            client,
-                            actualClassId,
-                            classArguments);
-                        foreach (MergedSchemaEntry entry in schema)
-                        {
-                            if (!classRow.value.TryGetValue(
-                                    entry.schemaKey,
-                                    out string? childId)
-                                || !client.TryGetMember(
-                                    entry.memberId,
-                                    out Member? childMember))
-                            {
-                                continue;
-                            }
-                            childMember = NeoGenericResolution.SubstituteMember(
-                                client,
-                                childMember,
-                                env);
-                            if (!IsStoredConstructorMember(childMember))
-                                continue;
-                            string? childMapKey = client.ResolveCreatedValueMapKey(
-                                childMember,
-                                row.mapKey,
-                                actualClassId);
-                            StampImportedConstructorGraph(
-                                client,
-                                childId,
-                                childMember,
-                                childMapKey,
-                                visited,
-                                requireValue: false);
-                        }
-                        break;
-                    }
-                case ListMember listMember
-                    when row is ArrayMemberValue listRow
-                    && listRow.value is not null
-                    && client.TryGetMember(
-                        listMember.entryMemberId,
-                        out Member? entryMember):
-                    foreach (string childId in listRow.value)
-                    {
-                        string? childMapKey = client.ResolveCreatedValueMapKey(
-                            entryMember,
-                            row.mapKey,
-                            row.classId);
-                        StampImportedConstructorGraph(
-                            client,
-                            childId,
-                            entryMember,
-                            childMapKey,
-                            visited,
-                            requireValue: false);
-                    }
-                    break;
-                case DictionaryMember dictionaryMember
-                    when row is ObjectMemberValue dictionaryRow
-                    && dictionaryRow.value is not null
-                    && client.TryGetMember(
-                        dictionaryMember.entryMemberId,
-                        out Member? entryMember):
-                    foreach (string childId in dictionaryRow.value.Values)
-                    {
-                        string? childMapKey = client.ResolveCreatedValueMapKey(
-                            entryMember,
-                            row.mapKey,
-                            row.classId);
-                        StampImportedConstructorGraph(
-                            client,
-                            childId,
-                            entryMember,
-                            childMapKey,
-                            visited,
-                            requireValue: false);
-                    }
-                    break;
-            }
-        }
 
         /// <summary>
         /// Materializes the shared NeoScript <c>classConstructor</c>
