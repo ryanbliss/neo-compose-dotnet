@@ -3191,7 +3191,7 @@ namespace NeoCompose.Tests
                     Loop(Mutation("set", CollectionMutationKind.Remove, item),
                         If(Compare(OperatorKind.EqualTo, Contains(), Boolean(true)), Return(Number(-3)))),
                     Return(Count())));
-            double Measure(int count)
+            (NeoClient client, System.Action run) Prepare(int count)
             {
                 var rows = new List<MemberValue>();
                 if (reference || bounded)
@@ -3229,7 +3229,7 @@ namespace NeoCompose.Tests
                     rows.Add(receiver);
                     rows.Add(new ArrayMemberValue { id = "bench-selection", value = Array.Empty<string>() });
                 }
-                using var client = BuildClient(members.ToArray(), receiverClass, additionalValues: rows.ToArray());
+                var client = BuildClient(members.ToArray(), receiverClass, additionalValues: rows.ToArray());
                 if (receiver is not null)
                 {
                     client.SetWritableValue(NeoValueOwnership.Save, receiver);
@@ -3238,21 +3238,44 @@ namespace NeoCompose.Tests
                 var node = new NeoMemberNSFunction(client, function, null, bounded ? NeoValueOwnership.Save : NeoValueOwnership.Asset);
                 object?[] args = { count };
                 void Run() => Assert.AreEqual(0, Convert.ToInt32(node.Invoke("receiver-value", args)));
-                Run();
-                Run();
-                var samples = new double[5];
-                for (int i = 0; i < samples.Length; i++)
-                {
-                    var watch = System.Diagnostics.Stopwatch.StartNew();
-                    Run();
-                    watch.Stop();
-                    samples[i] = watch.Elapsed.TotalMilliseconds;
-                }
-                Array.Sort(samples);
-                return samples[2];
+                return (client, Run);
             }
             const int n = 4000;
-            double small = Measure(n), large = Measure(n * 2);
+            var smallCase = Prepare(n);
+            using var smallClient = smallCase.client;
+            var largeCase = Prepare(n * 2);
+            using var largeClient = largeCase.client;
+            for (int i = 0; i < 2; i++)
+            {
+                smallCase.run();
+                largeCase.run();
+            }
+            double Measure(System.Action run)
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                run();
+                watch.Stop();
+                return watch.Elapsed.TotalMilliseconds;
+            }
+            var smallSamples = new double[5];
+            var largeSamples = new double[5];
+            // Alternate order so changes over time do not track input size.
+            for (int i = 0; i < smallSamples.Length; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    smallSamples[i] = Measure(smallCase.run);
+                    largeSamples[i] = Measure(largeCase.run);
+                }
+                else
+                {
+                    largeSamples[i] = Measure(largeCase.run);
+                    smallSamples[i] = Measure(smallCase.run);
+                }
+            }
+            Array.Sort(smallSamples);
+            Array.Sort(largeSamples);
+            double small = smallSamples[2], large = largeSamples[2];
             TestContext.WriteLine($"Set {mode}: n={n}, n_ms={small:F2}, 2n_ms={large:F2}, ratio={large / small:F2}");
             Assert.Less(large / small, 3.3);
         }
