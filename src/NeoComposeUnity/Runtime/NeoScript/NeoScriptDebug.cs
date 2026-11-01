@@ -82,8 +82,14 @@ namespace NeoCompose.Runtime.NeoScript
     {
         public static string FormatError(Exception error)
         {
-            string trace = error.Data["neoScriptFrames"] is IReadOnlyList<NeoScriptStackFrame> frames ? FormatFrames(frames) : "";
-            return trace.Length == 0 ? error.Message : error.Message + "\n" + trace;
+            return error is NSGetterRuntimeError
+                ? error.Message
+                : FormatMessage(error.Message, error.Data["neoScriptFrames"] as IReadOnlyList<NeoScriptStackFrame>);
+        }
+        internal static string FormatMessage(string message, IReadOnlyList<NeoScriptStackFrame>? frames)
+        {
+            string trace = frames is null ? "" : FormatFrames(frames);
+            return trace.Length == 0 ? message : message + "\n" + trace;
         }
         public static string FormatFrames(IReadOnlyList<NeoScriptStackFrame> frames)
         {

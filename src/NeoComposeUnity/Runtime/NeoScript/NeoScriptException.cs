@@ -48,7 +48,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal NeoScriptException ForNativeReentry() => new(this);
 
         private NeoScriptException(NeoScriptException original)
-            : base(original.Message, original.Payload.ClassId, original)
+            : base(original.DiagnosticMessage, original.Payload.ClassId, original)
         {
             Payload.Value = original.Payload.Value;
             context = original.context;
@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         internal NeoScriptException(NSGetterRuntimeError failure, NSGetterEvaluator.Context context)
-            : base(failure.Message, failure)
+            : base(failure.DiagnosticMessage, failure)
         {
             this.context = context;
         }
