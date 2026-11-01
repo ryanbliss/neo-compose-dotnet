@@ -642,6 +642,38 @@ namespace NeoCompose.Tests
                 client.GetUnorderedListEntryIds(ItemsListValueId).ToArray());
         }
 
+        [TestCase(false, false)]
+        [TestCase(true, false)]
+        [TestCase(false, true)]
+        public void CandidateMembership_SubtractsOnlyTheWrittenStore(bool authored, bool session)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            string id = authored ? "item-a" : "item-c";
+            ObjectMemberValue Entry(string? container) => new()
+            {
+                id = id,
+                classId = ItemClassId,
+                containerId = container,
+                value = new Dictionary<string, string>(),
+            };
+            client.SetWritableValue(NeoValueOwnership.Save, Entry(ItemsListValueId));
+            if (session)
+                client.SetWritableValue(NeoValueOwnership.Session, Entry(ItemsListValueId));
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Save, Entry(null));
+
+            // A pending detach must match the membership after installation.
+            // Other stores can still contribute the same id, including an
+            // authored join beneath a sparse Save overlay.
+            using (client.ReadCandidate(plan))
+                Assert.That(client.GetUnorderedListEntryIds(ItemsListValueId).Contains(id), Is.EqualTo(authored || session));
+            Assert.That(client.GetUnorderedListEntryIds(ItemsListValueId), Does.Contain(id), "Candidate reads must not mutate the committed index.");
+            plan.Commit();
+            Assert.That(client.GetUnorderedListEntryIds(ItemsListValueId).Contains(id), Is.EqualTo(authored || session));
+            Assert.That(client.TryGetWritableValue(NeoValueOwnership.Save, id, out MemberValue? retained), Is.True);
+            Assert.That(retained!.IsRemoved, Is.False, "The detached row is still alive.");
+        }
+
         [Test]
         public void MembershipChanges_NotifyTheirContainers()
         {
