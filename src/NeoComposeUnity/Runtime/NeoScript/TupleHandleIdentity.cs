@@ -57,7 +57,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         // A captured row-backed array can outlive its current membership snapshot.
-        private static object? TupleReferenceKey(object value, Context context) =>
+        internal static object? TupleReferenceKey(object value, Context context) =>
             value is object?[] array && context.CollectionRowReference(array) is { } row
                 ? row.valueId : ReferenceKeyOf(value, context);
 

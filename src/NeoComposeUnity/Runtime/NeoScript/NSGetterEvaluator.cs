@@ -6966,7 +6966,15 @@ namespace NeoCompose.Runtime.NeoScript
                 pending = EvalPendingCollection(cnf.info.collectionPointer, PendingRead.Membership, scope, ctx, out c);
             else
                 c = EvalPointer(cnf.info.collectionPointer, scope, ctx);
+            NeoWriteBatch? pendingBatch = pending is null ? null : ctx.client.PendingScriptWrites;
             object? target = CollectionSearchTarget(EvalPointer(cnf.info.valuePointer, scope, ctx), cnf.info);
+            // Evaluating the key may publish the receiver's pending writes.
+            // Refresh the captured receiver without evaluating its expression twice.
+            if (pending is not null && !ReferenceEquals(pendingBatch, ctx.client.PendingScriptWrites))
+            {
+                c = ResolveValueIfId(pending.Row.id, ctx, pending.Ownership, pending.CollectionMember);
+                pending = null;
+            }
             if (pending is { CollectionMember: SetMember })
             {
                 ctx.client.NotePendingRead(pending.Row.id);
