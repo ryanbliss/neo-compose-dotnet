@@ -6554,7 +6554,7 @@ namespace NeoCompose.Runtime
                 replacement.value = ((ArrayMemberValue)row).value;
                 replacement.updatedAt = row.updatedAt;
                 ctx.client.StageInPlaceReplacement(writePlan, store, replacement, member,
-                    beforeRemovals: removed => NeoScript.NSGetterEvaluator.RetainRemovedClassAliases(writePlan, ctx, store, removed));
+                    beforeRemovals: removed => NeoScript.NSGetterEvaluator.RetainRemovedOwnedAliases(writePlan, ctx, store, removed));
                 return replacement;
             }
 

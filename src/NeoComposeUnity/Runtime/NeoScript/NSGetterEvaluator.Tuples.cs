@@ -27,7 +27,7 @@ namespace NeoCompose.Runtime.NeoScript
                     descriptor = NeoGenericResolution.SubstituteMember(ctx.client, descriptor, env);
                 elements[i] = ResolveValueIfId(row.value[i], ctx, ownership, descriptor);
             }
-            return new RuntimeTuple(elements, type);
+            return new RuntimeTuple(elements, type, ctx);
         }
 
         private static TupleTypeInfo RuntimeTupleType(TupleTypeInfo type, Context ctx)
@@ -55,7 +55,7 @@ namespace NeoCompose.Runtime.NeoScript
             var elements = new object?[info.elementPointers.Length];
             for (int i = 0; i < elements.Length; i++)
                 elements[i] = CoerceNumericBinding(EvalPointer(info.elementPointers[i], scope, ctx), type.elements[i].typeInfo, "tuple element", ctx);
-            return new RuntimeTuple(elements, type);
+            return new RuntimeTuple(elements, type, ctx);
         }
 
         private static object? EvalTupleElement(FunctionTupleElementInfo info, NeoScriptScope scope, Context ctx, bool refreshCollection = true)
