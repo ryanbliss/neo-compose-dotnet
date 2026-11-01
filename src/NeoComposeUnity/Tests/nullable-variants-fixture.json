@@ -1,0 +1,24 @@
+{
+  "source": [
+    "class Piece : NeoObject { public int Rank = 0; }",
+    "class Row { public int Rank = 9; }",
+    "NeoVariant<Piece> Seven = new(initialize: () => new Piece { Rank = 7 });",
+    "@id(\"root-assets-class-id\") class Assets { public Catalog Catalog = new(); }\nclass Catalog { public List<Row> Rows = [new Row()]; public static DerivedItem PresentOwner = Present; public static DerivedItem EmptyOwner = Empty; public static Group PresentGroup = FromPresent; public static Group EmptyGroup = FromEmpty; }\nNeoLookupVariantFolder<Piece, Row> Rows = new(path: \"Rows\", collection: Catalog.Rows, collectionValue: Reference(root.Assets.Catalog.Rows));",
+    "@settings(folder: Rows) NeoLookupVariant<Piece, Row> ByRow = new(initialize: (row) => new Piece { Rank = row.Rank });",
+    "class Item { public virtual NeoVariant<Piece>? Placed = null; }",
+    "class DerivedItem : Item {}",
+    "class Spawn { public NeoVariant<Piece>? Variant; }",
+    "class Group { public List<Spawn> Spawns = []; }",
+    "class LookupSelection { public NeoLookupVariant<Piece, Row>? Variant; }",
+    "DerivedItem Present = new { Placed = Piece.Variants.Seven };\nDerivedItem Empty = new();\nGroup FromPresent = new {\n        Spawns = [new Spawn {\n            Variant = Present.Placed,\n        }],\n    };\nGroup FromEmpty = new {\n        Spawns = [new Spawn {\n            Variant = Empty.Placed,\n        }],\n    };",
+    "class Probe {\n    @storage(allowed: .Session) private static int Receivers = 0;\n    @storage(allowed: .Session) private static int Arguments = 0;\n    private static Spawn Selection(bool present) { Receivers++; return new() { Variant = present ? Piece.Variants.Seven : null }; }\n    private static LookupSelection Lookup(bool present) { Receivers++; return new() { Variant = present ? Piece.Variants.Rows.ByRow : null }; }\n    private static Row Argument() { Arguments++; return root.Assets.Catalog.Rows[0]; }\n    public static int StoredPresent() => Catalog.PresentGroup.Spawns[0].Variant!.Initialize().Rank;\n    public static bool StoredNull() => Catalog.EmptyGroup.Spawns[0].Variant == null;\n    public static bool ConditionalNull() { Receivers = 0; Piece? value = Selection(false).Variant?.Initialize(); return value == null && Receivers == 1; }\n    public static bool ConditionalPresent() { Receivers = 0; int value = Selection(true).Variant?.Initialize().Rank ?? -1; return value == 7 && Receivers == 1; }\n    public static bool LookupNullSkipsArgument() { Receivers = 0; Arguments = 0; var value = Lookup(false).Variant?.Initialize(Argument()); return value == null && Receivers == 1 && Arguments == 0; }\n    public static bool LookupPresentOnce() { Receivers = 0; Arguments = 0; var value = Lookup(true).Variant?.Initialize(Argument()); return value?.Rank == 9 && Receivers == 1 && Arguments == 1; }\n}"
+  ],
+  "returns": {
+    "StoredPresent": 7,
+    "StoredNull": true,
+    "ConditionalNull": true,
+    "ConditionalPresent": true,
+    "LookupNullSkipsArgument": true,
+    "LookupPresentOnce": true
+  }
+}

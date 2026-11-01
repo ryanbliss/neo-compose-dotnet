@@ -20,6 +20,10 @@ namespace NeoCompose.Runtime
         public NeoMemberString(NeoClient client, StringMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        /// <summary>
+        /// The localized template, or literal value, without formatting.
+        /// Supply arguments with <see cref="NeoLocalization.FormatResolvedText"/>.
+        /// </summary>
         public string? Text => ResolveText(value);
 
         public string? TextId
@@ -44,7 +48,9 @@ namespace NeoCompose.Runtime
                 return row.value;
             if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal)
                 return row.value;
-            return client.Localization.ResolveMemberText(row.value);
+            // A member read returns the localized template. Its consumer supplies
+            // formatting arguments, including templates with escaped braces.
+            return client.Localization.ResolveTextTemplate(row.value);
         }
     }
 

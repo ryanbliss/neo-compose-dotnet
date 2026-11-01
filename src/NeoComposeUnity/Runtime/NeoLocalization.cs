@@ -165,13 +165,6 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        internal string ResolveMemberText(string textId)
-        {
-            return TryResolveTextTemplate(textId, out var template)
-                ? FormatText(textId, CurrentLocale, template, null, throwOnError: true)
-                : textId;
-        }
-
         public string ResolveTextTemplate(string? textId)
         {
             return TryResolveTextTemplate(textId, out var value)
@@ -311,8 +304,7 @@ namespace NeoCompose.Runtime
             string textId,
             string locale,
             string template,
-            IReadOnlyDictionary<string, object?>? arguments,
-            bool throwOnError = false)
+            IReadOnlyDictionary<string, object?>? arguments)
         {
             try
             {
@@ -321,8 +313,6 @@ namespace NeoCompose.Runtime
             catch (System.Exception ex)
             {
                 string message = $"Neo Compose localized text id '{textId}' for locale '{locale}' could not be formatted: {ex.Message}";
-                if (throwOnError)
-                    throw new System.FormatException(message, ex);
                 Debug.LogWarning(message);
                 return template;
             }
