@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.4] - 2026-11-01
+
+- Preserve variant overrides for independently loaded children when restoring construction snapshots. Fixes saved dig spots keeping their old sprite on the first variant swap after startup.
+
 ## [0.81.3] - 2026-11-01
 
 - Allow variants and animation keyframes to clear nullable class members, including Collider. Preserve required-member and write restrictions, and restore class values correctly during reverse animation playback.

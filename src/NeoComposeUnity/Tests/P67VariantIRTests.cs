@@ -577,6 +577,49 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
+        /// A loaded child with its own construction recipe must receive the new
+        /// variant's overrides even when its parent restores a construction snapshot.
+        /// </summary>
+        [Test]
+        public void LoadedVariantUpdatesStoredNestedOverrideOnFirstSwap()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddOverriddenBoxGroup(data);
+            AddHeldWidget(data);
+            ((ClassMember)data.members["widget-group"]).Storage = NeoMemberStorage.Inherit;
+            ((IntMember)data.members["box-count"]).Storage = NeoMemberStorage.Inherit;
+            ((ObjectMemberValue)data.values["value-up-overrides"]).value!["Group"] = "value-up-override-group";
+            data.values["value-up-override-group"] = ObjectValue("value-up-override-group", BoxClassId, ("Count", "value-up-group-count"));
+            data.values["value-up-group-count"] = new NumberMemberValue
+            {
+                id = "value-up-group-count",
+                value = 3,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            ObjectMemberValue saved = ObjectValue("saved-held", WidgetClassId, ("Group", "saved-group"));
+            saved.instanceVariantId = "variant-plain";
+            JObject content = JObject.Parse(SaveContentHolding(data, saved));
+            var groupRow = ObjectValue("saved-group", BoxClassId, ("Count", "saved-count"));
+            // An empty argument map records an independent implicit constructor.
+            groupRow.instanceConstructorId = null;
+            groupRow.constructorArgs = new Dictionary<string, JToken?>();
+            content["values"]!["saved-group"] = JObject.FromObject(groupRow);
+            content["values"]!["saved-count"] = JObject.FromObject(new NumberMemberValue
+            {
+                id = "saved-count",
+                value = 7,
+                createdAt = "x",
+                updatedAt = "x",
+            });
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content.ToString());
+            var node = client.save.Get<NeoMemberClassWritable>("Held");
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], node, node.ownership);
+            Assert.AreEqual(3, node.Get<NeoMemberClass>("Group").Get<NeoMemberInt>("Count").value!.value);
+        }
+
+        /// <summary>
         /// A swap is in place: a nested class the new variant keeps keeps the
         /// views its holders built, and they read the new variant.
         /// </summary>
