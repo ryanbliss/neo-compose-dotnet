@@ -614,6 +614,47 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoMemberString_FormatsEscapedBracesButKeepsLiteralOverrides()
+        {
+            using var client = LoadLocalizedStringClient(localized: true);
+            client.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", "Use {{wisely}}")));
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
+
+            Assert.AreEqual("Use {wisely}", node.Text);
+            Assert.AreEqual("text-title", node.TextId);
+            node.SetLiteralOverride("Use {{literally}}");
+            Assert.AreEqual("Use {{literally}}", node.Text);
+            Assert.IsNull(node.TextId);
+        }
+
+        [TestCase("Hello {name}", "name")]
+        [TestCase("{count:plural:1 seed|{} seeds}", "count")]
+        public void NeoMemberString_MissingArgumentsNameTheTextAndArgument(string template, string argument)
+        {
+            using var client = LoadLocalizedStringClient(localized: true);
+            client.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", template)));
+            var node = new NeoMemberString(client, RequireMember<StringMember>(client, "member-title"), null);
+
+            var error = Assert.Throws<System.FormatException>(() => _ = node.Text);
+            StringAssert.Contains("text-title", error!.Message);
+            StringAssert.Contains(argument, error.Message);
+            StringAssert.Contains("en-US", error.Message);
+            Assert.IsNotNull(error.InnerException);
+        }
+
+        [Test]
+        public void NeoMemberString_ArgumentsResolveThroughTextId()
+        {
+            using var client = LoadLocalizedStringClient(localized: true);
+            client.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", "Hello {name}")));
+            var node = new NeoMemberString(client, RequireMember<StringMember>(client, "member-title"), null);
+
+            Assert.AreEqual("Hello Ryan", client.Localization.ResolveText(node.TextId,
+                new Dictionary<string, object?> { ["name"] = "Ryan" }));
+        }
+
+        [Test]
         public void NeoMemberString_EmptyPrimaryTextHasNoLocalizationIdentity()
         {
             var client = LoadLocalizedStringClient(localized: true, storedValue: "");
