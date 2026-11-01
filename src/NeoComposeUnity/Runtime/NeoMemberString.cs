@@ -44,11 +44,7 @@ namespace NeoCompose.Runtime
                 return row.value;
             if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal)
                 return row.value;
-            // No format arguments at a member read: the localized template is
-            // the value. Formatting is the consumer's job (NeoDialogue passes
-            // its arguments explicitly), and formatting a template that
-            // expects arguments only warned and returned it anyway.
-            return client.Localization.ResolveTextTemplate(row.value);
+            return client.Localization.ResolveMemberText(row.value);
         }
     }
 
