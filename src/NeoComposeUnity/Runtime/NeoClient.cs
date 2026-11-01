@@ -6918,9 +6918,9 @@ namespace NeoCompose.Runtime
             CollectLiveMembers(virtualEntriesByContainer, containerValueId, seen, members);
             if (AttachedUserClient is { } userClient)
                 CollectLiveMembers(userClient.virtualEntriesByContainer, containerValueId, seen, members);
-            CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
-            CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
-            CollectLiveMembers(userSource.userEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members, NeoValueOwnership.Save);
+            CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members, NeoValueOwnership.Session);
+            CollectLiveMembers(userSource.userEntriesByContainer, containerValueId, seen, members, NeoValueOwnership.User);
             if (candidateReplay is not null)
             {
                 CollectLiveMembers(candidateReplay.ContainerMembers, containerValueId, seen, members);
@@ -6946,12 +6946,19 @@ namespace NeoCompose.Runtime
             Dictionary<string, HashSet<string>> byContainer,
             string containerValueId,
             HashSet<string> seen,
-            List<string> members)
+            List<string> members,
+            NeoValueOwnership? indexOwnership = null)
         {
             if (!byContainer.TryGetValue(containerValueId, out var candidates))
                 return;
             foreach (var memberId in candidates)
             {
+                // Read the store index as it will stand after commit. A live
+                // row can leave a collection without being deleted.
+                if (indexOwnership is { } ownership
+                    && candidateReadPlan?.Rows.TryGetValue((ownership, memberId), out var staged) == true
+                    && staged?.containerId != containerValueId)
+                    continue;
                 if (!seen.Add(memberId))
                     continue;
                 var effective = ResolveValueRow(memberId);
