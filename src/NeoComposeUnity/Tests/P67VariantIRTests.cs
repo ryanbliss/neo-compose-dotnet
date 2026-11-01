@@ -182,6 +182,35 @@ namespace NeoCompose.Tests
         // §4.2 — ToVariant through the IR.
         // -------------------------------------------------------------------
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NullableClassOverrideClearsOnInitializeApplyAndReplay(bool objectNullRow)
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddClonedBoxField(data);
+            data.members["widget-data"].Requirement = NeoMemberRequirementKind.Optional;
+            ((ObjectMemberValue)data.values["value-up-overrides"]).value!["Data"] = "null-data";
+            data.values["null-data"] = objectNullRow
+                ? new ObjectMemberValue { id = "null-data", value = null }
+                : new NullMemberValue { id = "null-data" };
+            AddHeldWidget(data);
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var initialized = NeoVariantSupport.InitializeNode(client, WidgetClassId, client.variants["variant-up"]);
+                Assert.That(initialized.Get<NeoMemberClass>("Data").value?.value, Is.Null);
+                var target = NeoVariantSupport.InitializeNode(client, WidgetClassId, record: null);
+                Assert.That(target.Get<NeoMemberClass>("Data").value?.value, Is.Not.Null);
+                NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], target, target.ownership);
+                Assert.That(target.Get<NeoMemberClass>("Data").value?.value, Is.Null);
+                NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], target, target.ownership);
+                Assert.That(target.Get<NeoMemberClass>("Data").value?.value, Is.Null);
+            }
+            ObjectMemberValue saved = ObjectValue("saved-held", WidgetClassId);
+            saved.instanceVariantId = "variant-up";
+            using NeoClient reloaded = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: SaveContentHolding(data, saved));
+            Assert.That(reloaded.save.Get<NeoMemberClass>("Held").Get<NeoMemberClass>("Data").value?.value, Is.Null);
+        }
+
         [Test]
         public void VariantApply_RunsInPlaceAndReturnsTheReceiver()
         {

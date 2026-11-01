@@ -23,6 +23,7 @@ namespace NeoCompose.Runtime
         private readonly string playbackKey;
         private readonly string playbackCycleLabel;
         private bool disposed;
+        private List<IDisposable> rootSnapshots;
 
         internal NeoAnimationDefinition(
             NeoClient client,
@@ -35,9 +36,11 @@ namespace NeoCompose.Runtime
             IDisposable[] disposables,
             HashSet<string> activePlaybackStack,
             string playbackKey,
-            string playbackCycleLabel)
+            string playbackCycleLabel,
+            List<IDisposable>? rootSnapshots = null)
         {
             this.client = client;
+            this.rootSnapshots = rootSnapshots ?? new();
             FPS = fps;
             Duration = duration;
             this.sparseWrites = sparseWrites;
@@ -76,6 +79,9 @@ namespace NeoCompose.Runtime
             disposed = true;
             foreach (IDisposable disposable in disposables)
                 disposable.Dispose();
+            foreach (IDisposable snapshot in rootSnapshots)
+                snapshot.Dispose();
+            rootSnapshots.Clear();
         }
 
         internal void PreparePlayback()
@@ -83,9 +89,24 @@ namespace NeoCompose.Runtime
             // Root fallback is captured when playback starts, not when the
             // generated clip handle is first requested. A pass then reuses
             // that stable snapshot for wraps and reverse traversal.
-            resolvedWrites = NeoAnimationCompiler.ResolveFrames(Duration, sparseWrites);
-            foreach (Action prepare in prepareActions)
-                prepare();
+            var snapshots = new List<IDisposable>();
+            IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> resolved;
+            try
+            {
+                resolved = NeoAnimationCompiler.ResolveFrames(Duration, sparseWrites, snapshots);
+                foreach (Action prepare in prepareActions)
+                    prepare();
+            }
+            catch
+            {
+                foreach (IDisposable snapshot in snapshots)
+                    snapshot.Dispose();
+                throw;
+            }
+            foreach (IDisposable snapshot in rootSnapshots)
+                snapshot.Dispose();
+            rootSnapshots = snapshots;
+            resolvedWrites = resolved;
         }
 
         internal void ApplyFrame(int frameIndex, bool useResolvedState)
@@ -517,6 +538,8 @@ namespace NeoCompose.Runtime
         private readonly string writableKey;
         private string? pathKeyCache;
         private string? skipKeyCache;
+        private ClassRootSnapshot? classRootSnapshot;
+        private MemberValue? restoredClassRow;
 
         internal NeoAnimationCompiledWrite(
             NeoClient client,
@@ -620,9 +643,19 @@ namespace NeoCompose.Runtime
         /// <see cref="ResolveFieldRoot"/> instead, so the snapshot cannot
         /// re-assert (and thereby freeze) fields the clip never touches.
         /// </summary>
-        internal NeoAnimationCompiledWrite ResolveRoot()
+        internal NeoAnimationCompiledWrite ResolveRoot(List<IDisposable> snapshots)
         {
             NeoMember leaf = ResolveLeafNode();
+            if (leaf is NeoMemberClass classLeaf && classLeaf.value?.value is not null)
+            {
+                var snapshot = new ClassRootSnapshot(client, classLeaf);
+                snapshots.Add(snapshot);
+                return new NeoAnimationCompiledWrite(client, target, path,
+                    NeoValueWritePayload.FromValue(null), clipKey, frameIndex)
+                {
+                    classRootSnapshot = snapshot
+                };
+            }
             return new NeoAnimationCompiledWrite(
                 client,
                 target,
@@ -732,13 +765,47 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // Own a stable copy for reverse/wrapped playback. Assignment always takes
+        // another copy, so clearing the target cannot consume this snapshot.
+        private sealed class ClassRootSnapshot : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly ClassMember member;
+            private string? valueId;
+
+            internal ClassRootSnapshot(NeoClient client, NeoMemberClass source)
+            {
+                this.client = client;
+                member = source.member;
+                valueId = client.CloneValueReference(source.value!.id, source.ownership, member);
+            }
+
+            internal NeoValueWritePayload Copy(NeoValueOwnership ownership) =>
+                NeoValueWritePayload.FromValueReference(client.CloneOwnedValueReferenceForNewParent(
+                    ownership, NeoValueOwnership.Session, valueId!, member));
+
+            public void Dispose()
+            {
+                if (valueId is null)
+                    return;
+                client.RemoveTemporaryWritableValueGraph(NeoValueOwnership.Session, valueId, member);
+                valueId = null;
+            }
+        }
+
         internal void Apply()
         {
             if (writableParent.value is null)
                 return;
             if (fields is null)
             {
-                NeoAnimationCompiler.WriteMember(client, writableParent, writableKey, payload);
+                if (classRootSnapshot is not null && restoredClassRow is not null
+                    && ReferenceEquals(ResolveLeafNode().value, restoredClassRow))
+                    return;
+                NeoAnimationCompiler.WriteMember(client, writableParent, writableKey,
+                    classRootSnapshot?.Copy(ResolveLeafNode().ownership) ?? payload);
+                if (classRootSnapshot is not null)
+                    restoredClassRow = ResolveLeafNode().value;
                 client.RecordDeclarativeAnswer(this);
                 return;
             }
@@ -1943,6 +2010,11 @@ namespace NeoCompose.Runtime
                     declared = declaredAbove;
                 if (child is NeoMemberClass childClass)
                 {
+                    if (IsNullClassOverride(client, child, pair.Value, where))
+                    {
+                        EnsureEligibleExportLeaf(child, declared, where);
+                        continue;
+                    }
                     if (childClass.value is null)
                     {
                         throw new InvalidOperationException(
@@ -2440,9 +2512,20 @@ namespace NeoCompose.Runtime
                 var sparse = new Dictionary<int, NeoAnimationCompiledWrite[]>();
                 foreach (var pair in sparseByIndex)
                     sparse[pair.Key] = pair.Value.ToArray();
-                Dictionary<int, NeoAnimationCompiledWrite[]> resolved = ResolveFrames(
-                    duration,
-                    sparse);
+                var snapshots = new List<IDisposable>();
+                Dictionary<int, NeoAnimationCompiledWrite[]> resolved;
+                try
+                {
+                    resolved = ResolveFrames(duration, sparse, snapshots);
+                }
+                catch
+                {
+                    foreach (IDisposable snapshot in snapshots)
+                        snapshot.Dispose();
+                    foreach (IDisposable disposable in disposables)
+                        disposable.Dispose();
+                    throw;
+                }
                 return new NeoAnimationDefinition(
                     target.Client,
                     fps,
@@ -2454,7 +2537,8 @@ namespace NeoCompose.Runtime
                     disposables.ToArray(),
                     activePlaybackStack,
                     compileKey,
-                    $"clip '{schemaKey}' on value '{target.valueId ?? target.classId}'");
+                    $"clip '{schemaKey}' on value '{target.valueId ?? target.classId}'",
+                    snapshots);
             }
             finally
             {
@@ -2494,6 +2578,14 @@ namespace NeoCompose.Runtime
                     client.ChildOwnership(child.member, inheritedOwnership);
                 if (child is NeoMemberClass childClass)
                 {
+                    if (IsNullClassOverride(client, child, pair.Value, where))
+                    {
+                        EnsureEligibleCompiledLeaf(child, ownership, where);
+                        EnsurePlacementPathIsIsolated(client, target, path, clipKey, frameIndex);
+                        writes.Add(new NeoAnimationCompiledWrite(client, target, path,
+                            NeoValueWritePayload.FromValue(null), clipKey, frameIndex));
+                        continue;
+                    }
                     if (childClass.value is null)
                     {
                         throw new InvalidOperationException(
@@ -2601,6 +2693,15 @@ namespace NeoCompose.Runtime
                     clipKey,
                     frameIndex));
             }
+        }
+
+        private static bool IsNullClassOverride(NeoClient client, NeoMember child, string valueId, string where)
+        {
+            if (client.ResolveValueRow(valueId) is not NullMemberValue and not ObjectMemberValue { value: null })
+                return false;
+            if (child.member.Requirement == NeoMemberRequirementKind.Required)
+                throw new InvalidOperationException($"{where} cannot clear a required Class member.");
+            return true;
         }
 
         private static void EnsureEligibleCompiledLeaf(
@@ -3622,7 +3723,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static Dictionary<int, NeoAnimationCompiledWrite[]> ResolveFrames(
             int duration,
-            IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparse)
+            IReadOnlyDictionary<int, NeoAnimationCompiledWrite[]> sparse,
+            List<IDisposable> snapshots)
         {
             var leafOrder = new List<string>();
             var anchorByPath = new Dictionary<string, NeoAnimationCompiledWrite>(
@@ -3670,7 +3772,7 @@ namespace NeoCompose.Runtime
                 if (wholeLeafPaths.Contains(pathKey)
                     || !fieldKeysByPath.TryGetValue(pathKey, out List<string>? unionKeys))
                 {
-                    baseByPath[pathKey] = anchor.ResolveRoot();
+                    baseByPath[pathKey] = anchor.ResolveRoot(snapshots);
                     fieldByPath[pathKey] = null;
                     continue;
                 }
@@ -3736,6 +3838,7 @@ namespace NeoCompose.Runtime
                 // P42 §1.3 makes a structured leaf a path segment too, so the
                 // old wording ("Animation Class values are path segments") is no
                 // longer the whole rule. Both path-segment shapes say so here.
+                ObjectMemberValue { value: null } => null,
                 ObjectMemberValue => throw new InvalidOperationException(
                     "Animation Class value rows are path segments, not leaf payloads: descend into the Class's keys."),
                 PartialLeafMemberValue => throw new InvalidOperationException(
