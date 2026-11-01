@@ -229,7 +229,10 @@ namespace NeoCompose.Runtime
                 else if (element is TupleMember nested && value is RuntimeTuple nestedValue)
                     key = RuntimeTupleFragment(nested, nestedValue, context, collectionRow);
                 else if (IsHandle(element))
-                    key = new JValue(NSGetterEvaluator.ReferenceKeyOf(value, context) as string ?? "<unattached>");
+                    // A captured tuple can probe before its local collection's
+                    // attachment is published. Use that validated staged row id.
+                    key = new JValue(context.client.PendingScriptWrites?.CurrentCollectionAttachment(value, context)?.Row?.id
+                        ?? NSGetterEvaluator.TupleReferenceKey(value, context) as string ?? "<unattached>");
                 else if (element is LookupMember or DialogueLookupMember)
                 {
                     string? id = value is NSSlotReference slot ? slot.TargetId : NSGetterEvaluator.ReferenceKeyOf(value, context) as string;
