@@ -32,6 +32,82 @@ namespace NeoCompose.Tests
         // AS IT STANDS, so runtime rebinding is never frozen.
         // ------------------------------------------------------------------
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NullableClassKeyframeClearsAndReverseRestoresItsOriginalValue(bool objectNullRow)
+        {
+            ProjectData data = NullableClassFrames(objectNullRow);
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var target = OpenPlacement(client, "PlacementA");
+            using NeoAnimationDefinition clip = NeoAnimationCompiler.Compile(target, "Idle");
+            clip.PreparePlayback();
+            clip.ApplyFrame(1, useResolvedState: true);
+            Assert.That(WritablePlacement(client, "PlacementA").Get<NeoMemberClass>("Box").value?.value, Is.Null);
+            clip.ApplyFrame(0, useResolvedState: true);
+            Assert.That(WritablePlacement(client, "PlacementA").Get<NeoMemberClass>("Box").Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(7));
+            var restored = WritablePlacement(client, "PlacementA").Get<NeoMemberClass>("Box").value;
+            clip.ApplyFrame(0, useResolvedState: true);
+            Assert.That(WritablePlacement(client, "PlacementA").Get<NeoMemberClass>("Box").value, Is.SameAs(restored), "Holding a restored class does not copy it again.");
+            clip.ApplyFrame(1, useResolvedState: true);
+            clip.ApplyFrame(0, useResolvedState: true);
+            Assert.That(WritablePlacement(client, "PlacementA").Get<NeoMemberClass>("Box").Get<NeoMemberInt>("Count").value!.value, Is.EqualTo(7));
+        }
+
+        [TestCase(NeoMemberRequirementKind.Required, NeoMemberStorage.Session, NeoMemberMutabilityKind.Mutable)]
+        [TestCase(NeoMemberRequirementKind.Optional, NeoMemberStorage.Immutable, NeoMemberMutabilityKind.Mutable)]
+        [TestCase(NeoMemberRequirementKind.Optional, NeoMemberStorage.Session, NeoMemberMutabilityKind.ReadOnly)]
+        public void NullClassKeyframeRetainsMemberWriteRestrictions(NeoMemberRequirementKind requirement, NeoMemberStorage storage, NeoMemberMutabilityKind mutability)
+        {
+            ProjectData data = NullableClassFrames(false);
+            Member member = data.members["box-member"];
+            member.Requirement = requirement;
+            member.Storage = storage;
+            member.Mutability = mutability;
+            Assert.Throws<System.InvalidOperationException>(() => NeoTestSaveStack.ClientFromSchema(data));
+        }
+
+        [Test]
+        public void NullableClassKeyframeSnapshotsAreReclaimedOnPrepareAndDispose()
+        {
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(NullableClassFrames(false));
+            using var target = OpenPlacement(client, "PlacementA");
+            int CountSnapshots() => client.sessionValues.Values.OfType<ObjectMemberValue>().Count(row => row.classId == "box-class");
+            int before = CountSnapshots();
+            var clip = NeoAnimationCompiler.Compile(target, "Idle");
+            Assert.That(CountSnapshots(), Is.EqualTo(before + 1));
+            for (int i = 0; i < 3; i++)
+            {
+                clip.PreparePlayback();
+                Assert.That(CountSnapshots(), Is.EqualTo(before + 1));
+            }
+            clip.Dispose();
+            Assert.That(CountSnapshots(), Is.EqualTo(before));
+        }
+
+        private static ProjectData NullableClassFrames(bool objectNullRow)
+        {
+            ProjectData data = BuildProjectData(new[] { Frame(1, ("Box", objectNullRow
+                ? new ObjectMemberValue { value = null } : new NullMemberValue())) });
+            data.classes["box-class"] = new NeoSchemaClass
+            {
+                id = "box-class",
+                name = "Box",
+                schema = new Dictionary<string, string> { ["Count"] = "count-member" },
+            };
+            var member = ClassMemberDefinition("box-member", "Box", "box-class", null);
+            member.Requirement = NeoMemberRequirementKind.Optional;
+            member.Storage = NeoMemberStorage.Session;
+            data.members[member.id] = member;
+            data.classes["target-class"].schema!["Box"] = member.id;
+            foreach (string suffix in new[] { "a", "b" })
+            {
+                ((ObjectMemberValue)data.values[$"placement-{suffix}-value"]).value!["Box"] = $"{suffix}-box";
+                data.values[$"{suffix}-box"] = ObjectValue($"{suffix}-box", "box-class", new Dictionary<string, string> { ["Count"] = $"{suffix}-box-count" });
+                data.values[$"{suffix}-box-count"] = Number($"{suffix}-box-count", 7);
+            }
+            return data;
+        }
+
         [Test]
         public void FieldWrite_ComposesAgainstARuntimeReboundSpriteFile()
         {

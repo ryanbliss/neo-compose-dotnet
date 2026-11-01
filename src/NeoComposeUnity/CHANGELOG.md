@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.3] - 2026-11-01
+
+- Allow variants and animation keyframes to clear nullable class members, including Collider. Preserve required-member and write restrictions, and restore class values correctly during reverse animation playback.
+
 ## [0.81.2] - 2026-11-01
 
 - Include captured NeoScript class/member names, source files, line/column positions, and callers in evaluator exception messages. Preserve the original authored error message for NeoScript catch handling and avoid duplicate diagnostic frames.
