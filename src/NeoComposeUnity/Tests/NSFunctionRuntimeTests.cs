@@ -266,6 +266,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void EvaluatorMessageLocatesNestedListFailureWithoutChangingAuthoredError()
+        {
+            var read = new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf { pointer = List(), key = Number(0) },
+                source = new NeoScriptSourcePosition { line = 24, column = 17 },
+            };
+            var innerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(read));
+            innerBody.source = new NeoScriptSourceInfo { name = "PlacedObject.Despawn", uri = "Classes/PlacedObject.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
+            var inner = ScriptFunction("trace-remove", "Despawn", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), innerBody);
+            var call = Call(inner.id, "trace-remove-call");
+            call.source = new NeoScriptSourcePosition { line = 11, column = 5 };
+            var outerBody = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(call));
+            outerBody.source = new NeoScriptSourceInfo { name = "Destructible.Break", uri = "Classes/Destructible.neo", coordinateSpace = NeoScriptCoordinateSpace.File };
+            var outer = ScriptFunction("trace-break", "Break", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), outerBody);
+            using var client = BuildClient(new JsonMember[] { inner, outer }, ReceiverClass(("Despawn", inner.id), ("Break", outer.id)));
+            var node = new NeoMemberNSFunction(client, outer, null);
+            var error = Assert.Catch<NSGetterRuntimeError>(() => node.Invoke("receiver-value", Array.Empty<object?>()))!;
+            const string raw = "List index out of bounds: 0";
+            Assert.AreEqual(raw + "\n  NeoScript PlacedObject.Despawn (Classes/PlacedObject.neo:24:17)\n  NeoScript Destructible.Break (Classes/Destructible.neo:11:5)", error.Message);
+            Assert.AreEqual(raw, error.Payload.Message);
+            Assert.AreEqual(error.Message, NeoScriptDebug.FormatError(error));
+            StringAssert.Contains(error.Message, error.ToString());
+            var reentry = ((NeoScriptException)error).ForNativeReentry();
+            Assert.AreEqual(error.Message, reentry.Message);
+            Assert.AreEqual(raw, reentry.Payload.Message);
+        }
+
+        [Test]
         public void DebugTraceSurvivesNestedDeferredCallsAndOverlappingInvocations()
         {
             var native = NativeFunction("trace-fetch", "Fetch", true);
@@ -316,7 +346,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(9, error.NeoScriptFrames[0].Column);
             Assert.AreEqual("Trace.Outer", error.NeoScriptFrames[1].Name);
             StringAssert.Contains("NeoScript Trace.Inner", NeoScriptDebug.FormatError(error));
-            StringAssert.DoesNotContain("NeoScript Trace.Inner", error.Message);
+            StringAssert.Contains("NeoScript Trace.Inner", error.Message);
+            Assert.AreEqual(error.Message, NeoScriptDebug.FormatError(error));
             StringAssert.Contains("Trace.neo:12:9", error.ToString());
 
         }

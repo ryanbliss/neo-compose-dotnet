@@ -71,6 +71,31 @@ namespace NeoCompose.Tests
             return JToken.DeepEquals(left, right);
         }
         [Test]
+        public void RuntimeMessageUsesCapturedFramesOnceAndPreservesSourceFreeErrors()
+        {
+            var error = new NSGetterRuntimeError("bad index");
+            Assert.AreEqual("bad index", error.Message);
+            var trace = new NeoScriptTraceState();
+            trace.Push(new FunctionWithReturnType
+            {
+                source = new NeoScriptSourceInfo { name = "Container.Remove" },
+                instructions = Array.Empty<Instruction>(),
+            });
+            trace.Attach(error);
+            trace.Pop();
+            const string expected = "bad index\n  NeoScript Container.Remove (body)";
+            Assert.AreEqual(expected, error.Message);
+            Assert.AreEqual(expected, NeoScriptDebug.FormatError(error));
+            Assert.AreEqual(1, error.ToString().Split(new[] { "NeoScript Container.Remove" }, StringSplitOptions.None).Length - 1);
+            var sourceFree = new NSGetterRuntimeError("no source");
+            new NeoScriptTraceState().Attach(sourceFree);
+            Assert.AreEqual("no source", sourceFree.Message);
+            var foreign = new InvalidOperationException("host failure");
+            foreign.Data["neoScriptFrames"] = error.NeoScriptFrames;
+            Assert.AreEqual("host failure\n  NeoScript Container.Remove (body)", NeoScriptDebug.FormatError(foreign));
+        }
+
+        [Test]
         public void SinkFailuresAndDisabledOutputDoNotChangeExecution()
         {
             JObject test = (JObject)Cases()[0];

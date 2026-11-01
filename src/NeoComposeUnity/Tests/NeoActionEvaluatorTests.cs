@@ -128,6 +128,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void InvokeAction_KeepsListenerSourceFramesOutOfAuthoredErrorText()
+        {
+            using NeoClient client = BuildClient();
+            var body = ((NSFunctionMember)client.members[BoomMemberId]).action!;
+            body.source = new NeoScriptSourceInfo
+            {
+                name = "Container.Boom",
+                uri = "Classes/Container.neo",
+                coordinateSpace = NeoScriptCoordinateSpace.File,
+            };
+            body.instructions[0].source = new NeoScriptSourcePosition { line = 8, column = 3 };
+
+            NSGetterRuntimeError error = Assert.Catch<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.InvokeAction(
+                    ListenerSet(Listener(BoomMemberId)),
+                    Array.Empty<object?>(),
+                    ContextFor(client)))!;
+
+            const string raw = "action[default] listener 0 threw: listener boom";
+            const string trace = "  NeoScript Container.Boom (Classes/Container.neo:8:3)";
+            Assert.That(error.Payload.Message, Is.EqualTo(raw));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidOperationError));
+            Assert.That(error.Message, Is.EqualTo(raw + "\n" + trace));
+            Assert.That(NeoScriptDebug.FormatError(error), Is.EqualTo(error.Message));
+        }
+
+        [Test]
         public void InvokeAction_DetectsAnActionDelegateActionCycle()
         {
             NeoClient client = BuildClient(

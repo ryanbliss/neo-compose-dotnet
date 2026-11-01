@@ -3183,8 +3183,12 @@ namespace NeoCompose.Runtime.NeoScript
                     // fault and a deferred-Function fault propagate as
                     // themselves, so the host handling that keys on their
                     // class still applies.
-                    throw new NSGetterRuntimeError(
-                        $"{ActionFrameName(frame, ownerReceiver, ctx)} listener {index} threw: {error.Message}");
+                    var runtimeError = (NSGetterRuntimeError)error;
+                    var wrapped = new NSGetterRuntimeError(
+                        $"{ActionFrameName(frame, ownerReceiver, ctx)} listener {index} threw: {runtimeError.DiagnosticMessage}");
+                    if (runtimeError.NeoScriptFrames is { } frames)
+                        wrapped.Data["neoScriptFrames"] = frames;
+                    throw wrapped;
                 }
             }
         }

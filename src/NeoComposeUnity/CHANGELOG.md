@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.2] - 2026-11-01
+
+- Include captured NeoScript class/member names, source files, line/column positions, and callers in evaluator exception messages. Preserve the original authored error message for NeoScript catch handling and avoid duplicate diagnostic frames.
+
 ## [0.81.1] - 2026-11-01
 
 - Restore localized string member reads as unformatted templates. Templates containing arguments or escaped braces remain available to their consumer, which supplies arguments through the existing localization formatting APIs. This fixes seed descriptions and loading saves containing plants without requiring game or save migrations.

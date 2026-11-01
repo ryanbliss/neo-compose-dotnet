@@ -28,7 +28,12 @@ namespace NeoCompose.Runtime.NeoScript
     public class NSGetterRuntimeError : System.Exception
     {
         public System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>? NeoScriptFrames => Data["neoScriptFrames"] as System.Collections.Generic.IReadOnlyList<NeoScriptStackFrame>;
-        public override string ToString() => base.ToString() + (NeoScriptFrames is { } frames ? "\nNeoScript:\n" + NeoScriptDebug.FormatFrames(frames) : "");
+        /// <summary>The failure and its captured NeoScript call sites, including source locations when available.</summary>
+        public override string Message => NeoScriptDebug.FormatMessage(DiagnosticMessage, NeoScriptFrames);
+
+        // Wrappers keep diagnostic context separate from the original error text.
+        // Authored NeoError.Message continues to come from Payload.Message.
+        internal string DiagnosticMessage => base.Message;
 
         internal NeoScriptErrorPayload Payload
         {
