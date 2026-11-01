@@ -321,8 +321,13 @@ namespace NeoCompose.Runtime.NeoScript
             NoteCollectionAlias();
         }
 
-        internal static void CaptureRuntimeList(object?[] list) =>
-            runtimeLists.GetValue(list, array => new RuntimeListIdentity(array)).captured = true;
+        internal static void CaptureRuntimeList(object?[] list, Context? ctx = null)
+        {
+            RuntimeListIdentity identity = runtimeLists.GetValue(list, array => new RuntimeListIdentity(array));
+            identity.captured = true;
+            if (ctx is not null && ctx.CollectionRowReference(list) is { } reference)
+                SetRowReference(ctx, identity, reference);
+        }
 
         internal static void AdvanceRuntimeList(object?[] previous, LocalList growing)
         {

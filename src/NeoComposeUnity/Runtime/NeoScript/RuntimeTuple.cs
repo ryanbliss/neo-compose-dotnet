@@ -15,7 +15,7 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly object?[] elements;
         internal readonly TupleTypeInfo TypeInfo;
 
-        internal RuntimeTuple(object?[] elements, TupleTypeInfo typeInfo)
+        internal RuntimeTuple(object?[] elements, TupleTypeInfo typeInfo, NSGetterEvaluator.Context? ctx = null)
         {
             if (elements.Length < 2)
                 throw new NSGetterRuntimeError("A tuple needs at least two elements.");
@@ -26,7 +26,7 @@ namespace NeoCompose.Runtime.NeoScript
             // Tuple slots retain the shared identity of captured lists.
             for (int i = 0; i < elements.Length; i++)
                 if (typeInfo.elements[i].typeInfo.type == MemberKind.List && elements[i] is object?[] list)
-                    NSGetterEvaluator.CaptureRuntimeList(list);
+                    NSGetterEvaluator.CaptureRuntimeList(list, ctx);
         }
 
         public int Count => elements.Length;

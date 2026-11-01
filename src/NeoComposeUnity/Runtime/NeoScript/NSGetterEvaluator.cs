@@ -10420,7 +10420,7 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
-        internal static void RetainRemovedClassAliases(
+        internal static void RetainRemovedOwnedAliases(
             NeoWritePlan plan, Context ctx, NeoValueOwnership ownership, IReadOnlyList<string> removed)
         {
             var retained = new HashSet<string>();
@@ -10430,11 +10430,22 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 string id = removed[i];
                 if (retained.Contains(id) || !HasClassAliases(ctx, ownership, id)
-                    || plan.Resolve(ownership, id) is not ObjectMemberValue { value: not null } row
-                    || NeoGeneratedTypesSupport.ResolveClassValueClassId(ctx.client, id, row) is not { } classId)
+                    || plan.Resolve(ownership, id) is not { } row)
                     continue;
-                RetainClassAliases(plan, ctx, ownership, id,
-                    NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row), retained);
+                JsonMember? member = null;
+                if (row is ObjectMemberValue { value: not null } objectRow
+                    && NeoGeneratedTypesSupport.ResolveClassValueClassId(ctx.client, id, objectRow) is { } classId)
+                    member = NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row);
+                else
+                    foreach (object alias in ctx.rowAliases.Get(ownership, id))
+                        if (ctx.rowReverseIndex.TryGetValue(alias, out var reference)
+                            && reference.member is ListMember or DictionaryMember)
+                        {
+                            member = reference.member;
+                            break;
+                        }
+                if (member is not null)
+                    RetainOwnedAliases(plan, ctx, ownership, id, member, retained);
             }
         }
 
@@ -10547,12 +10558,18 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member,
             HashSet<string>? retained = null)
         {
-            if (member is not ClassMember classMember
-                || plan.Resolve(ownership, valueId) is not ObjectMemberValue { value: not null }
-                || !HasClassAliases(ctx, ownership, valueId))
+            if (member is ClassMember && plan.Resolve(ownership, valueId) is ObjectMemberValue { value: not null })
+                RetainOwnedAliases(plan, ctx, ownership, valueId, member, retained);
+        }
+
+        private static void RetainOwnedAliases(
+            NeoWritePlan plan, Context ctx, NeoValueOwnership ownership, string valueId,
+            JsonMember member, HashSet<string>? retained)
+        {
+            if (plan.Resolve(ownership, valueId) is null || !HasClassAliases(ctx, ownership, valueId))
                 return;
             var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
-            string rootId = ctx.client.StageClassRetention(plan, ownership, valueId, classMember, remapped);
+            string rootId = ctx.client.StageClassRetention(plan, ownership, valueId, member, remapped);
             foreach (var pair in remapped)
             {
                 if (pair.Key.scope == ownership)
@@ -10561,6 +10578,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             void Retarget()
             {
+                if (member is ListMember or DictionaryMember)
+                    ctx.client.RegisterRetainedRootContract(rootId, member);
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
                 var aliases = new List<object>();
                 NeoScriptObject? escapedAlias = null;

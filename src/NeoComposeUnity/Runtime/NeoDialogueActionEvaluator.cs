@@ -4931,7 +4931,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.RetainClassAliases(plan, ctx, ownership, next.id, member);
             client.StageInPlaceReplacement(plan, ownership, next, member,
                 beforeRemovals: member is ClassMember ? null
-                    : removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, ownership, removed));
+                    : removed => NSGetterEvaluator.RetainRemovedOwnedAliases(plan, ctx, ownership, removed));
             plan.AfterCommit(() => NSGetterEvaluator.RefreshCachedRowAfterWrite(next, ctx, ownership));
         }
 
@@ -5158,7 +5158,7 @@ namespace NeoCompose.Runtime
                             object? payload = NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
                                 client, member, value, binding.Ownership, ctx, plan, currentDestinationValueId: valueId);
                             string updatedId = binding.PreparePayload(plan, payload,
-                                removed => NSGetterEvaluator.RetainRemovedClassAliases(plan, ctx, binding.Ownership, removed));
+                                removed => NSGetterEvaluator.RetainRemovedOwnedAliases(plan, ctx, binding.Ownership, removed));
                             plan.AfterCommit(() =>
                             {
                                 if (client.TryGetOverlaidValue(binding.Ownership, updatedId, out MemberValue? updatedRow))
