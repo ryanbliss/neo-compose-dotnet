@@ -6027,6 +6027,13 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private static bool IsCollectionWrite(TypeInfo type, NSGetterEvaluator.Context ctx)
+        {
+            if (type.type == MemberKind.Generic)
+                type = NSGetterEvaluator.CloseContextType(type, ctx);
+            return type.type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary;
+        }
+
         private sealed class NeoListIndexWriteTarget : NeoResolvedWriteTarget
         {
             private readonly string parentRowId;
@@ -6071,6 +6078,9 @@ namespace NeoCompose.Runtime
                     RequireInterfaceSlotAdmits(client, typeInfo, referenceId, parentRowId, null);
                 if (value is RuntimeTuple)
                     value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                // Publish the previous binding before retaining its outgoing alias.
+                if (client.HasPendingScriptWrites && IsCollectionWrite(typeInfo, ctx))
+                    ReadCurrentValue(client, ctx);
                 WriteCollection(client, parentRowId, null, batch =>
                 {
                     EnsureWritableRow(client, parentRowId, ownership);
@@ -6092,6 +6102,14 @@ namespace NeoCompose.Runtime
                     {
                         if (!client.TryGetValue(childId, out MemberValue? existing))
                             throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
+                        string? sourceId = null;
+                        if (entryMember is ListMember or DictionaryMember
+                            && TryGetValueReferenceId(value, ctx, out sourceId) && sourceId == childId)
+                            return;
+                        var targetEnv = NeoGenericResolution.EnvFromStamp(listRow.genericBindings);
+                        NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, ownership, childId, entryMember, value, targetEnv);
+                        if (sourceId is not null)
+                            value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
                         var next = CreateValueRow(
                             plan, client,
                             ownership,
@@ -6101,7 +6119,7 @@ namespace NeoCompose.Runtime
                             existing.createdAt,
                             NeoTimestamp.Now(),
                             ctx,
-                            NeoGenericResolution.EnvFromStamp(listRow.genericBindings));
+                            targetEnv);
                         next.classId = existing.classId;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6539,6 +6557,10 @@ namespace NeoCompose.Runtime
                 if (value is RuntimeTuple)
                     value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
                 string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
+                if (client.HasPendingScriptWrites && IsCollectionWrite(entryTypeInfo, ctx)
+                    && client.TryGetValue(ownership, rowId, out ObjectMemberValue? previous)
+                    && previous.value?.TryGetValue(key, out string previousId) == true)
+                    client.ObserveScriptWrites(previousId);
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
@@ -6559,6 +6581,14 @@ namespace NeoCompose.Runtime
                     {
                         if (referenceId is null)
                         {
+                            string? sourceId = null;
+                            if (entryMember is ListMember or DictionaryMember
+                                && TryGetValueReferenceId(value, ctx, out sourceId) && sourceId == existingId)
+                                return;
+                            var targetEnv = NeoGenericResolution.EnvFromStamp(current.genericBindings);
+                            NSGetterEvaluator.PrepareAssignedCollectionAlias(plan, ctx, ownership, existingId, entryMember, value, targetEnv);
+                            if (sourceId is not null)
+                                value = NSGetterEvaluator.CopiedCollectionContents(value, ctx);
                             var next = CreateValueRow(
                                 plan, client,
                                 ownership,
@@ -6568,7 +6598,7 @@ namespace NeoCompose.Runtime
                                 existing.createdAt,
                                 now,
                                 ctx,
-                                NeoGenericResolution.EnvFromStamp(current.genericBindings));
+                                targetEnv);
                             next.classId = existing.classId;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx);
@@ -6619,7 +6649,9 @@ namespace NeoCompose.Runtime
                             now,
                             now,
                             ctx,
-                            NeoGenericResolution.EnvFromStamp(current.genericBindings)));
+                            NeoGenericResolution.EnvFromStamp(current.genericBindings),
+                            entryMember is ListMember or DictionaryMember
+                                ? new NeoGeneratedTypesSupport.CollectionInsertion(plan, ctx, ownership) : null));
                     }
                     batch.Gain(ownership, childId, rowId);
                     Change(batch.Dictionary(ownership, rowId, ctx, this), key, childId, now);

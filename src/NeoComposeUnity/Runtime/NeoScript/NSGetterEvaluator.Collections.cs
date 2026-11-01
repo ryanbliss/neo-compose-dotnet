@@ -44,7 +44,8 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx.client.CommitScriptAttachment(value);
             }
             if (value is RuntimeSet && FindRowReference(value, ctx) is { } setReference
-                && ctx.client.ReadValue(setReference.ownership, setReference.valueId, ref setReference.node) is ArrayMemberValue setRow)
+                && ctx.client.ReadValue(setReference.ownership, setReference.valueId, ref setReference.node) is ArrayMemberValue setRow
+                && ReferenceEquals(FindRowReference(value, ctx), setReference))
             {
                 // Keep a local set's identity when another local captures it.
                 // Row publication refreshes its entries; reading the row above
@@ -60,7 +61,10 @@ namespace NeoCompose.Runtime.NeoScript
             if (!runtimeLists.TryGetValue(array, out var list))
                 return array;
             if (ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex) && list.reference is { } reference
-                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue { value: not null } row)
+                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue { value: not null } row
+                // Reading may commit a replacement that detaches this alias.
+                && ReferenceEquals(list.reference, reference)
+                && ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex))
                 return ReadAssignedList(list, row, reference, ctx);
             return list.growing?.Snapshot() ?? list.current;
         }
@@ -139,6 +143,8 @@ namespace NeoCompose.Runtime.NeoScript
                 && ctx.client.ReadValue(ownership, valueId, ref previous.node) is { } previousRow)
             {
                 object snapshot = CopiedCollectionContents(UnwrapCached(previousRow, ctx, ownership, member, previous.node)!, ctx);
+                foreach (object alias in aliases)
+                    plan.HeldBy?.TrackAttachment(alias);
                 plan.AfterCommit(() =>
                 {
                     foreach (object alias in aliases)
@@ -176,6 +182,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (incoming is null)
                 return;
+            plan.HeldBy?.TrackAttachment(incoming);
             plan.AfterCommit(() =>
             {
                 var reference = new RowReference(valueId, ownership, null, member);
@@ -257,6 +264,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (incoming is not null)
             {
+                plan.HeldBy?.TrackAttachment(incoming.origin);
                 if (ctx.allocationTracker.LocalSelections?.Find(incoming.origin) is { } incomingSelection)
                     (plan.LocalSelections ??= new LocalCollectionSelections.Publication(plan))
                         .Transition(incomingSelection, valueId, ownership, null);
@@ -282,6 +290,11 @@ namespace NeoCompose.Runtime.NeoScript
                 return;
             var reference = new RowReference(id, ownership, row.classId, member);
             SetRowReference(ctx, value, reference);
+            if (value is RuntimeSet or Dictionary<string, object?>)
+            {
+                assignedCollections.AddOrUpdate(value, ctx.rowReverseIndex);
+                PatchCachedShape(row, value, ctx);
+            }
             if (value is object?[] array)
             {
                 RuntimeListIdentity identity = runtimeLists.GetValue(array, source => new RuntimeListIdentity(source));
