@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.81.1] - 2026-11-01
+
+- Restore localized string member reads as unformatted templates. Templates containing arguments or escaped braces remain available to their consumer, which supplies arguments through the existing localization formatting APIs. This fixes seed descriptions and loading saves containing plants without requiring game or save migrations.
+- Verify nullable variant initialization and lookup argument short-circuiting against CLI-exported regression cases.
+
 ## [0.81.0] - 2026-10-30
 
 - Materialize each virtual instance once (P130). Writes, restores, ownership changes and saves no longer rerun the constructor of an already materialized object. Its rows stay fixed and explicit writes overlay them. Restoring a field reveals the materialized value instead of recomputing it.

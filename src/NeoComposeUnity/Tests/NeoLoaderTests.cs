@@ -614,14 +614,15 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoMemberString_FormatsEscapedBracesButKeepsLiteralOverrides()
+        public void NeoMemberString_KeepsTemplatesAndLiteralOverridesUnformatted()
         {
             using var client = LoadLocalizedStringClient(localized: true);
             client.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", "Use {{wisely}}")));
             var member = RequireMember<StringMember>(client, "member-title");
             var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
-            Assert.AreEqual("Use {wisely}", node.Text);
+            Assert.AreEqual("Use {{wisely}}", node.Text);
+            Assert.AreEqual("Use {wisely}", client.Localization.FormatResolvedText(node.Text!));
             Assert.AreEqual("text-title", node.TextId);
             node.SetLiteralOverride("Use {{literally}}");
             Assert.AreEqual("Use {{literally}}", node.Text);
@@ -630,17 +631,15 @@ namespace NeoCompose.Tests
 
         [TestCase("Hello {name}", "name")]
         [TestCase("{count:plural:1 seed|{} seeds}", "count")]
-        public void NeoMemberString_MissingArgumentsNameTheTextAndArgument(string template, string argument)
+        public void NeoMemberString_PreservesArgumentsForItsConsumer(string template, string argument)
         {
             using var client = LoadLocalizedStringClient(localized: true);
             client.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", template)));
             var node = new NeoMemberString(client, RequireMember<StringMember>(client, "member-title"), null);
 
-            var error = Assert.Throws<System.FormatException>(() => _ = node.Text);
-            StringAssert.Contains("text-title", error!.Message);
-            StringAssert.Contains(argument, error.Message);
-            StringAssert.Contains("en-US", error.Message);
-            Assert.IsNotNull(error.InnerException);
+            Assert.AreEqual(template, node.Text);
+            StringAssert.Contains(argument, node.Text);
+            Assert.AreEqual("text-title", node.TextId);
         }
 
         [Test]
@@ -652,6 +651,31 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("Hello Ryan", client.Localization.ResolveText(node.TextId,
                 new Dictionary<string, object?> { ["name"] = "Ryan" }));
+        }
+
+        [Test]
+        public void NeoMemberString_TemplateFormatsAfterSaveReload()
+        {
+            const string template = "A seed that grows into a {PlantName} during the {Season}. Harvest after {GrowthDays} days.";
+            string saved;
+            using (var original = LoadLocalizedStringClient(localized: true))
+            {
+                original.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", template)));
+                var node = new NeoMemberString(original, RequireMember<StringMember>(original, "member-title"), null);
+                Assert.AreEqual(template, node.Text);
+                saved = original.SerializeSaveData();
+            }
+            using var reopened = LoadLocalizedStringClient(localized: true, initialSave: saved);
+            reopened.Localization.TryAddLoadedLocale(LocaleFile("en-US", null, ("text-title", template)));
+            var restored = new NeoMemberString(reopened, RequireMember<StringMember>(reopened, "member-title"), null);
+            Assert.AreEqual(template, restored.Text);
+            Assert.AreEqual("A seed that grows into a Sunflower during the Summer. Harvest after 4 days.",
+                reopened.Localization.FormatResolvedText(restored.Text!, new Dictionary<string, object?>
+                {
+                    ["PlantName"] = "Sunflower",
+                    ["Season"] = "Summer",
+                    ["GrowthDays"] = 4,
+                }));
         }
 
         [Test]
