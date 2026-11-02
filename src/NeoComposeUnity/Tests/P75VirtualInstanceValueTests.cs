@@ -3993,6 +3993,81 @@ namespace NeoCompose.Tests
                 payload.Get<NeoMemberStringWritable>("Name").value!.value);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GenericLookupInitializerKeepsTheSelectionWrapperAndCatalogOwnership(bool placementOnly)
+        {
+            ProjectData data = BuildGenericConstructorProjectData();
+            data.classes["payload-class"].allowedStorage = NeoMemberStorage.Immutable;
+            data.members["catalog-entry"] = new ClassMember
+            {
+                id = "catalog-entry",
+                projectId = "p75-project",
+                name = "CatalogEntry",
+                kind = MemberKind.Class,
+                DeclaredClassId = "payload-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+            };
+            data.members["catalog"] = new ListMember
+            {
+                id = "catalog",
+                projectId = "p75-project",
+                name = "Catalog",
+                kind = MemberKind.List,
+                entryMemberId = "catalog-entry",
+                ListKind = NeoListKind.Ordered,
+                Requirement = NeoMemberRequirementKind.Required,
+                Storage = NeoMemberStorage.Immutable,
+                valueId = "catalog-values",
+            };
+            data.values["catalog-values"] = new ArrayMemberValue
+            {
+                id = "catalog-values",
+                value = new[] { "constructor-payload" },
+            };
+            data.classes["assets-root-class"].schema["Catalog"] = "catalog";
+            ((ObjectMemberValue)data.values["value-assets"]).value!["Catalog"] = "catalog-values";
+            // P127 stores the Reference<Payload> type, not a Lookup descriptor member.
+            TypeBinding binding = TestTypeBindings.Reference(TestTypeBindings.Class("payload-class"));
+            var instance = (ObjectMemberValue)data.values["thing-instance"];
+            instance.genericBindings = TestTypeBindings.Stamp(("thing-param-t", binding));
+            if (placementOnly)
+            {
+                ((ClassMember)data.members["thing-member"]).classArguments =
+                    TestTypeBindings.Arguments(("thing-param-t", binding));
+                instance.genericBindings = null;
+            }
+            ConstructorRecord constructor = data.constructors["thing-ctor"];
+            var argument = new FunctionArgumentTypeInfo
+            {
+                name = "InitialItem",
+                type = MemberKind.Class,
+                classId = "payload-class",
+                required = true,
+            };
+            constructor.argumentTypes = new[] { argument };
+            constructor.action!.parameters[2].typeInfo = argument;
+            ((GenericMember)data.members["thing-payload"]).defaultValue = new NullMemberValueBase
+            {
+                init = ReturnVariableInitializer("InitialItem", argument,
+                    constructor.action.parameters, "__arg_0__"),
+            };
+
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            var root = (ObjectMemberValue)data.values["thing-instance"];
+            Assert.IsFalse(root.value!.ContainsKey("Payload"));
+            MemberValue? resolved = client.ResolveClassChildRow(root, "Payload");
+            Assert.IsInstanceOf<ArrayMemberValue>(resolved);
+            CollectionAssert.AreEqual(new[] { "constructor-payload" }, ((ArrayMemberValue)resolved!).value);
+            Assert.AreNotEqual("constructor-payload", resolved.id);
+            CollectionAssert.AreEqual(new[] { "constructor-payload" }, client.save
+                .Get<NeoMemberClassWritable>("Thing").Get<NeoMemberLookup>("Payload").Selected());
+            Assert.IsTrue(client.TryGetValueOwnership("constructor-payload", out NeoValueOwnership ownership));
+            Assert.AreEqual(NeoValueOwnership.Asset, ownership);
+            Assert.IsFalse(client.TryFindOwnedParent(NeoValueOwnership.Save, "constructor-payload", out _));
+        }
+
         [Test]
         public void OmittedNestedClassWaitsForItsComputedDefaultDuringRootReplay()
         {
