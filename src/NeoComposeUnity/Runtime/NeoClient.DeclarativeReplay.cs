@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime
                 declarativeReplayWrites.Add(new DeclarativeReplayWrite(declarativeReplayReceiver, id, write.ReplayKey, write.CaptureReplayOperation()));
         }
 
-        private sealed class DeclarativeReplayWrite
+        internal sealed class DeclarativeReplayWrite
         {
             internal readonly string ReceiverId, ParentId, Key;
             internal readonly NeoAnimationCompiledWrite.ReplayOperation Operation;

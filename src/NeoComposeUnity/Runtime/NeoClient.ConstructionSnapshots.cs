@@ -23,13 +23,15 @@ namespace NeoCompose.Runtime
             internal readonly ObjectMemberValue Root;
             internal readonly ClassMember Member;
             internal readonly List<MemberValue> Rows;
+            internal readonly List<DeclarativeReplayWrite> DeclarativeAnswers;
 
-            internal ConstructionSnapshot(ObjectMemberValue inputs, ObjectMemberValue root, ClassMember member, List<MemberValue> rows)
+            internal ConstructionSnapshot(ObjectMemberValue inputs, ObjectMemberValue root, ClassMember member, List<MemberValue> rows, List<DeclarativeReplayWrite> declarativeAnswers)
             {
                 Inputs = inputs;
                 Root = root;
                 Member = member;
                 Rows = rows;
+                DeclarativeAnswers = declarativeAnswers;
             }
         }
 
@@ -69,6 +71,8 @@ namespace NeoCompose.Runtime
             foreach (MemberValue row in snapshot.Rows)
                 plan.Set(NeoValueOwnership.Session, CloneRowForWrite(row));
             plan.Commit();
+            // Independent child roots need the same declarative answers as a fresh replay.
+            declarativeReplayWrites?.AddRange(snapshot.DeclarativeAnswers);
             if (ResolveValueRow(snapshot.Root.id) is not ObjectMemberValue restored)
                 throw new InvalidOperationException($"Construction snapshot for '{root.id}' lost its root row.");
             return new NeoGeneratedTypesSupport.RuntimeConstructedClassValue(restored, snapshot.Member);
@@ -89,7 +93,7 @@ namespace NeoCompose.Runtime
                 if (row is not null)
                     rows.Add(CloneRowForWrite(row));
             }
-            return new ConstructionSnapshot((ObjectMemberValue)CloneRowForWrite(root), constructed.value, constructed.member, rows);
+            return new ConstructionSnapshot((ObjectMemberValue)CloneRowForWrite(root), constructed.value, constructed.member, rows, new List<DeclarativeReplayWrite>(declarativeReplayWrites!));
         }
 
         private void InstallConstructionSnapshot(string rootId, ConstructionSnapshot? snapshot)
