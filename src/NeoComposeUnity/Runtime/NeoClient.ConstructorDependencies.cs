@@ -28,10 +28,10 @@ namespace NeoCompose.Runtime
                 return;
             NeoValueOwnership targetOwnership = target ?? PersistedOwnership;
             var sourceOwnership = targetOwnership == PersistedOwnership ? NeoValueOwnership.Session : PersistedOwnership;
-            var pending = new Queue<(string id, Member? member)>();
+            Queue<(string id, Member? member)>? pending = null;
             foreach (var link in EnumerateConstructorDependencyLinks(value, targetOwnership, plan))
-                pending.Enqueue(link);
-            if (pending.Count == 0)
+                (pending ??= new()).Enqueue(link);
+            if (pending is null)
                 return;
 
             var visited = new HashSet<string>();
@@ -215,16 +215,7 @@ namespace NeoCompose.Runtime
                 || constructor.argumentTypes.Length == 0)
                 yield break;
 
-            // Only a runtime-constructed Class root carries a genericBindings
-            // stamp, so a placed generic instance such as ValueWatcher<int>
-            // closes its params through the PLACEMENT that declares it.
-            // Without those arguments every generic constructor parameter
-            // resolves unbound and the walk throws mid-commit.
-            var placement = TryInferMemberForValueId(row.id, out Member? inferred)
-                ? inferred as ClassMember
-                : null;
-            var env = NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
-                NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, SlotClassArguments(placement, constructor.classId)));
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? env = null;
             for (int index = 0; index < constructor.argumentTypes.Length; index++)
             {
                 // Scalar arguments cannot retain another row. Some detached
@@ -232,6 +223,19 @@ namespace NeoCompose.Runtime
                 if (!row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
                     || ConstructorArgumentRowId(token) is not string argumentId)
                     continue;
+                if (env is null)
+                {
+                    // Only a runtime-constructed Class root carries a genericBindings
+                    // stamp, so a placed generic instance such as ValueWatcher<int>
+                    // closes its params through the PLACEMENT that declares it.
+                    // Without those arguments every generic constructor parameter
+                    // resolves unbound and the walk throws mid-commit.
+                    var placement = TryInferMemberForValueId(row.id, out Member? inferred)
+                        ? inferred as ClassMember
+                        : null;
+                    env = NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
+                        NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, SlotClassArguments(placement, constructor.classId)));
+                }
                 var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
                 if (token is JObject)
                 {

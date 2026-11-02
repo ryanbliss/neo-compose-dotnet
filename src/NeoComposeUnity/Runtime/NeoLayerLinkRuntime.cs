@@ -22,6 +22,7 @@ namespace NeoCompose.Runtime
                 return false;
             var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[0])
                 ?? throw new NSGetterRuntimeError("Placement cell must be a Vector2Int.");
+            NSGetterEvaluator.TrackPlacementAlias(args[1], ctx);
             string? entryId = NSGetterEvaluator.FindRowReference(args[1], ctx, observe: false)?.valueId
                 ?? (args[1] as INeoValueReference)?.valueId;
             if (memberId != TrySpawnChildId && entryId is not null && ctx.client.PendingScriptWrites is { } batch
@@ -37,7 +38,7 @@ namespace NeoCompose.Runtime
                     {
                         using var read = ctx.client.ReadCandidate(batch.Plan);
                         outcome = ctx.client.TryPlaceLayerEntry(View(receiver, ctx), cell, View(args[1], ctx),
-                            memberId == TrySetId, preparedPlan: batch.Plan);
+                            memberId == TrySetId, preparedPlan: batch.Plan, aliasContext: ctx);
                         if (!outcome.Ok)
                             throw new RejectedPlacement(outcome);
                     });
@@ -65,8 +66,8 @@ namespace NeoCompose.Runtime
             NeoGeneratedClassValue link = View(receiver, ctx);
             NeoGeneratedClassValue entry = View(args[1], ctx);
             NeoPlacementOutcome placed = memberId == TrySpawnChildId
-                ? ctx.client.TrySpawnChild(link, cell, entry)
-                : ctx.client.TryPlaceLayerEntry(link, cell, entry, memberId == TrySetId);
+                ? ctx.client.TrySpawnChild(link, cell, entry, ctx)
+                : ctx.client.TryPlaceLayerEntry(link, cell, entry, memberId == TrySetId, aliasContext: ctx);
             result = ConstructResult(placed, ctx);
             return true;
         }

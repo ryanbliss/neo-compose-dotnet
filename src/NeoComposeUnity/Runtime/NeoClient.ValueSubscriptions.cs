@@ -379,7 +379,7 @@ namespace NeoCompose.Runtime
         private void PublishWritableValueChange(
             NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null, NeoValueNode? node = null)
         {
-            RefreshSharedEvaluationRow(ownership, valueId);
+            RefreshSharedEvaluationRow(ownership, valueId, plan);
             object? listeners = node is { live: true }
                 ? node.subscribers
                 : writableValueSubscriptions.TryGetValue(valueId, out var found) ? found : null;

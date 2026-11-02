@@ -2953,7 +2953,7 @@ namespace NeoCompose.Runtime
                             pointer = keyOfTarget,
                             typeInfo = instruction.target.typeInfo,
                             writability = owner.Ownership == NeoValueOwnership.Save ? WritabilityKind.Save : WritabilityKind.Session,
-                        }, scope, ctx, evaluatedTarget: entry, targetEvaluated: true));
+                        }, scope, ctx, evaluatedTarget: entry, targetEvaluated: true, knownOwnership: owner.Ownership));
                 }
                 else
                 {
@@ -3634,9 +3634,10 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx, NeoWritePlan? preparedPlan = null,
             object? evaluatedTarget = null,
             bool targetEvaluated = false,
-            object? keyOfReceiver = null)
+            object? keyOfReceiver = null,
+            NeoValueOwnership? knownOwnership = null)
         {
-            NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx, keyOfReceiver);
+            NeoValueOwnership ownership = knownOwnership ?? TargetOwnership(client, target, scope, ctx, keyOfReceiver);
             string? rowId;
             JsonMember? member = null;
             if (target.pointer is StaticMemberPointer staticMember)
@@ -3909,6 +3910,10 @@ namespace NeoCompose.Runtime
             {
                 WritabilityKind.Save => NeoValueOwnership.Save,
                 WritabilityKind.ImmutableToSaveLookup => NeoValueOwnership.Save,
+                // A constructor local starts in Session, but placement can
+                // adopt that same identity into Save before this assignment.
+                WritabilityKind.Session when target.pointer is KeyOfPointer => ResolveRuntimeTargetOwnership(
+                    client, target.pointer, scope, ctx, keyOfReceiver),
                 WritabilityKind.Session => NeoValueOwnership.Session,
                 WritabilityKind.ImmutableToSessionLookup => NeoValueOwnership.Session,
                 WritabilityKind.Local => NeoValueOwnership.Session,

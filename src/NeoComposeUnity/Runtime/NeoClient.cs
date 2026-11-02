@@ -1322,7 +1322,7 @@ namespace NeoCompose.Runtime
             return context;
         }
 
-        private void RefreshSharedEvaluationRow(NeoValueOwnership ownership, string valueId)
+        private void RefreshSharedEvaluationRow(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
         {
             var shared = sharedEvaluationContext;
             if (shared is null)
@@ -1335,6 +1335,16 @@ namespace NeoCompose.Runtime
                 return;
             if (TryGetValue(ownership, valueId, out MemberValue? row))
                 NeoScript.NSGetterEvaluator.RefreshCachedRowAfterWrite(row, shared, ownership);
+            else if (ownership == NeoValueOwnership.Session
+                && plan?.Rows.TryGetValue((PersistedOwnership, valueId), out var promoted) == true
+                && promoted is { IsRemoved: false }
+                && HasWritableValue(PersistedOwnership, valueId))
+            {
+                // A promotion removes the Session row but not its identity.
+                // Retarget aliases before eviction would erase their provenance.
+                NeoScript.NSGetterEvaluator.RetargetCachedRowAfterShadow(
+                    shared, null, ownership, valueId, PersistedOwnership, valueId);
+            }
             else
                 NeoScript.NSGetterEvaluator.EvictCachedRow(shared, ownership, valueId);
         }
@@ -3789,7 +3799,8 @@ namespace NeoCompose.Runtime
             }
             var plan = new NeoWritePlan(this);
             string result = PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sourceMember, intent, clonedValueIds);
-            plan.Commit();
+            if (!TryPublishFreshSessionClone(plan))
+                plan.Commit();
             return result;
         }
 
@@ -3953,7 +3964,7 @@ namespace NeoCompose.Runtime
                             // The clone no longer has the source member's type context.
                             obj.classId ??= (sourceMember as ClassMember)?.defaultValue?.classId
                                 ?? (sourceMember as ClassMember)?.DeclaredClassId;
-                            var effectiveFields = new Dictionary<string, string>(obj.value);
+                            var effectiveFields = obj.value;
                             if (!partial && sourceRow is ObjectMemberValue sourceObject)
                             {
                                 // A constructor can clone a sparse shared value
@@ -3966,7 +3977,7 @@ namespace NeoCompose.Runtime
                                         if (!effectiveFields.ContainsKey(link.Key))
                                             effectiveFields[link.Key] = link.Value;
                             }
-                            var remapped = new Dictionary<string, string>();
+                            var remapped = new Dictionary<string, string>(effectiveFields.Count);
                             bool omitsImmutable = false;
                             foreach (var pair in effectiveFields)
                             {
@@ -3978,7 +3989,7 @@ namespace NeoCompose.Runtime
                                 if (childMember?.Storage == NeoMemberStorage.Immutable
                                     && !isReplayingVirtualInstance)
                                 {
-                                    if (obj.value.ContainsKey(pair.Key) && data.values.ContainsKey(pair.Value))
+                                    if (((ObjectMemberValue)sourceRow).value!.ContainsKey(pair.Key) && data.values.ContainsKey(pair.Value))
                                         remapped[pair.Key] = pair.Value;
                                     else if (copies.Snapshot is { } snapshot)
                                     {

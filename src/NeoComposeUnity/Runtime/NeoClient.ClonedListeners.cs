@@ -250,13 +250,24 @@ namespace NeoCompose.Runtime
                         owner = (ObjectMemberValue)CloneValueRow(owner);
                         owner.classId = classId;
                     }
-                    string sourceRoot = ListenerBindingRoot(owner.id, copy.Key.scope, sourceRoots);
+                    // Only root-keyed listener maps need an ownership walk.
+                    // Construction and copied defaults are indexed by owner id.
+                    string sourceRoot = authoredListenerRoots.Count != 0
+                        || PersistedData.changeListeners is { Count: > 0 }
+                        || plan.ListenerEntries is { Count: > 0 }
+                        ? ListenerBindingRoot(owner.id, copy.Key.scope, sourceRoots) : owner.id;
                     Dictionary<string, NeoDelegateValue[]>? durable = null;
                     if (copy.Key.scope != NeoValueOwnership.Session
                         && plan.ListenerEntries?.TryGetValue((PersistedOwnership, copy.Key.scope, sourceRoot, owner.id), out durable) != true)
                         durable = PersistedData.changeListeners?.GetValueOrDefault(sourceRoot)?.GetValueOrDefault(owner.id);
                     var construction = CopiedListenerBaseline(copy.Key.scope, owner.id, out bool adopted)
                         ?? (copy.Key.scope == NeoValueOwnership.Session ? PendingConstructionListeners(owner.id) : null);
+                    // Most copied values have no script listeners. An empty slot
+                    // still matters (it can clear an inherited listener), but an
+                    // absent owner map cannot contribute a slot to the copy.
+                    if (durable is not { Count: > 0 } && construction is not { Count: > 0 }
+                        && !HasInheritedListenerSlots(sourceRoot, owner.id, copy.Key.scope))
+                        continue;
                     var entry = new Dictionary<string, NeoDelegateValue[]>(StringComparer.Ordinal);
                     foreach (var slot in ResolveInstanceSurfaceSchema(owner.classId))
                     {

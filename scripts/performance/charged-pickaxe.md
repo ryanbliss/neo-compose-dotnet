@@ -1,7 +1,7 @@
 # Charged pickaxe benchmark
 
-These opt-in probes exercise Neowyn's committed `ryanbliss/dig-spots` branch at
-`593e0f44`. They live outside the package test assembly because they use Neowyn's
+These opt-in probes exercise Neowyn's committed `ryanbliss/dig-spots` branch.
+The original measurements used `593e0f44`; the follow-up uses `03e8c06f`. They live outside the package test assembly because they use Neowyn's
 generated types and scene fixtures. They do not modify game authoring or gameplay.
 
 ## Reproduce
@@ -81,3 +81,57 @@ items. Separate instrumented runs attributed about 25–28 ms to game-side drop
 creation, 39–62 ms to SDK stack clones, and about 22 ms to retaining script aliases
 on removal. These timings include nested work and must not be added together.
 No async behavior or game-side workaround is introduced by this change.
+
+## Clone and ownership follow-up
+
+This round compares merged SDK `3f98d812` with the current changes, using the same
+Neowyn export at `03e8c06f`. Three fresh-editor runs per version, no profiling or
+concurrent builds. Development servers were stopped for the final candidate set.
+
+| Operation, 35 rocks | Baseline median | Revised median |
+| --- | ---: | ---: |
+| Change damage stage | 61.443 ms | 59.283 ms |
+| Destroy and drop rewards | 168.773 ms | 145.345 ms |
+
+Raw stage/destruction pairs in milliseconds:
+
+- Baseline: 61.443/168.773, 63.820/177.018, 58.666/166.142.
+- Revised: 59.283/143.658, 63.242/164.384, 59.049/145.345.
+
+The destruction median is 13.9% lower. All six comparisons passed sprite,
+occupancy, and persistence assertions. This is a small, noisy editor sample,
+not a single-frame guarantee. A candidate run while development servers were
+still running measured 93.395/277.224 and is reported separately rather than
+mixed into the quiet-run comparison. Earlier exploratory implementations are
+excluded. Unity reported zero through `GC.GetAllocatedBytesForCurrentThread`,
+so no allocation-byte reduction is claimed.
+
+The SDK now skips absent listener traversal, reuses the copied object dictionary,
+resolves constructor-reference type bindings only for arguments that can name a
+row, and avoids temporary UTF-8/hash arrays for ordinary derived identities.
+Complete fresh Session clones reuse constructor publication only when they have
+no existing rows, immutable replay defaults, copied listeners, or tracked
+lifecycle classes. Other clones keep the normal commit path. Pure removals can
+use their cached safety proof before the general placement walk, and unrelated
+Session writes no longer discard grid index versions.
+
+Issue #501 is also fixed: placement adopts the original Session identity into
+Save, and retained script locals follow its new ownership. No placement clone
+is introduced. Shared, private, retired, and foreign evaluator contexts are
+covered, including a write through a local compiled as Session-owned.
+
+`NeowynSpawnOwnershipRegression.cs` is another opt-in probe. At Neowyn `c1961413`,
+it creates a fresh in-memory save, sleeps three nights, verifies nonzero spawn
+counters, commits and reloads, checks every counter, then sleeps again. The run
+produced 30 counted spawns and passed persistence. This export includes the
+correct `@storage(allowed: .Save)` declaration on `CurrentCount`; the CLI's silent
+handling of positional `@storage(.Save)` is tracked separately in
+[neo-compose#2437](https://github.com/ryanbliss/neo-compose/issues/2437).
+
+The single-frame target remains unmet. Neowyn's real native drop path makes 117
+Unity objects for this fixture. Each reward constructs an inventory stack whose
+data is cloned, then the native drop handler clones that stack again. Further
+work should measure explicit ownership transfer for newly created reward stacks
+and pooling/batching the visual drops and destructive sounds. Simply deleting
+the clone can violate the lifetime or independence of stacks supplied by callers.
+No game-side change is included here.

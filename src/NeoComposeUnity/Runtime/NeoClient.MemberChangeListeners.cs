@@ -913,6 +913,14 @@ namespace NeoCompose.Runtime
                 }
         }
 
+        // A conservative absence check for copying a whole owner. Include
+        // shadowed maps too: false must mean no slot, including explicit clears.
+        private bool HasInheritedListenerSlots(string rootId, string ownerId, NeoValueOwnership scope) =>
+            data.values.GetValueOrDefault(rootId)?.changeListeners?.GetValueOrDefault(ownerId) is { Count: > 0 }
+            || candidateReplay?.ConstructionDefaults.TryGetValue(ownerId, out var pending) == true && pending.members.Count > 0
+            || candidateReplay?.ListenerDefaults.TryGetValue((scope, ownerId), out var prepared) == true && prepared.Count > 0
+            || defaultChangeListeners.TryGetValue((scope, ownerId), out var defaults) && defaults.members.Count > 0;
+
         private NeoDelegateValue[] InheritedChangeListenerTargets(string rootId, string ownerId, string memberId,
             NeoValueOwnership scope, bool ignoreCopied = false)
         {
