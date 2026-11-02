@@ -245,7 +245,8 @@ namespace NeoCompose.Runtime
                 if (plan.UnchangedValueIds?.Contains(value.valueId) != true)
                     ids.Add(value.valueId);
             ExcludeRefreshedObjects(plan, ids);
-            if (primitive.PlacementGraphDependsOn(ids))
+            bool graphChanged = primitive.PlacementGraphDependsOn(ids);
+            if (graphChanged)
             {
                 primitive.ForgetPlacementGraph();
                 objectLayerIds = null;
@@ -255,10 +256,14 @@ namespace NeoCompose.Runtime
                 foreach (var refresh in refreshes)
                     if (refresh.GridValueId == primitive.GridValueId)
                         primitive.RefreshPlacementGraphObject(refresh);
+            int tileCount = tileLayers.Count;
+            int objectCount = objectLayers.Count;
             InvalidateDependents(tileLayers, changedTileLayers, ids);
-            ForgetRecentTileLayers();
+            if (tileCount != tileLayers.Count)
+                ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);
-            DropObjectLayers();
+            if (graphChanged || objectCount != objectLayers.Count)
+                DropObjectLayers();
             KeepRefreshedObjects(plan);
             foreach (string layerId in changedTileLayers.Keys)
                 if (plan.PreparedTileLayers is { } preparedTiles

@@ -1196,6 +1196,14 @@ namespace NeoCompose.Tests
             Assert.That(NeoClient.VirtualValueId("system_thing-instance", sourceIdentity), Is.EqualTo("system_" + expected));
         }
 
+        [Test]
+        public void LongVirtualIdentityKeepsUtf8BytesAndNamespace()
+        {
+            string source = new string('é', 400);
+            Assert.AreEqual("28011562-42c8-567f-ae42-630d8343f989", NeoClient.VirtualValueId("根", source));
+            Assert.AreEqual("system_28011562-42c8-567f-ae42-630d8343f989", NeoClient.VirtualValueId("system_根", source));
+        }
+
         [TestCase(0)]
         [TestCase(2000)]
         public void FailedReplayReclaimsTemporaryRowsAndPreservesExistingSessionState(int unrelatedRows)

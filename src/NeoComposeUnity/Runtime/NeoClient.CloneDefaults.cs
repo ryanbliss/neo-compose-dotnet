@@ -33,6 +33,36 @@ namespace NeoCompose.Runtime
             }
         }
 
+        // Only the standalone clone path calls this. A complete graph of new
+        // Session identities has no old bindings or placements to invalidate,
+        // just like a newly constructed graph. Copies with listener wiring,
+        // replay defaults, or retained external inputs use the ordinary plan.
+        private bool TryPublishFreshSessionClone(NeoWritePlan plan)
+        {
+            if (candidateReplay is not null || isReplayingVirtualInstance
+                || plan.ClonedGraphs is not { Count: 1 })
+                return false;
+            ClonedGraph graph = plan.ClonedGraphs[0];
+            if (graph.Ownership != NeoValueOwnership.Session || graph.Immutable.Count != 0
+                || graph.Rows.Count != plan.Rows.Count || !graph.IsCurrent(plan))
+                return false;
+            foreach (var pair in plan.Rows)
+                if (pair.Key.ownership != NeoValueOwnership.Session || pair.Value is null
+                    || pair.Value.IsRemoved || pair.Value.copiedChangeListeners is not null
+                    || pair.Value is ObjectMemberValue { classId: { } classId } && ResolveClassNode(classId).Tracked
+                    || !graph.Rows.ContainsKey(pair.Key.id)
+                    || TryGetCommittedValue(pair.Key.id, out MemberValue? _))
+                    return false;
+            var rows = new List<MemberValue>(plan.Rows.Count);
+            foreach (var pair in plan.Rows)
+            {
+                StampMapKeyForWrite(pair.Key.ownership, pair.Value!);
+                rows.Add(pair.Value!);
+            }
+            PublishConstructedSessionRows(rows);
+            return true;
+        }
+
         private void CopyCloneDependencies(ClonedGraph graph, ClonedValueOccurrence copies)
         {
             string? Resolve(string id) => copies.ResolveIdentity(this, id);

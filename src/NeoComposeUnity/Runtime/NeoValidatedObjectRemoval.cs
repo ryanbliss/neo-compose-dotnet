@@ -11,6 +11,47 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
+        // A pure removal can prove safety without first walking every removed
+        // child's ancestors. New rows must be complete clone graphs; arbitrary
+        // new values still go through shape and placement validation.
+        private bool TryValidateCachedObjectRemoval(NeoWritePlan plan)
+        {
+            if (plan.Bindings.Count != 0)
+                return false;
+            HashSet<string>? grids = null;
+            foreach (var write in plan.Rows)
+            {
+                if (write.Value is { IsRemoved: false } || plan.Resolve(write.Key.id) is { IsRemoved: false }
+                    || !TryGetCommittedValue(write.Key.id, out MemberValue? previous)
+                    || previous is not ObjectMemberValue { classId: not null }
+                    || !HasWorldKind(previous.classId, "object"))
+                    continue;
+                foreach (var cache in gridLookupCaches)
+                    if (cache.Value.TryGetIndexedObject(write.Key.id, out _, out _))
+                        (grids ??= new()).Add(cache.Key);
+            }
+            if (grids is not { Count: 1 }
+                || plan.PlacementGridId is string grid && !grids.Contains(grid))
+                return false;
+            HashSet<string>? copies = null;
+            foreach (var write in plan.Rows)
+            {
+                if (write.Value is null || TryGetCommittedValue(write.Key.id, out MemberValue? _))
+                    continue;
+                if (copies is null)
+                {
+                    copies = new();
+                    if (plan.ClonedGraphs is not null)
+                        foreach (var clone in plan.ClonedGraphs)
+                            if (clone.IsCurrent(plan))
+                                copies.UnionWith(clone.Rows.Keys);
+                }
+                if (!copies.Contains(write.Key.id))
+                    return false;
+            }
+            return TryValidateObjectRemoval(plan, grids);
+        }
+
         // Removing an ordinary object cannot introduce a placement collision.
         // Prove that this plan only removes its owned rows and creates detached
         // Session aliases before retaining the unrelated grid records.

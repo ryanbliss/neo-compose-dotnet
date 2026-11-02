@@ -1044,7 +1044,7 @@ namespace NeoCompose.Runtime
                 if (sharedEvaluationContext is not null)
                     foreach (var item in changed)
                         if (!plan.Rows.ContainsKey(item) || plan.IsSilent(item))
-                            RefreshSharedEvaluationRow(item.ownership, item.valueId);
+                            RefreshSharedEvaluationRow(item.ownership, item.valueId, plan);
                 OnWritableValuesPublished?.Invoke(changed, plan);
                 plan.NotifyCommitted();
                 OnWritableValuesChanged?.Invoke(changed);

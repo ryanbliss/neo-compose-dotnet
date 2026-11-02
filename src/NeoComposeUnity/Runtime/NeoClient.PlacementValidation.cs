@@ -505,6 +505,8 @@ namespace NeoCompose.Runtime
 
         private void ValidateWritePlan(NeoWritePlan plan, WriteValidationScratch scratch)
         {
+            if (TryValidateCachedObjectRemoval(plan))
+                return;
             HashSet<string>? copied = null;
             if (plan.ClonedGraphs is not null)
                 foreach (var graph in plan.ClonedGraphs)

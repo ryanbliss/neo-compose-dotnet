@@ -10645,7 +10645,11 @@ namespace NeoCompose.Runtime.NeoScript
                 foreach (object alias in aliases)
                 {
                     if (ctx.rowReverseIndex.TryGetValue(alias, out RowReference row) && row.ownership == sourceOwnership)
+                    {
                         SetRowReference(ctx, alias, new RowReference(rowId, targetOwnership, row.classId, row.member));
+                        if (alias is NeoObjectRecord record)
+                            record.Rebind(rowId, targetOwnership);
+                    }
                 }
                 RetargetCachedRow(
                     ctx,
@@ -12234,6 +12238,16 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static bool MayBeRowAlias(object? value) =>
             value is RuntimeSet or object?[] or IDictionary<string, object?> or NeoVector2Value or NeoColorValue or NeoDelegateValue or NeoActionValue;
+
+        // Placement can receive a record created by another evaluator. Enroll
+        // that argument so commit-time ownership changes also reach its alias.
+        internal static void TrackPlacementAlias(object? value, Context ctx)
+        {
+            if (value is NeoObjectRecord record
+                && !ReferenceEquals(record.referenceIndex, ctx.rowReverseIndex)
+                && record.reference is { } source && record.valueId is { } id)
+                SetRowReference(ctx, record, new RowReference(id, record.valueOwnership, source.classId, source.member));
+        }
 
         internal static RowReference? FindRowReference(object? value, Context ctx, bool observe = true)
         {

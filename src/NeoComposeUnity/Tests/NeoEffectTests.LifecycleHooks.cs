@@ -63,6 +63,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void AttachingTrackedCloneRunsOnLoad()
+        {
+            using Fixture fixture = BuildHooked(plants: 1, configure: data =>
+                {
+                    data.classes["class-root"].schema["Plant"] = "member-plant-entry";
+                    ((NSFunctionMember)data.members["member-check"]).Effect = NeoEffectKind.None;
+                });
+            fixture.client.StartScriptRuntime();
+            fixture.recorded.Clear();
+            string clone = fixture.client.CloneValueReference("plant-0", NeoValueOwnership.Save);
+            Assert.IsEmpty(fixture.recorded, "An unattached clone is not live.");
+            fixture.client.SetWritableValues(NeoValueOwnership.Session, new MemberValue[]
+            {
+                ObjectValue("value-session", "class-root", ("Plant", clone)),
+            });
+            CollectionAssert.AreEqual(new[] { (clone, 1000) }, fixture.recorded);
+        }
+
+        [Test]
         public void OnLoadRunsOnceForEachOfAThousandInstances()
         {
             // P98 §8: start runs each OnLoad once, and attaching one runs one.

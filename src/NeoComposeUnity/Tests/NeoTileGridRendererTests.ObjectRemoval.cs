@@ -12,6 +12,22 @@ namespace NeoCompose.Tests
 {
     public partial class NeoTileGridRendererTests
     {
+        [Test]
+        public void DetachedSessionWritesKeepGridIndexesAndTheirVersion()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var cache = primitive.LookupCache;
+            var objects = cache.ObjectRecords(ObjectsLayerClassId);
+            var tiles = cache.TileRecords(BackgroundLayerClassId);
+            int version = cache.ObjectLayersVersion;
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = "temporary", value = 7 });
+            Assert.AreEqual(version, cache.ObjectLayersVersion);
+            Assert.AreSame(objects, cache.ObjectRecords(ObjectsLayerClassId));
+            Assert.AreSame(tiles, cache.TileRecords(BackgroundLayerClassId));
+        }
+
         [TestCase(false)]
         [TestCase(true)]
         public void SimpleObjectRemovalKeepsOtherPlacementsAndFreesItsCells(bool authored)

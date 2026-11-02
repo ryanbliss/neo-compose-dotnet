@@ -83,7 +83,7 @@ public class NeowynChargedPickaxeBenchmark
         foreach (var cell in cells)
         {
             foreach (var old in placement.Content.ForegroundPrimaryObjects.GetObjects<PlacedItem>(cell).ToArray())
-                old.Despawn(placement.Content);
+                old.Despawn();
             var rock = DestructablePlacedItem.Variants.Vein.Iron.Full.Initialize();
             Assert.That(placement.Content.ForegroundPrimaryObjects.TrySpawn(cell - rock.Anchor, rock).Ok, Is.True);
         }

@@ -3081,16 +3081,19 @@ namespace NeoCompose.Runtime
             int rootLength = rootId.Length - rootStart;
             int rootBytes = Encoding.UTF8.GetByteCount(rootId.AsSpan(rootStart));
             int sourceBytes = sourceIdentity is null ? 0 : 1 + Encoding.UTF8.GetByteCount(sourceIdentity);
-            var input = new byte[namespaceBytes.Length + rootBytes + sourceBytes];
-            Buffer.BlockCopy(namespaceBytes, 0, input, 0, namespaceBytes.Length);
-            Encoding.UTF8.GetBytes(rootId, rootStart, rootLength, input, namespaceBytes.Length);
+            int inputLength = namespaceBytes.Length + rootBytes + sourceBytes;
+            Span<byte> input = inputLength <= 512 ? stackalloc byte[inputLength] : new byte[inputLength];
+            namespaceBytes.AsSpan().CopyTo(input);
+            Encoding.UTF8.GetBytes(rootId.AsSpan(rootStart, rootLength), input.Slice(namespaceBytes.Length));
             if (sourceIdentity is not null)
             {
                 int separator = namespaceBytes.Length + rootBytes;
                 input[separator] = (byte)':';
-                Encoding.UTF8.GetBytes(sourceIdentity, 0, sourceIdentity.Length, input, separator + 1);
+                Encoding.UTF8.GetBytes(sourceIdentity.AsSpan(), input.Slice(separator + 1));
             }
-            byte[] hash = sha1.ComputeHash(input);
+            Span<byte> hash = stackalloc byte[20];
+            if (!sha1.TryComputeHash(input, hash, out _))
+                throw new InvalidOperationException("Could not derive a value identity.");
             hash[6] = (byte)((hash[6] & 0x0f) | 0x50);
             hash[8] = (byte)((hash[8] & 0x3f) | 0x80);
             string valueId = new Guid(

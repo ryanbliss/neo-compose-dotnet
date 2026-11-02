@@ -11,7 +11,7 @@ namespace NeoCompose.Runtime
 {
     public partial class NeoClient
     {
-        internal NeoPlacementOutcome TrySpawnChild(NeoGeneratedClassValue parent, Vector2Int cell, NeoGeneratedClassValue child)
+        internal NeoPlacementOutcome TrySpawnChild(NeoGeneratedClassValue parent, Vector2Int cell, NeoGeneratedClassValue child, NeoScript.NSGetterEvaluator.Context? aliasContext = null)
         {
             if (!ReferenceEquals(parent.Client, this) || !ReferenceEquals(child.Client, this))
                 throw new ArgumentException("Parent and child must belong to the same client.");
@@ -38,6 +38,7 @@ namespace NeoCompose.Runtime
                     if (gridId is null)
                         ValidateDetachedWorldContent(root);
                 }
+                RetargetPlacementAliases(plan, aliasContext);
                 plan.Commit();
                 return NeoPlacementOutcome.Success();
             }
@@ -49,7 +50,8 @@ namespace NeoCompose.Runtime
 
         internal NeoPlacementOutcome TryPlaceLayerEntry(
             NeoGeneratedClassValue link, Vector2Int cell, NeoGeneratedClassValue entry, bool tile,
-            NeoValueOwnership? tileOverlayOwnership = null, NeoWritePlan? preparedPlan = null)
+            NeoValueOwnership? tileOverlayOwnership = null, NeoWritePlan? preparedPlan = null,
+            NeoScript.NSGetterEvaluator.Context? aliasContext = null)
         {
             if (!ReferenceEquals(link.Client, this) || !ReferenceEquals(entry.Client, this))
                 throw new ArgumentException("The layer link and placement must belong to the same client.");
@@ -75,7 +77,7 @@ namespace NeoCompose.Runtime
                 var collection = NeoGeneratedTypesSupport.AsWritable(link.BackingNode, link.StorageOwnership)
                     .Get<NeoMemberList>(collectionKey);
                 if (collection.ownership == NeoValueOwnership.Asset && tile && tileOverlayOwnership is NeoValueOwnership.Save or NeoValueOwnership.Session)
-                    return TryPlaceConstructedTileOverlay(link, collection, entry, cell, layerId, tileOverlayOwnership.Value);
+                    return TryPlaceConstructedTileOverlay(link, collection, entry, cell, layerId, tileOverlayOwnership.Value, aliasContext);
                 if (collection.ownership == NeoValueOwnership.Asset)
                     throw new InvalidOperationException($"Cannot place content into immutable layer-link collection '{collectionKey}'.");
                 if (collection is not NeoMemberListWritable list)
@@ -144,6 +146,7 @@ namespace NeoCompose.Runtime
                 }
                 if (grid?.Lifecycle is not null)
                     grid.BeforeLinkPlacement(linkId, layerId, cell, entry, tile);
+                RetargetPlacementAliases(plan, aliasContext);
                 if (preparedPlan is null)
                     plan.Commit();
                 return NeoPlacementOutcome.Success();
@@ -213,7 +216,7 @@ namespace NeoCompose.Runtime
 
         private NeoPlacementOutcome TryPlaceConstructedTileOverlay(
             NeoGeneratedClassValue link, NeoMemberList collection, NeoGeneratedClassValue entry,
-            Vector2Int cell, string layerId, NeoValueOwnership ownership)
+            Vector2Int cell, string layerId, NeoValueOwnership ownership, NeoScript.NSGetterEvaluator.Context? aliasContext)
         {
             AssertConstructedValueAdoptable(ownership, entry);
             var (gridId, origin) = LayerLinkPlacementOrigin(link);
@@ -248,8 +251,28 @@ namespace NeoCompose.Runtime
             using (ReadCandidate(plan))
                 ValidateWritePlan(plan);
             grid.BeforeLinkPlacement(link.valueId!, layerId, cell, entry, true);
+            RetargetPlacementAliases(plan, aliasContext);
             plan.Commit();
             return NeoPlacementOutcome.Success();
+        }
+
+        // The caller can hold a private or retired evaluation cache. Shared
+        // aliases move during publication; this context must follow too.
+        private void RetargetPlacementAliases(NeoWritePlan plan, NeoScript.NSGetterEvaluator.Context? context)
+        {
+            if (context is null)
+                return;
+            plan.AfterCommit(() => NeoScript.NSGetterEvaluator.RetargetCachedRowsAfterMove(
+                context, NeoValueOwnership.Session, PersistedOwnership, PromotedIds()));
+
+            IEnumerable<string> PromotedIds()
+            {
+                foreach (var row in plan.Rows)
+                    if (row.Key.ownership == NeoValueOwnership.Session && row.Value is null
+                        && plan.Rows.TryGetValue((PersistedOwnership, row.Key.id), out var target)
+                        && target is { IsRemoved: false })
+                        yield return row.Key.id;
+            }
         }
 
         // Direct grid links already store grid cells. Carried links project
