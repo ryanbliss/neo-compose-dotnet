@@ -6,7 +6,7 @@
 
 - Explicitly unbox int and enum values through their shared Int32 representation for non-nullable int or enum targets. Nullable targets and type tests still require the exact boxed type.
 
-- Use CLR type names in unboxing and enum argument errors, including nested and nullable tuple names.
+- Cast and enum argument errors use CLR names for primitives, `object`, `Enum`, `ValueType`, `NumberStyles`/`DigitShapes`, tuples and nullable values. Collections, system interfaces and user types keep their NeoScript names.
 
 - Evaluate user operators through their selected static or interface member, with ordered `let` bindings for short-circuit operators. Reject malformed stored operators with the compiler contract's declaration, containing-type, pair and checked-operator rules.
 - Dispatch primitive interface calls and method groups through cached canonical signatures, including numeric default interface bodies, parsing, conversion hooks and checked arithmetic. Primitive reflection uses the conformance table's order.
