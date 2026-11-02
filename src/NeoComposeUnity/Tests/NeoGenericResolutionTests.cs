@@ -493,7 +493,7 @@ namespace NeoCompose.Tests
             };
             data.members[foreign.id] = foreign;
             Assert.AreSame(foreign, client.TryResolveOwnedChildMember(damage, null, "Foreign", declaredMember: foreign));
-            damage.genericBindings = new Dictionary<string, string> { ["foreign-param"] = "member-binding-string" };
+            damage.genericBindings = new Dictionary<string, TypeBinding> { ["foreign-param"] = NeoGenericTestFixture.StringArgument };
             Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(damage, null, "Foreign", declaredMember: foreign));
             var forwarded = new ClassMember
             {
@@ -501,25 +501,21 @@ namespace NeoCompose.Tests
                 kind = MemberKind.Class,
                 name = "Forwarded",
                 DeclaredClassId = "class-enchant",
-                classArguments = new Dictionary<string, GenericBinding>
-                {
-                    [NeoGenericTestFixture.ParamT] = new GenericBinding { kind = NeoGenericBindingKind.Generic, genericParamId = "foreign-param" },
-                },
+                classArguments = TestTypeBindings.Arguments((NeoGenericTestFixture.ParamT, TestTypeBindings.Open("class-foreign", "foreign-param"))),
             };
             data.members[forwarded.id] = forwarded;
             var first = (ClassMember)client.TryResolveOwnedChildMember(damage, null, "Forwarded", declaredMember: forwarded)!;
-            Assert.AreEqual("member-binding-string", first.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
-            damage.genericBindings["foreign-param"] = "member-binding-float";
+            Assert.AreEqual(NeoGenericTestFixture.StringArgument, first.TypeArguments![NeoGenericTestFixture.ParamT]);
+            damage.genericBindings["foreign-param"] = NeoGenericTestFixture.FloatArgument;
             var second = (ClassMember)client.TryResolveOwnedChildMember(damage, null, "Forwarded", declaredMember: forwarded)!;
-            Assert.AreEqual("member-binding-float", second.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
-            Assert.AreEqual("member-binding-string", first.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
+            Assert.AreEqual(NeoGenericTestFixture.FloatArgument, second.TypeArguments![NeoGenericTestFixture.ParamT]);
+            Assert.AreEqual(NeoGenericTestFixture.StringArgument, first.TypeArguments![NeoGenericTestFixture.ParamT]);
             var customized = (GenericMember)data.members["member-speed"].ShallowClone();
             customized.Storage = NeoMemberStorage.Session;
             Assert.AreEqual(NeoMemberStorage.Session,
                 client.TryResolveOwnedChildMember(damage, null, "Speed", declaredMember: customized)!.Storage);
             Assert.AreNotEqual(NeoMemberStorage.Session, numberMember!.Storage);
-            data.classes["class-damage"].extendsGenericBindings![NeoGenericTestFixture.ParamU] =
-                new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = "member-binding-string" };
+            data.classes["class-damage"].extendsGenericBindings![NeoGenericTestFixture.ParamU] = NeoGenericTestFixture.StringArgument;
             client.InvalidateSchemaResolutionCaches();
             Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(damage, null, "Speed"));
         }
@@ -532,10 +528,10 @@ namespace NeoCompose.Tests
             {
                 id = "open-copy",
                 classId = "class-enchant",
-                genericBindings = new Dictionary<string, string> { [NeoGenericTestFixture.ParamT] = "member-binding-float" },
+                genericBindings = new Dictionary<string, TypeBinding> { [NeoGenericTestFixture.ParamT] = NeoGenericTestFixture.FloatArgument },
             };
             Assert.IsInstanceOf<FloatMember>(client.TryResolveOwnedChildMember(row, null, "Speed"));
-            row.genericBindings[NeoGenericTestFixture.ParamT] = "member-binding-string";
+            row.genericBindings[NeoGenericTestFixture.ParamT] = NeoGenericTestFixture.StringArgument;
             Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(row, null, "Speed"));
         }
 
@@ -1225,6 +1221,55 @@ namespace NeoCompose.Tests
             card.SetSerializedValue("Speed", NeoValueWritePayload.FromValue((double?)2.5));
 
             Assert.AreEqual(2.5, card.Get<NeoMemberFloatWritable>("Speed").value?.value);
+        }
+
+        [Test]
+        public void GenericBindingsStamp_RoundTripsThroughEnvFromStamp()
+        {
+            using var client = LoadClient();
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var parameters = NeoGenericResolution.ReferencedGenericParams(client, client.members["member-values"]);
+            var entries = new Dictionary<string, NeoGenericEnvEntry>();
+            foreach (string parameter in parameters)
+                entries[parameter] = env[parameter];
+
+            var stamp = NeoGenericResolution.GenericBindingsStamp(client, entries, env);
+            Assert.AreEqual(1, stamp.Count);
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.Float), stamp[NeoGenericTestFixture.ParamT]);
+
+            var rebuilt = NeoGenericResolution.EnvFromStamp(client, stamp);
+            Assert.IsTrue(rebuilt[NeoGenericTestFixture.ParamT].IsBound);
+            Assert.AreEqual(TestTypeBindings.Of(MemberKind.Float),
+                NeoTypeBindings.OfEntry(client, rebuilt[NeoGenericTestFixture.ParamT], rebuilt));
+        }
+
+        [Test]
+        public void GenericBindingsStamp_NonGenericSubtree_IsEmpty()
+        {
+            using var client = LoadClient();
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var parameters = NeoGenericResolution.ReferencedGenericParams(client, client.members["member-plain-list"]);
+            Assert.IsEmpty(parameters);
+            var entries = new Dictionary<string, NeoGenericEnvEntry>();
+            foreach (string parameter in parameters)
+                entries[parameter] = env[parameter];
+
+            Assert.IsEmpty(NeoGenericResolution.GenericBindingsStamp(client, entries, env));
+        }
+
+        [Test]
+        public void GenericBindingsStamp_UnboundEnv_Throws()
+        {
+            using var client = LoadClient();
+            var env = NeoGenericResolution.ResolveEnv(client, "class-middle");
+            var parameters = NeoGenericResolution.ReferencedGenericParams(client, client.members["member-values"]);
+            var entries = new Dictionary<string, NeoGenericEnvEntry>();
+            foreach (string parameter in parameters)
+                entries[parameter] = env[parameter];
+
+            var error = Assert.Throws<InvalidOperationException>(
+                () => NeoGenericResolution.GenericBindingsStamp(client, entries, env))!;
+            StringAssert.Contains("unbound", error.Message);
         }
 
         [Test]
