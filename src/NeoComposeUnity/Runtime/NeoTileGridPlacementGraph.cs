@@ -19,13 +19,97 @@ namespace NeoCompose.Runtime
 
         internal void ForgetPlacementGraph() => placementGraph = null;
 
+        // The validated insertion path admits one new object without carried
+        // placements. Retain existing nodes; only its subtree needs inspecting.
+        internal void InsertPlacementGraphObject(string listId, string instanceId)
+        {
+            var graph = placementGraph;
+            if (graph is null)
+                return;
+            PlacementNode? parent = null;
+            foreach (var node in graph.Ordered)
+                if (node.Link is { IsTileLink: false } link && link.ListValueId == listId)
+                {
+                    parent = node;
+                    break;
+                }
+            if (parent?.Link is not { } parentLink || graph.Nodes.ContainsKey(instanceId))
+            {
+                ForgetPlacementGraph();
+                return;
+            }
+            int slot = 0;
+            foreach (string id in ResolveListEntryIds(listId, null))
+            {
+                if (id == instanceId)
+                    break;
+                slot++;
+            }
+            int at = graph.Ordered.IndexOf(parent) + 1;
+            if (slot < parent.Children.Count)
+                at = graph.Ordered.IndexOf(parent.Children[slot]);
+            else
+                while (at < graph.Ordered.Count && DescendsFrom(graph.Ordered[at], parent))
+                    at++;
+            int previousCount = graph.Ordered.Count;
+            try
+            {
+                var added = CollectPlacementNode(graph, instanceId, parent,
+                    new HashSet<string>(StringComparer.Ordinal) { parent.Row.id }, 1,
+                    parentLink.LayerId, parentLink.LinkValueId, ResolveCollectionOwnership(listId));
+                if (added is null || graph.Ordered.Count != previousCount + 1 || slot > parent.Children.Count)
+                {
+                    ForgetPlacementGraph();
+                    return;
+                }
+                graph.Ordered.RemoveAt(previousCount);
+                graph.Ordered.Insert(at, added);
+                parent.Children.Insert(slot, added);
+            }
+            catch
+            {
+                ForgetPlacementGraph();
+                throw;
+            }
+        }
+
+        // Validation proved this root has no carried placements and keeps its
+        // position/footprint. Refresh its row and dependencies without rereading
+        // every other object on the grid.
+        internal void RefreshPlacementGraphObject(NeoValidatedObjectRefresh refresh)
+        {
+            if (placementGraph is not { } graph || !graph.Nodes.TryGetValue(refresh.ObjectId, out var node))
+                return;
+            if (client.ResolveValueRow(refresh.ObjectId) is not ObjectMemberValue row)
+            {
+                ForgetPlacementGraph();
+                return;
+            }
+            node.Row = row;
+            graph.Dependencies.UnionWith(refresh.PlacementDependencyIds);
+            graph.Dependencies.UnionWith(refresh.CarriedDependencyIds);
+            node.Position = ReadPosition(row, graph.Dependencies, null);
+            node.Offset = ((node.Parent?.Offset.x ?? 0) + node.Position.x, (node.Parent?.Offset.y ?? 0) + node.Position.y);
+            node.Enabled = (node.Parent?.Enabled ?? true) && ReadEnabled(row, graph.Dependencies, graph.EnabledDependencies);
+            node.PositionRowId = client.ResolveClassChildRow(row, "Position")?.id;
+            node.EnabledRowId = client.ResolveClassChildRow(row, "Enabled")?.id;
+        }
+
+        private static bool DescendsFrom(PlacementNode node, PlacementNode ancestor)
+        {
+            for (var parent = node.Parent; parent is not null; parent = parent.Parent)
+                if (ReferenceEquals(parent, ancestor))
+                    return true;
+            return false;
+        }
+
         internal bool PlacementGraphDependsOn(HashSet<string> ids) => placementGraph?.Dependencies.Overlaps(ids) != false;
 
         // One node per placement or ancestor leading to placements. Pure visual
         // subtrees contribute structural dependencies but occupy no graph nodes.
         internal sealed class PlacementNode
         {
-            internal readonly ObjectMemberValue Row;
+            internal ObjectMemberValue Row;
             internal readonly List<PlacementNode> Children = new();
             internal PlacementNode? Parent;
             internal NeoGridLayerLinkModel? Link;

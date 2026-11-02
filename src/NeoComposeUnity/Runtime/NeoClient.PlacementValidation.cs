@@ -155,17 +155,27 @@ namespace NeoCompose.Runtime
         private void AddPlacementParent(NeoValueOwnership ownership, string child, string parent)
         {
             if (!writablePlacementParents!.TryGetValue((ownership, child), out object? parents))
+            {
+                orderedInferenceParents.Remove((ownership, child));
                 writablePlacementParents[(ownership, child)] = parent;
+            }
             else if (parents is HashSet<string> set)
-                set.Add(parent);
+            {
+                if (set.Add(parent))
+                    orderedInferenceParents.Remove((ownership, child));
+            }
             else if (!string.Equals((string)parents, parent, StringComparison.Ordinal))
+            {
+                orderedInferenceParents.Remove((ownership, child));
                 writablePlacementParents[(ownership, child)] = new HashSet<string>(StringComparer.Ordinal) { (string)parents, parent };
+            }
         }
 
         private void RemovePlacementParent(NeoValueOwnership ownership, string child, string parent)
         {
             if (!writablePlacementParents!.TryGetValue((ownership, child), out object? parents))
                 return;
+            orderedInferenceParents.Remove((ownership, child));
             if (parents is HashSet<string> set)
             {
                 if (set.Remove(parent) && set.Count == 0)

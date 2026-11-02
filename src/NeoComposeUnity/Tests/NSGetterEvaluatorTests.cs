@@ -104,13 +104,19 @@ namespace NeoCompose.Tests
             var last = client.ResolveInstanceSurfaceMember("wide", "Field1999");
             Assert.AreEqual("Field1999", last!.memberId);
             Assert.AreSame(last, client.ResolveInstanceSurfaceMember("wide", "Field1999"));
+            Assert.AreSame(last, client.ResolveClassNode("wide").SurfaceMemberIgnoreCase("fIELD1999"));
+            Assert.IsNotNull(client.FindSchemaPlacement("Field1999"));
+            Assert.IsNull(client.FindSchemaPlacement("not-a-member"));
             var firstContext = client.CreateGetterContext(NeoValueOwnership.Session);
             firstContext.callableDispatchCache[("wide", "Method")] = "original";
             Assert.AreSame(firstContext.callableDispatchCache, client.CreateGetterContext(NeoValueOwnership.Save).callableDispatchCache);
             data.classes["wide"].schema["Field1999"] = "Field0";
             client.InvalidateSchemaResolutionCaches();
             Assert.AreEqual("Field0", client.ResolveInstanceSurfaceMember("wide", "Field1999")!.memberId);
+            Assert.AreEqual("Field0", client.ResolveClassNode("wide").SurfaceMemberIgnoreCase("FIELD1999")!.memberId);
             Assert.IsEmpty(firstContext.callableDispatchCache);
+            Assert.IsNull(client.FindSchemaPlacement("Field1999"));
+            Assert.IsNotNull(client.FindSchemaPlacement("Field0"));
         }
 
         private static NSPropertyMember RequireNSGetter(NeoClient client, string id)

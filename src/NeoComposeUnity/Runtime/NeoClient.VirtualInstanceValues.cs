@@ -1008,6 +1008,17 @@ namespace NeoCompose.Runtime
             ObjectMemberValue source = node.value
                 ?? throw new InvalidOperationException(
                     $"Variant '{record.id}' produced a node with no backing value row.");
+            // A fresh Session construction already contains the initializer's
+            // result. Recording its recipe must not execute that recipe again.
+            // Reselections and roots already expanded retain the normal write path.
+            if (node.ownership == NeoValueOwnership.Session
+                && source.instanceVariantId is null
+                && !virtualRootByFootprintId.ContainsKey(source.id))
+            {
+                source.instanceVariantId = record.id;
+                source.instanceVariantRowValueId = lookupRowValueId;
+                return;
+            }
             var root = (ObjectMemberValue)CloneRowForWrite(source);
             root.instanceVariantId = record.id;
             root.instanceVariantRowValueId = lookupRowValueId;

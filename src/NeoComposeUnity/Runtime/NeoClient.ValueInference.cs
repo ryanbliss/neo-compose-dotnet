@@ -14,6 +14,26 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         private AuthoredValueInferenceIndex? authoredValueInferenceIndex;
+        private readonly Dictionary<(NeoValueOwnership ownership, string child), string[]> orderedInferenceParents = new();
+
+        private string[] OrderedCommittedParents(NeoValueOwnership ownership, string childId, IReadOnlyDictionary<string, MemberValue> rows)
+        {
+            NeoClient owner = PlacementIndexOwner(ownership);
+            var key = (ownership, childId);
+            if (owner.orderedInferenceParents.TryGetValue(key, out var ordered))
+                return ordered;
+            object? parents = IndexedPlacementParents(ownership, childId);
+            var result = new List<string>();
+            int count = parents is HashSet<string> set ? set.Count : parents is string ? 1 : 0;
+            foreach (string id in rows.Keys)
+                if (HasPlacementParent(parents, id))
+                {
+                    result.Add(id);
+                    if (result.Count == count)
+                        break;
+                }
+            return owner.orderedInferenceParents[key] = result.ToArray();
+        }
 
         // Authored rows are immutable between partition/schema changes.
         // Writable parent edges are maintained by the shared write path.
@@ -80,7 +100,7 @@ namespace NeoCompose.Runtime
                     // Replacements retain their store position; new staged rows
                     // and private allocations follow existing rows. Only ambiguous
                     // references need this ordered fallback.
-                    foreach (string orderedId in OrderedWritableParentIds(ownership, rows))
+                    foreach (string orderedId in OrderedWritableParentIds(ownership, rows, childId, candidates))
                     {
                         if (!candidates.Contains(orderedId))
                             continue;
@@ -100,9 +120,22 @@ namespace NeoCompose.Runtime
         }
 
         private IEnumerable<string> OrderedWritableParentIds(
-            NeoValueOwnership ownership, IReadOnlyDictionary<string, MemberValue> rows)
+            NeoValueOwnership ownership, IReadOnlyDictionary<string, MemberValue> rows,
+            string childId, HashSet<string> candidates)
         {
-            foreach (string id in rows.Keys)
+            object? parents = IndexedPlacementParents(ownership, childId);
+            bool needsFullOrder = false;
+            if (candidateReadPlan is not null)
+                foreach (string id in candidates)
+                    if (rows.ContainsKey(id) && !HasPlacementParent(parents, id))
+                    {
+                        needsFullOrder = true;
+                        break;
+                    }
+            // A staged replacement can introduce a new parent at an existing
+            // store position. Preserve the full ordering for that uncommon case.
+            IEnumerable<string> committed = needsFullOrder ? rows.Keys : OrderedCommittedParents(ownership, childId, rows);
+            foreach (string id in committed)
                 yield return id;
             if (candidateReadPlan is null)
                 yield break;

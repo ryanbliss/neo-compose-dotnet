@@ -57,6 +57,53 @@ namespace NeoCompose.Tests
             AssertMember(client, "first-value");
         }
 
+        [Test]
+        public void OrderedParentCacheTracksRemovalReinsertionAndReplacement()
+        {
+            using var client = CreateClient();
+            client.SetWritableValues(NeoValueOwnership.Session, new[]
+            {
+                Parent("first-parent", "first"), Parent("second-parent", "second"),
+            });
+            AssertMember(client, "first-value");
+            AssertMember(client, "first-value");
+            var remove = new NeoWritePlan(client);
+            remove.Remove(NeoValueOwnership.Session, "first-parent");
+            remove.Commit();
+            AssertMember(client, "second-value");
+            client.SetWritableValues(NeoValueOwnership.Session, new[] { Parent("first-parent", "first") });
+            string expected = null!;
+            foreach (var row in client.sessionValues)
+                if (row.Key is "first-parent" or "second-parent")
+                {
+                    expected = row.Key == "first-parent" ? "first-value" : "second-value";
+                    break;
+                }
+            AssertMember(client, expected);
+            client.SetWritableValues(NeoValueOwnership.Session, new[] { Parent("first-parent", "first", referencesChild: false) });
+            AssertMember(client, "second-value");
+        }
+
+        [Test]
+        public void ConcreteParentOwnershipUsesTheFieldsStorageAndTracksSchemaChanges()
+        {
+            using var client = CreateClient();
+            Assert.IsTrue(client.TryGetMember("first-value", out Member? field));
+            field!.Storage = NeoMemberStorage.Session;
+            client.InvalidateSchemaResolutionCaches();
+            client.SetWritableValues(NeoValueOwnership.Save, new[] { Parent("save-parent", "first") });
+            Assert.IsTrue(client.TryFindOwnedParent(NeoValueOwnership.Session, "child", out string? parent, out var ownership));
+            Assert.AreEqual("save-parent", parent);
+            Assert.AreEqual(NeoValueOwnership.Save, ownership);
+            Assert.IsFalse(client.TryFindOwnedParent(NeoValueOwnership.Save, "child", out _));
+
+            field.Storage = NeoMemberStorage.Save;
+            client.InvalidateSchemaResolutionCaches();
+            Assert.IsTrue(client.TryFindOwnedParent(NeoValueOwnership.Save, "child", out parent));
+            Assert.AreEqual("save-parent", parent);
+            Assert.IsFalse(client.TryFindOwnedParent(NeoValueOwnership.Session, "child", out _));
+        }
+
         private static void AssertMember(NeoClient client, string expectedId)
         {
             Assert.IsTrue(client.TryInferMemberForValueId("child", out Member? member));

@@ -1,5 +1,8 @@
 # Neowyn movement benchmark
 
+For crowded-world sleeping, spawning, and bookkeeping, use the separate
+[overnight benchmark](overnight.md).
+
 `NeowynMovementBenchmark.cs` exercises the actual Neowyn menu, bundled export,
 new local save, generated character setters, walk animation and player input.
 It belongs outside the SDK test assembly because it depends on Neowyn types.

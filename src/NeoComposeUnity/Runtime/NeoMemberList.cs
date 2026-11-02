@@ -431,6 +431,8 @@ namespace NeoCompose.Runtime
                 return System.Array.Empty<string>();
             if (!isUnordered)
                 return value.value;
+            if (value.value.Length == 0)
+                return client.GetUnorderedListEntryIds(value.id);
             var ids = new List<string>();
             var seen = new HashSet<string>();
             foreach (var entryId in value.value)
