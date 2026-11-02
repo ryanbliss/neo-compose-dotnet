@@ -10197,12 +10197,25 @@ namespace NeoCompose.Runtime
                     candidateReadPlan.CollectParentCandidates(id, parents);
                 if (candidateReplay is not null)
                 {
-                    // A replay's proposed expansion is not indexed; any id in
-                    // it falls back to the full collector.
+                    // A proposed value graph has no complete incoming-edge index.
+                    // A placement alone only describes a slot: an override can
+                    // detach its old value while retaining that placement.
                     if (candidateReplay.Values.ContainsKey(id)
-                        || candidateReplay.Placements.ContainsKey(id)
                         || candidateReplay.Allocations.ContainsKey(id))
                         return false;
+                    if (candidateReplay.Placements.TryGetValue(id, out var proposedPlacement))
+                    {
+                        parents.Add(proposedPlacement.parentValueId);
+                        // Other proposed rows have no committed reverse index.
+                        // A reference outside this slot still needs the full walk.
+                        foreach (var proposed in candidateReplay.Values)
+                            if (proposed.Key != proposedPlacement.parentValueId
+                                && PlacementChildIds(proposed.Value).Contains(id))
+                                return false;
+                        foreach (var proposed in candidateReplay.ClassChildren)
+                            if (proposed.Key != proposedPlacement.parentValueId && proposed.Value.ContainsValue(id))
+                                return false;
+                    }
                     if (candidateReplay.Parents.TryGetValue(id, out var allocationParents))
                         parents.UnionWith(allocationParents);
                     // The replay hides a placement by its root, the collector

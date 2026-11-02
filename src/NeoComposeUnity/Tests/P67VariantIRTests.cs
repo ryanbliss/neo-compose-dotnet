@@ -613,6 +613,39 @@ namespace NeoCompose.Tests
             Assert.AreEqual("up", ReadLabel(client, node));
         }
 
+        [Test]
+        public void VariantApply_ReusesThePreparedNestedGraph()
+        {
+            ProjectData data = BuildVariantProjectData();
+            AddOverriddenBoxGroup(data);
+            AddHeldWidget(data);
+            ((ClassMember)data.members["widget-group"]).Storage = NeoMemberStorage.Inherit;
+            ((IntMember)data.members["box-count"]).Storage = NeoMemberStorage.Inherit;
+            // Neither selection runs an Apply closure that would clear another pin.
+            ((ObjectMemberValue)data.values["value-variant-up"]).value!.Remove("Apply");
+            ((ObjectMemberValue)data.values["value-variant-up"]).value!["Initialize"] = "value-plain-initialize";
+            ObjectMemberValue saved = ObjectValue("saved-held", WidgetClassId, ("Group", "saved-group"));
+            saved.instanceVariantId = "variant-plain";
+            JObject content = JObject.Parse(SaveContentHolding(data, saved));
+            var nested = ObjectValue("saved-group", BoxClassId);
+            nested.instanceConstructorId = null;
+            nested.constructorArgs = new Dictionary<string, JToken?>();
+            content["values"]![nested.id] = JObject.FromObject(nested);
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content.ToString());
+            var node = client.save.Get<NeoMemberClassWritable>("Held");
+            NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], node, node.ownership);
+            var group = node.Get<NeoMemberClassWritable>("Group");
+            for (int i = 0; i < 3; i++)
+            {
+                int before = client.VirtualReplayCount;
+                NeoVariantSupport.ApplyToNode(client, client.variants[i % 2 == 0 ? "variant-up" : "variant-plain"], node, node.ownership);
+                Assert.AreEqual(2, client.VirtualReplayCount - before,
+                    "The root and nested Group replay once, then commit installs that prepared graph.");
+                Assert.AreSame(group, node.Get<NeoMemberClassWritable>("Group"));
+                Assert.AreEqual(7d, group.Get<NeoMemberIntWritable>("Count").value?.value);
+            }
+        }
+
         /// <summary>
         /// A loaded child with its own construction recipe must receive the new
         /// variant's overrides even when its parent restores a construction snapshot.
@@ -823,8 +856,9 @@ namespace NeoCompose.Tests
         /// the despawn removes that footprint. The stack's recipe names
         /// <c>Data</c>, so <c>Data</c> and everything it owns must survive.
         /// </summary>
-        [Test]
-        public void DespawningALoadedVariantRootKeepsWhatARecipesInputOwns()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RemovingALoadedVariantsDataKeepsWhatARecipesInputOwns(bool clearThroughVariant)
         {
             ProjectData data = ClonedBoxProjectData();
             AddHeldWidget(data);
@@ -846,6 +880,12 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             });
 
+            if (clearThroughVariant)
+            {
+                ((ClassMember)data.members["widget-data"]).Requirement = NeoMemberRequirementKind.Optional;
+                ((ObjectMemberValue)data.values["value-plain-overrides"]).value!["Data"] = "null-data";
+                data.values["null-data"] = new NullMemberValue { id = "null-data" };
+            }
             string saved;
             using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: content.ToString()))
             {
@@ -856,15 +896,23 @@ namespace NeoCompose.Tests
                     client, BoxRecipeClassId, "box-recipe-ctor",
                     new[] { new NeoDeclaredConstructorArgument("config", input) });
 
-                // NeoTileGridPrimitive.RemoveMemberRow's write.
-                var root = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
-                root.value!.Remove("Held");
-                var plan = new NeoWritePlan(client);
-                plan.Set(NeoValueOwnership.Save, root);
-                client.StageOwnedRemoval(plan, NeoValueOwnership.Save, "saved-held",
-                    client.TryInferMemberForValueId("saved-held", out JsonMember? member) ? member : null);
-                plan.Commit();
-                Assert.IsFalse(client.saveValues.ContainsKey("saved-held"), "The owner itself still goes.");
+                if (clearThroughVariant)
+                {
+                    NeoVariantSupport.ApplyToNode(client, client.variants["variant-plain"], owner, owner.ownership);
+                    Assert.IsNull(owner.Get<NeoMemberClass>("Data").value?.value);
+                }
+                else
+                {
+                    // NeoTileGridPrimitive.RemoveMemberRow's write.
+                    var root = (ObjectMemberValue)client.CloneRowForWrite(client.save.value!);
+                    root.value!.Remove("Held");
+                    var plan = new NeoWritePlan(client);
+                    plan.Set(NeoValueOwnership.Save, root);
+                    client.StageOwnedRemoval(plan, NeoValueOwnership.Save, "saved-held",
+                        client.TryInferMemberForValueId("saved-held", out JsonMember? member) ? member : null);
+                    plan.Commit();
+                    Assert.IsFalse(client.saveValues.ContainsKey("saved-held"), "The owner itself still goes.");
+                }
 
                 NeoGeneratedTypesSupport.SetValue(client.save, "Recipe",
                     NeoGeneratedTypesSupport.ValueReference(new BoxRecipeValue(client, recipe)));

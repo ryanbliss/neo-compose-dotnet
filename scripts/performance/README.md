@@ -1,5 +1,8 @@
 # Neowyn movement benchmark
 
+For synchronous charged-tool destruction and variant changes, use the
+[charged pickaxe benchmark](charged-pickaxe.md).
+
 For crowded-world sleeping, spawning, and bookkeeping, use the separate
 [overnight benchmark](overnight.md).
 
