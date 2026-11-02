@@ -13,6 +13,16 @@ namespace NeoCompose.Runtime
     {
         private GridPlacementGraph? placementGraph;
 
+        internal GridPlacementGraph? CachedPlacementGraph => placementGraph;
+
+        internal void RemovePlacementGraphObject(string objectId)
+        {
+            if (placementGraph is not { } graph || !graph.Nodes.Remove(objectId, out var node))
+                return;
+            node.Parent?.Children.Remove(node);
+            graph.Ordered.Remove(node);
+        }
+
         internal bool RetainPlacementGraph;
         internal GridPlacementGraph PlacementGraph => RetainPlacementGraph
             ? placementGraph ??= BuildPlacementGraph() : BuildPlacementGraph();

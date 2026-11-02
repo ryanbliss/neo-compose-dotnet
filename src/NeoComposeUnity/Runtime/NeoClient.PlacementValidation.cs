@@ -619,6 +619,8 @@ namespace NeoCompose.Runtime
                 foreach (string objectId in objects)
                     if (ResolveValueRow(objectId) is ObjectMemberValue obj && !obj.IsRemoved)
                         ValidateObjectFootprint(obj);
+                if (TryValidateObjectRemoval(plan, grids))
+                    return;
                 if (TryValidateObjectInsertion(plan, primitives, compatibleLayers))
                     return;
                 if (TryValidateDirectTileConversions(plan, scratch))

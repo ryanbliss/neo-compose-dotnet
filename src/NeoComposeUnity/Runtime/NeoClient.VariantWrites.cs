@@ -149,6 +149,9 @@ namespace NeoCompose.Runtime
             internal readonly PreparedVirtualExpansion Expansion;
             // Virtual rows copy the root's map key, which the commit can stamp in place.
             internal readonly string? MapKey;
+            internal readonly Dictionary<string, (ObjectMemberValue root, string? mapKey)> NestedRoots = new();
+
+            internal bool NestedMapKeysMatch() => NestedRoots.Values.All(entry => entry.root.mapKey == entry.mapKey);
 
             internal PreparedVariant(NeoWritePlan plan, int version, long writeRevision, PreparedVirtualExpansion expansion)
             {
@@ -157,6 +160,16 @@ namespace NeoCompose.Runtime
                 WriteRevision = writeRevision;
                 Expansion = expansion;
                 MapKey = expansion.Root.mapKey;
+                CaptureNested(expansion);
+
+                void CaptureNested(PreparedVirtualExpansion parent)
+                {
+                    foreach (var nested in parent.Nested)
+                    {
+                        NestedRoots.Add(nested.Root.id, (nested.Root, nested.Root.mapKey));
+                        CaptureNested(nested);
+                    }
+                }
             }
         }
 
@@ -164,9 +177,8 @@ namespace NeoCompose.Runtime
         /// Whether <paramref name="root"/>'s commit replay would read exactly
         /// what its variant apply's last replay did: the same plan and
         /// committed graph, unchanged since, the same root row and ownership,
-        /// and no other expansion in the proposed graph. Any other affected
-        /// root is a materialized spine inside this one, which validation
-        /// skips.
+        /// and no unrelated expansion in the proposed graph. Nested expansions
+        /// captured by the same replay are installed together.
         /// </summary>
         private bool TryReusePreparedVariant(CandidateReplay candidate, ObjectMemberValue root,
             NeoValueOwnership? replayOwnership, NestedReplayBoundary? boundary)
@@ -177,7 +189,6 @@ namespace NeoCompose.Runtime
                 || prepared.WriteRevision != WriteRevision
                 || !ReferenceEquals(prepared.Expansion.Root, root)
                 || prepared.MapKey != root.mapKey
-                || prepared.Expansion.Nested.Count != 0
                 || boundary is not null
                 || candidate.Values.Count != 0
                 || candidate.Allocations.Count != 0)
@@ -188,15 +199,18 @@ namespace NeoCompose.Runtime
                 return false;
             foreach (string id in candidate.AffectedRoots)
             {
-                if (id == root.id)
+                if (id == root.id || prepared.NestedRoots.ContainsKey(id))
                     continue;
                 if (virtualFootprintByRoot.ContainsKey(id))
                     return false;
                 if (ResolveValueRow(id) is not ObjectMemberValue spine || OverlayingRoot(id, spine) != root.id)
                     return false;
             }
+            if (!prepared.NestedMapKeysMatch())
+                return false;
             candidate.Add(prepared.Expansion);
             return true;
+
         }
     }
 }

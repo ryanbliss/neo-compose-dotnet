@@ -228,6 +228,8 @@ namespace NeoCompose.Runtime
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed,
             NeoWritePlan plan)
         {
+            if (plan.ValidatedObjectRemovalGrid == primitive.GridValueId)
+                return;
             if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId && plan.ObjectInsertion is { } insertion)
             {
                 primitive.InsertPlacementGraphObject(insertion.listId, insertion.instanceId);

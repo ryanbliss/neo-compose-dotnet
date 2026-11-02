@@ -64,6 +64,7 @@ namespace NeoCompose.Runtime
         private Dictionary<(NeoValueOwnership ownership, string id), string>? changedFields;
         private HashSet<(NeoValueOwnership ownership, string id)>? silentRows;
         private HashSet<(NeoValueOwnership ownership, string id)>? explicitPartitions;
+        internal string? ValidatedObjectRemovalGrid;
         // Most plans bind no static; they share one empty map until the first Bind.
         private static readonly Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)> NoBindings = new();
         private Dictionary<(NeoValueOwnership ownership, string memberId), (bool present, string? valueId)>? bindings;
