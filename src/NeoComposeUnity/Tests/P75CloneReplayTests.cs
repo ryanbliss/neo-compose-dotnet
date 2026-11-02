@@ -384,10 +384,19 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, reloaded.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberList>("Items").Count);
         }
 
-        [Test]
-        public void RepeatedClonesPreserveNestedDefaultsAndMutableOverrides()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void RepeatedClonesPreserveNestedDefaultsAndMutableOverrides(bool systemNamespace)
         {
             var data = BuildNestedProjectData();
+            if (systemNamespace)
+            {
+                var root = (ObjectMemberValue)data.values["thing-instance"];
+                data.values.Remove(root.id);
+                root.id = "system_thing-instance";
+                data.values[root.id] = root;
+                ((ObjectMemberValue)data.values["value-save"]).value!["Thing"] = root.id;
+            }
             data.classes["deep-class"].schema["Frozen"] = "deep-frozen";
             data.members["deep-frozen"] = new IntMember
             {

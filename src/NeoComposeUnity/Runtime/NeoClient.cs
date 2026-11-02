@@ -3892,6 +3892,11 @@ namespace NeoCompose.Runtime
                         spine = true;
                         return VirtualValueId(rootCopy.id, knownIdentity, copies.Hash);
                     }
+                    // DerivedValueId always emits UUIDv5. Fresh constructor
+                    // UUIDv4 rows cannot match that spine, so skip hashing them.
+                    int versionIndex = row.id.StartsWith("system_", System.StringComparison.Ordinal) ? 21 : 14;
+                    if (row.id.Length <= versionIndex || row.id[versionIndex] != '5')
+                        return System.Guid.NewGuid().ToString();
                     string identity = VirtualSourceIdentity(row, placement.member, placement.path);
                     if (VirtualValueId(root, identity, copies.Hash) == row.id)
                     {
@@ -5148,6 +5153,8 @@ namespace NeoCompose.Runtime
         {
             if (!NeedsOwnedMemberContext(member))
                 return member;
+            if (ResolveClassNode(classId).ResolveClosedOwnedMember(this, member) is { } closed)
+                return closed;
             if (environments is null || !environments.TryGetValue(row, out var environment))
             {
                 var arguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
