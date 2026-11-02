@@ -251,6 +251,10 @@
     "  public static Planet UnboxStringToEnum() { object o = \"s\"; return (Planet)o; }",
     "  public static bool UnboxIntToBool() { object o = 1; return (bool)o; }",
     "  public static int DowncastSibling() { CastPet p = new CastCat(); CastDog d = (CastDog)p; return 1; }",
+    "  public static Enum UnboxIntToEnumBase() { object o = 1; return (Enum)o; }",
+    "  public static ValueType UnboxStringToValueType() { object o = \"s\"; return (ValueType)o; }",
+    "  public static int UnboxObjectTupleToInt() { object o = (1, (object)2); return (int)o; }",
+    "  public static int CastStringToList() { object o = \"s\"; List<int> l = (List<int>)o; return l.Count; }",
     "  public static string UnboxIntToEnum() { return ((Planet)BoxedAs(1)).ToString(); }",
     "  public static int UnboxEnumToInt() { return (int)BoxedAs(Planet.Mars); }",
     "  public static int UnboxEnumToNullableInt() { int? n = (int?)BoxedAs(Planet.Mars); return n ?? -1; }",
@@ -817,7 +821,11 @@
     "UnboxEnumToFloat": "Unable to cast object of type 'Planet' to type 'System.Single'.",
     "UnboxFloatToEnum": "Unable to cast object of type 'System.Single' to type 'Planet'.",
     "UnboxUndeclaredToEnum": "Unable to cast object of type 'System.Int32' to type 'Planet'.",
-    "UnboxGenericEnumToNullableInt": "Unable to cast object of type 'Planet' to type 'System.Nullable`1[System.Int32]'."
+    "UnboxGenericEnumToNullableInt": "Unable to cast object of type 'Planet' to type 'System.Nullable`1[System.Int32]'.",
+    "UnboxIntToEnumBase": "Unable to cast object of type 'System.Int32' to type 'System.Enum'.",
+    "UnboxStringToValueType": "Unable to cast object of type 'System.String' to type 'System.ValueType'.",
+    "UnboxObjectTupleToInt": "Unable to cast object of type 'System.ValueTuple`2[System.Int32,System.Object]' to type 'System.Int32'.",
+    "CastStringToList": "Unable to cast object of type 'System.String' to type 'List<int>'."
   },
   "diagnostics": [
     {
