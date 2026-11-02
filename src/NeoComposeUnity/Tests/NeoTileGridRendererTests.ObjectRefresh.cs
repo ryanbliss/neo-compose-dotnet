@@ -53,6 +53,20 @@ namespace NeoCompose.Tests
             Assert.That(published.PreparedTileLayers, Is.Null.Or.Empty);
             Assert.AreSame(objects, primitive.LookupCache.ObjectRecords(ObjectsLayerClassId));
             Assert.AreSame(tiles, primitive.LookupCache.TileRecords(BackgroundLayerClassId));
+            var graph = primitive.LookupCache.Primitive.PlacementGraph;
+            var updated = (ObjectMemberValue)client.CloneRowForWrite(client.ResolveValueRow("shop-1")!);
+            updated.value!["Size"] = "shop-1-next-size";
+            var refresh = new NeoWritePlan(client);
+            refresh.Set(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "shop-1-next-size",
+                value = new NeoVector3Value { x = 4, y = 4, z = 0 },
+            });
+            refresh.Set(NeoValueOwnership.Save, updated);
+            refresh.Commit();
+            Assert.AreSame(graph, primitive.LookupCache.Primitive.PlacementGraph);
+            Assert.AreSame(client.ResolveValueRow("shop-1"), graph.Nodes["shop-1"].Row);
+            Assert.AreEqual("shop-1-repointed", graph.Nodes["shop-1"].PositionRowId);
             // The kept index now depends on the row the object's placement reads.
             client.SetWritableValue(NeoValueOwnership.Save, new Vector3MemberValue
             {

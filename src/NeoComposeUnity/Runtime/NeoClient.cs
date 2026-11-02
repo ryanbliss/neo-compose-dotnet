@@ -1177,14 +1177,19 @@ namespace NeoCompose.Runtime
         internal MergedSchemaEntry? ResolveInstanceSurfaceMember(string classId, string key) =>
             ResolveClassNode(classId).SurfaceMember(key);
 
+        private bool scriptSchemaPlacementsBuilt;
+
         internal SchemaPlacement? FindSchemaPlacement(string memberId)
         {
-            if (!ScriptSchemaPlacements.TryGetValue(memberId, out var placement))
+            if (!scriptSchemaPlacementsBuilt)
             {
-                placement = NeoSchemaClassInheritance.FindSchemaPlacement(memberId, data.classes.Values);
-                ScriptSchemaPlacements[memberId] = placement;
+                foreach (var schemaClass in data.classes.Values)
+                    if (schemaClass.schema is not null)
+                        foreach (var field in schemaClass.schema)
+                            ScriptSchemaPlacements.TryAdd(field.Value, new SchemaPlacement(schemaClass, field.Key));
+                scriptSchemaPlacementsBuilt = true;
             }
-            return placement;
+            return ScriptSchemaPlacements.GetValueOrDefault(memberId);
         }
 
         private int animationFrameDepth;
@@ -2443,6 +2448,7 @@ namespace NeoCompose.Runtime
             worldKindsByClass.Clear();
             LayerLinkTargetByClass.Clear();
             ScriptSchemaPlacements.Clear();
+            scriptSchemaPlacementsBuilt = false;
             ScriptCallableDispatch.Clear();
             ForgetSchemaResolutionSites();
             SchemaResolution = new object();
@@ -4639,6 +4645,15 @@ namespace NeoCompose.Runtime
             bool indexedReference = HasIndexedChildReference(parentId, parent, parentOwnership, childValueId);
             if (!indexedReference && !MightReferenceChildValueId(parent, childValueId))
                 return false;
+            // A concrete Class field states its own ownership. Infer the
+            // parent's placement only for generic fields and aggregate rows.
+            if (parent is ObjectMemberValue { classId: not null, value: not null } obj)
+                foreach (var field in obj.value)
+                    if (field.Value == childValueId
+                        && ResolveInstanceSurfaceMember(obj.classId, field.Key)?.member is Member fieldMember
+                        && !NeedsOwnedMemberContext(fieldMember)
+                        && ChildOwnership(fieldMember, parentOwnership) == childOwnership)
+                        return true;
             Member? parentMember = TryInferMemberForValueId(
                 parentId,
                 out Member? inferredParent, parentOwnership)
@@ -6900,7 +6915,7 @@ namespace NeoCompose.Runtime
         /// through the overlay (session → save → authored); a missing,
         /// tombstoned, or <c>null</c>-valued container yields no members.
         /// </summary>
-        internal IReadOnlyCollection<string> GetUnorderedListEntryIds(string containerValueId)
+        internal IReadOnlyList<string> GetUnorderedListEntryIds(string containerValueId)
         {
             var containerRow = ResolveValueRow(containerValueId);
             if (containerRow is null)

@@ -228,9 +228,9 @@ namespace NeoCompose.Runtime
             IReadOnlyCollection<(NeoValueOwnership ownership, string valueId)> changed,
             NeoWritePlan plan)
         {
-            if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId)
+            if (plan.ValidatedObjectInsertionGrid == primitive.GridValueId && plan.ObjectInsertion is { } insertion)
             {
-                primitive.ForgetPlacementGraph();
+                primitive.InsertPlacementGraphObject(insertion.listId, insertion.instanceId);
                 return;
             }
             if (plan.ValidatedTileConversions is { Count: not 0 } conversions)
@@ -242,13 +242,17 @@ namespace NeoCompose.Runtime
             foreach (var value in changed)
                 if (plan.UnchangedValueIds?.Contains(value.valueId) != true)
                     ids.Add(value.valueId);
+            ExcludeRefreshedObjects(plan, ids);
             if (primitive.PlacementGraphDependsOn(ids))
             {
                 primitive.ForgetPlacementGraph();
                 objectLayerIds = null;
                 tileLayerIds = null;
             }
-            ExcludeRefreshedObjects(plan, ids);
+            if (plan.ValidatedObjectRefreshes is { } refreshes)
+                foreach (var refresh in refreshes)
+                    if (refresh.GridValueId == primitive.GridValueId)
+                        primitive.RefreshPlacementGraphObject(refresh);
             InvalidateDependents(tileLayers, changedTileLayers, ids);
             ForgetRecentTileLayers();
             InvalidateDependents(objectLayers, changedObjectLayers, ids);

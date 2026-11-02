@@ -163,6 +163,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VariantInitializeDoesNotReplayItsFreshConstruction()
+        {
+            using NeoClient client = LoadClient();
+            int before = client.VirtualConstructionCount;
+            var node = NeoVariantSupport.InitializeNode(client, WidgetClassId, client.variants["variant-up"]);
+            Assert.AreEqual(before, client.VirtualConstructionCount, "Recording creation provenance must not reconstruct a fresh instance.");
+            Assert.AreEqual("up", ReadLabel(client, node));
+        }
+
+        [Test]
+        public void FreshVariantRetainsItsRecipeThroughAdoptionAndReload()
+        {
+            ProjectData data = ClonedBoxProjectData();
+            AddHeldWidget(data);
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                var node = NeoVariantSupport.InitializeNode(client, WidgetClassId, client.variants["variant-up"]);
+                Assert.AreEqual("variant-up", node.value!.instanceVariantId);
+                client.save.SetSerializedValue("Held", NeoValueWritePayload.FromValueReference(node.value.id));
+                var held = client.save.Get<NeoMemberClassWritable>("Held");
+                Assert.AreEqual("up", ReadLabel(client, held));
+                Assert.AreEqual(1d, held.Get<NeoMemberClassWritable>("Data").Get<NeoMemberIntWritable>("Count").value!.value);
+                NeoVariantSupport.ApplyToNode(client, client.variants["variant-up"], held, held.ownership);
+                Assert.AreEqual("up", ReadLabel(client, held));
+                saved = client.SerializeSaveData();
+            }
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            var restored = reopened.save.Get<NeoMemberClassWritable>("Held");
+            Assert.AreEqual("up", ReadLabel(reopened, restored));
+            Assert.AreEqual(1d, restored.Get<NeoMemberClassWritable>("Data").Get<NeoMemberIntWritable>("Count").value!.value);
+            NeoVariantSupport.ApplyToNode(reopened, reopened.variants["variant-plain"], restored, restored.ownership);
+            Assert.AreEqual("plain", ReadLabel(reopened, restored));
+            Assert.AreEqual(1d, restored.Get<NeoMemberClassWritable>("Data").Get<NeoMemberIntWritable>("Count").value!.value);
+        }
+
+        [Test]
         public void VariantInitialize_RunsOverridesButNotApply()
         {
             NeoClient client = LoadClient();

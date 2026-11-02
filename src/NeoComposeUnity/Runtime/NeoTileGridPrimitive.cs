@@ -2601,29 +2601,15 @@ namespace NeoCompose.Runtime
             string classId,
             string[] keyCandidates)
         {
-            var merged = ResolveMergedSchemaEntries(classId);
-            if (merged is null)
-                return null;
-            foreach (var candidate in keyCandidates)
-            {
-                foreach (var entry in merged)
-                {
-                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
-                    {
-                        return entry;
-                    }
-                }
-            }
-            return null;
-        }
-
-        private IList<MergedSchemaEntry>? ResolveMergedSchemaEntries(string classId)
-        {
             if (!client.classes.ContainsKey(classId))
                 return null;
             try
             {
-                return client.ResolveInstanceSurfaceSchema(classId);
+                var schema = client.ResolveClassNode(classId);
+                foreach (string key in keyCandidates)
+                    if (schema.SurfaceMemberIgnoreCase(key) is { } entry)
+                        return entry;
+                return null;
             }
             catch (CircularInheritanceError)
             {

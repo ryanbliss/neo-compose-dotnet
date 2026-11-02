@@ -96,6 +96,35 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void LayerLinkSpawnRetainsPlacementGraphAcrossInsertions()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildClassBackedTileGridProjectData());
+            var grid = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var primitive = grid.LookupCache.Primitive;
+            _ = primitive.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            var link = WritableObjectLink(client, "objects-link");
+            for (int i = 0; i < 5; i++)
+            {
+                var entry = ClonePlacementObject(client);
+                var before = primitive.PlacementGraph;
+                var outcome = link.TrySpawn(new Vector2Int(50 + i * 10, 60), entry);
+                Assert.IsTrue(outcome.Ok, outcome.Message);
+                Assert.AreSame(before, primitive.PlacementGraph);
+                var ids = before.Ordered.Select(node => node.Row.id).ToArray();
+                var offsets = before.Ordered.Select(node => node.Offset).ToArray();
+                var parents = before.Ordered.Select(node => node.Parent?.Row.id).ToArray();
+                var dependencies = before.Dependencies.ToArray();
+                primitive.ForgetPlacementGraph();
+                var rebuilt = primitive.PlacementGraph;
+                CollectionAssert.AreEqual(ids, rebuilt.Ordered.Select(node => node.Row.id));
+                CollectionAssert.AreEqual(offsets, rebuilt.Ordered.Select(node => node.Offset));
+                CollectionAssert.AreEqual(parents, rebuilt.Ordered.Select(node => node.Parent?.Row.id));
+                CollectionAssert.AreEquivalent(dependencies, rebuilt.Dependencies);
+            }
+        }
+
+        [Test]
         public void LayerLinkSpawnValidatesSiblingContentAndWritesToTheCalledLink()
         {
             ProjectData data = BuildClassBackedTileGridProjectData();

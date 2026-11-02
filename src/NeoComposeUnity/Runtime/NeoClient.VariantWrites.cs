@@ -79,9 +79,11 @@ namespace NeoCompose.Runtime
                     && HasWorldKind(NeoGeneratedTypesSupport.ResolveClassValueClassId(this, id, row), "tileGrid"))
                 {
                     var primitive = NeoReadOnlyTileGridPrimitive.Resolve(this, id);
-                    foreach (string layerId in primitive.ResolveObjectLayerIds())
+                    var cache = primitive.LookupCache;
+                    var layers = candidateReadPlan is null ? cache.Primitive : primitive;
+                    foreach (string layerId in layers.ResolveObjectLayerIds())
                     {
-                        var record = GetGridLookupCache(id).ObjectRecord(layerId, receiverId);
+                        var record = cache.ObjectRecord(layerId, receiverId);
                         if (record is not null)
                             return (primitive, new HashSet<Vector2Int>(record.Footprint));
                     }

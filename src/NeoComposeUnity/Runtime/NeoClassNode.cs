@@ -18,6 +18,19 @@ namespace NeoCompose.Runtime
     internal sealed class NeoClassNode
     {
         private readonly Dictionary<string, MergedSchemaEntry> surfaceByKey;
+        private Dictionary<string, MergedSchemaEntry>? surfaceByKeyIgnoreCase;
+        private HashSet<string>? ancestorIds;
+
+        internal MergedSchemaEntry? SurfaceMemberIgnoreCase(string key)
+        {
+            if (surfaceByKeyIgnoreCase is null)
+            {
+                surfaceByKeyIgnoreCase = new(System.StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in Surface)
+                    surfaceByKeyIgnoreCase.TryAdd(entry.schemaKey, entry);
+            }
+            return surfaceByKeyIgnoreCase.GetValueOrDefault(key);
+        }
 
         internal NeoClassNode(
             string id,
@@ -97,12 +110,13 @@ namespace NeoCompose.Runtime
         /// <summary>Whether <paramref name="classId"/> is this class or one of its ancestors.</summary>
         internal bool Extends(string classId)
         {
-            for (int i = 0; i < Chain.Count; i++)
+            if (ancestorIds is null)
             {
-                if (Chain[i].id == classId)
-                    return true;
+                ancestorIds = new HashSet<string>(System.StringComparer.Ordinal);
+                foreach (var ancestor in Chain)
+                    ancestorIds.Add(ancestor.id);
             }
-            return false;
+            return ancestorIds.Contains(classId);
         }
 
         /// <summary>Every instance member, static declarations excluded.</summary>
