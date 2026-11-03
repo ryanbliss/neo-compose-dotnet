@@ -22,18 +22,18 @@
     "ParseDecimal"
   ],
   "classes": {
-    "4a869b4a-c129-444c-9a56-87a5348b28ae": {
-      "id": "4a869b4a-c129-444c-9a56-87a5348b28ae",
+    "83b50c22-5ce3-48d9-b973-41602359783c": {
+      "id": "83b50c22-5ce3-48d9-b973-41602359783c",
       "name": "Probe",
       "schema": {
-        "FormatDigits": "1bdc547d-ed52-4236-873d-d6d50e48a2ee",
-        "FormatPrecision": "e2f48156-2f55-4da4-88e3-313e4a0a78c7",
-        "FormatSpecifier": "fa201ba4-d84f-460f-b938-6b861b516d15",
-        "ParseDecimal": "1652340a-c623-473b-9ce9-8b47885622c3",
-        "ParseFloat": "6f8114ad-8bd0-4e24-924c-6183289572c7",
-        "ParseInt": "6c25dc7f-3273-419f-957b-bd5516bdbfcd",
-        "SubstringEnd": "2b9ad4f3-555c-479d-9275-07ac0c5f14f5",
-        "SubstringStart": "82ced2ca-477d-47fb-afe4-b818fcb86a28"
+        "FormatDigits": "c9fa881b-d4a7-486a-90bb-fdd1e8dae75d",
+        "FormatPrecision": "dcc7d739-8334-4ac2-8a6d-df746408b0af",
+        "FormatSpecifier": "aa140bd8-1d9c-475c-ad38-34b495e8a8bf",
+        "ParseDecimal": "c6777cb8-1004-4f8d-b907-28a3a8ab6c7b",
+        "ParseFloat": "8fc0eb92-05be-4670-8c6a-34cc4203b7b5",
+        "ParseInt": "57b608dc-1ebe-480f-b2f1-d261cea960c8",
+        "SubstringEnd": "30edf39f-dde0-4b72-913e-bfc82f08e5a0",
+        "SubstringStart": "0c76e683-3c32-4605-b2a6-af60bb1d59ae"
       },
       "schemaKeyOrder": [
         "SubstringStart",
@@ -114,9 +114,9 @@
     }
   },
   "members": {
-    "1652340a-c623-473b-9ce9-8b47885622c3": {
-      "id": "1652340a-c623-473b-9ce9-8b47885622c3",
-      "name": "ParseDecimal",
+    "0c76e683-3c32-4605-b2a6-af60bb1d59ae": {
+      "id": "0c76e683-3c32-4605-b2a6-af60bb1d59ae",
+      "name": "SubstringStart",
       "kind": 23,
       "modifier": 3,
       "returnTypeInfo": {
@@ -124,14 +124,14 @@
         "required": true
       },
       "argumentTypes": [],
-      "code": "try { string text=\"oops\"; decimal result=decimal.Parse(text); } catch(NeoFormatError e) {return true;} catch(NeoError e) {return false;} return false;",
+      "code": "try { string s=\"abc\"; int start=-1; s.Substring(start); } catch(NeoArgumentError e) {return true;} catch(NeoError e) {return false;} return false;",
       "projectId": "project-id",
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
         "compilerRevision": 19,
         "source": {
-          "name": "Probe.ParseDecimal",
+          "name": "Probe.SubstringStart",
           "uri": "Classes/Probe.neo",
           "coordinateSpace": "file"
         },
@@ -180,7 +180,7 @@
               {
                 "type": "variable",
                 "variable": {
-                  "id": "text",
+                  "id": "s",
                   "typeInfo": {
                     "type": 3,
                     "required": true
@@ -192,61 +192,67 @@
                         "type": 3,
                         "required": true
                       },
-                      "value": "oops"
+                      "value": "abc"
                     }
                   }
                 },
                 "source": {
-                  "line": 9,
-                  "column": 41
+                  "line": 2,
+                  "column": 43
                 }
               },
               {
                 "type": "variable",
                 "variable": {
-                  "id": "result",
+                  "id": "start",
                   "typeInfo": {
-                    "type": 20,
+                    "type": 2,
                     "required": true
                   },
                   "pointer": {
-                    "type": "primitiveMember",
-                    "primitive": {
-                      "type": 20,
-                      "required": true
-                    },
-                    "member": "Parse",
-                    "args": [
-                      {
-                        "type": "variable",
-                        "variableId": "text"
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
                       },
-                      {
-                        "type": "value",
-                        "value": {
-                          "typeInfo": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "value": 111
-                        }
-                      },
-                      {
-                        "type": "value",
-                        "value": {
-                          "typeInfo": {
-                            "type": 0,
-                            "required": true
-                          },
-                          "value": null
-                        }
-                      }
-                    ]
+                      "value": -1
+                    }
                   }
                 },
                 "source": {
-                  "line": 9,
-                  "column": 61
+                  "line": 2,
+                  "column": 59
+                }
+              },
+              {
+                "type": "functionCall",
+                "call": {
+                  "type": "function",
+                  "function": {
+                    "type": "textOp",
+                    "info": {
+                      "op": "substring",
+                      "argPointers": [
+                        {
+                          "type": "variable",
+                          "variableId": "s"
+                        },
+                        {
+                          "type": "variable",
+                          "variableId": "start"
+                        }
+                      ]
+                    }
+                  },
+                  "source": {
+                    "line": 2,
+                    "column": 84
+                  }
+                },
+                "source": {
+                  "line": 2,
+                  "column": 73
                 }
               }
             ],
@@ -257,7 +263,7 @@
                   "typeInfo": {
                     "type": 7,
                     "required": true,
-                    "classId": "system_87021243-5739-4af3-86ac-34fe2b5e4559"
+                    "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
                   },
                   "readonly": true
                 },
@@ -275,8 +281,8 @@
                       }
                     },
                     "source": {
-                      "line": 9,
-                      "column": 124
+                      "line": 2,
+                      "column": 122
                     }
                   }
                 ]
@@ -305,16 +311,16 @@
                       }
                     },
                     "source": {
-                      "line": 9,
-                      "column": 157
+                      "line": 2,
+                      "column": 155
                     }
                   }
                 ]
               }
             ],
             "source": {
-              "line": 9,
-              "column": 35
+              "line": 2,
+              "column": 37
             }
           },
           {
@@ -330,8 +336,8 @@
               }
             },
             "source": {
-              "line": 9,
-              "column": 172
+              "line": 2,
+              "column": 170
             }
           }
         ],
@@ -341,220 +347,8 @@
         }
       }
     },
-    "1bdc547d-ed52-4236-873d-d6d50e48a2ee": {
-      "id": "1bdc547d-ed52-4236-873d-d6d50e48a2ee",
-      "name": "FormatDigits",
-      "kind": 23,
-      "modifier": 3,
-      "returnTypeInfo": {
-        "type": 1,
-        "required": true
-      },
-      "argumentTypes": [],
-      "code": "try { int n=1; string format=\"Fz\"; return n.ToString(format) == \"Fz\"; } catch(NeoError e) {return false;}",
-      "projectId": "project-id",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "action": {
-        "compilerRevision": 19,
-        "source": {
-          "name": "Probe.FormatDigits",
-          "uri": "Classes/Probe.neo",
-          "coordinateSpace": "file"
-        },
-        "parameters": [
-          {
-            "id": "__this__",
-            "typeInfo": {
-              "type": "Unknown",
-              "required": true
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": "Unknown",
-                  "required": true
-                },
-                "value": null
-              }
-            }
-          },
-          {
-            "id": "__root__",
-            "typeInfo": {
-              "type": 7,
-              "required": true,
-              "classId": "__root__"
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 7,
-                  "required": true,
-                  "classId": "__root__"
-                },
-                "value": null
-              }
-            }
-          }
-        ],
-        "instructions": [
-          {
-            "type": "try",
-            "instructions": [
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "n",
-                  "typeInfo": {
-                    "type": 2,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 2,
-                        "required": true
-                      },
-                      "value": 1
-                    }
-                  }
-                },
-                "source": {
-                  "line": 5,
-                  "column": 41
-                }
-              },
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "format",
-                  "typeInfo": {
-                    "type": 3,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 3,
-                        "required": true
-                      },
-                      "value": "Fz"
-                    }
-                  }
-                },
-                "source": {
-                  "line": 5,
-                  "column": 50
-                }
-              },
-              {
-                "type": "return",
-                "pointer": {
-                  "type": "operation",
-                  "operation": {
-                    "type": "boolean",
-                    "expression": {
-                      "condition": {
-                        "type": "equalTo",
-                        "operand1": {
-                          "type": "primitiveMember",
-                          "primitive": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "member": "ToString",
-                          "receiver": {
-                            "type": "variable",
-                            "variableId": "n"
-                          },
-                          "args": [
-                            {
-                              "type": "variable",
-                              "variableId": "format"
-                            },
-                            {
-                              "type": "value",
-                              "value": {
-                                "typeInfo": {
-                                  "type": 0,
-                                  "required": true
-                                },
-                                "value": null
-                              }
-                            }
-                          ]
-                        },
-                        "operand2": {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "Fz"
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "source": {
-                  "line": 5,
-                  "column": 70
-                }
-              }
-            ],
-            "catches": [
-              {
-                "binding": {
-                  "id": "__catch:0:e",
-                  "typeInfo": {
-                    "type": 7,
-                    "required": true,
-                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
-                  },
-                  "readonly": true
-                },
-                "instructions": [
-                  {
-                    "type": "return",
-                    "pointer": {
-                      "type": "value",
-                      "value": {
-                        "typeInfo": {
-                          "type": 1,
-                          "required": true
-                        },
-                        "value": false
-                      }
-                    },
-                    "source": {
-                      "line": 5,
-                      "column": 126
-                    }
-                  }
-                ]
-              }
-            ],
-            "source": {
-              "line": 5,
-              "column": 35
-            }
-          }
-        ],
-        "typeInfo": {
-          "type": 1,
-          "required": true
-        }
-      }
-    },
-    "2b9ad4f3-555c-479d-9275-07ac0c5f14f5": {
-      "id": "2b9ad4f3-555c-479d-9275-07ac0c5f14f5",
+    "30edf39f-dde0-4b72-913e-bfc82f08e5a0": {
+      "id": "30edf39f-dde0-4b72-913e-bfc82f08e5a0",
       "name": "SubstringEnd",
       "kind": 23,
       "modifier": 3,
@@ -814,8 +608,8 @@
         }
       }
     },
-    "6c25dc7f-3273-419f-957b-bd5516bdbfcd": {
-      "id": "6c25dc7f-3273-419f-957b-bd5516bdbfcd",
+    "57b608dc-1ebe-480f-b2f1-d261cea960c8": {
+      "id": "57b608dc-1ebe-480f-b2f1-d261cea960c8",
       "name": "ParseInt",
       "kind": 23,
       "modifier": 3,
@@ -1041,8 +835,8 @@
         }
       }
     },
-    "6f8114ad-8bd0-4e24-924c-6183289572c7": {
-      "id": "6f8114ad-8bd0-4e24-924c-6183289572c7",
+    "8fc0eb92-05be-4670-8c6a-34cc4203b7b5": {
+      "id": "8fc0eb92-05be-4670-8c6a-34cc4203b7b5",
       "name": "ParseFloat",
       "kind": 23,
       "modifier": 3,
@@ -1268,453 +1062,8 @@
         }
       }
     },
-    "82ced2ca-477d-47fb-afe4-b818fcb86a28": {
-      "id": "82ced2ca-477d-47fb-afe4-b818fcb86a28",
-      "name": "SubstringStart",
-      "kind": 23,
-      "modifier": 3,
-      "returnTypeInfo": {
-        "type": 1,
-        "required": true
-      },
-      "argumentTypes": [],
-      "code": "try { string s=\"abc\"; int start=-1; s.Substring(start); } catch(NeoArgumentError e) {return true;} catch(NeoError e) {return false;} return false;",
-      "projectId": "project-id",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "action": {
-        "compilerRevision": 19,
-        "source": {
-          "name": "Probe.SubstringStart",
-          "uri": "Classes/Probe.neo",
-          "coordinateSpace": "file"
-        },
-        "parameters": [
-          {
-            "id": "__this__",
-            "typeInfo": {
-              "type": "Unknown",
-              "required": true
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": "Unknown",
-                  "required": true
-                },
-                "value": null
-              }
-            }
-          },
-          {
-            "id": "__root__",
-            "typeInfo": {
-              "type": 7,
-              "required": true,
-              "classId": "__root__"
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 7,
-                  "required": true,
-                  "classId": "__root__"
-                },
-                "value": null
-              }
-            }
-          }
-        ],
-        "instructions": [
-          {
-            "type": "try",
-            "instructions": [
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "s",
-                  "typeInfo": {
-                    "type": 3,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 3,
-                        "required": true
-                      },
-                      "value": "abc"
-                    }
-                  }
-                },
-                "source": {
-                  "line": 2,
-                  "column": 43
-                }
-              },
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "start",
-                  "typeInfo": {
-                    "type": 2,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 2,
-                        "required": true
-                      },
-                      "value": -1
-                    }
-                  }
-                },
-                "source": {
-                  "line": 2,
-                  "column": 59
-                }
-              },
-              {
-                "type": "functionCall",
-                "call": {
-                  "type": "function",
-                  "function": {
-                    "type": "textOp",
-                    "info": {
-                      "op": "substring",
-                      "argPointers": [
-                        {
-                          "type": "variable",
-                          "variableId": "s"
-                        },
-                        {
-                          "type": "variable",
-                          "variableId": "start"
-                        }
-                      ]
-                    }
-                  },
-                  "source": {
-                    "line": 2,
-                    "column": 84
-                  }
-                },
-                "source": {
-                  "line": 2,
-                  "column": 73
-                }
-              }
-            ],
-            "catches": [
-              {
-                "binding": {
-                  "id": "__catch:0:e",
-                  "typeInfo": {
-                    "type": 7,
-                    "required": true,
-                    "classId": "system_8c9fb766-c6aa-597a-a027-38a2dbc01687"
-                  },
-                  "readonly": true
-                },
-                "instructions": [
-                  {
-                    "type": "return",
-                    "pointer": {
-                      "type": "value",
-                      "value": {
-                        "typeInfo": {
-                          "type": 1,
-                          "required": true
-                        },
-                        "value": true
-                      }
-                    },
-                    "source": {
-                      "line": 2,
-                      "column": 122
-                    }
-                  }
-                ]
-              },
-              {
-                "binding": {
-                  "id": "__catch:1:e",
-                  "typeInfo": {
-                    "type": 7,
-                    "required": true,
-                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
-                  },
-                  "readonly": true
-                },
-                "instructions": [
-                  {
-                    "type": "return",
-                    "pointer": {
-                      "type": "value",
-                      "value": {
-                        "typeInfo": {
-                          "type": 1,
-                          "required": true
-                        },
-                        "value": false
-                      }
-                    },
-                    "source": {
-                      "line": 2,
-                      "column": 155
-                    }
-                  }
-                ]
-              }
-            ],
-            "source": {
-              "line": 2,
-              "column": 37
-            }
-          },
-          {
-            "type": "return",
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 1,
-                  "required": true
-                },
-                "value": false
-              }
-            },
-            "source": {
-              "line": 2,
-              "column": 170
-            }
-          }
-        ],
-        "typeInfo": {
-          "type": 1,
-          "required": true
-        }
-      }
-    },
-    "e2f48156-2f55-4da4-88e3-313e4a0a78c7": {
-      "id": "e2f48156-2f55-4da4-88e3-313e4a0a78c7",
-      "name": "FormatPrecision",
-      "kind": 23,
-      "modifier": 3,
-      "returnTypeInfo": {
-        "type": 1,
-        "required": true
-      },
-      "argumentTypes": [],
-      "code": "try { int n=1; string format=\"F29\"; return n.ToString(format) == \"1.00000000000000000000000000000\"; } catch(NeoError e) {return false;}",
-      "projectId": "project-id",
-      "createdAt": 1,
-      "updatedAt": 1,
-      "action": {
-        "compilerRevision": 19,
-        "source": {
-          "name": "Probe.FormatPrecision",
-          "uri": "Classes/Probe.neo",
-          "coordinateSpace": "file"
-        },
-        "parameters": [
-          {
-            "id": "__this__",
-            "typeInfo": {
-              "type": "Unknown",
-              "required": true
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": "Unknown",
-                  "required": true
-                },
-                "value": null
-              }
-            }
-          },
-          {
-            "id": "__root__",
-            "typeInfo": {
-              "type": 7,
-              "required": true,
-              "classId": "__root__"
-            },
-            "pointer": {
-              "type": "value",
-              "value": {
-                "typeInfo": {
-                  "type": 7,
-                  "required": true,
-                  "classId": "__root__"
-                },
-                "value": null
-              }
-            }
-          }
-        ],
-        "instructions": [
-          {
-            "type": "try",
-            "instructions": [
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "n",
-                  "typeInfo": {
-                    "type": 2,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 2,
-                        "required": true
-                      },
-                      "value": 1
-                    }
-                  }
-                },
-                "source": {
-                  "line": 6,
-                  "column": 44
-                }
-              },
-              {
-                "type": "variable",
-                "variable": {
-                  "id": "format",
-                  "typeInfo": {
-                    "type": 3,
-                    "required": true
-                  },
-                  "pointer": {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 3,
-                        "required": true
-                      },
-                      "value": "F29"
-                    }
-                  }
-                },
-                "source": {
-                  "line": 6,
-                  "column": 53
-                }
-              },
-              {
-                "type": "return",
-                "pointer": {
-                  "type": "operation",
-                  "operation": {
-                    "type": "boolean",
-                    "expression": {
-                      "condition": {
-                        "type": "equalTo",
-                        "operand1": {
-                          "type": "primitiveMember",
-                          "primitive": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "member": "ToString",
-                          "receiver": {
-                            "type": "variable",
-                            "variableId": "n"
-                          },
-                          "args": [
-                            {
-                              "type": "variable",
-                              "variableId": "format"
-                            },
-                            {
-                              "type": "value",
-                              "value": {
-                                "typeInfo": {
-                                  "type": 0,
-                                  "required": true
-                                },
-                                "value": null
-                              }
-                            }
-                          ]
-                        },
-                        "operand2": {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "1.00000000000000000000000000000"
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "source": {
-                  "line": 6,
-                  "column": 74
-                }
-              }
-            ],
-            "catches": [
-              {
-                "binding": {
-                  "id": "__catch:0:e",
-                  "typeInfo": {
-                    "type": 7,
-                    "required": true,
-                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
-                  },
-                  "readonly": true
-                },
-                "instructions": [
-                  {
-                    "type": "return",
-                    "pointer": {
-                      "type": "value",
-                      "value": {
-                        "typeInfo": {
-                          "type": 1,
-                          "required": true
-                        },
-                        "value": false
-                      }
-                    },
-                    "source": {
-                      "line": 6,
-                      "column": 159
-                    }
-                  }
-                ]
-              }
-            ],
-            "source": {
-              "line": 6,
-              "column": 38
-            }
-          }
-        ],
-        "typeInfo": {
-          "type": 1,
-          "required": true
-        }
-      }
-    },
-    "fa201ba4-d84f-460f-b938-6b861b516d15": {
-      "id": "fa201ba4-d84f-460f-b938-6b861b516d15",
+    "aa140bd8-1d9c-475c-ad38-34b495e8a8bf": {
+      "id": "aa140bd8-1d9c-475c-ad38-34b495e8a8bf",
       "name": "FormatSpecifier",
       "kind": 23,
       "modifier": 3,
@@ -1915,6 +1264,657 @@
             ],
             "source": {
               "line": 4,
+              "column": 38
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "c6777cb8-1004-4f8d-b907-28a3a8ab6c7b": {
+      "id": "c6777cb8-1004-4f8d-b907-28a3a8ab6c7b",
+      "name": "ParseDecimal",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [],
+      "code": "try { string text=\"oops\"; decimal result=decimal.Parse(text); } catch(NeoFormatError e) {return true;} catch(NeoError e) {return false;} return false;",
+      "projectId": "project-id",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 19,
+        "source": {
+          "name": "Probe.ParseDecimal",
+          "uri": "Classes/Probe.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "text",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "oops"
+                    }
+                  }
+                },
+                "source": {
+                  "line": 9,
+                  "column": 41
+                }
+              },
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "result",
+                  "typeInfo": {
+                    "type": 20,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "primitiveMember",
+                    "primitive": {
+                      "type": 20,
+                      "required": true
+                    },
+                    "member": "Parse",
+                    "args": [
+                      {
+                        "type": "variable",
+                        "variableId": "text"
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 111
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    ]
+                  }
+                },
+                "source": {
+                  "line": 9,
+                  "column": 61
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:e",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_87021243-5739-4af3-86ac-34fe2b5e4559"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    },
+                    "source": {
+                      "line": 9,
+                      "column": 124
+                    }
+                  }
+                ]
+              },
+              {
+                "binding": {
+                  "id": "__catch:1:e",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": false
+                      }
+                    },
+                    "source": {
+                      "line": 9,
+                      "column": 157
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 9,
+              "column": 35
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 1,
+                  "required": true
+                },
+                "value": false
+              }
+            },
+            "source": {
+              "line": 9,
+              "column": 172
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "c9fa881b-d4a7-486a-90bb-fdd1e8dae75d": {
+      "id": "c9fa881b-d4a7-486a-90bb-fdd1e8dae75d",
+      "name": "FormatDigits",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [],
+      "code": "try { int n=1; string format=\"Fz\"; return n.ToString(format) == \"Fz\"; } catch(NeoError e) {return false;}",
+      "projectId": "project-id",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 19,
+        "source": {
+          "name": "Probe.FormatDigits",
+          "uri": "Classes/Probe.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "n",
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
+                      },
+                      "value": 1
+                    }
+                  }
+                },
+                "source": {
+                  "line": 5,
+                  "column": 41
+                }
+              },
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "format",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "Fz"
+                    }
+                  }
+                },
+                "source": {
+                  "line": 5,
+                  "column": 50
+                }
+              },
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "boolean",
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "primitiveMember",
+                          "primitive": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "member": "ToString",
+                          "receiver": {
+                            "type": "variable",
+                            "variableId": "n"
+                          },
+                          "args": [
+                            {
+                              "type": "variable",
+                              "variableId": "format"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 0,
+                                  "required": true
+                                },
+                                "value": null
+                              }
+                            }
+                          ]
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "Fz"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "source": {
+                  "line": 5,
+                  "column": 70
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:e",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": false
+                      }
+                    },
+                    "source": {
+                      "line": 5,
+                      "column": 126
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 5,
+              "column": 35
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        }
+      }
+    },
+    "dcc7d739-8334-4ac2-8a6d-df746408b0af": {
+      "id": "dcc7d739-8334-4ac2-8a6d-df746408b0af",
+      "name": "FormatPrecision",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [],
+      "code": "try { int n=1; string format=\"F29\"; return n.ToString(format) == \"1.00000000000000000000000000000\"; } catch(NeoError e) {return false;}",
+      "projectId": "project-id",
+      "createdAt": 1,
+      "updatedAt": 1,
+      "action": {
+        "compilerRevision": 19,
+        "source": {
+          "name": "Probe.FormatPrecision",
+          "uri": "Classes/Probe.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "try",
+            "instructions": [
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "n",
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
+                      },
+                      "value": 1
+                    }
+                  }
+                },
+                "source": {
+                  "line": 6,
+                  "column": 44
+                }
+              },
+              {
+                "type": "variable",
+                "variable": {
+                  "id": "format",
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "pointer": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "F29"
+                    }
+                  }
+                },
+                "source": {
+                  "line": 6,
+                  "column": 53
+                }
+              },
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "operation",
+                  "operation": {
+                    "type": "boolean",
+                    "expression": {
+                      "condition": {
+                        "type": "equalTo",
+                        "operand1": {
+                          "type": "primitiveMember",
+                          "primitive": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "member": "ToString",
+                          "receiver": {
+                            "type": "variable",
+                            "variableId": "n"
+                          },
+                          "args": [
+                            {
+                              "type": "variable",
+                              "variableId": "format"
+                            },
+                            {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 0,
+                                  "required": true
+                                },
+                                "value": null
+                              }
+                            }
+                          ]
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "1.00000000000000000000000000000"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "source": {
+                  "line": 6,
+                  "column": 74
+                }
+              }
+            ],
+            "catches": [
+              {
+                "binding": {
+                  "id": "__catch:0:e",
+                  "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "classId": "system_791c90d0-8414-5971-8c1c-680f933ab42c"
+                  },
+                  "readonly": true
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": false
+                      }
+                    },
+                    "source": {
+                      "line": 6,
+                      "column": 159
+                    }
+                  }
+                ]
+              }
+            ],
+            "source": {
+              "line": 6,
               "column": 38
             }
           }

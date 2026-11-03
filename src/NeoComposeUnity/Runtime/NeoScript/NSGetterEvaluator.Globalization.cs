@@ -178,7 +178,8 @@ namespace NeoCompose.Runtime.NeoScript
             else
                 throw new NeoScriptPreExecutionValidationError($"Globalization member '{pointer.owner}.{pointer.member}' is not writable.");
             ctx.client.NoteGlobalizationValue(receiver);
-            PublishGlobalizationWrites(receiver, ctx.client, rejectInvalidNativeDigits: true, validateOnly: ctx.client.DefersGlobalizationWrites);
+            if (!ctx.client.DefersGlobalizationWrites)
+                PublishGlobalizationWrites(receiver, ctx.client);
         }
 
         private static readonly ConditionalWeakTable<object, Dictionary<string, WeakReference<PayloadMemberValue>>> globalizationRows = new();
@@ -199,7 +200,7 @@ namespace NeoCompose.Runtime.NeoScript
                 Track(culture.NumberFormat);
         }
 
-        internal static void PublishGlobalizationWrites(object receiver, NeoClient client, bool rejectInvalidNativeDigits, bool validateOnly = false)
+        internal static void PublishGlobalizationWrites(object receiver, NeoClient client)
         {
             if (!globalizationRows.TryGetValue(receiver, out var origins))
                 return;
@@ -217,10 +218,7 @@ namespace NeoCompose.Runtime.NeoScript
                         continue;
                     retainedHere = true;
                     TrackGlobalizationPayload(payload, root);
-                    if (validateOnly)
-                        NeoStorablePayloads.Encode(root);
-                    else
-                        client.PublishHeldPayloadWrite(ownership, payload, rejectInvalidNativeDigits);
+                    client.PublishHeldPayloadWrite(ownership, payload);
                 }
                 if (!retainedHere && !origin.Value.TryGetTarget(out _))
                     origins.Remove(origin.Key);
