@@ -291,7 +291,7 @@ namespace NeoCompose.Tests
             }
             object? Entry(object? result)
             {
-                if (result is Dictionary<string, object?> dictionary)
+                if (result is IDictionary<string, object?> dictionary)
                     return dictionary["need"];
                 if (result is RuntimeSet set)
                     return set.Snapshot()[0];
