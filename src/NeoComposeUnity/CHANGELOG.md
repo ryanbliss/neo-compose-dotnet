@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Resolve declared dictionary entry payloads when checking function arguments, including cultures and number formats added in a previous execution.
+
 - Allow evaluator list-index assignments of declared and boxed object payloads, including stored cultures and number formats. Invalid NativeDigits lengths still refuse at the assignment.
 
 - Publish NeoScript culture and number-format mutations at the end of the outer execution, including every stored alias and collection entry.
