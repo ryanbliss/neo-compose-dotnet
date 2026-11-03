@@ -205,6 +205,10 @@ namespace NeoCompose.Runtime.Json
         public string mutation = null!;
         public Pointer[] args = null!;
         public FunctionWithReturnType? comparison;
+        public EqualitySite? equality;
+        public OrderingSite? ordering;
+        public Pointer? index;
+        public Pointer? count;
         public string? keyType;
         /// <summary>
         /// Set on <c>Add</c>/<c>Remove</c> of Class, interface, or collection

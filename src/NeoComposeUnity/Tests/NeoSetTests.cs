@@ -351,6 +351,222 @@ namespace NeoCompose.Tests
             }
         }
 
+        private static NeoCollectionComparer StoredComparer(ProjectData data, string type, string equals, string hash)
+        {
+            var exported = NeoTestExport.Read(System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/p127-equality-parity-export.json"));
+            string interfaceId = NeoPrimitiveConformance.InterfaceId("IEqualityComparer`1");
+            var declaration = exported.interfaces[interfaceId];
+            data.interfaces[interfaceId] = declaration;
+            const string classId = "stored-comparer-class";
+            foreach (string id in new[] { equals, hash })
+            {
+                data.classes["save-root-class"].schema.Remove(id);
+                var member = (FunctionMember)data.members[id];
+                member.name = id == equals ? "Equals" : "GetHashCode";
+                member.Modifier = NeoMemberModifierKind.Sealed;
+            }
+            data.classes[classId] = new NeoSchemaClass
+            {
+                id = classId,
+                name = "StoredComparer",
+                schema = new() { ["Equals"] = equals, ["GetHashCode"] = hash },
+                implementsInterfaces = new List<InterfaceConstruction>
+                {
+                    new() { interfaceId = interfaceId, arguments = new() { [declaration.genericParams![0].id] = TestTypeBindings.FromKey(type) } },
+                },
+            };
+            data.values["stored-comparer"] = new ObjectMemberValue { id = "stored-comparer", classId = classId, value = new() };
+            return new NeoCollectionComparer { kind = NeoCollectionComparerKind.Value, valueId = "stored-comparer" };
+        }
+
+        [Test]
+        public void StoredDictionaryComparerIsSharedByHostAndEvaluator()
+        {
+            var data = BuildProjectData();
+            foreach (var (id, result, arity) in new[] { ("dict-eq", MemberKind.Bool, 2), ("dict-hash", MemberKind.Int, 1) })
+            {
+                data.members[id] = new FunctionMember
+                {
+                    id = id,
+                    name = id,
+                    kind = MemberKind.Function,
+                    Modifier = NeoMemberModifierKind.Static,
+                    returnTypeInfo = new PrimitiveTypeInfo { type = result, required = true },
+                    argumentTypes = Enumerable.Range(0, arity).Select(n => new FunctionArgumentTypeInfo { name = "p" + n, type = MemberKind.String, required = true }).ToArray(),
+                };
+                data.classes["save-root-class"].schema[id] = id;
+            }
+            data.members["words-member"] = new DictionaryMember
+            {
+                id = "words-member",
+                name = "Words",
+                kind = MemberKind.Dictionary,
+                entryMemberId = "lucky-entry",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.classes["save-root-class"].schema["Words"] = "words-member";
+            ((ObjectMemberValue)data.values["root-save-value"]).value!["Words"] = "words";
+            var comparer = StoredComparer(data, "string", "dict-eq", "dict-hash");
+            data.values["words"] = new ObjectMemberValue
+            {
+                id = "words",
+                value = new() { ["A"] = "word-a" },
+                comparer = comparer,
+            };
+            data.values["word-a"] = new NumberMemberValue { id = "word-a", value = 1 };
+            using var script = new Script(data);
+            int hashes = 0;
+            script.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["dict-eq"] = (_, _, args, _) => StringComparer.OrdinalIgnoreCase.Equals((string?)args[0], (string?)args[1]),
+                ["dict-hash"] = (_, _, args, _) => { hashes++; return StringComparer.OrdinalIgnoreCase.GetHashCode((string)args[0]!); },
+            });
+            using var node = new NeoMemberDictionaryWritable(script.client, "words-member", "words", NeoValueOwnership.Save);
+            var host = new NeoDictionary<int>(script.client, node,
+                (_, entry) => Convert.ToInt32(((NumberMemberValue)entry.value!).value), value => NeoValueWritePayload.FromValue(value));
+            Assert.That(host.ContainsKey("a"), Is.True);
+            Assert.That(hashes, Is.EqualTo(2));
+            hashes = 0;
+            var read = new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf
+                {
+                    pointer = Ref("words"),
+                    key = new ValuePointer { type = PointerKind.Value, primitiveResolved = true, primitive = "a" },
+                }
+            };
+            Assert.That(script.Eval(read), Is.EqualTo(1d));
+            Assert.That(hashes, Is.EqualTo(1), "the evaluator shares the host's warm index");
+            var held = host.Comparer;
+            Assert.That(held.Equals("a", "A"), Is.True);
+            hashes = 0;
+            host.Add("B", 2);
+            host.Add("C", 3);
+            Assert.That(hashes, Is.EqualTo(2));
+            Assert.That(host.Comparer, Is.SameAs(held));
+            hashes = 0;
+            host["b"] = 5;
+            Assert.That(hashes, Is.EqualTo(1));
+            Assert.That(host.Keys, Does.Contain("B").And.Not.Contain("b"));
+            Assert.That(host["B"], Is.EqualTo(5));
+            hashes = 0;
+            Assert.Throws<ArgumentException>(() => host.Add("b", 6));
+            Assert.That(hashes, Is.EqualTo(1));
+            hashes = 0;
+            Assert.That(host.Remove("b"), Is.True);
+            Assert.That(hashes, Is.EqualTo(1));
+            var edit = new NeoWritePlan(script.client);
+            edit.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "word-a", value = 9 });
+            edit.Commit();
+            hashes = 0;
+            Assert.That(host.ContainsKey("a"), Is.True);
+            Assert.That(hashes, Is.EqualTo(1), "dictionary value writes do not rebuild key hashes");
+            Assert.That(host["a"], Is.EqualTo(9));
+            hashes = 0;
+            host.Clear();
+            Assert.That(host.Count, Is.Zero);
+            Assert.That(hashes, Is.Zero);
+        }
+
+        [Test]
+        public void StoredComparerIndexSurvivesCommittedAddsAndRemoves()
+        {
+            var data = BuildProjectData();
+            foreach (var (id, result, arity) in new[] { ("b6-eq", MemberKind.Bool, 2), ("b6-hash", MemberKind.Int, 1) })
+                data.members[id] = new FunctionMember
+                {
+                    id = id,
+                    name = id,
+                    kind = MemberKind.Function,
+                    Modifier = NeoMemberModifierKind.Static,
+                    returnTypeInfo = new PrimitiveTypeInfo { type = result, required = true },
+                    argumentTypes = Enumerable.Range(0, arity).Select(n => new FunctionArgumentTypeInfo { name = "p" + n, type = MemberKind.Int, required = true }).ToArray(),
+                };
+            data.classes["save-root-class"].schema["b6-eq"] = "b6-eq";
+            data.classes["save-root-class"].schema["b6-hash"] = "b6-hash";
+            data.values[LuckyValueId].comparer = StoredComparer(data, "int", "b6-eq", "b6-hash");
+            using var script = new Script(data);
+            int hashes = 0;
+            script.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["b6-eq"] = (_, _, args, _) => Convert.ToDouble(args[0]) % 10 == Convert.ToDouble(args[1]) % 10,
+                ["b6-hash"] = (_, _, args, _) => { hashes++; return Convert.ToDouble(args[0]) % 10; },
+            });
+            var target = new WriteTarget { pointer = Ref(LuckyValueId), typeInfo = SetOf(new PrimitiveTypeInfo { type = MemberKind.Int, required = true }), writability = WritabilityKind.Save };
+            var comparerPointer = new CollectionComparerPointer { type = PointerKind.CollectionComparer, op = "Comparer", collection = Ref(LuckyValueId) };
+            object originalComparer = script.Eval(comparerPointer)!;
+            Assert.That(script.Eval(comparerPointer), Is.SameAs(originalComparer));
+            script.Mutate(target, CollectionMutationKind.Add, Int(5));
+            Assert.That(script.Eval(comparerPointer), Is.SameAs(originalComparer), "a mutation preserves comparer identity");
+            Assert.That(hashes, Is.EqualTo(3), "two initial entries and the argument");
+            hashes = 0;
+            script.Mutate(target, CollectionMutationKind.Add, Int(9));
+            Assert.That(hashes, Is.EqualTo(1), "a committed add retains prior hashes");
+            hashes = 0;
+            script.Mutate(target, CollectionMutationKind.Remove, Int(7));
+            Assert.That(hashes, Is.EqualTo(1));
+            CollectionAssert.AreEqual(new double?[] { 3, 5, 9 }, script.Numbers(LuckyValueId));
+            var search = (ContainsFunction)((FunctionPointer)Contains(Ref(LuckyValueId), Int(13), false)).function;
+            search.info.equality = new EqualitySite { type = new PrimitiveTypeInfo { type = MemberKind.Int, required = true } };
+            var searchPointer = new FunctionPointer { type = PointerKind.Function, function = search };
+            Assert.That(script.Eval(searchPointer), Is.True, "Set.Contains uses its comparer");
+            search.info.equality.comparer = new ValuePointer { type = PointerKind.Value, primitiveResolved = true, primitive = null };
+            Assert.That(script.Eval(searchPointer), Is.False, "an explicit null sequence comparer uses default equality");
+            search.info.equality.comparer = null;
+            var write = new NeoWritePlan(script.client);
+            var checkpoint = write.Open();
+            write.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "lucky-3", value = 4 });
+            using (script.client.ReadCandidate(write))
+                Assert.That(script.Eval(searchPointer), Is.False, "entry writes invalidate before publication");
+            write.Rollback(checkpoint);
+            Assert.That(script.Eval(searchPointer), Is.True, "a rejected write cannot retain candidate hashes");
+            using var hostNode = new NeoMemberListWritable(script.client, "lucky-member", LuckyValueId, NeoValueOwnership.Save);
+            var host = new NeoSet<int>(script.client, hostNode,
+                (_, node) => Convert.ToInt32(((NumberMemberValue)node.value!).value), value => NeoValueWritePayload.FromValue(value));
+            var hostComparer = host.Comparer;
+            Assert.That(hostComparer.Equals(1, 11), Is.True);
+            hashes = 0;
+            Assert.That(host.Contains(13), Is.True);
+            Assert.That(hashes, Is.EqualTo(1), "game C# shares the evaluator's warm index");
+            hashes = 0;
+            Assert.That(host.Add(15), Is.False);
+            Assert.That(hashes, Is.EqualTo(1));
+            hashes = 0;
+            Assert.That(host.Add(1), Is.True);
+            Assert.That(host.Add(2), Is.True);
+            Assert.That(hashes, Is.EqualTo(2), "game C# additions retain cached hashes");
+            Assert.That(host.Comparer, Is.SameAs(hostComparer));
+            hashes = 0;
+            Assert.That(host.Remove(12), Is.True);
+            Assert.That(hashes, Is.EqualTo(1));
+            var edit = new NeoWritePlan(script.client);
+            edit.Set(NeoValueOwnership.Save, new NumberMemberValue { id = "lucky-3", value = 4 });
+            edit.Commit();
+            hashes = 0;
+            Assert.That(host.Contains(14), Is.True);
+            Assert.That(hashes, Is.EqualTo(host.Count + 1), "entry edits rebuild before game C# lookup");
+            Assert.That(script.Eval(searchPointer), Is.False, "NeoScript reads the same edited index");
+            Assert.That(host.SetEquals(new[] { 14, 15, 19, 11, 21 }), Is.True);
+            Assert.That(host.IsSubsetOf(new[] { 14, 15, 19, 11, 12 }), Is.True);
+            Assert.That(host.IsProperSubsetOf(new[] { 14, 15, 19, 11, 12 }), Is.True);
+            Assert.That(host.IsSupersetOf(new[] { 14, 24 }), Is.True);
+            Assert.That(host.IsProperSupersetOf(new[] { 14, 24 }), Is.True);
+            Assert.That(host.Overlaps(new[] { 18, 24 }), Is.True);
+            host.ExceptWith(new[] { 14 });
+            Assert.That(host.Contains(4), Is.False);
+            host.UnionWith(new[] { 18, 28 });
+            host.IntersectWith(new[] { 18, 11 });
+            Assert.That(host.SetEquals(new[] { 8, 1 }), Is.True);
+            host.SymmetricExceptWith(new[] { 18, 28, 17, 27 });
+            Assert.That(host.SetEquals(new[] { 1, 7 }), Is.True);
+            host.UnionWith(host);
+            host.ExceptWith(host);
+            Assert.That(host.Count, Is.Zero);
+
+
+        }
+
         /// <summary>
         /// Stored dedupe follows the closed entry member, not the IR's static
         /// <c>reference</c> flag: a T bound to a Class compares by identity

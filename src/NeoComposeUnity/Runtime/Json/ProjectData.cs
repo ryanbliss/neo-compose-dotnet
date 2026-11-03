@@ -657,7 +657,6 @@ namespace NeoCompose.Runtime.Json
                         throw new JsonSerializationException($"Callable override \"{member["id"]}\" must keep member kind {MemberKind.NSFunction}; found {MemberKind.Function}.");
             ValidateClasses(root["classes"], root["members"] as JObject);
             ValidateInterfaces(root["interfaces"]);
-            NeoSystemComparerClasses.Register(root["classes"]);
         }
 
         internal static void ValidateMemberRecord(JObject member)

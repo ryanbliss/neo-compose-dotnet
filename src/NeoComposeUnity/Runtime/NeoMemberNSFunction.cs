@@ -2096,6 +2096,7 @@ namespace NeoCompose.Runtime
                     ? payload.valueReference ?? (object?)payload.valueId
                     : payload.value;
             }
+            value = NSGetterEvaluator.UnwrapHostComparer(value, client);
             NeoClient? owner = NeoExtensionRuntime.ClientOf(value);
             if (owner is not null && !ReferenceEquals(client, owner))
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
@@ -2632,7 +2633,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Required {subject} has no enum option id.");
             }
-            return optionIds;
+            return NSGetterEvaluator.MarkEnumValue(optionIds);
         }
 
         private static object UnwrapValueReference(

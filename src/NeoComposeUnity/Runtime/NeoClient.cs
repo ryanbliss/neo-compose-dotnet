@@ -1329,6 +1329,7 @@ namespace NeoCompose.Runtime
 
         private void RefreshSharedEvaluationRow(NeoValueOwnership ownership, string valueId, NeoWritePlan? plan = null)
         {
+            NeoScript.NSGetterEvaluator.InvalidateStoredEquality(this, ownership, valueId);
             var shared = sharedEvaluationContext;
             if (shared is null)
                 return;
@@ -6424,6 +6425,7 @@ namespace NeoCompose.Runtime
                 : new NeoCollectionComparer
                 {
                     kind = comparer.kind,
+                    runtimeIdentity = comparer.runtimeIdentity ?? comparer,
                     comparer = (JObject?)comparer.comparer?.DeepClone(),
                     valueId = comparer.valueId,
                 };
@@ -7970,7 +7972,7 @@ namespace NeoCompose.Runtime
             else if (wrappers is HashSet<NeoGeneratedClassValue> set)
                 set.Add(generated);
             else if (!ReferenceEquals(wrappers, generated))
-                generatedValuesByValueId[valueId] = new HashSet<NeoGeneratedClassValue> { (NeoGeneratedClassValue)wrappers, generated };
+                generatedValuesByValueId[valueId] = new HashSet<NeoGeneratedClassValue>(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance) { (NeoGeneratedClassValue)wrappers, generated };
         }
 
         private void UnindexGeneratedClassValue(NeoGeneratedClassValue generated)

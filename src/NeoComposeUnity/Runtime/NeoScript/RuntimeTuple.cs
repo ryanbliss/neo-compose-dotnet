@@ -15,9 +15,9 @@ namespace NeoCompose.Runtime.NeoScript
         private readonly object?[] elements;
         internal readonly TupleTypeInfo TypeInfo;
 
-        internal RuntimeTuple(object?[] elements, TupleTypeInfo typeInfo, NSGetterEvaluator.Context? ctx = null)
+        internal RuntimeTuple(object?[] elements, TupleTypeInfo typeInfo, NSGetterEvaluator.Context? ctx = null, bool structuralRest = false)
         {
-            if (elements.Length < 2)
+            if (elements.Length < (structuralRest ? 1 : 2))
                 throw new NSGetterRuntimeError("A tuple needs at least two elements.");
             if (elements.Length != typeInfo.elements.Length)
                 throw new NSGetterRuntimeError("Tuple value and type arities differ.");

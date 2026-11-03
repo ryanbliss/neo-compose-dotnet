@@ -97,6 +97,9 @@ namespace NeoCompose.Runtime
             object value,
             in NeoSlotContext slotContext)
         {
+            object unwrapped = NSGetterEvaluator.UnwrapHostComparer(value, client)!;
+            if (unwrapped is not NSGetterEvaluator.NeoBuiltInComparer)
+                value = unwrapped;
             if (value is NeoGeneratedClassValue generated)
             {
                 RequireObjectSlotHolds(client, slot, name, new ObjectMemberValue { id = name, classId = generated.classId }, slotContext);
@@ -106,6 +109,13 @@ namespace NeoCompose.Runtime
             var context = client.RentDirectFunctionContext(ownership);
             try
             {
+                if (NSGetterEvaluator.ConstructorReferenceOf(value, context) is { valueId: { Length: > 0 } } comparerRow)
+                {
+                    if (!client.TryGetValue(comparerRow.ownership ?? ownership, comparerRow.valueId, out var row))
+                        throw new InvalidOperationException($"Comparer row '{comparerRow.valueId}' is missing.");
+                    RequireObjectSlotHolds(client, slot, name, row!, slotContext);
+                    return NeoValueWritePayload.FromValueReference(comparerRow.valueId);
+                }
                 // A class value inside a box is imported as one assigned to a
                 // field of the held type is: copied from Asset or Save data,
                 // adopted from Session, refused when it has another owner.
@@ -289,8 +299,8 @@ namespace NeoCompose.Runtime
                 case NeoBoxFormKind.Identity:
                     return NeoValuePayload.Boxed(null, valueType, null, Array.Empty<MemberValue>(), evaluatorValue is null ? value : evaluatorValue as NeoBox);
                 case NeoBoxFormKind.Comparer:
-                    if (comparer is null)
-                        throw new NotSupportedException($"Object field '{name}' can't store a NeoScript comparer yet (P127 B6).");
+                    comparer ??= value is NSGetterEvaluator.NeoBuiltInComparer builtIn ? builtIn.StoredPayload()
+                        : throw new InvalidOperationException($"Object field '{name}' requires a comparer payload.");
                     return NeoValuePayload.Boxed(comparer, valueType, null, Array.Empty<MemberValue>(), value);
                 case NeoBoxFormKind.Member:
                     break;
@@ -357,7 +367,7 @@ namespace NeoCompose.Runtime
         };
 
         /// <summary>Whether <paramref name="value"/> is the evaluator's own value, which C# never reads back.</summary>
-        private static bool IsEvaluatorValue(object? value) => value is NeoBox or NeoTypeValue;
+        private static bool IsEvaluatorValue(object? value) => value is NeoBox or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer;
 
         /// <summary>The closed type a C# value boxes as (§1.2), or a refusal naming the slot and the C# type.</summary>
         private static TypeBinding HeldType(NeoClient client, string name, object value)
@@ -602,7 +612,7 @@ namespace NeoCompose.Runtime
 
         private static bool IsComparer(object value)
         {
-            if (value is NeoReferenceEqualityComparer or NeoScriptComparer)
+            if (value is NeoReferenceEqualityComparer or NeoScriptComparer or NSGetterEvaluator.NeoBuiltInComparer)
                 return true;
             foreach (Type contract in value.GetType().GetInterfaces())
             {
@@ -617,10 +627,16 @@ namespace NeoCompose.Runtime
 
         private static JObject ComparerPayload(NeoClient client, string name, object value)
         {
+            value = NSGetterEvaluator.UnwrapHostComparer(value, client)!;
+            if (value is NSGetterEvaluator.NeoBuiltInComparer builtIn)
+                return builtIn.StoredPayload();
             if (value is NeoReferenceEqualityComparer)
                 return Comparer(NeoBuiltInComparerKind.ReferenceEquality, NeoComparerFamilyKind.Equality, null);
             if (value is NeoScriptComparer script)
+            {
+                NeoStorablePayloads.ValidateBuiltInComparer(script.Payload, $"Object field '{name}' comparer");
                 return (JObject)script.Payload.DeepClone();
+            }
             Type type = value.GetType();
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(NeoSetEqualityComparer<>))
                 return Comparer(NeoBuiltInComparerKind.SetEquality, NeoComparerFamilyKind.Equality, ComparerArgument(client, name, type.GetGenericArguments()[0]));
@@ -695,6 +711,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException($"Object field '{node.member.name}' holds value '{row.id}', which isn't a comparer payload.");
             var kind = (NeoBuiltInComparerKind)payload.Value<int>("comparer");
             var family = (NeoComparerFamilyKind)payload.Value<int>("family");
+            NeoStorablePayloads.ValidateBuiltInComparer(payload, $"Object field '{node.member.name}' comparer");
             if (kind == NeoBuiltInComparerKind.ReferenceEquality)
                 return NeoReferenceEqualityComparer.Instance;
             TypeBinding argument = TypeBindings.Read((JObject)payload["type"]!, $"Object field '{node.member.name}' comparer type");

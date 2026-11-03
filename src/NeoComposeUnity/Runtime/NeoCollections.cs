@@ -502,6 +502,10 @@ namespace NeoCompose.Runtime
             return NeoCollectionSubscription.Watch(node, client, collection, handler);
         }
 
+        public IEqualityComparer<string> Comparer => node.DictionaryComparer<string>();
+
+        internal IEqualityComparer<TKey> KeyComparer<TKey>() => node.DictionaryComparer<TKey>();
+
         public T this[string key] => createItem(client, node[key]);
 
         public IEnumerable<string> Keys
@@ -690,24 +694,11 @@ namespace NeoCompose.Runtime
 
         public bool IsReadOnly => isReadOnly?.Invoke() ?? false;
 
-        public void Add(string key, T value)
-        {
-            if (ContainsKey(key))
-                throw new ArgumentException($"An entry with key '{key}' already exists.", nameof(key));
-            RequireWritableNode().SetSerialized(key, serializeItem(value));
-        }
+        public void Add(string key, T value) => RequireWritableNode().SetSerialized(key, serializeItem(value), addOnly: true);
 
         public void Add(KeyValuePair<string, T> item) => Add(item.Key, item.Value);
 
-        public void Clear()
-        {
-            var writableNode = RequireWritableNode();
-            var keys = new List<string>(Keys);
-            foreach (var key in keys)
-            {
-                writableNode.Remove(key);
-            }
-        }
+        public void Clear() => RequireWritableNode().ClearSerialized();
 
         public bool Contains(KeyValuePair<string, T> item)
         {
@@ -726,13 +717,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public bool Remove(string key)
-        {
-            if (!ContainsKey(key))
-                return false;
-            RequireWritableNode().Remove(key);
-            return true;
-        }
+        public bool Remove(string key) => RequireWritableNode().RemoveSerialized(key);
 
         public bool Remove(KeyValuePair<string, T> item)
         {
@@ -765,6 +750,8 @@ namespace NeoCompose.Runtime
         protected readonly NeoReadOnlyDictionary<TValue> entries;
         protected readonly Func<string, TKey> fromOptionId;
         protected readonly Func<TKey, string> toOptionId;
+
+        public IEqualityComparer<TKey> Comparer => entries.KeyComparer<TKey>();
 
         public NeoReadOnlyDictionary(
             NeoClient client,

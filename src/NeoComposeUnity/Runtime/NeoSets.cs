@@ -221,7 +221,10 @@ namespace NeoCompose.Runtime
             return NeoCollectionSubscription.Watch(node, client, this, handler);
         }
 
-        public bool Contains(T item) => KeyOf(serializeItem(item)) is { } key && node.FindSetEntry(key) is not null;
+        public IEqualityComparer<T> Comparer => node.SetComparer<T>();
+
+        public bool Contains(T item) => node.TrySetEquality(item, out _, out _, out string? found)
+            ? found is not null : KeyOf(serializeItem(item)) is { } key && node.FindSetEntry(key) is not null;
 
         /// <summary>
         /// P112 §8. The writable view of this set, when its store takes writes and its member isn't readonly.
@@ -310,6 +313,15 @@ namespace NeoCompose.Runtime
         public bool Add(T item)
         {
             beforeWrite?.Invoke();
+            var writable = WritableNode();
+            if (writable.TrySetEquality(item, out var equality, out var candidate, out string? found))
+            {
+                if (found is not null)
+                    return false;
+                int hash = equality!.ProbeHash;
+                writable.AddSerialized(serializeItem(item), equality, candidate, hash);
+                return true;
+            }
             NeoValueWritePayload? payload = serializeItem(item);
             if (KeyOf(payload) is { } key && node.FindSetEntry(key) is not null)
                 return false;
@@ -322,6 +334,17 @@ namespace NeoCompose.Runtime
         public bool Remove(T item)
         {
             beforeWrite?.Invoke();
+            if (node.TrySetEquality(item, out var equality, out _, out string? found))
+            {
+                if (found is null)
+                    return false;
+                try
+                {
+                    WritableNode().RemoveById(found, equality);
+                }
+                catch { NeoScript.NSGetterEvaluator.DiscardStoredEquality(client); throw; }
+                return true;
+            }
             if (KeyOf(serializeItem(item)) is not { } key)
                 return false;
             if (node.FindSetEntry(key) is not { } valueId)
@@ -344,25 +367,98 @@ namespace NeoCompose.Runtime
                 array[arrayIndex++] = item;
         }
 
-        public void UnionWith(IEnumerable<T> other) => NeoSetAlgebra.UnionWith(this, other);
+        public void UnionWith(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+            {
+                NeoSetAlgebra.UnionWith(this, other);
+                return;
+            }
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
+            foreach (T item in new List<T>(other))
+                Add(item);
+        }
 
-        public void ExceptWith(IEnumerable<T> other) => NeoSetAlgebra.ExceptWith(this, other);
+        public void ExceptWith(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+            {
+                NeoSetAlgebra.ExceptWith(this, other);
+                return;
+            }
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
+            if (ReferenceEquals(this, other))
+            {
+                Clear();
+                return;
+            }
+            foreach (T item in new List<T>(other))
+                Remove(item);
+        }
 
-        public void IntersectWith(IEnumerable<T> other) => NeoSetAlgebra.IntersectWith(this, other);
+        public void IntersectWith(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+            {
+                NeoSetAlgebra.IntersectWith(this, other);
+                return;
+            }
+            var keep = new HashSet<T>(other ?? throw new ArgumentNullException(nameof(other)), Comparer);
+            foreach (T item in new List<T>(this))
+                if (!keep.Contains(item))
+                    Remove(item);
+        }
 
-        public void SymmetricExceptWith(IEnumerable<T> other) => NeoSetAlgebra.SymmetricExceptWith(this, other);
+        public void SymmetricExceptWith(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+            {
+                NeoSetAlgebra.SymmetricExceptWith(this, other);
+                return;
+            }
+            var items = new HashSet<T>(other ?? throw new ArgumentNullException(nameof(other)), Comparer);
+            foreach (T item in items)
+                if (!Remove(item))
+                    Add(item);
+        }
 
-        public bool IsSubsetOf(IEnumerable<T> other) => NeoSetAlgebra.IsSubsetOf(this, other);
+        public bool IsSubsetOf(IEnumerable<T> other) => node.UsesSetEquality()
+            ? new HashSet<T>(this, Comparer).IsSubsetOf(other) : NeoSetAlgebra.IsSubsetOf(this, other);
 
-        public bool IsProperSubsetOf(IEnumerable<T> other) => NeoSetAlgebra.IsProperSubsetOf(this, other);
+        public bool IsProperSubsetOf(IEnumerable<T> other) => node.UsesSetEquality()
+            ? new HashSet<T>(this, Comparer).IsProperSubsetOf(other) : NeoSetAlgebra.IsProperSubsetOf(this, other);
 
-        public bool IsSupersetOf(IEnumerable<T> other) => NeoSetAlgebra.IsSupersetOf(this, other);
+        public bool IsSupersetOf(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+                return NeoSetAlgebra.IsSupersetOf(this, other);
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
+            foreach (T item in other)
+                if (!Contains(item))
+                    return false;
+            return true;
+        }
 
-        public bool IsProperSupersetOf(IEnumerable<T> other) => NeoSetAlgebra.IsProperSupersetOf(this, other);
+        public bool IsProperSupersetOf(IEnumerable<T> other) => node.UsesSetEquality()
+            ? new HashSet<T>(this, Comparer).IsProperSupersetOf(other) : NeoSetAlgebra.IsProperSupersetOf(this, other);
 
-        public bool Overlaps(IEnumerable<T> other) => NeoSetAlgebra.Overlaps(this, other);
+        public bool Overlaps(IEnumerable<T> other)
+        {
+            if (!node.UsesSetEquality())
+                return NeoSetAlgebra.Overlaps(this, other);
+            if (other is null)
+                throw new ArgumentNullException(nameof(other));
+            foreach (T item in other)
+                if (Contains(item))
+                    return true;
+            return false;
+        }
 
-        public bool SetEquals(IEnumerable<T> other) => NeoSetAlgebra.SetEquals(this, other);
+        public bool SetEquals(IEnumerable<T> other) => node.UsesSetEquality()
+            ? new HashSet<T>(this, Comparer).SetEquals(other) : NeoSetAlgebra.SetEquals(this, other);
 
         string? INeoKeyedSet<T>.KeyOf(T item) => KeyOf(serializeItem(item));
 

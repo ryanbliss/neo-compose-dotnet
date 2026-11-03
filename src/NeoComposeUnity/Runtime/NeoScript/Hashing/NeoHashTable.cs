@@ -162,6 +162,26 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
             return table;
         }
 
+        /// <summary>Projects values without invoking the key comparer again.</summary>
+        internal NeoHashTable<TKey, TResult> MapValues<TResult>(Func<TValue, TResult> project, NeoHashTableKind kind)
+        {
+            var table = new NeoHashTable<TKey, TResult>(Comparer, kind, keyText: keyText)
+            {
+                buckets = buckets is null ? null : (int[])buckets.Clone(),
+                hashCodes = (int[])hashCodes.Clone(),
+                nexts = (int[])nexts.Clone(),
+                keyAt = (TKey[])keyAt.Clone(),
+                valueAt = new TResult[valueAt.Length],
+                count = count,
+                freeList = freeList,
+                freeCount = freeCount,
+            };
+            for (int i = 0; i < count; i++)
+                if (nexts[i] >= -1)
+                    table.valueAt[i] = project(valueAt[i]);
+            return table;
+        }
+
         /// <summary>The slot holding <paramref name="key"/> (<c>FindItemIndex</c>/<c>FindValue</c>), or -1.</summary>
         internal int IndexOf(TKey key)
         {
@@ -188,8 +208,13 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         internal TValue ValueAt(int index) => valueAt[index];
 
         /// <summary><c>AddIfNotPresent</c>/<c>TryInsert</c>: true when the key was added (or, overwriting, its value set).</summary>
-        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior)
+        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior) => Insert(key, value, behavior, out _);
+
+        internal bool GetOrAdd(TKey key, TValue value, out TValue stored) => Insert(key, value, NeoInsertBehavior.None, out stored);
+
+        private bool Insert(TKey key, TValue value, NeoInsertBehavior behavior, out TValue stored)
         {
+            stored = value;
             CheckKey(key);
             if (buckets is null)
                 Initialize(0);
@@ -208,6 +233,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
                     }
                     if (behavior == NeoInsertBehavior.Throw)
                         throw NeoHashingErrors.DuplicateKey(keyText(key));
+                    stored = valueAt[i];
                     return false;
                 }
                 i = nexts[i];

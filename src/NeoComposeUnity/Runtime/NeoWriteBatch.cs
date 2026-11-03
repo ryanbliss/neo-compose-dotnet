@@ -140,6 +140,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
+                    NSGetterEvaluator.DiscardStoredEquality(Plan.Client);
                     Plan.LocalSelections?.Discard();
                     requiredPublicationCallbacks = null;
                     publicationDrainState = 2;
@@ -978,6 +979,27 @@ namespace NeoCompose.Runtime
             private NeoSetEntryIndex? setEntries;
             private Member? setEntryMember;
             private NeoWritePlan? setPlan;
+            private NSGetterEvaluator.StoredEqualityIndex? equalityIndex;
+            private NeoWritePlan? equalityPlan;
+            private object? equalityCandidate;
+            private int equalityCandidateHash;
+
+            internal string? FindEqualityEntry(object? candidate, Member member, TypeBinding type, NeoWritePlan plan, NSGetterEvaluator.Context ctx)
+            {
+                IEnumerable<string> Entries()
+                {
+                    for (int i = 0; i < Count; i++)
+                        yield return this[i];
+                }
+                if (equalityIndex is null || !equalityIndex.Valid)
+                    equalityIndex = NSGetterEvaluator.GetStoredEqualityIndex(Row, type, Ownership, ctx, Entries(),
+                        id => plan.TryGet(Ownership, id, out MemberValue? row) ? NSGetterEvaluator.UnwrapRow(row!, ctx, Ownership, member) : null);
+                equalityPlan = plan;
+                string? found = equalityIndex.Find(candidate);
+                equalityCandidate = candidate;
+                equalityCandidateHash = equalityIndex.ProbeHash;
+                return found;
+            }
 
             internal PendingList(ArrayMemberValue row, NeoValueOwnership ownership, object? target) : base(row, ownership, target)
             {
@@ -1009,6 +1031,13 @@ namespace NeoCompose.Runtime
                 Count++;
                 members?.Add(id);
                 setEntries?.Add(SetEntryKey(id), id);
+                if (equalityIndex is { Valid: true })
+                {
+                    equalityIndex.Add(id, equalityCandidate, equalityCandidateHash);
+                    equalityIndex.PendingEntries.Add(id);
+                    NSGetterEvaluator.PreserveStoredEquality(equalityIndex, Row, equalityPlan!);
+                }
+                equalityCandidate = null;
                 Changes(now);
             }
 
@@ -1017,6 +1046,8 @@ namespace NeoCompose.Runtime
                 if (!Ordered().Remove(id))
                     return false;
                 ForgetSetEntry(id);
+                equalityIndex?.Remove(id);
+                NSGetterEvaluator.PreserveStoredEquality(equalityIndex, Row, equalityPlan!);
                 Count--;
                 members?.Remove(id);
                 Changes(now);
@@ -1161,6 +1192,8 @@ namespace NeoCompose.Runtime
                 Count = 0;
                 members?.Clear();
                 setEntries?.Clear();
+                equalityIndex?.Clear();
+                NSGetterEvaluator.PreserveStoredEquality(equalityIndex, Row, equalityPlan!);
                 Changes(now);
                 return cleared;
             }

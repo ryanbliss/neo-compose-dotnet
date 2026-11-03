@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Shelf : NeoGeneratedClassValue, IReadOnlyShelf
     {
         internal Shelf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b578ac1f-3760-4079-a773-07a86f670ceb", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c23fc44a-6914-45e1-b148-f28d90e2e179", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b578ac1f-3760-4079-a773-07a86f670ceb",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Item", "0446ea75-7513-4dcb-84ff-19550e7724fb", Item),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "b901ddcf-b51e-4f61-bd74-a111150b561d", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "5dccbb6f-036d-4cd8-bf10-e78d07d1fdec", Items)
+                "c23fc44a-6914-45e1-b148-f28d90e2e179",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Item", "9316a3a9-2122-40d3-8510-7724a62e4ffc", Item),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "c974bc12-6b15-47c0-ab63-f00b4dd67412", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "bc0c51a2-c538-4bb9-8193-41eab194620f", Items)
             );
         }
 

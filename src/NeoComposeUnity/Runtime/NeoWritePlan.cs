@@ -205,6 +205,7 @@ namespace NeoCompose.Runtime
         /// <summary>Drops what was staged since <paramref name="checkpoint"/>.</summary>
         internal void Rollback(Checkpoint checkpoint)
         {
+            NeoScript.NSGetterEvaluator.DiscardStoredEquality(Client);
             listenerRenames = null;
             LocalSelections?.Rollback(checkpoint.LocalSelections);
             if (listenerMoveJournal is not null)
@@ -334,6 +335,8 @@ namespace NeoCompose.Runtime
             Client.CheckDelegateRow(ownership, row);
             Client.ThrowIfDepartedWrite(row.id);
             Client.ThrowIfConstantWrite(row.id);
+            if (!silent)
+                NeoScript.NSGetterEvaluator.InvalidateStoredEquality(Client, ownership, row.id, row);
             var key = (ownership, row.id);
             Record(key);
             Restage(key, row);

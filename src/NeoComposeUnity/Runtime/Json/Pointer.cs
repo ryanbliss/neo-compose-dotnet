@@ -72,6 +72,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class ValuePointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoScriptMethodGroupCache? cache;
         public Value value = null!;
         // Evaluator cache for a primitive literal, or for the entries of an
         // array literal of primitives (see NSGetterEvaluator).
@@ -167,10 +169,25 @@ namespace NeoCompose.Runtime.Json
     /// <c>entries</c> field shape is unambiguous despite the name
     /// collision with {@link ListLiteralPointer}.
     /// </summary>
+    public sealed class CollectionComparerPointer : Pointer
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? optional;
+        public string op = null!;
+        public Pointer? collection;
+        public TypeInfo? elementType;
+    }
+
     public sealed class DictLiteralPointer : Pointer
     {
+        public EqualitySite? equality;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? capacity;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? copyFrom;
         public CollectionTypeInfo typeInfo = null!;
-        public DictLiteralPair[] entries = null!;
+        public DictLiteralPair[] entries = Array.Empty<DictLiteralPair>();
+        public bool ShouldSerializeentries() => capacity is null && copyFrom is null;
     }
 
     /// <summary>Mirror of <c>INSPointerForceUnwrap</c>.</summary>
@@ -292,8 +309,25 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>A primitive's C# member, selected by the compiler.</summary>
+    public sealed class NeoScriptMethodGroupCache
+    {
+        public string owner = null!;
+        public TypeInfo delegateType = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? method;
+    }
+
+    public sealed class PrimitiveMethodGroup
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoScriptMethodGroupCache? cache;
+        public int parameterCount;
+    }
+
     public sealed class PrimitiveMemberPointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public PrimitiveMethodGroup? methodGroup;
         public TypeInfo primitive = null!;
         public string member = null!;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -310,6 +344,8 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class TypeParameterStaticOperation
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoScriptMethodGroupCache? cache;
         public string kind = null!;
         public Pointer[]? args;
         public TypeInfo[]? typeArguments;
@@ -320,6 +356,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>A persisted method identity bound to an evaluated receiver.</summary>
     public sealed class MemberTargetPointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoScriptMethodGroupCache? cache;
+        public TypeInfo? delegateType;
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool direct;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -441,6 +480,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class DelegateClosurePointer : Pointer
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? placement;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? target;
         public string? site;
         public DelegateTypeInfo typeInfo = null!;
         public FunctionWithReturnType action = null!;
@@ -821,6 +864,8 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
+                case PointerKind.CollectionComparer:
+                    return typeof(CollectionComparerPointer);
                 case "typeParameterStatic":
                     return typeof(TypeParameterStaticPointer);
                 case PointerKind.Reference:
@@ -916,6 +961,24 @@ namespace NeoCompose.Runtime.Json
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            JToken? cache = obj["cache"] ?? (obj["operation"] as JObject)?["cache"] ?? (obj["methodGroup"] as JObject)?["cache"];
+            if (cache is not null && (cache is not JObject descriptor
+                || descriptor.Count != 2 + (descriptor.Property("method") is null ? 0 : 1)
+                || descriptor["owner"]?.Type != JTokenType.String || string.IsNullOrWhiteSpace(descriptor.Value<string>("owner"))
+                || descriptor["delegateType"] is not JObject cacheType || cacheType.Value<int?>("type") != (int)MemberKind.NSDelegate
+                || descriptor.Property("method") is not null && (descriptor["method"]?.Type != JTokenType.Boolean || descriptor.Value<bool>("method") != true)))
+                throw new JsonSerializationException("Method-group cache requires owner, delegateType and optional method: true.");
+
+            if (concrete == typeof(DictLiteralPointer))
+            {
+                bool capacity = obj.Property("capacity") is not null;
+                bool copy = obj.Property("copyFrom") is not null;
+                if (capacity && copy || (capacity || copy) && obj.Property("entries") is not null)
+                    throw new JsonSerializationException("dictLiteral capacity/copyFrom are exclusive and cannot accompany entries.");
+                if (capacity && obj["capacity"] is not JObject || copy && obj["copyFrom"] is not JObject)
+                    throw new JsonSerializationException("dictLiteral capacity/copyFrom must be pointers.");
+                return;
+            }
             if (concrete == typeof(LetPointer))
             {
                 if (obj["bindings"] is not JArray bindings)
@@ -933,12 +996,25 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException("LetPointer requires a result pointer.");
                 return;
             }
+            if (concrete == typeof(CollectionComparerPointer))
+            {
+                string? op = obj.Value<string>("op");
+                if (op == "Comparer" && obj["collection"] is JObject
+                    || op == "CreateSetComparer" && obj["elementType"] is JObject)
+                    return;
+                throw new JsonSerializationException("CollectionComparerPointer requires Comparer with collection or CreateSetComparer with elementType.");
+            }
             if (concrete == typeof(PrimitiveMemberPointer))
             {
                 if (obj["primitive"] is not JObject)
                     throw new JsonSerializationException("PrimitiveMemberPointer requires a primitive type.");
                 if (!HasNonEmptyString(obj, "member") || !NeoPrimitiveIntrinsics.IsMember(obj.Value<string>("member")!))
                     throw new JsonSerializationException("PrimitiveMemberPointer requires a known primitive member.");
+                if (obj.Property("methodGroup") is not null
+                    && (obj["methodGroup"] is not JObject group || group.Count != 1 + (group.Property("cache") is null ? 0 : 1)
+                        || group["parameterCount"]?.Type != JTokenType.Integer || group.Value<int>("parameterCount") < 0
+                        || obj.Property("receiver") is not null || obj["args"] is not JArray { Count: 0 }))
+                    throw new JsonSerializationException("Primitive member methodGroup requires only parameterCount, no receiver and empty args.");
                 if (obj["args"] is not JArray)
                     throw new JsonSerializationException("PrimitiveMemberPointer requires arguments.");
                 return;
@@ -1093,6 +1169,12 @@ namespace NeoCompose.Runtime.Json
             }
             if (concrete == typeof(DelegateClosurePointer))
             {
+                string? placement = obj.Value<string>("placement");
+                if (obj.Property("placement") is not null && placement is not ("this" or "environment")
+                    || (placement == "environment") != (obj.Property("target") is not null)
+                    || obj.Property("target") is not null && obj["target"] is not JObject)
+                    throw new JsonSerializationException("A closure requires target exactly for environment placement.");
+
                 if (obj["action"]?["generator"] is { Type: not JTokenType.Null })
                     throw new JsonSerializationException("A delegate closure cannot be a generator.");
                 if (obj["typeInfo"]?.Type != JTokenType.Object)

@@ -188,13 +188,14 @@ namespace NeoCompose.Tests
         [TestCase(true)]
         public void P127Interface_GenericClosureSiteSurvivesSerialization(bool literal)
         {
-            var owner = ReceiverClass();
+            var owner = ReceiverClass(("Make", "lambda-owner"));
             owner.genericParams = new() { new() { id = "T", name = "T" } };
-            using var client = BuildClient(Array.Empty<NeoCompose.Runtime.Json.Member>(), owner);
             var typeType = new ObjectTypeInfo { type = MemberKind.Object, required = true, objectType = NeoObjectTypeKind.Type };
             var generic = new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerClassId = owner.id, genericParamId = "T" };
             var action = Action(typeType, Array.Empty<FunctionArgumentTypeInfo>(), Return(new TypeOfPointer { type = PointerKind.TypeOf, typeInfo = generic }));
             action.parameters[0].typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = false };
+            var factory = ScriptFunction("lambda-owner", "Make", true, typeType, Array.Empty<FunctionArgumentTypeInfo>(), action);
+            using var client = BuildClient(new NeoCompose.Runtime.Json.Member[] { factory }, owner);
             var construction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id),
                 new Dictionary<string, TypeBinding> { ["T"] = TypeBinding.Closed(new TypeHead(MemberKind.String, true)) });
             var ctx = new NSGetterEvaluator.Context(client, null, null) { staticConstruction = construction };

@@ -319,7 +319,7 @@
     "  public static int BoxedIntHash() { object o = -7; return o.GetHashCode(); }",
     "  public static int BoxedBoolHash() { object o = true; return o.GetHashCode(); }",
     "  public static int BoxedEnumHash() { object o = Planet.Venus; return o.GetHashCode(); }",
-    "  public static int TypeHash() { return typeof(int).GetHashCode(); }",
+    "  public static bool TypeHash() { return typeof(int).GetHashCode() == typeof(int).GetHashCode() && typeof(List<int>).GetHashCode() == new List<int>().GetType().GetHashCode(); }",
     "  public static string PlainText() { object o = new Plain(); return o.ToString()!; }",
     "  public static bool PlainEquals() { object a = new Plain(); object b = new Plain(); return a.Equals(b); }",
     "  public static bool PlainSelfEquals() { object a = new Plain(); return a.Equals(a); }",
@@ -473,6 +473,7 @@
     "}"
   ],
   "returns": {
+    "TypeHash": true,
     "IntMax": 2147483647,
     "IntMin": -2147483648,
     "FloatNaN": true,
@@ -796,7 +797,6 @@
     "BadIntToEnum": "Unable to cast object of type 'System.Int32' to type 'Planet'.",
     "UnboxWrongType": "Unable to cast object of type 'System.Int32' to type 'System.Single'.",
     "UnboxNull": "Object reference not set to an instance of an object.",
-    "TypeHash": "GetHashCode() on a Type isn't supported yet (P127 B6).",
     "CheckedIncrement": "Arithmetic operation resulted in an overflow.",
     "OwnedCollectionBoxWrite": "Writing a boxed List<int> into Item would share a collection already owned by another slot. Call Clone() or use Reference.",
     "OwnedCollectionBoxConstructor": "Writing a boxed List<int> into constructor argument '__arg_0__' would share a collection already owned by another slot. Call Clone() or use Reference.",

@@ -885,6 +885,19 @@ namespace NeoCompose.Tests
         {
           ""type"": ""variable"",
           ""variable"": {
+            ""id"": ""__env_0__"",
+            ""typeInfo"": {
+              ""type"": 31,
+              ""required"": true
+            },
+            ""pointer"": {
+              ""type"": ""newObject""
+            }
+          }
+        },
+        {
+          ""type"": ""variable"",
+          ""variable"": {
             ""id"": ""add"",
             ""typeInfo"": {
               ""type"": 25,
@@ -1105,7 +1118,12 @@ namespace NeoCompose.Tests
                   ""variableId"": ""__arg_0__""
                 }
               ],
-              ""code"": ""() => { if (values is List<int> list) { list.Add(2); return list.Count; } return 0; }""
+              ""code"": ""() => { if (values is List<int> list) { list.Add(2); return list.Count; } return 0; }"",
+              ""placement"": ""environment"",
+              ""target"": {
+                ""type"": ""variable"",
+                ""variableId"": ""__env_0__""
+              }
             }
           },
           ""source"": {
@@ -1236,6 +1254,7 @@ namespace NeoCompose.Tests
       }
     }
   }
-}";
+}
+";
     }
 }

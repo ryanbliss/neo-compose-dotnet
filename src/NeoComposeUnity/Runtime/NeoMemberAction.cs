@@ -224,12 +224,13 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void AddListener(NeoDelegateValue listener)
         {
-            string identity = RequireMemberTarget(listener, "add");
+            RequireMemberTarget(listener, "add");
+            var context = client.CreateGetterContext(ownership);
             client.CheckHostDelegate(ownership, listener);
             NeoActionValue next = CopyOfStoredValue();
             foreach (NeoDelegateValue existing in next.listeners)
             {
-                if (NeoActionValue.ListenerIdentity(existing) == identity)
+                if (NSGetterEvaluator.DelegateEquals(existing, listener, context))
                     return;
             }
             next.listeners.Add(listener.PersistedCopy());
@@ -242,18 +243,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void RemoveListener(NeoDelegateValue listener)
         {
-            string identity = RequireMemberTarget(listener, "remove");
+            RequireMemberTarget(listener, "remove");
+            var context = client.CreateGetterContext(ownership);
             NeoActionValue next = CopyOfStoredValue();
-            for (int index = 0; index < next.listeners.Count; index++)
-            {
-                if (NeoActionValue.ListenerIdentity(next.listeners[index]) != identity)
-                {
-                    continue;
-                }
-                next.listeners.RemoveAt(index);
+            int removed = next.listeners.RemoveAll(existing => NSGetterEvaluator.DelegateEquals(existing, listener, context));
+            if (removed > 0)
                 Write(next);
-                return;
-            }
         }
 
         /// <summary>

@@ -248,7 +248,8 @@ namespace NeoCompose.Tests
             Assert.That(NSGetterEvaluator.Evaluate(getter, new NSGetterEvaluator.Context(client, left, right)), Is.EqualTo(expected));
         }
 
-        [TestCase(false, false, true)]
+        [TestCase(false, false, false)]
+        [TestCase(false, true, true)]
         [TestCase(true, false, false)]
         [TestCase(true, true, true)]
         public void ReferenceEqualityComparesIdentityNotFields(bool reference, bool same, bool expected)
