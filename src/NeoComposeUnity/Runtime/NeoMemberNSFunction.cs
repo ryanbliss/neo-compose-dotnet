@@ -2844,7 +2844,9 @@ namespace NeoCompose.Runtime
             {
                 if (entryType is not null)
                     foreach (object? entry in runtime.Values)
-                        Normalize(client, ownership, entry, entryType, ctx, subject.Entry());
+                        Normalize(client, rowOwnership ?? ownership,
+                            rowOwnership is null ? entry : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                            entryType, ctx, subject.Entry());
                 return runtime;
             }
             if (rowOwnership is not null && value is Dictionary<string, object?> rows)

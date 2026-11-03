@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class AddProbe : NeoGeneratedClassValue, IReadOnlyAddProbe
     {
         internal AddProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9b5a7525-95c7-48dd-9116-0e979766980f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d8b072e7-09bf-49ef-83c4-ed4f63d85d73", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string AddClass()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f7b2aa9f-9d43-4fca-9158-cb34183f343e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "70a00ca7-abba-4be2-8547-7d90648d763e");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string AddLog()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "331422a9-a547-4b5b-be51-3eb3ef892782");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d90b12b7-cafb-4afd-85cd-3412d21e1675");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string RemAdd()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "203075ce-56af-435b-8643-6511dcb8d58d");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "84ba3d47-c5d5-4fbf-ae12-73bcf30ad6b2");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -66,7 +66,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9b5a7525-95c7-48dd-9116-0e979766980f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d8b072e7-09bf-49ef-83c4-ed4f63d85d73");
         }
 
         internal static AddProbe Create(NeoClient client, NeoMemberClass node)
