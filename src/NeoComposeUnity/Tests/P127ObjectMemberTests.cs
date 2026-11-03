@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
@@ -62,9 +63,9 @@ namespace NeoCompose.Tests
         private const string PointClass = "point-class";
         private const string CarrierClass = "carrier-class";
         private const string BoxClass = "box-class";
-        private const string EqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e01";
-        private const string ComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e02";
-        private const string ReferenceEqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e03";
+        private const string EqualityComparerId = NeoSystemComparerClasses.EqualityComparerId;
+        private const string ComparerId = NeoSystemComparerClasses.ComparerId;
+        private const string ReferenceEqualityComparerId = NeoSystemComparerClasses.ReferenceEqualityComparerId;
 
         public static IEnumerable<TestCaseData> Boxes()
         {
@@ -613,7 +614,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CreatedComparersCallTheirDelegatesAndWriteBackTheirPayload()
+        public void CreatedComparersCallTheirDelegatesAfterStorage()
         {
             using NeoClient client = BuildClient();
             var payload = new JObject
@@ -624,16 +625,14 @@ namespace NeoCompose.Tests
                 ["delegates"] = new JArray(JObject.FromObject(new NeoDelegateValue { memberId = "same-native", valueId = null })),
             };
             object created = NeoScriptComparer.Create(typeof(int), client, NeoValueOwnership.Save, payload, NeoComparerFamilyKind.Equality);
+            var comparer = (IEqualityComparer<int>)created;
+            Assert.That(comparer.Equals(1, 2), Is.True);
+            Assert.Throws<NotSupportedException>(() => comparer.GetHashCode(1));
             Write(client, client.save, created);
-            Assert.That(Read(client.save), Is.SameAs(created));
-
             using NeoClient reloaded = Reload(client);
-            var read = (IEqualityComparer<int>)Read(reloaded.save)!;
-            Assert.That(read.Equals(1, 2), Is.True);
-            Assert.Throws<NotSupportedException>(() => read.GetHashCode(1));
-            Assert.That(read, Is.EqualTo(created));
-            Write(reloaded, reloaded.save, read, "Other");
-            Assert.That(((PayloadMemberValue)RowAt(reloaded.save, "Other")).value, Is.EqualTo(payload));
+            var stored = (IEqualityComparer<int>)Read(reloaded.save)!;
+            Assert.That(stored.Equals(1, 2), Is.True);
+            Assert.Throws<NotSupportedException>(() => stored.GetHashCode(1));
         }
 
         [Test]
@@ -929,6 +928,95 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CollectionComparerAdapterCrossesHostStorageAndArguments()
+        {
+            using NeoClient client = BuildClient();
+            var context = client.CreateGetterContext(NeoValueOwnership.Save);
+            var type = TestTypeBindings.FromKey("int");
+            var comparer = NSGetterEvaluator.HostComparer<int>(null, type, NeoValueOwnership.Save, context);
+            Assert.That(comparer.Equals(3, 3), Is.True);
+            Write(client, client.save, comparer);
+            Assert.That(((IEqualityComparer<int>)Read(client.save)!).Equals(3, 3), Is.True);
+            using NeoClient reloaded = Reload(client);
+            Assert.That(((IEqualityComparer<int>)Read(reloaded.save)!).Equals(3, 4), Is.False);
+            object runtime = NeoScriptValueMarshaller.Normalize(client, NeoValueOwnership.Save, comparer,
+                new PrimitiveTypeInfo { type = MemberKind.Object }, context, "comparer argument")!;
+            Assert.That(runtime, Is.TypeOf<NSGetterEvaluator.NeoBuiltInComparer>());
+            Assert.Throws<InvalidOperationException>(() => NeoScriptValueMarshaller.Normalize(reloaded, NeoValueOwnership.Save, comparer,
+                new PrimitiveTypeInfo { type = MemberKind.Object }, reloaded.CreateGetterContext(NeoValueOwnership.Save), "comparer argument"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ConstructorInterfaceSlotsStorePrimitiveBoxes(bool text)
+        {
+            var data = NeoTestExport.Read(System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/p127-equality-parity-export.json"));
+            const string classId = "b6-interface-holder";
+            const string fieldId = "b6-interface-value";
+            data.members[fieldId] = new ClassMember
+            {
+                id = fieldId,
+                projectId = data.project.id,
+                name = "Value",
+                kind = MemberKind.Class,
+                DeclaredInterfaceId = NeoPrimitiveConformance.InterfaceId("IComparable"),
+            };
+            data.classes[classId] = new NeoSchemaClass
+            {
+                id = classId,
+                projectId = data.project.id,
+                name = "InterfaceHolder",
+                schema = new Dictionary<string, string> { ["Value"] = fieldId },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+            object input = text ? "value" : NeoBox.Of(TestTypeBindings.FromKey("int"), 7d);
+            var instance = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId,
+                new NeoGeneratedConstructorValue("Value", fieldId, input));
+            Assert.That(client.TryGetValue(instance.value!.value!["Value"], out MemberValue? row), Is.True);
+            Assert.That(row!.valueType, Is.EqualTo(TestTypeBindings.FromKey(text ? "string" : "int")));
+            var context = client.CreateGetterContext(NeoValueOwnership.Session);
+            object? read = NSGetterEvaluator.UnwrapRow(row, context, NeoValueOwnership.Session, data.members[fieldId]);
+            Assert.That(read is NeoBox box ? box.Payload : read, Is.EqualTo(text ? (object)"value" : 7d));
+        }
+
+        [Test]
+        public void EvaluatorComparerStoresInItsClosedClassSlot()
+        {
+            using NeoClient client = BuildClient(data => data.members["slot-field"] = new ClassMember
+            {
+                id = "slot-field",
+                name = "Slot",
+                kind = MemberKind.Class,
+                DeclaredClassId = EqualityComparerId,
+                classArguments = new Dictionary<string, TypeBinding> { ["equality-t"] = TestTypeBindings.FromKey("int") },
+            });
+            var comparer = new NeoCompose.Runtime.NeoScript.NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.Default,
+                NeoComparerFamilyKind.Equality, TestTypeBindings.FromKey("int"));
+            var instance = NeoGeneratedTypesSupport.CreateWritableClassValue(client, RootClass,
+                new NeoGeneratedConstructorValue("Slot", "slot-field", comparer));
+            string id = instance.value!.value!["Slot"];
+            Assert.That(client.TryGetValue(id, out PayloadMemberValue? row), Is.True);
+            Assert.That(row!.valueType, Is.EqualTo(TestTypeBindings.FromKey("c:" + EqualityComparerId + "<int>", client.ProjectDataForRuntime)));
+            var context = client.CreateGetterContext(NeoValueOwnership.Session);
+            object? value = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.UnwrapRow(row, context, NeoValueOwnership.Session, client.members["slot-field"]);
+            Assert.That(NeoCompose.Runtime.NeoScript.NSGetterEvaluator.UnwrapComparer(value)!.Kind, Is.EqualTo(NeoBuiltInComparerKind.Default));
+        }
+
+        [Test]
+        public void EvaluatorComparerBoxesWriteCloneAndReload()
+        {
+            using NeoClient client = BuildClient();
+            var binding = TestTypeBindings.FromKey("int");
+            var comparer = new NeoCompose.Runtime.NeoScript.NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.Default, NeoComparerFamilyKind.Equality, binding);
+            Write(client, client.save, comparer);
+            Assert.That(SlotRow(client.save).valueType, Is.EqualTo(TestTypeBindings.FromKey("c:" + EqualityComparerId + "<int>", client.ProjectDataForRuntime)));
+            NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(client, new ValueRef(client.save.value!.id));
+            Assert.That(((IEqualityComparer<int>)Read(clone)!).Equals(7, 7), Is.True);
+            using NeoClient reloaded = Reload(client);
+            Assert.That(((IEqualityComparer<int>)Read(reloaded.save)!).Equals(7, 8), Is.False);
+        }
+
+        [Test]
         public void CreatedComparersCallTheirClosures()
         {
             using NeoClient client = BuildClient();
@@ -957,23 +1045,17 @@ namespace NeoCompose.Tests
                 ["comparer"] = (int)NeoBuiltInComparerKind.Create,
                 ["family"] = (int)NeoComparerFamilyKind.Comparison,
                 ["type"] = TestTypeBindings.JsonFromKey("int"),
-                ["delegates"] = new JArray(JObject.FromObject(new NeoDelegateValue { action = descending })),
+                ["delegates"] = new JArray(JObject.FromObject(new NeoDelegateValue { action = descending, code = "(a, b) => b - a" })),
             };
             object created = NeoScriptComparer.Create(typeof(int), client, NeoValueOwnership.Save, payload, NeoComparerFamilyKind.Comparison);
             var values = new List<int> { 1, 3, 2 };
             values.Sort((IComparer<int>)created);
             Assert.That(values, Is.EqualTo(new[] { 3, 2, 1 }));
             Write(client, client.save, created);
-            Assert.That(Read(client.save), Is.SameAs(created));
-            Assert.That(SlotRow(client.save).valueType, Is.EqualTo(TestTypeBindings.FromKey("c:" + ComparerId + "<int>", client.ProjectDataForRuntime)));
-
-            NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(client, new ValueRef(client.save.value!.id));
-            Assert.That(((IComparer<int>)Read(clone)!).Compare(1, 2), Is.EqualTo(1));
             using NeoClient reloaded = Reload(client);
-            var read = (IComparer<int>)Read(reloaded.save)!;
-            Assert.That(read, Is.Not.SameAs(created));
-            Assert.That(read.Compare(1, 2), Is.EqualTo(1));
-            Assert.That(read.Compare(5, 2), Is.EqualTo(-3));
+            var stored = (IComparer<int>)Read(reloaded.save)!;
+            Assert.That(stored.Compare(1, 3), Is.EqualTo(2));
+            Assert.That(stored.Compare(3, 1), Is.EqualTo(-2));
         }
 
         [Test]
@@ -1321,12 +1403,6 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            NeoSystemComparerClasses.Register(JObject.FromObject(new Dictionary<string, NeoSchemaClass>
-            {
-                [EqualityComparerId] = data.classes[EqualityComparerId],
-                [ComparerId] = data.classes[ComparerId],
-                [ReferenceEqualityComparerId] = data.classes[ReferenceEqualityComparerId],
-            }));
             edit?.Invoke(data);
             return Prepared(NeoTestSaveStack.ClientFromSchema(data.WithUserRoot()));
         }

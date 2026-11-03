@@ -7,6 +7,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
 {
@@ -78,12 +79,30 @@ namespace NeoCompose.Runtime
             return CreateOwnedChild(client, childMember, overrideValueId, writableFamily: false);
         }
 
+        internal IEqualityComparer<T> DictionaryComparer<T>()
+        {
+            ObserveChildren();
+            var context = client.CreateGetterContext(ownership);
+            context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, context));
+            return NSGetterEvaluator.HostComparer<T>(value, NSGetterEvaluator.DictionaryKeyType(member), ownership, context);
+        }
+
+        private protected string? EqualityKey(string key, out NSGetterEvaluator.StoredEqualityIndex? index)
+        {
+            index = null;
+            if (value is not { comparer: not null } row)
+                return childMembers.ContainsKey(key) ? key : null;
+            var context = client.CreateGetterContext(ownership);
+            context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, context));
+            return NSGetterEvaluator.StoredDictionaryKey(row, ownership, key, context, out index, member);
+        }
+
         public NeoMember this[string key]
         {
             get
             {
                 ObserveChildren();
-                return childMembers[key];
+                return childMembers[EqualityKey(key, out _) ?? key];
             }
         }
 
@@ -99,14 +118,14 @@ namespace NeoCompose.Runtime
         public bool ContainsKey(string key)
         {
             ObserveChildren();
-            return childMembers.ContainsKey(key);
+            return EqualityKey(key, out _) is not null;
         }
 
         public bool TryGet<TNeoMember>(string key, [NotNullWhen(true)] out TNeoMember? outMember)
             where TNeoMember : NeoMember
         {
             ObserveChildren();
-            if (childMembers.TryGetValue(key, out NeoMember? check) && check is TNeoMember match)
+            if (EqualityKey(key, out _) is { } canonical && childMembers.TryGetValue(canonical, out NeoMember? check) && check is TNeoMember match)
             {
                 outMember = match;
                 return true;
@@ -247,9 +266,15 @@ namespace NeoCompose.Runtime
         /// and re-saves the parent. If the parent itself has no
         /// stored value yet, materialises one first.
         /// </summary>
-        internal void SetSerialized(string key, NeoValueWritePayload? setValue)
+        internal void SetSerialized(string key, NeoValueWritePayload? setValue, bool addOnly = false)
         {
             ObserveChildren();
+            string? existingKey = EqualityKey(key, out var equality);
+            if (addOnly && existingKey is not null)
+                throw new System.ArgumentException($"An item with the same key has already been added. Key: {key}");
+            int candidateHash = equality?.ProbeHash ?? 0;
+            object? candidate = equality?.ProbeValue ?? key;
+            key = existingKey ?? key;
             client.RequireStoredValue(entryMember, setValue, $"[{key}]", pathContainerId: valueId, pathContainerMember: member);
             client.RequireSlotAdmits(entryMember, null, member.name, setValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
             client.RequireNoGenericStaticTargets(entryMember, null, member.name, setValue);
@@ -280,11 +305,25 @@ namespace NeoCompose.Runtime
             }
             parentRow.value[key] = nextId;
             parentRow.updatedAt = nowIso;
-            plan.Set(ownership, parentRow);
-            NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, nextId);
-            if (previousId is not null && previousId != nextId)
-                client.StageUnlinkedRemovals(plan, entryOwnership, previousId, entryMember);
-            CommitOwnChange(plan);
+            try
+            {
+                if (equality is { Valid: true })
+                {
+                    if (existingKey is null)
+                        equality.Add(key, candidate, candidateHash);
+                    NSGetterEvaluator.PreserveStoredEquality(equality, parentRow, plan);
+                }
+                plan.Set(ownership, parentRow);
+                NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, nextId);
+                if (previousId is not null && previousId != nextId)
+                    client.StageUnlinkedRemovals(plan, entryOwnership, previousId, entryMember);
+                CommitOwnChange(plan);
+            }
+            catch
+            {
+                NSGetterEvaluator.DiscardStoredEquality(client);
+                throw;
+            }
             value = parentRow;
             if (childMembers.TryGetValue(key, out NeoMember? previousChild))
                 ReleaseChild(previousChild);
@@ -294,13 +333,16 @@ namespace NeoCompose.Runtime
             NotifyChanged();
         }
 
-        public void Remove(string key)
+        public void Remove(string key) => RemoveSerialized(key);
+
+        internal bool RemoveSerialized(string key)
         {
             ObserveChildren();
             if (value?.value is null)
-                return;
-            if (!value.value.ContainsKey(key))
-                return;
+                return false;
+            if (EqualityKey(key, out var equality) is not { } matched)
+                return false;
+            key = matched;
             NeoTimestamp nowIso = NeoTimestamp.Now();
 
             // Clone-on-write the dict row (shadowing the authored default at
@@ -310,10 +352,20 @@ namespace NeoCompose.Runtime
             string removedValueId = parentRow.value![key];
             parentRow.value.Remove(key);
             parentRow.updatedAt = nowIso;
-            plan.Set(ownership, parentRow);
-            NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
-            client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
-            CommitOwnChange(plan);
+            try
+            {
+                equality?.Remove(key);
+                NSGetterEvaluator.PreserveStoredEquality(equality, parentRow, plan);
+                plan.Set(ownership, parentRow);
+                NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
+                client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
+                CommitOwnChange(plan);
+            }
+            catch
+            {
+                NSGetterEvaluator.DiscardStoredEquality(client);
+                throw;
+            }
             value = parentRow;
 
             // Dispose the child node (recursive — its own Dispose
@@ -324,6 +376,25 @@ namespace NeoCompose.Runtime
                 childMembers.Remove(key);
             }
 
+            NotifyChanged();
+            return true;
+        }
+
+        internal void ClearSerialized()
+        {
+            ObserveChildren();
+            if (value?.value is not { Count: > 0 })
+                return;
+            var plan = new NeoWritePlan(client);
+            var parentRow = EnsureWritableObject(plan, NeoTimestamp.Now());
+            var removed = new List<string>(parentRow.value!.Values);
+            parentRow.value.Clear();
+            plan.Set(ownership, parentRow);
+            foreach (string id in removed)
+                client.StageUnlinkedRemovals(plan, client.ChildOwnership(entryMember, ownership), id, entryMember);
+            CommitOwnChange(plan);
+            value = parentRow;
+            ReinitializeChildren();
             NotifyChanged();
         }
 
@@ -347,6 +418,7 @@ namespace NeoCompose.Runtime
             ObjectMemberValue parentRow = EnsureWritableObject(plan, nowIso);
             parentRow.value![key] = childValueId;
             parentRow.updatedAt = nowIso;
+            NSGetterEvaluator.PreserveStoredEquality(NSGetterEvaluator.CachedStoredEquality(client, ownership, parentRow.id), parentRow, plan);
             plan.Set(ownership, parentRow);
             NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, childValueId);
             // The bound child reports its own change.

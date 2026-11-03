@@ -715,6 +715,19 @@ namespace NeoCompose.Tests
             {
               ""type"": ""variable"",
               ""variable"": {
+                ""id"": ""__env_0__"",
+                ""typeInfo"": {
+                  ""type"": 31,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""newObject""
+                }
+              }
+            },
+            {
+              ""type"": ""variable"",
+              ""variable"": {
                 ""id"": ""offset"",
                 ""typeInfo"": {
                   ""type"": 2,
@@ -914,7 +927,13 @@ namespace NeoCompose.Tests
                         ""variableId"": ""offset""
                       }
                     ],
-                    ""code"": ""(value) => Inference.Identity(value + offset)""
+                    ""code"": ""(value) => Inference.Identity(value + offset)"",
+                    ""site"": ""12000000-0000-4000-8000-000000000006:getter:0"",
+                    ""placement"": ""environment"",
+                    ""target"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""__env_0__""
+                    }
                   }
                 ],
                 ""typeArguments"": [
@@ -1044,6 +1063,7 @@ namespace NeoCompose.Tests
                     },
                     ""value"": {
                       ""code"": ""(value) => value * 2"",
+                      ""site"": ""12000000-0000-4000-8000-000000000007:getter:0"",
                       ""action"": {
                         ""compilerRevision"": 19,
                         ""source"": {
@@ -1332,6 +1352,7 @@ namespace NeoCompose.Tests
                       },
                       ""value"": {
                         ""code"": ""(value) => { Debug.Log(value); return value + 1; }"",
+                        ""site"": ""12000000-0000-4000-8000-000000000008:getter:0"",
                         ""action"": {
                           ""compilerRevision"": 19,
                           ""source"": {
@@ -1993,6 +2014,7 @@ namespace NeoCompose.Tests
                       },
                       ""value"": {
                         ""code"": ""(value) => value switch { int n when (n & 1) == 1 => n << 2, _ => 0 }"",
+                        ""site"": ""12000000-0000-4000-8000-000000000012:getter:0"",
                         ""action"": {
                           ""compilerRevision"": 19,
                           ""source"": {
@@ -2300,6 +2322,19 @@ namespace NeoCompose.Tests
             {
               ""type"": ""variable"",
               ""variable"": {
+                ""id"": ""__env_0__"",
+                ""typeInfo"": {
+                  ""type"": 31,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""newObject""
+                }
+              }
+            },
+            {
+              ""type"": ""variable"",
+              ""variable"": {
                 ""id"": ""Inference"",
                 ""typeInfo"": {
                   ""type"": 7,
@@ -2475,7 +2510,13 @@ namespace NeoCompose.Tests
                       ""variableId"": ""Inference""
                     }
                   ],
-                  ""code"": ""() => Inference.Label.Length""
+                  ""code"": ""() => Inference.Label.Length"",
+                  ""site"": ""12000000-0000-4000-8000-000000000014:getter:0"",
+                  ""placement"": ""environment"",
+                  ""target"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__env_0__""
+                  }
                 }
               },
               ""source"": {
@@ -2572,6 +2613,19 @@ namespace NeoCompose.Tests
             }
           ],
           ""instructions"": [
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""__env_0__"",
+                ""typeInfo"": {
+                  ""type"": 31,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""newObject""
+                }
+              }
+            },
             {
               ""type"": ""variable"",
               ""variable"": {
@@ -2788,7 +2842,13 @@ namespace NeoCompose.Tests
                       ""variableId"": ""value""
                     }
                   ],
-                  ""code"": ""() => value.Length""
+                  ""code"": ""() => value.Length"",
+                  ""site"": ""12000000-0000-4000-8000-000000000015:getter:0"",
+                  ""placement"": ""environment"",
+                  ""target"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__env_0__""
+                  }
                 }
               },
               ""source"": {
@@ -2914,6 +2974,19 @@ namespace NeoCompose.Tests
             }
           ],
           ""instructions"": [
+            {
+              ""type"": ""variable"",
+              ""variable"": {
+                ""id"": ""__env_0__"",
+                ""typeInfo"": {
+                  ""type"": 31,
+                  ""required"": true
+                },
+                ""pointer"": {
+                  ""type"": ""newObject""
+                }
+              }
+            },
             {
               ""type"": ""variable"",
               ""variable"": {
@@ -3099,6 +3172,23 @@ namespace NeoCompose.Tests
                             ""value"": null
                           }
                         }
+                      },
+                      {
+                        ""id"": ""__capture_0_1__"",
+                        ""typeInfo"": {
+                          ""type"": 31,
+                          ""required"": true
+                        },
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": {
+                              ""type"": 31,
+                              ""required"": true
+                            },
+                            ""value"": null
+                          }
+                        }
                       }
                     ],
                     ""instructions"": [
@@ -3218,7 +3308,13 @@ namespace NeoCompose.Tests
                               ""variableId"": ""__capture_0_0__""
                             }
                           ],
-                          ""code"": ""() => value.Length""
+                          ""code"": ""() => value.Length"",
+                          ""site"": ""12000000-0000-4000-8000-000000000016:getter:1"",
+                          ""placement"": ""environment"",
+                          ""target"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__capture_0_1__""
+                          }
                         },
                         ""source"": {
                           ""line"": 33,
@@ -3240,9 +3336,19 @@ namespace NeoCompose.Tests
                     {
                       ""type"": ""variable"",
                       ""variableId"": ""value""
+                    },
+                    {
+                      ""type"": ""variable"",
+                      ""variableId"": ""__env_0__""
                     }
                   ],
-                  ""code"": ""() => () => value.Length""
+                  ""code"": ""() => () => value.Length"",
+                  ""site"": ""12000000-0000-4000-8000-000000000016:getter:0"",
+                  ""placement"": ""environment"",
+                  ""target"": {
+                    ""type"": ""variable"",
+                    ""variableId"": ""__env_0__""
+                  }
                 }
               },
               ""source"": {
@@ -3648,6 +3754,7 @@ namespace NeoCompose.Tests
       ""expected"": 5
     }
   ]
-}";
+}
+";
     }
 }

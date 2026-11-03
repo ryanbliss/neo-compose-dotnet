@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript.Numerics;
+using NeoCompose.Runtime.NeoScript.Ordering;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -20,9 +21,9 @@ namespace NeoCompose.Runtime.NeoScript
             if (value is null || !activeSorts.TryGetValue(ctx.allocationTracker, out var active) || active.Count == 0)
                 return;
             if (active.Contains(SequenceCollectionIdentity(value)))
-                throw new NSGetterRuntimeError("Cannot change a list while its Sort comparison is running.");
+                throw new NeoSortIntegrityError("Cannot change a list while its Sort comparison is running.");
             if (FindRowReference(value, ctx) is { } row && active.Contains(row.valueId))
-                throw new NSGetterRuntimeError("Cannot change a stored list while its Sort comparison is running.");
+                throw new NeoSortIntegrityError("Cannot change a stored list while its Sort comparison is running.");
         }
 
         internal static object?[] SortCollection(object? collection, CollectionCallInstruction instruction, NeoScriptScope scope, Context ctx)
@@ -32,6 +33,9 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError("Sort requires a list target.");
             if (FindRowReference(collection, ctx)?.CollectionMember(ctx.client) is ListMember listMember && ctx.client.IsUnorderedList(listMember))
                 throw new NSGetterRuntimeError("Sort requires an ordered list.");
+            int sortIndex = instruction.index is null ? 0 : NeoInt32.Wrap(Number(EvalPointer(instruction.index, scope, ctx)!));
+            int? count = instruction.count is null ? null : NeoInt32.Wrap(Number(EvalPointer(instruction.count, scope, ctx)!));
+            BoundComparison? comparison = instruction.ordering is null ? null : BindComparison(instruction.ordering, scope, ctx);
             var entries = new List<(object? raw, object? value)>();
             var cursor = new CollectionCursor(collection, ctx);
             try
@@ -51,15 +55,23 @@ namespace NeoCompose.Runtime.NeoScript
                 object?[]? result = null;
                 try
                 {
-                    var sorted = StableCollectionSort(entries.ToArray(), (a, b) =>
+                    var sorted = entries.ToArray();
+                    NeoSortHelper helper = comparison is not null && comparison.UsesDefault && instruction.comparison is null
+                        ? comparison.Default.Helper : NeoSortHelper.Comparer;
+                    NeoIntroSort.SortList(sorted, sortIndex, count ?? sorted.Length, helper, (a, b) =>
                     {
-                        if (instruction.comparison is null)
-                            return CompareCollectionKeys(a.value, b.value, instruction.keyType);
-                        object? compared = callback.ProjectPair(a.value, b.value);
-                        if (!TryAsDouble(compared, out double number) || !NeoNumbers.IsWhole(number))
-                            throw new NSGetterRuntimeError("Sort comparison must return a finite int.");
-                        return number.CompareTo(0d);
-                    });
+                        if (instruction.comparison is not null)
+                        {
+                            object? compared = callback.ProjectPair(a.value, b.value);
+                            if (!TryAsDouble(compared, out double number) || !NeoNumbers.IsWhole(number))
+                                throw new NSGetterRuntimeError("Sort comparison must return a finite int.");
+                            return NeoInt32.Wrap(number);
+                        }
+                        if (comparison is not null)
+                            return helper == NeoSortHelper.Comparable ? comparison.CompareNonNull(a.value, b.value) : comparison.Compare(a.value, b.value);
+                        return CompareCollectionKeys(a.value, b.value, instruction.keyType);
+                    }, comparison?.Default.Float == true && helper == NeoSortHelper.Comparable ? entry => float.IsNaN((float)Number(entry.value!)) : null,
+                        () => instruction.comparison is not null ? "NeoDelegate<int, " + TypeName(RuntimeTypeOf(CloseContextType(instruction.comparison.parameters[0].typeInfo, ctx)), ctx) + ", " + TypeName(RuntimeTypeOf(CloseContextType(instruction.comparison.parameters[1].typeInfo, ctx)), ctx) + ">" : comparison?.Text() ?? "Comparer", NeoScriptErrorClassification.IsAuthoredCatchable, entry => entry.value is null);
                     result = new object?[sorted.Length];
                     for (int index = 0; index < result.Length; index++)
                         result[index] = sorted[index].raw;
@@ -104,8 +116,51 @@ namespace NeoCompose.Runtime.NeoScript
             return source is object?[] && FindRowReference(source, ctx)?.CollectionMember(ctx.client) is not SetMember;
         }
 
-        private static object? ReduceCollection(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, Context ctx)
+        private static IEnumerable<(object? Value, CollectionCursor Position)> ReductionEntries(object? collection, Context ctx)
         {
+            var cursor = new CollectionCursor(collection, ctx);
+            try
+            {
+                while (true)
+                {
+                    object? value;
+                    try
+                    {
+                        if (!cursor.MoveNextUnresolved())
+                            break;
+                        value = cursor.ResolveEntry(ctx);
+                    }
+                    catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                    yield return (value, cursor);
+                }
+            }
+            finally { cursor.Dispose(); }
+        }
+
+        private static object? ReduceOrderedCollection(FunctionCollectionQueryInfo info, object? collection, PreparedCollectionCallback callback, BoundComparison comparison, Context ctx)
+        {
+            var source = ReductionEntries(collection, ctx);
+            object? Select((object? Value, CollectionCursor Position) entry) => info.function is null ? entry.Value : callback.Project(in entry.Position, entry.Value);
+            bool nullable = !comparison.Default.Type.Head!.Required || !TypeBindings.IsValueType(comparison.Default.Type.Head);
+            NeoExtreme extreme = info.op is "Min" or "MinBy" ? NeoExtreme.Min : NeoExtreme.Max;
+            if (info.op is "MinBy" or "MaxBy")
+            {
+                var selected = NeoEnumerableOrdering.MinMaxBy(source, Select, extreme, comparison.Compare, info.nullable, nullable);
+                return QueryEntry(selected.Value, info.enumEntries);
+            }
+            if (comparison.UsesDefault && comparison.Default.Type.Head.Type == MemberKind.Float)
+            {
+                float? selected = NeoEnumerableOrdering.MinMaxFloat32(source, entry => Select(entry) is { } value ? (float)Number(value) : null, extreme, nullable);
+                return selected is null ? null : Box((double)selected.Value);
+            }
+            return NeoEnumerableOrdering.MinMax(source, Select, extreme, comparison.Compare, nullable);
+        }
+
+        private static object? ReduceCollection(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, NeoScriptScope scope, Context ctx)
+        {
+            BoundComparison? comparison = info.ordering is null ? null : BindComparison(info.ordering, scope, ctx);
+            if (comparison is not null && info.op is "Min" or "Max" or "MinBy" or "MaxBy")
+                return ReduceOrderedCollection(info, collection, callback, comparison, ctx);
             int count = 0;
             double total = 0;
             // Enumerable over ints: Sum is checked, Average totals in 64 bits (P127 §3.1).
@@ -150,13 +205,13 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         continue;
                     }
-                    int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType);
+                    int order = count == 1 ? 0 : comparison is null ? CompareCollectionKeys(value, bestKey, info.keyType) : comparison.Compare(value, bestKey);
                     if (count == 1 || (info.op is "Min" or "MinBy" ? order < 0 : order > 0))
                     {
                         bestKey = value;
                         selected = by ? QueryEntry(entry, info.enumEntries) : value;
                     }
-                    if (info.op == "Min" && TryAsDouble(value, out double candidate) && double.IsNaN(candidate))
+                    if (info.op == "Min" && comparison?.Comparer is null && TryAsDouble(value, out double candidate) && double.IsNaN(candidate))
                         break;
                 }
                 if (info.op == "Sum")
@@ -175,6 +230,8 @@ namespace NeoCompose.Runtime.NeoScript
                         return first;
                     if (info.nullable)
                         return null;
+                    if (comparison is not null)
+                        throw NeoOrderingErrors.NoElements();
                     throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
                 }
                 if (info.op == "Average")
@@ -197,8 +254,10 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object DictionaryQuery(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback keySelector, NeoScriptScope scope, Context ctx)
         {
-            var result = new Dictionary<string, object?>();
+            BoundEquality? equality = info.equality is null ? null : BindEquality(info.equality, scope, ctx);
+            IDictionary<string, object?> result = equality is null ? new Dictionary<string, object?>() : new RuntimeDictionary(equality);
             var groups = new Dictionary<string, List<object?>>();
+            var groupedKeys = equality is null ? null : new NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, List<object?>>(equality, NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Set);
             PreparedCollectionCallback valueSelector = default;
             if (info.valueFunction is not null)
                 valueSelector = new PreparedCollectionCallback(info.valueFunction, scope, ctx, CollectionIsList(collection), CollectionCallbackReturnContract.Projection);
@@ -218,20 +277,37 @@ namespace NeoCompose.Runtime.NeoScript
                         object? value = info.valueFunction is null ? QueryEntry(entry, info.enumEntries) : valueSelector.Project(in cursor, entry);
                         if (info.op == "ToDictionary")
                         {
-                            if (result.ContainsKey(text))
+                            if (equality is null && result.ContainsKey(text))
                                 throw new NSGetterRuntimeError($"ToDictionary() found duplicate key '{text}'.");
                             result.Add(text, value);
                         }
                         else
                         {
-                            if (!groups.TryGetValue(text, out var group))
+                            List<object?> group;
+                            if (groupedKeys is not null)
+                            {
+                                // A single insertion performs the hash and bucket search.
+                                group = new List<object?>();
+                                groupedKeys.GetOrAdd(equality!.DictionaryKey(text), group, out group);
+                            }
+                            else if (!groups.TryGetValue(text, out group!))
                                 groups.Add(text, group = new List<object?>());
                             group.Add(value);
                         }
                     }
                     if (info.op == "GroupBy")
-                        foreach (var group in groups)
-                            result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
+                    {
+                        // Group lookup uses the comparer; projecting the completed groups must not hash again.
+                        if (groupedKeys is not null)
+                        {
+                            result = new RuntimeDictionary(equality!, groupedKeys.MapValues<object?>(
+                                group => KeepDerived(group.ToArray(), CollectionEntryMember(collection, ctx), true),
+                                NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Dictionary));
+                        }
+                        else
+                            foreach (var group in groups)
+                                result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
+                    }
                     return KeepDerived(result, CollectionEntryMember(collection, ctx), true);
                 }
                 catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }

@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using NeoCompose.Runtime.NeoScript.Hashing;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -12,6 +13,8 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly object NullKey = new();
         private readonly OrderedMap<object, object?> entries;
+        internal readonly NeoHashTable<object?, object?>? Table;
+        internal readonly NSGetterEvaluator.BoundEquality? Equality;
         private readonly Dictionary<object, Action<object?>> validations = new();
         internal readonly bool Reference;
         internal readonly bool EnumEntries;
@@ -27,10 +30,24 @@ namespace NeoCompose.Runtime.NeoScript
             entries = new OrderedMap<object, object?>(comparer);
         }
 
-        internal int Count => entries.Count;
-        internal bool Contains(object? key) => entries.Contains(key ?? NullKey);
+        internal RuntimeSet(NeoHashTable<object?, object?> table, NSGetterEvaluator.BoundEquality equality)
+            : this(Array.Empty<object?>(), false, false, false, equality)
+        {
+            Table = table;
+            Equality = equality;
+        }
+
+        internal int Count => Table?.Count ?? entries.Count;
+        internal bool Contains(object? key) => Table?.Contains(key) ?? entries.Contains(key ?? NullKey);
         internal void Add(object? key, object? value)
         {
+            if (Table is not null)
+            {
+                foreach (var validate in validations.Values)
+                    validate(value);
+                Table.Add(key, value, NeoInsertBehavior.None);
+                return;
+            }
             key ??= NullKey;
             if (entries.Contains(key))
                 return;
@@ -45,18 +62,30 @@ namespace NeoCompose.Runtime.NeoScript
             if (entries.TryGetValue(oldKey, out object? entry) && ReferenceEquals(entry, originalEntry))
                 entries.Retarget(oldKey, newKey);
         }
-        internal void Remove(object? key) => entries.Remove(key ?? NullKey);
-        internal void Clear() => entries.Clear();
+        internal void Remove(object? key)
+        {
+            if (Table is not null)
+                Table.Remove(key);
+            else
+                entries.Remove(key ?? NullKey);
+        }
+        internal void Clear()
+        {
+            if (Table is not null)
+                Table.Clear();
+            else
+                entries.Clear();
+        }
         internal void Validate(object type, Action<object?> validate)
         {
             if (validations.ContainsKey(type))
                 return;
-            foreach (object? entry in entries.Values)
+            foreach (object? entry in this)
                 validate(entry);
             validations.Add(type, validate);
         }
-        internal object?[] Snapshot() => entries.Snapshot();
-        public IEnumerator<object?> GetEnumerator() => entries.Values.GetEnumerator();
+        internal object?[] Snapshot() => Table is null ? entries.Snapshot() : Table.Keys().ToArray();
+        public IEnumerator<object?> GetEnumerator() => Table is null ? entries.Values.GetEnumerator() : Table.Keys().GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 

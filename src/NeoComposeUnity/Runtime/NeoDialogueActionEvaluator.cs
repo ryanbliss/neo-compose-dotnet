@@ -2354,12 +2354,8 @@ namespace NeoCompose.Runtime
             NeoScriptScope scope,
             NSGetterEvaluator.Context ctx)
         {
-            if (NSGetterEvaluator.HasActiveSort(ctx))
-            {
+            if (NSGetterEvaluator.HasActiveSort(ctx) && writeTarget.pointer is StaticMemberPointer)
                 NSGetterEvaluator.AssertNotSorting(Eval(writeTarget.pointer, scope, ctx), ctx);
-                if (writeTarget.pointer is KeyOfPointer guardedKey)
-                    NSGetterEvaluator.AssertNotSorting(Eval(guardedKey.keyOf.pointer, scope, ctx), ctx);
-            }
             if (writeTarget.pointer is KeyOfPointer keyOfPointer)
             {
                 object? receiver;
@@ -2387,6 +2383,12 @@ namespace NeoCompose.Runtime
                 else
                 {
                     receiver = Eval(keyOfPointer.keyOf.pointer, scope, ctx);
+                }
+                if (NSGetterEvaluator.HasActiveSort(ctx))
+                {
+                    NSGetterEvaluator.AssertNotSorting(receiver, ctx);
+                    // A constructor may assign an absent field while a comparer runs.
+                    NSGetterEvaluator.AssertNotSorting(NSGetterEvaluator.EvaluateKeyOf(keyOfPointer, receiver, scope, ctx, missingAsNull: true), ctx);
                 }
                 AssignKeyOf(client, writeTarget, keyOfPointer, receiver, assigned, scope, ctx);
                 return;
@@ -2641,7 +2643,6 @@ namespace NeoCompose.Runtime
             NeoDelegateValue listener = ResolveListenerTarget(
                 Eval(instruction.listener, scope, ctx),
                 operatorLabel);
-            string identity = NeoActionValue.ListenerIdentity(listener);
 
             NeoResolvedWriteTarget target = ResolveTarget(
                 client,
@@ -2656,10 +2657,7 @@ namespace NeoCompose.Runtime
             bool present = false;
             foreach (NeoDelegateValue existing in current.listeners)
             {
-                bool matches = string.Equals(
-                    NeoActionValue.ListenerIdentity(existing),
-                    identity,
-                    StringComparison.Ordinal);
+                bool matches = NSGetterEvaluator.DelegateEquals(existing, listener, ctx);
                 if (matches)
                     present = true;
                 if (matches && !add)
@@ -2755,6 +2753,22 @@ namespace NeoCompose.Runtime
                 else
                     ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver)
                         .Apply(client, instruction, scope, ctx, sorted);
+                return;
+            }
+            if (instruction.mutation == CollectionMutationKind.Remove && instruction.equality is not null
+                && instruction.target.typeInfo.type == MemberKind.List)
+            {
+                object? receiver = instruction.target.pointer is KeyOfPointer key ? Eval(key.keyOf.pointer, scope, ctx) : null;
+                object? value = instruction.target.pointer is KeyOfPointer field ? NSGetterEvaluator.EvaluateKeyOf(field, receiver, scope, ctx) : Eval(instruction.target.pointer, scope, ctx);
+                value = NSGetterEvaluator.RuntimeCollection(value, ctx);
+                NSGetterEvaluator.AssertNotSorting(value, ctx);
+                object? candidate = NSGetterEvaluator.CoerceNumericBinding(Eval(instruction.args[0], scope, ctx), EntryTypeInfo(instruction.target.typeInfo), "collection mutation entry", ctx);
+                var equality = NSGetterEvaluator.BindEquality(instruction.equality, scope, ctx);
+                int index = NSGetterEvaluator.EqualityIndexOf(value, candidate, equality, false, ctx);
+                if (index < 0)
+                    return;
+                var remove = new CollectionCallInstruction { target = instruction.target, mutation = CollectionMutationKind.RemoveAt, args = Array.Empty<Pointer>() };
+                ResolveCollectionValueMutation(client, remove, scope, ctx, value, receiver).Apply(client, remove, scope, ctx, new object?[] { (double)index });
                 return;
             }
             if (NSGetterEvaluator.HasActiveSort(ctx))
@@ -3461,6 +3475,8 @@ namespace NeoCompose.Runtime
                     return null;
                 }
             }
+            if (NSGetterEvaluator.TryComparerPointer(pointer, receiver, scope, ctx, out object? comparerResult))
+                return comparerResult;
             if (NSGetterEvaluator.TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
             if (NSGetterEvaluator.TryPrimitiveInterfaceCall(pointer, receiver, scope, ctx, out object? primitiveResult))
@@ -4271,8 +4287,9 @@ namespace NeoCompose.Runtime
                 return;
             if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
                 return;
-            if (value is NeoBox)
-                throw new NSGetterRuntimeError($"Storing a value type in interface member '{label}' isn't supported yet (P127 B3).");
+            if (value is NeoBox or string or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer
+                && NSGetterEvaluator.StoredInterfaceConforms(value, type, ctx))
+                return;
             throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
         }
 
@@ -4580,9 +4597,29 @@ namespace NeoCompose.Runtime
         {
             client.RequireStoredValue(member, value, path, script: true, pathContainerId: pathContainerId);
             insertion?.Reserve(member, value, id);
+            if (member is ClassMember comparerSlot && NSGetterEvaluator.UnwrapComparer(value) is { } builtInComparer)
+            {
+                var held = NSGetterEvaluator.ComparerType(builtInComparer, ctx);
+                var expected = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    client, comparerSlot, targetEnv ?? NeoGenericResolution.EmptyEnv, new HashSet<string>()));
+                if (!NeoInterfaceDispatch.Of(client).Converts(held, expected))
+                    throw new NSGetterRuntimeError($"Comparer cannot be stored in '{member.name}'.");
+                var box = NeoBox.Of(held, builtInComparer);
+                var wrapped = NeoValuePayload.Boxed(builtInComparer.StoredPayload(), held, null, Array.Empty<MemberValue>(), box);
+                return MemberValueFactory.Create(new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object }, wrapped, id, createdAt, updatedAt);
+            }
             object? originalValue = value;
             if (member is ClassMember { DeclaredInterfaceId: not null })
-                RequireStoredInterfaceValue(MemberKindInfo(member), value, ctx, member.name);
+            {
+                RequireStoredInterfaceValue(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    client, member, targetEnv ?? NeoGenericResolution.EmptyEnv, new HashSet<string>()), value, ctx, member.name);
+                if (value is NeoBox or string or NeoTypeValue)
+                {
+                    var slot = new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object };
+                    var boxed = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, slot, ownership, value, ctx, id, plan);
+                    return MemberValueFactory.Create(member, boxed, id, createdAt, updatedAt);
+                }
+            }
             LocalCollectionSelections.Occurrence? localSelection = null;
             if (member is LookupMember lookup && value is not null)
             {
@@ -4591,7 +4628,7 @@ namespace NeoCompose.Runtime
                     : NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup, ctx, targetEnv);
             }
             // P127 §1.3. A box stores its payload beside its held type.
-            if (member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
+            if (member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer)
                 value = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, ownership, value!, ctx, id, plan);
             // P67 §6. A script variant value stores as its pair.
             if (value is NeoVariantReference variant)
@@ -4850,7 +4887,11 @@ namespace NeoCompose.Runtime
                 return da2 == ib;
             if (a is int ia && b is double db2)
                 return ia == db2;
-            return Equals(a, b);
+            if (a is string left && b is string right)
+                return left == right;
+            if (a is bool first && b is bool second)
+                return first == second;
+            return ReferenceEquals(a, b);
         }
 
         private static VariablePointer? CollectionVariable(Pointer pointer)
@@ -5112,7 +5153,7 @@ namespace NeoCompose.Runtime
         /// A collection no member holds, such as a NeoScript local's, is
         /// ownerless, so only its own stamp can close it.
         /// </summary>
-        private static IReadOnlyDictionary<string, NeoGenericEnvEntry> CollectionRowEnv(NeoClient client, MemberValue? row)
+        internal static IReadOnlyDictionary<string, NeoGenericEnvEntry> CollectionRowEnv(NeoClient client, MemberValue? row)
         {
             if (row is null)
                 return NeoGenericResolution.EmptyEnv;
@@ -5347,7 +5388,7 @@ namespace NeoCompose.Runtime
                         existing.createdAt,
                         NeoTimestamp.Now(),
                         ctx);
-                    next.classId = existing.classId;
+                    next.classId = next.valueType is null ? existing.classId : null;
                     StoreReplacedRow(plan, client, ownership, next, member, ctx);
                 });
             }
@@ -5439,8 +5480,13 @@ namespace NeoCompose.Runtime
                     else
                     {
                         // P127 §1.3. A box stores its payload beside its held type.
-                        if (binding.Member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue)
+                        if ((binding.Member is ObjectMember && value is NeoBox or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer)
+                            || (binding.Member is ClassMember { DeclaredInterfaceId: not null } && value is NeoBox or string or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer))
                         {
+                            if (binding.Member is ClassMember)
+                                RequireStoredInterfaceValue(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                                    client, binding.Member, binding.GenericEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>()), value, ctx, binding.Member.name);
+                            var objectSlot = binding.Member as ObjectMember ?? new ObjectMember { id = binding.MemberId, name = binding.Member.name, kind = MemberKind.Object };
                             PrepareWrite(client, plan =>
                             {
                                 string id = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
@@ -5608,7 +5654,7 @@ namespace NeoCompose.Runtime
                 client.RequireStoredValue(member, value, script: true);
                 MemberValue replaced = MemberValueFactory.Create(
                     member, value, existingId, existing.createdAt, NeoTimestamp.Now());
-                replaced.classId = existing.classId;
+                replaced.classId = replaced.valueType is null ? existing.classId : null;
                 // An explicit override the store already holds with this value
                 // is a no-op; an inherited default still pins on first write.
                 if (stored is not null
@@ -5842,7 +5888,7 @@ namespace NeoCompose.Runtime
                             return;
                         }
                         var replaced = CreateValueRow(plan, client, ownership, member, value, existingId, existing!.createdAt, now, ctx, targetEnv);
-                        replaced.classId = existing.classId;
+                        replaced.classId = replaced.valueType is null ? existing.classId : null;
                         StoreReplacedRow(plan, client, ownership, replaced, member, ctx);
                         return;
                     }
@@ -6286,10 +6332,11 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                if (!client.TryGetValue(parentRowId, out ObjectMemberValue? parent)
+                if (!client.TryGetValue(ownership, parentRowId, out ObjectMemberValue? parent)
                     || parent.value == null
-                    || !parent.value.TryGetValue(key, out string childId)
-                    || !client.TryGetValue(childId, out MemberValue? child))
+                    || NSGetterEvaluator.StoredDictionaryKey(parent, ownership, key, ctx, out _) is not { } canonicalKey
+                    || !parent.value.TryGetValue(canonicalKey, out string childId)
+                    || !client.TryGetValue(ownership, childId, out MemberValue? child))
                 {
                     return null;
                 }
@@ -6402,7 +6449,7 @@ namespace NeoCompose.Runtime
                             NeoTimestamp.Now(),
                             ctx,
                             targetEnv, path: $"[{index}]", pathContainerId: parentRowId);
-                        next.classId = existing.classId;
+                        next.classId = next.valueType is null ? existing.classId : null;
                         ShadowAuthoredRow(plan, client, ownership, parentRowId);
                         StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
                         return;
@@ -6576,7 +6623,7 @@ namespace NeoCompose.Runtime
             {
                 bool inserts = mutation is CollectionMutationKind.Add or CollectionMutationKind.Insert;
                 if (inserts)
-                    RequireStoredInterfaceValue(entryMember is null ? entryTypeInfo : MemberKindInfo(entryMember),
+                    RequireStoredInterfaceValue(entryTypeInfo,
                         args[mutation == CollectionMutationKind.Insert ? 1 : 0], ctx, entryMember?.name ?? rowId);
                 string? referenceId = null;
                 if (reference && mutation == CollectionMutationKind.Remove)
@@ -6726,6 +6773,10 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
+                TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    ctx.client, member, CollectionRowEnv(ctx.client, list.Row), new HashSet<string>()));
+                if (NSGetterEvaluator.UsesStoredEquality(list.Row, type, ctx))
+                    return list.FindEqualityEntry(value, member, type, batch.Plan, ctx);
                 if (member is not ClassMember)
                     return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx, list.Row), member, batch.Plan);
                 referenceId ??= value is null ? null : FindValueId(value, ctx);
@@ -6817,7 +6868,7 @@ namespace NeoCompose.Runtime
                             client,
                             ToStringKey(args[0], "Dictionary Add key"),
                             args[1],
-                            ctx);
+                            ctx, add: true);
                         return;
                     case CollectionMutationKind.Remove:
                         Remove(
@@ -6837,7 +6888,7 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 string key,
                 object? value,
-                NSGetterEvaluator.Context ctx)
+                NSGetterEvaluator.Context ctx, bool add = false)
             {
                 if (value is RuntimeTuple)
                     value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
@@ -6859,6 +6910,9 @@ namespace NeoCompose.Runtime
                         throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
                     JsonMember entryMember = this.entryMember
                         ?? (pending is not null ? EntryMember(batch, pending, entryTypeInfo) : EntryMember(client, current!, entryTypeInfo));
+                    string? existingKey = NSGetterEvaluator.StoredDictionaryKey((ObjectMemberValue)current!, ownership, key, ctx, out var equalityIndex);
+                    int? candidateHash = equalityIndex?.ProbeHash;
+                    key = existingKey ?? key;
                     // A reference entry selects its target; only an owned one adopts it.
                     string? referenceId = entryMember is LookupMember ? null : candidateId;
                     if (referenceId is not null)
@@ -6886,7 +6940,7 @@ namespace NeoCompose.Runtime
                                 now,
                                 ctx,
                                 targetEnv, path: $"[{key}]", pathContainerId: rowId);
-                            next.classId = existing.classId;
+                            next.classId = next.valueType is null ? existing.classId : null;
                             ShadowAuthoredRow(plan, client, ownership, rowId);
                             StoreReplacedRow(plan, client, ownership, next, entryMember, ctx, batch, pending);
                             return;
@@ -6946,6 +7000,11 @@ namespace NeoCompose.Runtime
                     PlaceEntry(batch, dictionary, childId);
                     batch.Gain(ownership, childId, rowId);
                     Change(dictionary, key, childId, now);
+                    if (equalityIndex is { Valid: true })
+                    {
+                        equalityIndex.Add(key, equalityIndex.ProbeValue, candidateHash);
+                        NSGetterEvaluator.PreserveStoredEquality(equalityIndex, dictionary.Row, plan);
+                    }
                 });
             }
 
@@ -6965,10 +7024,16 @@ namespace NeoCompose.Runtime
                     EnsureWritableRow(client, rowId, ownership);
                     NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     var row = (ObjectMemberValue)dictionary.Row;
+                    string? matched = NSGetterEvaluator.StoredDictionaryKey(row, ownership, key, ctx, out var equalityIndex);
+                    if (matched is null)
+                        return;
+                    key = matched;
                     if (!row.value!.TryGetValue(key, out string removedId))
                         return;
                     batch.Release(ownership, removedId, entryMember ?? EntryMember(batch, dictionary, entryTypeInfo), rowId);
                     row.value.Remove(key);
+                    equalityIndex?.Remove(key);
+                    NSGetterEvaluator.PreserveStoredEquality(equalityIndex, row, batch.Plan);
                     dictionary.Changes(NeoTimestamp.Now());
                 });
             }
@@ -6986,6 +7051,7 @@ namespace NeoCompose.Runtime
                     foreach (string removedId in row.value!.Values)
                         batch.Release(ownership, removedId, releaseMember, rowId);
                     row.value.Clear();
+                    NSGetterEvaluator.InvalidateStoredEquality(client, ownership, rowId);
                     dictionary.Changes(NeoTimestamp.Now());
                 });
             }
