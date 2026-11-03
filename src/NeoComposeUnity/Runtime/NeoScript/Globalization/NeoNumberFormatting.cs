@@ -327,29 +327,28 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
                 int groupSize = groupDigits is { Length: > 0 } ? groupDigits[0] : 0;
                 if (groupDigits is not null && groupSize > 0)
                 {
-                    var parts = new List<string>();
+                    // Record separator boundaries as offsets. Emit forward so a
+                    // grouped digit never allocates its own string.
+                    var boundaries = new List<int>();
                     int groupSizeIndex = 0;
-                    int digitCount = 0;
-                    for (int index = digPos - 1; index >= 0; index--)
+                    int remaining = digPos;
+                    while (groupSize > 0 && remaining > groupSize)
                     {
-                        parts.Add(index < digStart ? digits[index].ToString() : "0");
-                        if (groupSize > 0)
-                        {
-                            digitCount++;
-                            if (digitCount == groupSize && index != 0)
-                            {
-                                parts.Add(groupSeparator);
-                                if (groupSizeIndex < groupDigits.Length - 1)
-                                {
-                                    groupSizeIndex++;
-                                    groupSize = groupDigits[groupSizeIndex];
-                                }
-                                digitCount = 0;
-                            }
-                        }
+                        remaining -= groupSize;
+                        boundaries.Add(remaining);
+                        if (groupSizeIndex < groupDigits.Length - 1)
+                            groupSize = groupDigits[++groupSizeIndex];
                     }
-                    for (int index = parts.Count - 1; index >= 0; index--)
-                        output.Append(parts[index]);
+                    int boundary = boundaries.Count - 1;
+                    for (int index = 0; index < digPos; index++)
+                    {
+                        if (boundary >= 0 && index == boundaries[boundary])
+                        {
+                            output.Append(groupSeparator);
+                            boundary--;
+                        }
+                        output.Append(index < digStart ? digits[index] : '0');
+                    }
                 }
                 else
                 {

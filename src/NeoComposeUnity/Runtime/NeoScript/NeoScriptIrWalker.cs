@@ -48,6 +48,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static readonly Func<Pointer, bool> IsCall =
             pointer => pointer is FunctionPointer { function: ContainsFunction { info: { equality: not null } } or IndexOfFunction { info: { equality: not null } } or CollectionQueryFunction { info: { equality: not null } or { ordering: not null } } }
+                or GlobalizationMemberPointer { member: "GetInstance" }
+                or PrimitiveMemberPointer { member: "ToString" or "Parse" or "TryParse" }
                 or CallFunctionPointer or ObjectInitializerPointer or IncrementPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
 
         private static bool AnyPointer(
@@ -219,6 +221,9 @@ namespace NeoCompose.Runtime.NeoScript
                         if (AnyPointer(binding.pointer, predicate))
                             return true;
                     return AnyPointer(let.pointer, predicate);
+                case GlobalizationMemberPointer globalization:
+                    return globalization.receiver is not null && AnyPointer(globalization.receiver, predicate)
+                        || AnyPointer(globalization.args, predicate);
                 case PrimitiveMemberPointer primitive:
                     return primitive.receiver is not null && AnyPointer(primitive.receiver, predicate)
                         || AnyPointer(primitive.args, predicate);

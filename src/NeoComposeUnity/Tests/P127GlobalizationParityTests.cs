@@ -356,6 +356,24 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NativeDigitsAcceptsEverySharedUnicodeDigitRun()
+        {
+            int[] runs = NeoUnicodeTables.DecimalDigitRuns;
+            for (int run = 0; run < runs.Length; run += 3)
+            {
+                if (runs[run + 1] != 10 || runs[run + 2] != 0)
+                    continue;
+                var digits = new string[10];
+                for (int index = 0; index < 10; index++)
+                    digits[index] = char.ConvertFromUtf32(runs[run] + index);
+                var info = new NumberFormatInfo();
+                NeoNumberFormatInfos.Set(info, nameof(NumberFormatInfo.NativeDigits), digits);
+                Assert.That(NeoNumberFormatInfos.GetNativeDigits(info), Is.EqualTo(digits), "digit zero " + runs[run]);
+                Assert.That(info.NativeDigits, Is.EqualTo(digits), "host digit zero " + runs[run]);
+            }
+        }
+
+        [Test]
         public void MonoPinsEachUnityOnlyDifference()
         {
             foreach ((string label, CultureInfo culture) in InvariantInstances())

@@ -324,6 +324,18 @@ namespace NeoCompose.Runtime.Json
         public int parameterCount;
     }
 
+    /// <summary>A CultureInfo or NumberFormatInfo constructor, member read or call.</summary>
+    public sealed class GlobalizationMemberPointer : Pointer
+    {
+        public string owner = null!;
+        public string member = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? receiver;
+        public Pointer[] args = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? optional;
+    }
+
     public sealed class PrimitiveMemberPointer : Pointer
     {
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -954,6 +966,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(LetPointer);
                 case PointerKind.PrimitiveMember:
                     return typeof(PrimitiveMemberPointer);
+                case PointerKind.GlobalizationMember:
+                    return typeof(GlobalizationMemberPointer);
                 default:
                     return null;
             }
@@ -1003,6 +1017,18 @@ namespace NeoCompose.Runtime.Json
                     || op == "CreateSetComparer" && obj["elementType"] is JObject)
                     return;
                 throw new JsonSerializationException("CollectionComparerPointer requires Comparer with collection or CreateSetComparer with elementType.");
+            }
+            if (concrete == typeof(GlobalizationMemberPointer))
+            {
+                if (!NeoScript.NSGetterEvaluator.IsGlobalizationMember(obj.Value<string>("owner"), obj.Value<string>("member")))
+                    throw new JsonSerializationException("GlobalizationMemberPointer requires a known owner and member.");
+                if (obj["args"] is not JArray)
+                    throw new JsonSerializationException("GlobalizationMemberPointer requires arguments.");
+                if (obj.Property("receiver") is not null && obj["receiver"] is not JObject)
+                    throw new JsonSerializationException("GlobalizationMemberPointer receiver must be a pointer.");
+                if (obj["optional"] is { } optional && (optional.Type != JTokenType.Boolean || optional.Value<bool>() != true))
+                    throw new JsonSerializationException("GlobalizationMemberPointer optional must be true when present.");
+                return;
             }
             if (concrete == typeof(PrimitiveMemberPointer))
             {

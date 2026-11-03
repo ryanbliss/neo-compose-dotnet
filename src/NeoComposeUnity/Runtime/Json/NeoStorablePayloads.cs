@@ -99,7 +99,9 @@ namespace NeoCompose.Runtime.Json
             var payload = new JObject { [ReadOnlyKey] = format.IsReadOnly };
             foreach (string key in NumberFormatKeys)
             {
-                object stored = NumberFormatProperty(key).GetValue(format)!;
+                object stored = key == "nativeDigits"
+                    ? NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(format)
+                    : NumberFormatProperty(key).GetValue(format)!;
                 payload[key] = stored is DigitShapes shapes ? (int)shapes : JToken.FromObject(stored);
             }
             return payload;
@@ -148,6 +150,8 @@ namespace NeoCompose.Runtime.Json
                 throw Error(context, "must be exactly { invariant: true } or { readOnly, numberFormat }");
             RequireBoolean(culture, ReadOnlyKey, context);
             ValidateNumberFormatInfo(culture["numberFormat"], $"{context} numberFormat");
+            if (culture.Value<bool>(ReadOnlyKey) && culture["numberFormat"]![ReadOnlyKey]?.Value<bool>() == false)
+                throw Error(context, "A read-only CultureInfo must hold a read-only NumberFormatInfo.");
         }
 
         /// <summary>Validates a <c>NumberFormatInfo</c> payload.</summary>
@@ -316,8 +320,6 @@ namespace NeoCompose.Runtime.Json
                 {
                     if (digits[index].Type != JTokenType.String)
                         throw Error(context, "'nativeDigits' must be a list of ten strings");
-                    if (!IsNativeDigitText(digits[index].Value<string>()!))
-                        throw Error(context, $"'nativeDigits' entry {index} must be one UTF-16 unit or one surrogate pair");
                 }
                 return;
             }
@@ -326,13 +328,6 @@ namespace NeoCompose.Runtime.Json
             if (key.EndsWith("DecimalSeparator", StringComparison.Ordinal) && value.Value<string>()!.Length == 0)
                 throw Error(context, $"'{key}' must not be empty");
         }
-
-        /// <summary>
-        /// One UTF-16 unit or one surrogate pair. The Unicode decimal-digit
-        /// check of §11.2 runs at the runtime write.
-        /// </summary>
-        private static bool IsNativeDigitText(string text) =>
-            text.Length == 1 || (text.Length == 2 && char.IsHighSurrogate(text[0]) && char.IsLowSurrogate(text[1]));
 
         private static void ValidateGroupSizes(string key, JToken value, string context)
         {

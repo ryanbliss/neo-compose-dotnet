@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using NeoCompose.Runtime.Json;
@@ -2316,6 +2317,11 @@ namespace NeoCompose.Runtime
             }
 
             object? rhs = Eval(instruction.pointer, scope, ctx);
+            if (instruction.target.pointer is GlobalizationMemberPointer globalization)
+            {
+                NSGetterEvaluator.WriteGlobalizationMember(globalization, rhs, scope, ctx);
+                return default;
+            }
             if (instruction.target.pointer is CallGetterPointer { interfaceMember: not null } or TypeParameterStaticPointer)
             {
                 NSGetterEvaluator.WriteInterfacePointer(instruction.target.pointer, rhs, instruction.target.typeInfo, scope, ctx);
@@ -4287,7 +4293,7 @@ namespace NeoCompose.Runtime
                 return;
             if (NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null)
                 return;
-            if (value is NeoBox or string or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer
+            if (value is NeoBox or string or NeoTypeValue or CultureInfo or NumberFormatInfo or NSGetterEvaluator.NeoBuiltInComparer
                 && NSGetterEvaluator.StoredInterfaceConforms(value, type, ctx))
                 return;
             throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
@@ -4613,7 +4619,7 @@ namespace NeoCompose.Runtime
             {
                 RequireStoredInterfaceValue(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     client, member, targetEnv ?? NeoGenericResolution.EmptyEnv, new HashSet<string>()), value, ctx, member.name);
-                if (value is NeoBox or string or NeoTypeValue)
+                if (value is NeoBox or string or NeoTypeValue or CultureInfo or NumberFormatInfo)
                 {
                     var slot = new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object };
                     var boxed = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, slot, ownership, value, ctx, id, plan);
@@ -4628,7 +4634,7 @@ namespace NeoCompose.Runtime
                     : NeoGeneratedTypesSupport.ConstructorLookupIds(value, lookup, ctx, targetEnv);
             }
             // P127 §1.3. A box stores its payload beside its held type.
-            if (member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer)
+            if (member is ObjectMember objectSlot && value is NeoBox or NeoTypeValue or CultureInfo or NumberFormatInfo or NSGetterEvaluator.NeoBuiltInComparer)
                 value = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, ownership, value!, ctx, id, plan);
             // P67 §6. A script variant value stores as its pair.
             if (value is NeoVariantReference variant)
@@ -5480,8 +5486,8 @@ namespace NeoCompose.Runtime
                     else
                     {
                         // P127 §1.3. A box stores its payload beside its held type.
-                        if ((binding.Member is ObjectMember && value is NeoBox or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer)
-                            || (binding.Member is ClassMember { DeclaredInterfaceId: not null } && value is NeoBox or string or NeoTypeValue or NSGetterEvaluator.NeoBuiltInComparer))
+                        if ((binding.Member is ObjectMember && value is NeoBox or NeoTypeValue or CultureInfo or NumberFormatInfo or NSGetterEvaluator.NeoBuiltInComparer)
+                            || (binding.Member is ClassMember { DeclaredInterfaceId: not null } && value is NeoBox or string or NeoTypeValue or CultureInfo or NumberFormatInfo or NSGetterEvaluator.NeoBuiltInComparer))
                         {
                             if (binding.Member is ClassMember)
                                 RequireStoredInterfaceValue(NeoNSFunctionRuntime.TypeInfoFromBindingMember(

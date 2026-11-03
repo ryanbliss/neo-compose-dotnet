@@ -31,6 +31,7 @@ namespace NeoCompose.Runtime
         // replaces the row, so the slot reads its new box; a reload builds
         // new rows, so each slot reads its own box, as C# deserialization does.
         private static readonly ConditionalWeakTable<MemberValue, object> rowBoxes = new();
+        private static readonly ConditionalWeakTable<MemberValue, object> readOnlyRowBoxes = new();
 
         // The held type of a collection view or delegate read from a box, so
         // writing it back stores the type it was read as.
@@ -529,7 +530,7 @@ namespace NeoCompose.Runtime
         private static JObject CulturePayload(string name, CultureInfo culture)
         {
             if (culture.Name.Length > 0)
-                throw new NotSupportedException($"Object field '{name}' can't store culture '{culture.Name}'; NeoScript has only the invariant culture.");
+                throw new NSGetterRuntimeError($"Object field '{name}' can't store the culture '{culture.Name}': only the invariant culture can be stored until named cultures ship (#2222).", NeoErrorContract.NeoNotSupportedError);
             return NeoStorablePayloads.Encode(culture);
         }
 
@@ -541,8 +542,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static object ReadDeclared(NeoClient client, ObjectMember slot, MemberValue row, bool writable)
         {
+            if (!writable && readOnlyRowBoxes.TryGetValue(row, out object? readOnly))
+                return readOnly;
             if (rowBoxes.TryGetValue(row, out object? cached))
-                return writable ? cached : ReadOnlyCopy(cached);
+                return writable ? cached : Remember(row, cached, false);
             return Remember(row, ReadDeclaredPayload(client, slot.objectType!.Value, row, slot.name), writable);
         }
 
@@ -554,8 +557,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private static object ReadOnlyCopy(object read) => read switch
         {
-            CultureInfo { IsReadOnly: false } culture => CultureInfo.ReadOnly(culture),
-            NumberFormatInfo { IsReadOnly: false } format => NumberFormatInfo.ReadOnly(format),
+            CultureInfo { IsReadOnly: false } culture => NeoScript.Globalization.NeoCultures.ReadOnly(culture),
+            NumberFormatInfo { IsReadOnly: false } format => NeoScript.Globalization.NeoNumberFormatInfos.ReadOnly(format),
             _ => read,
         };
 
@@ -581,6 +584,7 @@ namespace NeoCompose.Runtime
 
         private static CultureInfo ReadCulture(JObject payload)
         {
+            NeoStorablePayloads.ValidateCultureInfo(payload, "CultureInfo");
             if (payload[NeoStorablePayloads.InvariantKey] is not null)
                 return CultureInfo.InvariantCulture;
             var culture = new CultureInfo("")
@@ -592,11 +596,24 @@ namespace NeoCompose.Runtime
 
         private static NumberFormatInfo ReadNumberFormat(JObject payload)
         {
+            NeoStorablePayloads.ValidateNumberFormatInfo(payload, "NumberFormatInfo");
             if (payload[NeoStorablePayloads.InvariantKey] is not null)
                 return NumberFormatInfo.InvariantInfo;
             var format = new NumberFormatInfo();
             foreach (string key in NeoStorablePayloads.NumberFormatKeys)
             {
+                if (key == "nativeDigits")
+                {
+                    NeoScript.Globalization.NeoNumberFormatInfos.RestoreNativeDigits(format, payload[key]!.ToObject<string[]>()!);
+                    continue;
+                }
+                if (key == "currencyNegativePattern" && payload.Value<int>(key) == 16)
+                {
+                    // A valid payload can originate on .NET 10. Reload is
+                    // memberwise; it must not re-run Mono's 0-15 setter check.
+                    StoredCurrencyNegativePattern.SetValue(format, 16);
+                    continue;
+                }
                 PropertyInfo property = NeoStorablePayloads.NumberFormatProperty(key);
                 object value = property.PropertyType == typeof(DigitShapes)
                     ? (DigitShapes)payload.Value<int>(key)
@@ -605,6 +622,11 @@ namespace NeoCompose.Runtime
             }
             return payload.Value<bool>(NeoStorablePayloads.ReadOnlyKey) ? NumberFormatInfo.ReadOnly(format) : format;
         }
+
+        private static readonly FieldInfo StoredCurrencyNegativePattern =
+            typeof(NumberFormatInfo).GetField("currencyNegativePattern", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? typeof(NumberFormatInfo).GetField("_currencyNegativePattern", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new NotSupportedException("This runtime cannot restore NumberFormatInfo.CurrencyNegativePattern memberwise.");
 
         // ------------------------------------------------------------------
         // Built-in comparers (§1.3, §12.1, §14).
@@ -743,24 +765,33 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal static object? ReadBox(NeoClient client, NeoMemberObject node, MemberValue row, TypeBinding valueType, bool writable)
         {
+            if (!writable && readOnlyRowBoxes.TryGetValue(row, out object? readOnly))
+                return readOnly;
             if (rowBoxes.TryGetValue(row, out object? cached))
-                return writable ? cached : ReadOnlyCopy(cached);
+                return writable ? cached : Remember(row, cached, false);
             object? box = ReadNewBox(client, node, row, valueType);
             return box is null ? null : Remember(row, box, writable);
         }
 
-        // A read-only copy isn't cached, so the row holds no object C# can change.
+        // Read-only views have stable slot identity without becoming the row's
+        // live writable payload or replacing a writable reader's instance.
         private static object Remember(MemberValue row, object box, bool writable)
         {
             object read = writable ? box : ReadOnlyCopy(box);
             if (ReferenceEquals(read, box))
                 RememberBox(row, box);
+            else
+            {
+                readOnlyRowBoxes.Remove(row);
+                readOnlyRowBoxes.Add(row, read);
+            }
             return read;
         }
 
         /// <summary>Caches <paramref name="box"/> as what <paramref name="row"/> reads as.</summary>
         internal static void RememberBox(MemberValue row, object box)
         {
+            readOnlyRowBoxes.Remove(row);
             // An evaluator box is the evaluator's own; C# reads the row afresh.
             if (box is NeoBox written)
             {
@@ -771,7 +802,10 @@ namespace NeoCompose.Runtime
             rowBoxes.Add(row, box);
             // C#'s writes to a stored culture or number format persist through the slot (§12.1).
             if (row is PayloadMemberValue payload && box is CultureInfo or NumberFormatInfo)
+            {
                 payload.live = box;
+                NSGetterEvaluator.TrackGlobalizationPayload(payload, box);
+            }
         }
 
         private static object? ReadNewBox(NeoClient client, NeoMemberObject node, MemberValue row, TypeBinding valueType)

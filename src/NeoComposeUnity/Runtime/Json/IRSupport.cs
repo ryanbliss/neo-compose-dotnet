@@ -21,6 +21,7 @@ namespace NeoCompose.Runtime.Json
     {
         public const string Let = "let";
         public const string PrimitiveMember = "primitiveMember";
+        public const string GlobalizationMember = "globalizationMember";
         public const string Reference = "reference";
         public const string Variable = "variable";
         public const string Value = "value";
