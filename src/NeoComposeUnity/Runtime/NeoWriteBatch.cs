@@ -1302,7 +1302,7 @@ namespace NeoCompose.Runtime
             if (values is null)
                 return;
             foreach (object value in values)
-                NSGetterEvaluator.PublishGlobalizationWrites(value, this, rejectInvalidNativeDigits: false);
+                NSGetterEvaluator.PublishGlobalizationWrites(value, this);
         }
 
         internal void EnterScriptWrites()
