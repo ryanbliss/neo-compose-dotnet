@@ -9211,6 +9211,7 @@ namespace NeoCompose.Runtime
                     $"{path}.{pair.Key}",
                     clonedIdsBySourceId);
 
+                cloned.sourceValueId = sourceRow.sourceValueId ?? sourceRow.id;
                 rows.Add(cloned);
                 result[pair.Key] = cloned.id;
                 clonedIdsBySourceId[sourceRow.id] = cloned.id;
