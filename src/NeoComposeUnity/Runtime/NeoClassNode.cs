@@ -21,6 +21,39 @@ namespace NeoCompose.Runtime
         private Dictionary<string, MergedSchemaEntry>? surfaceByKeyIgnoreCase;
         private HashSet<string>? ancestorIds;
 
+        private bool checkedClosedEnvironment;
+        private IReadOnlyDictionary<string, NeoGenericEnvEntry>? closedEnvironment;
+        private Dictionary<Member, Member>? closedOwnedMembers;
+
+        // A closed named class fixes these types for every instance. Open
+        // classes still need each row's stamp and its placement arguments.
+        internal Member? ResolveClosedOwnedMember(NeoClient client, Member member)
+        {
+            if (!client.members.TryGetValue(member.id, out var canonical)
+                || !ReferenceEquals(member, canonical))
+                return null;
+            if (!checkedClosedEnvironment)
+            {
+                var environment = NeoGenericResolution.ResolveEnv(Chain);
+                if (environment.Count > 0 && NeoGenericResolution.FirstUnboundParamId(environment) is null)
+                    closedEnvironment = environment;
+                checkedClosedEnvironment = true;
+            }
+            if (closedEnvironment is null)
+                return null;
+            bool Bound(string id) => closedEnvironment.TryGetValue(id, out var binding) && binding.IsBound;
+            if (member is GenericMember generic && !Bound(generic.genericParamId))
+                return null;
+            if (member is ClassMember { TypeArguments: { } arguments })
+                foreach (var argument in arguments.Values)
+                    if (argument.IsForward && !Bound(argument.genericParamId!))
+                        return null;
+            closedOwnedMembers ??= new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
+            if (!closedOwnedMembers.TryGetValue(member, out var resolved))
+                closedOwnedMembers[member] = resolved = NeoGenericResolution.SubstituteMember(client, member, closedEnvironment);
+            return resolved;
+        }
+
         internal MergedSchemaEntry? SurfaceMemberIgnoreCase(string key)
         {
             if (surfaceByKeyIgnoreCase is null)

@@ -468,6 +468,72 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
+        public void ClosedOwnedMemberTypesStaySeparateAndRefreshWithSchema()
+        {
+            var data = NeoGenericTestFixture.BuildProjectData();
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var damage = new ObjectMemberValue { id = "damage-copy", classId = "class-damage" };
+            var text = new ObjectMemberValue { id = "text-copy", classId = "class-string-card" };
+            var numberMember = client.TryResolveOwnedChildMember(damage, null, "Speed");
+            Assert.IsInstanceOf<FloatMember>(numberMember);
+            Assert.AreSame(numberMember, client.TryResolveOwnedChildMember(damage, null, "Speed"));
+            Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(text, null, "Speed"));
+            var foreign = new GenericMember
+            {
+                id = "foreign-member",
+                kind = MemberKind.Generic,
+                name = "Foreign",
+                genericParamId = "foreign-param",
+            };
+            data.members[foreign.id] = foreign;
+            Assert.AreSame(foreign, client.TryResolveOwnedChildMember(damage, null, "Foreign", declaredMember: foreign));
+            damage.genericBindings = new Dictionary<string, string> { ["foreign-param"] = "member-binding-string" };
+            Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(damage, null, "Foreign", declaredMember: foreign));
+            var forwarded = new ClassMember
+            {
+                id = "forwarded-member",
+                kind = MemberKind.Class,
+                name = "Forwarded",
+                DeclaredClassId = "class-enchant",
+                classArguments = new Dictionary<string, GenericBinding>
+                {
+                    [NeoGenericTestFixture.ParamT] = new GenericBinding { kind = NeoGenericBindingKind.Generic, genericParamId = "foreign-param" },
+                },
+            };
+            data.members[forwarded.id] = forwarded;
+            var first = (ClassMember)client.TryResolveOwnedChildMember(damage, null, "Forwarded", declaredMember: forwarded)!;
+            Assert.AreEqual("member-binding-string", first.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
+            damage.genericBindings["foreign-param"] = "member-binding-float";
+            var second = (ClassMember)client.TryResolveOwnedChildMember(damage, null, "Forwarded", declaredMember: forwarded)!;
+            Assert.AreEqual("member-binding-float", second.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
+            Assert.AreEqual("member-binding-string", first.TypeArguments![NeoGenericTestFixture.ParamT].memberId);
+            var customized = (GenericMember)data.members["member-speed"].ShallowClone();
+            customized.Storage = NeoMemberStorage.Session;
+            Assert.AreEqual(NeoMemberStorage.Session,
+                client.TryResolveOwnedChildMember(damage, null, "Speed", declaredMember: customized)!.Storage);
+            Assert.AreNotEqual(NeoMemberStorage.Session, numberMember!.Storage);
+            data.classes["class-damage"].extendsGenericBindings![NeoGenericTestFixture.ParamU] =
+                new GenericBinding { kind = NeoGenericBindingKind.Member, memberId = "member-binding-string" };
+            client.InvalidateSchemaResolutionCaches();
+            Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(damage, null, "Speed"));
+        }
+
+        [Test]
+        public void OpenOwnedMemberTypesKeepInstanceBindings()
+        {
+            using var client = LoadClient();
+            var row = new ObjectMemberValue
+            {
+                id = "open-copy",
+                classId = "class-enchant",
+                genericBindings = new Dictionary<string, string> { [NeoGenericTestFixture.ParamT] = "member-binding-float" },
+            };
+            Assert.IsInstanceOf<FloatMember>(client.TryResolveOwnedChildMember(row, null, "Speed"));
+            row.genericBindings[NeoGenericTestFixture.ParamT] = "member-binding-string";
+            Assert.IsInstanceOf<StringMember>(client.TryResolveOwnedChildMember(row, null, "Speed"));
+        }
+
+        [Test]
         public void ResolveEnv_ClosedLeaf_ResolvesThroughForwardChain()
         {
             var client = LoadClient();

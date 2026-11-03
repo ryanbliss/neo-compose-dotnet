@@ -135,3 +135,42 @@ work should measure explicit ownership transfer for newly created reward stacks
 and pooling/batching the visual drops and destructive sounds. Simply deleting
 the clone can violate the lifetime or independence of stacks supplied by callers.
 No game-side change is included here.
+
+## Clone identity and closed generic metadata
+
+The next pass uses merged SDK `7bf4d790` as its baseline and the same Neowyn
+`03e8c06f` export. Three fresh-editor candidate runs passed sprite, occupancy,
+and persistence assertions, with profiling and development servers off.
+
+| Operation, 35 rocks | Previous median | Revised median |
+| --- | ---: | ---: |
+| Change damage stage | 59.283 ms | 61.374 ms |
+| Destroy and drop rewards | 145.345 ms | 137.572 ms |
+
+Candidate stage/destruction pairs: 61.374/137.603, 64.255/137.572,
+60.009/132.446. Baseline pairs are the revised set in the preceding section.
+The destruction median is 5.3% lower; the stage median is 3.5% higher. These
+small editor samples do not establish a stage improvement or a latency guarantee.
+
+Two changes remove measured redundant work:
+
+- Clone identity detection skips a derived-ID hash when the source UUID version
+  cannot match the SDK's version-5 derived identities. Known replay identities
+  still take their explicit path. A diagnostic run skipped 805 hashes and
+  reduced inclusive clone-ID work from about 7.6 ms to 3.4 ms.
+- Closed named classes reuse resolved canonical generic member types for the
+  lifetime of their schema node. Open classes, customized members, and bindings
+  outside that class still use the row/placement resolver. Schema invalidation
+  drops the cache. The previous diagnostic run spent about 7.8 ms across 7,995
+  owned-member type resolutions.
+
+Other probes ruled out duplicate stage replay: there were 35 replays for 35
+stage changes, and none during destruction. All 234 standalone clones already
+used the fresh Session publication path. Building generic environments itself
+took under 1 ms in the measured destruction, so it did not justify another cache.
+Inclusive probe timings overlap and must not be summed.
+
+Regression coverage includes repeated normal and `system_` clone identities,
+closed-class cache separation and invalidation, customized metadata, and open
+or foreign instance bindings that change between reads. The latest Neowyn
+`c1961413` export is also checked with the overnight persistence probe.
