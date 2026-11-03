@@ -177,7 +177,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             else
                 throw new NeoScriptPreExecutionValidationError($"Globalization member '{pointer.owner}.{pointer.member}' is not writable.");
-            PublishGlobalizationWrites(receiver, ctx);
+            ctx.client.NoteGlobalizationValue(receiver);
+            PublishGlobalizationWrites(receiver, ctx.client, rejectInvalidNativeDigits: true, validateOnly: ctx.client.DefersGlobalizationWrites);
         }
 
         private static readonly ConditionalWeakTable<object, Dictionary<string, WeakReference<PayloadMemberValue>>> globalizationRows = new();
@@ -198,7 +199,7 @@ namespace NeoCompose.Runtime.NeoScript
                 Track(culture.NumberFormat);
         }
 
-        private static void PublishGlobalizationWrites(object receiver, Context ctx)
+        internal static void PublishGlobalizationWrites(object receiver, NeoClient client, bool rejectInvalidNativeDigits, bool validateOnly = false)
         {
             if (!globalizationRows.TryGetValue(receiver, out var origins))
                 return;
@@ -209,14 +210,17 @@ namespace NeoCompose.Runtime.NeoScript
                 bool retainedHere = false;
                 foreach (NeoValueOwnership ownership in new[] { NeoValueOwnership.Save, NeoValueOwnership.Session, NeoValueOwnership.User })
                 {
-                    if (!ctx.client.HasWritableValue(ownership, origin.Key)
-                        || !ctx.client.TryGetValue(ownership, origin.Key, out MemberValue? current)
+                    if (!client.HasWritableValue(ownership, origin.Key)
+                        || !client.TryGetValue(ownership, origin.Key, out MemberValue? current)
                         || current is not PayloadMemberValue { live: { } root } payload
                         || !(ReferenceEquals(root, receiver) || root is CultureInfo culture && ReferenceEquals(culture.NumberFormat, receiver)))
                         continue;
                     retainedHere = true;
                     TrackGlobalizationPayload(payload, root);
-                    ctx.client.PublishHeldPayloadWrite(ownership, payload);
+                    if (validateOnly)
+                        NeoStorablePayloads.Encode(root);
+                    else
+                        client.PublishHeldPayloadWrite(ownership, payload, rejectInvalidNativeDigits);
                 }
                 if (!retainedHere && !origin.Value.TryGetTarget(out _))
                     origins.Remove(origin.Key);

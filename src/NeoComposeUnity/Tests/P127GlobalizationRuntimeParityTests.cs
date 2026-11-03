@@ -10,6 +10,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -26,20 +27,20 @@ namespace NeoCompose.Tests
         {
             if (!File.Exists(Fixture))
             {
-                yield return new TestCaseData(null, null, false, false).SetName("B7_MissingFixture");
+                yield return new TestCaseData(null, null, false, false, false).SetName("B7_MissingFixture");
                 yield break;
             }
             JObject fixture = JObject.Parse(File.ReadAllText(Fixture));
             var unityDiff = new HashSet<string>(fixture["unityDiff"]!.Values<string>()!, StringComparer.Ordinal);
             int count = 0;
-            foreach (string section in new[] { "returns", "refuses" })
+            foreach (string section in new[] { "returns", "refuses", "persists" })
                 foreach (var test in fixture[section]!.Children<JProperty>())
                 {
                     count++;
-                    yield return new TestCaseData(test.Name, test.Value, section == "refuses", unityDiff.Contains(test.Name)).SetName("B7_" + test.Name);
+                    yield return new TestCaseData(test.Name, test.Value, section == "refuses", unityDiff.Contains(test.Name), section == "persists").SetName("B7_" + test.Name);
                 }
             if (count == 0)
-                yield return new TestCaseData(null, null, false, false).SetName("B7_EmptyFixture");
+                yield return new TestCaseData(null, null, false, false, false).SetName("B7_EmptyFixture");
         }
 
         [Test]
@@ -53,8 +54,34 @@ namespace NeoCompose.Tests
                 Assert.That(((JObject)fixture["returns"]!).Property(name), Is.Not.Null, name);
         }
 
+        private static NeoClient WriteAndReload(NeoClient client, string name)
+        {
+            var probe = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "Probe");
+            NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema[name + "Write"]).InvokeStatic(Array.Empty<object?>());
+            // The fixture's unqualified statics live in Session. Save-file
+            // reload alone deliberately drops them, so round-trip that store
+            // and its bindings as well, without carrying any live CLR values.
+            client.PublishHeldPayloadWrites(NeoValueOwnership.Session);
+            var rows = JsonConvert.DeserializeObject<Dictionary<string, MemberValue>>(JsonConvert.SerializeObject(client.sessionValues))!;
+            var reloaded = NeoTestSaveStack.ClientFromSchema(client.Synchronizer.Schema, loadedSaveContent: client.SerializeSaveData());
+            var plan = new NeoWritePlan(reloaded);
+            foreach (MemberValue row in rows.Values)
+                plan.Set(NeoValueOwnership.Session, row);
+            foreach (string id in probe.schema.Values)
+            {
+                var member = client.members[id];
+                if (member.Modifier != NeoMemberModifierKind.Static || member is NSFunctionMember
+                    || client.ResolveStaticOwnership(member) != NeoValueOwnership.Session)
+                    continue;
+                client.TryResolveStaticBinding(member, NeoValueOwnership.Session, out string? valueId);
+                plan.Bind(NeoValueOwnership.Session, id, true, valueId);
+            }
+            plan.Commit();
+            return reloaded;
+        }
+
         [TestCaseSource(nameof(Cases))]
-        public void RunsEverySharedCase(string? name, JToken? expected, bool refusal, bool unityDiff)
+        public void RunsEverySharedCase(string? name, JToken? expected, bool refusal, bool unityDiff, bool persists)
         {
             Assert.That(File.Exists(Fixture), Is.True, "Vendor Compose's final B7 source fixture.");
             Assert.That(File.Exists(Export), Is.True, "Vendor Compose's final B7 compiled export.");
@@ -62,7 +89,9 @@ namespace NeoCompose.Tests
             Assert.That(Directory.Exists(Root + "Fixtures~/P127GlobalizationParity/Generated"), Is.True,
                 "Vendor the B8 generated artifact alongside its export.");
             Assert.That(File.Exists(Root + "Fixtures~/P127GlobalizationParity/NeoGeneratedFiles.json"), Is.True);
-            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
+            using var initial = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
+            using var reloaded = persists ? WriteAndReload(initial, name!) : null;
+            NeoClient client = reloaded ?? initial;
             var probe = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "Probe");
             object? Invoke() => NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema[name!]).InvokeStatic(Array.Empty<object?>());
             // Spec §14 and B7 contract change 1: run all three cases with
