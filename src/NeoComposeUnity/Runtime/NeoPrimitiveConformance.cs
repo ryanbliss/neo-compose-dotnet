@@ -72,7 +72,7 @@ namespace NeoCompose.Runtime
     /// tests hold it equal to <c>primitive-conformance-fixture.json</c>,
     /// copied verbatim from compose. Classes are not in the table (§8.1):
     /// the seeded comparer classes conform through their class records, for
-    /// now through <see cref="NeoSystemComparerClasses.InterimConstructions"/>.
+    /// through their minted class records.
     /// </summary>
     internal static class NeoPrimitiveConformance
     {

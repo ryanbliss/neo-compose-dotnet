@@ -747,6 +747,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient Client()
         {
+            Assert.That(Directory.Exists(Path.Combine(PackageRoot, "P127TypesParity/Generated")), Is.True, "Vendor the compiled types generated artifact.");
             ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "p127-types-parity-export.json")));
             return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
         }

@@ -63,7 +63,15 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? InvokePrimitiveDelegate(NeoBuiltInTarget target, object?[] args, Context ctx)
         {
-            var selected = NeoPrimitiveBuiltIns.Of(ctx.client).Resolve(ctx.client, target);
+            var table = NeoPrimitiveBuiltIns.Of(ctx.client);
+            if (table.TryMemberStatic(ctx.client, target, out string member))
+            {
+                var type = target.DeclaringType!;
+                if (member == "Parse" && type.Head!.Type is MemberKind.Int or MemberKind.Float or MemberKind.Decimal)
+                    args = new object?[] { args[0], args.Length > 1 ? args[1] : type.Head.Type == MemberKind.Int ? 7 : type.Head.Type == MemberKind.Float ? 231 : 111, null };
+                return InvokePrimitiveMember(NeoTypeBindings.ToTypeInfo(type), member, null, args, ctx);
+            }
+            var selected = table.Resolve(ctx.client, target);
             var typeArguments = target.TypeArguments?.Select(NeoTypeBindings.ToTypeInfo).ToArray();
             if (selected.PrimitiveMember is not null)
                 return InvokePrimitiveImplementation(selected, null, args, ctx, typeArguments);
@@ -78,6 +86,12 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? EvalPrimitiveMember(PrimitiveMemberPointer pointer, NeoScriptScope scope, Context ctx)
         {
+            if (pointer.methodGroup is { } group)
+                return CacheMethodGroup(new NeoDelegateValue
+                {
+                    builtIn = NeoPrimitiveBuiltIns.Of(ctx.client).BindMemberStatic(ctx.client,
+                    RuntimeTypeOf(CloseContextType(pointer.primitive, ctx)), pointer.member, group.parameterCount)
+                }, group.cache, ctx);
             object? receiver = pointer.receiver is null ? null : EvalPointer(pointer.receiver, scope, ctx);
             var args = new object?[pointer.args.Length];
             for (int i = 0; i < args.Length; i++)
@@ -512,6 +526,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? InvokeMappedInterface(object receiver, TypeBinding construction, string memberId, object?[] args, Context ctx)
         {
+            if (UnwrapComparer(receiver) is not null && TryComparerCall(memberId, receiver, args, ctx, null, out object? comparerResult))
+                return comparerResult;
             var selected = NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOfValue(receiver, null, ctx), construction, memberId, "call");
             if (selected.PrimitiveMember is not null)
                 return InvokePrimitiveImplementation(selected, receiver, args, ctx);

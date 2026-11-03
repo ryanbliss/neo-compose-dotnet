@@ -148,6 +148,20 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType? function;
     }
 
+    /// <summary>The static equality type and optional comparer, closed over the running frame.</summary>
+    public sealed class EqualitySite
+    {
+        public TypeInfo type = null!;
+        public Pointer? comparer;
+    }
+
+    /// <summary>The static ordering type and optional comparer, closed over the running frame.</summary>
+    public sealed class OrderingSite
+    {
+        public TypeInfo type = null!;
+        public Pointer? comparer;
+    }
+
     /// <summary>
     /// Info shape for <c>contains</c>: collection + value pointer to
     /// compare against each entry. Mirrors TS-side
@@ -155,6 +169,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionContainsInfo
     {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? keys;
+        public EqualitySite? equality;
+        public bool? last;
         public bool @float;
         public bool @decimal;
         public Pointer collectionPointer = null!;
@@ -473,6 +491,9 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class FunctionCollectionQueryInfo
     {
+        public EqualitySite? equality;
+        public OrderingSite? ordering;
+        public Pointer? capacity;
         public bool nullable;
         public bool enumKey;
         public Pointer? seedPointer;
@@ -554,6 +575,7 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class FunctionTupleEqualInfo
     {
+        public EqualitySite? equality;
         public Pointer left = null!;
         public Pointer right = null!;
         public TupleTypeInfo typeInfo = null!;
@@ -640,6 +662,11 @@ namespace NeoCompose.Runtime.Json
     {
         protected override void ValidateObject(JObject obj, Type concrete)
         {
+            if (concrete == typeof(ContainsFunction) && obj["info"] is JObject contains && contains.Property("keys") is not null)
+            {
+                if (contains["keys"]?.Type != JTokenType.Boolean || contains.Value<bool>("keys") != true || contains.Property("equality") is not null)
+                    throw new JsonSerializationException("contains keys must be true and cannot accompany equality.");
+            }
             if (concrete == typeof(TupleCreateFunction) || concrete == typeof(TupleElementFunction) || concrete == typeof(TupleEqualFunction))
             {
                 if (obj["info"] is not JObject tupleInfo)

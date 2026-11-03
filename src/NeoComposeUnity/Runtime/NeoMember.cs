@@ -461,6 +461,9 @@ namespace NeoCompose.Runtime
             {
                 return existing;
             }
+            if (member is ClassMember { DeclaredInterfaceId: not null } interfaceSlot
+                && HoldsInterfaceBox(client, interfaceSlot, overrideValueId, NeoValueOwnership.Asset))
+                return new NeoMemberInterfaceBox(client, interfaceSlot, overrideValueId, NeoValueOwnership.Asset);
             return member switch
             {
                 NullMember n => new NeoMemberNull(client, n, overrideValueId),
@@ -538,6 +541,9 @@ namespace NeoCompose.Runtime
             {
                 return existing;
             }
+            if (member is ClassMember { DeclaredInterfaceId: not null } interfaceSlot
+                && HoldsInterfaceBox(client, interfaceSlot, overrideValueId, ownership))
+                return new NeoMemberInterfaceBox(client, interfaceSlot, overrideValueId, ownership);
             return member switch
             {
                 NullMember n => new NeoMemberNull(client, n, overrideValueId, ownership),
@@ -575,6 +581,10 @@ namespace NeoCompose.Runtime
             };
         }
 
+        private static bool HoldsInterfaceBox(NeoClient client, ClassMember member, string? overrideValueId, NeoValueOwnership ownership) =>
+            (overrideValueId ?? member.valueId) is { } id
+            && client.TryGetValue(ownership, id, out MemberValue? row) && row.valueType is not null;
+
         internal static bool IsWritableCompatible(Member member, NeoMember existing)
         {
             return member switch
@@ -587,7 +597,7 @@ namespace NeoCompose.Runtime
                 DictionaryMember => existing is NeoMemberDictionaryWritable,
                 TupleMember => existing is NeoMemberTupleWritable,
                 ListMember => existing is NeoMemberListWritable,
-                ClassMember => existing is NeoMemberClassWritable,
+                ClassMember => existing is NeoMemberClassWritable or NeoMemberInterfaceBox,
                 EnumMember => existing is NeoMemberEnumWritable,
                 LookupMember => existing is NeoMemberLookupWritable,
                 DialogueLookupMember => existing is NeoMemberDialogueLookupWritable,
@@ -611,6 +621,14 @@ namespace NeoCompose.Runtime
                 _ => false,
             };
         }
+    }
+
+    // An interface collection entry can hold a box. Keep its declared
+    // interface and raw row; it has no class schema or child members.
+    internal sealed class NeoMemberInterfaceBox : NeoMember<ClassMember, MemberValue>
+    {
+        internal NeoMemberInterfaceBox(NeoClient client, ClassMember member, string? valueId, NeoValueOwnership ownership)
+            : base(client, member, valueId, ownership) { }
     }
 
     /// <summary>

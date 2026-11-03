@@ -73,6 +73,15 @@ namespace NeoCompose.Runtime.Json
         public NeoBuiltInTarget? builtIn;
 
         [JsonIgnore]
+        internal object? identityTarget;
+        [JsonIgnore]
+        internal bool identityTargetBound;
+        [JsonIgnore]
+        internal object? identityResolution;
+        [JsonIgnore]
+        internal string? cachedClosureIdentity;
+
+        [JsonIgnore]
         internal object? lexicalThis;
 
         [JsonIgnore]
@@ -152,6 +161,8 @@ namespace NeoCompose.Runtime.Json
             declaringConstruction = declaringConstruction,
             site = site,
             placement = placement,
+            identityTarget = identityTarget,
+            identityTargetBound = identityTargetBound,
             staticConstruction = staticConstruction,
             interfaceConstruction = interfaceConstruction,
             builtIn = builtIn,

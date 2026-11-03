@@ -34,6 +34,44 @@ namespace NeoCompose.Tests
     public class NeoGetterListenerTests
     {
         [Test]
+        public void WrapperIndexAndEscapedGraphsNeverCallAuthoredEquality()
+        {
+            using var fixture = Build();
+            using var node = new NeoMemberClassWritable(fixture.client, "member-watcher", "value-watcher", NeoValueOwnership.Save);
+            using var first = new ThrowingEqualityView(fixture.client, node);
+            using var second = new ThrowingEqualityView(fixture.client, node);
+            fixture.client.RegisterGeneratedClassValue(first, new NeoNodeKey("first-view", "value-watcher", NeoValueOwnership.Save));
+            fixture.client.RegisterGeneratedClassValue(second, new NeoNodeKey("second-view", "value-watcher", NeoValueOwnership.Save));
+
+            var context = new NSGetterEvaluator.Context(fixture.client, null, null);
+            context.allocationTracker.MarkEscaped(new object[] { first, second, first }, context,
+                new Dictionary<string, NeoScriptAllocationTracker>());
+
+            fixture.client.DisposeWrappersTouchingRows(new[] { "value-watcher" });
+            Assert.That(first.Disposed, Is.True);
+            Assert.That(second.Disposed, Is.True);
+        }
+
+        private sealed class ThrowingEqualityView : NeoGeneratedClassValue
+        {
+            internal ThrowingEqualityView(NeoClient client, NeoMemberClass node)
+                : base(client, node, "class-watcher", false, node.ownership) { }
+
+            internal bool Disposed
+            {
+                get; private set;
+            }
+            public override bool Equals(object? other) => throw new InvalidOperationException("Authored Equals must not run here.");
+            public override int GetHashCode() => throw new InvalidOperationException("Authored GetHashCode must not run here.");
+
+            public override void Dispose()
+            {
+                Disposed = true;
+                base.Dispose();
+            }
+        }
+
+        [Test]
         public void RepeatedInvalidationReclaimsDeadReadersAndPreservesOtherSubscriptions()
         {
             using var fixture = Build(data =>

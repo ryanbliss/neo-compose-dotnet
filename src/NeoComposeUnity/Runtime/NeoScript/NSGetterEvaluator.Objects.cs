@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// gets the box (§1.3).
         /// </summary>
         private static bool ReadsPayload(JsonMember? member) =>
-            member is not null and not ObjectMember && !(member is ClassMember slot && slot.TryGetInterfaceId(out _));
+            member is not null and not ObjectMember && !(member is ClassMember slot && (slot.TryGetInterfaceId(out _) || slot.DeclaredClassId is { } classId && NeoSystemComparerClasses.NameOf(classId) is not null));
 
         /// <summary>
         /// §1.3. A stored box as the evaluator holds it: a <c>Type</c> value,
@@ -76,7 +76,12 @@ namespace NeoCompose.Runtime.NeoScript
                     NeoBox.Remember(row, identity);
                     return identity;
                 case NeoBoxFormKind.Comparer:
-                    throw new NSGetterRuntimeError("Reading a stored comparer isn't supported yet (P127 B6).");
+                    if (row is not PayloadMemberValue { value: JObject comparerPayload })
+                        throw new NSGetterRuntimeError($"Comparer row '{row.id}' requires a payload.");
+                    var comparer = ReadBuiltInComparer(comparerPayload, ctx);
+                    NeoBox comparerBox = NeoBox.Of(valueType, comparer);
+                    NeoBox.Remember(row, comparerBox);
+                    return comparerBox;
                 case NeoBoxFormKind.Invalid:
                     throw new NSGetterRuntimeError($"Value '{row.id}' has {form.Invalid}.");
             }
@@ -169,14 +174,24 @@ namespace NeoCompose.Runtime.NeoScript
                             NeoObjectTypeKind.ValueType => held is { } valueType && TypeBindings.IsValueType(valueType.Head!),
                             NeoObjectTypeKind.Enum => held?.Head!.Type == MemberKind.Enum,
                             NeoObjectTypeKind.Type => value is NeoTypeValue,
-                            // No evaluator value is a culture, format or comparer before P127 B6 and B7.
+                            // Culture and format evaluator values belong to P127 B7.
                             _ => false,
                         };
                         if (matches)
                             result = held is null || value is NeoBox or NeoTypeValue ? value : NeoBox.Of(held, value);
                         return matches;
                     }
+                case DelegateTypeInfo:
+                    result = payload;
+                    return payload is NeoDelegateValue callable
+                        && (callable.delegateType ?? callable.builtIn?.DelegateType ?? held) is { } signature
+                        && NeoInterfaceDispatch.Of(ctx.client).Converts(signature, RuntimeDelegateType(target, ctx));
                 case InterfaceTypeInfo interfaceType:
+                    if (UnwrapComparer(value) is { } comparer)
+                    {
+                        result = comparer;
+                        return NeoInterfaceDispatch.Of(ctx.client).Converts(ComparerType(comparer, ctx), RuntimeTypeOf(CloseContextType(interfaceType, ctx)));
+                    }
                     if (held is null)
                     {
                         result = value;
@@ -201,6 +216,12 @@ namespace NeoCompose.Runtime.NeoScript
                     result = payload;
                     return held.Equals(RuntimeTypeOf(target).WithRequired(true));
             }
+        }
+
+        internal static bool StoredInterfaceConforms(object value, TypeInfo target, Context ctx)
+        {
+            var held = HeldType(value, null, ctx, out object payload);
+            return TryCast(value, held, payload, CloseContextType(target, ctx), ctx, out _);
         }
 
         /// <summary>§3.3 <c>convert</c>: explicit conversions between int, float, decimal and enums.</summary>
@@ -267,7 +288,7 @@ namespace NeoCompose.Runtime.NeoScript
             List<string> order = EnumShapeOf(enumId, ctx.client).Order;
             if (number < 0 || number >= order.Count)
                 throw InvalidCast("System.Int32", ClrTypeName(TypeBinding.Closed(new TypeHead(MemberKind.Enum, true, enumId: enumId)), ctx));
-            return new object?[] { order[number] };
+            return MarkEnumValue(new object?[] { order[number] });
         }
 
         private static string EnumOptionId(object value) =>
@@ -393,6 +414,8 @@ namespace NeoCompose.Runtime.NeoScript
             switch (pointer.member)
             {
                 case ObjectMemberKind.GetType:
+                    if (UnwrapComparer(receiver) is { } comparer)
+                        return NeoTypeValue.Of(ComparerType(comparer, ctx));
                     return NeoTypeValue.Of(RuntimeTypeOfValue(receiver, pointer.receiverType, ctx));
                 case ObjectMemberKind.Equals:
                     return Box(ObjectEquals(receiver, pointer.receiverType, argument, ctx, pointer.dispatch == "base"));
@@ -421,8 +444,12 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary><c>object.ReferenceEquals</c> (§1.2): one row, one box, string boxes of equal strings, or both null.</summary>
         private static bool SameObject(object? left, object? right, Context ctx)
         {
+            if (UnwrapComparer(left) is not null || UnwrapComparer(right) is not null)
+                return ReferenceEquals(UnwrapComparer(left), UnwrapComparer(right));
             if (NeoBox.SameIdentity(left, right))
                 return true;
+            if (CachedClosureKey(left) is { } closureKey)
+                return closureKey == CachedClosureKey(right);
             if (left is NeoBox or NeoTypeValue || right is NeoBox or NeoTypeValue)
                 return false;
             return ReferenceEqual(left, right, ctx);
@@ -431,6 +458,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>The virtual <c>Equals(object?)</c>: a row's override or identity, else the payload type's.</summary>
         private static bool ObjectEquals(object receiver, TypeInfo? receiverType, object? other, Context ctx, bool direct = false)
         {
+            if (UnwrapComparer(receiver) is { } comparer)
+                return UnwrapComparer(other) is { } otherComparer && ComparerEquals(comparer, otherComparer, ctx);
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
@@ -493,7 +522,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return NeoTuples.TupleEquals((RuntimeTuple)payload, (RuntimeTuple)otherPayload,
                         (index, a, b) => DefaultTupleElementEquals(held.At(index), a, b, ctx));
                 case MemberKind.NSDelegate:
-                    throw new NSGetterRuntimeError($"Equals on a boxed {TypeName(held, ctx)} isn't supported yet (P127 B6).");
+                    return payload is NeoDelegateValue leftDelegate && otherPayload is NeoDelegateValue rightDelegate
+                        && DelegateEquals(leftDelegate, rightDelegate, ctx);
                 default:
                     // new object(), collections, slot references, variants and sequences compare by identity.
                     return SameObject(leftIdentity ?? payload, rightIdentity ?? otherPayload, ctx) || ReferenceEquals(payload, otherPayload);
@@ -506,14 +536,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>The virtual <c>GetHashCode()</c>: a row's override or the identity hash of its id, else the payload type's.</summary>
         private static int ObjectHash(object receiver, TypeInfo? receiverType, Context ctx, bool direct = false)
         {
+            if (UnwrapComparer(receiver) is { } comparer)
+                return ComparerHash(comparer, ctx);
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
                 if (!direct && RowOverride(receiver, "GetHashCode", ctx) is { } overrideId)
                     return NeoInt32.Wrap(Number(InvokeObjectOverride(overrideId, receiver, System.Array.Empty<object?>(), ctx)!));
-                string rowId = FindRowIdByReference(receiver, ctx)
-                    ?? throw new NSGetterRuntimeError("GetHashCode() needs a row identity; attach the object first.");
-                return NeoHashes.String(rowId);
+                return IdentityHash(receiver, ctx);
             }
             switch (held.Head!.Type)
             {
@@ -549,21 +579,27 @@ namespace NeoCompose.Runtime.NeoScript
                         var vector = (NeoVector3Value)payload;
                         return NeoHashes.Vector3Int(NeoInt32.Wrap(vector.x), NeoInt32.Wrap(vector.y), NeoInt32.Wrap(vector.z));
                     }
+                case MemberKind.NSDelegate:
+                    return DelegateHash((NeoDelegateValue)payload, ctx);
                 case MemberKind.Tuple:
-                    return NeoTuples.TupleHash((RuntimeTuple)payload, (index, value) => ObjectHash(value!, NeoTypeBindings.ToTypeInfo(held.At(index)), ctx));
+                    return NeoTuples.TupleHash((RuntimeTuple)payload, (index, value) => SelectEquality(held.At(index), ctx).Hash(value, ctx));
                 case MemberKind.Color:
                     {
                         var color = (NeoColorValue)payload;
                         return NeoHashes.Color(color.r, color.g, color.b, color.a);
                     }
                 default:
-                    throw new NSGetterRuntimeError($"GetHashCode() on a {TypeName(held, ctx)} isn't supported yet (P127 B6).");
+                    if (receiver is NeoTypeValue runtimeType)
+                        return NeoHashes.String(NeoTypeSources.Key(runtimeType.Binding));
+                    return IdentityHash(payload, ctx);
             }
         }
 
         /// <summary>The virtual <c>ToString()</c>: a row's override or its type's full name, else the payload type's text.</summary>
         private static string? ObjectText(object receiver, TypeInfo? receiverType, Context ctx, bool direct = false)
         {
+            if (UnwrapComparer(receiver) is { } comparer)
+                return ComparerText(comparer, ctx);
             TypeBinding? held = HeldType(receiver, receiverType, ctx, out object payload);
             if (held is null)
             {
@@ -773,6 +809,12 @@ namespace NeoCompose.Runtime.NeoScript
                 case NeoBox box:
                     payload = box.Payload ?? box;
                     return box.ValueType;
+                case NeoBuiltInComparer comparer:
+                    payload = comparer;
+                    return ComparerType(comparer, ctx);
+                case NeoDelegateValue callable when (callable.delegateType ?? callable.builtIn?.DelegateType) is { } signature:
+                    payload = value;
+                    return signature;
                 case NeoTypeValue:
                     payload = value;
                     return TypeType;
@@ -781,6 +823,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (staticType is null)
                 return value is string ? TypeBinding.Closed(new TypeHead(MemberKind.String, true)) : null;
             TypeInfo closed = CloseContextType(staticType, ctx);
+            if (value is string && IsReferenceStatic(closed))
+                return TypeBinding.Closed(new TypeHead(MemberKind.String, true));
             return IsReferenceStatic(closed) && value is not NeoVariantReference ? null : HeldTypeOf(closed);
         }
 
