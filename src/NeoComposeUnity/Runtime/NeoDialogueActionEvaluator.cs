@@ -4510,6 +4510,13 @@ namespace NeoCompose.Runtime
                     // (specs/decimal-member.md decision 5); the payload is
                     // the canonical decimal string the evaluator produced.
                     return new DecimalMember { id = id, kind = MemberKind.Decimal };
+                case MemberKind.Object:
+                    return new ObjectMember
+                    {
+                        id = id,
+                        kind = MemberKind.Object,
+                        objectType = ((ObjectTypeInfo)typeInfo).objectType,
+                    };
                 case MemberKind.Class:
                     return new ClassMember
                     {

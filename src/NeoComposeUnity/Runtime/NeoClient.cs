@@ -3419,12 +3419,12 @@ namespace NeoCompose.Runtime
         /// object in place, so a changed one is written the way a vector field
         /// write is: marked dirty, and notified. Returns the published row, or
         /// null when nothing changed. Deferred reads/saves keep the stored
-        /// payload if retained NativeDigits has an invalid length; explicit
-        /// NeoScript setter publication requests a refusal instead.
+        /// payload if retained NativeDigits has an invalid length. Only an
+        /// explicit store encodes strictly.
         /// </summary>
-        internal PayloadMemberValue? PublishHeldPayloadWrite(NeoValueOwnership ownership, PayloadMemberValue row, bool rejectInvalidNativeDigits = false)
+        internal PayloadMemberValue? PublishHeldPayloadWrite(NeoValueOwnership ownership, PayloadMemberValue row)
         {
-            if (HeldPayloadWrite(row, rejectInvalidNativeDigits) is not { } next)
+            if (HeldPayloadWrite(row) is not { } next)
                 return null;
             SetWritableValue(ownership, next, "value");
             return next;
@@ -3447,11 +3447,11 @@ namespace NeoCompose.Runtime
             plan.Commit();
         }
 
-        private PayloadMemberValue? HeldPayloadWrite(PayloadMemberValue row, bool rejectInvalidNativeDigits = false)
+        private PayloadMemberValue? HeldPayloadWrite(PayloadMemberValue row)
         {
             if (row.live is not { } held)
                 return null;
-            JObject? current = rejectInvalidNativeDigits ? NeoStorablePayloads.Encode(held) : NeoStorablePayloads.TryEncode(held);
+            JObject? current = NeoStorablePayloads.TryEncode(held);
             if (current is null || JToken.DeepEquals(row.storedValue, current))
                 return null;
             var next = (PayloadMemberValue)CloneValueRow(row);
