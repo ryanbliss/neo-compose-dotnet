@@ -217,13 +217,17 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         internal TValue ValueAt(int index) => valueAt[index];
 
         /// <summary><c>AddIfNotPresent</c>/<c>TryInsert</c>: true when the key was added (or, overwriting, its value set).</summary>
-        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior) => Insert(key, value, behavior, out _);
+        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior) => Insert(key, value, behavior, out _, out _);
 
-        internal bool GetOrAdd(TKey key, TValue value, out TValue stored) => Insert(key, value, NeoInsertBehavior.None, out stored);
+        /// <summary>Returns the canonical key without probing the comparer a second time.</summary>
+        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior, out TKey storedKey) => Insert(key, value, behavior, out _, out storedKey);
 
-        private bool Insert(TKey key, TValue value, NeoInsertBehavior behavior, out TValue stored)
+        internal bool GetOrAdd(TKey key, TValue value, out TValue stored) => Insert(key, value, NeoInsertBehavior.None, out stored, out _);
+
+        private bool Insert(TKey key, TValue value, NeoInsertBehavior behavior, out TValue stored, out TKey storedKey)
         {
             stored = value;
+            storedKey = key;
             CheckKey(key);
             if (buckets is null)
                 Initialize(0);
@@ -235,6 +239,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
             {
                 if (hashCodes[i] == hashCode && Comparer.Equals(keyAt[i], key))
                 {
+                    storedKey = keyAt[i];
                     if (behavior == NeoInsertBehavior.Overwrite)
                     {
                         valueAt[i] = value;

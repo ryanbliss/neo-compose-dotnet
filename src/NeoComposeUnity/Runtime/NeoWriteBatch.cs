@@ -640,6 +640,7 @@ namespace NeoCompose.Runtime
             if (!collections.TryGetValue((ownership, id), out PendingCollection? collection) || !collection.Changed)
                 return null;
             (collection as PendingList)?.Snapshot();
+            (collection as PendingDictionary)?.Snapshot();
             return collection.Row;
         }
 
@@ -711,7 +712,7 @@ namespace NeoCompose.Runtime
             return (PendingList)collection;
         }
 
-        internal PendingCollection Dictionary(NeoValueOwnership ownership, string id, NSGetterEvaluator.Context ctx, object target)
+        internal PendingDictionary Dictionary(NeoValueOwnership ownership, string id, NSGetterEvaluator.Context ctx, object target)
         {
             if (!collections.TryGetValue((ownership, id), out PendingCollection? collection))
             {
@@ -719,14 +720,14 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"Missing dictionary row '{id}'.");
                 row = (ObjectMemberValue)Plan.Client.CloneRowForWrite(row!);
                 row.value ??= new Dictionary<string, string>();
-                collection = new PendingCollection(row, ownership, target);
+                collection = new PendingDictionary(row, ownership, target);
                 Add(ownership, id, collection);
             }
             collection.Target ??= target;
             collection.Touch(ctx);
             if (held)
                 Touch(id);
-            return collection;
+            return (PendingDictionary)collection;
         }
 
         /// <summary>
@@ -833,6 +834,8 @@ namespace NeoCompose.Runtime
                 MemberValue row = collection.Row;
                 if (collection is PendingList list)
                     list.Seal();
+                else if (collection is PendingDictionary dictionary)
+                    dictionary.Snapshot();
                 row.updatedAt = collection.UpdatedAt;
                 NeoValueOwnership ownership = collection.Ownership;
                 Plan.Set(ownership, row);
@@ -918,6 +921,50 @@ namespace NeoCompose.Runtime
                             createdAt = NeoTimestamp.Now(),
                             updatedAt = NeoTimestamp.Now()
                         }, "mark");
+        }
+
+        /// <summary>Ordered dictionary mutations; materializes the wire map only at a read or commit.</summary>
+        internal sealed class PendingDictionary : PendingCollection
+        {
+            private readonly NeoScript.OrderedMap<string, string> keys = new(StringComparer.Ordinal);
+            private bool snapshotDirty;
+            private ObjectMemberValue DictionaryRow => (ObjectMemberValue)Row;
+
+            internal PendingDictionary(ObjectMemberValue row, NeoValueOwnership ownership, object? target)
+                : base(row, ownership, target)
+            {
+                foreach (string key in row.value!.Keys)
+                    keys.Add(key, key);
+            }
+            internal void Set(string key, string id, NeoTimestamp now)
+            {
+                snapshotDirty |= keys.Add(key, key);
+                DictionaryRow.value![key] = id;
+                Changes(now);
+            }
+            internal void Remove(string key, NeoTimestamp now)
+            {
+                snapshotDirty |= keys.Remove(key);
+                DictionaryRow.value!.Remove(key);
+                Changes(now);
+            }
+            internal void Clear(NeoTimestamp now)
+            {
+                keys.Clear();
+                DictionaryRow.value!.Clear();
+                snapshotDirty = false;
+                Changes(now);
+            }
+            internal void Snapshot()
+            {
+                if (!snapshotDirty)
+                    return;
+                var entries = new Dictionary<string, string>(keys.Count, StringComparer.Ordinal);
+                foreach (string key in keys.Values)
+                    entries.Add(key, DictionaryRow.value![key]);
+                DictionaryRow.value = entries;
+                snapshotDirty = false;
+            }
         }
 
         /// <summary>A collection the batch mutates, and the contexts whose cached rows it refreshes.</summary>

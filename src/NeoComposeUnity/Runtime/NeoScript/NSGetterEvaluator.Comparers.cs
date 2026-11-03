@@ -367,7 +367,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (collection is RuntimeSet { Equality: { } equality })
                 return equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx);
             if (collection is RuntimeDictionary dictionary)
-                return dictionary.Equality.Comparer ?? DefaultComparer(dictionary.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx);
+                return dictionary.Equality.Comparer ?? DefaultComparer(fallbackType ?? dictionary.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx);
             if (FindRowReference(collection, ctx) is { } reference && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is { } row)
             {
                 TypeBinding entryType = fallbackType ?? (reference.CollectionMember(ctx.client) is DictionaryMember dictionaryMember

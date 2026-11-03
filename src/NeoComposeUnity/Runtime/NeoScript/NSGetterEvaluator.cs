@@ -2725,20 +2725,22 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? source = dlp.copyFrom is null ? null : EvalPointer(dlp.copyFrom, scope, ctx);
             int capacity = dlp.capacity is null ? 0 : NeoCompose.Runtime.NeoScript.Numerics.NeoInt32.Wrap(Number(EvalPointer(dlp.capacity, scope, ctx)!));
-            BoundEquality? equality = dlp.equality is null ? null : BindEquality(dlp.equality, scope, ctx);
+            BoundEquality equality = BindEquality(dlp.equality ?? new EqualitySite
+            {
+                type = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+            }, scope, ctx);
             if (capacity < 0)
                 throw NeoCompose.Runtime.NeoScript.Hashing.NeoHashingErrors.CapacityRange();
             if (dlp.copyFrom is not null && source is null)
                 throw new NSGetterRuntimeError("Value cannot be null. (Parameter 'dictionary')", NeoErrorContract.NeoArgumentNullError);
-            if (source is RuntimeDictionary original && equality is not null
+            if (source is RuntimeDictionary original
                 && equality.Default.Type.Equals(original.Equality.Default.Type)
                 && SameObject(equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx),
                     original.Equality.Comparer ?? DefaultComparer(original.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx), ctx))
                 return KeepDerived(new RuntimeDictionary(equality,
-                    NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true)),
+                    NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true), original),
                     null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo));
-            IDictionary<string, object?> dict = equality is null ? new Dictionary<string, object?>()
-                : new RuntimeDictionary(equality, capacity);
+            IDictionary<string, object?> dict = new RuntimeDictionary(equality, capacity);
             if (source is not null)
             {
                 var cursor = new CollectionCursor(source, ctx);

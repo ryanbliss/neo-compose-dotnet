@@ -45,8 +45,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "ad180200-c808-4282-bb0b-2265a87cd973",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fold", "42a77450-9bf8-4af8-82e8-622ae6146795", Fold)
+                "5247a0ba-f3d0-457d-b29e-7fc89452415f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fold", "3195e7b9-5408-4222-8ccd-b66d2694692c", Fold)
             );
         }
 

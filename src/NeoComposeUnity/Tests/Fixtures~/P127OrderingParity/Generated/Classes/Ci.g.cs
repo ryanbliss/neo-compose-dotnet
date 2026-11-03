@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127OrderingParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6c9f7f85-145d-42af-9b90-c340a7684a71");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "dc883e80-d9ca-44b2-9514-5155b577dff8");
         }
 
         internal new static Ci Create(NeoClient client, NeoMemberClass node)

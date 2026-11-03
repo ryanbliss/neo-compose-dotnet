@@ -250,7 +250,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static object DictionaryQuery(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback keySelector, NeoScriptScope scope, Context ctx)
         {
             BoundEquality? equality = info.equality is null ? null : BindEquality(info.equality, scope, ctx);
-            IDictionary<string, object?> result = equality is null ? new Dictionary<string, object?>() : new RuntimeDictionary(equality);
+            IDictionary<string, object?> result = new RuntimeDictionary(equality ?? BindEquality(
+                new EqualitySite { type = new PrimitiveTypeInfo { type = MemberKind.String, required = true } }, scope, ctx));
             var groups = new Dictionary<string, List<object?>>();
             var groupedKeys = equality is null ? null : new NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, List<object?>>(equality, NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Set);
             PreparedCollectionCallback valueSelector = default;

@@ -258,6 +258,53 @@ namespace NeoCompose.Tests
             Assert.That(row!.value!.Keys, Is.EqualTo(new[] { "q" }));
             Assert.That(Eval(new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = Ref(row.id), key = Value("Q") } }), Is.EqualTo(2d));
         }
+        [TestCase("literal")]
+        [TestCase("capacity")]
+        [TestCase("comparer")]
+        [TestCase("copy")]
+        public void DictionaryRemovalThenInsertionAppendsOnEveryLocalPath(string shape)
+        {
+            var pointer = new DictLiteralPointer { type = PointerKind.DictLiteral, typeInfo = Collection(false) };
+            if (shape == "comparer")
+                Assign("D", NewCollection(false, NewComparer()));
+            if (shape != "literal")
+                pointer.equality = new EqualitySite
+                {
+                    type = Type(MemberKind.String),
+                    comparer = shape == "comparer" ? new CollectionComparerPointer
+                    {
+                        type = PointerKind.CollectionComparer,
+                        op = "Comparer",
+                        collection = Ref("b6-dict-D"),
+                        elementType = Type(MemberKind.String),
+                    } : null,
+                };
+            if (shape == "capacity")
+                pointer.capacity = Value(8d);
+            var dictionary = (IDictionary<string, object?>)Eval(pointer)!;
+            dictionary.Add("a", 1d);
+            dictionary.Add("b", 2d);
+            dictionary.Add("c", 3d);
+            Assert.That(dictionary.Remove(shape == "comparer" ? "A" : "a"), Is.True);
+            dictionary["d"] = 4d;
+            dictionary[shape == "comparer" ? "B" : "b"] = 20d;
+            dictionary["b"] = 2d;
+            if (shape == "copy")
+                dictionary = (IDictionary<string, object?>)Eval(new DictLiteralPointer
+                {
+                    type = PointerKind.DictLiteral,
+                    typeInfo = Collection(false),
+                    equality = pointer.equality,
+                    copyFrom = Value(dictionary),
+                })!;
+            Assert.That(dictionary.Keys, Is.EqualTo(new[] { "b", "c", "d" }));
+            Assert.That(dictionary.Values, Is.EqualTo(new object?[] { 2d, 3d, 4d }));
+            Assert.That(string.Concat(dictionary.Select(pair => pair.Key + pair.Value)), Is.EqualTo("b2c3d4"));
+            dictionary.Clear();
+            dictionary.Add("z", 9d);
+            Assert.That(dictionary.Keys, Is.EqualTo(new[] { "z" }));
+        }
+
         [Test]
         public void CopyConstructorPreservesReferenceEntries()
         {

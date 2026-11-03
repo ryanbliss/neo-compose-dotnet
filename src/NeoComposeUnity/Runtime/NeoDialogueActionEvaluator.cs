@@ -6949,7 +6949,7 @@ namespace NeoCompose.Runtime
                         batch.AfterCommit(() => ctx.allocationTracker.RegisterConstructedParent(
                             replacementId,
                             rowId));
-                        NeoWriteBatch.PendingCollection replaced = batch.Dictionary(ownership, rowId, ctx, this);
+                        NeoWriteBatch.PendingDictionary replaced = batch.Dictionary(ownership, rowId, ctx, this);
                         PlaceEntry(batch, replaced, replacementId);
                         batch.Release(ownership, existingId, entryMember, rowId);
                         batch.Gain(ownership, replacementId, rowId);
@@ -6988,7 +6988,7 @@ namespace NeoCompose.Runtime
                             entryMember is ListMember or DictionaryMember
                                 ? new NeoGeneratedTypesSupport.CollectionInsertion(plan, ctx, ownership) : null, path: $"[{key}]", pathContainerId: rowId));
                     }
-                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
+                    NeoWriteBatch.PendingDictionary dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     PlaceEntry(batch, dictionary, childId);
                     batch.Gain(ownership, childId, rowId);
                     Change(dictionary, key, childId, now);
@@ -7000,11 +7000,7 @@ namespace NeoCompose.Runtime
                 });
             }
 
-            private static void Change(NeoWriteBatch.PendingCollection dictionary, string key, string id, NeoTimestamp now)
-            {
-                ((ObjectMemberValue)dictionary.Row).value![key] = id;
-                dictionary.Changes(now);
-            }
+            private static void Change(NeoWriteBatch.PendingDictionary dictionary, string key, string id, NeoTimestamp now) => dictionary.Set(key, id, now);
 
             private void Remove(
                 NeoClient client,
@@ -7014,7 +7010,7 @@ namespace NeoCompose.Runtime
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
-                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
+                    NeoWriteBatch.PendingDictionary dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     var row = (ObjectMemberValue)dictionary.Row;
                     string? matched = NSGetterEvaluator.StoredDictionaryKey(row, ownership, key, ctx, out var equalityIndex);
                     if (matched is null)
@@ -7023,10 +7019,9 @@ namespace NeoCompose.Runtime
                     if (!row.value!.TryGetValue(key, out string removedId))
                         return;
                     batch.Release(ownership, removedId, entryMember ?? EntryMember(batch, dictionary, entryTypeInfo), rowId);
-                    row.value.Remove(key);
+                    dictionary.Remove(key, NeoTimestamp.Now());
                     equalityIndex?.Remove(key);
                     NSGetterEvaluator.PreserveStoredEquality(equalityIndex, row, batch.Plan);
-                    dictionary.Changes(NeoTimestamp.Now());
                 });
             }
 
@@ -7037,14 +7032,13 @@ namespace NeoCompose.Runtime
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
                     EnsureWritableRow(client, rowId, ownership);
-                    NeoWriteBatch.PendingCollection dictionary = batch.Dictionary(ownership, rowId, ctx, this);
+                    NeoWriteBatch.PendingDictionary dictionary = batch.Dictionary(ownership, rowId, ctx, this);
                     var row = (ObjectMemberValue)dictionary.Row;
                     JsonMember releaseMember = entryMember ?? EntryMember(batch, dictionary, entryTypeInfo);
                     foreach (string removedId in row.value!.Values)
                         batch.Release(ownership, removedId, releaseMember, rowId);
-                    row.value.Clear();
+                    dictionary.Clear(NeoTimestamp.Now());
                     NSGetterEvaluator.InvalidateStoredEquality(client, ownership, rowId);
-                    dictionary.Changes(NeoTimestamp.Now());
                 });
             }
         }
