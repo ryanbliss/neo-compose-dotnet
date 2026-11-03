@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     [NeoEnum(typeof(HueOptions))]
     public enum Hue
     {
-        Red = 173631982,
-        Green = 1203794877,
-        Blue = 2137051090,
+        Red = 1032315469,
+        Green = 1321790818,
+        Blue = 145834306,
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "cbd89a64-2891-4e13-92ba-98f706820c15" => Hue.Red,
-                "d35c9589-0f3a-446c-ba83-38b9ff81a538" => Hue.Green,
-                "bb180d14-22a2-436d-b8b0-4381afc84559" => Hue.Blue,
+                "af850187-1338-4a11-bc7e-c3f91818c43c" => Hue.Red,
+                "6035165b-60cf-456a-9bcb-49e42d665738" => Hue.Green,
+                "56ec9079-4911-4b44-968b-7c520c4abd79" => Hue.Blue,
                 _ => NeoUndeclaredEnumOptions<Hue>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return value switch
             {
-                Hue.Red => "cbd89a64-2891-4e13-92ba-98f706820c15",
-                Hue.Green => "d35c9589-0f3a-446c-ba83-38b9ff81a538",
-                Hue.Blue => "bb180d14-22a2-436d-b8b0-4381afc84559",
+                Hue.Red => "af850187-1338-4a11-bc7e-c3f91818c43c",
+                Hue.Green => "6035165b-60cf-456a-9bcb-49e42d665738",
+                Hue.Blue => "56ec9079-4911-4b44-968b-7c520c4abd79",
                 _ => NeoUndeclaredEnumOptions<Hue>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "cbd89a64-2891-4e13-92ba-98f706820c15" => true,
-                "d35c9589-0f3a-446c-ba83-38b9ff81a538" => true,
-                "bb180d14-22a2-436d-b8b0-4381afc84559" => true,
+                "af850187-1338-4a11-bc7e-c3f91818c43c" => true,
+                "6035165b-60cf-456a-9bcb-49e42d665738" => true,
+                "56ec9079-4911-4b44-968b-7c520c4abd79" => true,
                 _ => false,
             };
         }
