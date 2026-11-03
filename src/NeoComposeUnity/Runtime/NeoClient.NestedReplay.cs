@@ -276,7 +276,7 @@ namespace NeoCompose.Runtime
                     && row is ObjectMemberValue root && IsVirtualInstanceRoot(root)
                     && !NamesReplayTemporary(root.constructorArgs, temporaries)
                     && !node.classChildren.Values.Any(child => child.classChildren.Count != 0
-                        || child.listChildren.Count != 0 || child.dictionaryChildren.Count != 0))
+                        || child.listChildren.Count != 0 || child.dictionaryChildren.Count != 0 || child.comparerChild is not null))
                 {
                     var boundary = new NestedReplayBoundary
                     {
@@ -305,6 +305,8 @@ namespace NeoCompose.Runtime
                     Visit(child);
                 foreach (var child in node.dictionaryChildren.Values)
                     Visit(child);
+                if (node.comparerChild is not null)
+                    Visit(node.comparerChild);
             }
 
             // A boundary replays its root alone from the recipe, after this
@@ -351,6 +353,8 @@ namespace NeoCompose.Runtime
                     Move(child, nested);
                 foreach (var child in node.dictionaryChildren.Values)
                     Move(child, nested);
+                if (node.comparerChild is not null)
+                    Move(node.comparerChild, nested);
             }
         }
     }

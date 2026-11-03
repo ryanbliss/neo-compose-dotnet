@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class PFld : NeoGeneratedClassValue, IReadOnlyPFld
     {
         internal PFld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a1dc133b-4291-4fb7-9fd7-b4b3929d1a8e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "072971e6-abae-4795-bdc5-cf029c469a8f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int A()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5dd65e85-88bd-4792-abf1-777226fed9d3");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "79d5720a-206d-4139-84dc-d0f7d2ff2ec6");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a1dc133b-4291-4fb7-9fd7-b4b3929d1a8e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "072971e6-abae-4795-bdc5-cf029c469a8f");
         }
 
         internal static PFld Create(NeoClient client, NeoMemberClass node)

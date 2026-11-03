@@ -7078,6 +7078,12 @@ namespace NeoCompose.Runtime
         internal static bool TryGetConstructorCollectionOrigin(object collection, out NeoScript.NSGetterEvaluator.RowReference? origin) =>
             ConstructorCollectionOrigins.TryGetValue(collection, out origin);
 
+        internal static NeoScript.NSGetterEvaluator.RowReference? ConstructorCollectionOrigin(object collection) =>
+            ConstructorCollectionOrigins.TryGetValue(collection, out var origin) ? origin : null;
+
+        internal static void RecordConstructorCollectionOrigin(object collection, NeoScript.NSGetterEvaluator.RowReference origin) =>
+            ConstructorCollectionOrigins.AddOrUpdate(collection, origin);
+
         internal static void PreserveConstructorCollectionOrigin(object source, object destination)
         {
             if (!ReferenceEquals(source, destination)
@@ -7177,6 +7183,8 @@ namespace NeoCompose.Runtime
                                 dictionaryRow.value.Count, StringComparer.Ordinal);
                             foreach (var pair in dictionaryRow.value)
                                 valuesByKey[pair.Key] = Read(pair.Value, entryMember, entryStorage, entryType);
+                            ConstructorCollectionOrigins.Add(valuesByKey, new NeoScript.NSGetterEvaluator.RowReference(
+                                valueId, storage, member: sourceMember));
                             return valuesByKey;
                         default:
                             throw new InvalidOperationException(

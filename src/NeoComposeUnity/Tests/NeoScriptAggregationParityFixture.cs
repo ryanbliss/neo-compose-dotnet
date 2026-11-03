@@ -9495,7 +9495,7 @@ namespace NeoCompose.Tests
       ""name"": ""average empty"",
       ""source"": ""enum Tone { Red, Blue } class Query { public float Result => List.Repeat(1, 0).Average(); }"",
       ""expected"": null,
-      ""expectedError"": ""Average() found no matching entry."",
+      ""expectedError"": ""Sequence contains no elements"",
       ""getter"": {
         ""compilerRevision"": 19,
         ""source"": {
@@ -11958,7 +11958,7 @@ namespace NeoCompose.Tests
       ""name"": ""min empty"",
       ""source"": ""enum Tone { Red, Blue } class Query { public int Result => List.Repeat(1, 0).Min(); }"",
       ""expected"": null,
-      ""expectedError"": ""Min() found no matching entry."",
+      ""expectedError"": ""Sequence contains no elements"",
       ""getter"": {
         ""compilerRevision"": 19,
         ""source"": {
@@ -18328,6 +18328,7 @@ namespace NeoCompose.Tests
       }
     }
   ]
-}";
+}
+";
     }
 }

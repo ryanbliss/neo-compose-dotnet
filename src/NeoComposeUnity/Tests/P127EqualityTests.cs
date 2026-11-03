@@ -92,16 +92,25 @@ namespace NeoCompose.Tests
             Assert.That(set.Contains(12d), Is.True);
             Assert.That(log, Is.EqualTo(new[] { "H12", "E2,12" }));
         }
-        [Test]
-        public void CopyingASetWithAnEqualComparerReusesItsHashes()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CopyingASetWithAnEqualComparerReusesItsHashes(bool sparse)
         {
             int hashes = 0, equalities = 0;
             var comparer = Comparer(args => { equalities++; return Equals(args[0], args[1]); }, args => { hashes++; return args[0]; });
-            var first = (RuntimeSet)Query("ToSet", new object?[] { 1d, 2d, 3d }, MemberKind.Int, comparer)!;
+            object?[] values = sparse ? Enumerable.Range(0, 30).Select(i => (object?)(double)i).ToArray() : new object?[] { 1d, 2d, 3d };
+            var first = (RuntimeSet)Query("ToSet", values, MemberKind.Int, comparer)!;
+            if (sparse)
+            {
+                for (int i = 0; i < 28; i++)
+                    first.Remove((double)i);
+                first.Add(0d, 0d);
+            }
             hashes = equalities = 0;
             var copy = (RuntimeSet)Query("ToSet", first, MemberKind.Int, comparer)!;
             Assert.That(copy, Is.Not.SameAs(first));
             Assert.That(copy.Count, Is.EqualTo(3));
+            Assert.That(copy.ToArray(), Is.EqualTo(sparse ? new object?[] { 28d, 29d, 0d } : values));
             Assert.That(hashes, Is.Zero);
             Assert.That(equalities, Is.Zero);
         }
@@ -118,6 +127,77 @@ namespace NeoCompose.Tests
             Assert.That(new NSGetterEvaluator.BoundEquality(Binding(MemberKind.Object), setComparer, ctx).Equals(a, b), Is.True);
             Assert.That(hashes, Is.EqualTo(3));
             Assert.That(equals, Is.EqualTo(3));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SetEqualityWithDifferentComparersCallsTheRightElementFirst(bool asymmetric)
+        {
+            const string classId = "b6-set-equality-item";
+            const string equalsId = "b6-set-equality-override";
+            client.ProjectDataForRuntime.classes[classId] = new NeoSchemaClass
+            {
+                id = classId,
+                name = "Item",
+                schema = new() { ["Equals#" + NeoObjectContract.EqualsMember] = equalsId },
+            };
+            client.ProjectDataForRuntime.members[equalsId] = new FunctionMember
+            {
+                id = equalsId,
+                name = "Equals",
+                kind = MemberKind.Function,
+                extendsMemberId = NeoObjectContract.EqualsMember,
+                returnTypeInfo = Type(MemberKind.Bool),
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "other", type = MemberKind.Object, required = false } },
+            };
+            client.InvalidateSchemaResolutionCaches();
+            using var first = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            using var second = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
+            object? a = NSGetterEvaluator.UnwrapRow(first.value!, ctx, first.ownership, first.member);
+            object? b = NSGetterEvaluator.UnwrapRow(second.value!, ctx, second.ownership, second.member);
+            var log = new List<string>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [equalsId] = (_, receiver, args, _) =>
+                {
+                    int left = NSGetterEvaluator.ReferenceEqual(receiver, a, ctx) ? 1 : 2;
+                    int right = NSGetterEvaluator.ReferenceEqual(args[0], a, ctx) ? 1 : 2;
+                    log.Add($"{left}>{right}");
+                    return asymmetric ? left >= right : left == right;
+                },
+            });
+            var reference = new NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.ReferenceEquality, NeoComparerFamilyKind.Equality, null);
+            object? x = Query("ToSet", asymmetric ? new[] { a } : new[] { a, b }, MemberKind.Object, reference);
+            object? y = Query("ToSet", asymmetric ? new[] { b } : new[] { b, a }, MemberKind.Object);
+            var comparer = new NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.SetEquality, NeoComparerFamilyKind.Equality, Binding(MemberKind.Object));
+            log.Clear();
+            Assert.That(new NSGetterEvaluator.BoundEquality(Binding(MemberKind.Object), comparer, ctx).Equals(x, y), Is.True);
+            Assert.That(log, Is.EqualTo(asymmetric ? new[] { "2>1" } : new[] { "2>1", "2>2", "1>1" }));
+        }
+
+        [Test]
+        public void SetEqualitySkipsSelfComparisonAndProbesTheExistingTable()
+        {
+            var log = new List<string>();
+            var comparer = Comparer(args =>
+            {
+                log.Add($"{args[0]}={args[1]}");
+                return Equals(args[0], args[1]);
+            }, args =>
+            {
+                log.Add($"h{args[0]}");
+                return args[0];
+            });
+            object? x = Query("ToSet", new object?[] { 1d, 2d }, MemberKind.Int, comparer);
+            object? y = Query("ToSet", new object?[] { 2d, 1d }, MemberKind.Int, comparer);
+            var setComparer = new NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.SetEquality, NeoComparerFamilyKind.Equality, Binding(MemberKind.Int));
+            var equality = new NSGetterEvaluator.BoundEquality(Binding(MemberKind.Object), setComparer, ctx);
+            log.Clear();
+            Assert.That(equality.Equals(x, y), Is.True);
+            Assert.That(log, Is.EqualTo(new[] { "h2", "2=2", "h1", "1=1" }));
+            log.Clear();
+            Assert.That(equality.Equals(x, x), Is.True);
+            Assert.That(log, Is.Empty);
         }
 
         [Test]

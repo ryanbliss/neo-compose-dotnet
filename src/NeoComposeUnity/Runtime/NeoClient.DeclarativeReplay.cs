@@ -177,6 +177,11 @@ namespace NeoCompose.Runtime
                     keys[pair.Value] = pair.Key;
                     Index(pair.Value, boundary);
                 }
+                if (node.comparerChild is { } comparer)
+                {
+                    keys[comparer] = "@comparer";
+                    Index(comparer, boundary);
+                }
                 positions[node] = (start, position);
             }
         }

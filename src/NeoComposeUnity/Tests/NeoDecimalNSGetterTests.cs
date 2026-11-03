@@ -264,15 +264,15 @@ namespace NeoCompose.Tests
                     DecimalLiteral("0.29999999999999999")));
         }
 
-        [Test]
-        public void Condition_OrderingAgainstNullThrows()
+        [TestCase(OperatorKind.GreaterThan)]
+        [TestCase(OperatorKind.GreaterThanOrEqualTo)]
+        [TestCase(OperatorKind.LessThan)]
+        [TestCase(OperatorKind.LessThanOrEqualTo)]
+        public void Condition_OrderingAgainstNullIsFalse(string op)
         {
-            var error = Assert.Catch<NSGetterRuntimeError>(() =>
-                EvaluateCondition(
-                    OperatorKind.GreaterThan,
-                    DecimalLiteral("1"),
-                    NullLiteral()));
-            StringAssert.Contains("null operand", error!.Message);
+            Assert.That(EvaluateCondition(op, DecimalLiteral("1"), NullLiteral()), Is.False);
+            Assert.That(EvaluateCondition(op, NullLiteral(), DecimalLiteral("1")), Is.False);
+            Assert.That(EvaluateCondition(op, NullLiteral(), NullLiteral()), Is.False);
         }
 
         [Test]

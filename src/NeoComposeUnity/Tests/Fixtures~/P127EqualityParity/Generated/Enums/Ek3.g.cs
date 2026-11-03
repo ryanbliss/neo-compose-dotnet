@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.P127EqualityParity
     [NeoEnum(typeof(Ek3Options))]
     public enum Ek3
     {
-        A = 1826578629,
-        B = 1420381251,
-        C = 1379340330,
+        A = 1451289612,
+        B = 84999983,
+        C = 1000189066,
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "c7a3b47a-bcf9-4b39-aac1-df0bc0b12527" => Ek3.A,
-                "70740ac8-44f5-40aa-9cff-b824ecf9c303" => Ek3.B,
-                "54b38fb1-9bc2-4271-aa66-6485312ecca0" => Ek3.C,
+                "803f36fe-62e3-4396-88d3-16676d47e0dc" => Ek3.A,
+                "ffee9692-b2b6-4f79-94ad-185bfe42f0ff" => Ek3.B,
+                "9c8453d4-8017-4a35-b0e3-af2c08380507" => Ek3.C,
                 _ => NeoUndeclaredEnumOptions<Ek3>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                Ek3.A => "c7a3b47a-bcf9-4b39-aac1-df0bc0b12527",
-                Ek3.B => "70740ac8-44f5-40aa-9cff-b824ecf9c303",
-                Ek3.C => "54b38fb1-9bc2-4271-aa66-6485312ecca0",
+                Ek3.A => "803f36fe-62e3-4396-88d3-16676d47e0dc",
+                Ek3.B => "ffee9692-b2b6-4f79-94ad-185bfe42f0ff",
+                Ek3.C => "9c8453d4-8017-4a35-b0e3-af2c08380507",
                 _ => NeoUndeclaredEnumOptions<Ek3>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "c7a3b47a-bcf9-4b39-aac1-df0bc0b12527" => true,
-                "70740ac8-44f5-40aa-9cff-b824ecf9c303" => true,
-                "54b38fb1-9bc2-4271-aa66-6485312ecca0" => true,
+                "803f36fe-62e3-4396-88d3-16676d47e0dc" => true,
+                "ffee9692-b2b6-4f79-94ad-185bfe42f0ff" => true,
+                "9c8453d4-8017-4a35-b0e3-af2c08380507" => true,
                 _ => false,
             };
         }

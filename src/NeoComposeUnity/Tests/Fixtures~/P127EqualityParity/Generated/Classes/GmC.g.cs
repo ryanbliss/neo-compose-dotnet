@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class GmC : NeoGeneratedClassValue, IReadOnlyGmC
     {
         internal GmC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5efbe7de-f55b-4562-bbbb-9abf0f0a0eb8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d88fa5b4-db75-4f1b-8644-9ca4c68f0ad2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static T Id<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fe0c1a44-f01c-4785-b01b-abaf62ceb60b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "33df74e2-978d-4835-8f16-9a7b789d2337");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5efbe7de-f55b-4562-bbbb-9abf0f0a0eb8");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d88fa5b4-db75-4f1b-8644-9ca4c68f0ad2");
         }
 
         internal static GmC Create(NeoClient client, NeoMemberClass node)

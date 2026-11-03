@@ -432,7 +432,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
         {
             if (set.Equality is not null)
-                return value;
+                return ResolveValueIfId(value, ctx);
             if (set.EnumEntries && value is object?[] { Length: 1 } selected)
                 value = selected[0];
             if (set.DecimalEntries && value is not null)
@@ -503,9 +503,9 @@ namespace NeoCompose.Runtime.NeoScript
             int capacity = info.capacity is null ? 0 : NeoInt32.Wrap(Number(EvalPointer(info.capacity, scope, ctx)!));
             var equality = BindEquality(info.equality!, scope, ctx);
             var table = new NeoHashTable<object?, object?>(equality, NeoHashTableKind.Set, capacity);
-            if (info.op == "ToSet" && RuntimeCollection(collection, ctx) is RuntimeSet { Table: { } original, Equality: { } sourceEquality }
+            if (info.op == "ToSet" && RuntimeCollection(collection, ctx) is RuntimeSet { Table: { } original, Equality: { } sourceEquality } originalSet
                 && SameEquality(sourceEquality, equality, ctx))
-                return KeepDerived(new RuntimeSet(NeoHashTable<object?, object?>.CopySet(original), equality), CollectionEntryMember(collection, ctx), true);
+                return KeepDerived(new RuntimeSet(NeoHashTable<object?, object?>.CopySet(original, preserveHashes: true, comparer: equality), equality, originalSet), CollectionEntryMember(collection, ctx), true);
             var cursor = new CollectionCursor(collection, ctx);
             try
             {

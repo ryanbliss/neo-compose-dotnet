@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.P127TypesParity
     [NeoEnum(typeof(CastWeatherOptions))]
     public enum CastWeather
     {
-        Sun = 441323261,
-        Rain = 216829721,
-        Snow = 365893734,
+        Sun = 962877615,
+        Rain = 1927848017,
+        Snow = 1820842201,
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "92d892ec-6fd9-4571-9f19-b173d710d5a7" => CastWeather.Sun,
-                "28139286-023b-4fc3-bc82-37ae80715370" => CastWeather.Rain,
-                "e842e293-a676-4440-a1eb-32c8b04a4e10" => CastWeather.Snow,
+                "3a98e99e-0772-4c07-b0b3-39a6d80c1abd" => CastWeather.Sun,
+                "a23e4e85-7f52-455e-987b-2384213af35f" => CastWeather.Rain,
+                "6675676d-a9c0-45ac-b292-453af9b1f808" => CastWeather.Snow,
                 _ => NeoUndeclaredEnumOptions<CastWeather>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return value switch
             {
-                CastWeather.Sun => "92d892ec-6fd9-4571-9f19-b173d710d5a7",
-                CastWeather.Rain => "28139286-023b-4fc3-bc82-37ae80715370",
-                CastWeather.Snow => "e842e293-a676-4440-a1eb-32c8b04a4e10",
+                CastWeather.Sun => "3a98e99e-0772-4c07-b0b3-39a6d80c1abd",
+                CastWeather.Rain => "a23e4e85-7f52-455e-987b-2384213af35f",
+                CastWeather.Snow => "6675676d-a9c0-45ac-b292-453af9b1f808",
                 _ => NeoUndeclaredEnumOptions<CastWeather>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "92d892ec-6fd9-4571-9f19-b173d710d5a7" => true,
-                "28139286-023b-4fc3-bc82-37ae80715370" => true,
-                "e842e293-a676-4440-a1eb-32c8b04a4e10" => true,
+                "3a98e99e-0772-4c07-b0b3-39a6d80c1abd" => true,
+                "a23e4e85-7f52-455e-987b-2384213af35f" => true,
+                "6675676d-a9c0-45ac-b292-453af9b1f808" => true,
                 _ => false,
             };
         }

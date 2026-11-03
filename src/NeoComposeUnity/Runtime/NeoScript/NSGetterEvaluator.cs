@@ -308,6 +308,17 @@ namespace NeoCompose.Runtime.NeoScript
                 MarkAllocationGroupEscaped(valueId, ctx, ownedChildren, rowOwners);
             }
 
+            // A local collection also owns its comparer. Initializers may
+            // return it before the enclosing constructor attaches its rows.
+            if (value is RuntimeSet set)
+                MarkEscaped(set.Equality?.Comparer, ctx, visited, ownedChildren, retention, retainedOwners);
+            if (value is RuntimeDictionary runtimeDictionary)
+            {
+                MarkEscaped(runtimeDictionary.Equality.Comparer, ctx, visited, ownedChildren, retention, retainedOwners);
+                foreach (var entry in runtimeDictionary)
+                    MarkEscaped(entry.Value, ctx, visited, ownedChildren, retention, retainedOwners);
+                return;
+            }
             if (value is System.Collections.IDictionary dictionary)
             {
                 foreach (System.Collections.DictionaryEntry entry in dictionary)
@@ -2719,6 +2730,13 @@ namespace NeoCompose.Runtime.NeoScript
                 throw NeoCompose.Runtime.NeoScript.Hashing.NeoHashingErrors.CapacityRange();
             if (dlp.copyFrom is not null && source is null)
                 throw new NSGetterRuntimeError("Value cannot be null. (Parameter 'dictionary')", NeoErrorContract.NeoArgumentNullError);
+            if (source is RuntimeDictionary original && equality is not null
+                && equality.Default.Type.Equals(original.Equality.Default.Type)
+                && SameObject(equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx),
+                    original.Equality.Comparer ?? DefaultComparer(original.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx), ctx))
+                return KeepDerived(new RuntimeDictionary(equality,
+                    NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true)),
+                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo));
             IDictionary<string, object?> dict = equality is null ? new Dictionary<string, object?>()
                 : new RuntimeDictionary(equality, capacity);
             if (source is not null)
@@ -6250,10 +6268,10 @@ namespace NeoCompose.Runtime.NeoScript
             }
             var a = ArithmeticValue.Box(left, leftNumber);
             var b = ArithmeticValue.Box(right, rightNumber);
-            // Decimal-stamped comparisons are exact and scale-blind
-            // ("1.10" == "1.1"). Null operands (optional decimals) keep the
-            // JsEqual null semantics for equality; ordering against null is
-            // a runtime error (TS evaluator parity).
+            // Lifted relational operators return false for either null operand.
+            if ((a is null || b is null) && op is ComparisonOp.GreaterThan or ComparisonOp.GreaterThanOrEqualTo or ComparisonOp.LessThan or ComparisonOp.LessThanOrEqualTo)
+                return false;
+            // Decimal comparisons are exact and scale-blind ("1.10" == "1.1").
             if (condition.isDecimal == true)
             {
                 bool aIsNull = a is null;
@@ -6267,8 +6285,7 @@ namespace NeoCompose.Runtime.NeoScript
                         case ComparisonOp.DoesNotEqual:
                             return !(aIsNull && bIsNull);
                         default:
-                            throw new NSGetterRuntimeError(
-                                "Decimal ordering comparison received a null operand.");
+                            return false;
                     }
                 }
                 int comparison = NeoDecimalMath.Compare(
@@ -11687,7 +11704,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return !requireIntegers || (IsInteger(v2.x) && IsInteger(v2.y));
             }
-            if (value is IDictionary<string, object?> dict && dict.Count == 2)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 2)
             {
                 return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
                     && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
@@ -11718,7 +11735,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return !requireIntegers ||
                     (IsInteger(v3.x) && IsInteger(v3.y) && IsInteger(v3.z));
             }
-            if (value is IDictionary<string, object?> dict && dict.Count == 3)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 3)
             {
                 return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
                     && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
@@ -11736,7 +11753,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return true;
             if (value is NeoColorValue)
                 return true;
-            if (value is IDictionary<string, object?> dict && dict.Count == 4)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 4)
             {
                 return TryAsDouble(dict.TryGetValue("r", out var r) ? r : null, out double rv)
                     && TryAsDouble(dict.TryGetValue("g", out var g) ? g : null, out double gv)

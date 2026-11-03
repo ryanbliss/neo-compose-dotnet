@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
     [NeoEnum(typeof(PlanetOptions))]
     public enum Planet
     {
-        Earth = 1335500805,
-        Mars = 1701159406,
+        Earth = 1454299360,
+        Mars = 2095707770,
     }
 
     /// <summary>
@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return optionId switch
             {
-                "3045ddcb-b044-41a6-b383-d82b54cc6846" => Planet.Earth,
-                "c39b5c76-3895-4e76-8bce-2d1d24e3c919" => Planet.Mars,
+                "7a3cd174-39a0-42a6-8ad6-32b2c96dca99" => Planet.Earth,
+                "9fb08cdd-df46-4e82-99d7-0bb9ff6d136f" => Planet.Mars,
                 _ => NeoUndeclaredEnumOptions<Planet>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return value switch
             {
-                Planet.Earth => "3045ddcb-b044-41a6-b383-d82b54cc6846",
-                Planet.Mars => "c39b5c76-3895-4e76-8bce-2d1d24e3c919",
+                Planet.Earth => "7a3cd174-39a0-42a6-8ad6-32b2c96dca99",
+                Planet.Mars => "9fb08cdd-df46-4e82-99d7-0bb9ff6d136f",
                 _ => NeoUndeclaredEnumOptions<Planet>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return optionId switch
             {
-                "3045ddcb-b044-41a6-b383-d82b54cc6846" => true,
-                "c39b5c76-3895-4e76-8bce-2d1d24e3c919" => true,
+                "7a3cd174-39a0-42a6-8ad6-32b2c96dca99" => true,
+                "9fb08cdd-df46-4e82-99d7-0bb9ff6d136f" => true,
                 _ => false,
             };
         }
