@@ -5692,7 +5692,7 @@ namespace NeoCompose.Runtime.NeoScript
                 client.ShareConstructedGetterRow(resultRef, result, ctx, capture);
                 memoized = client.MemoizeGetter(memoKey, null, resultRef, capture);
             }
-            else if (result is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+            else if (result is object?[] or IDictionary<string, object?> or RuntimeSet or RuntimeTuple
                 && MemoizableCollection(result, ctx, capture) is { } list)
                 memoized = client.MemoizeGetter(memoKey, null, null, capture, list);
             else
@@ -12186,14 +12186,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// Dictionary, or a query over one, holds its entries as row ids only
         /// the evaluator resolves, so it becomes a copy of its entry values.
         /// </summary>
-        private static object? ResolveNestedRuntimeSets(object? value, Context ctx)
+        private static object? ResolveNestedRuntimeSets(object? value, Context ctx, bool exportDictionaries)
         {
             if (value is object?[] array)
             {
                 object?[]? copy = null;
                 for (int i = 0; i < array.Length; i++)
                 {
-                    object? entry = ResolveHostCollection(array[i], ctx);
+                    object? entry = ResolveCollectionValues(array[i], ctx, exportDictionaries);
                     if (ReferenceEquals(entry, array[i]))
                         continue;
                     copy ??= (object?[])array.Clone();
@@ -12201,15 +12201,18 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return copy ?? array;
             }
-            if (value is Dictionary<string, object?> dictionary && value is not NeoObjectRecord)
+            if (value is IDictionary<string, object?> dictionary && value is not (NeoObjectRecord or NeoScriptObject))
             {
-                Dictionary<string, object?>? copy = null;
+                // The generated host readers consume CLR snapshots, not evaluator tables.
+                Dictionary<string, object?>? copy = value is RuntimeDictionary
+                    ? new Dictionary<string, object?>(dictionary.Count, StringComparer.Ordinal) : null;
                 foreach (var pair in dictionary)
                 {
-                    object? entry = ResolveHostCollection(pair.Value, ctx);
-                    if (ReferenceEquals(entry, pair.Value))
+                    object? entry = ResolveCollectionValues(pair.Value, ctx, exportDictionaries);
+                    if (ReferenceEquals(entry, pair.Value) && copy is null)
                         continue;
-                    copy ??= new Dictionary<string, object?>(dictionary, dictionary.Comparer);
+                    copy ??= new Dictionary<string, object?>(dictionary,
+                        dictionary is Dictionary<string, object?> concrete ? concrete.Comparer : StringComparer.Ordinal);
                     copy[pair.Key] = entry;
                 }
                 return copy ?? dictionary;
@@ -12217,13 +12220,23 @@ namespace NeoCompose.Runtime.NeoScript
             return value;
         }
 
-        internal static object? ResolveHostCollection(object? value, Context ctx)
+        internal static object? ResolveHostCollection(object? value, Context ctx) =>
+            ResolveCollectionValues(value, ctx, exportDictionaries: true);
+
+        // Storage must retain the runtime dictionary's comparer and row origin.
+        // Only a C# boundary exports it as a CLR dictionary snapshot.
+        internal static object? ResolveStoredCollection(object? value, Context ctx) =>
+            ResolveCollectionValues(value, ctx, exportDictionaries: false);
+
+        private static object? ResolveCollectionValues(object? value, Context ctx, bool exportDictionaries)
         {
+            if (!exportDictionaries && value is RuntimeDictionary)
+                return value;
             if (value is RuntimeTuple tuple)
             {
                 var elements = new object?[tuple.Count];
                 for (int i = 0; i < elements.Length; i++)
-                    elements[i] = ResolveHostCollection(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx);
+                    elements[i] = ResolveCollectionValues(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx, exportDictionaries);
                 return new RuntimeTuple(elements, tuple.TypeInfo);
             }
             if (value is RuntimeSet set)
@@ -12231,10 +12244,10 @@ namespace NeoCompose.Runtime.NeoScript
                 var exported = new object?[set.Count];
                 int index = 0;
                 foreach (object? entry in set)
-                    exported[index++] = ResolveHostCollection(entry, ctx);
+                    exported[index++] = ResolveCollectionValues(entry, ctx, exportDictionaries);
                 return exported;
             }
-            if (value is not (object?[] or Dictionary<string, object?>))
+            if (value is not (object?[] or IDictionary<string, object?>) || value is NeoScriptObject)
                 return value;
             RowReference? rowRef = FindRowReference(value, ctx);
             JsonMember? entryMember;
@@ -12246,7 +12259,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // A class record is never a derived collection.
             else if (value is NeoObjectRecord || (entryMember = DerivedEntryMember(value)) is null)
-                return ResolveNestedRuntimeSets(value, ctx);
+                return ResolveNestedRuntimeSets(value, ctx, exportDictionaries);
             bool nested = entryMember is null or ListMember or DictionaryMember or TupleMember;
             bool values = rowRef is null && HoldsValues(value);
             NeoValueOwnership? ownership = rowRef?.ownership;
@@ -12256,17 +12269,20 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < rows.Length; i++)
                 {
                     object? entry = values ? rows[i] : ResolveListEntry(rows, i, rowRef, ownership, ctx, entryMember);
-                    entries[i] = nested ? ResolveHostCollection(entry, ctx) : entry;
+                    entries[i] = nested ? ResolveCollectionValues(entry, ctx, exportDictionaries) : entry;
                 }
                 return entries;
             }
-            var stored = (Dictionary<string, object?>)value;
-            var resolved = new Dictionary<string, object?>(stored.Count, stored.Comparer);
+            var stored = (IDictionary<string, object?>)value;
+            var resolved = new Dictionary<string, object?>(stored.Count,
+                stored is Dictionary<string, object?> concrete ? concrete.Comparer : StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> pair in stored)
             {
                 object? entry = values ? pair.Value : ResolveValueIfId(pair.Value, ctx, ownership, entryMember);
-                resolved.Add(pair.Key, nested ? ResolveHostCollection(entry, ctx) : entry);
+                resolved.Add(pair.Key, nested ? ResolveCollectionValues(entry, ctx, exportDictionaries) : entry);
             }
+            if (!exportDictionaries && rowRef is not null)
+                NeoGeneratedTypesSupport.RecordConstructorCollectionOrigin(resolved, rowRef);
             return resolved;
         }
 
@@ -12414,6 +12430,8 @@ namespace NeoCompose.Runtime.NeoScript
             internal NeoGeneratedTypesSupport.DetachedArrayOrigin? detached;
             internal RowReference? row;
             internal string[]? keys;
+            internal TypeBinding? dictionaryKeyType;
+            internal object? dictionaryComparer;
             internal RuntimeTuple? tuple;
             internal bool isSet;
             internal bool referenceEntries;
@@ -12440,9 +12458,22 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client.ShareConstructedGetterRow(sourceRef!, source, ctx, capture, markEscaped: false);
                     return new MemoizedCollection { row = sourceRef };
                 }
+                // The legacy set recipe cannot preserve a bound comparer or its
+                // cached hashes. Keep typed sets on ordinary getter evaluation.
+                if (source is RuntimeSet { Equality: not null })
+                    return null;
                 var memo = new MemoizedCollection { entryMember = DerivedEntryMember(source) };
+                if (source is RuntimeDictionary typedDictionary)
+                {
+                    // Rebuilding string/enum keys with their default equality is safe;
+                    // an authored comparer must not acquire extra calls on cache hits.
+                    if (!typedDictionary.Equality.UsesDefault)
+                        return null;
+                    memo.dictionaryKeyType = typedDictionary.Equality.Default.Type;
+                    memo.dictionaryComparer = typedDictionary.Equality.Comparer;
+                }
                 object?[] values;
-                if (source is Dictionary<string, object?> dictionary)
+                if (source is IDictionary<string, object?> dictionary)
                 {
                     memo.keys = new string[dictionary.Count];
                     values = new object?[dictionary.Count];
@@ -12486,7 +12517,7 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx.client.ShareConstructedGetterRow(entryRef, entry, ctx, capture, markEscaped: false);
                         recipe[i] = entryRef;
                     }
-                    else if (entry is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+                    else if (entry is object?[] or IDictionary<string, object?> or RuntimeSet or RuntimeTuple
                         && Capture(entry) is { } nestedRecipe)
                         recipe[i] = nestedRecipe;
                     else
@@ -12534,7 +12565,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (memo.keys is { } keys)
             {
-                var result = new Dictionary<string, object?>(keys.Length, StringComparer.Ordinal);
+                IDictionary<string, object?> result = memo.dictionaryKeyType is { } keyType
+                    ? new RuntimeDictionary(new BoundEquality(keyType, memo.dictionaryComparer, ctx), keys.Length)
+                    : new Dictionary<string, object?>(keys.Length, StringComparer.Ordinal);
                 for (int i = 0; i < keys.Length; i++)
                     result.Add(keys[i], entries[i]);
                 return KeepDerived(result, memo.entryMember, HoldsValues(recipe));

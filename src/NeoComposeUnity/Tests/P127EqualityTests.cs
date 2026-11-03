@@ -68,6 +68,75 @@ namespace NeoCompose.Tests
             return new NSGetterEvaluator.NeoBuiltInComparer(NeoBuiltInComparerKind.Create, NeoComparerFamilyKind.Equality, Binding(kind), h is null ? new[] { e } : new[] { e, h });
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SetGetterPreservesComparerAcrossRepeatedReads(bool nested)
+        {
+            var comparer = Comparer(args => Convert.ToDouble(args[0]) % 10 == Convert.ToDouble(args[1]) % 10,
+                args => Convert.ToDouble(args[0]) % 10);
+            var setType = new CollectionTypeInfo { type = MemberKind.Set, required = true, entryTypeInfo = Type(MemberKind.Int) };
+            CollectionTypeInfo resultType = nested
+                ? new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = setType }
+                : setType;
+            Pointer set = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new CollectionQueryFunction
+                {
+                    type = FunctionKind.CollectionQuery,
+                    info = new FunctionCollectionQueryInfo
+                    {
+                        op = "ToSet",
+                        collectionPointer = Value(new object?[] { 1d, 2d, 11d }),
+                        equality = new EqualitySite { type = Type(MemberKind.Int), comparer = Value(comparer) },
+                    },
+                },
+            };
+            var property = new NSPropertyMember
+            {
+                id = "set-getter",
+                name = "SetGetter",
+                kind = MemberKind.NSProperty,
+                returnTypeInfo = resultType,
+                getter = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = resultType,
+                    instructions = new Instruction[]
+                    {
+                        new ReturnInstruction
+                        {
+                            type = InstructionKind.Return,
+                            pointer = nested
+                                ? new ListLiteralPointer { type = PointerKind.ListLiteral, typeInfo = resultType, entries = new[] { set } }
+                                : set,
+                        },
+                    },
+                },
+            };
+            client.ProjectDataForRuntime.members[property.id] = property;
+            client.ProjectDataForRuntime.classes[client.session.ClassId].schema[property.name] = property.id;
+            client.InvalidateSchemaResolutionCaches();
+            var call = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = property.id,
+                receiver = CallReceiver.Instance(new ReferencePointer { type = PointerKind.Reference, valueId = client.session.value!.id }),
+            };
+            RuntimeSet Read()
+            {
+                object? result = Eval(call);
+                return (RuntimeSet)(nested ? ((object?[])result!)[0] : result)!;
+            }
+            for (int read = 0; read < 3; read++)
+            {
+                RuntimeSet result = Read();
+                Assert.That(result.Count, Is.EqualTo(2));
+                Assert.That(result.Contains(11d), Is.True, $"Read {read} must keep the authored comparer.");
+            }
+        }
+
         [Test]
         public void DefaultFloatAndDecimalEqualityUseValueSemantics()
         {

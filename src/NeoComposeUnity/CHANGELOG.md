@@ -14,6 +14,7 @@
 - Lifted `<`, `<=`, `>` and `>=` return false when either operand is null; previously they threw.
 - Empty `Min`, `Max` and `Average` throw "Sequence contains no elements" for non-nullable value types and return null for reference and nullable results.
 - Enumerate Sets and Dictionaries in insertion order on every path. Removing and then adding an entry appends it, instead of reusing its former enumeration position.
+- Convert evaluator dictionaries to C# snapshots at native-call and generated-reader boundaries, resolving stored entries and nested Sets while retaining entry order.
 - Compare delegates by their closed callable and target identity, including closures and built-in method groups. Action listener addition and removal use the same equality.
 - Load and store default, reference, set and Create comparer payloads in object and interface slots and collection metadata. Validate stored delegates and preserve their closed constructions. Stored equality indexes preserve duplicate rows and first-match lookup, and invalidate on entry or comparer writes. C# set and dictionary wrappers share those indexes and expose their stored comparer through `Comparer`.
 - Preserve dictionary constructor evaluation order, enum-key errors, reference entries and key spelling. Dictionary key membership uses the stored comparer; default comparers leave no stored metadata. Collection fields enforce comparer ownership during construction and Save reload.
