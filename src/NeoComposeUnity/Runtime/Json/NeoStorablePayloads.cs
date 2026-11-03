@@ -80,28 +80,44 @@ namespace NeoCompose.Runtime.Json
         };
 
         /// <summary>The payload of an invariant <c>CultureInfo</c> or a <c>NumberFormatInfo</c>.</summary>
-        internal static JObject Encode(object value) => value switch
-        {
-            CultureInfo culture when ReferenceEquals(culture, CultureInfo.InvariantCulture) => new JObject { [InvariantKey] = true },
-            CultureInfo culture => new JObject
-            {
-                [ReadOnlyKey] = culture.IsReadOnly,
-                ["numberFormat"] = Encode(culture.NumberFormat),
-            },
-            NumberFormatInfo format => EncodeNumberFormat(format),
-            _ => throw new ArgumentException($"{value.GetType().Name} has no storable payload.", nameof(value)),
-        };
+        internal static JObject Encode(object value) => TryEncode(value)
+            ?? throw new NeoScript.NeoRuntimeError(NeoScript.NeoErrorClass.NeoArgumentError,
+                "The NativeDigits array must contain exactly ten members. (Parameter 'value')");
 
-        private static JObject EncodeNumberFormat(NumberFormatInfo format)
+        /// <summary>
+        /// Encodes a live value, or returns null when a retained NativeDigits
+        /// list has changed length. Deferred publication keeps the last valid
+        /// payload in that case; an explicit write uses <see cref="Encode"/>.
+        /// </summary>
+        internal static JObject? TryEncode(object value)
+        {
+            if (value is CultureInfo culture)
+            {
+                if (ReferenceEquals(culture, CultureInfo.InvariantCulture))
+                    return new JObject { [InvariantKey] = true };
+                JObject? numberFormat = EncodeNumberFormat(culture.NumberFormat);
+                return numberFormat is null ? null : new JObject
+                {
+                    [ReadOnlyKey] = culture.IsReadOnly,
+                    ["numberFormat"] = numberFormat,
+                };
+            }
+            if (value is NumberFormatInfo format)
+                return EncodeNumberFormat(format);
+            throw new ArgumentException($"{value.GetType().Name} has no storable payload.", nameof(value));
+        }
+
+        private static JObject? EncodeNumberFormat(NumberFormatInfo format)
         {
             if (ReferenceEquals(format, NumberFormatInfo.InvariantInfo))
                 return new JObject { [InvariantKey] = true };
+            string?[] digits = NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(format);
+            if (digits.Length != 10)
+                return null;
             var payload = new JObject { [ReadOnlyKey] = format.IsReadOnly };
             foreach (string key in NumberFormatKeys)
             {
-                object stored = key == "nativeDigits"
-                    ? NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(format)
-                    : NumberFormatProperty(key).GetValue(format)!;
+                object stored = key == "nativeDigits" ? digits : NumberFormatProperty(key).GetValue(format)!;
                 payload[key] = stored is DigitShapes shapes ? (int)shapes : JToken.FromObject(stored);
             }
             return payload;

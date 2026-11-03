@@ -259,6 +259,7 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             string? destinationId = null)
         {
+            client.NoteGlobalizationValue(value);
             if (slot.objectType is NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo)
             {
                 JObject declared = DeclaredPayload(client, slot.objectType.Value, name, value);
@@ -611,7 +612,7 @@ namespace NeoCompose.Runtime
                 {
                     // A valid payload can originate on .NET 10. Reload is
                     // memberwise; it must not re-run Mono's 0-15 setter check.
-                    StoredCurrencyNegativePattern.SetValue(format, 16);
+                    StoredCurrencyNegativePattern.Value.SetValue(format, 16);
                     continue;
                 }
                 PropertyInfo property = NeoStorablePayloads.NumberFormatProperty(key);
@@ -623,10 +624,10 @@ namespace NeoCompose.Runtime
             return payload.Value<bool>(NeoStorablePayloads.ReadOnlyKey) ? NumberFormatInfo.ReadOnly(format) : format;
         }
 
-        private static readonly FieldInfo StoredCurrencyNegativePattern =
+        private static readonly Lazy<FieldInfo> StoredCurrencyNegativePattern = new(() =>
             typeof(NumberFormatInfo).GetField("currencyNegativePattern", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? typeof(NumberFormatInfo).GetField("_currencyNegativePattern", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new NotSupportedException("This runtime cannot restore NumberFormatInfo.CurrencyNegativePattern memberwise.");
+            ?? throw new NotSupportedException("This runtime cannot restore NumberFormatInfo.CurrencyNegativePattern = 16: neither backing field currencyNegativePattern nor _currencyNegativePattern exists."));
 
         // ------------------------------------------------------------------
         // Built-in comparers (§1.3, §12.1, §14).
