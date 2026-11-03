@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.P127EqualityParity
     [NeoEnum(typeof(EkOptions))]
     public enum Ek
     {
-        A = 1769723181,
-        B = 125177039,
+        A = 1474540551,
+        B = 147069857,
     }
 
     /// <summary>
@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "bc4ce77e-14e8-4863-8645-7ca72a0d72be" => Ek.A,
-                "af1076b0-9dab-4f64-9329-21ba8e9cd233" => Ek.B,
+                "50cf8518-5888-433e-ba3c-96c77099c749" => Ek.A,
+                "6f6536db-a90f-4409-9ea2-2b27f3a532d0" => Ek.B,
                 _ => NeoUndeclaredEnumOptions<Ek>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                Ek.A => "bc4ce77e-14e8-4863-8645-7ca72a0d72be",
-                Ek.B => "af1076b0-9dab-4f64-9329-21ba8e9cd233",
+                Ek.A => "50cf8518-5888-433e-ba3c-96c77099c749",
+                Ek.B => "6f6536db-a90f-4409-9ea2-2b27f3a532d0",
                 _ => NeoUndeclaredEnumOptions<Ek>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "bc4ce77e-14e8-4863-8645-7ca72a0d72be" => true,
-                "af1076b0-9dab-4f64-9329-21ba8e9cd233" => true,
+                "50cf8518-5888-433e-ba3c-96c77099c749" => true,
+                "6f6536db-a90f-4409-9ea2-2b27f3a532d0" => true,
                 _ => false,
             };
         }

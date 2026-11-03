@@ -14,10 +14,10 @@ namespace NeoCompose.Tests.P127EqualityParity
     [NeoEnum(typeof(IfqFlOptions))]
     public enum IfqFl
     {
-        None = 1176485653,
-        A = 1424342481,
-        B = 1327372607,
-        C = 314469303,
+        None = 994745012,
+        A = 1746823480,
+        B = 1290943256,
+        C = 1377918745,
     }
 
     /// <summary>
@@ -29,10 +29,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "243900c8-2fe3-465e-b3c0-dbfff9fa8c4d" => IfqFl.None,
-                "37f50ff5-7a89-4c09-be97-5c6acead9b1d" => IfqFl.A,
-                "21444f9e-eb20-4039-beab-0d7829c8eeab" => IfqFl.B,
-                "04878286-b1cf-468e-aadd-310af43d5924" => IfqFl.C,
+                "864bb73e-17da-4b16-8e05-3db9a2ec742c" => IfqFl.None,
+                "4a3b0e7c-4369-4203-a680-2a440f8dbeec" => IfqFl.A,
+                "21e2488a-734f-4963-9b6b-5df27f4c7f37" => IfqFl.B,
+                "bbbc33b6-b92f-48db-b7b9-9f9c05c20e1d" => IfqFl.C,
                 _ => NeoUndeclaredEnumOptions<IfqFl>.FromOptionId(optionId),
             };
         }
@@ -41,10 +41,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                IfqFl.None => "243900c8-2fe3-465e-b3c0-dbfff9fa8c4d",
-                IfqFl.A => "37f50ff5-7a89-4c09-be97-5c6acead9b1d",
-                IfqFl.B => "21444f9e-eb20-4039-beab-0d7829c8eeab",
-                IfqFl.C => "04878286-b1cf-468e-aadd-310af43d5924",
+                IfqFl.None => "864bb73e-17da-4b16-8e05-3db9a2ec742c",
+                IfqFl.A => "4a3b0e7c-4369-4203-a680-2a440f8dbeec",
+                IfqFl.B => "21e2488a-734f-4963-9b6b-5df27f4c7f37",
+                IfqFl.C => "bbbc33b6-b92f-48db-b7b9-9f9c05c20e1d",
                 _ => NeoUndeclaredEnumOptions<IfqFl>.OptionId(value),
             };
         }
@@ -61,10 +61,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "243900c8-2fe3-465e-b3c0-dbfff9fa8c4d" => true,
-                "37f50ff5-7a89-4c09-be97-5c6acead9b1d" => true,
-                "21444f9e-eb20-4039-beab-0d7829c8eeab" => true,
-                "04878286-b1cf-468e-aadd-310af43d5924" => true,
+                "864bb73e-17da-4b16-8e05-3db9a2ec742c" => true,
+                "4a3b0e7c-4369-4203-a680-2a440f8dbeec" => true,
+                "21e2488a-734f-4963-9b6b-5df27f4c7f37" => true,
+                "bbbc33b6-b92f-48db-b7b9-9f9c05c20e1d" => true,
                 _ => false,
             };
         }

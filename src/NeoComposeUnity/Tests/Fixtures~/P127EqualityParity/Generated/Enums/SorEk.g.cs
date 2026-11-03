@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.P127EqualityParity
     [NeoEnum(typeof(SorEkOptions))]
     public enum SorEk
     {
-        A = 1012695695,
-        B = 2023244962,
+        A = 41867772,
+        B = 1462485757,
     }
 
     /// <summary>
@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "6b98d080-98ee-45cf-88e9-9fed8b27aea8" => SorEk.A,
-                "fa7fb571-88dd-4a53-921a-348a8d7a86c3" => SorEk.B,
+                "3d801057-1b14-4b86-b4b3-d6423a38418c" => SorEk.A,
+                "53036750-0939-4620-864b-7e16cf285ee0" => SorEk.B,
                 _ => NeoUndeclaredEnumOptions<SorEk>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                SorEk.A => "6b98d080-98ee-45cf-88e9-9fed8b27aea8",
-                SorEk.B => "fa7fb571-88dd-4a53-921a-348a8d7a86c3",
+                SorEk.A => "3d801057-1b14-4b86-b4b3-d6423a38418c",
+                SorEk.B => "53036750-0939-4620-864b-7e16cf285ee0",
                 _ => NeoUndeclaredEnumOptions<SorEk>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "6b98d080-98ee-45cf-88e9-9fed8b27aea8" => true,
-                "fa7fb571-88dd-4a53-921a-348a8d7a86c3" => true,
+                "3d801057-1b14-4b86-b4b3-d6423a38418c" => true,
+                "53036750-0939-4620-864b-7e16cf285ee0" => true,
                 _ => false,
             };
         }

@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Gm<T> : NeoGeneratedClassValue, IReadOnlyGm<T> where T : NeoSystem.INumber<T>
     {
         internal Gm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0ad3a9e5-a855-4b24-8663-01ed036a62e1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f87a3ac0-9475-4399-8e39-b7a7df0d04e7", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Clamp(T v, T lo, T hi)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "51c3daca-a263-4791-944c-cb536e00751e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fa1b1052-c281-42f5-ad00-44755fbc5ef9");
             var result = node.InvokeStatic(v, lo, hi);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T FromFloat(float f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "95c74d63-faf5-43ef-a902-017fc89e533a");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b4eafae7-901a-409e-a2f5-8c6c19c3bb55");
             var result = node.InvokeStatic((object?)(f));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T FromInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "018308b8-a8ed-456d-ae93-ce233b5a35bb");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3dea1cbd-aa7a-41e4-a31c-e126b63f8556");
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Mae(T a, T b, T c)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fee6992c-cd4f-40ce-a060-121a673bac22");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9fda1bf9-d8d3-490c-855e-db7a8d6662c8");
             var result = node.InvokeStatic(a, b, c);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -62,7 +62,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Max(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d01f576b-5adf-4cf2-ab08-a7c319f398ec");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c64d04c0-c271-453a-bc81-52463db2b608");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T MaxNative(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d19d242b-b2c2-4732-babd-c49b5969a9ad");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bd57ea0b-d457-4d7e-ba5f-9c42bdc9bbdb");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -78,7 +78,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Min(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5f6cedfb-bcc8-48b1-b9c4-d718edfa05bc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "49a396d9-ae3b-4a54-acac-656a3fcaba33");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -86,7 +86,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Same(T v)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "01b0b8cd-d6ec-469d-abe6-dec64fa244c0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "06cef433-97f1-44c5-9190-65abc30a9d6a");
             var result = node.InvokeStatic((object?)(v));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -94,7 +94,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T SatInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b21fba53-3104-4d7e-b450-c6c57af74b61");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8841174e-9897-4235-ad9d-7a373b65725f");
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -102,7 +102,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int Sign(T v)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "da95a33d-b961-4f68-b050-3a53092f8087");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8356d0dd-7d69-42f5-ae0e-940b286b6f89");
             var result = node.InvokeStatic((object?)(v));
             return Convert.ToInt32(result);
         }
@@ -110,7 +110,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T TruncInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cb804650-aa0a-428a-986b-b92a5fe05395");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d701ba25-dd5a-47f3-bc1c-943d113e8e1e");
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0ad3a9e5-a855-4b24-8663-01ed036a62e1" => new Gm<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f87a3ac0-9475-4399-8e39-b7a7df0d04e7" => new Gm<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gm' without a concrete client type id."),
                 };
             });
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0ad3a9e5-a855-4b24-8663-01ed036a62e1" => new Gm<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f87a3ac0-9475-4399-8e39-b7a7df0d04e7" => new Gm<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gm' without a concrete client type id."),
                 };
             });

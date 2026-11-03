@@ -14,10 +14,10 @@ namespace NeoCompose.Tests.P127EqualityParity
     [NeoEnum(typeof(LixFlOptions))]
     public enum LixFl
     {
-        None = 1241879701,
-        A = 621710642,
-        B = 1783072999,
-        C = 2111784277,
+        None = 1650634996,
+        A = 1236641849,
+        B = 2008208990,
+        C = 276500878,
     }
 
     /// <summary>
@@ -29,10 +29,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "672e5e4b-ab06-44e9-83e2-1d2fa3d0e25a" => LixFl.None,
-                "1f52f69d-75be-40dd-b73d-4b27693330f3" => LixFl.A,
-                "fb2259ce-4bc5-4f51-85c8-58d5e5350cf0" => LixFl.B,
-                "ed70bf8e-ef0c-4d94-8634-8c31dc49a6a7" => LixFl.C,
+                "4b2eb5e6-2a72-4d00-be03-f5104f4ed169" => LixFl.None,
+                "5ffe8edd-1cda-4669-a26d-53f3f1ecc830" => LixFl.A,
+                "8f9896a7-7d14-4d38-bb24-e608a2b0df92" => LixFl.B,
+                "dbdb103d-8e55-4ae3-bbe1-e87eb3f3c94d" => LixFl.C,
                 _ => NeoUndeclaredEnumOptions<LixFl>.FromOptionId(optionId),
             };
         }
@@ -41,10 +41,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                LixFl.None => "672e5e4b-ab06-44e9-83e2-1d2fa3d0e25a",
-                LixFl.A => "1f52f69d-75be-40dd-b73d-4b27693330f3",
-                LixFl.B => "fb2259ce-4bc5-4f51-85c8-58d5e5350cf0",
-                LixFl.C => "ed70bf8e-ef0c-4d94-8634-8c31dc49a6a7",
+                LixFl.None => "4b2eb5e6-2a72-4d00-be03-f5104f4ed169",
+                LixFl.A => "5ffe8edd-1cda-4669-a26d-53f3f1ecc830",
+                LixFl.B => "8f9896a7-7d14-4d38-bb24-e608a2b0df92",
+                LixFl.C => "dbdb103d-8e55-4ae3-bbe1-e87eb3f3c94d",
                 _ => NeoUndeclaredEnumOptions<LixFl>.OptionId(value),
             };
         }
@@ -61,10 +61,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "672e5e4b-ab06-44e9-83e2-1d2fa3d0e25a" => true,
-                "1f52f69d-75be-40dd-b73d-4b27693330f3" => true,
-                "fb2259ce-4bc5-4f51-85c8-58d5e5350cf0" => true,
-                "ed70bf8e-ef0c-4d94-8634-8c31dc49a6a7" => true,
+                "4b2eb5e6-2a72-4d00-be03-f5104f4ed169" => true,
+                "5ffe8edd-1cda-4669-a26d-53f3f1ecc830" => true,
+                "8f9896a7-7d14-4d38-bb24-e608a2b0df92" => true,
+                "dbdb103d-8e55-4ae3-bbe1-e87eb3f3c94d" => true,
                 _ => false,
             };
         }

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class IgNum<T> : NeoGeneratedClassValue, IReadOnlyIgNum<T> where T : NeoSystem.INumberBase<T>
     {
         internal IgNum(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "804de240-2f8e-4c11-afa9-29c09d739dd3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ccb5f7e4-fd1c-4566-8be0-03a0aec21fa3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,14 +34,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "fe42df51-e453-4181-b90b-af03c83dc85e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eef4d7bd-47e6-48cf-8c8a-f5646cafbf9e", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberDelegate>();
                 return ((NeoMemberDelegate)child).Bind<T, T>(result => (T)result!);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "fe42df51-e453-4181-b90b-af03c83dc85e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eef4d7bd-47e6-48cf-8c8a-f5646cafbf9e", NeoValueOwnership.Session);
                 var delegateValue = NeoGeneratedTypesSupport.DelegateValue(value);
                 binding.GetOrCreateWritableNode<NeoMemberDelegateWritable>(delegateValue).Set(value);
             }
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "804de240-2f8e-4c11-afa9-29c09d739dd3" => new IgNum<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ccb5f7e4-fd1c-4566-8be0-03a0aec21fa3" => new IgNum<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'IgNum' without a concrete client type id."),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "804de240-2f8e-4c11-afa9-29c09d739dd3" => new IgNum<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ccb5f7e4-fd1c-4566-8be0-03a0aec21fa3" => new IgNum<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'IgNum' without a concrete client type id."),
                 };
             });
