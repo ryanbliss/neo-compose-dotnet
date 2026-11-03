@@ -471,6 +471,16 @@ namespace NeoCompose.Tests
                     MemberKind.Bool));
         }
 
+        [TestCase("ßǅıİſ", "ßǄıİſ", "ßǆıİſ")]
+        [TestCase("\U00010428\U00010400", "\U00010400\U00010400", "\U00010428\U00010428")]
+        [TestCase("\ud800a\udfff", "\ud800A\udfff", "\ud800a\udfff")]
+        [TestCase("\u1c89\u1c8a", "\u1c89\u1c89", "\u1c8a\u1c8a")]
+        public void StringOp_UsesSharedInvariantCasing(string text, string upper, string lower)
+        {
+            Assert.That(EvaluateReturn(StringOp(StringOpKind.ToUpper, StringLiteral(text)), MemberKind.String), Is.EqualTo(upper));
+            Assert.That(EvaluateReturn(StringOp(StringOpKind.ToLower, StringLiteral(text)), MemberKind.String), Is.EqualTo(lower));
+        }
+
         [Test]
         public void StringOp_NullReceiverThrows()
         {

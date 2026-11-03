@@ -48,7 +48,9 @@ namespace NeoCompose.Runtime.Json
                 return false;
             if (token.Type == JTokenType.Integer || token.Type == JTokenType.Float)
             {
-                value = token.Value<double>();
+                // JSON permits integer-shaped float literals beyond Int64.
+                value = token is JValue { Value: System.Numerics.BigInteger integer }
+                    ? (double)integer : token.Value<double>();
                 return !double.IsNaN(value) && !double.IsInfinity(value);
             }
             if (token.Type == JTokenType.String && IsSymbol(token.Value<string>()))

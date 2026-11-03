@@ -104,9 +104,10 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             {
                 if (SameDigits(current, retained.stored))
                 {
-                    var copy = new string?[retained.list.Count];
+                    IList list = retained.read?.Invoke() ?? retained.list;
+                    var copy = new string?[list.Count];
                     for (int index = 0; index < copy.Length; index++)
-                        copy[index] = retained.list[index] as string;
+                        copy[index] = list[index] as string;
                     return copy;
                 }
                 retainedDigits.Remove(info);
@@ -278,7 +279,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             var list = (IList)value;
             var sizes = new int[list.Count];
             for (int index = 0; index < sizes.Length; index++)
-                sizes[index] = (int)list[index]!;
+                sizes[index] = Numerics.NeoInt32.Wrap(Convert.ToDouble(list[index], CultureInfo.InvariantCulture));
             for (int index = 0; index < sizes.Length; index++)
             {
                 int size = sizes[index];
@@ -350,7 +351,31 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
                 }
                 stored[index] = digit;
             }
+            RetainNativeDigits(info, digits, stored);
+        }
+
+        /// <summary>
+        /// A validated stored payload may contain digits changed through the
+        /// retained list after its setter ran. Reload preserves that state.
+        /// </summary>
+        internal static void RestoreNativeDigits(NumberFormatInfo info, string[] digits) =>
+            RetainNativeDigits(info, digits, digits);
+
+        /// <summary>The evaluator's list keeps its identity when its backing array changes.</summary>
+        internal static void RetainNativeDigitsSource(NumberFormatInfo info, Func<IList> read)
+        {
+            if (retainedDigits.TryGetValue(info, out RetainedDigits? retained))
+                retained.read = read;
+        }
+
+        private static void RetainNativeDigits(NumberFormatInfo info, IList digits, string[] values)
+        {
+            // The CLR setter retains its array. Install valid invariant digits,
+            // then fill that array with the values our shared table accepted.
+            // This avoids a second validation against Mono's older Unicode data.
+            string[] stored = InvariantInfo.NativeDigits;
             Assign(() => info.NativeDigits = stored);
+            Array.Copy(values, stored, values.Length);
             retainedDigits.Remove(info);
             retainedDigits.Add(info, new RetainedDigits(digits, stored));
         }
@@ -429,6 +454,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
         {
             internal readonly IList list;
             internal readonly string[] stored;
+            internal Func<IList>? read;
 
             internal RetainedDigits(IList list, string[] stored)
             {

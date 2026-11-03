@@ -408,6 +408,98 @@ namespace NeoCompose.Tests
             Assert.That(((NumberFormatInfo)ReadAt(clone, "FormatSlot")!).NaNSymbol, Is.EqualTo("nope"));
         }
 
+        [TestCase("CultureSlot", "culture-field", true)]
+        [TestCase("FormatSlot", "format-field", false)]
+        [TestCase("Slot", "slot-field", true)]
+        [TestCase("Slot", "slot-field", false)]
+        public void EvaluatorReadsStoredCulturesWithHostIdentityAndPersistsWrites(string slot, string memberId, bool culture)
+        {
+            using NeoClient source = BuildClient();
+            Write(source, source.save, culture ? (object)new CultureInfo("") : new NumberFormatInfo(), slot);
+            using NeoClient client = Reload(source);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object? evaluated = NSGetterEvaluator.UnwrapRow(RowAt(client.save, slot), context, NeoValueOwnership.Save, client.members[memberId]);
+            Assert.That(evaluated, Is.SameAs(ReadAt(client.save, slot)));
+            var changed = new List<string>();
+            client.OnSaveValueChanged += changed.Add;
+            NumberFormatInfo info = evaluated is CultureInfo ci ? ci.NumberFormat : (NumberFormatInfo)evaluated!;
+            NSGetterEvaluator.WriteGlobalizationMember(new GlobalizationMemberPointer
+            {
+                type = PointerKind.GlobalizationMember,
+                owner = "NumberFormatInfo",
+                member = "NegativeSign",
+                receiver = new ValuePointer { type = PointerKind.Value, primitiveResolved = true, primitive = info },
+                args = Array.Empty<Pointer>(),
+            }, "~", new NeoScriptScope(), context);
+            Assert.That(changed, Is.EqualTo(new[] { RowAt(client.save, slot).id }));
+            Assert.That(ReadAt(client.save, slot), Is.SameAs(evaluated));
+            using NeoClient reloaded = Reload(client);
+            object? restored = ReadAt(reloaded.save, slot);
+            NumberFormatInfo restoredInfo = restored is CultureInfo restoredCulture ? restoredCulture.NumberFormat : (NumberFormatInfo)restored!;
+            Assert.That(restoredInfo.NegativeSign, Is.EqualTo("~"));
+            Assert.That(restored, Is.Not.SameAs(evaluated));
+        }
+
+        [Test]
+        public void StoredNativeDigitsKeepMutationsMadeThroughTheRetainedList()
+        {
+            using NeoClient client = BuildClient();
+            var info = new NumberFormatInfo();
+            var digits = new object[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(info, "NativeDigits", digits);
+            digits[0] = "x";
+            Write(client, client.save, info, "FormatSlot");
+            using NeoClient reloaded = Reload(client);
+            var restored = (NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!;
+            Assert.That(restored.NativeDigits[0], Is.EqualTo("x"));
+            Assert.That(NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(restored)[0], Is.EqualTo("x"));
+        }
+
+        [Test]
+        public void StoredNumberFormatDoesNotRepeatMonosSetterChecks()
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                var payload = NeoStorablePayloads.Encode(new NumberFormatInfo());
+                payload["currencyNegativePattern"] = 16;
+                payload["nativeDigits"] = new JArray("x", "", "many", "3", "4", "5", "6", "7", "8", "9");
+                ((ObjectMemberValue)data.values["root-save-value"]).value!["FormatSlot"] = "stored-format";
+                data.values["stored-format"] = new PayloadMemberValue { id = "stored-format", value = payload };
+            });
+            var restored = (NumberFormatInfo)ReadAt(client.save, "FormatSlot")!;
+            Assert.That(restored.CurrencyNegativePattern, Is.EqualTo(16));
+            Assert.That(restored.NativeDigits, Is.EqualTo(new[] { "x", "", "many", "3", "4", "5", "6", "7", "8", "9" }));
+            using NeoClient reloaded = Reload(client);
+            var again = (NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!;
+            Assert.That(again.CurrencyNegativePattern, Is.EqualTo(16));
+            Assert.That(again.NativeDigits, Is.EqualTo(restored.NativeDigits));
+        }
+
+        [Test]
+        public void StoredReadOnlyCultureRequiresReadOnlyNumberFormat()
+        {
+            var payload = NeoStorablePayloads.Encode(new CultureInfo(""));
+            payload["readOnly"] = true;
+            Assert.That(Assert.Throws<JsonSerializationException>(() => NeoStorablePayloads.ValidateCultureInfo(payload, "CultureSlot"))!.Message,
+                Does.Contain("A read-only CultureInfo must hold a read-only NumberFormatInfo."));
+            payload["numberFormat"]!["readOnly"] = true;
+            Assert.DoesNotThrow(() => NeoStorablePayloads.ValidateCultureInfo(payload, "CultureSlot"));
+        }
+
+        [Test]
+        public void EvaluatorCultureReadOwnsInheritedPayloadBeforeMutation()
+        {
+            using NeoClient client = BuildClient(InheritCulture);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var culture = (CultureInfo)NSGetterEvaluator.UnwrapRow(RowAt(client.save, "CultureSlot"), context, NeoValueOwnership.Save, client.members["culture-field"])!;
+            culture.NumberFormat.NegativeSign = "~";
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Save, InheritedCultureId), Is.True);
+            var authored = (PayloadMemberValue)client.ProjectDataForRuntime.values[InheritedCultureId];
+            Assert.That(authored.value!["numberFormat"]!["negativeSign"]!.Value<string>(), Is.EqualTo("-"));
+            using NeoClient reloaded = Reload(client);
+            Assert.That(((CultureInfo)ReadAt(reloaded.save, "CultureSlot")!).NumberFormat.NegativeSign, Is.EqualTo("~"));
+        }
+
         // §12.1: writes to a stored culture or number format persist through
         // the slot, from what C# wrote or read, in a declared slot or a box.
         [Test]
@@ -542,6 +634,7 @@ namespace NeoCompose.Tests
             });
             var culture = (CultureInfo)ReadAt(client.assets, "CultureSlot")!;
             Assert.That(culture.IsReadOnly, Is.True);
+            Assert.That(ReadAt(client.assets, "CultureSlot"), Is.SameAs(culture));
             Assert.Throws<InvalidOperationException>(() => culture.NumberFormat.NegativeSign = "~");
             var authored = (PayloadMemberValue)client.ProjectDataForRuntime.values[InheritedCultureId];
             Assert.That(authored.value!["readOnly"]!.Value<bool>(), Is.False);
@@ -570,10 +663,11 @@ namespace NeoCompose.Tests
         public void NamedCulturesAreRefused()
         {
             using NeoClient client = BuildClient();
-            var error = Assert.Throws<NotSupportedException>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR"), "CultureSlot"));
-            StringAssert.Contains("Object field 'CultureSlot' can't store culture 'fr-FR'; NeoScript has only the invariant culture.", error!.Message);
-            var boxed = Assert.Throws<NotSupportedException>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR")));
-            StringAssert.Contains("can't store culture 'fr-FR'", boxed!.Message);
+            var error = Assert.Throws<NSGetterRuntimeError>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR"), "CultureSlot"));
+            StringAssert.Contains("Object field 'CultureSlot' can't store the culture 'fr-FR': only the invariant culture can be stored until named cultures ship (#2222).", error!.DiagnosticMessage);
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoNotSupportedError));
+            var boxed = Assert.Throws<NSGetterRuntimeError>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR")));
+            StringAssert.Contains("can't store the culture 'fr-FR'", boxed!.DiagnosticMessage);
             var wrongKind = Assert.Throws<InvalidOperationException>(() => Write(client, client.save, 4, "TypeSlot"));
             StringAssert.Contains("Cannot write object field 'TypeSlot': a Type slot can't hold a int.", wrongKind!.Message);
         }
