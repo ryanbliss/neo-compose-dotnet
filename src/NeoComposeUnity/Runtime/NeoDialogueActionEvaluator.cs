@@ -6403,7 +6403,7 @@ namespace NeoCompose.Runtime
                 if (referenceId is not null)
                     RequireInterfaceSlotAdmits(client, typeInfo, referenceId, parentRowId, null);
                 if (value is RuntimeTuple)
-                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                    value = NSGetterEvaluator.ResolveStoredCollection(value, ctx);
                 // Publish the previous binding before retaining its outgoing alias.
                 if (client.HasPendingScriptWrites && IsCollectionWrite(typeInfo, ctx))
                     ReadCurrentValue(client, ctx);
@@ -6648,7 +6648,7 @@ namespace NeoCompose.Runtime
                 // Set membership still probes the original tuple's handle identities.
                 object? insertedValue = inserts ? args[mutation == CollectionMutationKind.Insert ? 1 : 0] : null;
                 if (insertedValue is RuntimeTuple)
-                    insertedValue = NSGetterEvaluator.ResolveHostCollection(insertedValue, ctx);
+                    insertedValue = NSGetterEvaluator.ResolveStoredCollection(insertedValue, ctx);
                 NeoGeneratedTypesSupport.CollectionInsertion? insertion = null;
                 WriteCollection(client, rowId, preparedPlan, batch =>
                 {
@@ -6891,7 +6891,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx, bool add = false)
             {
                 if (value is RuntimeTuple)
-                    value = NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                    value = NSGetterEvaluator.ResolveStoredCollection(value, ctx);
                 string? candidateId = TryGetClassValueReferenceId(value, entryTypeInfo, ctx, out string? id) ? id : null;
                 if (client.HasPendingScriptWrites && IsCollectionWrite(entryTypeInfo, ctx)
                     && client.TryGetValue(ownership, rowId, out ObjectMemberValue? previous)

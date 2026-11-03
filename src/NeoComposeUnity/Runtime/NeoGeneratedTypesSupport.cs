@@ -5688,7 +5688,7 @@ namespace NeoCompose.Runtime
                     }
                     // Nested stored collection views carry entry ids, not payloads.
                     // Read them through the ordinary recursive reader before recording the argument.
-                    value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                    value = NeoScript.NSGetterEvaluator.ResolveStoredCollection(value, ctx);
                     var rows = new List<MemberValue>();
                     Member member = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(argumentType)));
                     var scope = new NeoConstructionScope(client, ctx);
@@ -6883,7 +6883,7 @@ namespace NeoCompose.Runtime
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
             if (value is NeoScript.RuntimeTuple)
-                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                value = NeoScript.NSGetterEvaluator.ResolveStoredCollection(value, ctx);
             insertion ??= new CollectionInsertion(plan, ctx, ownership, trackCollections: false);
             var rows = new List<MemberValue>();
             var env = targetEnv ?? (ctx.thisValue is null

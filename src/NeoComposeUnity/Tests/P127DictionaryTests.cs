@@ -258,6 +258,200 @@ namespace NeoCompose.Tests
             Assert.That(row!.value!.Keys, Is.EqualTo(new[] { "q" }));
             Assert.That(Eval(new KeyOfPointer { type = PointerKind.KeyOf, keyOf = new KeyOf { pointer = Ref(row.id), key = Value("Q") } }), Is.EqualTo(2d));
         }
+        [TestCase("empty")]
+        [TestCase("literal")]
+        [TestCase("comparer")]
+        [TestCase("toDictionary")]
+        [TestCase("stored")]
+        [TestCase("storedRow")]
+        public void NativeHostReadsEvaluatorDictionaries(string shape)
+        {
+            var floats = new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = Type(MemberKind.Float) };
+            var literal = new DictLiteralPointer { type = PointerKind.DictLiteral, typeInfo = floats };
+            if (shape == "comparer")
+            {
+                Assign("D", NewCollection(false, NewComparer()));
+                literal.equality = new EqualitySite
+                {
+                    type = Type(MemberKind.String),
+                    comparer = new CollectionComparerPointer { type = PointerKind.CollectionComparer, op = "Comparer", collection = Ref("b6-dict-D"), elementType = Type(MemberKind.String) },
+                };
+            }
+            var dictionary = (IDictionary<string, object?>)Eval(literal)!;
+            if (shape != "empty")
+            {
+                dictionary.Add("a", 1d);
+                dictionary.Add("b", 2d);
+                dictionary.Add("c", 3d);
+                dictionary.Remove("a");
+                dictionary.Add("d", 4d);
+            }
+            Pointer argument = Value(dictionary);
+            if (shape == "toDictionary")
+            {
+                FunctionWithReturnType Selector(TypeInfo type, Pointer result) => new()
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = new[] { new Variable { id = "item", typeInfo = Type(MemberKind.String) } },
+                    typeInfo = type,
+                    instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = result } },
+                };
+                argument = new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new CollectionQueryFunction
+                    {
+                        type = FunctionKind.CollectionQuery,
+                        info = new FunctionCollectionQueryInfo
+                        {
+                            op = "ToDictionary",
+                            collectionPointer = Value(new object?[] { "b", "c", "d" }),
+                            function = Selector(Type(MemberKind.String), new VariablePointer { type = PointerKind.Variable, variableId = "item" }),
+                            valueFunction = Selector(Type(MemberKind.Float), Value(2d)),
+                            equality = new EqualitySite { type = Type(MemberKind.String) },
+                        },
+                    },
+                };
+            }
+            if (shape is "stored" or "storedRow")
+            {
+                data.members["b6-dict-D-entry"] = new FloatMember { id = "b6-dict-D-entry", name = "D entry", kind = MemberKind.Float, Requirement = NeoMemberRequirementKind.Required };
+                client.InvalidateSchemaResolutionCaches();
+                Run(new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    operatorValue = "=",
+                    target = new WriteTarget { pointer = Ref("b6-dict-D"), typeInfo = floats, writability = WritabilityKind.Save },
+                    pointer = argument,
+                });
+                if (shape == "storedRow")
+                    argument = Ref("b6-dict-D");
+            }
+            const string nativeId = "b6-host-dictionary";
+            data.members[nativeId] = new FunctionMember
+            {
+                id = nativeId,
+                name = "HostDictionary",
+                kind = MemberKind.Function,
+                Modifier = NeoMemberModifierKind.Static,
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "values", type = MemberKind.Dictionary, required = true, entryTypeInfo = Type(MemberKind.Float) } },
+                returnTypeInfo = Type(MemberKind.Float),
+            };
+            IReadOnlyDictionary<string, float>? received = null;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [nativeId] = (_, _, args, _) =>
+                {
+                    // The codec used by the generated native Dictionary parameter stub.
+                    received = NeoGeneratedTypesSupport.ReadScriptDictionary<float>(args[0], Convert.ToSingle);
+                    return (double)received.Values.Sum();
+                },
+            });
+            object? result = Eval(new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = nativeId,
+                receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = nativeId },
+                args = new[] { argument },
+            });
+            Assert.That(result, Is.EqualTo(shape == "empty" ? 0d : shape == "toDictionary" ? 6d : 9d));
+            Assert.That(received!.Keys, Is.EqualTo(shape == "empty" ? Array.Empty<string>() : new[] { "b", "c", "d" }));
+            Assert.That(dictionary.Keys, Is.EqualTo(shape == "empty" ? Array.Empty<string>() : new[] { "b", "c", "d" }), "Host conversion leaves the evaluator dictionary unchanged.");
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GeneratedReaderReadsReturnedLiteralAndNestedSet(bool nested)
+        {
+            TypeInfo entry = nested ? new CollectionTypeInfo { type = MemberKind.Set, required = true, entryTypeInfo = Type(MemberKind.Int) } : Type(MemberKind.Float);
+            var dictionaryType = new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = entry };
+            Pointer value = nested ? new ListLiteralPointer
+            {
+                type = PointerKind.ListLiteral,
+                typeInfo = (CollectionTypeInfo)entry,
+                entries = new[] { Value(2d), Value(3d), Value(2d) },
+            } : Value(2d);
+            var template = data.members.Values.OfType<NSFunctionMember>().Single(m => m.name == "DorLit");
+            var function = new NSFunctionMember
+            {
+                id = "b6-return-dictionary",
+                name = "ReturnDictionary",
+                kind = MemberKind.NSFunction,
+                Modifier = NeoMemberModifierKind.Static,
+                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                returnTypeInfo = dictionaryType,
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = template.action!.parameters,
+                    typeInfo = dictionaryType,
+                    instructions = new Instruction[] { new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new DictLiteralPointer { type = PointerKind.DictLiteral, typeInfo = dictionaryType,
+                            entries = new[] { new DictLiteralPair { key = Value("items"), value = value } } },
+                    } },
+                },
+            };
+            data.members[function.id] = function;
+            object? returned = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Session).InvokeStatic();
+            if (nested)
+            {
+                var result = NeoGeneratedTypesSupport.ReadScriptDictionary(returned,
+                    item => NeoGeneratedTypesSupport.ReadScriptSet<int>(item, number => Convert.ToInt32(number)));
+                Assert.That(result["items"], Is.EquivalentTo(new[] { 2, 3 }));
+            }
+            else
+                Assert.That(NeoGeneratedTypesSupport.ReadScriptDictionary<float>(returned, Convert.ToSingle)["items"], Is.EqualTo(2f));
+        }
+
+        [Test]
+        public void HostArgumentMarksDetachedObjectsInsideEvaluatorDictionary()
+        {
+            string classId = data.classes.Values.Single(c => c.name == "Box").id;
+            var detached = (NeoScriptObject)Eval(new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ClassConstructorFunction
+                {
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo { schemaClassInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = classId }, fields = Array.Empty<FunctionClassConstructorField>() }
+                },
+            })!;
+            var dictionary = (IDictionary<string, object?>)Eval(new DictLiteralPointer { type = PointerKind.DictLiteral, typeInfo = Collection(false) })!;
+            dictionary["child"] = detached;
+            Assert.That(detached.hasHostReference, Is.False);
+            NSGetterEvaluator.MarkHostArgument(null, dictionary, ctx);
+            Assert.That(detached.hasHostReference, Is.True);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void TupleStorageRetainsNestedDictionaryComparer(bool stored)
+        {
+            object dictionaryValue;
+            if (stored)
+            {
+                Assign("D", NewCollection(false, NewComparer()));
+                dictionaryValue = Eval(Ref("b6-dict-D"))!;
+            }
+            else
+                dictionaryValue = (RuntimeDictionary)Eval(NewCollection(false, NewComparer()))!;
+            var binding = TestTypeBindings.FromKey("(Dictionary<string,int>,int)");
+            var type = (TupleTypeInfo)NeoTypeBindings.ToTypeInfo(binding);
+            var member = (TupleMember)NeoTypeBindingViews.PayloadView(binding, out string invalid)!;
+            Assert.That(invalid, Is.Empty);
+            var tuple = new RuntimeTuple(new object?[] { dictionaryValue, 7d }, type);
+            var payload = (NeoValuePayload)NeoGeneratedTypesSupport.MaterializeCollectionAssignment(
+                client, member, tuple, NeoValueOwnership.Save, ctx)!;
+            var entries = (string[])payload.value!;
+            var dictionary = payload.valueRows.Single(row => row.id == entries[0]);
+            Assert.That(dictionary.comparer, Is.Not.Null, "Internal tuple storage must retain the dictionary's comparer metadata.");
+            Assert.That(dictionary.comparer!.kind, Is.EqualTo(NeoCollectionComparerKind.Value));
+            string entryId = ((ObjectMemberValue)dictionary).value!["q"];
+            Assert.That(((NumberMemberValue)payload.valueRows.Single(row => row.id == entryId)).value, Is.EqualTo(1d));
+        }
+
         [TestCase("literal")]
         [TestCase("capacity")]
         [TestCase("comparer")]
