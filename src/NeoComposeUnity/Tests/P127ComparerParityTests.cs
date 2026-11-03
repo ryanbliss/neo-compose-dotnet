@@ -57,8 +57,10 @@ namespace NeoCompose.Tests
             if (refusal)
             {
                 var error = Assert.Catch<NSGetterRuntimeError>(() => Invoke())!;
-                Assert.That(error.DiagnosticMessage, Is.EqualTo(expected!.Value<string>()));
-                Assert.That(error.Payload.Message, Is.EqualTo(expected.Value<string>()));
+                // Compose's toThrow(string) asserts the message fragment; ownership
+                // refusals include runtime ids that differ on each construction.
+                Assert.That(error.DiagnosticMessage, Does.Contain(expected!.Value<string>()));
+                Assert.That(error.Payload.Message, Is.EqualTo(error.DiagnosticMessage));
                 return;
             }
             object? result = Invoke();

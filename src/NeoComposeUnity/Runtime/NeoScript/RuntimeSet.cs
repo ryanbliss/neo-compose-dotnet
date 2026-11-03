@@ -30,11 +30,16 @@ namespace NeoCompose.Runtime.NeoScript
             entries = new OrderedMap<object, object?>(comparer);
         }
 
-        internal RuntimeSet(NeoHashTable<object?, object?> table, NSGetterEvaluator.BoundEquality equality)
-            : this(Array.Empty<object?>(), false, false, false, equality)
+        internal RuntimeSet(NeoHashTable<object?, object?> table, NSGetterEvaluator.BoundEquality equality, IEnumerable<object?>? order = null)
         {
+            Source = Array.Empty<object?>();
             Table = table;
             Equality = equality;
+            // The hash table owns equality; this identity map only remembers
+            // insertion order without making additional authored calls.
+            entries = new OrderedMap<object, object?>(NeoReferenceEqualityComparer.Instance);
+            foreach (object? key in order ?? table.Keys())
+                entries.Add(key ?? NullKey, key);
         }
 
         internal int Count => Table?.Count ?? entries.Count;
@@ -45,7 +50,8 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (var validate in validations.Values)
                     validate(value);
-                Table.Add(key, value, NeoInsertBehavior.None);
+                if (Table.Add(key, value, NeoInsertBehavior.None))
+                    entries.Add(key ?? NullKey, key);
                 return;
             }
             key ??= NullKey;
@@ -65,16 +71,17 @@ namespace NeoCompose.Runtime.NeoScript
         internal void Remove(object? key)
         {
             if (Table is not null)
-                Table.Remove(key);
+            {
+                if (Table.Remove(key, out object? stored))
+                    entries.Remove(stored ?? NullKey);
+            }
             else
                 entries.Remove(key ?? NullKey);
         }
         internal void Clear()
         {
-            if (Table is not null)
-                Table.Clear();
-            else
-                entries.Clear();
+            Table?.Clear();
+            entries.Clear();
         }
         internal void Validate(object type, Action<object?> validate)
         {
@@ -84,8 +91,8 @@ namespace NeoCompose.Runtime.NeoScript
                 validate(entry);
             validations.Add(type, validate);
         }
-        internal object?[] Snapshot() => Table is null ? entries.Snapshot() : Table.Keys().ToArray();
-        public IEnumerator<object?> GetEnumerator() => Table is null ? entries.Values.GetEnumerator() : Table.Keys().GetEnumerator();
+        internal object?[] Snapshot() => entries.Snapshot();
+        public IEnumerator<object?> GetEnumerator() => entries.Values.GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 

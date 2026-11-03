@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class PNs : NeoGeneratedClassValue, IReadOnlyPNs
     {
         internal PNs(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ecdf5a5f-20c1-4db0-85d4-d43776aa9e74", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "86514ad2-6f80-493c-b2c0-060b6a40a6fa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string A()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ce662153-ad82-4eec-b757-80c78327d042");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "18252af8-3ec2-4bd1-b7c8-68114c2b43d0");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool B()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c39a7237-fd6f-49c8-bcb0-547e713ca7a7");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "17eba7e5-7d49-46af-a9bd-9252c41f21ba");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool C()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9401fdbc-896d-49fe-af10-b8423679b816");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bfbe3cec-e293-4e26-8308-b19da74f2421");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int D()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1f644d74-5e6b-4aec-9f67-a2b33def47da");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "34c606a2-cff2-425a-851e-45a8e1e36c4c");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string E()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c30a6275-ed54-4c79-9260-b30f9f7fc39e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0e84e07c-7ffc-4b1b-9421-149e80e0a213");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string F()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e7708ef6-c82e-458c-98b6-13a7c0c6afb9");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d81ec2c6-6e93-4eb1-9b83-f2f065ccdc79");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string G()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2b276de1-4445-40b1-bd70-70f07195cddb");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bbc33d13-0003-47fc-9b81-8a3e8dd5f661");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ecdf5a5f-20c1-4db0-85d4-d43776aa9e74");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "86514ad2-6f80-493c-b2c0-060b6a40a6fa");
         }
 
         internal static PNs Create(NeoClient client, NeoMemberClass node)

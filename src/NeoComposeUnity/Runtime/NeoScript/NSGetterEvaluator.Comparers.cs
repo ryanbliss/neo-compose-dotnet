@@ -287,8 +287,10 @@ namespace NeoCompose.Runtime.NeoScript
                 case NeoBuiltInComparerKind.Create:
                     return JsTruthy(InvokeDelegate(comparer.Delegates[0], new[] { x, y }, ctx));
                 default:
+                    if (SameObject(x, y, ctx))
+                        return true;
                     if (x is null || y is null)
-                        return x is null && y is null;
+                        return false;
                     x = RuntimeCollection(x, ctx);
                     y = RuntimeCollection(y, ctx);
                     var left = CollectionValues(x, ctx);
@@ -310,7 +312,7 @@ namespace NeoCompose.Runtime.NeoScript
                             if (!contains)
                                 return false;
                         }
-                        else if (!left.Any(entry => equality.Equals(entry, item)))
+                        else if (!left.Any(entry => equality.Equals(item, entry)))
                             return false;
                     }
                     return true;
@@ -383,6 +385,17 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static NeoCollectionComparer? WriteCollectionComparer(object? collection, NeoWritePlan? plan, NeoValueOwnership ownership, Context ctx, Func<object?, NeoConstructorValueReference?>? resolveReference = null, string collectionName = "collection")
         {
+            var origin = collection is null ? null : FindRowReference(collection, ctx)
+                ?? NeoGeneratedTypesSupport.ConstructorCollectionOrigin(collection);
+            if (origin is { } source && ctx.client.ReadValue(source.ownership, source.valueId, ref source.node) is { comparer: { } descriptor })
+            {
+                if (descriptor.kind == NeoCollectionComparerKind.BuiltIn)
+                    return new NeoCollectionComparer { kind = descriptor.kind, comparer = (JObject)descriptor.comparer!.DeepClone(), runtimeIdentity = descriptor.runtimeIdentity ?? descriptor };
+                // Stored collections are values. Copy their owned comparer;
+                // only a fresh local collection attaches its comparer instance.
+                string copy = ctx.client.CloneOwnedValueReferenceForNewParent(ownership, source.ownership, descriptor.valueId!, null);
+                return new NeoCollectionComparer { kind = descriptor.kind, valueId = copy };
+            }
             BoundEquality? equality = collection switch
             {
                 RuntimeSet set => set.Equality,
@@ -412,16 +425,6 @@ namespace NeoCompose.Runtime.NeoScript
                 string imported = plan is null ? NeoScriptExecutor.ImportClassValueReference(ctx.client, ownership, id, ctx)
                     : NeoScriptExecutor.ImportClassValueReference(plan, ctx.client, ownership, id, ctx);
                 return new NeoCollectionComparer { kind = NeoCollectionComparerKind.Value, valueId = imported };
-            }
-            if (FindRowReference(collection, ctx) is { } reference && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is { comparer: { } stored })
-            {
-                if (stored.kind == NeoCollectionComparerKind.BuiltIn)
-                    return new NeoCollectionComparer { kind = stored.kind, comparer = (JObject)stored.comparer!.DeepClone(), runtimeIdentity = stored.runtimeIdentity ?? stored };
-                if (resolveReference is not null)
-                    return new NeoCollectionComparer { kind = stored.kind, valueId = resolveReference(ResolveValueIfId(stored.valueId, ctx, preferredOwnership: reference.ownership))?.valueId };
-                string imported = plan is null ? NeoScriptExecutor.ImportClassValueReference(ctx.client, ownership, stored.valueId!, ctx)
-                    : NeoScriptExecutor.ImportClassValueReference(plan, ctx.client, ownership, stored.valueId!, ctx);
-                return new NeoCollectionComparer { kind = stored.kind, valueId = imported };
             }
             return null;
         }

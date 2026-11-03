@@ -71,7 +71,7 @@ namespace NeoCompose.Runtime.NeoScript
                             return helper == NeoSortHelper.Comparable ? comparison.CompareNonNull(a.value, b.value) : comparison.Compare(a.value, b.value);
                         return CompareCollectionKeys(a.value, b.value, instruction.keyType);
                     }, comparison?.Default.Float == true && helper == NeoSortHelper.Comparable ? entry => float.IsNaN((float)Number(entry.value!)) : null,
-                        () => instruction.comparison is not null ? "NeoDelegate<int, " + TypeName(RuntimeTypeOf(CloseContextType(instruction.comparison.parameters[0].typeInfo, ctx)), ctx) + ", " + TypeName(RuntimeTypeOf(CloseContextType(instruction.comparison.parameters[1].typeInfo, ctx)), ctx) + ">" : comparison?.Text() ?? "Comparer", NeoScriptErrorClassification.IsAuthoredCatchable, entry => entry.value is null);
+                        () => instruction.comparison is not null ? "System.Comparison`1[" + ClrTypeName(RuntimeTypeOf(CloseContextType(instruction.comparison.parameters[0].typeInfo, ctx)), ctx) + "]" : comparison?.Text() ?? "Comparer", NeoScriptErrorClassification.IsAuthoredCatchable, entry => entry.value is null);
                     result = new object?[sorted.Length];
                     for (int index = 0; index < result.Length; index++)
                         result[index] = sorted[index].raw;
@@ -137,29 +137,41 @@ namespace NeoCompose.Runtime.NeoScript
             finally { cursor.Dispose(); }
         }
 
-        private static object? ReduceOrderedCollection(FunctionCollectionQueryInfo info, object? collection, PreparedCollectionCallback callback, BoundComparison comparison, Context ctx)
+        private static object? ReduceOrderedCollection(FunctionCollectionQueryInfo info, object? collection, PreparedCollectionCallback callback, BoundComparison? comparison, Context ctx)
         {
             var source = ReductionEntries(collection, ctx);
             object? Select((object? Value, CollectionCursor Position) entry) => info.function is null ? entry.Value : callback.Project(in entry.Position, entry.Value);
-            bool nullable = !comparison.Default.Type.Head!.Required || !TypeBindings.IsValueType(comparison.Default.Type.Head);
+            int Compare(object? left, object? right) => comparison is null
+                ? CompareCollectionKeys(left, right, info.keyType) : comparison.Compare(left, right);
+            bool nullable = info.nullable;
+            if (info.emptyType is { } emptyType)
+            {
+                TypeBinding closed = RuntimeTypeOf(CloseContextType(emptyType, ctx));
+                nullable = !closed.Head!.Required || !TypeBindings.IsValueType(closed.Head);
+            }
+            else if (info.op is "Min" or "Max" && comparison is not null)
+            {
+                // Older hand-written typed sites did not carry nullable.
+                nullable |= !comparison.Default.Type.Head!.Required || !TypeBindings.IsValueType(comparison.Default.Type.Head);
+            }
             NeoExtreme extreme = info.op is "Min" or "MinBy" ? NeoExtreme.Min : NeoExtreme.Max;
             if (info.op is "MinBy" or "MaxBy")
             {
-                var selected = NeoEnumerableOrdering.MinMaxBy(source, Select, extreme, comparison.Compare, info.nullable, nullable);
+                var selected = NeoEnumerableOrdering.MinMaxBy(source, Select, extreme, Compare, nullable, true);
                 return QueryEntry(selected.Value, info.enumEntries);
             }
-            if (comparison.UsesDefault && comparison.Default.Type.Head.Type == MemberKind.Float)
+            if (comparison?.Comparer is null && (comparison?.Default.Type.Head!.Type == MemberKind.Float || info.keyType == "float"))
             {
                 float? selected = NeoEnumerableOrdering.MinMaxFloat32(source, entry => Select(entry) is { } value ? (float)Number(value) : null, extreme, nullable);
                 return selected is null ? null : Box((double)selected.Value);
             }
-            return NeoEnumerableOrdering.MinMax(source, Select, extreme, comparison.Compare, nullable);
+            return NeoEnumerableOrdering.MinMax(source, Select, extreme, Compare, nullable);
         }
 
         private static object? ReduceCollection(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, NeoScriptScope scope, Context ctx)
         {
             BoundComparison? comparison = info.ordering is null ? null : BindComparison(info.ordering, scope, ctx);
-            if (comparison is not null && info.op is "Min" or "Max" or "MinBy" or "MaxBy")
+            if (info.op is "Min" or "Max" or "MinBy" or "MaxBy")
                 return ReduceOrderedCollection(info, collection, callback, comparison, ctx);
             int count = 0;
             double total = 0;
@@ -168,18 +180,12 @@ namespace NeoCompose.Runtime.NeoScript
             long intTotal = 0;
             string decimalTotal = "0";
             bool decimalSeeded = DecimalSumStartsAtZero(info, collection, ctx);
-            object? selected = null, bestKey = null, first = null;
-            bool visited = false;
-            bool by = info.op is "MinBy" or "MaxBy";
             var cursor = new CollectionCursor(collection, ctx);
             try
             {
                 while (cursor.MoveNextUnresolved())
                 {
                     object? entry = cursor.ResolveEntry(ctx);
-                    if (!visited)
-                        first = QueryEntry(entry, info.enumEntries);
-                    visited = true;
                     object? value = info.function is null ? entry : callback.Project(in cursor, entry);
                     if (value is null)
                         continue;
@@ -205,14 +211,7 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         continue;
                     }
-                    int order = count == 1 ? 0 : comparison is null ? CompareCollectionKeys(value, bestKey, info.keyType) : comparison.Compare(value, bestKey);
-                    if (count == 1 || (info.op is "Min" or "MinBy" ? order < 0 : order > 0))
-                    {
-                        bestKey = value;
-                        selected = by ? QueryEntry(entry, info.enumEntries) : value;
-                    }
-                    if (info.op == "Min" && comparison?.Comparer is null && TryAsDouble(value, out double candidate) && double.IsNaN(candidate))
-                        break;
+
                 }
                 if (info.op == "Sum")
                 {
@@ -226,13 +225,9 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (count == 0)
                 {
-                    if (by && visited)
-                        return first;
                     if (info.nullable)
                         return null;
-                    if (comparison is not null)
-                        throw NeoOrderingErrors.NoElements();
-                    throw new NSGetterRuntimeError($"{info.op}() found no matching entry.");
+                    throw NeoOrderingErrors.NoElements();
                 }
                 if (info.op == "Average")
                 {
@@ -243,7 +238,7 @@ namespace NeoCompose.Runtime.NeoScript
                     // Enumerable.Average: the sum over the count with decimal / (P127 §3.4).
                     return NeoDecimalMath.Divide(decimalTotal, count.ToString(CultureInfo.InvariantCulture));
                 }
-                return selected;
+                throw new NSGetterRuntimeError($"Unknown reduction '{info.op}'.");
             }
             catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
             finally

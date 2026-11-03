@@ -2110,6 +2110,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException($"{subject} has a collection element type incompatible with its declared interface.");
                 value = NeoSequences.WriteBoxed(client, value, typeInfo);
             }
+            if (typeInfo.type == MemberKind.NSDelegate && value is NeoDelegateValue callable)
+                callable.delegateType ??= NeoTypeBindings.FromTypeInfo(typeInfo);
             // P127 §14. A C# value crosses into an object parameter boxed.
             if (typeInfo.type == MemberKind.Object && value is not (null or NeoBox or NeoTypeValue))
                 value = NeoGeneratedTypesSupport.BoxClrArgument(client, ownership, value, ctx, in subject);
@@ -2823,7 +2825,7 @@ namespace NeoCompose.Runtime
             return count == 1;
         }
 
-        private static Dictionary<string, object?> NormalizeDictionary(
+        private static IDictionary<string, object?> NormalizeDictionary(
             NeoClient client,
             NeoValueOwnership ownership,
             object value,
@@ -2838,6 +2840,13 @@ namespace NeoCompose.Runtime
                 _ => null,
             };
             NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+            if (value is RuntimeDictionary runtime)
+            {
+                if (entryType is not null)
+                    foreach (object? entry in runtime.Values)
+                        Normalize(client, ownership, entry, entryType, ctx, subject.Entry());
+                return runtime;
+            }
             if (rowOwnership is not null && value is Dictionary<string, object?> rows)
             {
                 if (entryType is not null)
