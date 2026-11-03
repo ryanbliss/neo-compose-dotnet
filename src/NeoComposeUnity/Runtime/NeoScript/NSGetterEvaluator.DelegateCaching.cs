@@ -18,9 +18,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             internal readonly Dictionary<string, (string Container, TypeInfo? Type)> Sites = new(StringComparer.Ordinal);
             internal Dictionary<string, string>? InterfaceOwners;
-            internal readonly Dictionary<(object Root, string Key), NeoDelegateValue> Closures = new();
-            internal readonly Dictionary<(object Literal, object Receiver, object Root, string Frame), NeoDelegateValue> Literals = new();
-            internal readonly Dictionary<(object Root, string Container, TypeBinding? Construction, TypeBinding Type, string Target), NeoDelegateValue> Groups = new();
+            internal readonly ConditionalWeakTable<object, RootDelegateCaches> Roots = new();
+        }
+
+        // Values can refer back to their root or receiver through lexical
+        // captures. Weak keys let those cycles die with the owning scope.
+        private sealed class RootDelegateCaches
+        {
+            internal readonly Dictionary<string, NeoDelegateValue> Closures = new(StringComparer.Ordinal);
+            internal readonly ConditionalWeakTable<object, Dictionary<(object Literal, string Frame), NeoDelegateValue>> Literals = new();
+            internal readonly Dictionary<(string Container, TypeBinding? Construction, TypeBinding Type, string Target), NeoDelegateValue> Groups = new();
         }
 
         private static readonly object NoDelegateReceiver = new();
@@ -35,7 +42,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static string DelegateArgumentKey(TypeBinding[]? arguments) => arguments is null ? ""
             : new JArray(arguments.Select(DelegateBindingKey)).ToString(Formatting.None);
         private static string DelegateFrameKey(Context ctx) => DelegateArgumentKey(ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray());
-        private static object DelegateRoot(Context ctx) => ctx.rootValue ?? NoDelegateReceiver;
+        private static RootDelegateCaches RootDelegates(Context ctx) =>
+            ComparerCache(ctx).Delegates.Roots.GetValue(ctx.rootValue ?? NoDelegateReceiver, _ => new RootDelegateCaches());
 
         private static (string Container, TypeInfo? Type) DelegateSite(string owner, Context ctx)
         {
@@ -125,11 +133,10 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (CachedClosureKey(value) is not { } key)
                 return value;
-            var cache = ComparerCache(ctx).Delegates.Closures;
-            var slot = (DelegateRoot(ctx), key);
-            if (cache.TryGetValue(slot, out var stored))
+            var cache = RootDelegates(ctx).Closures;
+            if (cache.TryGetValue(key, out var stored))
                 return stored;
-            cache.Add(slot, value);
+            cache.Add(key, value);
             return value;
         }
 
@@ -138,8 +145,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (!value.IsClosure)
                 return value;
             string frame = DelegateFrameKey(ctx) + "|" + DelegateBindingKey(value.declaringConstruction);
-            var key = (literal, ctx.thisValue ?? NoDelegateReceiver, DelegateRoot(ctx), frame);
-            var cache = ComparerCache(ctx).Delegates.Literals;
+            var key = (literal, frame);
+            var cache = RootDelegates(ctx).Literals.GetValue(ctx.thisValue ?? NoDelegateReceiver, _ => new());
             if (cache.TryGetValue(key, out var stored))
                 return stored;
             return cache[key] = CacheClosure(value, ctx);
@@ -159,8 +166,8 @@ namespace NeoCompose.Runtime.NeoScript
                     DelegateArgumentKey(builtIn.ParameterTypes), DelegateBindingKey(builtIn.ExplicitInterface), DelegateArgumentKey(builtIn.TypeArguments)).ToString(Formatting.None)
                 : new JArray(value.memberId, DelegateBindingKey(value.staticConstruction), DelegateBindingKey(value.interfaceConstruction),
                     DelegateArgumentKey(value.typeArguments)).ToString(Formatting.None);
-            var key = (DelegateRoot(ctx), container, DelegateSiteConstruction(cache.owner, ctx), type, target);
-            var groups = ComparerCache(ctx).Delegates.Groups;
+            var key = (container, DelegateSiteConstruction(cache.owner, ctx), type, target);
+            var groups = RootDelegates(ctx).Groups;
             if (groups.TryGetValue(key, out var stored))
                 return stored;
             return groups[key] = value;

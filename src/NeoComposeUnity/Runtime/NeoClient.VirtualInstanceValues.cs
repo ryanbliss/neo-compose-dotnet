@@ -296,6 +296,7 @@ namespace NeoCompose.Runtime
             internal string? effectiveId;
             internal NeoValueOwnership effectiveOwnership;
             internal VirtualExpansionNode? parent;
+            internal VirtualExpansionNode? comparerChild;
             internal ObjectMemberValue? independentRoot;
             internal readonly Dictionary<string, VirtualExpansionNode> classChildren = new();
             internal readonly List<VirtualExpansionNode> listChildren = new();
@@ -2061,6 +2062,13 @@ namespace NeoCompose.Runtime
                     node.dictionaryChildren[pair.Key] = Child(pair.Value, entry,
                         AppendVirtualPath(path, "dictionary", "key", pair.Key));
             }
+            if (OwnedComparerValueId(row) is string comparerId)
+            {
+                if (ResolveValueRow(comparerId) is not ObjectMemberValue { classId: { } comparerClass } comparerRow)
+                    throw new InvalidOperationException($"Replay lost comparer '{comparerId}' at '{path}'.");
+                var comparerMember = NeoGeneratedTypesSupport.UnplacedClassMember(this, comparerClass, null, comparerRow);
+                node.comparerChild = Child(comparerId, comparerMember, AppendVirtualPath(path, "class", "schemaKey", "@comparer"));
+            }
             VirtualExpansionNode Child(string id, Member childMember, string childPath)
             {
                 var child = IndexVirtualExpansion(instanceRoot,
@@ -2128,6 +2136,8 @@ namespace NeoCompose.Runtime
                     pending.Push(child);
                 foreach (var child in node.dictionaryChildren.Values)
                     pending.Push(child);
+                if (node.comparerChild is not null)
+                    pending.Push(node.comparerChild);
             }
             // Replay's temporary rows are removed next. Preserve bindings to the
             // effective stored/virtual instance, including forward sibling targets.
@@ -2205,6 +2215,8 @@ namespace NeoCompose.Runtime
             clone.createdAt = instanceRoot.createdAt;
             clone.updatedAt = instanceRoot.updatedAt;
             clone.mapKey = instanceRoot.mapKey;
+            if (node.comparerChild is { } comparer)
+                clone.comparer!.valueId = comparer.virtualId;
             if (node.parent?.payloadMember is ListMember parentList
                 && IsUnorderedList(parentList))
             {
@@ -2324,6 +2336,8 @@ namespace NeoCompose.Runtime
                     yield return child;
                 foreach (VirtualExpansionNode child in node.dictionaryChildren.Values)
                     yield return child;
+                if (node.comparerChild is not null)
+                    yield return node.comparerChild;
             }
         }
 
@@ -2441,6 +2455,13 @@ namespace NeoCompose.Runtime
                 expansion.Values[effectiveId] = RewriteVirtualRow(node, instanceRoot);
                 expansion.Ownership[effectiveId] = ownership;
             }
+
+            if (node.comparerChild is { } comparerChild
+                && (materialized is null || OwnedComparerValueId(materialized) == comparerChild.virtualId
+                    || OwnedComparerValueId(materialized) == comparerChild.row.id))
+                OverlaySparseInstance(expansion, comparerChild,
+                    OwnedComparerValueId(materialized ?? node.row) == comparerChild.virtualId ? comparerChild.virtualId : null,
+                    ownership, instanceRoot);
 
             if (node.member is ClassMember)
             {
@@ -2649,6 +2670,8 @@ namespace NeoCompose.Runtime
                 IndexVirtualChild(expansion, child, instanceRoot, ownership);
             foreach (VirtualExpansionNode child in node.dictionaryChildren.Values)
                 IndexVirtualChild(expansion, child, instanceRoot, ownership);
+            if (node.comparerChild is not null)
+                IndexVirtualChild(expansion, node.comparerChild, instanceRoot, ownership);
         }
 
         /// <summary>

@@ -559,19 +559,26 @@ namespace NeoCompose.Runtime.NeoScript
                     var dictionary = new Dictionary<string, object?>();
                     while (cursor.MoveNextUnresolved())
                         dictionary[cursor.Key.ToString()!] = CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx);
-                    return KeepDerived(dictionary, null, values: true);
+                    return RememberOrigin(KeepDerived(dictionary, null, values: true));
                 }
                 var entries = new List<object?>();
                 while (cursor.MoveNextUnresolved())
                     entries.Add(CopiedEntry(cursor.ResolveEntry(ctx), nested, ctx));
                 var copied = new object?[entries.Count];
                 entries.CopyTo(copied);
-                return KeepDerived(copied, null, values: true);
+                return RememberOrigin(KeepDerived(copied, null, values: true));
             }
             catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
             finally
             {
                 cursor.Dispose();
+            }
+            object RememberOrigin(object copy)
+            {
+                var origin = FindRowReference(collection, ctx) ?? NeoGeneratedTypesSupport.ConstructorCollectionOrigin(collection);
+                if (origin is not null)
+                    NeoGeneratedTypesSupport.RecordConstructorCollectionOrigin(copy, origin);
+                return copy;
             }
         }
 

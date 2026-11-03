@@ -494,6 +494,8 @@ namespace NeoCompose.Runtime.Json
         public EqualitySite? equality;
         public OrderingSite? ordering;
         public Pointer? capacity;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeInfo? emptyType;
         public bool nullable;
         public bool enumKey;
         public Pointer? seedPointer;

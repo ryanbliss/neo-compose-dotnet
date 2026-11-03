@@ -115,10 +115,15 @@ namespace NeoCompose.Runtime.NeoScript
                 ? new Dictionary<string, TypeBinding> { [parameters[0].id] = type.WithRequired(true) } : null;
             var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: id), arguments);
             var dispatch = NeoInterfaceDispatch.Of(ctx.client);
+            TypeBinding? fallback = null;
             foreach (var actual in dispatch.Closure(type.WithRequired(true)))
-                if (actual.Head!.InterfaceId == id && dispatch.Converts(actual, requested))
+            {
+                if (actual.Equals(requested))
                     return (actual, declaration.members[name].id!);
-            return null;
+                if (fallback is null && actual.Head!.InterfaceId == id && dispatch.Converts(actual, requested))
+                    fallback = actual;
+            }
+            return fallback is null ? null : (fallback, declaration.members[name].id!);
         }
 
         internal sealed class RuntimeEquality
@@ -348,7 +353,7 @@ namespace NeoCompose.Runtime.NeoScript
                     new Dictionary<string, TypeBinding> { [declaration.genericParams![0].id] = type });
                 member = declaration.members["Compare"].id;
             }
-            internal bool UsesDefault => Comparer is null || UnwrapComparer(Comparer) is { Kind: NeoBuiltInComparerKind.Default } builtIn && builtIn.Type!.Equals(Default.Type);
+            internal bool UsesDefault => Comparer is null || UnwrapComparer(Comparer) is { Kind: NeoBuiltInComparerKind.Default, Family: NeoComparerFamilyKind.Comparison } builtIn && builtIn.Type!.Equals(Default.Type);
             internal int Compare(object? x, object? y) => Comparer is null ? Default.Compare(x, y, ctx)
                 : Comparer is NeoBuiltInComparer builtIn ? BuiltInCompare(builtIn, x, y, ctx)
                 : NeoInt32.Wrap(Number(InvokeMappedInterface(Comparer, construction!, member!, new[] { x, y }, ctx)!));

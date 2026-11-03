@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class DefBox<T> : NeoGeneratedClassValue, IReadOnlyDefBox<T>
     {
         internal DefBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "630e424f-c68e-4bf8-aa0e-939967aa4fff", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c6b235d3-cff2-4da6-a560-807e549a0e46", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Make()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1cde9ac6-0927-434f-b316-5e0ed2d4e193");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "be5933c4-e630-4c55-accc-d1f697f5b1c9");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "630e424f-c68e-4bf8-aa0e-939967aa4fff" => new DefBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c6b235d3-cff2-4da6-a560-807e549a0e46" => new DefBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DefBox' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "630e424f-c68e-4bf8-aa0e-939967aa4fff" => new DefBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c6b235d3-cff2-4da6-a560-807e549a0e46" => new DefBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DefBox' without a concrete client type id."),
                 };
             });

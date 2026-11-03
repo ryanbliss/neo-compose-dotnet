@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Counter<T> : NeoGeneratedClassValue, IReadOnlyCounter<T> where T : NeoSystem.INumber<T>
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "aae305b7-a8fd-480e-bbc1-b98a96f6b625", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "70480fdc-6684-40ac-87cd-4880d2c005ea", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "aae305b7-a8fd-480e-bbc1-b98a96f6b625" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "70480fdc-6684-40ac-87cd-4880d2c005ea" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "aae305b7-a8fd-480e-bbc1-b98a96f6b625" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "70480fdc-6684-40ac-87cd-4880d2c005ea" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -96,7 +96,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         }
 
 
-        [NeoMemberMethod("055f6b3b-b6c5-4538-8a2d-4d3de5a5f88d")]
+        [NeoMemberMethod("6bdc5a88-a502-45f6-a7dc-8b37df4d916f")]
         public void Increment()
         {
             InvokeFunction("Increment");
