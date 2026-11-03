@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Publish NeoScript culture and number-format mutations at the end of the outer execution, including every stored alias and collection entry.
+- Refuse explicit stores and setter publication when a retained NativeDigits list no longer has ten entries. Deferred saves retain the slot's last valid payload until the list is repaired. Resolve the pattern-16 backing field only when that value is reloaded.
+
 - Evaluate `CultureInfo` and `NumberFormatInfo` constructors, properties, setters, cloning and provider resolution. Setter checks follow .NET 10's order; Unity retains its invariant ISO name, culture hash and `CurrencyNegativePattern = 16` refusal.
 - Report the CLR full names and namespace for culture and number-format types. Decode integer-shaped JSON float literals beyond Int64 without a host conversion error.
 - Read stored cultures and number formats as CLR instances with stable slot identity. Property writes through aliases persist and notify; retained `NativeDigits` list mutations survive storage and reload. Refuse read-only culture payloads containing writable number formats.

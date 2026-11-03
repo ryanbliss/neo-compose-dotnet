@@ -29,11 +29,13 @@ namespace NeoCompose.Runtime
             bool writable = this is NeoMemberObjectWritable && ownership != NeoValueOwnership.Asset;
             if (writable && row is PayloadMemberValue { value: JObject payload } held && NeoStorablePayloads.IsWritable(payload))
                 row = OwnHeldPayload(held);
-            if (member.objectType is NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo)
-                return NeoGeneratedTypesSupport.ReadDeclared(client, member, row, writable);
-            if (row.valueType is not TypeBinding valueType)
-                return ReadClass(row);
-            return NeoGeneratedTypesSupport.ReadBox(client, this, row, valueType, writable);
+            object? result = member.objectType is NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo
+                ? NeoGeneratedTypesSupport.ReadDeclared(client, member, row, writable)
+                : row.valueType is TypeBinding valueType
+                    ? NeoGeneratedTypesSupport.ReadBox(client, this, row, valueType, writable)
+                    : ReadClass(row);
+            client.NoteGlobalizationValue(result);
+            return result;
         }
 
         /// <summary>
@@ -59,7 +61,7 @@ namespace NeoCompose.Runtime
                 return bound;
             }
             if (client.HasWritableValue(ownership, row.id))
-                return client.PublishHeldPayloadWrite(ownership, row) ?? row;
+                return client.DefersGlobalizationWrites ? row : client.PublishHeldPayloadWrite(ownership, row) ?? row;
             client.EnsureWritableShadow(ownership, row.id);
             RefreshCommittedValue();
             return value ?? row;

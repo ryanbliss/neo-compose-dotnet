@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     [NeoEnum(typeof(HueOptions))]
     public enum Hue
     {
-        Red = 2013547243,
-        Green = 21393605,
-        Blue = 1297587155,
+        Red = 1812174173,
+        Green = 1703316152,
+        Blue = 1324776076,
     }
 
     /// <summary>
@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "dad8b19c-705d-4c2b-8f66-bfc9aac6d867" => Hue.Red,
-                "56b0b71e-7de2-45ca-b8d0-ea2cfe3c87a2" => Hue.Green,
-                "30c76da7-107a-4112-8e0a-1ba0f5286870" => Hue.Blue,
+                "5c3123fe-0dea-439a-a6c6-c77c71f6e843" => Hue.Red,
+                "4da6641f-df63-489b-8c32-33315f564042" => Hue.Green,
+                "87bc8893-38ca-4ae3-b2ca-d4c440c52e1d" => Hue.Blue,
                 _ => NeoUndeclaredEnumOptions<Hue>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return value switch
             {
-                Hue.Red => "dad8b19c-705d-4c2b-8f66-bfc9aac6d867",
-                Hue.Green => "56b0b71e-7de2-45ca-b8d0-ea2cfe3c87a2",
-                Hue.Blue => "30c76da7-107a-4112-8e0a-1ba0f5286870",
+                Hue.Red => "5c3123fe-0dea-439a-a6c6-c77c71f6e843",
+                Hue.Green => "4da6641f-df63-489b-8c32-33315f564042",
+                Hue.Blue => "87bc8893-38ca-4ae3-b2ca-d4c440c52e1d",
                 _ => NeoUndeclaredEnumOptions<Hue>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "dad8b19c-705d-4c2b-8f66-bfc9aac6d867" => true,
-                "56b0b71e-7de2-45ca-b8d0-ea2cfe3c87a2" => true,
-                "30c76da7-107a-4112-8e0a-1ba0f5286870" => true,
+                "5c3123fe-0dea-439a-a6c6-c77c71f6e843" => true,
+                "4da6641f-df63-489b-8c32-33315f564042" => true,
+                "87bc8893-38ca-4ae3-b2ca-d4c440c52e1d" => true,
                 _ => false,
             };
         }
