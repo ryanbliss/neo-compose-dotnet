@@ -2411,6 +2411,8 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                 case PrimitiveMemberPointer primitive:
                     return EvalPrimitiveMember(primitive, scope, ctx);
+                case GlobalizationMemberPointer globalization:
+                    return EvalGlobalizationMember(globalization, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
@@ -8509,12 +8511,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 case StringOpKind.ToLower:
                     {
-                        string result = receiverText.ToLowerInvariant();
+                        string result = Globalization.NeoUnicode.ToLowerInvariant(receiverText);
                         return result;
                     }
                 case StringOpKind.ToUpper:
                     {
-                        string result = receiverText.ToUpperInvariant();
+                        string result = Globalization.NeoUnicode.ToUpperInvariant(receiverText);
                         return result;
                     }
                 case StringOpKind.Trim:
@@ -8574,23 +8576,7 @@ namespace NeoCompose.Runtime.NeoScript
                 args[i] = EvalPointer(info.argPointers[i], scope, ctx);
             }
             if (info.number is string number)
-            {
-                string member = $"{number}.{TextOpMemberName(info.op)}";
-                switch (info.op)
-                {
-                    case TextOpKind.Parse:
-                        return NeoText.Parse(number, TextStringArgument(args, 0, member));
-                    case TextOpKind.TryParse:
-                        return NeoText.TryParse(number, TextStringArgument(args, 0, member));
-                    case TextOpKind.Format:
-                        return NeoText.Format(
-                            number,
-                            TextNumberArgument(args, 0, member, number),
-                            TextStringArgument(args, 1, member));
-                    default:
-                        throw new NSGetterRuntimeError($"Unknown text op '{info.op}'.");
-                }
-            }
+                return LegacyNumberText(number, info.op, args);
             string stringMember = $"string.{TextOpMemberName(info.op)}";
             switch (info.op)
             {
@@ -10000,15 +9986,19 @@ namespace NeoCompose.Runtime.NeoScript
                         return true;
                     }
                 case MemberKind.Object:
-                    // Boxes matched above; a Type value is the only other non-row value.
+                    // Built-in reference values keep their CLR identity.
                     return ((ObjectTypeInfo)checkType).objectType switch
                     {
                         null => true,
                         NeoObjectTypeKind.Type => value is NeoTypeValue,
+                        NeoObjectTypeKind.CultureInfo => value is CultureInfo,
+                        NeoObjectTypeKind.NumberFormatInfo => value is NumberFormatInfo,
                         _ => false,
                     };
                 case MemberKind.Interface:
                     {
+                        if (IsClrFormatProvider(value, checkType))
+                            return true;
                         if (IsIntrinsicSequence(value, checkType, ctx))
                             return true;
                         if (value is not IDictionary<string, object?>)
@@ -10266,7 +10256,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (member is ObjectMember { objectType: NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo } declared
                 && row is PayloadMemberValue)
             {
-                return ReadDeclaredRow(row, declared.objectType!.Value);
+                return ReadDeclaredRow(row, declared, ownership, ctx);
             }
             return row switch
             {
@@ -12230,6 +12220,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static object? ResolveCollectionValues(object? value, Context ctx, bool exportDictionaries)
         {
+            if (exportDictionaries && value is ClrFormatProvider provider)
+                return provider.Source;
             if (!exportDictionaries && value is RuntimeDictionary)
                 return value;
             if (value is RuntimeTuple tuple)

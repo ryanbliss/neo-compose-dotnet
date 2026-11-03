@@ -32,6 +32,7 @@ namespace NeoCompose.Runtime.NeoScript
                 MemberKind.Vector2 or MemberKind.Vector2Int or MemberKind.Vector3 or MemberKind.Vector3Int or MemberKind.Color => "UnityEngine." + type.Head.Type,
                 MemberKind.Tuple => ClrTupleTypeName(type, 0, ctx),
                 MemberKind.Object when type.Head.ObjectType is null => "System.Object",
+                MemberKind.Object when type.Head.ObjectType is NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo => "System.Globalization." + NeoTypeNames.ObjectName(type.Head.ObjectType),
                 MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.Enum => "System.Enum",
                 MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.ValueType => "System.ValueType",
                 _ => TypeName(type, ctx),

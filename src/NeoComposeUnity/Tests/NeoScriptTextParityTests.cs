@@ -31,7 +31,8 @@ namespace NeoCompose.Tests
         public static IEnumerable<string> ErrorCases() => NeoSourceParityFixture.Cases(ErrorFixtureFile);
 
         [TestCaseSource(nameof(ErrorCases))]
-        public void AuthoredCatchMatchesCliErrorClass(string name) => NeoSourceParityFixture.AssertTrueCase(ErrorFixtureFile, name);
+        public void AuthoredCatchMatchesCliErrorClass(string name) => NeoSourceParityFixture.AssertTrueCase(
+            ErrorFixtureFile, name, baseExport: "p127-globalization-parity-export.json");
 
         [Test]
         public void EveryEvaluateCaseProducesTheSharedResult()
@@ -52,15 +53,13 @@ namespace NeoCompose.Tests
                 catch (NSGetterRuntimeError error)
                 {
                     string? expectedMessage = testCase["expectedError"]?.Value<string>();
-                    if (error.Message != expectedMessage)
+                    if (error.DiagnosticMessage != expectedMessage)
                     {
                         failures.Add(
-                            $"[{name}] threw '{error.Message}', expected {Describe(testCase)}");
+                            $"[{name}] threw '{error.DiagnosticMessage}', expected {Describe(testCase)}");
                     }
-                    if (error.Payload.ClassId != NeoErrorContract.NeoArgumentError)
-                    {
-                        failures.Add($"[{name}] threw error class '{error.Payload.ClassId}', expected NeoArgumentError");
-                    }
+                    // The shared fixture pins messages. Authored catches in
+                    // text-error-source-parity.json pin the error classes.
                     continue;
                 }
                 string? divergence = Diverges(testCase, produced);

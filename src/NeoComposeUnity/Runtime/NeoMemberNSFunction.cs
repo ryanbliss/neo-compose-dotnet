@@ -2097,6 +2097,9 @@ namespace NeoCompose.Runtime
                     : payload.value;
             }
             value = NSGetterEvaluator.UnwrapHostComparer(value, client);
+            value = NSGetterEvaluator.ImportFormatProvider(value);
+            if (NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
+                return value;
             NeoClient? owner = NeoExtensionRuntime.ClientOf(value);
             if (owner is not null && !ReferenceEquals(client, owner))
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
@@ -2349,6 +2352,9 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            if (NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
+                return;
+
             bool valid = typeInfo.type switch
             {
                 MemberKind.Null => false,
@@ -2453,7 +2459,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             ValueSubject subject)
         {
-            if (value is null)
+            if (value is null || NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
                 return;
 
             switch (typeInfo.type)

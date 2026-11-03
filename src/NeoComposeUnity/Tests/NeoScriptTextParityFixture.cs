@@ -20,7 +20,7 @@ namespace NeoCompose.Tests
     public static class NeoScriptTextParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""P115 \u00a74.5 cross-runtime string library and number text parity fixture. Hand-authored raw IR, never generated from either runtime: a fixture dumped from one runtime cannot catch a divergence in that runtime's own logic. Expectations come from an independent oracle (Python's str over UTF-16 code units, decimal quantize with ROUND_HALF_EVEN for float and ROUND_HALF_UP for decimal, and struct float32 round trips). Consumed by packages/models/src/neoscript/text-parity.test.ts (web) and NeoScriptTextParityTests (neo-compose-dotnet, vendored verbatim copy)."",
+  ""$comment"": ""P115 \u00a74.5 cross-runtime string library and number text parity fixture. Hand-authored raw IR, never generated from either runtime: a fixture dumped from one runtime cannot catch a divergence in that runtime's own logic. Expectations come from an independent oracle: the number format, parse and TryParse cases from .NET 10 (P127 §11, InvariantGlobalization, /tmp/p127/probes/b7-text-parity), the rest from (Python's str over UTF-16 code units, decimal quantize with ROUND_HALF_EVEN for float and ROUND_HALF_UP for decimal, and struct float32 round trips). Consumed by packages/models/src/neoscript/text-parity.test.ts (web) and NeoScriptTextParityTests (neo-compose-dotnet, vendored verbatim copy)."",
   ""$evaluateComment"": ""Consumers wrap each case's `pointer` in a parameterless getter whose single `return` has the case's `typeInfo`. Exactly one expectation is present per case. `expected` is compared exactly: strings and bools as-is, int and float results numerically as doubles, decimal results as canonical strings, and `null` for a TryParse that refused its input. `expectedList` is a List<string> compared entry by entry. `expectedError` must match the thrown evaluator error byte for byte. Non-finite floats come from IEEE-exact arithmetic (`1e200 * 1e200`) because JSON has no literal for them."",
   ""evaluateCases"": [
     {
@@ -5766,7 +5766,7 @@ namespace NeoCompose.Tests
       ""expected"": ""2.67""
     },
     {
-      ""name"": ""float -0.001 F2 drops the minus sign"",
+      ""name"": ""float -0.001 F2 keeps the minus sign"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -5803,10 +5803,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": ""0.00""
+      ""expected"": ""-0.00""
     },
     {
-      ""name"": ""decimal -0.001 N2 drops the minus sign"",
+      ""name"": ""decimal -0.001 N2 keeps the minus sign"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7294,7 +7294,7 @@ namespace NeoCompose.Tests
       ""expected"": ""-Infinity""
     },
     {
-      ""name"": ""int format \""\"" error"",
+      ""name"": ""int format \""\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7331,10 +7331,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format must not be empty.""
+      ""expected"": ""1""
     },
     {
-      ""name"": ""int format \""x9z\"" error"",
+      ""name"": ""int format \""x9z\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7371,10 +7371,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format must start with D, F, or N.""
+      ""expected"": ""x9z""
     },
     {
-      ""name"": ""int format \""P2\"" error"",
+      ""name"": ""int format \""P2\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7411,10 +7411,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format must start with D, F, or N.""
+      ""expected"": ""100.00 %""
     },
     {
-      ""name"": ""int format \""F1a\"" error"",
+      ""name"": ""int format \""F1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7451,10 +7451,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must contain only digits.""
+      ""expected"": ""F1a""
     },
     {
-      ""name"": ""int format \""F-1\"" error"",
+      ""name"": ""int format \""F-1\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7491,10 +7491,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must contain only digits.""
+      ""expected"": ""F-1""
     },
     {
-      ""name"": ""int format \""F\\u0661\"" error"",
+      ""name"": ""int format \""F\\u0661\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7531,10 +7531,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must contain only digits.""
+      ""expected"": ""F\u0661""
     },
     {
-      ""name"": ""int format \""F999\"" error"",
+      ""name"": ""int format \""F999\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7571,10 +7571,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000""
     },
     {
-      ""name"": ""int format \""N29\"" error"",
+      ""name"": ""int format \""N29\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7611,10 +7611,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.00000000000000000000000000000""
     },
     {
-      ""name"": ""float format \""\"" error"",
+      ""name"": ""float format \""\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7651,10 +7651,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format must not be empty.""
+      ""expected"": ""1""
     },
     {
-      ""name"": ""float format \""x9z\"" error"",
+      ""name"": ""float format \""x9z\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7691,10 +7691,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format must start with F or N.""
+      ""expected"": ""x9z""
     },
     {
-      ""name"": ""float format \""P2\"" error"",
+      ""name"": ""float format \""P2\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7731,10 +7731,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format must start with F or N.""
+      ""expected"": ""100.00 %""
     },
     {
-      ""name"": ""float format \""F1a\"" error"",
+      ""name"": ""float format \""F1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7771,10 +7771,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format precision must contain only digits.""
+      ""expected"": ""F1a""
     },
     {
-      ""name"": ""float format \""F-1\"" error"",
+      ""name"": ""float format \""F-1\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7811,10 +7811,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format precision must contain only digits.""
+      ""expected"": ""F-1""
     },
     {
-      ""name"": ""float format \""F\\u0661\"" error"",
+      ""name"": ""float format \""F\\u0661\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7851,10 +7851,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format precision must contain only digits.""
+      ""expected"": ""F\u0661""
     },
     {
-      ""name"": ""float format \""F999\"" error"",
+      ""name"": ""float format \""F999\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7891,10 +7891,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000""
     },
     {
-      ""name"": ""float format \""N29\"" error"",
+      ""name"": ""float format \""N29\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7931,10 +7931,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.00000000000000000000000000000""
     },
     {
-      ""name"": ""decimal format \""\"" error"",
+      ""name"": ""decimal format \""\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -7971,10 +7971,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format must not be empty.""
+      ""expected"": ""1""
     },
     {
-      ""name"": ""decimal format \""x9z\"" error"",
+      ""name"": ""decimal format \""x9z\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8011,10 +8011,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format must start with F or N.""
+      ""expected"": ""x9z""
     },
     {
-      ""name"": ""decimal format \""P2\"" error"",
+      ""name"": ""decimal format \""P2\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8051,10 +8051,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format must start with F or N.""
+      ""expected"": ""100.00 %""
     },
     {
-      ""name"": ""decimal format \""F1a\"" error"",
+      ""name"": ""decimal format \""F1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8091,10 +8091,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format precision must contain only digits.""
+      ""expected"": ""F1a""
     },
     {
-      ""name"": ""decimal format \""F-1\"" error"",
+      ""name"": ""decimal format \""F-1\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8131,10 +8131,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format precision must contain only digits.""
+      ""expected"": ""F-1""
     },
     {
-      ""name"": ""decimal format \""F\\u0661\"" error"",
+      ""name"": ""decimal format \""F\\u0661\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8171,10 +8171,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format precision must contain only digits.""
+      ""expected"": ""F\u0661""
     },
     {
-      ""name"": ""decimal format \""F999\"" error"",
+      ""name"": ""decimal format \""F999\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8211,10 +8211,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000""
     },
     {
-      ""name"": ""decimal format \""N29\"" error"",
+      ""name"": ""decimal format \""N29\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8251,10 +8251,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format precision must be 0 to 28.""
+      ""expected"": ""1.00000000000000000000000000000""
     },
     {
-      ""name"": ""float format \""D1a\"" fails at the letter"",
+      ""name"": ""float format \""D1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8291,10 +8291,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.ToString format must start with F or N.""
+      ""expected"": ""D1a""
     },
     {
-      ""name"": ""decimal format \""D1a\"" fails at the letter"",
+      ""name"": ""decimal format \""D1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8331,10 +8331,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.ToString format must start with F or N.""
+      ""expected"": ""D1a""
     },
     {
-      ""name"": ""int format \""D1a\"" fails at the digits"",
+      ""name"": ""int format \""D1a\"" formats"",
       ""typeInfo"": {
         ""type"": 3,
         ""required"": true
@@ -8371,7 +8371,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.ToString format precision must contain only digits.""
+      ""expected"": ""D1a""
     },
     {
       ""name"": ""int.Parse \""2147483647\"""",
@@ -8461,7 +8461,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is outside the int range.""
+      ""expectedError"": ""Value was either too large or too small for an Int32.""
     },
     {
       ""name"": ""int.TryParse \""2147483648\"""",
@@ -8581,7 +8581,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is outside the int range.""
+      ""expectedError"": ""Value was either too large or too small for an Int32.""
     },
     {
       ""name"": ""int.TryParse \""-2147483649\"""",
@@ -8881,7 +8881,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '\u00a07' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""\\u00a07\"""",
@@ -9001,7 +9001,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '1e3' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""1e3\"""",
@@ -9061,7 +9061,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '1.0' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""1.0\"""",
@@ -9121,7 +9121,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""\"""",
@@ -9181,7 +9181,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '+' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""+\"""",
@@ -9241,7 +9241,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '1,000' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""1,000\"""",
@@ -9301,7 +9301,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '0x10' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""0x10\"""",
@@ -9361,7 +9361,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is not an integer.""
+      ""expectedError"": ""The input string '\u0661\u0662' was not in a correct format.""
     },
     {
       ""name"": ""int.TryParse \""\\u0661\\u0662\"""",
@@ -9421,7 +9421,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""int.Parse input is outside the int range.""
+      ""expectedError"": ""Value was either too large or too small for an Int32.""
     },
     {
       ""name"": ""int.TryParse \""99999999999999999999\"""",
@@ -9481,7 +9481,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 1000.0
+      ""expected"": 1000
     },
     {
       ""name"": ""float.TryParse \""1e3\"""",
@@ -9511,7 +9511,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 1000.0
+      ""expected"": 1000
     },
     {
       ""name"": ""float.Parse \"".5\"""",
@@ -9601,7 +9601,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 5.0
+      ""expected"": 5
     },
     {
       ""name"": ""float.TryParse \""5.\"""",
@@ -9631,7 +9631,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 5.0
+      ""expected"": 5
     },
     {
       ""name"": ""float.Parse \""+5\"""",
@@ -9661,7 +9661,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 5.0
+      ""expected"": 5
     },
     {
       ""name"": ""float.TryParse \""+5\"""",
@@ -9691,7 +9691,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 5.0
+      ""expected"": 5
     },
     {
       ""name"": ""float.Parse \""-0\"""",
@@ -9721,7 +9721,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
       ""name"": ""float.TryParse \""-0\"""",
@@ -9751,7 +9751,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
       ""name"": ""float.Parse \""-0.0e5\"""",
@@ -9781,7 +9781,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
       ""name"": ""float.TryParse \""-0.0e5\"""",
@@ -9811,7 +9811,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
       ""name"": ""float.Parse \""-1e-50\"""",
@@ -9841,7 +9841,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
       ""name"": ""float.TryParse \""-1e-50\"""",
@@ -9871,12 +9871,12 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 0.0
+      ""expected"": -0.0
     },
     {
-      ""name"": ""float.Parse \""1e39\"" fails"",
+      ""name"": ""float.Parse \""1e39\"" formats as Infinity"",
       ""typeInfo"": {
-        ""type"": 4,
+        ""type"": 3,
         ""required"": true
       },
       ""pointer"": {
@@ -9884,9 +9884,31 @@ namespace NeoCompose.Tests
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""parse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""parse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""1e39""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -9894,49 +9916,19 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""1e39""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expectedError"": ""float.Parse input is outside the float range.""
+      ""expected"": ""Infinity""
     },
     {
-      ""name"": ""float.TryParse \""1e39\"""",
+      ""name"": ""float.TryParse \""1e39\"" formats as Infinity"",
       ""typeInfo"": {
-        ""type"": 4,
-        ""required"": false
-      },
-      ""pointer"": {
-        ""type"": ""function"",
-        ""function"": {
-          ""type"": ""textOp"",
-          ""info"": {
-            ""op"": ""tryParse"",
-            ""number"": ""float"",
-            ""argPointers"": [
-              {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 3,
-                    ""required"": true
-                  },
-                  ""value"": ""1e39""
-                }
-              }
-            ]
-          }
-        }
-      },
-      ""expected"": null
-    },
-    {
-      ""name"": ""float.Parse \""1e999\"" fails"",
-      ""typeInfo"": {
-        ""type"": 4,
+        ""type"": 3,
         ""required"": true
       },
       ""pointer"": {
@@ -9944,9 +9936,31 @@ namespace NeoCompose.Tests
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""parse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""tryParse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""1e39""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -9954,29 +9968,51 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""1e999""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expectedError"": ""float.Parse input is outside the float range.""
+      ""expected"": ""Infinity""
     },
     {
-      ""name"": ""float.TryParse \""1e999\"""",
+      ""name"": ""float.Parse \""1e999\"" formats as Infinity"",
       ""typeInfo"": {
-        ""type"": 4,
-        ""required"": false
+        ""type"": 3,
+        ""required"": true
       },
       ""pointer"": {
         ""type"": ""function"",
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""tryParse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""parse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""1e999""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -9984,14 +10020,66 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""1e999""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""Infinity""
+    },
+    {
+      ""name"": ""float.TryParse \""1e999\"" formats as Infinity"",
+      ""typeInfo"": {
+        ""type"": 3,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""function"",
+        ""function"": {
+          ""type"": ""textOp"",
+          ""info"": {
+            ""op"": ""format"",
+            ""number"": ""float"",
+            ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""tryParse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""1e999""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": ""F2""
+                }
+              }
+            ]
+          }
+        }
+      },
+      ""expected"": ""Infinity""
     },
     {
       ""name"": ""float.Parse \""3.4028235e38\"""",
@@ -10054,7 +10142,7 @@ namespace NeoCompose.Tests
       ""expected"": 3.4028234663852886e38
     },
     {
-      ""name"": ""float.Parse \""1,000\"" fails"",
+      ""name"": ""float.Parse \""1,000\"" parses"",
       ""typeInfo"": {
         ""type"": 4,
         ""required"": true
@@ -10081,7 +10169,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expected"": 1000
     },
     {
       ""name"": ""float.TryParse \""1,000\"""",
@@ -10111,7 +10199,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": null
+      ""expected"": 1000
     },
     {
       ""name"": ""float.Parse \""0x10\"" fails"",
@@ -10141,7 +10229,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expectedError"": ""The input string '0x10' was not in a correct format.""
     },
     {
       ""name"": ""float.TryParse \""0x10\"""",
@@ -10201,7 +10289,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expectedError"": ""The input string '\u0661\u0662' was not in a correct format.""
     },
     {
       ""name"": ""float.TryParse \""\\u0661\\u0662\"""",
@@ -10234,9 +10322,9 @@ namespace NeoCompose.Tests
       ""expected"": null
     },
     {
-      ""name"": ""float.Parse \""NaN\"" fails"",
+      ""name"": ""float.Parse \""NaN\"" formats as NaN"",
       ""typeInfo"": {
-        ""type"": 4,
+        ""type"": 3,
         ""required"": true
       },
       ""pointer"": {
@@ -10244,9 +10332,31 @@ namespace NeoCompose.Tests
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""parse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""parse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""NaN""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -10254,49 +10364,19 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""NaN""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expected"": ""NaN""
     },
     {
-      ""name"": ""float.TryParse \""NaN\"""",
+      ""name"": ""float.TryParse \""NaN\"" formats as NaN"",
       ""typeInfo"": {
-        ""type"": 4,
-        ""required"": false
-      },
-      ""pointer"": {
-        ""type"": ""function"",
-        ""function"": {
-          ""type"": ""textOp"",
-          ""info"": {
-            ""op"": ""tryParse"",
-            ""number"": ""float"",
-            ""argPointers"": [
-              {
-                ""type"": ""value"",
-                ""value"": {
-                  ""typeInfo"": {
-                    ""type"": 3,
-                    ""required"": true
-                  },
-                  ""value"": ""NaN""
-                }
-              }
-            ]
-          }
-        }
-      },
-      ""expected"": null
-    },
-    {
-      ""name"": ""float.Parse \""Infinity\"" fails"",
-      ""typeInfo"": {
-        ""type"": 4,
+        ""type"": 3,
         ""required"": true
       },
       ""pointer"": {
@@ -10304,9 +10384,31 @@ namespace NeoCompose.Tests
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""parse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""tryParse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""NaN""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -10314,29 +10416,51 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""Infinity""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expected"": ""NaN""
     },
     {
-      ""name"": ""float.TryParse \""Infinity\"""",
+      ""name"": ""float.Parse \""Infinity\"" formats as Infinity"",
       ""typeInfo"": {
-        ""type"": 4,
-        ""required"": false
+        ""type"": 3,
+        ""required"": true
       },
       ""pointer"": {
         ""type"": ""function"",
         ""function"": {
           ""type"": ""textOp"",
           ""info"": {
-            ""op"": ""tryParse"",
+            ""op"": ""format"",
             ""number"": ""float"",
             ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""parse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""Infinity""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
               {
                 ""type"": ""value"",
                 ""value"": {
@@ -10344,14 +10468,66 @@ namespace NeoCompose.Tests
                     ""type"": 3,
                     ""required"": true
                   },
-                  ""value"": ""Infinity""
+                  ""value"": ""F2""
                 }
               }
             ]
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""Infinity""
+    },
+    {
+      ""name"": ""float.TryParse \""Infinity\"" formats as Infinity"",
+      ""typeInfo"": {
+        ""type"": 3,
+        ""required"": true
+      },
+      ""pointer"": {
+        ""type"": ""function"",
+        ""function"": {
+          ""type"": ""textOp"",
+          ""info"": {
+            ""op"": ""format"",
+            ""number"": ""float"",
+            ""argPointers"": [
+              {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""textOp"",
+                  ""info"": {
+                    ""op"": ""tryParse"",
+                    ""number"": ""float"",
+                    ""argPointers"": [
+                      {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""value"": ""Infinity""
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                ""type"": ""value"",
+                ""value"": {
+                  ""typeInfo"": {
+                    ""type"": 3,
+                    ""required"": true
+                  },
+                  ""value"": ""F2""
+                }
+              }
+            ]
+          }
+        }
+      },
+      ""expected"": ""Infinity""
     },
     {
       ""name"": ""float.Parse \"" 2.5 \"""",
@@ -10441,7 +10617,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expectedError"": ""The input string '\u00a02.5' was not in a correct format.""
     },
     {
       ""name"": ""float.TryParse \""\\u00a02.5\"""",
@@ -10501,7 +10677,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expectedError"": ""The input string '1e' was not in a correct format.""
     },
     {
       ""name"": ""float.TryParse \""1e\"""",
@@ -10561,7 +10737,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""float.Parse input is not a number.""
+      ""expectedError"": ""The input string '.' was not in a correct format.""
     },
     {
       ""name"": ""float.TryParse \"".\"""",
@@ -10681,7 +10857,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 16777216.0
+      ""expected"": 16777216
     },
     {
       ""name"": ""float.TryParse \""16777217\"""",
@@ -10711,7 +10887,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": 16777216.0
+      ""expected"": 16777216
     },
     {
       ""name"": ""decimal.Parse \""1.50\"""",
@@ -11161,7 +11337,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expectedError"": ""The input string '1e3' was not in a correct format.""
     },
     {
       ""name"": ""decimal.TryParse \""1e3\"""",
@@ -11281,7 +11457,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expectedError"": ""The input string '\u00a01' was not in a correct format.""
     },
     {
       ""name"": ""decimal.TryParse \""\\u00a01\"""",
@@ -11314,7 +11490,7 @@ namespace NeoCompose.Tests
       ""expected"": null
     },
     {
-      ""name"": ""decimal.Parse \""1,000\"" fails"",
+      ""name"": ""decimal.Parse \""1,000\"" parses"",
       ""typeInfo"": {
         ""type"": 20,
         ""required"": true
@@ -11341,7 +11517,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expected"": ""1000""
     },
     {
       ""name"": ""decimal.TryParse \""1,000\"""",
@@ -11371,7 +11547,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""1000""
     },
     {
       ""name"": ""decimal.Parse \""\\u0661\"" fails"",
@@ -11401,7 +11577,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expectedError"": ""The input string '\u0661' was not in a correct format.""
     },
     {
       ""name"": ""decimal.TryParse \""\\u0661\"""",
@@ -11461,7 +11637,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expectedError"": ""The input string '.' was not in a correct format.""
     },
     {
       ""name"": ""decimal.TryParse \"".\"""",
@@ -11521,7 +11697,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input is not a decimal number.""
+      ""expectedError"": ""The input string '' was not in a correct format.""
     },
     {
       ""name"": ""decimal.TryParse \""\"""",
@@ -11614,7 +11790,7 @@ namespace NeoCompose.Tests
       ""expected"": ""1234567890123456789012345678""
     },
     {
-      ""name"": ""decimal.Parse \""12345678901234567890123456789\"" fails"",
+      ""name"": ""decimal.Parse \""12345678901234567890123456789\"" parses"",
       ""typeInfo"": {
         ""type"": 20,
         ""required"": true
@@ -11641,7 +11817,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input has more than 28 significant digits.""
+      ""expected"": ""12345678901234567890123456789""
     },
     {
       ""name"": ""decimal.TryParse \""12345678901234567890123456789\"""",
@@ -11671,7 +11847,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""12345678901234567890123456789""
     },
     {
       ""name"": ""decimal.Parse \""0.0000000000000000000000000001\"""",
@@ -11734,7 +11910,7 @@ namespace NeoCompose.Tests
       ""expected"": ""0.0000000000000000000000000001""
     },
     {
-      ""name"": ""decimal.Parse \""0.00000000000000000000000000001\"" fails"",
+      ""name"": ""decimal.Parse \""0.00000000000000000000000000001\"" parses"",
       ""typeInfo"": {
         ""type"": 20,
         ""required"": true
@@ -11761,7 +11937,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input has more than 28 fractional digits.""
+      ""expected"": ""0.0000000000000000000000000000""
     },
     {
       ""name"": ""decimal.TryParse \""0.00000000000000000000000000001\"""",
@@ -11791,10 +11967,10 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""0.0000000000000000000000000000""
     },
     {
-      ""name"": ""decimal.Parse \""-79228162514264337593543950335\"" fails"",
+      ""name"": ""decimal.Parse \""-79228162514264337593543950335\"" parses"",
       ""typeInfo"": {
         ""type"": 20,
         ""required"": true
@@ -11821,7 +11997,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expectedError"": ""decimal.Parse input has more than 28 significant digits.""
+      ""expected"": ""-79228162514264337593543950335""
     },
     {
       ""name"": ""decimal.TryParse \""-79228162514264337593543950335\"""",
@@ -11851,7 +12027,7 @@ namespace NeoCompose.Tests
           }
         }
       },
-      ""expected"": null
+      ""expected"": ""-79228162514264337593543950335""
     },
     {
       ""name"": ""Substring negative start"",
@@ -12304,6 +12480,7 @@ namespace NeoCompose.Tests
       ""expectedError"": ""string.PadRight paddingChar must be exactly one character.""
     }
   ]
-}";
+}
+";
     }
 }
