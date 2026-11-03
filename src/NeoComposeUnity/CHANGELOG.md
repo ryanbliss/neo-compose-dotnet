@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.5] - 2026-11-03
+
+- Preserve authored row identities when copying nested declaration defaults, so exported references resolve the same slot and value as direct member reads.
+
 ## [0.81.4] - 2026-11-01
 
 - Preserve variant overrides for independently loaded children when restoring construction snapshots. Fixes saved dig spots keeping their old sprite on the first variant swap after startup.

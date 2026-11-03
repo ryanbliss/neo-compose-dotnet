@@ -187,3 +187,10 @@ cursor interface members cannot have a storage target.
 
 This version accepts Unity export schema 46. Regenerate exports with the matching
 Neo Compose CLI before upgrading the SDK.
+
+The nested palette reference regression uses a CLI-generated export in
+`src/NeoComposeUnity/Tests/nested-color-export.json`. Regenerate it from the web
+repository with `NEO_NESTED_COLOR_EXPORT=<absolute SDK Tests path>/nested-color-export.json npx vitest run --project unit cli/src/commands/nested-color-reference.test.ts`, then run
+`unity test samples/HelloWorld --mode EditMode --filter NestedColorReferenceTests`.
+The test compares exported reference identity and color with direct nested-default
+access on cold and warm reads and fresh client loads.
