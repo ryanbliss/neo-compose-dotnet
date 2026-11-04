@@ -87,7 +87,7 @@ namespace NeoCompose.Tests
             Assert.That(File.Exists(Export), Is.True, "Vendor Compose's final B7 compiled export.");
             Assert.That(name, Is.Not.Null, "The shared fixture must contain runtime cases.");
             Assert.That(Directory.Exists(Root + "P127GlobalizationParity/Generated"), Is.True,
-                "Vendor the B8 generated artifact alongside its export.");
+                "Vendor the generated artifact alongside its export.");
             Assert.That(File.Exists(Root + "P127GlobalizationParity/NeoGeneratedFiles.json"), Is.True);
             using var initial = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
             using var reloaded = persists ? WriteAndReload(initial, name!) : null;

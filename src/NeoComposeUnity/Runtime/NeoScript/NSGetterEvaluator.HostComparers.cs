@@ -38,6 +38,8 @@ namespace NeoCompose.Runtime.NeoScript
             ? TypeBinding.Closed(new TypeHead(MemberKind.Set, true), new Dictionary<string, TypeBinding> { ["0"] = value.Type! })
             : value.Type!;
 
+        // Selected only by reflection; retain the factory in stripped players.
+        [UnityEngine.Scripting.Preserve]
         private static object CreateHostComparer<T>(NeoBuiltInComparer value, Context context) =>
             value.Family == NeoComparerFamilyKind.Equality
                 ? new HostEqualityComparer<T>(new BoundEquality(HostComparerArgument(value), value, context), context, context.valueOwnership)

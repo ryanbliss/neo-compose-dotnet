@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), and `out` results a flow attribute or a nullable type lets stay null. The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface`; it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
+  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), `out` results a flow attribute or a nullable type lets stay null, explicit IEquatable<C> and IComparable<C> implementations (with their read-only bridges), protected and private getters, and Reference<T> under a system-interface constraint bound to int (a slot) and to a class (a handle). The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface`; it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
   "source": [
     "class Box { public int A = 1; }",
     "class Box<T> { public T? V; public static int Count = 0; public static NeoAction Changed; }",
@@ -14,6 +14,9 @@
     "  public override string ToString() => \"coin\";",
     "}",
     "abstract class Keyed { public abstract override int GetHashCode(); }",
+    "class KeyedN : Keyed { public override int GetHashCode() => 2; }",
+    "interface IKeyedBy<T> : IEquatable<T> { int Key(); }",
+    "class ById : IKeyedBy<ById> { public int Key() => 1; public bool Equals(ById? other) => other != null && other.Key() == Key(); }",
     "class Ci : EqualityComparer<string> { public override bool Equals(string? x, string? y) => x == y; public override int GetHashCode(string obj) => 0; }",
     "class Fold : EqualityComparer<string> { public override bool Equals(string? x, string? y) => x?.ToLower() == y?.ToLower(); public override int GetHashCode(string obj) => obj.Length; }",
     "class ByLen : Comparer<string> { public override int Compare(string? x, string? y) => (x ?? \"\").Length - (y ?? \"\").Length; }",
@@ -27,6 +30,12 @@
     "class InitOnly { public int A { get; init; } = 0; }",
     "class Auto { public int W { get; protected set; } = 1; }",
     "class Holder { public CultureInfo Culture = CultureInfo.InvariantCulture; public IFormatProvider? Provider = null; public EqualityComparer<string>? Cmp = null; }",
+    "class ExplicitEq : IEquatable<ExplicitEq> { public int K = 0; public ExplicitEq(int k) { K = k; } bool IEquatable<ExplicitEq>.Equals(ExplicitEq? other) => other != null && other.K == K; }",
+    "class ExplicitCmp : IComparable<ExplicitCmp> { public int K = 0; public ExplicitCmp(int k) { K = k; } int IComparable<ExplicitCmp>.CompareTo(ExplicitCmp? other) => other == null ? 1 : K - other.K; }",
+    "class Gated { public int P { protected get; set; } = 0; public int Q { private get; set; } = 0; public int Sum() => P * 10 + Q; }",
+    "class GatedSub : Gated { public int ReadP() => P; }",
+    "class Money : IComparable<Money> { public int V = 0; public int CompareTo(Money? other) => other == null ? 1 : V - other.V; }",
+    "class Slot<T extends IComparable<T>> { public T Value; public Reference<T> R; public Slot(T value) { this.Value = value; this.R = Reference(this.Value); } }",
     "class Parsed {",
     "  public int V = 0;",
     "  public static bool TryParse(string s, @maybeNullWhen(false) out Parsed result) { if (s == \"ok\") { result = new Parsed(); result.V = 1; return true; } result = default; return false; }",
@@ -34,6 +43,12 @@
     "  public static bool TryFirst<T>(List<T> items, @maybeNullWhen(false) out T result) { if (items.Count > 0) { result = items[0]; return true; } result = default; return false; }",
     "}",
     "class Probe {",
+    "  @storage(allowed: .Session) public static Slot<int>? StoredInt;",
+    "  @storage(allowed: .Session) public static Slot<Money>? StoredMoney;",
+    "  public static ExplicitEq EqLeft = new ExplicitEq(4);",
+    "  public static ExplicitEq EqRight = new ExplicitEq(4);",
+    "  public static ExplicitCmp CmpLeft = new ExplicitCmp(5);",
+    "  public static ExplicitCmp CmpRight = new ExplicitCmp(2);",
     "  public static Fold FoldComparer = new Fold();",
     "  public static ByLen LengthComparer = new ByLen();",
     "  public static bool TryIt(out int v) { v = 1; return true; }",
@@ -54,6 +69,17 @@
     "  public static int MaybeNullOutSucceeds() { if (Parsed.TryParse(\"ok\", out var p)) return p.V; return -1; }",
     "  public static bool NotNullOutFails() { return !Parsed.TryFind(\"bad\", out var p) && p == null; }",
     "  public static bool GenericMaybeNullOutFails() { return !Parsed.TryFirst(new List<string>(), out var s) && s == null; }",
+    "  public static int AbstractOverrideHash() { object o = new KeyedN(); return o.GetHashCode(); }",
+    "  public static bool InheritedEquatable() { IKeyedBy<ById> k = new ById(); return k.Equals(new ById()); }",
+    "  public static bool ExplicitEquatable() { IEquatable<ExplicitEq> e = EqLeft; return e.Equals(EqRight); }",
+    "  public static int ExplicitComparable() { IComparable<ExplicitCmp> c = CmpLeft; return c.CompareTo(CmpRight); }",
+    "  public static int ProtectedAndPrivateGetters() { var g = new GatedSub(); g.P = 2; g.Q = 3; return g.Sum() * 10 + g.ReadP(); }",
+    "  public static int ReferenceIntWrite() { var s = new Slot<int>(3); s.R = 9; return s.Value; }",
+    "  public static int ReferenceIntRead() { var s = new Slot<int>(4); return s.R; }",
+    "  public static int ReferenceClassWrite() { var m = new Money(); m.V = 5; var s = new Slot<Money>(m); s.R.V = 8; return s.Value.V; }",
+    "  public static bool ReferenceClassSame() { var m = new Money(); var s = new Slot<Money>(m); return object.ReferenceEquals(s.R, s.Value); }",
+    "  public static int ReferenceStoredInt() { StoredInt = new Slot<int>(6); StoredInt.R = 11; return StoredInt.Value; }",
+    "  public static int ReferenceStoredClass() { var m = new Money(); m.V = 2; StoredMoney = new Slot<Money>(m); StoredMoney.R.V = 12; return StoredMoney.Value.V; }",
     "}"
   ],
   "returns": {
@@ -73,7 +99,18 @@
     "MaybeNullOutFails": true,
     "MaybeNullOutSucceeds": 1,
     "NotNullOutFails": true,
-    "GenericMaybeNullOutFails": true
+    "GenericMaybeNullOutFails": true,
+    "AbstractOverrideHash": 2,
+    "InheritedEquatable": true,
+    "ExplicitEquatable": true,
+    "ExplicitComparable": 3,
+    "ProtectedAndPrivateGetters": 232,
+    "ReferenceIntWrite": 9,
+    "ReferenceIntRead": 4,
+    "ReferenceClassWrite": 8,
+    "ReferenceClassSame": true,
+    "ReferenceStoredInt": 11,
+    "ReferenceStoredClass": 12
   },
   "csharpBridges": [
     {
@@ -96,6 +133,34 @@
       "interface": "System.Collections.IComparer",
       "call": "Compare(\"aa\", \"b\")",
       "returns": 1
+    },
+    {
+      "name": "ExplicitEquatable",
+      "receiver": "Probe.EqLeft",
+      "interface": "System.IEquatable<ExplicitEq>",
+      "call": "Equals(Probe.EqRight)",
+      "returns": true
+    },
+    {
+      "name": "ExplicitEquatable",
+      "receiver": "Probe.EqLeft",
+      "interface": "System.IEquatable<IReadOnlyExplicitEq>",
+      "call": "Equals(Probe.EqRight)",
+      "returns": true
+    },
+    {
+      "name": "ExplicitComparable",
+      "receiver": "Probe.CmpLeft",
+      "interface": "System.IComparable<ExplicitCmp>",
+      "call": "CompareTo(Probe.CmpRight)",
+      "returns": 3
+    },
+    {
+      "name": "ExplicitComparable",
+      "receiver": "Probe.CmpLeft",
+      "interface": "System.IComparable<IReadOnlyExplicitCmp>",
+      "call": "CompareTo(Probe.CmpRight)",
+      "returns": 3
     }
   ]
 }
