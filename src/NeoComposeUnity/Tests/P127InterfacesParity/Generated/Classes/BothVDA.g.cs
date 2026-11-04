@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class BothVDA : NeoGeneratedClassValue, IReadOnlyBothVDA
     {
         internal BothVDA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "094122c4-ba8c-4f4c-a173-2155ecba4e40", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d7dc632b-b73e-48a7-9112-839df55b1a7e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "094122c4-ba8c-4f4c-a173-2155ecba4e40");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d7dc632b-b73e-48a7-9112-839df55b1a7e");
         }
 
         internal static BothVDA Create(NeoClient client, NeoMemberClass node)
