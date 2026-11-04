@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class BeastInDA : NeoGeneratedClassValue, IReadOnlyBeastInDA
     {
         internal BeastInDA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3dfc8d4d-d002-476d-accd-917f9b59843b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "353c5b52-9c15-41f5-b371-54f683b94bda", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3dfc8d4d-d002-476d-accd-917f9b59843b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "353c5b52-9c15-41f5-b371-54f683b94bda");
         }
 
         internal static BeastInDA Create(NeoClient client, NeoMemberClass node)
