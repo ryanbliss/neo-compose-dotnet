@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Shelf : NeoGeneratedClassValue, IReadOnlyShelf
     {
         internal Shelf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "01549281-d77c-44fe-8706-bf86b03ab249", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6edc5b4e-c8e9-43fb-a5aa-2a221496d0aa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "01549281-d77c-44fe-8706-bf86b03ab249",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Item", "5779d623-23fe-433f-8af7-68c0623cfcdf", Item),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "24523e29-3685-420f-a398-d037b659bfb2", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "4e21265d-f709-46f4-9f74-fd414c68b99c", Items)
+                "6edc5b4e-c8e9-43fb-a5aa-2a221496d0aa",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Item", "c009aeb6-ccc2-4fb6-86a0-0321ea8f7c79", Item),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "f5a6a4a1-d2b7-4f55-b4f0-b899c0fd6399", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "47bd0da0-dc3b-4b44-bc63-ea2123e6a297", Items)
             );
         }
 
@@ -173,7 +173,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -193,7 +193,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

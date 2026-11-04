@@ -29,12 +29,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public GenericFunctionHeroContract(Hero Subject)
+        public GenericFunctionHeroContract(Hero? Subject = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Subject), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(Hero Subject)
+        private static NeoMemberClassWritable CreateFactoryNode(Hero? Subject = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -164,7 +164,7 @@ namespace Assets.Scripts.Neo
 
         async Task<IReadOnlyHero> IHeroDeferredTransform.TransformLater(IReadOnlyHero value)
         {
-            return await ((GenericFunctionHeroContract)this).TransformLater((Hero)(object)value!);
+            return (IReadOnlyHero)(object)(await ((GenericFunctionHeroContract)this).TransformLater((Hero)(object)value!))!;
         }
 
         public new sealed class Fields
@@ -182,7 +182,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -200,7 +200,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

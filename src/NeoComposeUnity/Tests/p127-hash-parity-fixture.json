@@ -1,0 +1,603 @@
+{
+  "revision": 1,
+  "cases": [
+    {
+      "id": "int-zero",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "value": 0,
+      "hash": 0
+    },
+    {
+      "id": "int-negative-one",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "value": -1,
+      "hash": -1
+    },
+    {
+      "id": "int-max",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "value": 2147483647,
+      "hash": 2147483647
+    },
+    {
+      "id": "int-min",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "value": -2147483648,
+      "hash": -2147483648
+    },
+    {
+      "id": "float-zero",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": 0,
+      "hash": 0
+    },
+    {
+      "id": "float-negative-zero",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": "-0",
+      "hash": 0
+    },
+    {
+      "id": "float-nan",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": "NaN",
+      "hash": 2139095040
+    },
+    {
+      "id": "float-positive-infinity",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": "Infinity",
+      "hash": 2139095040
+    },
+    {
+      "id": "float-negative-infinity",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": "-Infinity",
+      "hash": -8388608
+    },
+    {
+      "id": "float-fraction",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": -2.25,
+      "hash": -1072693248
+    },
+    {
+      "id": "float-max",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": 3.4028234663852886e38,
+      "hash": 2139095039
+    },
+    {
+      "id": "float-epsilon",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 4,
+          "required": true
+        }
+      },
+      "value": 1.401298464324817e-45,
+      "hash": 1
+    },
+    {
+      "id": "decimal-zero",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "0",
+      "hash": 0
+    },
+    {
+      "id": "decimal-negative-zero-scaled",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "-0.00",
+      "hash": 0
+    },
+    {
+      "id": "decimal-trailing-zero",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "1.10",
+      "hash": 65547
+    },
+    {
+      "id": "decimal-stripped",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "1.1",
+      "hash": 65547
+    },
+    {
+      "id": "decimal-negative-trailing-zeros",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "-12.500",
+      "hash": -2147417987
+    },
+    {
+      "id": "decimal-max",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "79228162514264337593543950335",
+      "hash": -1
+    },
+    {
+      "id": "decimal-smallest",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 20,
+          "required": true
+        }
+      },
+      "value": "0.0000000000000000000000000001",
+      "hash": 1835009
+    },
+    {
+      "id": "bool-false",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 1,
+          "required": true
+        }
+      },
+      "value": false,
+      "hash": 0
+    },
+    {
+      "id": "bool-true",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 1,
+          "required": true
+        }
+      },
+      "value": true,
+      "hash": 1
+    },
+    {
+      "id": "string-empty",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "value": "",
+      "hash": 0
+    },
+    {
+      "id": "string-ascii",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "value": "seed",
+      "hash": 3526257
+    },
+    {
+      "id": "string-non-ascii",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "value": "héllo 日本",
+      "hash": 394469753
+    },
+    {
+      "id": "string-surrogate-pair",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "value": "🌱",
+      "hash": 1773173
+    },
+    {
+      "id": "string-lone-surrogate",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 3,
+          "required": true
+        }
+      },
+      "value": "a\ud800",
+      "hash": 58303
+    },
+    {
+      "id": "enum-declared-first",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 8,
+          "required": true,
+          "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
+        }
+      },
+      "value": ["system_2e4ca40e-f305-49c6-a91b-b99d56239ba0"],
+      "hash": 0
+    },
+    {
+      "id": "enum-declared-second",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 8,
+          "required": true,
+          "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
+        }
+      },
+      "value": ["system_6478d195-3905-48db-befe-d276eb5478f0"],
+      "hash": 1
+    },
+    {
+      "id": "enum-orphan",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 8,
+          "required": true,
+          "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
+        }
+      },
+      "value": ["option-gone"],
+      "hash": -1041950058
+    },
+    {
+      "id": "enum-orphan-p103",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 8,
+          "required": true,
+          "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
+        }
+      },
+      "value": ["option-8909"],
+      "hash": -220483724
+    },
+    {
+      "id": "tuple-int-string",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 3,
+              "required": true
+            }
+          }
+        }
+      },
+      "value": [1, "a"],
+      "hash": 16465
+    },
+    {
+      "id": "tuple-bool-float",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 1,
+              "required": true
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 4,
+              "required": true
+            }
+          }
+        }
+      },
+      "value": [true, "NaN"],
+      "hash": 2139111408
+    },
+    {
+      "id": "tuple-nulls",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": false
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 3,
+              "required": false
+            }
+          }
+        }
+      },
+      "value": [null, null],
+      "hash": 16337
+    },
+    {
+      "id": "tuple-nested",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 30,
+              "required": true
+            },
+            "bindings": {
+              "0": {
+                "kind": 0,
+                "type": {
+                  "type": 2,
+                  "required": true
+                }
+              },
+              "1": {
+                "kind": 0,
+                "type": {
+                  "type": 2,
+                  "required": true
+                }
+              }
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 20,
+              "required": true
+            }
+          }
+        }
+      },
+      "value": [[2, 3], "1.10"],
+      "hash": 590346
+    },
+    {
+      "id": "tuple-enum",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 8,
+              "required": true,
+              "enumId": "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709"
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          }
+        }
+      },
+      "value": [["system_6478d195-3905-48db-befe-d276eb5478f0"], 7],
+      "hash": 16375
+    },
+    {
+      "id": "tuple-rest",
+      "type": {
+        "kind": 0,
+        "type": {
+          "type": 30,
+          "required": true
+        },
+        "bindings": {
+          "0": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "1": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "2": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "3": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "4": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "5": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "6": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "7": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          },
+          "8": {
+            "kind": 0,
+            "type": {
+              "type": 2,
+              "required": true
+            }
+          }
+        }
+      },
+      "value": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "hash": 1427765054
+    }
+  ]
+}

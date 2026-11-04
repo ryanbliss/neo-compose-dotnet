@@ -24,8 +24,6 @@ namespace NeoCompose.Tests.P127TypesParity
         string Message { get; }
 
         IReadOnlyNeoError? InnerError { get; }
-
-        string? ToString();
     }
 
     public partial class NeoError : NeoErrorBase, IReadOnlyNeoError
@@ -165,7 +163,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
 
-        public virtual string? ToString()
+        public override string? ToString()
         {
             var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
             if (result is null) return null;
@@ -190,7 +188,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -209,7 +207,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

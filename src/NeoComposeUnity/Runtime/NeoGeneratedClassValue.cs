@@ -278,8 +278,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Calls immediate instance NSFunction <paramref name="key"/> on this
-        /// view's receiver. A pending temporary is called as itself, so the
+        /// Calls an immediate instance function <paramref name="key"/> on this
+        /// view's receiver, including inherited system functions. A pending
+        /// temporary is called as itself, so the
         /// call makes no rows.
         /// </summary>
         protected object? InvokeFunction(string key, object?[] args) => InvokeGenericFunction(key, null, args);
@@ -290,6 +291,12 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected object? InvokeGenericFunction(string key, TypeInfo[]? typeArguments, object?[] args)
         {
+            if (classId is { } owner
+                && client.ResolveInstanceSurfaceMember(owner, key)?.memberId is { } memberId
+                && memberId.StartsWith("system_", StringComparison.Ordinal)
+                && client.TryGetMember(memberId, out Member? declaration)
+                && declaration is FunctionMember function && declaration.kind == MemberKind.Function)
+                return NSGetterEvaluator.InvokeGeneratedSystemFunction(this, function, args, typeArguments);
             if (detached is { attachedId: null } pending)
                 return NeoNSFunctionRuntime.InvokeDetached(pending, key, args, typeArguments);
             if (valueId is null)
@@ -300,6 +307,15 @@ namespace NeoCompose.Runtime
             // The writable view keeps an inherited Save/Session ownership.
             return writableNode.Get<NeoMemberNSFunction>(key).Invoke(valueId!, args, typeArguments);
         }
+
+        public override bool Equals(object? obj) =>
+            (bool)NSGetterEvaluator.InvokeGeneratedObjectMember(this, ObjectMemberKind.Equals, obj)!;
+
+        public override int GetHashCode() =>
+            (int)NSGetterEvaluator.InvokeGeneratedObjectMember(this, ObjectMemberKind.GetHashCode, null)!;
+
+        public override string? ToString() =>
+            (string?)NSGetterEvaluator.InvokeGeneratedObjectMember(this, ObjectMemberKind.ToString, null);
 
         internal bool IsDisposed => isDisposed;
 

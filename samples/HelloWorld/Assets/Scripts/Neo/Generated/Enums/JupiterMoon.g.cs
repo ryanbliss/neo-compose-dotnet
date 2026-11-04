@@ -14,10 +14,10 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(JupiterMoonOptions))]
     public enum JupiterMoon
     {
-        io = 268485905,
-        europa = 693741950,
-        ganymede = 1525978064,
-        callisto = 1587922741,
+        io = 0,
+        europa = 1,
+        ganymede = 2,
+        callisto = 3,
     }
 
     /// <summary>

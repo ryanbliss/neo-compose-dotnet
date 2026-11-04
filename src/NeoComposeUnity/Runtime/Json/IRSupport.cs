@@ -623,9 +623,12 @@ namespace NeoCompose.Runtime.Json
         /// revision 15 adds the <c>tileConvert</c> pointer; revision 16 adds
         /// <c>reference</c> identity equality; revision 17 adds typed
         /// <c>numeric</c> arithmetic with 32-bit float rounding; revision 18
-        /// identifies structured leaf assignment receivers for validation.
+        /// identifies structured leaf assignment receivers for validation;
+        /// revision 19 was shipped and retired by the earlier main recompile;
+        /// revision 20 adds P127 interface parity, generic math, boxing,
+        /// comparer and globalization semantics.
         /// </summary>
-        public const int CurrentCompilerRevision = 19;
+        public const int CurrentCompilerRevision = 20;
 
         /// <summary>
         /// Required on every body this runtime executes: it must equal

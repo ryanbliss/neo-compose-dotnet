@@ -14,11 +14,11 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(WorldEndingOptions))]
     public enum WorldEnding
     {
-        commentOut = 510868118,
-        goodbyeWorld = 869938258,
-        helloWorld = 429309112,
-        none = 776777508,
-        secondSun = 1473127232,
+        commentOut = 0,
+        goodbyeWorld = 1,
+        helloWorld = 2,
+        none = 3,
+        secondSun = 4,
     }
 
     /// <summary>

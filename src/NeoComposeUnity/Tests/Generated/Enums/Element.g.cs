@@ -14,8 +14,8 @@ namespace Assets.Scripts.Neo
     [NeoEnum(typeof(ElementOptions))]
     public enum Element
     {
-        fire = 640925061,
-        ice = 1068029243,
+        fire = 0,
+        ice = 1,
     }
 
     /// <summary>

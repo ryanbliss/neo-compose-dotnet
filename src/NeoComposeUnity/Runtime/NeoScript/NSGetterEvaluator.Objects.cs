@@ -392,6 +392,62 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>§3.6. The <c>object</c> members.</summary>
+        private static readonly ObjectTypeInfo hostObjectType = new() { type = MemberKind.Object, required = false };
+
+        internal static object? InvokeGeneratedSystemFunction(NeoGeneratedClassValue wrapper,
+            FunctionMember function, object?[] arguments, TypeInfo[]? typeArguments)
+        {
+            NeoClient client = wrapper.Client;
+            Context ctx = client.RentDirectFunctionContext(wrapper.StorageOwnership);
+            object? result = null;
+            try
+            {
+                object receiver = UnwrapGeneratedValue(wrapper, ctx)!;
+                ctx.BindThis(receiver);
+                ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
+                ctx.BindFunctionTypeArguments(typeArguments);
+                if (arguments.Length != function.argumentTypes.Length)
+                    throw new System.ArgumentException($"Function '{function.name}' expects {function.argumentTypes.Length} arguments.");
+                var args = new object?[arguments.Length];
+                for (int index = 0; index < args.Length; index++)
+                    args[index] = NeoScriptValueMarshaller.Normalize(client, ctx.valueOwnership, arguments[index],
+                        CloseContextType(function.argumentTypes[index], ctx), ctx,
+                        $"{function.name} argument '{function.argumentTypes[index].name}'");
+                result = InvokeNativeFunction(function.id, null, receiver, args, ctx,
+                    delegateTypeArguments: typeArguments);
+                return result = NeoGeneratedTypesSupport.GeneratedResult(result,
+                    CloseContextType(function.returnTypeInfo!, ctx), ctx);
+            }
+            finally
+            {
+                client.ReturnDirectFunctionContext(ctx, result);
+            }
+        }
+
+        internal static object? InvokeGeneratedObjectMember(NeoGeneratedClassValue wrapper, string member, object? argument)
+        {
+            NeoClient client = wrapper.Client;
+            Context ctx = client.RentDirectFunctionContext(wrapper.StorageOwnership);
+            object? result = null;
+            try
+            {
+                object receiver = UnwrapGeneratedValue(wrapper, ctx)!;
+                result = member switch
+                {
+                    ObjectMemberKind.Equals => ObjectEquals(receiver, null,
+                        NeoScriptValueMarshaller.Normalize(client, ctx.valueOwnership, argument, hostObjectType, ctx, "Equals argument"), ctx),
+                    ObjectMemberKind.GetHashCode => ObjectHash(receiver, null, ctx),
+                    ObjectMemberKind.ToString => ObjectText(receiver, null, ctx),
+                    _ => throw new System.ArgumentOutOfRangeException(nameof(member)),
+                };
+                return result;
+            }
+            finally
+            {
+                client.ReturnDirectFunctionContext(ctx, result);
+            }
+        }
+
         private static object? EvalObjectMember(ObjectMemberPointer pointer, NeoScriptScope scope, Context ctx)
         {
             switch (pointer.member)

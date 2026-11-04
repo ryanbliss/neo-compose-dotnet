@@ -633,20 +633,18 @@ namespace NeoCompose.Runtime
         // Built-in comparers (§1.3, §12.1, §14).
         // ------------------------------------------------------------------
 
-        private static bool IsComparer(object value)
-        {
-            if (value is NeoReferenceEqualityComparer or NeoScriptComparer or NSGetterEvaluator.NeoBuiltInComparer)
-                return true;
-            foreach (Type contract in value.GetType().GetInterfaces())
+        private static readonly ConcurrentDictionary<Type, bool> comparerClrTypes = new();
+        private static readonly ConditionalWeakTable<NeoClient, ConditionalWeakTable<object, NSGetterEvaluator.NeoBuiltInComparer>> importedComparers = new();
+
+        private static bool IsComparer(object value) => value is NeoReferenceEqualityComparer or NeoScriptComparer or NSGetterEvaluator.NeoBuiltInComparer
+            || comparerClrTypes.GetOrAdd(value.GetType(), type =>
             {
-                if (!contract.IsGenericType)
-                    continue;
-                Type definition = contract.GetGenericTypeDefinition();
-                if (definition == typeof(IEqualityComparer<>) || definition == typeof(IComparer<>))
-                    return true;
-            }
-            return false;
-        }
+                foreach (Type contract in type.GetInterfaces())
+                    if (contract.IsGenericType && (contract.GetGenericTypeDefinition() == typeof(IEqualityComparer<>)
+                        || contract.GetGenericTypeDefinition() == typeof(IComparer<>)))
+                        return true;
+                return false;
+            });
 
         private static JObject ComparerPayload(NeoClient client, string name, object value)
         {
@@ -728,30 +726,18 @@ namespace NeoCompose.Runtime
             return TypeBinding.Closed(head, new Dictionary<string, TypeBinding>(StringComparer.Ordinal) { [system.genericParams![0].id] = argument });
         }
 
-        private static object ReadComparer(NeoClient client, NeoMemberObject node, MemberValue row)
+        private static object ReadComparer(NeoClient client, NeoMember node, MemberValue row)
         {
             if (row is not PayloadMemberValue { value: JObject payload })
                 throw new InvalidOperationException($"Object field '{node.member.name}' holds value '{row.id}', which isn't a comparer payload.");
-            var kind = (NeoBuiltInComparerKind)payload.Value<int>("comparer");
-            var family = (NeoComparerFamilyKind)payload.Value<int>("family");
-            NeoStorablePayloads.ValidateBuiltInComparer(payload, $"Object field '{node.member.name}' comparer");
-            if (kind == NeoBuiltInComparerKind.ReferenceEquality)
-                return NeoReferenceEqualityComparer.Instance;
-            TypeBinding argument = TypeBindings.Read((JObject)payload["type"]!, $"Object field '{node.member.name}' comparer type");
-            Type element = ClrTypeOf(client, argument)
-                ?? throw new NotSupportedException(
-                    $"Object field '{node.member.name}' holds a comparer of {NeoTypeNames.Of(argument, client.ProjectDataForRuntime)}, which has no C# type in this project.");
-            switch (kind)
+            var context = client.RentDirectFunctionContext(node.ownership);
+            try
             {
-                case NeoBuiltInComparerKind.Default:
-                    {
-                        Type system = (family == NeoComparerFamilyKind.Equality ? typeof(EqualityComparer<>) : typeof(Comparer<>)).MakeGenericType(element);
-                        return system.GetProperty("Default")!.GetValue(null)!;
-                    }
-                case NeoBuiltInComparerKind.SetEquality:
-                    return Activator.CreateInstance(typeof(NeoSetEqualityComparer<>).MakeGenericType(element))!;
-                default:
-                    return NeoScriptComparer.Create(element, client, node.ownership, (JObject)payload.DeepClone(), family);
+                return NSGetterEvaluator.ExportBuiltInComparer(NSGetterEvaluator.ReadBuiltInComparer(payload, context), context);
+            }
+            finally
+            {
+                client.ReturnDirectFunctionContext(context, null);
             }
         }
 
@@ -764,13 +750,13 @@ namespace NeoCompose.Runtime
         /// run. A node that can't write the slot reads a writable culture or
         /// number format as a read-only copy (see <see cref="ReadOnlyCopy"/>).
         /// </summary>
-        internal static object? ReadBox(NeoClient client, NeoMemberObject node, MemberValue row, TypeBinding valueType, bool writable)
+        internal static object? ReadBox(NeoClient client, NeoMember node, MemberValue row, TypeBinding valueType, bool writable)
         {
             if (!writable && readOnlyRowBoxes.TryGetValue(row, out object? readOnly))
                 return readOnly;
             if (rowBoxes.TryGetValue(row, out object? cached))
                 return writable ? cached : Remember(row, cached, false);
-            object? box = ReadNewBox(client, node, row, valueType);
+            object? box = ReadNewBox(client, node, row, valueType, writable);
             return box is null ? null : Remember(row, box, writable);
         }
 
@@ -809,7 +795,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static object? ReadNewBox(NeoClient client, NeoMemberObject node, MemberValue row, TypeBinding valueType)
+        private static object? ReadNewBox(NeoClient client, NeoMember node, MemberValue row, TypeBinding valueType, bool writable)
         {
             NeoBoxForm form = client.TypeRules.Box(valueType);
             switch (form.Kind)
@@ -827,7 +813,7 @@ namespace NeoCompose.Runtime
             if (held is ObjectMember { objectType: NeoObjectTypeKind declared })
                 return ReadDeclaredPayload(client, declared, row, node.member.name);
             if (IsCollectionMember(held) || held is DelegateMember || held is LookupMember)
-                return ReadNodeBox(client, node, row, held, valueType);
+                return ReadNodeBox(client, node, row, held, valueType, writable);
             Type type = BoxClrType(client, valueType)
                 ?? throw new NotSupportedException(
                     $"Object field '{node.member.name}' holds a '{NeoTypeNames.Of(valueType, client.ProjectDataForRuntime)}' box, which has no C# type in this project.");
@@ -843,6 +829,52 @@ namespace NeoCompose.Runtime
             {
                 client.ReturnDirectFunctionContext(context, unwrapped);
             }
+        }
+
+        internal static object? ImportClrComparer(object? value, NSGetterEvaluator.Context context)
+        {
+            if (value is null || value is INeoValueReference or NSGetterEvaluator.NeoBuiltInComparer || !IsComparer(value))
+                return value;
+            return importedComparers.GetOrCreateValue(context.client).GetValue(value, comparer =>
+                NSGetterEvaluator.ReadBuiltInComparer(ComparerPayload(context.client, "argument", comparer), context));
+        }
+
+        private static readonly HashSet<string> generatedSystemInterfaces = GeneratedSystemInterfaces();
+
+        private static HashSet<string> GeneratedSystemInterfaces()
+        {
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in NeoPrimitiveConformance.InterfaceIds)
+                ids.Add(entry.Value);
+            return ids;
+        }
+
+        internal static object? GeneratedResult(object? value, TypeInfo type, NSGetterEvaluator.Context context)
+        {
+            value = NSGetterEvaluator.ResolveHostCollection(value, context);
+            if (NSGetterEvaluator.UnwrapComparer(value) is { } comparer)
+                return NSGetterEvaluator.ExportBuiltInComparer(comparer, context);
+            if (value is NeoBox box)
+                return ConvertBox(context.client, box, null, null, null, context);
+            if (value is NeoTypeValue represented)
+                return ClrTypeOf(context.client, represented.Binding)
+                    ?? throw new InvalidOperationException("The returned Type has no generated CLR type.");
+            string? interfaceId = type switch
+            {
+                InterfaceTypeInfo contract => contract.interfaceId,
+                FunctionArgumentTypeInfo argument => argument.interfaceId,
+                _ => null,
+            };
+            // User-interface results still use the generated resolver, which
+            // can construct generic wrappers absent from the class factory table.
+            bool projectsClass = type.type == MemberKind.Object || interfaceId is not null && generatedSystemInterfaces.Contains(interfaceId);
+            if (projectsClass && value is NeoScriptObject temporary)
+                return context.client.ResolveDetachedGeneratedClassValue(temporary);
+            if (projectsClass && value is not null && NSGetterEvaluator.IsRowRecord(value, context)
+                && NSGetterEvaluator.ConstructorReferenceOf(value, context) is { valueId: { } id } reference)
+                return context.client.ResolveRegisteredGeneratedClassValue(id, reference.ownership ?? context.valueOwnership)
+                    ?? throw new InvalidOperationException("The returned class value has no generated CLR factory.");
+            return value;
         }
 
         /// <summary>
@@ -868,6 +900,17 @@ namespace NeoCompose.Runtime
             ClrBoxIdentities identities = clrBoxIdentities.GetOrCreateValue(client);
             if (identities.ToNeo.TryGetValue(value, out NeoBox cached))
                 return cached;
+            if (value is INeoCollectionView { CollectionNode: { value: { } row } node })
+            {
+                TypeBinding held = row.valueType ?? Erased(NeoTypeBindings.FromTypeInfo(
+                    NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, node.member, NodeEnv(client, node),
+                        new HashSet<string>(StringComparer.Ordinal), NeoNSFunctionRuntime.BindingTypeProjection.Stored)));
+                object payload = NSGetterEvaluator.UnwrapRow(row, ctx, node.ownership, node.member)!;
+                NeoBox collectionBox = payload as NeoBox ?? NeoBox.Of(held, payload);
+                identities.ToNeo.Add(value, collectionBox);
+                identities.ToClr.GetValue(collectionBox, _ => value);
+                return collectionBox;
+            }
             // An evaluator number is already NeoScript's; C# has no double to box.
             if (value is double || value.GetType() != typeof(object) && value is not (string or ValueType))
                 return value;
@@ -891,7 +934,8 @@ namespace NeoCompose.Runtime
             NeoBox box,
             IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
             IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
-            InterfaceResolver? interfaceResolver)
+            InterfaceResolver? interfaceResolver,
+            NSGetterEvaluator.Context? context = null)
         {
             ClrBoxIdentities identities = clrBoxIdentities.GetOrCreateValue(client);
             if (identities.ToClr.TryGetValue(box, out object cached))
@@ -899,6 +943,37 @@ namespace NeoCompose.Runtime
             object converted;
             if (box.Payload is null)
                 converted = new object();
+            else if (box.ValueType.Head!.Type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary)
+            {
+                bool rented = context is null;
+                context ??= client.RentDirectFunctionContext(NeoValueOwnership.Session);
+                try
+                {
+                    var reference = NSGetterEvaluator.FindRowReference(box, context)
+                        ?? NSGetterEvaluator.FindRowReference(box.Payload, context);
+                    if (reference is not null && client.TryGetReplayReference(reference.valueId, out MemberValue row, reference.ownership))
+                    {
+                        Member held = client.TypeRules.Box(box.ValueType).Member!;
+                        NeoMember node = NeoMember.CreateWritable(client, held, row.id, reference.ownership);
+                        bool writable = reference.ownership != NeoValueOwnership.Asset;
+                        converted = row.valueType is not null
+                            ? ReadBox(client, node, row, box.ValueType, writable)!
+                            : ReadNodeBox(client, node, row, held, box.ValueType, writable)!;
+                    }
+                    else
+                    {
+                        Type projection = TupleElementType(client, box.ValueType)
+                            ?? throw new NotSupportedException("The collection box has no C# collection projection.");
+                        object payload = NSGetterEvaluator.ResolveHostCollection(box.Payload, context)!;
+                        converted = ConvertTypeArgument(client, payload, projection, readOnlyFactories, savedFactories, interfaceResolver)!;
+                    }
+                }
+                finally
+                {
+                    if (rented)
+                        client.ReturnDirectFunctionContext(context, box.Payload);
+                }
+            }
             else
             {
                 Type type = BoxClrType(client, box.ValueType)
@@ -974,9 +1049,8 @@ namespace NeoCompose.Runtime
         /// delegate or a slot reference, read through the codec a field of
         /// the held type uses.
         /// </summary>
-        private static object? ReadNodeBox(NeoClient client, NeoMemberObject node, MemberValue row, Member held, TypeBinding valueType)
+        private static object? ReadNodeBox(NeoClient client, NeoMember node, MemberValue row, Member held, TypeBinding valueType, bool writable)
         {
-            bool writable = node is NeoMemberObjectWritable;
             NeoMember payloadNode = NeoMember.CreateWritable(client, held, row.id, node.ownership);
             object? box;
             if (held is DelegateMember)
@@ -1109,6 +1183,14 @@ namespace NeoCompose.Runtime
         /// <summary>The C# type a scalar or tuple box converts to, or null.</summary>
         private static Type? BoxClrType(NeoClient client, TypeBinding binding)
         {
+            var cache = ClrTypeCache(client).Boxes;
+            if (!cache.TryGetValue(binding, out var result))
+                cache[binding] = result = ResolveBoxClrType(client, binding);
+            return result;
+        }
+
+        private static Type? ResolveBoxClrType(NeoClient client, TypeBinding binding)
+        {
             if (binding.Kind != TypeBindingKind.Closed)
                 return null;
             TypeHead head = binding.Head!;
@@ -1124,7 +1206,7 @@ namespace NeoCompose.Runtime
                 case MemberKind.Tuple:
                     {
                         int arity = binding.Bindings?.Count ?? 0;
-                        if (arity < 2 || arity > valueTupleDefinitions.Length + 1)
+                        if (arity < 1)
                             return null;
                         var elements = new Type[arity];
                         for (int index = 0; index < arity; index++)
@@ -1133,7 +1215,7 @@ namespace NeoCompose.Runtime
                                 return null;
                             elements[index] = element;
                         }
-                        Type tuple = valueTupleDefinitions[arity - 2].MakeGenericType(elements);
+                        Type tuple = ConstructClrTuple(elements);
                         return head.Required ? tuple : typeof(Nullable<>).MakeGenericType(tuple);
                     }
                 default:
@@ -1193,13 +1275,26 @@ namespace NeoCompose.Runtime
 
         private static readonly Type[] valueTupleDefinitions =
         {
+            typeof(ValueTuple<>),
             typeof(ValueTuple<,>),
             typeof(ValueTuple<,,>),
             typeof(ValueTuple<,,,>),
             typeof(ValueTuple<,,,,>),
             typeof(ValueTuple<,,,,,>),
             typeof(ValueTuple<,,,,,,>),
+            typeof(ValueTuple<,,,,,,,>),
         };
+
+        private static Type ConstructClrTuple(Type[] elements, int offset = 0)
+        {
+            int count = elements.Length - offset;
+            int direct = Math.Min(count, 7);
+            var arguments = new Type[count <= 7 ? count : 8];
+            Array.Copy(elements, offset, arguments, 0, direct);
+            if (count > 7)
+                arguments[7] = ConstructClrTuple(elements, offset + 7);
+            return valueTupleDefinitions[arguments.Length - 1].MakeGenericType(arguments);
+        }
 
         private static readonly Type[] delegateDefinitions =
         {
@@ -1229,6 +1324,14 @@ namespace NeoCompose.Runtime
         /// and <c>Dictionary</c>. Null when it names none.
         /// </summary>
         internal static TypeBinding? BindingOfClr(NeoClient client, Type type)
+        {
+            var cache = ClrTypeCache(client).Bindings;
+            if (!cache.TryGetValue(type, out var result))
+                cache[type] = result = ResolveBindingOfClr(client, type);
+            return result;
+        }
+
+        private static TypeBinding? ResolveBindingOfClr(NeoClient client, Type type)
         {
             if (type.IsGenericParameter)
                 return ParameterOfClr(client, type);
@@ -1260,6 +1363,16 @@ namespace NeoCompose.Runtime
                 if (BindingOfClr(client, arguments[index]) is not TypeBinding argument)
                     return null;
                 bound[index] = argument;
+            }
+            if (owner == typeof(ValueTuple<,,,,,,,>))
+            {
+                if (bound[7].Head?.Type != MemberKind.Tuple || bound[7].Bindings is null)
+                    return null;
+                var flattened = new TypeBinding[7 + bound[7].Bindings!.Count];
+                Array.Copy(bound, flattened, 7);
+                for (int index = 7; index < flattened.Length; index++)
+                    flattened[index] = bound[7].At(index - 7);
+                return Positional(MemberKind.Tuple, flattened);
             }
             if (owner == typeof(NeoDictionary<>) || owner == typeof(NeoReadOnlyDictionary<>))
                 return Positional(MemberKind.Dictionary, TypeBinding.Closed(new TypeHead(MemberKind.String, true)), bound[0]);
@@ -1325,7 +1438,7 @@ namespace NeoCompose.Runtime
                 return new TypeDefinition(MemberKind.Reference);
             int tuple = Array.IndexOf(valueTupleDefinitions, definition);
             if (tuple >= 0)
-                return new TypeDefinition(MemberKind.Tuple, arity: tuple + 2);
+                return new TypeDefinition(MemberKind.Tuple, arity: tuple + 1);
             int callable = Array.IndexOf(delegateDefinitions, definition);
             if (callable >= 0)
                 return new TypeDefinition(MemberKind.NSDelegate, arity: callable + 1);
@@ -1359,7 +1472,39 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The C# type a NeoScript type maps to, the inverse of <see cref="BindingOfClr"/>, or null.</summary>
+        private sealed class ClrTypes
+        {
+            internal object? Schema;
+            internal int Registration = -1;
+            internal readonly Dictionary<TypeBinding, Type?> Values = new();
+            internal readonly Dictionary<TypeBinding, Type?> Boxes = new();
+            internal readonly Dictionary<Type, TypeBinding?> Bindings = new();
+        }
+        private static readonly ConditionalWeakTable<NeoClient, ClrTypes> clrTypes = new();
+
+        private static ClrTypes ClrTypeCache(NeoClient client)
+        {
+            var cache = clrTypes.GetOrCreateValue(client);
+            if (!ReferenceEquals(cache.Schema, client.SchemaResolution) || cache.Registration != client.TypeArguments.RegistrationRevision)
+            {
+                cache.Schema = client.SchemaResolution;
+                cache.Registration = client.TypeArguments.RegistrationRevision;
+                cache.Values.Clear();
+                cache.Boxes.Clear();
+                cache.Bindings.Clear();
+            }
+            return cache;
+        }
+
         internal static Type? ClrTypeOf(NeoClient client, TypeBinding binding)
+        {
+            var cache = ClrTypeCache(client);
+            if (!cache.Values.TryGetValue(binding, out var result))
+                cache.Values[binding] = result = ResolveClrType(client, binding);
+            return result;
+        }
+
+        private static Type? ResolveClrType(NeoClient client, TypeBinding binding)
         {
             switch (binding.Kind)
             {
@@ -1412,7 +1557,21 @@ namespace NeoCompose.Runtime
                         ? Construct(client, contract, binding, client.TryGetInterface(head.InterfaceId!, out Interface? record) ? record.genericParams : null)
                         : null;
             }
-            if (head.Type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Tuple or MemberKind.NSDelegate or MemberKind.Reference)
+            if (head.Type == MemberKind.Tuple)
+            {
+                int count = binding.Bindings?.Count ?? 0;
+                if (count < 1)
+                    return null;
+                var elements = new Type[count];
+                for (int index = 0; index < count; index++)
+                {
+                    if (ClrTypeOf(client, binding.At(index)) is not Type element)
+                        return null;
+                    elements[index] = element;
+                }
+                return ConstructClrTuple(elements);
+            }
+            if (head.Type is MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.NSDelegate or MemberKind.Reference)
             {
                 Type? definition = ClrDefinitionOf(client, new TypeDefinition(head.Type, arity: binding.Bindings?.Count));
                 return definition is null ? null : Construct(client, definition, binding, null);
@@ -1462,7 +1621,7 @@ namespace NeoCompose.Runtime
                 case MemberKind.Reference:
                     return typeof(NeoReference<>);
                 case MemberKind.Tuple:
-                    return arity >= 2 && arity <= valueTupleDefinitions.Length + 1 ? valueTupleDefinitions[arity - 2] : null;
+                    return arity >= 1 && arity <= valueTupleDefinitions.Length ? valueTupleDefinitions[arity - 1] : null;
                 case MemberKind.NSDelegate:
                     return arity >= 1 && arity <= delegateDefinitions.Length ? delegateDefinitions[arity - 1] : null;
                 case MemberKind.Class:
