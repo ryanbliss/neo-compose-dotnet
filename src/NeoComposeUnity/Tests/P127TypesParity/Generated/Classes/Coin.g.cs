@@ -22,18 +22,12 @@ namespace NeoCompose.Tests.P127TypesParity
         bool TryWritable(out Coin writable);
 
         int Cents { get; }
-
-        bool Equals(object? obj);
-
-        int GetHashCode();
-
-        string? ToString();
     }
 
     public partial class Coin : NeoGeneratedClassValue, IReadOnlyCoin
     {
         internal Coin(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f76566ec-444e-4085-bd4f-2aedd3e42f7f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "938b905a-e351-4991-aab5-cd0a39d90eea", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f76566ec-444e-4085-bd4f-2aedd3e42f7f",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "31016864-2afc-4be2-bf80-9026ed56eade", Cents)
+                "938b905a-e351-4991-aab5-cd0a39d90eea",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cents", "e9c0ee99-8d4b-45cf-966a-04ba00814a92", Cents)
             );
         }
 
@@ -126,19 +120,19 @@ namespace NeoCompose.Tests.P127TypesParity
 
 
 
-        public virtual bool Equals(object? obj)
+        public override bool Equals(object? obj)
         {
             var result = InvokeFunction("Equals#system_a9229ca6-afaa-4e05-a1ba-e56f8d3f640f", (object?)(obj));
             return (bool)result!;
         }
 
-        public virtual int GetHashCode()
+        public override int GetHashCode()
         {
             var result = InvokeFunction("GetHashCode#system_ed4ca7e8-2939-493c-a06c-e3d6c7be89e9");
             return Convert.ToInt32(result);
         }
 
-        public virtual string? ToString()
+        public override string? ToString()
         {
             var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
             if (result is null) return null;
@@ -160,7 +154,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -178,7 +172,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

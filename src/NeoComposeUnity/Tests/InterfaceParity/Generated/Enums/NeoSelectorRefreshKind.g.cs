@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.InterfaceParity
     [NeoEnum(typeof(NeoSelectorRefreshKindOptions))]
     public enum NeoSelectorRefreshKind
     {
-        OnLoad = 575086551,
-        PerFrame = 1485813219,
+        OnLoad = 0,
+        PerFrame = 1,
     }
 
     /// <summary>

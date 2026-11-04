@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "431129ca-7e0b-40e6-86a3-03552ba948c9" => new ReflectionDerived<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "32f8425d-22f2-434d-94ef-29af933f821f" => new ReflectionDerived<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionDerived' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "431129ca-7e0b-40e6-86a3-03552ba948c9" => new ReflectionDerived<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "32f8425d-22f2-434d-94ef-29af933f821f" => new ReflectionDerived<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionDerived' without a concrete client type id."),
                 };
             });
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -102,7 +102,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

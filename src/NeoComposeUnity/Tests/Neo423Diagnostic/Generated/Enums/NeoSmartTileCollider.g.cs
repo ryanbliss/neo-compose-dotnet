@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.Diagnostic423
     [NeoEnum(typeof(NeoSmartTileColliderOptions))]
     public enum NeoSmartTileCollider
     {
-        None = 1733531934,
-        Sprite = 906883794,
-        Grid = 1132727155,
+        None = 0,
+        Sprite = 1,
+        Grid = 2,
     }
 
     /// <summary>

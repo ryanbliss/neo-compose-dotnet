@@ -168,6 +168,8 @@ namespace NeoCompose.Tests.OverloadParity
                 [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyInventory)] = "0385d69f-c993-466e-980e-f9bca83205d2",
                 [typeof(global::NeoCompose.Tests.OverloadParity.TallyHandlers)] = "2506f19e-5039-4b22-8a98-235f9f0b1965",
                 [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyTallyHandlers)] = "2506f19e-5039-4b22-8a98-235f9f0b1965",
+                [typeof(global::NeoCompose.Tests.OverloadParity.TallyHandlersBase<>)] = "27268ea5-9be8-49fd-b75c-66395302fed5",
+                [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyTallyHandlersBase<>)] = "27268ea5-9be8-49fd-b75c-66395302fed5",
                 [typeof(global::NeoCompose.Tests.OverloadParity.DerivedWatch)] = "2b1fef34-29d5-4fab-a2bd-a58e8b389281",
                 [typeof(global::NeoCompose.Tests.OverloadParity.IReadOnlyDerivedWatch)] = "2b1fef34-29d5-4fab-a2bd-a58e8b389281",
                 [typeof(global::NeoCompose.Tests.OverloadParity.Chest)] = "6786a8da-1e8f-4f61-84b9-93ce9fcf2f88",

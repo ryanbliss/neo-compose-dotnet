@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.ReferenceParity
     [NeoEnum(typeof(MoodOptions))]
     public enum Mood
     {
-        Calm = 1073355765,
-        Happy = 1886760847,
+        Calm = 0,
+        Happy = 1,
     }
 
     /// <summary>

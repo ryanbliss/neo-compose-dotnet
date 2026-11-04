@@ -21,13 +21,13 @@ namespace NeoCompose.Tests.P127TypesParity
 
         bool TryWritable(out R4TupleSetTake writable);
 
-        // Item: Tuple is not generated yet.
+        (INeoReadOnlySet<object>, int) Item { get; }
     }
 
     public partial class R4TupleSetTake : NeoGeneratedClassValue, IReadOnlyR4TupleSetTake
     {
         internal R4TupleSetTake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8db06faf-5b40-41c8-a692-cd118b9f6999", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6e452a18-7c69-442a-8fb9-ceb246a8e1a9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public R4TupleSetTake((INeoReadOnlySet<object>, int) item)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "8db06faf-5b40-41c8-a692-cd118b9f6999", "10690d5e-0ebc-4957-be31-d7b57a2f3f70", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6e452a18-7c69-442a-8fb9-ceb246a8e1a9", "00c2f8aa-048d-4a77-bc7b-c3ed7921aa4f", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
         {
         }
 
         public R4TupleSetTake()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "8db06faf-5b40-41c8-a692-cd118b9f6999", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6e452a18-7c69-442a-8fb9-ceb246a8e1a9", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -95,21 +95,35 @@ namespace NeoCompose.Tests.P127TypesParity
             return TryWritable<R4TupleSetTake>(out writable);
         }
 
-        // Item: Tuple is not generated yet.
+        public (INeoReadOnlySet<object>, int) Item
+        {
+            get
+            {
+                var tupleValue = NeoGeneratedTypesSupport.ReadTupleValue(node.Get<NeoMemberTuple>("Item"));
+                return NeoGeneratedTypesSupport.ReadTuple<(INeoReadOnlySet<object>, int)>(tupleValue, 2, tupleValueTuple => { INeoReadOnlySet<object> Element0() { return NeoGeneratedTypesSupport.ReadScriptSet<object>(NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 0), NeoGeneratedTypesSupportTupleElementtupleValueTuple0Entry => { return NeoGeneratedTypesSupportTupleElementtupleValueTuple0Entry!; }); } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 1)); } return (Element0(), Element1()); });
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Item", NeoGeneratedTypesSupport.TupleValue(client, writableNode.Get<NeoMemberTuple>("Item"), value));
+            }
+        }
 
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<(INeoReadOnlySet<object>, int)> Item = new("Item");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Item] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -123,10 +137,11 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Item] = () => Item,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

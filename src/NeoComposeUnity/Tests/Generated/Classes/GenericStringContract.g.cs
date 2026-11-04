@@ -29,12 +29,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public GenericStringContract(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null, IEnumerable<string>? Unique = null)
+        public GenericStringContract(string? Amount = null, IEnumerable<string?>? Values = null, GenericPayload<string>? Payload = null, IEnumerable<string?>? Unique = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload, Unique), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null, IEnumerable<string>? Unique = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Amount = null, IEnumerable<string?>? Values = null, GenericPayload<string>? Payload = null, IEnumerable<string?>? Unique = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
@@ -147,15 +147,16 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public override string Computed
+        public new virtual string Computed
         {
             get
             {
                 var result = ComputeProperty("Computed");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return (string)result.value!;
             }
         }
+        protected override string GetComputedContract() => Computed;
 
         public override string Echo(string value)
         {
@@ -228,7 +229,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -250,7 +251,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

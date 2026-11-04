@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObject, INeoSpriteObjectValue
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObject
     {
         new bool IsReadOnly { get; }
 
@@ -23,18 +23,18 @@ namespace Assets.Scripts.Neo
 
         new string Name { get; }
 
-        new NeoReadOnlySprite Sprite { get; }
+        NeoReadOnlySprite Sprite { get; }
 
-        new bool FlipX { get; }
+        bool FlipX { get; }
 
-        new bool FlipY { get; }
+        bool FlipY { get; }
 
-        new NeoSpriteMaskInteraction MaskInteraction { get; }
+        NeoSpriteMaskInteraction MaskInteraction { get; }
 
-        new int? SortingOrder { get; }
+        int? SortingOrder { get; }
     }
 
-    public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
+    public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -125,9 +125,6 @@ namespace Assets.Scripts.Neo
             ThrowIfReadOnly("NeoSpriteObject.ToVariant");
             return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
-
-        Sprite INeoSpriteObjectValue.Sprite => Sprite;
-        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.OptionId();
 
         public static NeoClassRef<NeoSpriteObject> Definition { get; } = new NeoClassRef<NeoSpriteObject>("system_d48b66ab-4d59-47e7-a25a-591fe97062de");
 
@@ -314,7 +311,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -343,7 +340,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

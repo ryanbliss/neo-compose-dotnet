@@ -15,6 +15,12 @@ namespace NeoCompose.Tests
 {
     public sealed class P127EqualityTests
     {
+        private sealed class NativeClassView : NeoGeneratedClassValue
+        {
+            internal NativeClassView(NeoClient owner, NeoMemberClass node)
+                : base(owner, node, node.ClassId, node is not NeoMemberClassWritable, node.ownership) { }
+        }
+
         private NeoClient client = null!;
         private NSGetterEvaluator.Context ctx = null!;
         private NeoScriptScope scope = null!;
@@ -220,6 +226,17 @@ namespace NeoCompose.Tests
                 argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "other", type = MemberKind.Object, required = false } },
             };
             client.InvalidateSchemaResolutionCaches();
+            client.RegisterGeneratedClassFactories(
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                {
+                    [classId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                        static (owner, node) => new NativeClassView(owner, node)),
+                },
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+                {
+                    [classId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                        static (owner, node) => new NativeClassView(owner, node)),
+                });
             using var first = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
             using var second = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
             object? a = NSGetterEvaluator.UnwrapRow(first.value!, ctx, first.ownership, first.member);
@@ -229,6 +246,7 @@ namespace NeoCompose.Tests
             {
                 [equalsId] = (_, receiver, args, _) =>
                 {
+                    Assert.That(args[0], Is.InstanceOf<NativeClassView>());
                     int left = NSGetterEvaluator.ReferenceEqual(receiver, a, ctx) ? 1 : 2;
                     int right = NSGetterEvaluator.ReferenceEqual(args[0], a, ctx) ? 1 : 2;
                     log.Add($"{left}>{right}");

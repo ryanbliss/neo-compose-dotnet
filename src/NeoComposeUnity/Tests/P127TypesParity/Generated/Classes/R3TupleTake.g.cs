@@ -21,13 +21,13 @@ namespace NeoCompose.Tests.P127TypesParity
 
         bool TryWritable(out R3TupleTake writable);
 
-        // Item: Tuple is not generated yet.
+        (object, int) Item { get; }
     }
 
     public partial class R3TupleTake : NeoGeneratedClassValue, IReadOnlyR3TupleTake
     {
         internal R3TupleTake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bd64a835-07b8-4aca-b3cc-b7891f47190f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b91975c4-a669-42f9-a7e1-b09c05ef6e10", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public R3TupleTake((object, int) item)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "bd64a835-07b8-4aca-b3cc-b7891f47190f", "c3dfe629-d7ac-4ca8-bfd0-3c057f01222d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "b91975c4-a669-42f9-a7e1-b09c05ef6e10", "bd04e3b7-50f6-45e8-8dde-df15e97f7ab0", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
         {
         }
 
         public R3TupleTake()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "bd64a835-07b8-4aca-b3cc-b7891f47190f", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "b91975c4-a669-42f9-a7e1-b09c05ef6e10", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -95,21 +95,35 @@ namespace NeoCompose.Tests.P127TypesParity
             return TryWritable<R3TupleTake>(out writable);
         }
 
-        // Item: Tuple is not generated yet.
+        public (object, int) Item
+        {
+            get
+            {
+                var tupleValue = NeoGeneratedTypesSupport.ReadTupleValue(node.Get<NeoMemberTuple>("Item"));
+                return NeoGeneratedTypesSupport.ReadTuple<(object, int)>(tupleValue, 2, tupleValueTuple => { object Element0() { return NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 0)!; } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 1)); } return (Element0(), Element1()); });
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Item", NeoGeneratedTypesSupport.TupleValue(client, writableNode.Get<NeoMemberTuple>("Item"), value));
+            }
+        }
 
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<(object, int)> Item = new("Item");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Item] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -123,10 +137,11 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Item] = () => Item,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

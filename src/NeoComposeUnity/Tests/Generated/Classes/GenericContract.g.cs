@@ -119,7 +119,8 @@ namespace Assets.Scripts.Neo
 
         IReadOnlyGenericPayload<T>? IReadOnlyGenericContract<T>.Payload => Payload;
 
-        public abstract T Computed { get; }
+        public T Computed => GetComputedContract();
+        protected abstract T GetComputedContract();
 
 
 
@@ -174,7 +175,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -196,7 +197,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

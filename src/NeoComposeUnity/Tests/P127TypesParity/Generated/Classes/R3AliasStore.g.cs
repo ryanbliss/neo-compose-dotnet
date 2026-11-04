@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R3AliasStore : NeoGeneratedClassValue, IReadOnlyR3AliasStore
     {
         internal R3AliasStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5078a2de-82c5-424c-9778-1747d1399602", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "339f2703-05d3-460a-a7d8-bc36e7a3d026", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,9 +37,9 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyList<object> Pair()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9e8ed2ea-4818-4a72-b730-694ad7d3e7ed");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0802e905-95e2-45ee-988f-8d28c74c0515");
             var result = node.InvokeStatic();
-            return NeoGeneratedTypesSupport.ReadScriptList<object>(result, resultEntry => { return resultEntry; });
+            return NeoGeneratedTypesSupport.ReadScriptList<object>(result, resultEntry => { return resultEntry!; });
         }
 
         public static R3ListTake Value
@@ -47,14 +47,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d1722655-d3dd-4de0-9fa0-4ba198afe9f0", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "cfbdd137-c6ad-4c08-b54c-a3eab104ccec", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.R3ListTake.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d1722655-d3dd-4de0-9fa0-4ba198afe9f0", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "cfbdd137-c6ad-4c08-b54c-a3eab104ccec", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5078a2de-82c5-424c-9778-1747d1399602");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "339f2703-05d3-460a-a7d8-bc36e7a3d026");
         }
 
         internal static R3AliasStore Create(NeoClient client, NeoMemberClass node)
@@ -131,7 +131,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -148,7 +148,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

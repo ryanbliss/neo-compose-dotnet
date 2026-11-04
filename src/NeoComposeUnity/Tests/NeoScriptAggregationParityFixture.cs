@@ -15,7 +15,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -191,7 +191,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""GroupBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -399,7 +399,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -575,7 +575,7 @@ namespace NeoCompose.Tests
                       }
                     },
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -783,7 +783,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -927,7 +927,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""Aggregate"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -1128,7 +1128,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -1273,7 +1273,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""ToDictionary"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -1331,7 +1331,7 @@ namespace NeoCompose.Tests
                       }
                     },
                     ""valueFunction"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -1522,7 +1522,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -1711,7 +1711,7 @@ namespace NeoCompose.Tests
                       }
                     },
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -1944,7 +1944,7 @@ namespace NeoCompose.Tests
       ""expected"": 2,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -2164,7 +2164,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -2272,7 +2272,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -2407,7 +2407,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -2490,7 +2490,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -2598,7 +2598,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -2733,7 +2733,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -2816,7 +2816,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -2924,7 +2924,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -3048,7 +3048,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -3131,7 +3131,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -3239,7 +3239,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -3384,7 +3384,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -3467,7 +3467,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -3575,7 +3575,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -3710,7 +3710,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -3793,7 +3793,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -3901,7 +3901,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -4045,7 +4045,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -4128,7 +4128,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -4236,7 +4236,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -4335,7 +4335,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -4437,7 +4437,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -4520,7 +4520,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -4640,7 +4640,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -4767,7 +4767,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -4850,7 +4850,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -4970,7 +4970,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -5097,7 +5097,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -5180,7 +5180,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""requires an ordered result"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -5300,7 +5300,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -5416,7 +5416,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -5499,7 +5499,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -5648,7 +5648,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -5825,7 +5825,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""ThenBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -5952,7 +5952,7 @@ namespace NeoCompose.Tests
       ""expected"": [11, 12, 21, 22],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -6114,7 +6114,7 @@ namespace NeoCompose.Tests
                               },
                               ""op"": ""OrderBy"",
                               ""function"": {
-                                ""compilerRevision"": 19,
+                                ""compilerRevision"": 20,
                                 ""source"": {
                                   ""uri"": ""Query.neo"",
                                   ""coordinateSpace"": ""file"",
@@ -6189,7 +6189,7 @@ namespace NeoCompose.Tests
                         },
                         ""op"": ""ThenBy"",
                         ""function"": {
-                          ""compilerRevision"": 19,
+                          ""compilerRevision"": 20,
                           ""source"": {
                             ""uri"": ""Query.neo"",
                             ""coordinateSpace"": ""file"",
@@ -6274,7 +6274,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -6434,7 +6434,7 @@ namespace NeoCompose.Tests
                                       },
                                       ""op"": ""GroupBy"",
                                       ""function"": {
-                                        ""compilerRevision"": 19,
+                                        ""compilerRevision"": 20,
                                         ""source"": {
                                           ""uri"": ""Query.neo"",
                                           ""coordinateSpace"": ""file"",
@@ -6557,7 +6557,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -6709,7 +6709,7 @@ namespace NeoCompose.Tests
                               },
                               ""op"": ""ToDictionary"",
                               ""function"": {
-                                ""compilerRevision"": 19,
+                                ""compilerRevision"": 20,
                                 ""source"": {
                                   ""uri"": ""Query.neo"",
                                   ""coordinateSpace"": ""file"",
@@ -6819,7 +6819,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -6955,7 +6955,7 @@ namespace NeoCompose.Tests
                           },
                           ""op"": ""Aggregate"",
                           ""function"": {
-                            ""compilerRevision"": 19,
+                            ""compilerRevision"": 20,
                             ""source"": {
                               ""uri"": ""Query.neo"",
                               ""coordinateSpace"": ""file"",
@@ -7071,7 +7071,7 @@ namespace NeoCompose.Tests
       ""expected"": true,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -7186,7 +7186,7 @@ namespace NeoCompose.Tests
                     ""keyType"": ""float"",
                     ""nullable"": false,
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -7356,7 +7356,7 @@ namespace NeoCompose.Tests
       ""expected"": 3,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -7465,7 +7465,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""float"",
                   ""nullable"": false,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -7612,7 +7612,7 @@ namespace NeoCompose.Tests
       ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -7743,7 +7743,7 @@ namespace NeoCompose.Tests
                 ""mutation"": ""Sort"",
                 ""args"": [],
                 ""comparison"": {
-                  ""compilerRevision"": 19,
+                  ""compilerRevision"": 20,
                   ""source"": {
                     ""uri"": ""Query.neo"",
                     ""coordinateSpace"": ""file"",
@@ -7917,7 +7917,7 @@ namespace NeoCompose.Tests
       ""expected"": 6,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8054,7 +8054,7 @@ namespace NeoCompose.Tests
       ""expected"": 12,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8163,7 +8163,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": false,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -8257,7 +8257,7 @@ namespace NeoCompose.Tests
       ""expected"": 0,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8387,7 +8387,7 @@ namespace NeoCompose.Tests
       ""expected"": 4,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8496,7 +8496,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": true,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -8606,7 +8606,7 @@ namespace NeoCompose.Tests
       ""expected"": 0,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8705,7 +8705,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": true,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -8815,7 +8815,7 @@ namespace NeoCompose.Tests
       ""expected"": 0.30000001192092896,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -8942,7 +8942,7 @@ namespace NeoCompose.Tests
       ""expected"": 1.5,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9069,7 +9069,7 @@ namespace NeoCompose.Tests
       ""expected"": 2,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9178,7 +9178,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": true,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -9288,7 +9288,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9387,7 +9387,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": true,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -9497,7 +9497,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""Sequence contains no elements"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9627,7 +9627,7 @@ namespace NeoCompose.Tests
       ""expected"": ""3.3"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9776,7 +9776,7 @@ namespace NeoCompose.Tests
       ""expected"": ""0.3333333333333333333333333333"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -9935,7 +9935,7 @@ namespace NeoCompose.Tests
       ""expected"": ""12.5"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -10084,7 +10084,7 @@ namespace NeoCompose.Tests
       ""expected"": ""0"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -10263,7 +10263,7 @@ namespace NeoCompose.Tests
       ""expected"": ""-0"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -10414,7 +10414,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""decimal"",
                   ""nullable"": false,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -10486,7 +10486,7 @@ namespace NeoCompose.Tests
       ""expected"": ""-0"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -10675,7 +10675,7 @@ namespace NeoCompose.Tests
       ""expected"": ""-0"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -10890,7 +10890,7 @@ namespace NeoCompose.Tests
       ""expected"": ""0"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11041,7 +11041,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""decimal"",
                   ""nullable"": false,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -11113,7 +11113,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""Value was either too large or too small for a Decimal."",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11262,7 +11262,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""Value was either too large or too small for a Decimal."",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11411,7 +11411,7 @@ namespace NeoCompose.Tests
       ""expected"": -3,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11520,7 +11520,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": false,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -11614,7 +11614,7 @@ namespace NeoCompose.Tests
       ""expected"": 2,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11713,7 +11713,7 @@ namespace NeoCompose.Tests
                   ""keyType"": ""int"",
                   ""nullable"": true,
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -11823,7 +11823,7 @@ namespace NeoCompose.Tests
       ""expected"": 3,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -11960,7 +11960,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""Sequence contains no elements"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -12090,7 +12090,7 @@ namespace NeoCompose.Tests
       ""expected"": 3,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -12197,7 +12197,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""MinBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -12293,7 +12293,7 @@ namespace NeoCompose.Tests
       ""expected"": 12,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -12400,7 +12400,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""MaxBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -12496,7 +12496,7 @@ namespace NeoCompose.Tests
       ""expected"": 3,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -12603,7 +12603,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""MinBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -12726,7 +12726,7 @@ namespace NeoCompose.Tests
       ""expected"": 6,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -12833,7 +12833,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""Aggregate"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -12938,7 +12938,7 @@ namespace NeoCompose.Tests
       ""expected"": ""x12"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -13035,7 +13035,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""Aggregate"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -13157,7 +13157,7 @@ namespace NeoCompose.Tests
       ""expected"": ""x"",
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -13257,7 +13257,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""Aggregate"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -13379,7 +13379,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""Aggregate() found no matching entry."",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -13479,7 +13479,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""Aggregate"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -13584,7 +13584,7 @@ namespace NeoCompose.Tests
       ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -13733,7 +13733,7 @@ namespace NeoCompose.Tests
       ""expected"": [null, 1],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -13904,7 +13904,7 @@ namespace NeoCompose.Tests
       ""expected"": [""1.10"", ""2""],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -14066,7 +14066,7 @@ namespace NeoCompose.Tests
       ""expected"": [11, 22],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -14214,7 +14214,7 @@ namespace NeoCompose.Tests
                     }
                   },
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -14323,7 +14323,7 @@ namespace NeoCompose.Tests
       ""expected"": [12, 11, 22, 21],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -14448,7 +14448,7 @@ namespace NeoCompose.Tests
                           },
                           ""op"": ""OrderBy"",
                           ""function"": {
-                            ""compilerRevision"": 19,
+                            ""compilerRevision"": 20,
                             ""source"": {
                               ""uri"": ""Query.neo"",
                               ""coordinateSpace"": ""file"",
@@ -14528,7 +14528,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenByDescending"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -14627,7 +14627,7 @@ namespace NeoCompose.Tests
       ""expected"": [11, 12, 21, 22],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -14755,7 +14755,7 @@ namespace NeoCompose.Tests
                     },
                     ""op"": ""OrderBy"",
                     ""function"": {
-                      ""compilerRevision"": 19,
+                      ""compilerRevision"": 20,
                       ""source"": {
                         ""uri"": ""Query.neo"",
                         ""coordinateSpace"": ""file"",
@@ -14855,7 +14855,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ThenBy"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -14932,7 +14932,7 @@ namespace NeoCompose.Tests
       ""expected"": [""b"", ""a""],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -15044,7 +15044,7 @@ namespace NeoCompose.Tests
                     ]
                   },
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""name"": ""Query.Result"",
                       ""uri"": ""Query.neo"",
@@ -15133,7 +15133,7 @@ namespace NeoCompose.Tests
       ""expected"": [1, 2],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -15278,7 +15278,7 @@ namespace NeoCompose.Tests
       ""expected"": 6,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -15378,7 +15378,7 @@ namespace NeoCompose.Tests
                       },
                       ""op"": ""ToDictionary"",
                       ""function"": {
-                        ""compilerRevision"": 19,
+                        ""compilerRevision"": 20,
                         ""source"": {
                           ""uri"": ""Query.neo"",
                           ""coordinateSpace"": ""file"",
@@ -15451,7 +15451,7 @@ namespace NeoCompose.Tests
                         }
                       },
                       ""valueFunction"": {
-                        ""compilerRevision"": 19,
+                        ""compilerRevision"": 20,
                         ""source"": {
                           ""uri"": ""Query.neo"",
                           ""coordinateSpace"": ""file"",
@@ -15557,7 +15557,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""ToDictionary() found duplicate key 'same'."",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -15654,7 +15654,7 @@ namespace NeoCompose.Tests
                   },
                   ""op"": ""ToDictionary"",
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""uri"": ""Query.neo"",
                       ""coordinateSpace"": ""file"",
@@ -15736,7 +15736,7 @@ namespace NeoCompose.Tests
       ""expected"": 1,
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -15826,7 +15826,7 @@ namespace NeoCompose.Tests
                       },
                       ""op"": ""ToDictionary"",
                       ""function"": {
-                        ""compilerRevision"": 19,
+                        ""compilerRevision"": 20,
                         ""source"": {
                           ""uri"": ""Query.neo"",
                           ""coordinateSpace"": ""file"",
@@ -15916,7 +15916,7 @@ namespace NeoCompose.Tests
       ""expected"": [1, 3],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -16026,7 +16026,7 @@ namespace NeoCompose.Tests
                       },
                       ""op"": ""GroupBy"",
                       ""function"": {
-                        ""compilerRevision"": 19,
+                        ""compilerRevision"": 20,
                         ""source"": {
                           ""uri"": ""Query.neo"",
                           ""coordinateSpace"": ""file"",
@@ -16158,7 +16158,7 @@ namespace NeoCompose.Tests
       ""expected"": [""1"", ""2"", ""10""],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -16270,7 +16270,7 @@ namespace NeoCompose.Tests
                         },
                         ""op"": ""GroupBy"",
                         ""function"": {
-                          ""compilerRevision"": 19,
+                          ""compilerRevision"": 20,
                           ""source"": {
                             ""uri"": ""Query.neo"",
                             ""coordinateSpace"": ""file"",
@@ -16350,7 +16350,7 @@ namespace NeoCompose.Tests
                     }
                   },
                   ""function"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""name"": ""Query.Result"",
                       ""uri"": ""Query.neo"",
@@ -16449,7 +16449,7 @@ namespace NeoCompose.Tests
       ""expected"": [1, 2, 3],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -16614,7 +16614,7 @@ namespace NeoCompose.Tests
       ""expected"": [3, 2, 1],
       ""expectedError"": null,
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -16742,7 +16742,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -16855,7 +16855,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""while its Sort comparison"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -17005,7 +17005,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -17153,7 +17153,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""while its Sort comparison"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -17303,7 +17303,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -17451,7 +17451,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""while its Sort comparison"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -17601,7 +17601,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -17738,7 +17738,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""while its Sort comparison"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -17888,7 +17888,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",
@@ -18045,7 +18045,7 @@ namespace NeoCompose.Tests
       ""expected"": null,
       ""expectedError"": ""while its Sort comparison"",
       ""getter"": {
-        ""compilerRevision"": 19,
+        ""compilerRevision"": 20,
         ""source"": {
           ""name"": ""Query.Result"",
           ""uri"": ""Query.neo"",
@@ -18195,7 +18195,7 @@ namespace NeoCompose.Tests
             ""mutation"": ""Sort"",
             ""args"": [],
             ""comparison"": {
-              ""compilerRevision"": 19,
+              ""compilerRevision"": 20,
               ""source"": {
                 ""uri"": ""Query.neo"",
                 ""coordinateSpace"": ""file"",

@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class NullGuardHolder : NeoGeneratedClassValue, IReadOnlyNullGuardHolder
     {
         internal NullGuardHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8b52de67-dd12-4ea3-923d-80244da9efa4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "127cb748-3f82-429e-bbb2-5faecdf56ec2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8b52de67-dd12-4ea3-923d-80244da9efa4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Names", "f65aab3b-032e-43e3-82af-c53d043b5530", Names),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "a1f4251f-1051-4a72-bdd3-fe275657f9cc", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "89b35488-4fb3-4445-b758-82a925c4e4c8", Name),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "3200f5eb-429e-4e27-a467-56e1119ce0df", Map)
+                "127cb748-3f82-429e-bbb2-5faecdf56ec2",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Names", "540f3eb4-f1d0-46be-ba97-ec2fb77ad76f", Names),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "284319e2-1288-48c4-912b-228b3eb8955d", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "e4912c16-b529-473d-b9a9-da549175c3cd", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "46c5080a-36af-4234-b171-83853876cb95", Map)
             );
         }
 
@@ -187,7 +187,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -208,7 +208,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

@@ -14,12 +14,12 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(QuestStageOptions))]
     public enum QuestStage
     {
-        arrival = 1290230797,
-        ended = 1361699153,
-        endgame = 1477915377,
-        followTheWakes = 473813621,
-        threePaths = 1446675597,
-        vaultOpen = 758348077,
+        arrival = 0,
+        ended = 1,
+        endgame = 2,
+        followTheWakes = 3,
+        threePaths = 4,
+        vaultOpen = 5,
     }
 
     /// <summary>
