@@ -246,6 +246,18 @@
     "class R12Mixed : IR12Combined { int IR12Prop.V => 2; public int V() => 3; }",
     "class R12Reverse : IR12Combined { int IR12Method.V() => 3; public int V => 2; }",
     "class R12AllExplicit : IR11C { public bool Get() => true; int IR11A1.Get() => 3; string IR11B1.Get() => \"c\"; }",
+    "interface IR13A { int V => 2; }",
+    "interface IR13B { int V() => 3; }",
+    "interface IR13C : IR13A, IR13B { }",
+    "interface IR13D : IR13B, IR13A { }",
+    "class R13Mixed : IR13C, IR13D { }",
+    "class R13Base { protected int V => 7; }",
+    "interface IR13P { int V { get; } }",
+    "class R13BaseP : R13Base, IR13P { int IR13P.V => 3; }",
+    "interface IR13Del { NeoDelegate<int> D { get; } }",
+    "class R13Del : IR13Del { public NeoDelegate<int> D => () => 9; }",
+    "interface IR13Pv<T> { T V { get; } }",
+    "class R13Pc : IR13Pv<int>, IR13Pv<string> { int IR13Pv<int>.V => 1; public string V => \"s\"; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -414,6 +426,16 @@
     "  static int R12ReadSwapped<T extends IR11B & IR11A>(T c) => c.V;",
     "  public static string R12ConstraintRead() => Probe.R12ReadBounds<R11X>(new R11X()).ToString() + \",\" + Probe.R12ReadSwapped<R11X>(new R11X()).ToString();",
     "  public static string R12MixedKinds() { R12Mixed m = new R12Mixed(); R12Reverse r = new R12Reverse(); R12AllExplicit e = new R12AllExplicit(); return (((IR12Prop)m).V + ((IR12Method)m).V()).ToString() + \",\" + (((IR12Prop)r).V + ((IR12Method)r).V()).ToString() + \",\" + ((IR11A1)e).Get().ToString() + \",\" + ((IR11B1)e).Get() + \",\" + (e.Get() ? \"t\" : \"f\"); }",
+    "  static int R13Direct(IR13C c) => c.V();",
+    "  static int R13Reverse(IR13D c) => c.V();",
+    "  static int R13Optional(IR13C? c) => c?.V() ?? 0;",
+    "  static int R13Bang(IR13D? c) => c!.V();",
+    "  public static string R13MixedCall() { R13Mixed m = new R13Mixed(); return Probe.R13Direct(m).ToString() + \",\" + Probe.R13Reverse(m).ToString() + \",\" + Probe.R13Optional(m).ToString() + \",\" + Probe.R13Bang(m).ToString(); }",
+    "  static int R13ReadClassBound<T extends R13Base & IR13P>(T c) => c.V;",
+    "  public static string R13ProtectedClassBound() => Probe.R13ReadClassBound<R13BaseP>(new R13BaseP()).ToString();",
+    "  static int R13CallDelegate<T extends IR13Del>(T c) => c.D();",
+    "  public static string R13DelegateBound() => Probe.R13CallDelegate<R13Del>(new R13Del()).ToString();",
+    "  public static string R13PerConstruction() { IR13Pv<int> a = new R13Pc(); IR13Pv<string> b = new R13Pc(); return a.V.ToString() + \",\" + b.V; }",
     "}"
   ],
   "returns": {
@@ -565,6 +587,10 @@
     "R11MixedImplementation": "1,b,1,b,1",
     "R12PrivateRead": "2,2",
     "R12ConstraintRead": "2,2",
-    "R12MixedKinds": "5,5,3,c,t"
+    "R12MixedKinds": "5,5,3,c,t",
+    "R13MixedCall": "3,3,3,3",
+    "R13ProtectedClassBound": "3",
+    "R13DelegateBound": "9",
+    "R13PerConstruction": "1,s"
   }
 }
