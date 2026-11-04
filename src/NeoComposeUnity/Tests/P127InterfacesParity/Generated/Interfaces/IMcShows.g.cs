@@ -16,13 +16,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         NeoDelegateValue ShowInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "06cf97c6-2fa4-4092-a117-ac1222f5774f", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcShows>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "66939cc7-c94d-4521-9cfe-a4130e7b63d8", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcShows>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
         NeoDelegateValue ShowText()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "80e4b040-1c99-4cc8-9f1d-b72cf50b92ce", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcShows>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "8e8f5023-a050-4009-8e74-41751f9d6262", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcShows>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
     }

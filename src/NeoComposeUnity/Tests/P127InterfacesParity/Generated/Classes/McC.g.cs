@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McC : NeoGeneratedClassValue, IReadOnlyMcC
     {
         internal McC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "62c38f6e-f4b6-4ead-9a3e-325a47b12d95", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d6833e91-7913-4239-a7c4-66fbbd3fdfb3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "62c38f6e-f4b6-4ead-9a3e-325a47b12d95");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d6833e91-7913-4239-a7c4-66fbbd3fdfb3");
         }
 
         internal static McC Create(NeoClient client, NeoMemberClass node)
@@ -96,25 +96,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int IMcA1.Get()
         {
-            var result = InvokeFunction("Get#5e6455da-53d8-4661-b928-0d21124b90ea");
+            var result = InvokeFunction("Get#7735869a-8203-467d-8295-8bbbe8def513");
             return Convert.ToInt32(result);
         }
 
         string IMcB1.Get()
         {
-            var result = InvokeFunction("Get#f5bc83aa-8915-4239-a62e-b5bcf476967f");
+            var result = InvokeFunction("Get#0f7136db-8ca5-4973-959f-f6f9a4b8c1b0");
             return (string)result!;
         }
 
         int IMcA1.Put(int x)
         {
-            var result = InvokeFunction("Put#3977bc67-2cac-46fc-8435-bb5b0269cf09", (object?)(x));
+            var result = InvokeFunction("Put#9d3076e1-c576-406e-8e27-47db1c3cfa77", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         int IMcB1.Put(string x)
         {
-            var result = InvokeFunction("Put#9f09e211-5dd0-4bde-b744-0bdac686a0b4", (object?)(x));
+            var result = InvokeFunction("Put#8ec79e69-51e6-4129-8966-f36fc4921156", (object?)(x));
             return Convert.ToInt32(result);
         }
 
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#1c4d9fcf-0db3-462c-bba1-c394db769dbd");
+                var result = ComputeProperty("V#e2b6a7fa-6b56-431b-9050-fc0fd89be1b0");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#7254c0fa-4a00-4232-bc6f-0d8754b83f91");
+                var result = ComputeProperty("V#51984397-83f7-4eb5-83be-89c06a0b75a7");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }
