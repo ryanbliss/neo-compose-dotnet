@@ -309,14 +309,19 @@ namespace NeoCompose.Runtime
                     if (client.TypeRules.KeyViolation(entry.construction) is string violation)
                         throw Refuse($"{subject}: its construction {violation}.");
                     if (!seen.Add((entry.memberId, entry.construction)))
-                        throw Refuse($"{subject} repeats construction {NeoTypeNames.Of(entry.construction, client.ProjectDataForRuntime)}.");
+                        throw Refuse($"Save holds two entries for static '{GenericStaticIndex.Of(client.ProjectDataForRuntime)?.Label(entry.memberId) ?? entry.memberId}' of construction '{NeoTypeNames.Of(entry.construction, client.ProjectDataForRuntime)}'.");
                     if (!client.TryGetMember(entry.memberId, out Member? member))
-                        continue;
+                        throw Refuse($"{subject}: its member no longer exists.");
+                    if (head.Type == MemberKind.Interface && (!client.ProjectDataForRuntime.interfaces.TryGetValue(head.InterfaceId!, out var interfaceOwner)
+                        || !interfaceOwner.members.Values.Any(declaration => declaration.IsStatic && declaration.implementationMemberId == entry.memberId)))
+                        throw Refuse($"{subject}: its construction does not name the member's interface.");
                     if (client.FindSchemaPlacement(member.id)?.ownerClass is { } owner
                         && (head.Type != MemberKind.Class || head.ClassId != owner.id))
                     {
                         throw Refuse($"{subject}: its construction {NeoTypeNames.Of(entry.construction, client.ProjectDataForRuntime)} doesn't name the member's class {owner.name}.");
                     }
+                    if (member.Modifier != NeoMemberModifierKind.Static || entry.construction.Bindings is not { Count: > 0 })
+                        throw Refuse($"{subject}: the member must be static and its owner generic.");
                     if (entry.value is not string valueId)
                         continue;
                     Dictionary<string, Member>? construction = Construction(entry.construction);

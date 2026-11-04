@@ -124,10 +124,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(listener.target.pointer, predicate)
                         || AnyPointer(listener.listener, predicate);
                 case ChangeListenerEditInstruction listener:
-                    return AnyPointer(listener.target.owner, predicate)
+                    return listener.target.owner is not null && AnyPointer(listener.target.owner, predicate)
                         || AnyPointer(listener.listener, predicate);
                 case ClearChangeListenersInstruction clear:
-                    return AnyPointer(clear.target.owner, predicate);
+                    return clear.target.owner is not null && AnyPointer(clear.target.owner, predicate);
                 case BreakInstruction:
                 case ContinueInstruction:
                 case RethrowInstruction:
@@ -195,6 +195,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(deref.pointer, predicate);
                 case IsCheckPointer check:
                     return AnyPointer(check.pointer, predicate);
+                case TypeParameterStaticPointer staticCall:
+                    foreach (Pointer argument in staticCall.operation.args ?? System.Array.Empty<Pointer>())
+                        if (AnyPointer(argument, predicate))
+                            return true;
+                    return false;
                 case CallGetterPointer getter:
                     return AnyPointer(getter.receiver, predicate);
                 case MemberTargetPointer target:

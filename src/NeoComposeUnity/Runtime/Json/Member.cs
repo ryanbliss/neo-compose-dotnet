@@ -1642,14 +1642,14 @@ namespace NeoCompose.Runtime.Json
                 TypeInfo constraint = list[index].ToObject<TypeInfo>(serializer)
                     ?? throw new JsonSerializationException(
                         $"Function generic param '{name}' has a null constraint.");
-                bool nullable = constraint is ClassTypeInfo or InterfaceTypeInfo;
+                bool nullable = constraint is ClassTypeInfo or InterfaceTypeInfo or ObjectTypeInfo { objectType: NeoObjectTypeKind.Enum };
                 bool admitted = nullable
                     || constraint is EnumTypeInfo
                     || constraint is ObjectTypeInfo { objectType: NeoObjectTypeKind.Enum };
                 if (!admitted || (!constraint.required && !nullable))
                 {
                     throw new JsonSerializationException(
-                        $"Function generic param '{name}' constraint {index} must be a Class, Interface or Enum type, and only a Class or Interface may be nullable.");
+                        $"Function generic param '{name}' constraint {index} must be a Class, Interface or Enum type, and only a Class, Interface or general Enum constraint may be nullable.");
                 }
                 parameter.constraints[index] = constraint;
             }
