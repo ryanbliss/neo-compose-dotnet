@@ -31,8 +31,8 @@ namespace NeoCompose.Tests
         {
             Assert.That(File.Exists(Export), Is.True, "The shared export is required; missing delivery must fail.");
             var fixture = JObject.Parse(File.ReadAllText(Fixture));
-            Assert.That(fixture["returns"]!.Children().Count(), Is.EqualTo(40));
-            Assert.That(fixture["csharpBridges"]!.Children().Count(), Is.EqualTo(27));
+            Assert.That(fixture["returns"]!.Children().Count(), Is.EqualTo(47));
+            Assert.That(fixture["csharpBridges"]!.Children().Count(), Is.EqualTo(39));
         }
 
         [TestCaseSource(nameof(Cases))]
@@ -85,6 +85,13 @@ namespace NeoCompose.Tests
                     "PublicGenericCmp" => G.Probe.PublicGenericCmp(),
                     "PublicGenericX" => G.Probe.PublicGenericX(),
                     "PublicGenericBase" => G.Probe.PublicGenericBase(),
+                    "RelistedComparable" => G.Probe.RelistedComparable(),
+                    "RelistedComparer" => G.Probe.RelistedComparer(),
+                    "RelistedPublicMember" => G.Probe.RelistedPublicMember(),
+                    "RelistedEquatable" => G.Probe.RelistedEquatable(),
+                    "RelistedEqualityComparer" => G.Probe.RelistedEqualityComparer(),
+                    "RelistedPublic" => G.Probe.RelistedPublic(),
+                    "RelistedPublicComparer" => G.Probe.RelistedPublicComparer(),
                     _ => throw new InvalidOperationException("Unconsumed shared case: " + name),
                 };
             else
@@ -142,6 +149,9 @@ namespace NeoCompose.Tests
                 ("Probe.GenericExplicitLeft", "X(Probe.GenericExplicitRight)") => (G.Probe.GenericExplicitLeft, G.Probe.GenericExplicitRight),
                 ("Probe.GenericPublicLeft", "CompareTo(Probe.GenericPublicRight)") => (G.Probe.GenericPublicLeft, G.Probe.GenericPublicRight),
                 ("Probe.GenericPublicLeft", "X(Probe.GenericPublicRight)") => (G.Probe.GenericPublicLeft, G.Probe.GenericPublicRight),
+                ("Probe.RelistedLeft", "CompareTo(Probe.RelistedRight)" or "Compare(Probe.RelistedLeft, Probe.RelistedRight)") => (G.Probe.RelistedLeft, G.Probe.RelistedRight),
+                ("Probe.RelistedEqLeft", "Equals(Probe.RelistedEqRight)" or "Equals(Probe.RelistedEqLeft, Probe.RelistedEqRight)") => (G.Probe.RelistedEqLeft, G.Probe.RelistedEqRight),
+                ("Probe.RelistedPublicLeft", "CompareTo(Probe.RelistedPublicRight)" or "Compare(Probe.RelistedPublicLeft, Probe.RelistedPublicRight)") => (G.Probe.RelistedPublicLeft, G.Probe.RelistedPublicRight),
                 _ => throw new InvalidOperationException("Unconsumed C# bridge operands: " + receiver + "." + call),
             };
             return (contract, call.Substring(0, call.IndexOf('('))) switch
@@ -170,12 +180,26 @@ namespace NeoCompose.Tests
                 ("IX<GDP<int>>", "X") => X<G.GDP<int>>(operands.left, operands.right),
                 ("System.IComparable<GP<int>>", "CompareTo") => Compare<G.GP<int>>(operands.left, operands.right),
                 ("System.IComparable<IReadOnlyGP<int>>", "CompareTo") => Compare<G.IReadOnlyGP<int>>(operands.left, operands.right),
+                ("System.IComparable<ReA>", "CompareTo") => Compare<G.ReA>(operands.left, operands.right),
+                ("System.IComparable<IReadOnlyReA>", "CompareTo") => Compare<G.IReadOnlyReA>(operands.left, operands.right),
+                ("System.Collections.Generic.Comparer<ReA>.Default", "Compare") => CompareDefault<G.ReA>(operands.left, operands.right),
+                ("System.Collections.Generic.Comparer<IReadOnlyReA>.Default", "Compare") => CompareDefault<G.IReadOnlyReA>(operands.left, operands.right),
+                ("System.IEquatable<ReAE>", "Equals") => Equal<G.ReAE>(operands.left, operands.right),
+                ("System.IEquatable<IReadOnlyReAE>", "Equals") => Equal<G.IReadOnlyReAE>(operands.left, operands.right),
+                ("System.Collections.Generic.EqualityComparer<ReAE>.Default", "Equals") => EqualDefault<G.ReAE>(operands.left, operands.right),
+                ("System.Collections.Generic.EqualityComparer<IReadOnlyReAE>.Default", "Equals") => EqualDefault<G.IReadOnlyReAE>(operands.left, operands.right),
+                ("System.IComparable<ReAX>", "CompareTo") => Compare<G.ReAX>(operands.left, operands.right),
+                ("System.IComparable<IReadOnlyReAX>", "CompareTo") => Compare<G.IReadOnlyReAX>(operands.left, operands.right),
+                ("System.Collections.Generic.Comparer<ReAX>.Default", "Compare") => CompareDefault<G.ReAX>(operands.left, operands.right),
+                ("System.Collections.Generic.Comparer<IReadOnlyReAX>.Default", "Compare") => CompareDefault<G.IReadOnlyReAX>(operands.left, operands.right),
                 _ => throw new InvalidOperationException("Unconsumed C# bridge interface: " + contract),
             };
         }
 
         private static bool Equal<T>(object left, object right) => ((IEquatable<T>)left).Equals((T)right);
         private static int Compare<T>(object left, object right) => ((IComparable<T>)left).CompareTo((T)right);
+        private static bool EqualDefault<T>(object left, object right) => EqualityComparer<T>.Default.Equals((T)left, (T)right);
+        private static int CompareDefault<T>(object left, object right) => Comparer<T>.Default.Compare((T)left, (T)right);
         private static int Measure<T>(object left, object right) => ((G.IMeasure<T>)left).Measure((T)right);
         private static int X<T>(object left, object right) => ((G.IX<T>)left).X((T)right);
 

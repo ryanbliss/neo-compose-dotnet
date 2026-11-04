@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), `out` results a flow attribute or a nullable type lets stay null, explicit IEquatable<C> and IComparable<C> implementations (with their read-only bridges), protected and private getters, a derived class's own construction of an interface its base already implements (IComparable, IEquatable and a user interface, each called through both constructions, and a generic GD<T> : G<T> re-implementing IComparable<GD<T>> and IX<GD<T>> explicitly over a public base and publicly over an explicit base), and Reference<T> under a system-interface constraint bound to int (a slot) and to a class (a handle). The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface`; it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
+  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), `out` results a flow attribute or a nullable type lets stay null, explicit IEquatable<C> and IComparable<C> implementations (with their read-only bridges), protected and private getters, a derived class's own construction of an interface its base already implements (IComparable, IEquatable and a user interface, each called through both constructions, and a generic GD<T> : G<T> re-implementing IComparable<GD<T>> and IX<GD<T>> explicitly over a public base and publicly over an explicit base, and ReB : ReA, IComparable<ReA> re-implementing its base's own construction explicitly, ReBE the same for IEquatable<ReAE> and ReBX publicly over an explicit base, each called through both constructions and the Default comparers), and Reference<T> under a system-interface constraint bound to int (a slot) and to a class (a handle). The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface` (or, for an `interface` ending in `.Default`, on that comparer); it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
   "source": [
     "class Box { public int A = 1; }",
     "class Box<T> { public T? V; public static int Count = 0; public static NeoAction Changed; }",
@@ -42,6 +42,12 @@
     "interface IMeasure<T> { int Measure(T other); }",
     "class BaseM : IMeasure<BaseM> { public int Measure(BaseM other) => 1; }",
     "class DerM : BaseM, IMeasure<DerM> { int IMeasure<DerM>.Measure(DerM other) => 2; }",
+    "class ReA : IComparable<ReA> { public int CompareTo(ReA? o) => 1; }",
+    "class ReB : ReA, IComparable<ReA> { int IComparable<ReA>.CompareTo(ReA? o) => 9; }",
+    "class ReAE : IEquatable<ReAE> { public bool Equals(ReAE? o) => true; }",
+    "class ReBE : ReAE, IEquatable<ReAE> { bool IEquatable<ReAE>.Equals(ReAE? o) => false; }",
+    "class ReAX : IComparable<ReAX> { int IComparable<ReAX>.CompareTo(ReAX? o) => 1; }",
+    "class ReBX : ReAX, IComparable<ReAX> { public int CompareTo(ReAX? o) => 9; }",
     "interface IX<T> { int X(T o); }",
     "class GE<T> : IComparable<GE<T>>, IX<GE<T>> { public int CompareTo(GE<T>? o) => 0; public int X(GE<T> o) => 0; }",
     "class GDE<T> : GE<T>, IComparable<GDE<T>>, IX<GDE<T>> { int IComparable<GDE<T>>.CompareTo(GDE<T>? o) => 5; int IX<GDE<T>>.X(GDE<T> o) => 6; }",
@@ -71,6 +77,12 @@
     "  public static GDE<int> GenericExplicitRight = new GDE<int>();",
     "  public static GDP<int> GenericPublicLeft = new GDP<int>();",
     "  public static GDP<int> GenericPublicRight = new GDP<int>();",
+    "  public static ReB RelistedLeft = new ReB();",
+    "  public static ReA RelistedRight = new ReA();",
+    "  public static ReBE RelistedEqLeft = new ReBE();",
+    "  public static ReAE RelistedEqRight = new ReAE();",
+    "  public static ReBX RelistedPublicLeft = new ReBX();",
+    "  public static ReAX RelistedPublicRight = new ReAX();",
     "  public static Fold FoldComparer = new Fold();",
     "  public static ByLen LengthComparer = new ByLen();",
     "  public static bool TryIt(out int v) { v = 1; return true; }",
@@ -106,6 +118,13 @@
     "  public static int PublicGenericCmp() { IComparable<GDP<int>> a = new GDP<int>(); return a.CompareTo(new GDP<int>()); }",
     "  public static int PublicGenericX() { IX<GDP<int>> b = new GDP<int>(); return b.X(new GDP<int>()); }",
     "  public static int PublicGenericBase() { IComparable<GP<int>> g = new GDP<int>(); return g.CompareTo(new GP<int>()); }",
+    "  public static int RelistedComparable() { IComparable<ReA> c = RelistedLeft; return c.CompareTo(RelistedRight); }",
+    "  public static int RelistedComparer() => Comparer<ReA>.Default.Compare(RelistedLeft, RelistedRight);",
+    "  public static int RelistedPublicMember() => RelistedLeft.CompareTo(RelistedRight);",
+    "  public static bool RelistedEquatable() { IEquatable<ReAE> e = RelistedEqLeft; return e.Equals(RelistedEqRight); }",
+    "  public static bool RelistedEqualityComparer() => EqualityComparer<ReAE>.Default.Equals(RelistedEqLeft, RelistedEqRight);",
+    "  public static int RelistedPublic() { IComparable<ReAX> c = RelistedPublicLeft; return c.CompareTo(RelistedPublicRight); }",
+    "  public static int RelistedPublicComparer() => Comparer<ReAX>.Default.Compare(RelistedPublicLeft, RelistedPublicRight);",
     "  public static int DerivedBaseInterface() { IMeasure<BaseM> m = MeasureLeft; return m.Measure(MeasureRight); }",
     "  public static int ProtectedAndPrivateGetters() { var g = new GatedSub(); g.P = 2; g.Q = 3; return g.Sum() * 10 + g.ReadP(); }",
     "  public static int ReferenceIntWrite() { var s = new Slot<int>(3); s.R = 9; return s.Value; }",
@@ -156,7 +175,14 @@
     "ExplicitGenericBase": 0,
     "PublicGenericCmp": 5,
     "PublicGenericX": 6,
-    "PublicGenericBase": 0
+    "PublicGenericBase": 0,
+    "RelistedComparable": 9,
+    "RelistedComparer": 9,
+    "RelistedPublicMember": 1,
+    "RelistedEquatable": false,
+    "RelistedEqualityComparer": false,
+    "RelistedPublic": 9,
+    "RelistedPublicComparer": 9
   },
   "csharpBridges": [
     {
@@ -347,6 +373,90 @@
       "interface": "System.IComparable<IReadOnlyGP<int>>",
       "call": "CompareTo(Probe.GenericPublicRight)",
       "returns": 0
+    },
+    {
+      "name": "RelistedComparable",
+      "receiver": "Probe.RelistedLeft",
+      "interface": "System.IComparable<ReA>",
+      "call": "CompareTo(Probe.RelistedRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedComparable",
+      "receiver": "Probe.RelistedLeft",
+      "interface": "System.IComparable<IReadOnlyReA>",
+      "call": "CompareTo(Probe.RelistedRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedComparer",
+      "receiver": "Probe.RelistedLeft",
+      "interface": "System.Collections.Generic.Comparer<ReA>.Default",
+      "call": "Compare(Probe.RelistedLeft, Probe.RelistedRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedComparer",
+      "receiver": "Probe.RelistedLeft",
+      "interface": "System.Collections.Generic.Comparer<IReadOnlyReA>.Default",
+      "call": "Compare(Probe.RelistedLeft, Probe.RelistedRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedEquatable",
+      "receiver": "Probe.RelistedEqLeft",
+      "interface": "System.IEquatable<ReAE>",
+      "call": "Equals(Probe.RelistedEqRight)",
+      "returns": false
+    },
+    {
+      "name": "RelistedEquatable",
+      "receiver": "Probe.RelistedEqLeft",
+      "interface": "System.IEquatable<IReadOnlyReAE>",
+      "call": "Equals(Probe.RelistedEqRight)",
+      "returns": false
+    },
+    {
+      "name": "RelistedEqualityComparer",
+      "receiver": "Probe.RelistedEqLeft",
+      "interface": "System.Collections.Generic.EqualityComparer<ReAE>.Default",
+      "call": "Equals(Probe.RelistedEqLeft, Probe.RelistedEqRight)",
+      "returns": false
+    },
+    {
+      "name": "RelistedEqualityComparer",
+      "receiver": "Probe.RelistedEqLeft",
+      "interface": "System.Collections.Generic.EqualityComparer<IReadOnlyReAE>.Default",
+      "call": "Equals(Probe.RelistedEqLeft, Probe.RelistedEqRight)",
+      "returns": false
+    },
+    {
+      "name": "RelistedPublic",
+      "receiver": "Probe.RelistedPublicLeft",
+      "interface": "System.IComparable<ReAX>",
+      "call": "CompareTo(Probe.RelistedPublicRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedPublic",
+      "receiver": "Probe.RelistedPublicLeft",
+      "interface": "System.IComparable<IReadOnlyReAX>",
+      "call": "CompareTo(Probe.RelistedPublicRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedPublicComparer",
+      "receiver": "Probe.RelistedPublicLeft",
+      "interface": "System.Collections.Generic.Comparer<ReAX>.Default",
+      "call": "Compare(Probe.RelistedPublicLeft, Probe.RelistedPublicRight)",
+      "returns": 9
+    },
+    {
+      "name": "RelistedPublicComparer",
+      "receiver": "Probe.RelistedPublicLeft",
+      "interface": "System.Collections.Generic.Comparer<IReadOnlyReAX>.Default",
+      "call": "Compare(Probe.RelistedPublicLeft, Probe.RelistedPublicRight)",
+      "returns": 9
     }
   ]
 }
