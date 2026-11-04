@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class NLA : NeoGeneratedClassValue, IReadOnlyNLA
     {
         internal NLA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "185ee4f3-e6e9-424f-bd49-ae4549f67e77", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a79484d1-ea57-4363-93ca-7a6bf482ef0e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static string Nm()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3b89c60d-b7ad-45f1-a20e-d9374ab9b5c3");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "403f547d-dd50-4409-8f52-6e0c99dc7284");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "185ee4f3-e6e9-424f-bd49-ae4549f67e77");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a79484d1-ea57-4363-93ca-7a6bf482ef0e");
         }
 
         internal static NLA Create(NeoClient client, NeoMemberClass node)
