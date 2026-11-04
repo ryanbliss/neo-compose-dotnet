@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public abstract partial class Keyed : NeoGeneratedClassValue, IReadOnlyKeyed
     {
         internal Keyed(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b8c2e69d-219b-4618-a3b8-6dd6efea6060", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e4387b15-853e-474f-8855-2840dd6d819c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,6 +41,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "9f5ad071-1391-4fc3-a911-1a06cd4e54f6" => new KeyedN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'Keyed' without a concrete client type id."),
                 };
             });
@@ -53,6 +54,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "9f5ad071-1391-4fc3-a911-1a06cd4e54f6" => new KeyedN(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'Keyed' without a concrete client type id."),
                 };
             });
@@ -60,7 +62,11 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
 
         internal static Keyed? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
         {
-            return null;
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "9f5ad071-1391-4fc3-a911-1a06cd4e54f6" => new KeyedN(client, value, !saved),
+                _ => null,
+            };
         }
 
         public Keyed Clone()

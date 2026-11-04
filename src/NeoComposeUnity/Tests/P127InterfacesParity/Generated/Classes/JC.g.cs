@@ -21,7 +21,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         bool TryWritable(out JC writable);
 
-        new int H();
+        int H();
 
         new int M();
     }

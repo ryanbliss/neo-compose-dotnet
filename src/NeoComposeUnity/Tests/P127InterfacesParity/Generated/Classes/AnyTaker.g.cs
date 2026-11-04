@@ -21,7 +21,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         bool TryWritable(out AnyTaker writable);
 
-        new string Take(IReadOnlyAnimal value);
+        string Take(IReadOnlyAnimal value);
     }
 
     public partial class AnyTaker : NeoGeneratedClassValue, IReadOnlyAnyTaker

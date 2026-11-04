@@ -21,11 +21,11 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         bool TryWritable(out OVI writable);
 
-        int F(int x);
+        new int F(int x);
 
-        int F(string s);
+        new int F(string s);
 
-        int F(bool b);
+        new int F(bool b);
     }
 
     public partial class OVI : NeoGeneratedClassValue, IReadOnlyOVI

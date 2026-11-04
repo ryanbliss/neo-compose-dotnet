@@ -21,9 +21,9 @@ namespace NeoCompose.Tests.P127OperatorsParity
 
         bool TryWritable(out Fix writable);
 
-        int CompareTo(object? obj);
+        new int CompareTo(object? obj);
 
-        int CompareTo(IReadOnlyFix? other);
+        new int CompareTo(IReadOnlyFix? other);
 
         new bool Equals(IReadOnlyFix? other);
 

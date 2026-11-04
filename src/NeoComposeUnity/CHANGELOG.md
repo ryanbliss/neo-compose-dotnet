@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Preserve the reflected host comparer factory in stripped players. Add shared Mono/player coverage for stored comparers and tuple boxes, generated comparer bridges and interface bodies, and generic statics.
+
 - Dispatch inherited system function forwarders through the evaluator, including nongeneric comparer bridges to authored overrides. Support CLR tuple boxes and Type crossings with single-element structural rests and nested rests for eight or more elements.
 
 - Refresh generated APIs and HelloWorld for P127: mapped CLR interfaces and comparer bridges, authored object overrides, operators, out parameters, default interface bodies, generic statics and actions, arity-overloaded names, and variance. Authored stored-collection comparers return their generated CLR implementation when registered.
