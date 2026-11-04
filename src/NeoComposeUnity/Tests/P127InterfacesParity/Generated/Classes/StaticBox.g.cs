@@ -23,15 +23,15 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class StaticBox<T> : NeoGeneratedClassValue, IReadOnlyStaticBox<T>
     {
         internal StaticBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8c75cfbb-6d61-4af3-9ffb-0f886ab8b3f9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2b08d792-071e-44a9-a24a-8af87868d63a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        [NeoMemberMethod("266a684f-b8b3-425f-9259-a3c2c7d7ef32")]
+        [NeoMemberMethod("0b04510a-7aa0-4836-b7c7-ef909f63d86a")]
         public static void Bump()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "266a684f-b8b3-425f-9259-a3c2c7d7ef32", client.TypeArguments.Of<StaticBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0b04510a-7aa0-4836-b7c7-ef909f63d86a", client.TypeArguments.Of<StaticBox<T>>());
             node.InvokeStatic();
         }
 
@@ -40,14 +40,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "31ec2022-3f68-467d-a1a1-de03d3a7e91f", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a2dd6227-e20b-478c-9def-0d2018162885", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "31ec2022-3f68-467d-a1a1-de03d3a7e91f", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a2dd6227-e20b-478c-9def-0d2018162885", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -57,14 +57,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d0befdf3-c874-4aed-806a-6bff143642ca", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "461a8f81-2302-415c-ba13-fb28bf2e00ce", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
                 var node = binding.GetNodeOrEmpty<NeoMember>();
                 return NeoGenericBindings.Resolve<T>(client, node).Read(node);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d0befdf3-c874-4aed-806a-6bff143642ca", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "461a8f81-2302-415c-ba13-fb28bf2e00ce", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
                 var node = binding.GetNodeOrEmpty<NeoMember>();
                 binding.SetValue(NeoGenericBindings.Resolve<T>(client, node).Serialize(value));
             }
@@ -75,7 +75,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "18a4b50e-8fea-4ac3-b92f-2ca13a977d29", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "bbffeaf0-6a2d-4d2c-9469-47ea2e805ab0", NeoValueOwnership.Session, client.TypeArguments.Of<StaticBox<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<T>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, child).Serialize(item));
             }
@@ -84,7 +84,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static string Name()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "74b2d6e4-38c8-485a-b336-2dcf472973ea", client.TypeArguments.Of<StaticBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e38bb071-ca49-4995-b42d-8de3ec877415", client.TypeArguments.Of<StaticBox<T>>());
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -96,8 +96,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ef2241a6-9471-403b-8733-160885a7f540" => (StaticBox<T>)(object)new IntStaticBox(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "8c75cfbb-6d61-4af3-9ffb-0f886ab8b3f9" => new StaticBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e487059b-c7a5-4618-8e23-ab03ce06bf87" => (StaticBox<T>)(object)new IntStaticBox(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2b08d792-071e-44a9-a24a-8af87868d63a" => new StaticBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'StaticBox' without a concrete client type id."),
                 };
             });
@@ -110,8 +110,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ef2241a6-9471-403b-8733-160885a7f540" => (StaticBox<T>)(object)new IntStaticBox(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "8c75cfbb-6d61-4af3-9ffb-0f886ab8b3f9" => new StaticBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e487059b-c7a5-4618-8e23-ab03ce06bf87" => (StaticBox<T>)(object)new IntStaticBox(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2b08d792-071e-44a9-a24a-8af87868d63a" => new StaticBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'StaticBox' without a concrete client type id."),
                 };
             });

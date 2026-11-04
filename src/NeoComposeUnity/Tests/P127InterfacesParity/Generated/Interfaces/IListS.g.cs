@@ -18,7 +18,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e59d7229-ac3b-4e3b-8175-95cec6479ff9", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "64e03a8c-8fda-42a4-a43a-7c692187d417", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<T>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, child).Serialize(item));
             }
@@ -28,14 +28,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "6bde2202-7c38-4f38-b34f-819a43c35d09", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eb6fe8bc-9610-4aac-aa09-2dfe4ad4b309", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'C' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "6bde2202-7c38-4f38-b34f-819a43c35d09", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eb6fe8bc-9610-4aac-aa09-2dfe4ad4b309", NeoValueOwnership.Session, client.TypeArguments.Of<IListS<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
