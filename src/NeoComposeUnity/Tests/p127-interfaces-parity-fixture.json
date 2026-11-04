@@ -224,6 +224,19 @@
     "interface IMcSa { protected static abstract int M(); }",
     "interface IMcSb { static abstract int M(); }",
     "class McX : IMcSa, IMcSb { static int IMcSa.M() => 1; public static int M() => 2; }",
+    "interface IR11S<T> { static abstract int M(T x); }",
+    "interface IR11Both : IR11S<int>, IR11S<string> { }",
+    "class R11Both : IR11Both { public static int M(int x) => 11; public static int M(string x) => 20; }",
+    "interface IR11A { protected int V { get; } }",
+    "interface IR11B { int V { get; } }",
+    "interface IR11AB : IR11A, IR11B { }",
+    "interface IR11BA : IR11B, IR11A { }",
+    "class R11X : IR11AB, IR11BA { int IR11A.V => 1; public int V => 2; }",
+    "interface IR11A1 { int Get(); }",
+    "interface IR11B1 { string Get(); }",
+    "interface IR11C : IR11A1, IR11B1 { }",
+    "class R11C : IR11C { public int Get() => 1; string IR11B1.Get() => \"b\"; }",
+    "class R11D : IR11A1, IR11B1 { public int Get() => 1; string IR11B1.Get() => \"b\"; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -378,6 +391,15 @@
     "  static int McAB<T extends IMcSa & IMcSb>() => T.M();",
     "  static int McBA<T extends IMcSb & IMcSa>() => T.M();",
     "  public static string McAccessibleConstraint() => Probe.McAB<McX>().ToString() + \",\" + Probe.McBA<McX>().ToString();",
+    "  static int R11Call<T extends IR11Both>() => T.M(1) + T.M(\"s\");",
+    "  static int R11CallBoth<T extends IR11S<int> & IR11S<string>>() => T.M(1) + T.M(\"s\");",
+    "  static NeoDelegate<int, int> R11IntGroup<T extends IR11Both>() => T.M;",
+    "  static NeoDelegate<int, string> R11TextGroup<T extends IR11Both>() => T.M;",
+    "  static int R11Set<T extends IMcSet<int> & IMcSet<string>>(T c) => c.Set(1) + c.Set(\"s\");",
+    "  public static string R11Constructions() => Probe.R11Call<R11Both>().ToString() + \",\" + Probe.R11CallBoth<R11Both>().ToString() + \",\" + Probe.R11IntGroup<R11Both>()(1).ToString() + \",\" + Probe.R11TextGroup<R11Both>()(\"s\").ToString() + \",\" + Probe.R11Set<McImpB>(new McImpB()).ToString();",
+    "  static int R11ReadT<T extends IR11AB>(T c) => c.V;",
+    "  public static string R11AccessibleRead() { IR11AB ab = new R11X(); IR11BA ba = new R11X(); return ab.V.ToString() + \",\" + ba.V.ToString() + \",\" + Probe.R11ReadT<R11X>(new R11X()).ToString(); }",
+    "  public static string R11MixedImplementation() { IR11C c = new R11C(); IR11A1 da = new R11D(); IR11B1 db = new R11D(); return ((IR11A1)c).Get().ToString() + \",\" + ((IR11B1)c).Get() + \",\" + da.Get().ToString() + \",\" + db.Get() + \",\" + new R11D().Get().ToString(); }",
     "}"
   ],
   "returns": {
@@ -523,6 +545,9 @@
     "McMethodGroup": "11,20,3,t,int,string",
     "McSameName": "1,b,2,v,11,20,11,20",
     "McImplicitOverloads": "11,20,31,40,51,60,71,80,32,112",
-    "McAccessibleConstraint": "2,2"
+    "McAccessibleConstraint": "2,2",
+    "R11Constructions": "31,31,11,20,31",
+    "R11AccessibleRead": "2,2,2",
+    "R11MixedImplementation": "1,b,1,b,1"
   }
 }
