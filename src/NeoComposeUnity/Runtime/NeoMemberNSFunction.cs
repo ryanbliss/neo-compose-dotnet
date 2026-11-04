@@ -2097,6 +2097,9 @@ namespace NeoCompose.Runtime
                     : payload.value;
             }
             value = NSGetterEvaluator.UnwrapHostComparer(value, client);
+            value = NSGetterEvaluator.ImportFormatProvider(value);
+            if (NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
+                return value;
             NeoClient? owner = NeoExtensionRuntime.ClientOf(value);
             if (owner is not null && !ReferenceEquals(client, owner))
                 throw new InvalidOperationException("An SDK value belongs to a different project client.");
@@ -2349,6 +2352,9 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            if (NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
+                return;
+
             bool valid = typeInfo.type switch
             {
                 MemberKind.Null => false,
@@ -2453,7 +2459,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             ValueSubject subject)
         {
-            if (value is null)
+            if (value is null || NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
                 return;
 
             switch (typeInfo.type)
@@ -2839,13 +2845,18 @@ namespace NeoCompose.Runtime
                 CollectionTypeInfo collection => collection.entryTypeInfo,
                 _ => null,
             };
-            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx);
+            NeoValueOwnership? rowOwnership = NSGetterEvaluator.FindRowOwnershipByReference(value, ctx, out NSGetterEvaluator.RowReference? rowRef);
+            // Argument validation reads the dictionary's current entries,
+            // including mutations staged by a nested function call.
+            if (rowRef is not null)
+                client.ObserveScriptWrites(rowRef.valueId);
+            Member? entryMember = rowRef?.EntryMember(client);
             if (value is RuntimeDictionary runtime)
             {
                 if (entryType is not null)
                     foreach (object? entry in runtime.Values)
                         Normalize(client, rowOwnership ?? ownership,
-                            rowOwnership is null ? entry : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                            rowOwnership is null ? entry : NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership, entryMember),
                             entryType, ctx, subject.Entry());
                 return runtime;
             }
@@ -2854,7 +2865,7 @@ namespace NeoCompose.Runtime
                 if (entryType is not null)
                     foreach (object? entry in rows.Values)
                         Normalize(client, rowOwnership.Value,
-                            NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership),
+                            NSGetterEvaluator.ResolveValueIfId(entry, ctx, rowOwnership, entryMember),
                             entryType, ctx, subject.Entry());
                 return rows;
             }

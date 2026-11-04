@@ -1286,6 +1286,25 @@ namespace NeoCompose.Runtime
 
         internal NeoWriteBatch? PendingScriptWrites => scriptWriteBatch;
 
+        private HashSet<object>? scriptGlobalizationValues;
+        internal bool DefersGlobalizationWrites => scriptWriteDepth != 0;
+
+        internal void NoteGlobalizationValue(object? value)
+        {
+            if (DefersGlobalizationWrites && value is System.Globalization.CultureInfo or System.Globalization.NumberFormatInfo)
+                (scriptGlobalizationValues ??= new HashSet<object>(NeoReferenceEqualityComparer.Instance)).Add(value);
+        }
+
+        private void PublishScriptGlobalizationWrites()
+        {
+            HashSet<object>? values = scriptGlobalizationValues;
+            scriptGlobalizationValues = null;
+            if (values is null)
+                return;
+            foreach (object value in values)
+                NSGetterEvaluator.PublishGlobalizationWrites(value, this);
+        }
+
         internal void EnterScriptWrites()
         {
             // A getter an execution's writes reach is heard once, after it
@@ -1305,9 +1324,11 @@ namespace NeoCompose.Runtime
             try
             {
                 CommitScriptWrites();
+                PublishScriptGlobalizationWrites();
             }
             finally
             {
+                scriptGlobalizationValues = null;
                 // Released into the execution's change batch, when it has
                 // one. Closed first: an effect the release runs is an
                 // execution of its own, with its own batch.

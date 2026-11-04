@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -408,6 +409,419 @@ namespace NeoCompose.Tests
             Assert.That(((NumberFormatInfo)ReadAt(clone, "FormatSlot")!).NaNSymbol, Is.EqualTo("nope"));
         }
 
+        [TestCase("CultureSlot", "culture-field", true)]
+        [TestCase("FormatSlot", "format-field", false)]
+        [TestCase("Slot", "slot-field", true)]
+        [TestCase("Slot", "slot-field", false)]
+        public void EvaluatorReadsStoredCulturesWithHostIdentityAndPersistsWrites(string slot, string memberId, bool culture)
+        {
+            using NeoClient source = BuildClient();
+            Write(source, source.save, culture ? (object)new CultureInfo("") : new NumberFormatInfo(), slot);
+            using NeoClient client = Reload(source);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object? evaluated = NSGetterEvaluator.UnwrapRow(RowAt(client.save, slot), context, NeoValueOwnership.Save, client.members[memberId]);
+            Assert.That(evaluated, Is.SameAs(ReadAt(client.save, slot)));
+            var changed = new List<string>();
+            client.OnSaveValueChanged += changed.Add;
+            NumberFormatInfo info = evaluated is CultureInfo ci ? ci.NumberFormat : (NumberFormatInfo)evaluated!;
+            NSGetterEvaluator.WriteGlobalizationMember(new GlobalizationMemberPointer
+            {
+                type = PointerKind.GlobalizationMember,
+                owner = "NumberFormatInfo",
+                member = "NegativeSign",
+                receiver = new ValuePointer { type = PointerKind.Value, primitiveResolved = true, primitive = info },
+                args = Array.Empty<Pointer>(),
+            }, "~", new NeoScriptScope(), context);
+            Assert.That(changed, Is.EqualTo(new[] { RowAt(client.save, slot).id }));
+            Assert.That(ReadAt(client.save, slot), Is.SameAs(evaluated));
+            using NeoClient reloaded = Reload(client);
+            object? restored = ReadAt(reloaded.save, slot);
+            NumberFormatInfo restoredInfo = restored is CultureInfo restoredCulture ? restoredCulture.NumberFormat : (NumberFormatInfo)restored!;
+            Assert.That(restoredInfo.NegativeSign, Is.EqualTo("~"));
+            Assert.That(restored, Is.Not.SameAs(evaluated));
+        }
+
+        [Test]
+        public void StoredNativeDigitsKeepMutationsMadeThroughTheRetainedList()
+        {
+            using NeoClient client = BuildClient();
+            var info = new NumberFormatInfo();
+            var digits = new object[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(info, "NativeDigits", digits);
+            digits[0] = "x";
+            Write(client, client.save, info, "FormatSlot");
+            using NeoClient reloaded = Reload(client);
+            var restored = (NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!;
+            Assert.That(restored.NativeDigits[0], Is.EqualTo("x"));
+            Assert.That(NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(restored)[0], Is.EqualTo("x"));
+        }
+
+        private static Pointer ScriptValue(object? value) => new ValuePointer
+        {
+            type = PointerKind.Value,
+            primitiveResolved = true,
+            primitive = value,
+        };
+
+        private static Pointer ScriptKey(Pointer receiver, object key) => new KeyOfPointer
+        {
+            type = PointerKind.KeyOf,
+            keyOf = new KeyOf { pointer = receiver, key = ScriptValue(key) },
+        };
+
+        private static Pointer ScriptSlot(NeoClient client, NSGetterEvaluator.Context context, string key) =>
+            ScriptKey(ScriptValue(NSGetterEvaluator.UnwrapRow(client.save.value!, context, NeoValueOwnership.Save)), key);
+
+        private static GlobalizationMemberPointer ScriptFormatProperty(Pointer receiver, string name) => new()
+        {
+            type = PointerKind.GlobalizationMember,
+            owner = "NumberFormatInfo",
+            member = name,
+            receiver = receiver,
+            args = Array.Empty<Pointer>(),
+        };
+
+        private static AssignInstruction ScriptAssignment(Pointer target, object? value, TypeInfo? typeInfo = null) => new()
+        {
+            type = InstructionKind.Assign,
+            operatorValue = "=",
+            pointer = ScriptValue(value),
+            target = new WriteTarget { pointer = target, typeInfo = typeInfo ?? new PrimitiveTypeInfo { type = MemberKind.Object }, writability = WritabilityKind.Runtime },
+        };
+
+        private static void ScriptWrite(NeoClient client, NSGetterEvaluator.Context context, Pointer target, object? value) =>
+            ScriptRun(client, context, new Instruction[] { ScriptAssignment(target, value) });
+
+        private static void ScriptRun(NeoClient client, NSGetterEvaluator.Context context, Instruction[] instructions, Dictionary<string, object?>? locals = null) =>
+            NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+            {
+                compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                parameters = Array.Empty<Variable>(),
+                instructions = instructions,
+            }, new NeoScriptScope(locals ?? new Dictionary<string, object?>()), context);
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EvaluatorNumberFormatListEntryWritesPersist(bool boxed)
+        {
+            using NeoClient source = BuildClient(data =>
+            {
+                if (!boxed)
+                    ((ObjectMember)data.members["bag-entry"]).objectType = NeoObjectTypeKind.NumberFormatInfo;
+            });
+            if (boxed)
+                Entries<NeoList<object>>(source, source.save, "Bag").Add(new NumberFormatInfo());
+            else
+                Entries<NeoList<NumberFormatInfo>>(source, source.save, "Bag").Add(new NumberFormatInfo());
+            using NeoClient client = Reload(source);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            Pointer entry = ScriptKey(ScriptSlot(client, context, "Bag"), 0d);
+            if (boxed)
+                entry = new CastPointer
+                {
+                    type = PointerKind.Cast,
+                    pointer = entry,
+                    targetType = new ObjectTypeInfo { type = MemberKind.Object, objectType = NeoObjectTypeKind.NumberFormatInfo, required = true }
+                };
+            ScriptWrite(client, context, ScriptFormatProperty(entry, "NegativeSign"), "~");
+            using NeoClient reloaded = Reload(client);
+            NumberFormatInfo restored = boxed ? (NumberFormatInfo)Entries<NeoList<object>>(reloaded, reloaded.save, "Bag")[0]
+                : Entries<NeoList<NumberFormatInfo>>(reloaded, reloaded.save, "Bag")[0];
+            Assert.That(restored.NegativeSign, Is.EqualTo("~"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EvaluatorNumberFormatWrittenToSlotsKeepsAllAliases(bool twoSlots)
+        {
+            using NeoClient client = BuildClient(data => ((ObjectMember)data.members["other-field"]).objectType = NeoObjectTypeKind.NumberFormatInfo);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var format = new NumberFormatInfo();
+            ScriptWrite(client, context, ScriptSlot(client, context, "FormatSlot"), format);
+            if (twoSlots)
+                ScriptWrite(client, context, ScriptSlot(client, context, "Other"), format);
+            Pointer receiver = twoSlots ? ScriptSlot(client, context, "Other") : ScriptValue(format);
+            ScriptWrite(client, context, ScriptFormatProperty(receiver, "NegativeSign"), "~");
+            using NeoClient reloaded = Reload(client);
+            string signs = ((NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!).NegativeSign;
+            if (twoSlots)
+                signs += ((NumberFormatInfo)ReadAt(reloaded.save, "Other")!).NegativeSign;
+            Assert.That(signs, Is.EqualTo(twoSlots ? "~~" : "~"));
+        }
+
+        [Test]
+        public void EvaluatorRetainedDigitMutationAfterStorePersists()
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var format = new NumberFormatInfo();
+            ScriptWrite(client, context, ScriptSlot(client, context, "FormatSlot"), format);
+            var digits = new object[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            ScriptWrite(client, context, ScriptFormatProperty(ScriptSlot(client, context, "FormatSlot"), "NativeDigits"), digits);
+            ScriptWrite(client, context, ScriptKey(ScriptValue(digits), 0d), "x");
+            using NeoClient reloaded = Reload(client);
+            Assert.That(((NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!).NativeDigits[0], Is.EqualTo("x"));
+        }
+
+        [TestCase(false, false, 9)]
+        [TestCase(false, false, 11)]
+        [TestCase(false, true, 9)]
+        [TestCase(false, true, 11)]
+        [TestCase(true, false, 9)]
+        [TestCase(true, false, 11)]
+        [TestCase(true, true, 9)]
+        [TestCase(true, true, 11)]
+        public void EvaluatorStoreRejectsRetainedDigitLength(bool culture, bool boxed, int count)
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            string slot = boxed ? "Slot" : culture ? "CultureSlot" : "FormatSlot";
+            object original = culture ? (object)new CultureInfo("") : new NumberFormatInfo();
+            ScriptWrite(client, context, ScriptSlot(client, context, slot), original);
+            object invalid = culture ? (object)new CultureInfo("") : new NumberFormatInfo();
+            NumberFormatInfo format = invalid is CultureInfo ci ? ci.NumberFormat : (NumberFormatInfo)invalid;
+            var digits = new ArrayList(new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" });
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(format, "NativeDigits", digits);
+            if (count == 11)
+                digits.Add("x");
+            else
+                digits.RemoveAt(9);
+            AssertDigitLengthError(() => ScriptWrite(client, context, ScriptSlot(client, context, slot), invalid));
+            Assert.That(ReadAt(client.save, slot), Is.SameAs(original));
+            using NeoClient reloaded = Reload(client);
+            object restored = ReadAt(reloaded.save, slot)!;
+            Assert.That((restored is CultureInfo rc ? rc.NumberFormat : (NumberFormatInfo)restored).NativeDigits.Length, Is.EqualTo(10));
+        }
+
+        [TestCase(false, false, 9)]
+        [TestCase(false, false, 11)]
+        [TestCase(false, true, 9)]
+        [TestCase(false, true, 11)]
+        [TestCase(true, false, 9)]
+        [TestCase(true, false, 11)]
+        [TestCase(true, true, 9)]
+        [TestCase(true, true, 11)]
+        public void EvaluatorSetterAllowsRetainedDigitLengthAndSaveKeepsValidPayload(bool culture, bool boxed, int count)
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            string slot = boxed ? "Slot" : culture ? "CultureSlot" : "FormatSlot";
+            object value = culture ? (object)new CultureInfo("") : new NumberFormatInfo();
+            NumberFormatInfo format = value is CultureInfo ci ? ci.NumberFormat : (NumberFormatInfo)value;
+            var digits = new ArrayList(new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" });
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(format, "NativeDigits", digits);
+            ScriptWrite(client, context, ScriptSlot(client, context, slot), value);
+            var before = ((PayloadMemberValue)RowAt(client.save, slot)).storedValue!.DeepClone();
+            if (count == 11)
+                digits.Add("x");
+            else
+                digits.RemoveAt(9);
+            // Deferred serialization must work even before any explicit setter
+            // attempts to publish the invalid list.
+            using (NeoClient deferred = Reload(client))
+            {
+                Assert.That(((PayloadMemberValue)RowAt(deferred.save, slot)).value, Is.EqualTo(before));
+            }
+            Assert.DoesNotThrow(() => ScriptWrite(client, context, ScriptFormatProperty(ScriptValue(format), "NegativeSign"), "~"));
+            using (NeoClient rejected = Reload(client))
+            {
+                Assert.That(((PayloadMemberValue)RowAt(rejected.save, slot)).value, Is.EqualTo(before));
+            }
+            Assert.That(ReadAt(client.save, slot), Is.SameAs(value));
+            // Repairing the retained list allows deferred publication again.
+            if (count == 11)
+                digits.RemoveAt(10);
+            else
+                digits.Add("9");
+            digits[0] = "x";
+            using NeoClient repaired = Reload(client);
+            object restored = ReadAt(repaired.save, slot)!;
+            NumberFormatInfo restoredFormat = restored is CultureInfo rc ? rc.NumberFormat : (NumberFormatInfo)restored;
+            Assert.That(restoredFormat.NativeDigits[0], Is.EqualTo("x"));
+            Assert.That(restoredFormat.NegativeSign, Is.EqualTo("~"));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EvaluatorGrownDigitsAllowSetterAndRepairWithinOneExecution(bool stored)
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var format = new NumberFormatInfo();
+            if (stored)
+                ScriptWrite(client, context, ScriptSlot(client, context, "FormatSlot"), format);
+            var digits = new object[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            var variable = new VariablePointer { type = PointerKind.Variable, variableId = "digits" };
+            var target = new WriteTarget
+            {
+                pointer = variable,
+                writability = WritabilityKind.Local,
+                typeInfo = new CollectionTypeInfo
+                {
+                    type = MemberKind.List,
+                    required = true,
+                    entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.String, required = true }
+                },
+            };
+            ScriptRun(client, context, new Instruction[]
+            {
+                ScriptAssignment(ScriptFormatProperty(ScriptValue(format), "NativeDigits"), digits),
+                new CollectionCallInstruction { type = InstructionKind.CollectionCall, mutation = CollectionMutationKind.Add,
+                    target = target, args = new[] { ScriptValue("x") } },
+                ScriptAssignment(ScriptFormatProperty(ScriptValue(format), "NegativeSign"), "~"),
+                new CollectionCallInstruction { type = InstructionKind.CollectionCall, mutation = CollectionMutationKind.RemoveAt,
+                    target = target, args = new[] { ScriptValue(10d) } },
+                ScriptAssignment(ScriptKey(variable, 0d), "y"),
+            }, new Dictionary<string, object?> { ["digits"] = digits });
+            Assert.That(format.NegativeSign + NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.GetNativeDigits(format)[0], Is.EqualTo("~y"));
+            if (!stored)
+                ScriptWrite(client, context, ScriptSlot(client, context, "FormatSlot"), format);
+            using NeoClient reloaded = Reload(client);
+            var restored = (NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!;
+            Assert.That(restored.NegativeSign + restored.NativeDigits[0], Is.EqualTo("~y"));
+        }
+
+        public static IEnumerable<TestCaseData> GrownDigitCollectionStores()
+        {
+            foreach (string operation in new[] { "ListAdd", "ListInsert", "ListIndexer", "DictionaryAdd", "DictionaryIndexer", "SetAdd" })
+                foreach (bool culture in new[] { false, true })
+                    foreach (bool boxed in new[] { false, true })
+                        yield return new TestCaseData(operation, culture, boxed);
+        }
+
+        [TestCaseSource(nameof(GrownDigitCollectionStores))]
+        public void EvaluatorCollectionStoresRefuseGrownDigits(string operation, bool culture, bool boxed)
+        {
+            bool dictionary = operation.StartsWith("Dictionary", StringComparison.Ordinal);
+            bool set = operation == "SetAdd";
+            string key = dictionary ? "Map" : set ? "Pool" : "Bag";
+            string entryId = dictionary ? "map-entry" : set ? "pool-entry" : "bag-entry";
+            NeoObjectTypeKind objectType = culture ? NeoObjectTypeKind.CultureInfo : NeoObjectTypeKind.NumberFormatInfo;
+            using NeoClient client = BuildClient(data =>
+            {
+                if (!boxed)
+                    ((ObjectMember)data.members[entryId]).objectType = objectType;
+                ((ObjectMemberValue)data.values["root-save-value"]).value![key] = "r2-collection";
+                data.values["r2-collection"] = dictionary
+                    ? new ObjectMemberValue { id = "r2-collection", value = new Dictionary<string, string> { ["existing"] = "r2-entry" } }
+                    : new ArrayMemberValue { id = "r2-collection", value = set ? Array.Empty<string>() : new[] { "r2-entry" } };
+                if (!set)
+                    data.values["r2-entry"] = new PayloadMemberValue
+                    {
+                        id = "r2-entry",
+                        value = NeoStorablePayloads.Encode(culture ? (object)new CultureInfo("") : new NumberFormatInfo()),
+                        valueType = boxed ? TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: objectType)) : null,
+                    };
+            });
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object invalid = culture ? (object)new CultureInfo("") : new NumberFormatInfo();
+            NumberFormatInfo format = invalid is CultureInfo ci ? ci.NumberFormat : (NumberFormatInfo)invalid;
+            var digits = new ArrayList(new[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" });
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(format, "NativeDigits", digits);
+            digits.Add("x");
+            Pointer collection = ScriptSlot(client, context, key);
+            Instruction store;
+            if (operation.EndsWith("Indexer", StringComparison.Ordinal))
+                store = ScriptAssignment(ScriptKey(collection, dictionary ? (object)"existing" : 0d), invalid,
+                    new ObjectTypeInfo { type = MemberKind.Object, objectType = boxed ? null : objectType, required = true });
+            else
+                store = new CollectionCallInstruction
+                {
+                    type = InstructionKind.CollectionCall,
+                    mutation = operation == "ListInsert" ? CollectionMutationKind.Insert : CollectionMutationKind.Add,
+                    target = new WriteTarget
+                    {
+                        pointer = collection,
+                        writability = WritabilityKind.Runtime,
+                        typeInfo = new CollectionTypeInfo
+                        {
+                            type = dictionary ? MemberKind.Dictionary : set ? MemberKind.Set : MemberKind.List,
+                            required = true,
+                            entryTypeInfo = new ObjectTypeInfo { type = MemberKind.Object, objectType = boxed ? null : objectType, required = true },
+                        },
+                    },
+                    args = dictionary ? new[] { ScriptValue("new"), ScriptValue(invalid) }
+                        : operation == "ListInsert" ? new[] { ScriptValue(0d), ScriptValue(invalid) }
+                        : new[] { ScriptValue(invalid) },
+                };
+            AssertDigitLengthError(() => ScriptRun(client, context, new[] { store }));
+            using NeoClient reloaded = Reload(client);
+            var row = dictionary ? (MemberValue)reloaded.save.Get<NeoMemberDictionary>(key).value!
+                : reloaded.save.Get<NeoMemberList>(key).value!;
+            int count = row is ObjectMemberValue map ? map.value!.Count : ((ArrayMemberValue)row).value!.Length;
+            Assert.That(count, Is.EqualTo(set ? 0 : 1));
+            if (!set)
+            {
+                Assert.That(reloaded.TryGetValue(NeoValueOwnership.Save, "r2-entry", out PayloadMemberValue? entry), Is.True);
+                JObject payload = culture ? (JObject)entry!.value!["numberFormat"]! : entry!.value!;
+                Assert.That(payload["nativeDigits"]!.Count(), Is.EqualTo(10));
+                Assert.That(payload["negativeSign"]!.Value<string>(), Is.EqualTo("-"));
+            }
+            if (operation == "ListIndexer")
+            {
+                digits.RemoveAt(10);
+                format.NegativeSign = "~";
+                ScriptRun(client, context, new[] { store });
+                using NeoClient repaired = Reload(client);
+                Assert.That(repaired.TryGetValue(NeoValueOwnership.Save, "r2-entry", out PayloadMemberValue? entry), Is.True);
+                JObject payload = culture ? (JObject)entry!.value!["numberFormat"]! : entry!.value!;
+                Assert.That(payload["negativeSign"]!.Value<string>(), Is.EqualTo("~"));
+            }
+        }
+
+        private static void AssertDigitLengthError(TestDelegate write)
+        {
+            var error = Assert.Catch<NSGetterRuntimeError>(write)!;
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArgumentError), error.DiagnosticMessage);
+            Assert.That(error.DiagnosticMessage, Is.EqualTo("The NativeDigits array must contain exactly ten members. (Parameter 'value')"));
+        }
+
+        [Test]
+        public void StoredNumberFormatDoesNotRepeatMonosSetterChecks()
+        {
+            using NeoClient client = BuildClient(data =>
+            {
+                var payload = NeoStorablePayloads.Encode(new NumberFormatInfo());
+                payload["currencyNegativePattern"] = 16;
+                payload["nativeDigits"] = new JArray("x", "", "many", "3", "4", "5", "6", "7", "8", "9");
+                ((ObjectMemberValue)data.values["root-save-value"]).value!["FormatSlot"] = "stored-format";
+                data.values["stored-format"] = new PayloadMemberValue { id = "stored-format", value = payload };
+            });
+            var restored = (NumberFormatInfo)ReadAt(client.save, "FormatSlot")!;
+            Assert.That(restored.CurrencyNegativePattern, Is.EqualTo(16));
+            Assert.That(restored.NativeDigits, Is.EqualTo(new[] { "x", "", "many", "3", "4", "5", "6", "7", "8", "9" }));
+            using NeoClient reloaded = Reload(client);
+            var again = (NumberFormatInfo)ReadAt(reloaded.save, "FormatSlot")!;
+            Assert.That(again.CurrencyNegativePattern, Is.EqualTo(16));
+            Assert.That(again.NativeDigits, Is.EqualTo(restored.NativeDigits));
+        }
+
+        [Test]
+        public void StoredReadOnlyCultureRequiresReadOnlyNumberFormat()
+        {
+            var payload = NeoStorablePayloads.Encode(new CultureInfo(""));
+            payload["readOnly"] = true;
+            Assert.That(Assert.Throws<JsonSerializationException>(() => NeoStorablePayloads.ValidateCultureInfo(payload, "CultureSlot"))!.Message,
+                Does.Contain("A read-only CultureInfo must hold a read-only NumberFormatInfo."));
+            payload["numberFormat"]!["readOnly"] = true;
+            Assert.DoesNotThrow(() => NeoStorablePayloads.ValidateCultureInfo(payload, "CultureSlot"));
+        }
+
+        [Test]
+        public void EvaluatorCultureReadOwnsInheritedPayloadBeforeMutation()
+        {
+            using NeoClient client = BuildClient(InheritCulture);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var culture = (CultureInfo)NSGetterEvaluator.UnwrapRow(RowAt(client.save, "CultureSlot"), context, NeoValueOwnership.Save, client.members["culture-field"])!;
+            culture.NumberFormat.NegativeSign = "~";
+            Assert.That(client.HasWritableValue(NeoValueOwnership.Save, InheritedCultureId), Is.True);
+            var authored = (PayloadMemberValue)client.ProjectDataForRuntime.values[InheritedCultureId];
+            Assert.That(authored.value!["numberFormat"]!["negativeSign"]!.Value<string>(), Is.EqualTo("-"));
+            using NeoClient reloaded = Reload(client);
+            Assert.That(((CultureInfo)ReadAt(reloaded.save, "CultureSlot")!).NumberFormat.NegativeSign, Is.EqualTo("~"));
+        }
+
         // §12.1: writes to a stored culture or number format persist through
         // the slot, from what C# wrote or read, in a declared slot or a box.
         [Test]
@@ -542,6 +956,7 @@ namespace NeoCompose.Tests
             });
             var culture = (CultureInfo)ReadAt(client.assets, "CultureSlot")!;
             Assert.That(culture.IsReadOnly, Is.True);
+            Assert.That(ReadAt(client.assets, "CultureSlot"), Is.SameAs(culture));
             Assert.Throws<InvalidOperationException>(() => culture.NumberFormat.NegativeSign = "~");
             var authored = (PayloadMemberValue)client.ProjectDataForRuntime.values[InheritedCultureId];
             Assert.That(authored.value!["readOnly"]!.Value<bool>(), Is.False);
@@ -570,10 +985,11 @@ namespace NeoCompose.Tests
         public void NamedCulturesAreRefused()
         {
             using NeoClient client = BuildClient();
-            var error = Assert.Throws<NotSupportedException>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR"), "CultureSlot"));
-            StringAssert.Contains("Object field 'CultureSlot' can't store culture 'fr-FR'; NeoScript has only the invariant culture.", error!.Message);
-            var boxed = Assert.Throws<NotSupportedException>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR")));
-            StringAssert.Contains("can't store culture 'fr-FR'", boxed!.Message);
+            var error = Assert.Throws<NSGetterRuntimeError>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR"), "CultureSlot"));
+            StringAssert.Contains("Object field 'CultureSlot' can't store the culture 'fr-FR': only the invariant culture can be stored until named cultures ship (#2222).", error!.DiagnosticMessage);
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoNotSupportedError));
+            var boxed = Assert.Throws<NSGetterRuntimeError>(() => Write(client, client.save, CultureInfo.GetCultureInfo("fr-FR")));
+            StringAssert.Contains("can't store the culture 'fr-FR'", boxed!.DiagnosticMessage);
             var wrongKind = Assert.Throws<InvalidOperationException>(() => Write(client, client.save, 4, "TypeSlot"));
             StringAssert.Contains("Cannot write object field 'TypeSlot': a Type slot can't hold a int.", wrongKind!.Message);
         }
