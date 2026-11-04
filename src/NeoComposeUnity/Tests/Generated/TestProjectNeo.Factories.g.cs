@@ -13,6 +13,46 @@ namespace Assets.Scripts.Neo
 {
     public sealed partial class TestProjectNeo
     {
+        internal static readonly IReadOnlyDictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>> NeoDetachedValueFactories =
+            new Dictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>>
+            {
+                ["class-base"] = (client, value, saved) => global::Assets.Scripts.Neo.Base.CreateDetached(client, value, saved),
+                ["class-choice-log"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateDetached(client, value, saved),
+                ["class-concrete-readonly-stats"] = (client, value, saved) => global::Assets.Scripts.Neo.ConcreteReadonlyStats.CreateDetached(client, value, saved),
+                ["class-contract-child"] = (client, value, saved) => global::Assets.Scripts.Neo.ContractChild.CreateDetached(client, value, saved),
+                ["class-contract-deep-child"] = (client, value, saved) => global::Assets.Scripts.Neo.ContractDeepChild.CreateDetached(client, value, saved),
+                ["class-contract-explicit-child"] = (client, value, saved) => global::Assets.Scripts.Neo.ContractExplicitChild.CreateDetached(client, value, saved),
+                ["class-contract-null-child"] = (client, value, saved) => global::Assets.Scripts.Neo.ContractNullChild.CreateDetached(client, value, saved),
+                ["class-contract-null-deep-child"] = (client, value, saved) => global::Assets.Scripts.Neo.ContractNullDeepChild.CreateDetached(client, value, saved),
+                ["class-derived"] = (client, value, saved) => global::Assets.Scripts.Neo.Derived.CreateDetached(client, value, saved),
+                ["class-dialogue-memory"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoDialogueMemory.CreateDetached(client, value, saved),
+                ["class-generic-animal"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericAnimal.CreateDetached(client, value, saved),
+                ["class-generic-cat"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericCat.CreateDetached(client, value, saved),
+                ["class-generic-checker"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericChecker.CreateDetached(client, value, saved),
+                ["class-generic-dog"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericDog.CreateDetached(client, value, saved),
+                ["class-generic-dog-checker"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericDogChecker.CreateDetached(client, value, saved),
+                ["class-generic-probe"] = (client, value, saved) => global::Assets.Scripts.Neo.GenericProbe.CreateDetached(client, value, saved),
+                ["class-hero"] = (client, value, saved) => global::Assets.Scripts.Neo.Hero.CreateDetached(client, value, saved),
+                ["class-neo-memory"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoMemory.CreateDetached(client, value, saved),
+                ["class-override"] = (client, value, saved) => global::Assets.Scripts.Neo.Override.CreateDetached(client, value, saved),
+                ["class-owned-crew"] = (client, value, saved) => global::Assets.Scripts.Neo.OwnedCrew.CreateDetached(client, value, saved),
+                ["class-picked-crew"] = (client, value, saved) => global::Assets.Scripts.Neo.PickedCrew.CreateDetached(client, value, saved),
+                ["class-root"] = (client, value, saved) => global::Assets.Scripts.Neo.Root.CreateDetached(client, value, saved),
+                ["class-sample-blocked-path"] = (client, value, saved) => global::Assets.Scripts.Neo.SampleBlockedPath.CreateDetached(client, value, saved),
+                ["class-sample-tile-instance"] = (client, value, saved) => global::Assets.Scripts.Neo.SampleTileInstance.CreateDetached(client, value, saved),
+                ["class-storage-a"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageA.CreateDetached(client, value, saved),
+                ["class-storage-b"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageB.CreateDetached(client, value, saved),
+                ["class-storage-c"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageC.CreateDetached(client, value, saved),
+                ["class-storage-d"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageD.CreateDetached(client, value, saved),
+                ["class-storage-e"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageE.CreateDetached(client, value, saved),
+                ["class-storage-f"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageF.CreateDetached(client, value, saved),
+                ["class-storage-g"] = (client, value, saved) => global::Assets.Scripts.Neo.StorageG.CreateDetached(client, value, saved),
+                ["class-text-node-memory"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateDetached(client, value, saved),
+                ["root-user-class"] = (client, value, saved) => global::Assets.Scripts.Neo.User.CreateDetached(client, value, saved),
+                ["system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoCollider.CreateDetached(client, value, saved),
+                ["system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9"] = (client, value, saved) => global::Assets.Scripts.Neo.NeoObjectPlacementTile.CreateDetached(client, value, saved),
+            };
+
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
@@ -201,10 +241,14 @@ namespace Assets.Scripts.Neo
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoDialogueMemory)] = "class-dialogue-memory",
                 [typeof(global::Assets.Scripts.Neo.GenericAnimal)] = "class-generic-animal",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericAnimal)] = "class-generic-animal",
+                [typeof(global::Assets.Scripts.Neo.GenericBag<>)] = "class-generic-bag",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericBag<>)] = "class-generic-bag",
                 [typeof(global::Assets.Scripts.Neo.GenericCat)] = "class-generic-cat",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericCat)] = "class-generic-cat",
                 [typeof(global::Assets.Scripts.Neo.GenericChecker)] = "class-generic-checker",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericChecker)] = "class-generic-checker",
+                [typeof(global::Assets.Scripts.Neo.GenericContract<>)] = "class-generic-contract",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericContract<>)] = "class-generic-contract",
                 [typeof(global::Assets.Scripts.Neo.GenericDog)] = "class-generic-dog",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericDog)] = "class-generic-dog",
                 [typeof(global::Assets.Scripts.Neo.GenericDogChecker)] = "class-generic-dog-checker",
@@ -213,8 +257,14 @@ namespace Assets.Scripts.Neo
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericFloatContract)] = "class-generic-float-contract",
                 [typeof(global::Assets.Scripts.Neo.GenericFloatPayload)] = "class-generic-float-payload",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericFloatPayload)] = "class-generic-float-payload",
+                [typeof(global::Assets.Scripts.Neo.GenericFunctionBox<>)] = "class-generic-function-box",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericFunctionBox<>)] = "class-generic-function-box",
+                [typeof(global::Assets.Scripts.Neo.GenericFunctionContract<>)] = "class-generic-function-contract",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericFunctionContract<>)] = "class-generic-function-contract",
                 [typeof(global::Assets.Scripts.Neo.GenericFunctionHeroContract)] = "class-generic-function-hero-contract",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericFunctionHeroContract)] = "class-generic-function-hero-contract",
+                [typeof(global::Assets.Scripts.Neo.GenericPayload<>)] = "class-generic-payload",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericPayload<>)] = "class-generic-payload",
                 [typeof(global::Assets.Scripts.Neo.GenericProbe)] = "class-generic-probe",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyGenericProbe)] = "class-generic-probe",
                 [typeof(global::Assets.Scripts.Neo.GenericStringContract)] = "class-generic-string-contract",
@@ -259,6 +309,10 @@ namespace Assets.Scripts.Neo
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoTextNodeMemory)] = "class-text-node-memory",
                 [typeof(global::Assets.Scripts.Neo.User)] = "root-user-class",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyUser)] = "root-user-class",
+                [typeof(global::Assets.Scripts.Neo.NeoSpriteAnimationSegmentTrack<>)] = "system_24b70585-0798-49ad-b650-4c118bac1eb1",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoSpriteAnimationSegmentTrack<>)] = "system_24b70585-0798-49ad-b650-4c118bac1eb1",
+                [typeof(global::Assets.Scripts.Neo.NeoAnimationSegment<>)] = "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoAnimationSegment<>)] = "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
                 [typeof(global::Assets.Scripts.Neo.NeoCollider)] = "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoCollider)] = "system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
                 [typeof(global::Assets.Scripts.Neo.NeoAnimationTrackBase)] = "system_45755778-ecfe-4a6c-b65f-a08017a7fb56",
@@ -267,12 +321,16 @@ namespace Assets.Scripts.Neo
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoObjectBase)] = "system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
                 [typeof(global::Assets.Scripts.Neo.NeoAnimationFrameBase)] = "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoAnimationFrameBase)] = "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
+                [typeof(global::Assets.Scripts.Neo.NeoAnimationSegmentFrame<>)] = "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoAnimationSegmentFrame<>)] = "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
                 [typeof(global::Assets.Scripts.Neo.NeoObjectPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoObjectPlacementTile)] = "system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
                 [typeof(global::Assets.Scripts.Neo.NeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoSpriteObject)] = "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
                 [typeof(global::Assets.Scripts.Neo.NeoObject)] = "system_f671535d-0eb6-4139-9caf-5c5276febd31",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoObject)] = "system_f671535d-0eb6-4139-9caf-5c5276febd31",
+                [typeof(global::Assets.Scripts.Neo.NeoAnimationSegmentTrack<,>)] = "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
+                [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoAnimationSegmentTrack<,>)] = "system_fd551dd8-6e6b-4044-9f32-7445ab344200",
                 [typeof(global::Assets.Scripts.Neo.NeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
                 [typeof(global::Assets.Scripts.Neo.IReadOnlyNeoSpriteAnimationSegment)] = "system_ffc766b3-f3ac-4c20-91cf-38ff7e8e88f3",
             };
@@ -288,6 +346,15 @@ namespace Assets.Scripts.Neo
                 [typeof(NeoSmartTileOutput)] = "system_551025ad-e441-4d43-90b0-2821c6235786",
                 [typeof(NeoSmartTileTransform)] = "system_d97f73bc-656f-489f-86de-6cb874ca8181",
                 [typeof(NeoSpriteMaskInteraction)] = "system_4e6c4d6f-1d0b-402a-ad3a-be92242dceec",
+            };
+
+        internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentInterfaceIds =
+            new Dictionary<Type, string>
+            {
+                [typeof(global::Assets.Scripts.Neo.IContract)] = "interface-contract",
+                [typeof(global::Assets.Scripts.Neo.ICrew)] = "interface-crew",
+                [typeof(global::Assets.Scripts.Neo.IGenericCheck)] = "interface-generic-check",
+                [typeof(global::Assets.Scripts.Neo.IHeroDeferredTransform)] = "interface-hero-deferred-transform",
             };
     }
 }

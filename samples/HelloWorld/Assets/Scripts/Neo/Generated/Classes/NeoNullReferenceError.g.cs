@@ -34,8 +34,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoNullReferenceError(string message)
-            : this(HelloWorldNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(HelloWorldNeo.RequireInstance().Client, "system_15d87ce2-551e-5c05-adde-f9d84ad376fb", "system_22c5afbb-36d1-59c9-9302-d65c437e25d9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoNullReferenceError(string message, IReadOnlyNeoError? innerError = null)
+            : this(HelloWorldNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(HelloWorldNeo.RequireInstance().Client, "system_15d87ce2-551e-5c05-adde-f9d84ad376fb", "system_22c5afbb-36d1-59c9-9302-d65c437e25d9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -98,6 +98,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -105,10 +107,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -123,10 +126,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

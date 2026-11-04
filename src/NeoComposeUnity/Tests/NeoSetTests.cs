@@ -469,6 +469,73 @@ namespace NeoCompose.Tests
             Assert.That(hashes, Is.Zero);
         }
 
+        private sealed class Money : NeoGeneratedClassValue
+        {
+            private readonly NeoMemberClass held;
+            internal Money(NeoClient client, NeoMemberClass node, bool readOnly) : base(client, node, ItemClassId, readOnly) => held = node;
+            internal int Amount
+            {
+                get => NeoGeneratedTypesSupport.ReadInt(held.Get<NeoMemberInt>("Amount"))!.Value;
+                set => NeoGeneratedTypesSupport.SetValue(NeoGeneratedTypesSupport.AsWritable(held), "Amount", NeoValueWritePayload.FromInt(value));
+            }
+        }
+
+        [Test]
+        public void MoneyFieldMutationInvalidatesTheSharedStoredSetIndex()
+        {
+            var data = BuildProjectData();
+            data.classes[ItemClassId].name = "Money";
+            data.classes[ItemClassId].schema = new()
+            {
+                ["Amount"] = "item-amount"
+            };
+            data.members["item-amount"] = new IntMember { id = "item-amount", name = "Amount", kind = MemberKind.Int, Requirement = NeoMemberRequirementKind.Required };
+            foreach (var (id, amount) in new[] { ("ally-a", 1), ("ally-b", 2), ("probe", 7) })
+            {
+                data.values[id] = Object(id, ItemClassId, new()
+                {
+                    ["Amount"] = id + "-amount"
+                });
+                data.values[id + "-amount"] = new NumberMemberValue { id = id + "-amount", value = amount };
+            }
+            foreach (var (id, kind, arity) in new[] { ("money-equals", MemberKind.Bool, 2), ("money-hash", MemberKind.Int, 1) })
+                data.members[id] = new FunctionMember
+                {
+                    id = id,
+                    name = id,
+                    kind = MemberKind.Function,
+                    returnTypeInfo = new PrimitiveTypeInfo { type = kind, required = true },
+                    argumentTypes = Enumerable.Range(0, arity).Select(i => new FunctionArgumentTypeInfo { name = "p" + i, type = MemberKind.Class, required = true, classId = ItemClassId }).ToArray()
+                };
+            data.values[AlliesValueId].comparer = StoredComparer(data, "c:" + ItemClassId, "money-equals", "money-hash");
+            using var script = new Script(data);
+            script.client.RegisterGeneratedClassFactories(new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [ItemClassId] = (client, node) => new Money(client, node, true),
+            }, new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            {
+                [ItemClassId] = (client, node) => new Money(client, node, false),
+            });
+            Money Value(object? value) => (Money)script.client.ResolveRegisteredGeneratedClassValue(NeoGeneratedTypesSupport.ValueId(value)!, NeoValueOwnership.Save)!;
+            script.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["money-equals"] = (_, _, args, _) => Value(args[0]).Amount == Value(args[1]).Amount,
+                ["money-hash"] = (_, _, args, _) => Value(args[0]).Amount,
+            });
+            var node = script.client.save.Get<NeoMemberListWritable>("Allies");
+            var host = new NeoSet<Money>(script.client, node,
+                (client, entry) => NeoGeneratedTypesSupport.ResolveInterfaceValue<Money>(client, (NeoMemberClass)entry, false)!,
+                money => NeoGeneratedTypesSupport.ValueReference(money));
+            var probe = (Money)script.client.ResolveRegisteredGeneratedClassValue("probe", NeoValueOwnership.Save)!;
+            Assert.That(host.Contains(probe), Is.False);
+            var first = host.First();
+            first.Amount = 7;
+            Assert.That(host.Contains(probe), Is.True, "C# must rebuild after a held entry field changes.");
+            var search = (ContainsFunction)((FunctionPointer)Contains(Ref(AlliesValueId), Ref("probe"), false)).function;
+            search.info.equality = new EqualitySite { type = ItemType };
+            Assert.That(script.Eval(new FunctionPointer { type = PointerKind.Function, function = search }), Is.True, "NeoScript sees the same new key.");
+        }
+
         [Test]
         public void StoredComparerIndexSurvivesCommittedAddsAndRemoves()
         {
@@ -530,6 +597,10 @@ namespace NeoCompose.Tests
             Assert.That(host.Contains(13), Is.True);
             Assert.That(hashes, Is.EqualTo(1), "game C# shares the evaluator's warm index");
             hashes = 0;
+            for (int probe = 0; probe < 100; probe++)
+                Assert.That(host.Contains(13), Is.True);
+            Assert.That(hashes, Is.EqualTo(100), "unchanged C# lookups hash only their argument");
+            hashes = 0;
             Assert.That(host.Add(15), Is.False);
             Assert.That(hashes, Is.EqualTo(1));
             hashes = 0;
@@ -563,6 +634,11 @@ namespace NeoCompose.Tests
             host.UnionWith(host);
             host.ExceptWith(host);
             Assert.That(host.Count, Is.Zero);
+            hashes = 0;
+            for (int item = 0; item < 100; item++)
+                host.Add(item);
+            Assert.That(hashes, Is.EqualTo(100), "each C# Add hashes once, including duplicates");
+            Assert.That(host.Count, Is.EqualTo(10));
 
 
         }

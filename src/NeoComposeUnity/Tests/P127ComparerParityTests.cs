@@ -50,7 +50,7 @@ namespace NeoCompose.Tests
             Assert.That(File.Exists(Fixture(family)), Is.True, "Vendor Compose's final B6 source fixture.");
             Assert.That(File.Exists(Export(family)), Is.True, "Vendor Compose's final B6 compiled export.");
             Assert.That(name, Is.Not.Null, "The shared fixture must contain runtime cases.");
-            Assert.That(Directory.Exists(Root + "Fixtures~/P127" + char.ToUpperInvariant(family[0]) + family.Substring(1) + "Parity/Generated"), Is.True, "Vendor the B8 generated artifact alongside its export.");
+            Assert.That(Directory.Exists(Root + "P127" + char.ToUpperInvariant(family[0]) + family.Substring(1) + "Parity/Generated"), Is.True, "Vendor the B8 generated artifact alongside its export.");
             using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export(family))), assumeCurrentSchema: false);
             var probe = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "Probe");
             object? Invoke() => NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema[name!]).InvokeStatic(Array.Empty<object?>());

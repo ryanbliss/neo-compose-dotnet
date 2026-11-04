@@ -100,7 +100,7 @@ namespace NeoCompose.Runtime.NeoScript
             return comparer.Value;
         }
 
-        private sealed class HostEqualityComparer<T> : IEqualityComparer<T>, IHostComparer
+        private sealed class HostEqualityComparer<T> : IEqualityComparer<T>, System.Collections.IEqualityComparer, IHostComparer
         {
             private readonly BoundEquality equality;
             private readonly Context context;
@@ -115,6 +115,8 @@ namespace NeoCompose.Runtime.NeoScript
             object IHostComparer.Value => equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, context);
             private object? Value(T value) => value is null ? null : NeoScriptValueMarshaller.Normalize(
                 context.client, ownership, value, equality.Default.StaticType, context, "comparer argument");
+            bool System.Collections.IEqualityComparer.Equals(object? x, object? y) => x is null ? y is null : y is not null && Equals((T)x, (T)y);
+            int System.Collections.IEqualityComparer.GetHashCode(object obj) => obj is null ? 0 : GetHashCode((T)obj);
             public bool Equals(T x, T y) => equality.Equals(Value(x), Value(y));
             public int GetHashCode(T value) => equality.GetHashCode(Value(value));
             public override bool Equals(object? value) => value is HostEqualityComparer<T> other && SameEquality(equality, other.equality, context);
@@ -127,7 +129,17 @@ namespace NeoCompose.Runtime.NeoScript
             object value = equality.Comparer ?? DefaultComparer(type, NeoComparerFamilyKind.Equality, context);
             var adapters = ComparerCache(context).HostComparers.GetValue(value, _ => new());
             if (!adapters.TryGetValue(typeof(T), out var adapter))
-                adapters.Add(typeof(T), adapter = new HostEqualityComparer<T>(equality, context, ownership));
+            {
+                // Authored comparer rows cross as their generated implementation,
+                // just as the same row does through a comparer slot.
+                IEqualityComparer<T>? generated = null;
+                if (context.client.HasGeneratedClassFactories
+                    && ConstructorReferenceOf(value, context) is { valueId: { } id } reference)
+                    generated = context.client.ResolveRegisteredGeneratedClassValue(id, reference.ownership ?? ownership)
+                        as IEqualityComparer<T>;
+                adapter = generated ?? new HostEqualityComparer<T>(equality, context, ownership);
+                adapters.Add(typeof(T), adapter);
+            }
             return (IEqualityComparer<T>)adapter;
         }
 

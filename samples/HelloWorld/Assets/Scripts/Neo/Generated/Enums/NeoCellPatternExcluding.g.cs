@@ -14,8 +14,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(NeoCellPatternExcludingOptions))]
     public enum NeoCellPatternExcluding
     {
-        None = 2137088590,
-        Center = 1088410111,
+        None = 0,
+        Center = 1,
     }
 
     /// <summary>
