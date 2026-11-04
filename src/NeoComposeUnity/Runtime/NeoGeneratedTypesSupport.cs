@@ -798,6 +798,7 @@ namespace NeoCompose.Runtime
             internal bool ReplayDefaultRoot;
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
+            internal ObjectMemberValue? initializerReceiver;
 
             internal NeoConstructionScope(
                 NeoClient client,
@@ -901,9 +902,8 @@ namespace NeoCompose.Runtime
                 EvaluationContext.allocationTracker.IsAllocatedSessionRoot(valueId);
 
             /// <summary>
-            /// P43 §1.1 — runs a computed default. <c>__this__</c> is null: an
-            /// initializer produces the member's value and has no instance to
-            /// read, exactly as the TS evaluator binds it.
+            /// Runs a computed default. The compiler enforces its static frame;
+            /// B4's fallback lambdas capture the instance being constructed.
             ///
             /// <para>The body runs on its own construction frame (§7.2.3), the
             /// way <c>evaluateInitializerInContext</c> does on the TS side: an
@@ -922,7 +922,8 @@ namespace NeoCompose.Runtime
                     constructedClassId,
                     member,
                     init,
-                    genericEnv);
+                    genericEnv,
+                    closureOwner: initializerReceiver);
         }
 
         /// <summary>
@@ -937,14 +938,16 @@ namespace NeoCompose.Runtime
             Member member,
             InitializerBody init,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? genericEnv,
-            TypeBinding? staticConstruction = null)
+            TypeBinding? staticConstruction = null,
+            object? closureOwner = null)
         {
             if (init.compiled is null)
             {
                 throw new InvalidOperationException(
                     $"Initializer for '{member.name}' has no compiled body. Run `neo pull` and `neo export`.");
             }
-            // An initializer has no instance to read, so its frame binds none.
+            // Calls remain statically bound by IR. Fallback lambdas need the
+            // new instance even when a static helper invokes them immediately.
             int frame =
                 EnterConstructionFrame(
                     initializerContext,
@@ -953,6 +956,7 @@ namespace NeoCompose.Runtime
             try
             {
                 initializerContext.staticConstruction = staticConstruction;
+                initializerContext.initializerClosureOwner = closureOwner;
                 // A generic entry initializer constructs in its closed placement.
                 initializerContext.initializerPlacement = member as ClassMember;
                 // A construction naming the instance's `T` closes through it.
@@ -3233,6 +3237,8 @@ namespace NeoCompose.Runtime
             }
 
             var scope = new NeoConstructionScope(client, null);
+            // This initializer creates the declaration object; its nested construction
+            // supplies the closure owner when it evaluates that object's field defaults.
             object? produced = scope.EvaluateInitializer(classMember, init, genericEnv: null);
             NeoConstructorValueReference? reference = scope.ValueReference(produced);
             if (reference is null || string.IsNullOrEmpty(reference.Value.valueId))
@@ -5912,7 +5918,11 @@ namespace NeoCompose.Runtime
                 if (isOut != (argument.mode == NeoParameterModeKind.Out))
                     throw new NeoScript.NSGetterRuntimeError($"Constructor '{record.id}' parameter '{argument.name}' {(argument.mode == NeoParameterModeKind.Out ? "requires" : "does not accept")} an out argument.");
                 if (!ReferenceEquals(argumentValues[i], OmittedArgument))
+                {
+                    if (argumentValues[i] is null)
+                        ValidateNullConstructorArgument(resolved.client, resolved.genericEnv, record, argument);
                     continue;
+                }
                 // P65 §2.5 callee-side fill: an omitted name binds the
                 // parameter's current stored default.
                 // `AssertDeclaredArgumentNamesMatch` already rejected
@@ -5926,6 +5936,29 @@ namespace NeoCompose.Runtime
                 filled[i] = InstanceParameterDefault(resolved.client, resolved.genericEnv, argument, $"Constructor '{record.id}'");
             }
             return filled ?? argumentValues;
+        }
+
+        // Called only for a passed null, never for a filled default.
+        private static void ValidateNullConstructorArgument(
+            NeoClient client,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
+            ConstructorRecord record,
+            FunctionArgumentTypeInfo parameter)
+        {
+            TypeInfo closed = NeoNSFunctionRuntime.ContainsGeneric(parameter)
+                ? NeoNSFunctionRuntime.ResolveInvocationTypeInfo(client, parameter, genericEnv)
+                : parameter;
+            if (closed.required && closed.type != MemberKind.Null && !NeoTypeRules.IsValueKind(closed.type))
+                throw NullConstructorArgument(client, record, parameter.name);
+        }
+
+        private static NeoScript.NSGetterRuntimeError NullConstructorArgument(
+            NeoClient client, ConstructorRecord record, string parameter)
+        {
+            string name = client.classes[record.classId].name;
+            return new NeoScript.NSGetterRuntimeError(
+                $"Constructor '{name}' was passed null for non-nullable parameter '{parameter}'.",
+                NeoScript.NeoErrorContract.NeoNullReferenceError);
         }
 
         private static object?[] EvaluateDeclaredBaseArguments(
@@ -5963,6 +5996,8 @@ namespace NeoCompose.Runtime
                     record.id);
                 if (baseTaint is not null)
                     baseTaint[link.baseArgumentTargets[i]] = NeoClient.EndValueTaint(taint);
+                if (baseArguments[link.baseArgumentTargets[i]] is null)
+                    ValidateNullConstructorArgument(client, instanceEnv, baseRecord, baseRecord.argumentTypes[link.baseArgumentTargets[i]]);
             }
             if (baseTaint is not null)
                 NeoClient.NoteArgumentTaint(baseArguments, baseTaint);
@@ -6985,13 +7020,21 @@ namespace NeoCompose.Runtime
                     client, reference, effectiveDeclared, ctx,
                     $"argument '{argument.name}' of constructor '{record.id}'");
             }
-            return NeoScriptValueMarshaller.Normalize(
-                client,
-                NeoValueOwnership.Session,
-                suppliedValue,
-                effectiveDeclared,
-                ctx,
-                $"argument '{argument.name}' of constructor '{record.id}'");
+            try
+            {
+                return NeoScriptValueMarshaller.Normalize(
+                    client,
+                    NeoValueOwnership.Session,
+                    suppliedValue,
+                    effectiveDeclared,
+                    ctx,
+                    $"argument '{argument.name}' of constructor '{record.id}'");
+            }
+            catch (InvalidOperationException) when (suppliedValue is null && effectiveDeclared.required
+                && effectiveDeclared.type != MemberKind.Null && !NeoTypeRules.IsValueKind(effectiveDeclared.type))
+            {
+                throw NullConstructorArgument(client, record, argument.name);
+            }
         }
 
         // Value collections are copied during construction, unlike Class
@@ -8891,6 +8934,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Recursive default class value creation detected for class '{classId}'.");
             }
+            var previousReceiver = scope.initializerReceiver;
             try
             {
                 // The row takes the caller's fresh dictionary as its own.
@@ -8903,6 +8947,7 @@ namespace NeoCompose.Runtime
                     value = value,
                     classId = classId,
                 };
+                scope.initializerReceiver = row;
                 client.BindReplayDefaultClass(row, rows);
 
                 RuntimeClassPlan resolvedClassPlan = classPlan
@@ -8983,6 +9028,7 @@ namespace NeoCompose.Runtime
             }
             finally
             {
+                scope.initializerReceiver = previousReceiver;
                 scope.ExitClass(classId);
             }
         }

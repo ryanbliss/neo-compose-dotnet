@@ -2721,6 +2721,11 @@ namespace NeoCompose.Runtime
             var placed = new HashSet<string>();
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
                 placed.UnionWith(schemaClass.schema.Values);
+            var interfaceStatics = new HashSet<string>();
+            foreach (var schemaInterface in data.interfaces.Values)
+                foreach (var slot in schemaInterface.members.Values)
+                    if (slot.IsStatic && slot.implementationMemberId is string implementationId)
+                        interfaceStatics.Add(implementationId);
             var entryTemplateIds = new HashSet<string>();
             foreach (Member candidate in data.members.Values)
             {
@@ -2751,7 +2756,8 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"{subject} cannot be a project root.");
                 }
-                if (!placed.Contains(declaration.id))
+                if (!placed.Contains(declaration.id)
+                    && !(declaration.Modifier == NeoMemberModifierKind.Static && interfaceStatics.Contains(declaration.id)))
                 {
                     throw new InvalidOperationException(
                         $"{subject} is not placed directly in a Class schema.");
@@ -2760,11 +2766,6 @@ namespace NeoCompose.Runtime
                 {
                     throw new InvalidOperationException(
                         $"{subject} cannot be a collection entry template.");
-                }
-                if (declaration.Modifier == NeoMemberModifierKind.Static)
-                {
-                    throw new InvalidOperationException(
-                        $"{subject} cannot be static.");
                 }
                 if (ResolveDeclaredStorage(declaration) == NeoMemberStorage.Writable)
                 {
@@ -9747,6 +9748,7 @@ namespace NeoCompose.Runtime
             }
             FunctionArgumentTypeInfo[] argumentTypes = signature.argumentTypes;
             Json.TypeInfo returnTypeInfo = signature.returnTypeInfo;
+            Dictionary<(string? owner, string? param), (string? owner, string? param)>? genericForwards = null;
             // An override compiles against its own class's bindings, so an
             // inherited generic signature closes through that class first
             // (MinIntWatcher : ValueWatcher<int> compiles Apply(T) as Apply(int)).
@@ -9755,11 +9757,22 @@ namespace NeoCompose.Runtime
                     || System.Array.Exists(argumentTypes, NeoNSFunctionRuntime.ContainsGeneric))
                 && SchemaOwnerClassId(member.id) is string ownerClassId)
             {
+                var chain = ResolveClassInheritanceChain(ownerClassId);
+                var environment = NeoGenericResolution.ResolveEnv(chain);
+                var parameterOwners = new Dictionary<string, string>();
+                foreach (var owner in chain)
+                    foreach (var parameter in owner.genericParams ?? Enumerable.Empty<GenericParamDeclaration>())
+                        parameterOwners.Add(parameter.id, owner.id);
+                genericForwards = new();
+                foreach (var entry in environment)
+                    if (!entry.Value.IsBound && parameterOwners.TryGetValue(entry.Key, out var declaringOwner)
+                        && parameterOwners.TryGetValue(entry.Value.unboundParamId!, out var forwardedOwner))
+                        genericForwards[(declaringOwner, entry.Key)] = (forwardedOwner, entry.Value.unboundParamId);
                 NeoGenericResolution.SubstituteCallableSignature(
                     this,
                     argumentTypes,
                     returnTypeInfo,
-                    NeoGenericResolution.ResolveEnv(this, ownerClassId),
+                    environment,
                     out argumentTypes,
                     out returnTypeInfo);
             }
@@ -9785,7 +9798,7 @@ namespace NeoCompose.Runtime
                 }
                 if (!TypeInfoMatches(
                         argumentTypes[i],
-                        action.parameters[i + 2].typeInfo))
+                        action.parameters[i + 2].typeInfo, genericForwards))
                 {
                     throw new System.InvalidOperationException(
                         $"NSFunction member '{member.id}' compiled argument {i} type does not match its declared signature.");
@@ -9794,7 +9807,7 @@ namespace NeoCompose.Runtime
             bool validReturn = returnTypeInfo is VoidTypeInfo
                 ? action.typeInfo?.type == MemberKind.Null
                     && action.typeInfo.required
-                : TypeInfoMatches(returnTypeInfo, action.typeInfo);
+                : TypeInfoMatches(returnTypeInfo, action.typeInfo, genericForwards);
             if (!validReturn)
             {
                 throw new System.InvalidOperationException(
@@ -9842,12 +9855,23 @@ namespace NeoCompose.Runtime
                     : null;
         }
 
-        internal static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
+        internal static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right,
+            IReadOnlyDictionary<(string? owner, string? param), (string? owner, string? param)>? genericForwards = null)
         {
             if (left is null || right is null)
                 return left is null && right is null;
             if (left.type != right.type || left.required != right.required)
                 return false;
+            if (genericForwards is not null && left.type == MemberKind.Generic
+                && NeoTypeRules.Plain(left) is GenericTypeInfo leftGeneric
+                && NeoTypeRules.Plain(right) is GenericTypeInfo rightGeneric)
+            {
+                var leftKey = (leftGeneric.ownerClassId, leftGeneric.genericParamId);
+                var rightKey = (rightGeneric.ownerClassId, rightGeneric.genericParamId);
+                var leftIdentity = genericForwards.TryGetValue(leftKey, out var leftForward) ? leftForward : leftKey;
+                var rightIdentity = genericForwards.TryGetValue(rightKey, out var rightForward) ? rightForward : rightKey;
+                return leftGeneric.ownerInterfaceId == rightGeneric.ownerInterfaceId && leftIdentity == rightIdentity;
+            }
             if (left.type == MemberKind.Tuple)
             {
                 var a = TupleTypeInfo.From(left)?.elements;
@@ -9855,7 +9879,7 @@ namespace NeoCompose.Runtime
                 if (a is null || b is null || a.Length != b.Length)
                     return false;
                 for (int i = 0; i < a.Length; i++)
-                    if (!TypeInfoMatches(a[i].typeInfo, b[i].typeInfo))
+                    if (!TypeInfoMatches(a[i].typeInfo, b[i].typeInfo, genericForwards))
                         return false;
                 return true;
             }
@@ -9870,28 +9894,28 @@ namespace NeoCompose.Runtime
                     && a.genericParamId == b.genericParamId
                     && a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
-                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo)
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments)
-                    && TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
-                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards)
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards)
+                    && TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo, genericForwards)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (ClassTypeInfo a, ClassTypeInfo b) =>
                     a.classId == b.classId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (FunctionArgumentTypeInfo a, ClassTypeInfo b) =>
                     a.classId == b.classId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (ClassTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.classId == b.classId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (InterfaceTypeInfo a, InterfaceTypeInfo b) =>
                     a.interfaceId == b.interfaceId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (FunctionArgumentTypeInfo a, InterfaceTypeInfo b) =>
                     a.interfaceId == b.interfaceId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (InterfaceTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.interfaceId == b.interfaceId
-                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments, genericForwards),
                 (EnumTypeInfo a, EnumTypeInfo b) => a.enumId == b.enumId,
                 (FunctionArgumentTypeInfo a, EnumTypeInfo b) =>
                     a.enumId == b.enumId,
@@ -9910,57 +9934,58 @@ namespace NeoCompose.Runtime
                     && a.ownerInterfaceId == b.ownerInterfaceId
                     && a.genericParamId == b.genericParamId,
                 (CollectionTypeInfo a, CollectionTypeInfo b) =>
-                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (FunctionArgumentTypeInfo a, CollectionTypeInfo b) =>
-                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (CollectionTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (LookupTypeInfo a, LookupTypeInfo b) =>
                     a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
-                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (FunctionArgumentTypeInfo a, LookupTypeInfo b) =>
                     a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
-                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (LookupTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
-                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo, genericForwards),
                 (DelegateTypeInfo a, DelegateTypeInfo b) =>
-                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
-                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo, genericForwards)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (FunctionArgumentTypeInfo a, DelegateTypeInfo b)
                     when a.type == MemberKind.NSDelegate =>
-                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
-                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo, genericForwards)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (DelegateTypeInfo a, FunctionArgumentTypeInfo b)
                     when b.type == MemberKind.NSDelegate =>
-                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo)
-                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoMatches(a.returnTypeInfo, b.returnTypeInfo, genericForwards)
+                    && TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 // Actions compare on parameters alone — there is no return
                 // slot, because void is structural for them (P62 §2).
                 (ActionTypeInfo a, ActionTypeInfo b) =>
-                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (FunctionArgumentTypeInfo a, ActionTypeInfo b)
                     when a.type == MemberKind.NSAction =>
-                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (ActionTypeInfo a, FunctionArgumentTypeInfo b)
                     when b.type == MemberKind.NSAction =>
-                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes),
+                    TypeInfoListsMatch(a.argumentTypes, b.argumentTypes, genericForwards),
                 (ReferenceTypeInfo a, ReferenceTypeInfo b) =>
-                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo, genericForwards),
                 (FunctionArgumentTypeInfo a, ReferenceTypeInfo b) =>
-                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo, genericForwards),
                 (ReferenceTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo),
+                    TypeInfoMatches(a.targetTypeInfo, b.targetTypeInfo, genericForwards),
                 _ => true,
             };
         }
 
         private static bool TypeInfoListsMatch(
             IReadOnlyList<Json.TypeInfo>? left,
-            IReadOnlyList<Json.TypeInfo>? right)
+            IReadOnlyList<Json.TypeInfo>? right,
+            IReadOnlyDictionary<(string? owner, string? param), (string? owner, string? param)>? genericForwards = null)
         {
             if (left is null || right is null)
                 return left is null && right is null;
@@ -9968,7 +9993,7 @@ namespace NeoCompose.Runtime
                 return false;
             for (int i = 0; i < left.Count; i++)
             {
-                if (!TypeInfoMatches(left[i], right[i]))
+                if (!TypeInfoMatches(left[i], right[i], genericForwards))
                     return false;
             }
             return true;
@@ -9976,7 +10001,8 @@ namespace NeoCompose.Runtime
 
         private static bool TypeArgumentsMatch(
             Dictionary<string, Json.TypeInfo>? left,
-            Dictionary<string, Json.TypeInfo>? right)
+            Dictionary<string, Json.TypeInfo>? right,
+            IReadOnlyDictionary<(string? owner, string? param), (string? owner, string? param)>? genericForwards = null)
         {
             if (left is null || right is null)
                 return left is null && right is null;
@@ -9985,7 +10011,7 @@ namespace NeoCompose.Runtime
             foreach (var pair in left)
             {
                 if (!right.TryGetValue(pair.Key, out Json.TypeInfo? other)
-                    || !TypeInfoMatches(pair.Value, other))
+                    || !TypeInfoMatches(pair.Value, other, genericForwards))
                 {
                     return false;
                 }
