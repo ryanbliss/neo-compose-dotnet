@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class HolderB : NeoGeneratedClassValue, IReadOnlyHolderB
     {
         internal HolderB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b9a7d61c-08a3-420d-a410-1fa6e9c702a1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7807656c-f4c1-4032-ba63-3b7c17eac662", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,14 +41,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7ed4f185-b48d-4a27-a5a4-5db09bafc248", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "de4869dc-1911-4253-a1dd-45121fcbdd6e", NeoValueOwnership.Session);
                 if (!binding.TryGetNode<NeoMemberDelegate>(out var child) || child is null) return null;
                 return ((NeoMemberDelegate)child).value?.value is null ? null : ((NeoMemberDelegate)child).Bind<string>(result => (string)result!);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7ed4f185-b48d-4a27-a5a4-5db09bafc248", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "de4869dc-1911-4253-a1dd-45121fcbdd6e", NeoValueOwnership.Session);
                 var delegateValue = NeoGeneratedTypesSupport.DelegateValue(value);
                 binding.GetOrCreateWritableNode<NeoMemberDelegateWritable>(delegateValue).Set(value);
             }
@@ -64,8 +64,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b9a7d61c-08a3-420d-a410-1fa6e9c702a1",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "5f876492-a14f-435f-91e1-af77d27ad0c5", F)
+                "7807656c-f4c1-4032-ba63-3b7c17eac662",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "1235491e-ba7d-4645-8747-79169eac8361", F)
             );
         }
 
