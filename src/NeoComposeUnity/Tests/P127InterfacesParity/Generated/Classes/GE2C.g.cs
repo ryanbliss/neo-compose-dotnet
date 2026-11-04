@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GE2C<T> : NeoGeneratedClassValue, IReadOnlyGE2C<T>
     {
         internal GE2C(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b1e73ac0-c6cd-4f83-b4b2-80ee7f9cf941", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4c20fd6e-9a51-4eb3-a8dd-dd091066a314", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b1e73ac0-c6cd-4f83-b4b2-80ee7f9cf941" => new GE2C<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4c20fd6e-9a51-4eb3-a8dd-dd091066a314" => new GE2C<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GE2C' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b1e73ac0-c6cd-4f83-b4b2-80ee7f9cf941" => new GE2C<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4c20fd6e-9a51-4eb3-a8dd-dd091066a314" => new GE2C<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GE2C' without a concrete client type id."),
                 };
             });
@@ -79,7 +79,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var child = node.Get<NeoMember>("V#eae566c9-3d14-438b-af02-3d39f8f0b3ad");
+                var child = node.Get<NeoMember>("V#97402834-f3a0-455b-9432-ee265ebf98bc");
                 _vIPvCBinding ??= NeoGenericBindings.Resolve<NeoList<T>>(client, child);
                 return _vIPvCBinding.Read(child);
             }
