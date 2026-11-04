@@ -82,6 +82,23 @@ namespace NeoCompose.Runtime.Json
     /// authored default at the same id, so there is no override-map
     /// indirection.</para>
     /// </summary>
+    /// <summary>
+    /// P127 §5.3: one construction of a static on a generic class or
+    /// interface, bound apart from <c>staticBindings</c>, which keys plain
+    /// member ids. A null <see cref="value"/> is the draft tombstone. The
+    /// SDK only carries these; it binds no generic static yet.
+    /// </summary>
+    public sealed class NeoStaticConstruction
+    {
+        public string memberId = null!;
+
+        /// <summary>The closed Class or Interface head the static is read through.</summary>
+        public TypeBinding construction = null!;
+
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Include)]
+        public string? value;
+    }
+
     public class ProjectSaveData
     {
         /// <summary>Absent means legacy. Promotion is monotonic even after all listener overrides are removed.</summary>
@@ -185,6 +202,10 @@ namespace NeoCompose.Runtime.Json
         /// The referenced value graph remains in <see cref="values"/>.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+
+        /// <inheritdoc cref="NeoStaticConstruction"/>
+        [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public List<NeoStaticConstruction>? staticConstructions;
 
         /// <summary>Durable listener overrides keyed by binding root. Never creates a value override.</summary>
         [Newtonsoft.Json.JsonProperty(NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]

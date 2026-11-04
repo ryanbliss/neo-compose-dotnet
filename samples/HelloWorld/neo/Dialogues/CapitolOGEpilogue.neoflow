@@ -22,9 +22,9 @@ sealed class CapitolOGEpilogue : NeoDialogue {
     group: Visits.Medium,
     order: 0,
     when: [
-    @id("e81df6e0-58b0-55e6-865c-4536f090d8de")
-    Condition1,
-  ],
+      @id("e81df6e0-58b0-55e6-865c-4536f090d8de")
+      Condition1,
+    ],
   ) => Back;
 
   @id("afee8b0f-c51f-42c0-8091-1d7286e2f7de")

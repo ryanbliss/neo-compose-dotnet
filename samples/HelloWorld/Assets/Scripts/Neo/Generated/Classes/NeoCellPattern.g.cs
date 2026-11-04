@@ -27,9 +27,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// The ordered offsets translated to absolute cells around origin.
+        /// Number of offsets, including any duplicates.
         /// </summary>
-        IReadOnlyList<Vector2Int> Cells(Vector2Int origin);
+        new int Count { get; }
 
 
         /// <summary>
@@ -39,21 +39,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// Number of offsets, including any duplicates.
+        /// The ordered offsets translated to absolute cells around origin.
         /// </summary>
-        new int Count { get; }
-
-
-        /// <summary>
-        /// Shift every offset, preserving order and duplicates.
-        /// </summary>
-        IReadOnlyNeoCellPattern Translate(Vector2Int offset);
-
-
-        /// <summary>
-        /// Combine patterns, retaining each offset once in first-occurrence order.
-        /// </summary>
-        IReadOnlyNeoCellPattern Union(IReadOnlyNeoCellPattern other);
+        IReadOnlyList<Vector2Int> Cells(Vector2Int origin);
 
 
         /// <summary>
@@ -66,6 +54,18 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// Remove every occurrence of the origin.
         /// </summary>
         IReadOnlyNeoCellPattern WithoutCenter();
+
+
+        /// <summary>
+        /// Shift every offset, preserving order and duplicates.
+        /// </summary>
+        IReadOnlyNeoCellPattern Translate(Vector2Int offset);
+
+
+        /// <summary>
+        /// Combine patterns, retaining each offset once in first-occurrence order.
+        /// </summary>
+        IReadOnlyNeoCellPattern Union(IReadOnlyNeoCellPattern other);
     }
 
     /// <summary>
@@ -85,17 +85,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// A filled rectangle of offsets. Omitting radiusY uses radiusX on both axes.
-        /// </summary>
-        public static IReadOnlyNeoCellPattern Box(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
-        {
-            var client = HelloWorldNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_aaad2df6-e31e-5f5d-95b9-e265211faed5");
-            var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
-        }
-
-        /// <summary>
         /// Only the origin cell.
         /// </summary>
         public static IReadOnlyNeoCellPattern Center
@@ -110,14 +99,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// Axis-aligned offsets. Omitting radiusY uses radiusX on both axes.
+        /// The four edge-adjacent cells, excluding the origin.
         /// </summary>
-        public static IReadOnlyNeoCellPattern Cross(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
+        public static IReadOnlyNeoCellPattern FourNeighbors
         {
-            var client = HelloWorldNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_df8ebca6-a1d1-57c1-8762-227943fc51d8");
-            var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            get
+            {
+                var client = HelloWorldNeo.RequireInstance().Client;
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "system_57290d57-16dd-54d6-ad1e-81a72bd7f457", NeoValueOwnership.Asset);
+                var child = binding.GetRequiredNode<NeoMemberClass>();
+                return global::HelloWorld.Assets.Scripts.Neo.NeoCellPattern.Create(client, (NeoMemberClass)child);
+            }
         }
 
         /// <summary>
@@ -149,27 +141,35 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// The four edge-adjacent cells, excluding the origin.
+        /// A filled rectangle of offsets. Omitting radiusY uses radiusX on both axes.
         /// </summary>
-        public static IReadOnlyNeoCellPattern FourNeighbors
+        public static IReadOnlyNeoCellPattern Box(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
         {
-            get
-            {
-                var client = HelloWorldNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "system_57290d57-16dd-54d6-ad1e-81a72bd7f457", NeoValueOwnership.Asset);
-                var child = binding.GetRequiredNode<NeoMemberClass>();
-                return global::HelloWorld.Assets.Scripts.Neo.NeoCellPattern.Create(client, (NeoMemberClass)child);
-            }
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_aaad2df6-e31e-5f5d-95b9-e265211faed5");
+            var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
-        /// Offsets from the origin through length steps in direction. Center excludes only the origin.
+        /// Axis-aligned offsets. Omitting radiusY uses radiusX on both axes.
         /// </summary>
-        public static IReadOnlyNeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
+        public static IReadOnlyNeoCellPattern Cross(int radiusX, int? radiusY = null, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5");
-            var result = node.InvokeStatic(direction, length, excluding.OptionId());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_df8ebca6-a1d1-57c1-8762-227943fc51d8");
+            var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+        }
+
+        /// <summary>
+        /// The square ring at the given Chebyshev radius. Zero returns the center.
+        /// </summary>
+        public static IReadOnlyNeoCellPattern Ring(int radius)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_82222600-f67f-5127-bb2d-278381b4ef2f");
+            var result = node.InvokeStatic((object?)(radius));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
@@ -185,13 +185,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// The square ring at the given Chebyshev radius. Zero returns the center.
+        /// Offsets from the origin through length steps in direction. Center excludes only the origin.
         /// </summary>
-        public static IReadOnlyNeoCellPattern Ring(int radius)
+        public static IReadOnlyNeoCellPattern Line(Vector2Int direction, int length, NeoCellPatternExcluding excluding = NeoCellPatternExcluding.None)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_82222600-f67f-5127-bb2d-278381b4ef2f");
-            var result = node.InvokeStatic((object?)(radius));
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5");
+            var result = node.InvokeStatic(direction, length, excluding.OptionId());
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
@@ -266,7 +266,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoCellPattern>(out writable);
         }
 
-
+        private NeoReadOnlyList<NeoReadOnlyVector2Int> _offsets
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("_offsets");
+                if (TryGetStoredView<NeoReadOnlyList<NeoReadOnlyVector2Int>>("_offsets", memberNode, out var cached)) return cached;
+                return CacheStoredView("_offsets", memberNode, new NeoReadOnlyList<NeoReadOnlyVector2Int>(client, memberNode, (client, child) => new NeoReadOnlyVector2Int((NeoMemberVector2Int)child)));
+            }
+        }
 
         /// <summary>
         /// Number of offsets, including any duplicates.
@@ -285,24 +293,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
-        private NeoReadOnlyList<NeoReadOnlyVector2Int> _offsets
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberList>("_offsets");
-                if (TryGetStoredView<NeoReadOnlyList<NeoReadOnlyVector2Int>>("_offsets", memberNode, out var cached)) return cached;
-                return CacheStoredView("_offsets", memberNode, new NeoReadOnlyList<NeoReadOnlyVector2Int>(client, memberNode, (client, child) => new NeoReadOnlyVector2Int((NeoMemberVector2Int)child)));
-            }
-        }
 
-        /// <summary>
-        /// The ordered offsets translated to absolute cells around origin.
-        /// </summary>
-        public IReadOnlyList<Vector2Int> Cells(Vector2Int origin)
-        {
-            var result = client.ScriptGridQueries.Invoke("system_c72d9b09-fc4c-55db-b763-f1954a536069", this, new object?[] { origin });
-            return NeoGeneratedTypesSupport.ReadScriptList<Vector2Int>(result, resultEntry => { var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(resultEntry); return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value."); });
-        }
 
         /// <summary>
         /// Whether the pattern includes the offset.
@@ -314,21 +305,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// Shift every offset, preserving order and duplicates.
+        /// The ordered offsets translated to absolute cells around origin.
         /// </summary>
-        public IReadOnlyNeoCellPattern Translate(Vector2Int offset)
+        public IReadOnlyList<Vector2Int> Cells(Vector2Int origin)
         {
-            var result = client.ScriptGridQueries.Invoke("system_efc67858-0c95-573f-a8a9-d7e07d0a1d55", this, new object?[] { offset });
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
-        }
-
-        /// <summary>
-        /// Combine patterns, retaining each offset once in first-occurrence order.
-        /// </summary>
-        public IReadOnlyNeoCellPattern Union(IReadOnlyNeoCellPattern other)
-        {
-            var result = client.ScriptGridQueries.Invoke("system_77b14581-e34c-5eb1-a820-788618276e46", this, new object?[] { other });
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            var result = client.ScriptGridQueries.Invoke("system_c72d9b09-fc4c-55db-b763-f1954a536069", this, new object?[] { origin });
+            return NeoGeneratedTypesSupport.ReadScriptList<Vector2Int>(result, resultEntry => { var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(resultEntry); return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value."); });
         }
 
         /// <summary>
@@ -349,21 +331,39 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
+        /// <summary>
+        /// Shift every offset, preserving order and duplicates.
+        /// </summary>
+        public IReadOnlyNeoCellPattern Translate(Vector2Int offset)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_efc67858-0c95-573f-a8a9-d7e07d0a1d55", this, new object?[] { offset });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+        }
+
+        /// <summary>
+        /// Combine patterns, retaining each offset once in first-occurrence order.
+        /// </summary>
+        public IReadOnlyNeoCellPattern Union(IReadOnlyNeoCellPattern other)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_77b14581-e34c-5eb1-a820-788618276e46", this, new object?[] { other });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<int> Count = new("Count");
-
             internal static readonly NeoField<NeoList<NeoVector2Int>> _offsets = new("_offsets");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Count] = () => null,
                 [Fields._offsets] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -381,8 +381,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Count] = () => Count,
                 [Fields._offsets] = () => _offsets,
+                [Fields.Count] = () => Count,
             };
         }
 

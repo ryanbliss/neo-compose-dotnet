@@ -133,6 +133,10 @@ namespace NeoCompose.Runtime
     ///   the class's generated <c>Create</c>/<c>CreateWritable</c> factory
     ///   (reflected once per <c>T</c>), matching the registry+checked-cast
     ///   semantics constructed-Class slots use</description></item>
+    ///   <item><description>Object → the slot's CLR type (<c>object</c>,
+    ///   <c>ValueType</c>, <c>Enum</c>, <c>Type</c>, <c>CultureInfo</c> or
+    ///   <c>NumberFormatInfo</c>); values read and write as an
+    ///   <c>object</c> field does (P127 §1.3)</description></item>
     ///   <item><description>List → <c>NeoReadOnlyList&lt;TEntry&gt;</c> /
     ///   <c>NeoList&lt;TEntry&gt;</c>; Dictionary →
     ///   <c>NeoReadOnlyDictionary&lt;TEntry&gt;</c> /
@@ -267,6 +271,8 @@ namespace NeoCompose.Runtime
                     return LookupCodec<T>(client, member, collection);
                 case MemberKind.DialogueLookup:
                     return DialogueLookupCodec<T>(client, member);
+                case MemberKind.Object:
+                    return ObjectCodec<T>(client, member, collection);
                 case MemberKind.Generic:
                     throw new InvalidOperationException(
                         $"NeoGenericBindings.Resolve received the un-substituted Generic slot '{member.name}' ({member.id}) — substitution must run before codec resolution (is the node's parent a Class node with a closed class context?).");
@@ -1113,6 +1119,42 @@ namespace NeoCompose.Runtime
                     member,
                     NeoGeneratedTypesSupport.InterfaceValueReference(v, member.name)),
                 v => NeoGeneratedTypesSupport.InterfaceValueReference(v, member.name));
+        }
+
+        /// <summary>
+        /// P127 §1.2, §14. An <c>object</c> slot reads as null, a generated
+        /// class value or the C# value its box holds; a write stores a box
+        /// or holds the class value. A collection entry serializes the same
+        /// payload into its collection.
+        /// </summary>
+        private static NeoGenericBinding<T> ObjectCodec<T>(NeoClient client, Member member, NeoMember? collection)
+        {
+            if (member is not ObjectMember slot)
+            {
+                throw new InvalidOperationException(
+                    $"NeoGenericBindings: member '{member.name}' ({member.id}) reports kind Object but is a {member.GetType().Name} record — the export is corrupt.");
+            }
+            Type expected = NeoGeneratedTypesSupport.ClrTypeOf(client, TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: slot.objectType)))!;
+            if (typeof(T) != expected)
+                throw Mismatch<T>(member, expected.FullName!);
+            return new NeoGenericBinding<T>(
+                MemberKind.Object,
+                node =>
+                {
+                    object? read = RequireNode<NeoMemberObject>(node, member).ReadObject();
+                    if (read is null && member.Requirement == NeoMemberRequirementKind.Required)
+                        throw new InvalidOperationException($"Required object member '{member.name}' ({member.id}) has no value.");
+                    return (T)read!;
+                },
+                (node, value) => AssignClassThroughParent(
+                    node,
+                    member,
+                    NeoGeneratedTypesSupport.ObjectValue(client, RequireNode<NeoMemberObject>(node, member), value)),
+                value => NeoGeneratedTypesSupport.ObjectEntryValue(
+                    client,
+                    slot,
+                    collection ?? throw new InvalidOperationException($"Object member '{member.name}' ({member.id}) serializes only into its collection."),
+                    value));
         }
 
         private static void AssignClassThroughParent(NeoMember node, Member member, NeoValueWritePayload? payload)

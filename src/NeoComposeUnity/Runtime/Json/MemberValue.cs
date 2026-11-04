@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -181,6 +182,305 @@ namespace NeoCompose.Runtime.Json
         {
             get; set;
         }
+
+        /// <summary>
+        /// P127 §1.3. The closed type of a non-row value held by an
+        /// <c>object</c>, <c>ValueType</c>, <c>Enum</c> or interface slot,
+        /// beside its payload, in a runtime-identity position. Null has none.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TypeBinding? valueType
+        {
+            get; set;
+        }
+
+        private NeoTypeSource? storedTypeSource;
+
+        /// <summary>
+        /// P127 §12.1. Where this row reads its type when it isn't a binding
+        /// node and its declared type names a type parameter: an open
+        /// container or a class row in a declared generic slot. Placed by
+        /// the placement walk (<see cref="NeoTypeSources"/>), never copied to
+        /// a row with another id.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoTypeSource? typeSource
+        {
+            get => storedTypeSource;
+            set
+            {
+                storedTypeSource = value;
+                placedStamp = null;
+            }
+        }
+
+        /// <summary>The bindings <see cref="typeSource"/> resolved to, keyed by the member it was read under.</summary>
+        [JsonIgnore]
+        internal (string memberId, IReadOnlyDictionary<string, TypeBinding>? stamp)? placedStamp;
+
+        /// <summary>
+        /// P127 §9.5. A stored Set's or Dictionary's comparer; absent for the
+        /// collection's own default.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoCollectionComparer? comparer
+        {
+            get; set;
+        }
+    }
+
+    /// <summary>
+    /// P127 §1.3 / §12.1. Validates a value container's <c>valueType</c>: a
+    /// closed binding in a runtime-identity position that a box may carry,
+    /// absent on a null value and on a class row, beside a payload stored
+    /// exactly as a field of the held type stores its value. The checks that
+    /// need the export's types run where the row is placed
+    /// (<see cref="NeoTypeRules.Box"/>).
+    /// </summary>
+    internal static class ValueTypeGuard
+    {
+        /// <summary>
+        /// A box whose <c>valueType</c> is <c>float</c>, or a number
+        /// declaration default, holds a stored float, so a symbol string is a
+        /// number there (P127 §12.1). Rewrites it to its numeric token before
+        /// shape dispatch picks a row type or Newtonsoft parses it.
+        /// </summary>
+        internal static void DecodeBoxedFloat(JObject carrier, JToken value)
+        {
+            // Boxed first: Newtonsoft's JValue(double) shares one box for
+            // every zero, so it would drop -0's sign.
+            if (value.Type == JTokenType.String)
+                carrier["value"] = new JValue((object)NeoStoredFloat.DecodeSymbol(value.Value<string>()!));
+        }
+
+        /// <summary>An int has no -0 (P127 §12.1), so a boxed int's -0.0 reads as 0.</summary>
+        private static void NormalizeIntZero(JObject carrier, string name)
+        {
+            if (carrier[name] is JValue { Type: JTokenType.Float } number && number.Value<double>() == 0)
+                carrier[name] = new JValue(0L);
+        }
+
+        internal static void Validate(JObject carrier, string subject)
+        {
+            JProperty? property = carrier.Property("valueType");
+            if (property is null || property.Value.Type == JTokenType.Null)
+                return;
+            if (property.Value is not JObject stored)
+                throw new JsonSerializationException($"{subject} 'valueType' must be a type binding object.");
+            TypeBinding binding = TypeBindings.Read(stored, $"{subject} 'valueType'");
+            string? violation = TypeBindings.PositionViolation(binding, TypeBindingPosition.Identity);
+            if (violation is not null)
+                throw new JsonSerializationException($"{subject} 'valueType' {violation}.");
+            TypeHead head = binding.Head!;
+            violation = BoxViolation(binding);
+            if (violation is not null)
+                throw new JsonSerializationException($"{subject} 'valueType' {violation}.");
+            string name = NeoTypeNames.Of(binding);
+            if (carrier["classId"] is JValue { Type: JTokenType.String } classId)
+                throw new JsonSerializationException($"{subject} has valueType '{name}' and classId '{classId}'; a box holds no class row.");
+            JToken? value = carrier["value"];
+            if (value is null || value.Type == JTokenType.Null)
+                throw new JsonSerializationException($"{subject} holds null, which has no 'valueType'.");
+            // A class row in an object slot is owned and carries no
+            // valueType, so a class boxes the one class-typed payload: a
+            // built-in comparer.
+            if (head.Type == MemberKind.Class)
+            {
+                NeoStorablePayloads.ValidateHeldComparer(binding, value, $"{subject} BuiltInComparer payload");
+                return;
+            }
+            // §1.3: the payload stores exactly as a field of the held type
+            // stores its value; child rows are checked where they are placed.
+            if (PayloadShapeViolation(binding, value) is string expected)
+                throw new JsonSerializationException($"{subject} '{name}' payload must be {expected}, as a field of that type stores it.");
+            switch (head.Type)
+            {
+                case MemberKind.Float:
+                    DecodeBoxedFloat(carrier, value);
+                    break;
+                case MemberKind.Int:
+                    if (!IsWholeNumber(value))
+                        throw new JsonSerializationException($"{subject} 'int' payload must store an integer.");
+                    if (!FitsInt32(value))
+                        throw new JsonSerializationException($"{subject} 'int' payload must fit in an int32.");
+                    NormalizeIntZero(carrier, "value");
+                    break;
+                case MemberKind.Vector2Int or MemberKind.Vector3Int when value is JObject vector:
+                    if (IntFieldViolation(name, vector) is string fieldViolation)
+                        throw new JsonSerializationException($"{subject} {fieldViolation}");
+                    NormalizeIntZero(vector, "x");
+                    NormalizeIntZero(vector, "y");
+                    NormalizeIntZero(vector, "z");
+                    break;
+                case MemberKind.Object when head.ObjectType == NeoObjectTypeKind.Type:
+                    NeoStorablePayloads.ValidateType(value, $"{subject} Type payload");
+                    break;
+                case MemberKind.Object when head.ObjectType == NeoObjectTypeKind.CultureInfo:
+                    NeoStorablePayloads.ValidateCultureInfo(value, $"{subject} CultureInfo payload");
+                    break;
+                case MemberKind.Object when head.ObjectType == NeoObjectTypeKind.NumberFormatInfo:
+                    NeoStorablePayloads.ValidateNumberFormatInfo(value, $"{subject} NumberFormatInfo payload");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Why a closed identity binding can't be a box's held type, or null
+        /// (§1.3): no top-level nullable, no interface, <c>ValueType</c> or
+        /// <c>Enum</c>, no action at any depth, and Dictionary keys of
+        /// <c>string</c> or an enum.
+        /// </summary>
+        private static string? BoxViolation(TypeBinding binding)
+        {
+            TypeHead head = binding.Head!;
+            if (!head.Required)
+            {
+                string held = NeoTypeNames.Of(binding.WithRequired(true));
+                return $"is {NeoTypeNames.Of(binding)}; a non-null {held}? stores its {held} payload with that type";
+            }
+            if (head.Type == MemberKind.Interface)
+                return $"names interface {NeoTypeNames.Of(binding)}; a box names its value's own type";
+            if (head.Type == MemberKind.Object && head.ObjectType is NeoObjectTypeKind.ValueType or NeoObjectTypeKind.Enum)
+                return $"names {NeoTypeNames.Head(head)}; a box names its value's own type";
+            if (head.Type == MemberKind.Object && head.ObjectType == NeoObjectTypeKind.BuiltInComparer)
+                return "names BuiltInComparer; a held comparer names its public system class";
+            return NestedViolation(binding);
+        }
+
+        private static string? NestedViolation(TypeBinding binding)
+        {
+            TypeHead head = binding.Head!;
+            if (head.Type == MemberKind.NSAction)
+                return "names an action, which isn't a value";
+            if (head.Type == MemberKind.Dictionary
+                && binding.Bindings!["0"] is { Head: { } key } keyBinding
+                && key.Type is not (MemberKind.String or MemberKind.Enum))
+            {
+                return $"keys a Dictionary by {NeoTypeNames.Of(keyBinding)}; Dictionary keys are string or an enum";
+            }
+            if (binding.Bindings is null)
+                return null;
+            foreach (KeyValuePair<string, TypeBinding> pair in binding.Bindings)
+            {
+                if (pair.Value.Kind == TypeBindingKind.Closed && NestedViolation(pair.Value) is string nested)
+                    return $"at \"{pair.Key}\" {nested}";
+            }
+            return null;
+        }
+
+        private static bool IsWholeNumber(JToken value)
+        {
+            if (value.Type == JTokenType.Integer)
+                return true;
+            if (value.Type != JTokenType.Float)
+                return false;
+            double number = value.Value<double>();
+            return !double.IsInfinity(number) && Math.Floor(number) == number;
+        }
+
+        private static bool FitsInt32(JToken value)
+        {
+            double number = value.Value<double>();
+            return number >= int.MinValue && number <= int.MaxValue;
+        }
+
+        /// <summary>
+        /// The first int vector field that is no int32, worded as the server's
+        /// leaf field check words it (P127 §12.1); null when every field fits.
+        /// </summary>
+        private static string? IntFieldViolation(string leaf, JObject vector)
+        {
+            foreach (JProperty field in vector.Properties())
+            {
+                if (!IsWholeNumber(field.Value))
+                    return $"{leaf} field \"{field.Name}\" must be a whole number, not {SpellNumber(field.Value)}.";
+                if (!FitsInt32(field.Value))
+                    return $"{leaf} field \"{field.Name}\" must fit in an int32, not {SpellNumber(field.Value)}.";
+            }
+            return null;
+        }
+
+        private static string SpellNumber(JToken value) => value.Type == JTokenType.Float
+            ? value.Value<double>().ToString("R", CultureInfo.InvariantCulture)
+            : value.ToString();
+
+        /// <summary>
+        /// The stored shape a field of <paramref name="binding"/>'s top-level
+        /// type has, when <paramref name="value"/> lacks it; null when it fits.
+        /// </summary>
+        private static string? PayloadShapeViolation(TypeBinding binding, JToken value)
+        {
+            TypeHead head = binding.Head!;
+            switch (head.Type)
+            {
+                case MemberKind.Float:
+                    return NeoStoredFloat.IsStoredFloat(value)
+                        ? null
+                        : "a finite number or one of \"NaN\", \"Infinity\", \"-Infinity\" and \"-0\"";
+                case MemberKind.Decimal:
+                case MemberKind.String:
+                    return value.Type == JTokenType.String ? null : "a string";
+                case MemberKind.Bool:
+                    return value.Type == JTokenType.Boolean ? null : "a boolean";
+                case MemberKind.Vector2:
+                case MemberKind.Vector2Int:
+                    return NeoVector2ValueConverter.LooksLikeVector2Value(value) ? null : "an {x, y} record";
+                case MemberKind.Vector3:
+                case MemberKind.Vector3Int:
+                    return NeoVector3ValueConverter.LooksLikeVector3Value(value) ? null : "an {x, y, z} record";
+                case MemberKind.Color:
+                    return NeoColorValueConverter.LooksLikeColorValue(value) ? null : "an {r, g, b, a} record";
+                case MemberKind.Sprite:
+                    return value["fileId"]?.Type == JTokenType.String
+                        && value["sliceIndex"]?.Type is JTokenType.Integer or JTokenType.Float
+                        ? null
+                        : "a {fileId, sliceIndex} record";
+                case MemberKind.Audio:
+                    return value["fileId"]?.Type == JTokenType.String ? null : "a {fileId} record";
+                case MemberKind.DialogueLookup:
+                    return IsIdArray(value, -1) ? null : "an array of dialogue ids";
+                // §1.1: new object() has no payload.
+                case MemberKind.Object when head.ObjectType is null:
+                    return value is JObject { Count: 0 } ? null : "the empty record {}";
+                case MemberKind.Enum:
+                    return IsIdArray(value, -1) ? null : "an array of option ids";
+                case MemberKind.Tuple:
+                    {
+                        int arity = binding.Bindings!.Count;
+                        return IsIdArray(value, arity) ? null : $"an array of {arity} element value ids";
+                    }
+                case MemberKind.List:
+                case MemberKind.Set:
+                    return IsIdArray(value, -1) ? null : "an array of ids";
+                case MemberKind.Dictionary:
+                    return value is JObject entries && entries.Properties().All(entry => entry.Value.Type == JTokenType.String)
+                        ? null
+                        : "a record of entry value ids";
+                // A Reference<T> field is a single-select Lookup, which
+                // stores its target as a selection array, never a bare id.
+                case MemberKind.Reference:
+                    return IsIdArray(value, -1) && ((JArray)value).Count <= 1
+                        ? null
+                        : "an array of at most one target value id";
+                case MemberKind.NSDelegate:
+                    return NeoDelegateValueConverter.LooksLikeValue(value) ? null : "a stored delegate value";
+                default:
+                    return null;
+            }
+        }
+
+        /// <summary>An array of string ids, of <paramref name="length"/> unless it is negative.</summary>
+        private static bool IsIdArray(JToken value, int length)
+        {
+            if (value is not JArray ids || length >= 0 && ids.Count != length)
+                return false;
+            foreach (JToken id in ids)
+            {
+                if (id.Type != JTokenType.String)
+                    return false;
+            }
+            return true;
+        }
     }
 
     /// <summary>
@@ -332,6 +632,17 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class NumberMemberValueBase : MemberValueBase<double?>
     {
+        /// <summary>
+        /// Writes through the stored float codec, so NaN, the infinities and
+        /// <c>-0</c> write as their symbol strings (P127 §12.1). An int never
+        /// holds one.
+        /// </summary>
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
+        public new double? value
+        {
+            get => base.value;
+            set => base.value = value;
+        }
     }
 
     /// <summary>Carrier for a String <see cref="Member.defaultValue"/>.</summary>
@@ -390,10 +701,12 @@ namespace NeoCompose.Runtime.Json
         /// materializes. Evaluator bookkeeping; never serialized.
         /// </summary>
         internal object? detachedOwner;
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public double x
         {
             get; set;
         }
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public double y
         {
             get; set;
@@ -403,6 +716,7 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoVector3ValueConverter))]
     public class NeoVector3Value : NeoVector2Value
     {
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public double z
         {
             get; set;
@@ -423,22 +737,35 @@ namespace NeoCompose.Runtime.Json
         /// materializes. Evaluator bookkeeping; never serialized.
         /// </summary>
         internal object? detachedOwner;
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public float r
         {
             get; set;
         }
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public float g
         {
             get; set;
         }
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public float b
         {
             get; set;
         }
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
         public float a
         {
             get; set;
         }
+    }
+
+    /// <summary>
+    /// P127 §12.1. Carrier for a default whose object payload holds
+    /// non-string fields: a <c>CultureInfo</c>, <c>NumberFormatInfo</c> or
+    /// <c>BuiltInComparer</c> payload. Kept as raw JSON.
+    /// </summary>
+    public class PayloadMemberValueBase : MemberValueBase<JObject?>
+    {
     }
 
     /// <summary>Carrier for Vector2 / Vector2Int defaults.</summary>
@@ -540,8 +867,8 @@ namespace NeoCompose.Runtime.Json
             }
             return new NeoVector2Value
             {
-                x = ReadFiniteDouble(obj, "x"),
-                y = ReadFiniteDouble(obj, "y"),
+                x = ReadStoredFloat(obj, "x"),
+                y = ReadStoredFloat(obj, "y"),
             };
         }
 
@@ -565,37 +892,24 @@ namespace NeoCompose.Runtime.Json
             if (NeoPartialLeafValue.IsEnvelope(token))
                 return false;
             var obj = (JObject)token;
-            return obj.Count == 2 && IsFiniteNumber(obj["x"]) && IsFiniteNumber(obj["y"]);
+            return obj.Count == 2 && NeoStoredFloat.IsStoredFloat(obj["x"]) && NeoStoredFloat.IsStoredFloat(obj["y"]);
         }
 
-        internal static double ReadFiniteDouble(JObject obj, string key)
+        /// <summary>
+        /// Reads a vector component as a stored float (P127 §12.1): a finite
+        /// number, or <c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c> or
+        /// <c>"-0"</c>.
+        /// </summary>
+        internal static double ReadStoredFloat(JObject obj, string key)
         {
             var token = obj[key] ?? throw new JsonSerializationException(
                 $"Vector value is missing '{key}'.");
-            if (!IsFiniteNumber(token))
+            if (!NeoStoredFloat.TryDecode(token, out double value))
             {
                 throw new JsonSerializationException(
-                    $"Vector component '{key}' must be a finite number.");
-            }
-            var value = token.Value<double>();
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                throw new JsonSerializationException(
-                    $"Vector component '{key}' must be a finite number.");
+                    $"Vector component '{key}' must be a finite number or one of \"NaN\", \"Infinity\", \"-Infinity\" and \"-0\".");
             }
             return value;
-        }
-
-        private static bool IsFiniteNumber(JToken? token)
-        {
-            if (token == null)
-                return false;
-            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
-            {
-                return false;
-            }
-            var value = token.Value<double>();
-            return !double.IsNaN(value) && !double.IsInfinity(value);
         }
     }
 
@@ -622,9 +936,9 @@ namespace NeoCompose.Runtime.Json
             }
             return new NeoVector3Value
             {
-                x = NeoVector2ValueConverter.ReadFiniteDouble(obj, "x"),
-                y = NeoVector2ValueConverter.ReadFiniteDouble(obj, "y"),
-                z = NeoVector2ValueConverter.ReadFiniteDouble(obj, "z"),
+                x = NeoVector2ValueConverter.ReadStoredFloat(obj, "x"),
+                y = NeoVector2ValueConverter.ReadStoredFloat(obj, "y"),
+                z = NeoVector2ValueConverter.ReadStoredFloat(obj, "z"),
             };
         }
 
@@ -646,21 +960,9 @@ namespace NeoCompose.Runtime.Json
                 return false;
             var obj = (JObject)token;
             return obj.Count == 3
-                && IsFiniteNumber(obj["x"])
-                && IsFiniteNumber(obj["y"])
-                && IsFiniteNumber(obj["z"]);
-        }
-
-        private static bool IsFiniteNumber(JToken? token)
-        {
-            if (token == null)
-                return false;
-            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
-            {
-                return false;
-            }
-            var value = token.Value<double>();
-            return !double.IsNaN(value) && !double.IsInfinity(value);
+                && NeoStoredFloat.IsStoredFloat(obj["x"])
+                && NeoStoredFloat.IsStoredFloat(obj["y"])
+                && NeoStoredFloat.IsStoredFloat(obj["z"]);
         }
     }
 
@@ -725,6 +1027,11 @@ namespace NeoCompose.Runtime.Json
                 && IsColorComponent(obj["a"]);
         }
 
+        /// <summary>
+        /// Reads a colour channel. A channel is a stored float (P127 §12.1)
+        /// in <c>[0, 1]</c>, so <c>"-0"</c> passes where <c>0</c> does and
+        /// <c>"NaN"</c> and the infinities are refused.
+        /// </summary>
         internal static float ReadColorComponent(JObject obj, string key)
         {
             var token = obj[key];
@@ -733,12 +1040,14 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Color value is missing '{key}'.");
             }
-            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            if (!NeoStoredFloat.TryDecode(token, out double raw))
             {
-                throw new JsonSerializationException(
-                    $"Color component '{key}' must be a number.");
+                bool numeric = token.Type == JTokenType.Integer || token.Type == JTokenType.Float;
+                throw new JsonSerializationException(numeric
+                    ? $"Color component '{key}' must be a finite number."
+                    : $"Color component '{key}' must be a number.");
             }
-            var value = token.Value<float>();
+            var value = (float)raw;
             if (float.IsNaN(value) || float.IsInfinity(value))
             {
                 throw new JsonSerializationException(
@@ -759,13 +1068,9 @@ namespace NeoCompose.Runtime.Json
 
         private static bool IsColorComponent(JToken? token)
         {
-            if (token == null)
+            if (!NeoStoredFloat.TryDecode(token, out double raw))
                 return false;
-            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
-            {
-                return false;
-            }
-            var value = token.Value<float>();
+            var value = (float)raw;
             if (float.IsNaN(value) || float.IsInfinity(value))
                 return false;
             return value >= 0f && value <= 1f;
@@ -931,12 +1236,13 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Reads <paramref name="key"/> as a float, for float-vector and colour
-        /// channels. False when the field is absent or not a number.
+        /// channels: a number or a stored float symbol (P127 §12.1). False
+        /// when the field is absent or neither.
         /// </summary>
         public bool TryGetSingle(string key, out float value)
         {
             value = 0f;
-            if (!TryGetDouble(key, out double raw))
+            if (!NeoStoredFloat.TryDecode(fields.Property(key)?.Value, out double raw))
                 return false;
             value = (float)raw;
             return true;
@@ -966,16 +1272,14 @@ namespace NeoCompose.Runtime.Json
             SetToken(key, value is null ? JValue.CreateNull() : new JValue(value));
         }
 
-        /// <summary>Writes (or overwrites) a fractional number field.</summary>
+        /// <summary>
+        /// Writes (or overwrites) a fractional number field as a stored
+        /// float (P127 §12.1), so NaN, the infinities and <c>-0</c> write as
+        /// their symbol strings.
+        /// </summary>
         public void SetDouble(string key, double value)
         {
-            if (double.IsNaN(value) || double.IsInfinity(value))
-            {
-                throw new System.ArgumentException(
-                    $"Partial structured-leaf field '{key}' must be a finite number.",
-                    nameof(value));
-            }
-            SetToken(key, new JValue(value));
+            SetToken(key, NeoStoredFloat.Encode(value));
         }
 
         /// <summary>
@@ -1237,9 +1541,13 @@ namespace NeoCompose.Runtime.Json
             InitializerVariantGuard.RejectConflictingVariant(
                 obj,
                 "A member declaration default");
+            ValueTypeGuard.Validate(obj, "A member declaration default");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValueBase<>))
                 ?? ResolveByShape(obj["value"]);
+            // Newtonsoft's own string parse would drop -0's sign.
+            if (concrete == typeof(NumberMemberValueBase) && obj["value"] is JToken number)
+                ValueTypeGuard.DecodeBoxedFloat(obj, number);
             // Use Populate (not ToObject) to avoid converter recursion.
             // Same trick as DiscriminatedConverter — see its docstring.
             var instance = Activator.CreateInstance(concrete);
@@ -1297,10 +1605,26 @@ namespace NeoCompose.Runtime.Json
                         return typeof(SpriteMemberValueBase);
                     if (LooksLikeFileValue(token))
                         return typeof(FileMemberValueBase);
+                    if (LooksLikePayload(token))
+                        return typeof(PayloadMemberValueBase);
                     return typeof(ObjectMemberValueBase);
                 default:
                     return typeof(NullMemberValueBase);
             }
+        }
+
+        /// <summary>
+        /// P127 §12.1. An object payload with a field that is neither a
+        /// string nor null, which no Class or Dictionary body holds.
+        /// </summary>
+        internal static bool LooksLikePayload(JToken token)
+        {
+            foreach (JProperty property in ((JObject)token).Properties())
+            {
+                if (property.Value.Type != JTokenType.String && property.Value.Type != JTokenType.Null)
+                    return true;
+            }
+            return false;
         }
 
         private static bool LooksLikeFileValue(JToken token)
@@ -1587,19 +1911,16 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Generic-bindings stamp (specs/class-generics.md
-        /// Decision 9): present on List/Dictionary value rows whose entry
-        /// member subtree references generic params — the resolved
-        /// terminal binding member id per referenced param. Stamped at
-        /// creation from the enclosing context's environment (the enclosing
-        /// class value's effective classId, an enclosing stamped collection,
-        /// or the SDK's in-memory document) and immutable thereafter — the
-        /// same creation-time-immutable row context as
-        /// <see cref="containerId"/>/<see cref="mapKey"/>. Entry reads and
-        /// writes substitute the entry member through this stamp instead
-        /// of requiring container context.
+        /// Decision 9): present on value rows whose member subtree
+        /// references generic params — the exact closed type each
+        /// referenced param binds. Stamped at creation from the enclosing
+        /// context's environment and immutable thereafter, the same
+        /// creation-time-immutable row context as
+        /// <see cref="containerId"/>/<see cref="mapKey"/>.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, string>? genericBindings
+        [JsonConverter(typeof(GenericBindingsStampConverter))]
+        public Dictionary<string, TypeBinding>? genericBindings
         {
             get; set;
         }
@@ -1661,6 +1982,18 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for an Int / Float member.</summary>
     public sealed class NumberMemberValue : MemberValue<double?>
     {
+        /// <summary>
+        /// Writes through the stored float codec, so NaN, the infinities and
+        /// <c>-0</c> write as their symbol strings (P127 §12.1). An int never
+        /// holds one.
+        /// </summary>
+        [JsonConverter(typeof(NeoStoredNumberJsonConverter))]
+        public new double? value
+        {
+            get => base.value;
+            set => base.value = value;
+        }
+
         // The row owns its box, so replacing/reclaiming a row also releases it.
         // Check the value because importers and tests can edit DTOs in place.
         private object? cachedNumber;
@@ -1694,6 +2027,33 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for a Dictionary / Class member.</summary>
     public sealed class ObjectMemberValue : MemberValue<Dictionary<string, string>?>
     {
+    }
+
+    /// <summary>
+    /// P127 §12.1. Stored value whose object payload holds non-string
+    /// fields: a <c>CultureInfo</c>, <c>NumberFormatInfo</c> or
+    /// <c>BuiltInComparer</c> payload. Class and Dictionary bodies map keys to
+    /// row ids, so a field of any other JSON type tells the two apart. Kept as
+    /// raw JSON for the evaluator to reload.
+    /// </summary>
+    public sealed class PayloadMemberValue : MemberValue<JObject?>, IMemberValueBase<JObject?>
+    {
+        /// <summary>
+        /// The <c>CultureInfo</c> or <c>NumberFormatInfo</c> this row reads
+        /// as, or was written from. Writes to it persist through the slot
+        /// (P127 §12.1), so <see cref="value"/> is its current payload.
+        /// </summary>
+        [JsonIgnore]
+        internal object? live;
+
+        public new JObject? value
+        {
+            get => live is null ? base.value : NeoStorablePayloads.Encode(live);
+            set => base.value = value;
+        }
+
+        /// <summary>The payload this row was stored with, before C#'s writes to <see cref="live"/>.</summary>
+        internal JObject? storedValue => base.value;
     }
 
     /// <summary>Stored value for an NSDelegate member.</summary>
@@ -1794,6 +2154,7 @@ namespace NeoCompose.Runtime.Json
                 obj,
                 "A member value row");
             ConstructorArgsGuard.Validate(obj, "A member value row");
+            ValueTypeGuard.Validate(obj, "A member value row");
             var concrete =
                 TypedHierarchyMap.ResolveByContext(objectType, typeof(MemberValue<>))
                 ?? ResolveByShape(obj["value"]);
@@ -1855,6 +2216,8 @@ namespace NeoCompose.Runtime.Json
                         return typeof(SpriteMemberValue);
                     if (LooksLikeFileValue(token))
                         return typeof(FileMemberValue);
+                    if (MemberValueBaseConverter.LooksLikePayload(token))
+                        return typeof(PayloadMemberValue);
                     return typeof(ObjectMemberValue);
                 default:
                     return typeof(NullMemberValue);

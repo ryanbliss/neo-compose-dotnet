@@ -5,8 +5,8 @@
     BackgroundTileLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-91af65d2a89fa1528711b12cdf404750")
-    BackgroundTileLayer
+  @id("neo-tile-grid-record-relations-v1-relation-91af65d2a89fa1528711b12cdf404750")
+  BackgroundTileLayer
 )
 class BootGlyphTile : ConsoleTile {
   @id("e2a98ca7-1317-4743-9be1-19cd5ec47bf1")

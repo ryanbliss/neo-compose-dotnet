@@ -50,8 +50,9 @@ namespace NeoCompose.Runtime.NeoScript
             writer.WriteStartObject();
             writer.WritePropertyName("elements");
             writer.WriteStartArray();
-            foreach (object? element in tuple)
-                serializer.Serialize(writer, element);
+            // Elements write by their own type, so a float keeps its stored form (P127 §12.1).
+            for (int index = 0; index < tuple.Count; index++)
+                NeoStoredNumberJsonConverter.WriteTyped(writer, tuple[index], tuple.TypeInfo.elements[index].typeInfo, serializer);
             writer.WriteEndArray();
             writer.WriteEndObject();
         }

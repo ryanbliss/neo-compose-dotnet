@@ -83,11 +83,32 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>
+        /// Whether the decimal total starts at <c>0</c>, as <c>Enumerable</c>
+        /// does for <c>Sum</c> and for <c>Average</c> over a List with no
+        /// selector (its span path). The selector and nullable <c>Average</c>
+        /// overloads, and other sources, start from the first non-null value,
+        /// which keeps a leading <c>-0</c>'s sign.
+        /// </summary>
+        private static bool DecimalSumStartsAtZero(FunctionCollectionQueryInfo info, object? collection, Context ctx)
+        {
+            if (info.op != "Average" || info.keyType != "decimal")
+                return true;
+            if (info.function is not null)
+                return false;
+            if (info.nullable)
+                return false;
+            // .NET reads a List through its span even as an IEnumerable.
+            object? source = collection is EnumerableQuery query ? query.Source : collection;
+            return source is object?[] && FindRowReference(source, ctx)?.CollectionMember(ctx.client) is not SetMember;
+        }
+
         private static object? ReduceCollection(FunctionCollectionQueryInfo info, object? collection, ref PreparedCollectionCallback callback, Context ctx)
         {
             int count = 0;
             double total = 0;
             string decimalTotal = "0";
+            bool decimalSeeded = DecimalSumStartsAtZero(info, collection, ctx);
             object? selected = null, bestKey = null, first = null;
             bool visited = false;
             bool by = info.op is "MinBy" or "MaxBy";
@@ -107,7 +128,11 @@ namespace NeoCompose.Runtime.NeoScript
                     if (info.op is "Sum" or "Average")
                     {
                         if (info.keyType == "decimal")
-                            decimalTotal = NeoDecimalMath.Add(decimalTotal, CoerceDecimalOperand(value, info.op));
+                        {
+                            string operand = CoerceDecimalOperand(value, info.op);
+                            decimalTotal = decimalSeeded ? NeoDecimalMath.Add(decimalTotal, operand) : operand;
+                            decimalSeeded = true;
+                        }
                         else
                         {
                             if (!TryAsDouble(value, out double number))
@@ -141,14 +166,8 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (info.keyType != "decimal")
                         return Box((double)(float)(total / count));
-                    for (int digits = 28; digits >= 0; digits--)
-                    {
-                        try
-                        {
-                            return NeoDecimalMath.Divide(decimalTotal, count.ToString(CultureInfo.InvariantCulture), digits);
-                        }
-                        catch (DecimalOverflowException) when (digits > 0) { }
-                    }
+                    // Enumerable.Average: the sum over the count with decimal / (P127 §3.4).
+                    return NeoDecimalMath.Divide(decimalTotal, count.ToString(CultureInfo.InvariantCulture));
                 }
                 return selected;
             }

@@ -4,7 +4,7 @@
 #nullable enable
 
 using System;
-using System.Globalization;
+using System.Numerics;
 using System.Text.RegularExpressions;
 
 namespace NeoCompose.Runtime
@@ -19,18 +19,26 @@ namespace NeoCompose.Runtime
     /// <c>Parse</c>/<c>ToString</c> calls sprinkled through generated code.
     ///
     /// <para>The canonical pattern is
-    /// <c>^-?(0|[1-9][0-9]*)(\.[0-9]+)?$</c> with at most 28 significant
-    /// digits (coefficient, leading zeros stripped) and scale 28 — the same
-    /// contract the web guard <c>isDecimalString</c> enforces. Pre-checking
-    /// before <see cref="decimal.Parse(string, NumberStyles, IFormatProvider)"/>
-    /// makes the parse infallible by construction and keeps the SDK from
-    /// being more lenient than the server (<see cref="NumberStyles.Number"/>
-    /// alone would tolerate whitespace/thousands the server rejects).</para>
+    /// <c>^-?(0|[1-9][0-9]*)(\.[0-9]+)?$</c> within <see cref="decimal"/>'s
+    /// envelope (P127 §3.4): a coefficient (every digit, leading zeros
+    /// stripped) below 2⁹⁶ and a scale of at most 28 — the same contract the
+    /// web guard <c>isDecimalString</c> enforces. A zero keeps its sign
+    /// (<c>-0</c>, <c>-0.00</c>). Both directions build and read the
+    /// decimal's bits directly rather than calling the CLR's parser or
+    /// formatter, so the conversion is exact and Mono matches .NET.</para>
     /// </summary>
     public static class NeoDecimalValues
     {
-        /// <summary>Coefficient cap — C# decimal holds 28 safe significant digits.</summary>
+        /// <summary>
+        /// The significant digits every coefficient of that many digits fits
+        /// in. <c>decimal.Parse</c> still caps at it until P127 §11.5's
+        /// rounding lands; storage and arithmetic accept the full envelope
+        /// (<see cref="MaxCoefficient"/>).
+        /// </summary>
         internal const int MaxSignificantDigits = 28;
+
+        /// <summary>The largest coefficient, 2⁹⁶ − 1, as canonical digits.</summary>
+        internal const string MaxCoefficient = "79228162514264337593543950335";
 
         /// <summary>Scale cap — C# decimal's fractional-digit envelope.</summary>
         internal const int MaxScale = 28;
@@ -71,7 +79,8 @@ namespace NeoCompose.Runtime
             // leading zeros stripped (mirrors the web's
             // value.replace("-","").replace(".","").replace(/^0+/,"")).
             string digits = value.Replace("-", string.Empty).Replace(".", string.Empty).TrimStart('0');
-            if (digits.Length > MaxSignificantDigits)
+            if (digits.Length > MaxCoefficient.Length
+                || digits.Length == MaxCoefficient.Length && string.CompareOrdinal(digits, MaxCoefficient) > 0)
             {
                 return Violation.TooManySignificantDigits;
             }
@@ -106,13 +115,48 @@ namespace NeoCompose.Runtime
                         $"{CanonicalPattern} (no exponent, no leading zeros).");
                 case Violation.TooManySignificantDigits:
                     throw new OverflowException(
-                        $"Decimal string \"{value}\" must have at most {MaxSignificantDigits} significant digits.");
+                        $"Decimal string \"{value}\" has more significant digits than a decimal holds: its coefficient must be at most {MaxCoefficient}.");
                 case Violation.ScaleTooLarge:
                     throw new OverflowException(
                         $"Decimal string \"{value}\" must have at most {MaxScale} fractional digits.");
             }
-            return decimal.Parse(value, NumberStyles.Number, CultureInfo.InvariantCulture);
+            bool negative = value[0] == '-';
+            int pointIndex = value.IndexOf('.');
+            int scale = pointIndex < 0 ? 0 : value.Length - pointIndex - 1;
+            // The coefficient fits in 96 bits, so three 32-bit words hold it.
+            uint lo = 0;
+            uint mid = 0;
+            uint hi = 0;
+            for (int index = negative ? 1 : 0; index < value.Length; index++)
+            {
+                char character = value[index];
+                if (character == '.')
+                    continue;
+                ulong carry = (uint)(character - '0');
+                carry += (ulong)lo * 10;
+                lo = (uint)carry;
+                carry = (carry >> 32) + (ulong)mid * 10;
+                mid = (uint)carry;
+                carry = (carry >> 32) + (ulong)hi * 10;
+                hi = (uint)carry;
+            }
+            return Compose(lo, mid, hi, scale, negative);
         }
+
+        /// <summary>
+        /// The decimal with this 96-bit coefficient, scale and sign, a zero's
+        /// sign included. Every decimal the SDK builds from parts comes from here.
+        /// </summary>
+        internal static decimal Compose(uint lo, uint mid, uint hi, int scale, bool negative) =>
+            new(unchecked((int)lo), unchecked((int)mid), unchecked((int)hi), negative, (byte)scale);
+
+        /// <inheritdoc cref="Compose(uint, uint, uint, int, bool)"/>
+        internal static decimal Compose(BigInteger coefficient, int scale, bool negative) => Compose(
+            (uint)(coefficient & uint.MaxValue),
+            (uint)((coefficient >> 32) & uint.MaxValue),
+            (uint)(coefficient >> 64),
+            scale,
+            negative);
 
         /// <summary>Null in → null out; otherwise <see cref="Parse"/>.</summary>
         public static decimal? ParseOrNull(string? value)
@@ -121,22 +165,53 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Formats a <see cref="decimal"/> to its canonical decimal string.
-        /// Uses <see cref="CultureInfo.InvariantCulture"/> and the "G" format
-        /// (decimal "G" never emits exponents or leading zeros and preserves
-        /// scale — <c>1.10m</c> formats "1.10"). A negative zero (which
-        /// .NET Core and Mono format differently) is normalized so the sign
-        /// is dropped, guaranteeing the output satisfies the canonical
-        /// pattern and "-0" is never produced (decision 1).
+        /// Formats a <see cref="decimal"/> to its canonical decimal string,
+        /// keeping its scale (<c>1.10m</c> formats "1.10") and a zero's sign
+        /// (P127 §3.4: <c>-0.00m</c> formats "-0.00"). Reads the decimal's
+        /// bits, because .NET Core and Mono format a negative zero
+        /// differently.
         /// </summary>
         public static string Format(decimal value)
         {
-            string formatted = value.ToString("G", CultureInfo.InvariantCulture);
-            if (value == 0m && formatted.Length > 0 && formatted[0] == '-')
+            int[] bits = decimal.GetBits(value);
+            uint lo = (uint)bits[0];
+            uint mid = (uint)bits[1];
+            uint hi = (uint)bits[2];
+            bool negative = bits[3] < 0;
+            int scale = (bits[3] >> 16) & 0xFF;
+            // At most 29 coefficient digits, written least significant first.
+            var digits = new char[MaxCoefficient.Length];
+            int count = 0;
+            while (lo != 0 || mid != 0 || hi != 0)
             {
-                formatted = formatted.Substring(1);
+                ulong remainder = hi;
+                hi = (uint)(remainder / 10);
+                remainder = ((remainder % 10) << 32) | mid;
+                mid = (uint)(remainder / 10);
+                remainder = ((remainder % 10) << 32) | lo;
+                lo = (uint)(remainder / 10);
+                digits[count++] = (char)('0' + (int)(remainder % 10));
             }
-            return formatted;
+            var builder = new System.Text.StringBuilder(count + scale + 3);
+            if (negative)
+                builder.Append('-');
+            int integerDigits = count - scale;
+            if (integerDigits <= 0)
+            {
+                builder.Append('0');
+            }
+            else
+            {
+                for (int index = count - 1; index >= scale; index--)
+                    builder.Append(digits[index]);
+            }
+            if (scale > 0)
+            {
+                builder.Append('.');
+                for (int index = scale - 1; index >= 0; index--)
+                    builder.Append(index < count ? digits[index] : '0');
+            }
+            return builder.ToString();
         }
 
         /// <summary>Null in → null out; otherwise <see cref="Format"/>.</summary>

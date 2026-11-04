@@ -21,11 +21,11 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoPlacementResult writable);
 
+        bool Ok { get; }
+
         string? ErrorCode { get; }
 
         string? Message { get; }
-
-        bool Ok { get; }
     }
 
     public sealed partial class NeoPlacementResult : NeoGeneratedClassValue, IReadOnlyNeoPlacementResult
@@ -40,8 +40,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoPlacementResult(bool ok, string? errorCode = null, string? message = null, string? ErrorCode = null, string? Message = null, bool? Ok = null)
-            : this(HelloWorldNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(HelloWorldNeo.RequireInstance().Client, "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09", "system_62070d17-25e9-5cca-96a6-da2e97cb15aa", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("ok", ok), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("errorCode", errorCode), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ErrorCode", "system_c12faebb-e7f3-5b4d-8745-812cfcabf565", ErrorCode), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Message", "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f", Message), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ok", "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae", Ok) }), false, NeoValueOwnership.Session)
+        public NeoPlacementResult(bool ok, string? errorCode = null, string? message = null, bool? Ok = null, string? ErrorCode = null, string? Message = null)
+            : this(HelloWorldNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(HelloWorldNeo.RequireInstance().Client, "system_8244dd57-5f81-569e-96b8-6a4d46dc5e09", "system_62070d17-25e9-5cca-96a6-da2e97cb15aa", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("ok", ok), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("errorCode", errorCode), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ok", "system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae", Ok), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ErrorCode", "system_c12faebb-e7f3-5b4d-8745-812cfcabf565", ErrorCode), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Message", "system_eb4cc383-f5b3-54da-ae08-4cbf2269161f", Message) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -100,6 +100,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new NeoPlacementResult(client, node, false);
         }
 
+        public bool Ok
+        {
+            get
+            {
+                if (TryReadDetached("Ok", out object? detachedValue))
+                {
+                    return (bool)detachedValue!;
+                }
+                return node.Get<NeoMemberBool>("Ok").value?.value ?? throw new InvalidOperationException("Required bool 'Ok' has no value.");
+            }
+        }
+
         public string? ErrorCode
         {
             get
@@ -124,36 +136,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool Ok
-        {
-            get
-            {
-                if (TryReadDetached("Ok", out object? detachedValue))
-                {
-                    return (bool)detachedValue!;
-                }
-                return node.Get<NeoMemberBool>("Ok").value?.value ?? throw new InvalidOperationException("Required bool 'Ok' has no value.");
-            }
-        }
-
         public sealed class Fields
         {
             private Fields() {}
 
+            public static readonly NeoField<bool> Ok = new("Ok");
+
             public static readonly NeoField<string?> ErrorCode = new("ErrorCode");
 
             public static readonly NeoField<string?> Message = new("Message");
-
-            public static readonly NeoField<bool> Ok = new("Ok");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Ok] = () => null,
                 [Fields.ErrorCode] = () => node.Get<NeoMemberString>("ErrorCode").TextId,
                 [Fields.Message] = () => node.Get<NeoMemberString>("Message").TextId,
-                [Fields.Ok] = () => null,
             };
         }
 
@@ -171,9 +171,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Ok] = () => Ok,
                 [Fields.ErrorCode] = () => ErrorCode,
                 [Fields.Message] = () => Message,
-                [Fields.Ok] = () => Ok,
             };
         }
 

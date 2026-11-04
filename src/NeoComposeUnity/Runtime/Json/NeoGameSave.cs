@@ -103,6 +103,10 @@ namespace NeoCompose.Runtime.Json
         /// explicit tombstones. The target rows stay in <see cref="values"/>.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+
+        /// <inheritdoc cref="NeoStaticConstruction"/>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<NeoStaticConstruction>? staticConstructions;
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, NeoChangeListenerMap>? changeListeners;
 
@@ -274,6 +278,7 @@ namespace NeoCompose.Runtime.Json
                 version = remote.version,
                 values = remote.values,
                 staticBindings = remote.staticBindings,
+                staticConstructions = remote.staticConstructions,
                 changeListeners = remote.changeListeners,
                 requiredSaveFormatRevision = remote.requiredSaveFormatRevision,
                 valuePartitions = remote.valuePartitions,

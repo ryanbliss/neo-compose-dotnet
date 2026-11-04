@@ -444,6 +444,8 @@ namespace NeoCompose.Runtime
             string? lookupRowValueId = null,
             bool freshlyConstructed = false)
         {
+            if (record is not null)
+                RequireClosedTarget(client, record, node);
             bool inPlace = freshlyConstructed
                 || (node.value?.id is string valueId && client.IsInsideAnotherExpansion(valueId));
             if (!inPlace && !client.IsReplayingVirtualInstance && !client.IsPreparingVariant)
@@ -827,23 +829,15 @@ namespace NeoCompose.Runtime
             // structural graph has no ordinary Class-member placement.
             if (graphClass.genericParams is { Count: > 0 })
             {
-                member.classArguments = new Dictionary<string, GenericBinding>
+                member.classArguments = new Dictionary<string, TypeBinding>
                 {
-                    [graphClass.genericParams[0].id] = new()
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = client.VariantTargetMember(record).id,
-                    },
+                    [graphClass.genericParams[0].id] = NeoClient.VariantTarget(record),
                 };
                 if (graphClass.genericParams.Count > 1
                     && ResolveLookupBinding(client, record) is { } binding
                     && client.TryGetMember(binding.collectionMemberId, out ListMember? collection))
                 {
-                    member.classArguments[graphClass.genericParams[1].id] = new GenericBinding
-                    {
-                        kind = NeoGenericBindingKind.Member,
-                        memberId = collection.entryMemberId,
-                    };
+                    member.classArguments[graphClass.genericParams[1].id] = NeoTypeBindings.OfMemberId(client, collection.entryMemberId);
                 }
             }
             return member;
@@ -882,23 +876,61 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Variant '{DescribeVariant(record)}' Initialize produced value '{producedValueId}', which has no object row.");
             }
+            string producedClassId = row.classId ?? record.classId;
             var factoryMember = new ClassMember
             {
                 id = $"__neo_variant_instance_{record.id}",
                 name = "VariantInstance",
                 kind = MemberKind.Class,
-                DeclaredClassId = row.classId ?? record.classId,
+                DeclaredClassId = producedClassId,
+                // The variant's closed target (P127 §4.9). A subclass row
+                // closes its own params, which its stamp records.
+                classArguments = producedClassId == record.classId
+                    ? record.typeArguments
+                    : null,
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
             };
             using var wrapperReads = client.SuppressValueReads();
-            return new NeoMemberClassWritable(
+            var node = new NeoMemberClassWritable(
                 client,
                 factoryMember,
                 producedValueId,
                 NeoValueOwnership.Session,
                 bindsOnRead: true);
+            RequireClosedTarget(client, record, node);
+            return node;
         }
+
+        /// <summary>
+        /// P127 §4.9. A variant of a generic class configures one closed
+        /// construction (<c>Box&lt;int&gt;</c>), so it refuses an instance
+        /// whose construction binds one of the class's params to another
+        /// type. A param the instance's rows never bound (no member reads
+        /// it, so nothing stamped it) has no runtime type to disagree with.
+        /// </summary>
+        internal static void RequireClosedTarget(
+            NeoClient client,
+            VariantRecord record,
+            NeoMemberClass node)
+        {
+            if (record.typeArguments is null)
+                return;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env = node.GenericEnv;
+            foreach (KeyValuePair<string, TypeBinding> pair in record.typeArguments)
+            {
+                if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry? entry) || !entry.IsBound)
+                    continue;
+                TypeBinding actual = NeoTypeBindings.OfEntry(client, entry, env);
+                if (actual.Equals(pair.Value))
+                    continue;
+                throw new InvalidOperationException(
+                    $"Variant '{DescribeVariant(record)}' configures a construction binding param '{pair.Key}' of class '{record.classId}' to '{Format(client, pair.Value)}', but the instance binds it to '{Format(client, actual)}'.");
+            }
+        }
+
+        private static string Format(NeoClient client, TypeBinding binding) =>
+            NeoReferenceTypes.Format(client, NeoTypeBindings.ToTypeInfo(binding));
 
         private static string DescribeVariant(VariantRecord record)
         {

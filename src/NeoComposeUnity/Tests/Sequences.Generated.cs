@@ -320,13 +320,13 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerable<T> Generate()
         {
             var result = InvokeFunction("Generate");
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public global::System.Collections.Generic.IEnumerator<T> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public bool IsSequence(T candidate)
@@ -624,7 +624,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         IReadOnlyGenericSequenceValue<IReadOnlySequenceItem> IReadOnlyGenericSequenceValue<IReadOnlySequenceItem>.Clone()
@@ -989,7 +989,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         public global::System.Collections.Generic.IEnumerator<IReadOnlySequenceItem> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<IReadOnlySequenceItem>(client, result, NeoSequences.ElementType<IReadOnlySequenceItem>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>)this).GetEnumerator();
@@ -1357,14 +1357,14 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 var result = ComputeProperty("Values");
                 result.ThrowIfFailed();
-                return NeoSequences.ReadEnumerable<int>(client, result.value, NeoSequences.ElementType<int>(client, true), resultvalueSequenceElement => { return Convert.ToInt32(resultvalueSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+                return NeoSequences.ReadEnumerable<int>(client, result.value, NeoSequences.ElementType<int>(client, false), resultvalueSequenceElement => { return Convert.ToInt32(resultvalueSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
             }
         }
 
         public global::System.Collections.Generic.IEnumerator<int> GetEnumerator()
         {
             var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<int>(client, result, NeoSequences.ElementType<int>(client, true), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerator<int>(client, result, NeoSequences.ElementType<int>(client, false), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<int>)this).GetEnumerator();
@@ -1613,7 +1613,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000060");
-            var result = node.InvokeGenericStatic(new object?[] { NeoSequences.WriteEnumerable<T>(client, items, NeoSequences.ElementType<T>(client, null), itemsSequenceElement => itemsSequenceElement) }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            var result = node.InvokeGenericStatic(new object?[] { NeoSequences.WriteEnumerable<T>(client, items, NeoSequences.ElementType<T>(client, false), itemsSequenceElement => itemsSequenceElement) }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return Convert.ToInt32(result);
         }
 
@@ -1621,7 +1621,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000066");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int?>(client, items, NeoSequences.ElementType<int?>(client, false), itemsSequenceElement => itemsSequenceElement)));
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int?>(client, items, NeoSequences.ElementType<int?>(client, true), itemsSequenceElement => itemsSequenceElement)));
             return Convert.ToInt32(result);
         }
 
@@ -1629,8 +1629,8 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000011");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int>(client, values, NeoSequences.ElementType<int>(client, true), valuesSequenceElement => valuesSequenceElement)));
-            return NeoSequences.ReadEnumerator<int>(client, result, NeoSequences.ElementType<int>(client, true), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int>(client, values, NeoSequences.ElementType<int>(client, false), valuesSequenceElement => valuesSequenceElement)));
+            return NeoSequences.ReadEnumerator<int>(client, result, NeoSequences.ElementType<int>(client, false), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public static T EchoConstrained<T>(T value) where T : class
@@ -1654,7 +1654,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000065");
             var result = node.InvokeGenericStatic(new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public static bool GenericListCheck()
@@ -1689,12 +1689,20 @@ namespace NeoCompose.Tests.SequenceGenerated
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Box<int>.CreateWritable(factoryClient, factoryNode));
         }
 
+        public static global::System.Collections.Generic.IEnumerable<T> Maybe<T>(T value)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000081");
+            var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, true), resultSequenceElement => { return resultSequenceElement is null ? default! : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
         public static global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.IEnumerable<string?>> Nested(global::System.Collections.Generic.IEnumerable<string?> value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000014");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<string?>(client, value, NeoSequences.ElementType<string?>(client, false), valueSequenceElement => valueSequenceElement)));
-            return NeoSequences.ReadEnumerable<global::System.Collections.Generic.IEnumerable<string?>>(client, result, NeoSequences.ElementType<global::System.Collections.Generic.IEnumerable<string?>>(client, true, NeoSequences.ElementType<string?>(client, false)), resultSequenceElement => { return NeoSequences.ReadEnumerable<string?>(client, resultSequenceElement, NeoSequences.ElementType<string?>(client, false), resultSequenceElementSequenceElement => { if (resultSequenceElementSequenceElement is null) return null; return (string)resultSequenceElementSequenceElement!; }) ?? throw new InvalidOperationException("Required sequence returned null."); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<string?>(client, value, NeoSequences.ElementType<string?>(client, true), valueSequenceElement => valueSequenceElement)));
+            return NeoSequences.ReadEnumerable<global::System.Collections.Generic.IEnumerable<string?>>(client, result, NeoSequences.ElementType<global::System.Collections.Generic.IEnumerable<string?>>(client, false, NeoSequences.ElementType<string?>(client, true)), resultSequenceElement => { return NeoSequences.ReadEnumerable<string?>(client, resultSequenceElement, NeoSequences.ElementType<string?>(client, true), resultSequenceElementSequenceElement => { if (resultSequenceElementSequenceElement is null) return null; return (string)resultSequenceElementSequenceElement!; }) ?? throw new InvalidOperationException("Required sequence returned null."); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public static global::System.Collections.Generic.IEnumerable<T> One<T>(T value)
@@ -1702,7 +1710,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000013");
             var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public static global::System.Collections.Generic.IEnumerable<int> Range(int end)
@@ -1710,14 +1718,14 @@ namespace NeoCompose.Tests.SequenceGenerated
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000009");
             var result = node.InvokeStatic((object?)(end));
-            return NeoSequences.ReadEnumerable<int>(client, result, NeoSequences.ElementType<int>(client, true), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<int>(client, result, NeoSequences.ElementType<int>(client, false), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public static IReadOnlyList<int> Remaining(global::System.Collections.Generic.IEnumerator<int> values)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000012");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerator<int>(client, values, NeoSequences.ElementType<int>(client, true), valuesSequenceElement => valuesSequenceElement)));
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerator<int>(client, values, NeoSequences.ElementType<int>(client, false), valuesSequenceElement => valuesSequenceElement)));
             return NeoGeneratedTypesSupport.ReadScriptList<int>(result, resultEntry => { return Convert.ToInt32(resultEntry); });
         }
 
@@ -1725,7 +1733,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000010");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int>(client, values, NeoSequences.ElementType<int>(client, true), valuesSequenceElement => valuesSequenceElement)));
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<int>(client, values, NeoSequences.ElementType<int>(client, false), valuesSequenceElement => valuesSequenceElement)));
             return Convert.ToInt32(result);
         }
 
@@ -1765,7 +1773,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000016");
-            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>(client, values, NeoSequences.ElementType<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>(client, true, NeoSequences.ElementType<global::System.Collections.Generic.IEnumerable<int>>(client, true, NeoSequences.ElementType<int>(client, true)), NeoSequences.ElementType<int>(client, true)), valuesSequenceElement => valuesSequenceElement)));
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>(client, values, NeoSequences.ElementType<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>(client, false, NeoSequences.ElementType<global::System.Collections.Generic.IEnumerable<int>>(client, false, NeoSequences.ElementType<int>(client, false)), NeoSequences.ElementType<int>(client, false)), valuesSequenceElement => valuesSequenceElement)));
             return Convert.ToInt32(result);
         }
 
@@ -1774,7 +1782,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000043");
             var result = node.InvokeStatic();
-            return NeoSequences.ReadEnumerable<int>(client, result, NeoSequences.ElementType<int>(client, true), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<int>(client, result, NeoSequences.ElementType<int>(client, false), resultSequenceElement => { return Convert.ToInt32(resultSequenceElement); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         public SequenceApi()
@@ -2308,13 +2316,13 @@ namespace NeoCompose.Tests.SequenceGenerated
         [NeoMemberMethod("12500000-0000-4000-8000-000000000034")]
         public void StoreDictionary(global::System.Collections.Generic.IEnumerable<int> value)
         {
-            InvokeFunction("StoreDictionary", (object?)(NeoSequences.WriteEnumerable<int>(client, value, NeoSequences.ElementType<int>(client, true), valueSequenceElement => valueSequenceElement)));
+            InvokeFunction("StoreDictionary", (object?)(NeoSequences.WriteEnumerable<int>(client, value, NeoSequences.ElementType<int>(client, false), valueSequenceElement => valueSequenceElement)));
         }
 
         [NeoMemberMethod("12500000-0000-4000-8000-000000000033")]
         public void StoreList(global::System.Collections.Generic.IEnumerable<int> value)
         {
-            InvokeFunction("StoreList", (object?)(NeoSequences.WriteEnumerable<int>(client, value, NeoSequences.ElementType<int>(client, true), valueSequenceElement => valueSequenceElement)));
+            InvokeFunction("StoreList", (object?)(NeoSequences.WriteEnumerable<int>(client, value, NeoSequences.ElementType<int>(client, false), valueSequenceElement => valueSequenceElement)));
         }
 
         public sealed class Fields

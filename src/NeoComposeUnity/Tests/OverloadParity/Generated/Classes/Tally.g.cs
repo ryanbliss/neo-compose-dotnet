@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.OverloadParity
     public partial class Tally : NeoGeneratedClassValue, IReadOnlyTally
     {
         internal Tally(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "056180f3-564f-47f5-8586-dacbfbcf8d87", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "340c3a9a-8e6a-4e28-b8e0-96c2382105e2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "056180f3-564f-47f5-8586-dacbfbcf8d87",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "c26868db-f4b4-40aa-b844-0ccde31dcb92", Count)
+                "340c3a9a-8e6a-4e28-b8e0-96c2382105e2",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "f0948852-ff7c-4771-88f9-b7fa58c31c85", Count)
             );
         }
 

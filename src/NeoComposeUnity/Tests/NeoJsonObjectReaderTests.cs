@@ -54,6 +54,27 @@ namespace NeoCompose.Tests
             Assert.That(JToken.DeepEquals(input, before), Is.True);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void StoredActionsAndBuiltInDelegatesConsumeTheirTokenObject(bool tokenReader)
+        {
+            const string json = "{\"actions\":[{\"listeners\":[]},{\"listeners\":[]}],\"delegates\":[{\"kind\":0,\"declaring\":\"Math\",\"name\":\"Max\",\"arity\":0,\"parameterTypes\":[]},{\"memberId\":\"next\",\"valueId\":null}]}";
+            JObject input = JObject.Parse(json);
+            using JsonReader reader = tokenReader ? input.CreateReader() : new JsonTextReader(new StringReader(json));
+            var values = JsonSerializer.CreateDefault().Deserialize<StoredCallableSiblings>(reader);
+            Assert.That(values.actions, Has.Count.EqualTo(2));
+            Assert.That(values.delegates, Has.Count.EqualTo(2));
+            Assert.That(values.delegates[0].IsBuiltInTarget, Is.True);
+            Assert.That(values.delegates[1].memberId, Is.EqualTo("next"));
+            Assert.That(JToken.DeepEquals(input, JObject.Parse(json)), Is.True);
+        }
+
+        public class StoredCallableSiblings
+        {
+            public List<NeoActionValue> actions;
+            public List<NeoDelegateValue> delegates;
+        }
+
         [JsonConverter(typeof(ProbeConverter))]
         public class ProbeNode
         {

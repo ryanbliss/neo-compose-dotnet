@@ -38,6 +38,7 @@ namespace NeoCompose.Runtime
             var values = new JObject();
             var staticBindings = new Dictionary<string, string?>();
             var changeListeners = new Dictionary<string, NeoChangeListenerMap>();
+            var staticConstructions = new Dictionary<string, NeoStaticConstruction>(StringComparer.Ordinal);
             string? cursor = null;
             do
             {
@@ -50,7 +51,7 @@ namespace NeoCompose.Runtime
                         numItems = DefaultPageSize,
                     });
                 await FetchAndApplyPageAsync(
-                    api, customId, save.snapshotId, cache, page.page, values, staticBindings, changeListeners);
+                    api, customId, save.snapshotId, cache, page.page, values, staticBindings, changeListeners, staticConstructions);
                 cursor = NextCursor(cursor, page);
             }
             while (cursor != null);
@@ -60,6 +61,7 @@ namespace NeoCompose.Runtime
             save.recordCache = cache;
             save.values = new NeoSaveValues(values);
             save.staticBindings = staticBindings;
+            save.staticConstructions = ConstructionList(staticConstructions);
             save.changeListeners = changeListeners.Count == 0 ? null : changeListeners;
             // The cloud record model has no partition blobs. The merged local
             // artifact still carries mapKey stamps rehydrated on its value rows.
@@ -89,6 +91,7 @@ namespace NeoCompose.Runtime
                 : new JObject();
             var staticBindings = new Dictionary<string, string?>(save.staticBindings);
             var changeListeners = NeoChangeListenerPatches.Copy(save.changeListeners);
+            var staticConstructions = save.recordCache.StaticConstructions();
             string? cursor = null;
             do
             {
@@ -109,7 +112,7 @@ namespace NeoCompose.Runtime
                     save.recordCache,
                     page.page,
                     values,
-                    staticBindings, changeListeners);
+                    staticBindings, changeListeners, staticConstructions);
                 cursor = NextCursor(cursor, page);
             }
             while (cursor != null);
@@ -120,6 +123,7 @@ namespace NeoCompose.Runtime
             save.recordCache.snapshotRevision = throughRevision;
             save.values = new NeoSaveValues(values);
             save.staticBindings = staticBindings;
+            save.staticConstructions = ConstructionList(staticConstructions);
             save.changeListeners = changeListeners.Count == 0 ? null : changeListeners;
             save.valuePartitions = null;
             return true;
@@ -133,7 +137,8 @@ namespace NeoCompose.Runtime
             List<GameSaveRecordDescriptor> descriptors,
             JObject values,
             IDictionary<string, string?> staticBindings,
-            IDictionary<string, NeoChangeListenerMap> changeListeners)
+            IDictionary<string, NeoChangeListenerMap> changeListeners,
+            IDictionary<string, NeoStaticConstruction> staticConstructions)
         {
             var missingIds = cache.FindMissingStateIds(descriptors);
             if (missingIds.Count != 0)
@@ -142,7 +147,20 @@ namespace NeoCompose.Runtime
                     customId, snapshotId, missingIds);
                 cache.StoreStates(descriptors, states);
             }
-            cache.ApplyDescriptors(descriptors, values, staticBindings, changeListeners);
+            cache.ApplyDescriptors(descriptors, values, staticBindings, changeListeners, staticConstructions);
+        }
+
+        // Ordered by record id, so equal record sets load equal saves.
+        private static List<NeoStaticConstruction>? ConstructionList(Dictionary<string, NeoStaticConstruction> byRecord)
+        {
+            if (byRecord.Count == 0)
+                return null;
+            var ids = new List<string>(byRecord.Keys);
+            ids.Sort(StringComparer.Ordinal);
+            var list = new List<NeoStaticConstruction>(ids.Count);
+            foreach (string id in ids)
+                list.Add(byRecord[id]);
+            return list;
         }
 
         private static string? NextCursor(string? previous, GameSaveRecordPage page)

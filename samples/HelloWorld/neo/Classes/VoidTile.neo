@@ -5,8 +5,8 @@
     BackgroundTileLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-8aaffa9b94ea40a1777838f7033fd879")
-    BackgroundTileLayer
+  @id("neo-tile-grid-record-relations-v1-relation-8aaffa9b94ea40a1777838f7033fd879")
+  BackgroundTileLayer
 )
 class VoidTile : ConsoleTile {
   @id("neo-tile-grid-record-relations-v1-member-228d0ac0a4b310f0fcc6ca4c1e7f748a")

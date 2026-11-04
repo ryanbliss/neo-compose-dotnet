@@ -23,7 +23,7 @@ namespace NeoCompose.Runtime
 
         private bool checkedClosedEnvironment;
         private IReadOnlyDictionary<string, NeoGenericEnvEntry>? closedEnvironment;
-        private Dictionary<Member, Member>? closedOwnedMembers;
+        private Dictionary<Member, Member?>? closedOwnedMembers;
 
         // A closed named class fixes these types for every instance. Open
         // classes still need each row's stamp and its placement arguments.
@@ -41,16 +41,20 @@ namespace NeoCompose.Runtime
             }
             if (closedEnvironment is null)
                 return null;
-            bool Bound(string id) => closedEnvironment.TryGetValue(id, out var binding) && binding.IsBound;
-            if (member is GenericMember generic && !Bound(generic.genericParamId))
-                return null;
-            if (member is ClassMember { TypeArguments: { } arguments })
-                foreach (var argument in arguments.Values)
-                    if (argument.IsForward && !Bound(argument.genericParamId!))
-                        return null;
             closedOwnedMembers ??= new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance);
-            if (!closedOwnedMembers.TryGetValue(member, out var resolved))
-                closedOwnedMembers[member] = resolved = NeoGenericResolution.SubstituteMember(client, member, closedEnvironment);
+            if (closedOwnedMembers.TryGetValue(member, out var resolved))
+                return resolved;
+            bool bound = true;
+            foreach (string paramId in NeoGenericResolution.ReferencedGenericParams(client, member))
+            {
+                if (!closedEnvironment.TryGetValue(paramId, out var binding) || !binding.IsBound)
+                {
+                    bound = false;
+                    break;
+                }
+            }
+            resolved = bound ? NeoGenericResolution.SubstituteOwnedMember(client, member, closedEnvironment) : null;
+            closedOwnedMembers[member] = resolved;
             return resolved;
         }
 

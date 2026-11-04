@@ -29,15 +29,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
-        /// </summary>
-        IReadOnlyNeoAnimationSegment<TValue> Segment { get; }
-
-
-        /// <summary>
         /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
         /// </summary>
         new NeoDelegate<TChild> Selector { get; }
+
+
+        /// <summary>
+        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+        /// </summary>
+        IReadOnlyNeoAnimationSegment<TValue> Segment { get; }
     }
 
     /// <summary>
@@ -100,13 +100,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
-        /// </summary>
-        public abstract NeoAnimationSegment<TValue> Segment { get; }
-
-        IReadOnlyNeoAnimationSegment<TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Segment => Segment;
-
-        /// <summary>
         /// The child this lane plays against, typed as the child class you derived with, so a Segment getter can read that child's own members.
         /// </summary>
         public new virtual NeoDelegate<TChild> Selector
@@ -123,23 +116,30 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        /// <summary>
+        /// The sequence of values this lane plays. Your subclass decides where it comes from — a value you store, a lookup, or a getter you write — and it is resolved again on every frame that plays.
+        /// </summary>
+        public abstract NeoAnimationSegment<TValue> Segment { get; }
+
+        IReadOnlyNeoAnimationSegment<TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Segment => Segment;
+
         public new sealed class Fields
         {
             private Fields() {}
 
-            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
-
-            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
-
-            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
-
-            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
 
             public static readonly NeoField<NeoSelectorRefreshKind> Refresh = new("Refresh");
 
-            public static readonly NeoField<NeoDelegate<TChild>> Selector = new("Selector");
-
             public static readonly NeoField<int> StartFrame = new("StartFrame");
+
+            public static readonly NeoField<NeoPlayDirection> Direction = new("Direction");
+
+            public static readonly NeoField<int?> OffsetStartIndex = new("OffsetStartIndex");
+
+            public static readonly NeoField<int?> OffsetEndIndex = new("OffsetEndIndex");
+
+            internal static readonly NeoField<int> BaseDuration = new("BaseDuration");
 
             public static readonly NeoField<NeoAnimationSegment<TValue>> Segment = new("Segment");
         }
@@ -148,13 +148,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.BaseDuration] = () => null,
-                [Fields.Direction] = () => null,
-                [Fields.OffsetEndIndex] = () => null,
-                [Fields.OffsetStartIndex] = () => null,
-                [Fields.Refresh] = () => null,
                 [Fields.Selector] = () => null,
+                [Fields.Refresh] = () => null,
                 [Fields.StartFrame] = () => null,
+                [Fields.Direction] = () => null,
+                [Fields.OffsetStartIndex] = () => null,
+                [Fields.OffsetEndIndex] = () => null,
+                [Fields.BaseDuration] = () => null,
                 [Fields.Segment] = () => null,
             };
         }
@@ -173,13 +173,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.BaseDuration] = () => BaseDuration,
-                [Fields.Direction] = () => Direction,
-                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
-                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
-                [Fields.Refresh] = () => Refresh,
                 [Fields.Selector] = () => Selector,
+                [Fields.Refresh] = () => Refresh,
                 [Fields.StartFrame] = () => StartFrame,
+                [Fields.Direction] = () => Direction,
+                [Fields.OffsetStartIndex] = () => OffsetStartIndex,
+                [Fields.OffsetEndIndex] = () => OffsetEndIndex,
+                [Fields.BaseDuration] = () => BaseDuration,
                 [Fields.Segment] = () => Segment,
             };
         }

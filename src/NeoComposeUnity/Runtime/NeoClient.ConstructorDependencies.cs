@@ -202,8 +202,9 @@ namespace NeoCompose.Runtime
         private IEnumerable<(string id, Member? member)> EnumerateConstructorDependencyLinks(
             MemberValue value, NeoValueOwnership ownership, NeoWritePlan? plan = null)
         {
-            foreach (var (id, _) in EnumerateTypedConstructorReferences(value, ownership, plan))
-                yield return (id, TryInferMemberForValueId(id, out Member? member) ? member : null);
+            foreach (var (id, type) in EnumerateTypedConstructorReferences(value, ownership, plan))
+                yield return (id, TryInferMemberForValueId(id, out Member? member)
+                    ? member : NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(type))));
         }
 
         private IEnumerable<(string id, TypeInfo type)> EnumerateTypedConstructorReferences(
@@ -223,19 +224,18 @@ namespace NeoCompose.Runtime
                 if (!row.constructorArgs!.TryGetValue(ConstructorParameterId(constructor, index), out var token)
                     || ConstructorArgumentRowId(token) is not string argumentId)
                     continue;
-                if (env is null)
-                {
-                    // Only a runtime-constructed Class root carries a genericBindings
-                    // stamp, so a placed generic instance such as ValueWatcher<int>
-                    // closes its params through the PLACEMENT that declares it.
-                    // Without those arguments every generic constructor parameter
-                    // resolves unbound and the walk throws mid-commit.
-                    var placement = TryInferMemberForValueId(row.id, out Member? inferred)
-                        ? inferred as ClassMember
-                        : null;
-                    env = NeoGenericResolution.ResolveInstanceEnv(this, constructor.classId,
-                        NeoGenericResolution.CloseClassArgumentsFromStamp(row.genericBindings, SlotClassArguments(placement, constructor.classId)));
-                }
+                // Only a runtime-constructed Class root carries a genericBindings
+                // stamp, so a placed generic instance such as ValueWatcher<int>
+                // closes its params through the PLACEMENT that declares it.
+                // Without those arguments every generic constructor parameter
+                // resolves unbound and the walk throws mid-commit.
+                // As the server's constructor-argument ownership walk, with no
+                // owner env.
+                env ??= row.typeSource is not null
+                    ? NeoTypeSources.TypeSourcedClassRowEnv(this, row, constructor.classId)
+                    : NeoGenericResolution.SlotRowEnv(this,
+                        TryInferMemberForValueId(row.id, out Member? inferred) ? inferred as ClassMember : null,
+                        null, row.genericBindings, constructor.classId);
                 var parameter = NeoNSFunctionRuntime.ResolveInvocationTypeInfo(this, constructor.argumentTypes[index], env);
                 if (token is JObject)
                 {
@@ -250,7 +250,7 @@ namespace NeoCompose.Runtime
                         yield return (argumentId, new ClassTypeInfo { type = MemberKind.Class, required = true, classId = boundClassId });
                     continue;
                 }
-                if (parameter.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.List or MemberKind.Set or MemberKind.Dictionary))
+                if (!NeoTypeSources.ConstructorArgumentStoresRow(parameter.type))
                     continue;
                 var pending = new Queue<(string id, TypeInfo type)>();
                 var visited = new HashSet<string>();
@@ -267,12 +267,17 @@ namespace NeoCompose.Runtime
                         CollectionTypeInfo collection => collection.entryTypeInfo,
                         _ => null,
                     };
-                    if (entryType is null)
-                        continue;
                     MemberValue? argumentRow;
                     var argumentOwnership = saveData.values.ContainsKey(id) ? NeoValueOwnership.Save
                         : data.values.ContainsKey(id) ? NeoValueOwnership.Asset : ownership;
                     if (!TryGetValue(argumentOwnership, id, out argumentRow))
+                        continue;
+                    if (TupleTypeInfo.From(type) is TupleTypeInfo tuple && argumentRow is ArrayMemberValue tupleRow)
+                    {
+                        for (int element = 0; element < (tupleRow.value?.Length ?? 0) && element < tuple.elements.Length; element++)
+                            pending.Enqueue((tupleRow.value![element], tuple.elements[element].typeInfo));
+                    }
+                    if (entryType is null)
                         continue;
                     if (type.type is MemberKind.List or MemberKind.Set && argumentRow is ArrayMemberValue array)
                     {
@@ -299,11 +304,11 @@ namespace NeoCompose.Runtime
                 return false;
             foreach (var (id, type) in EnumerateTypedConstructorReferences(row, NeoValueOwnership.Session))
             {
-                if (id != valueId || type.type is not (MemberKind.Class or MemberKind.Interface))
+                if (id != valueId || type.type is not (MemberKind.Class or MemberKind.Interface or MemberKind.Object))
                     continue;
                 string? classId = type is ClassTypeInfo classType ? classType.classId
                     : type is FunctionArgumentTypeInfo argument ? argument.classId : null;
-                if (type.type == MemberKind.Interface && TryGetValue(valueId, out ObjectMemberValue? value))
+                if (type.type is MemberKind.Interface or MemberKind.Object && TryGetValue(valueId, out ObjectMemberValue? value))
                     classId = value.classId;
                 if (classId is null)
                     continue;

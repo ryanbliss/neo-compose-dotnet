@@ -286,10 +286,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -573,10 +570,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -727,10 +721,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -1028,10 +1019,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -1360,10 +1348,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -1641,10 +1626,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -2039,10 +2021,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -2510,10 +2489,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -2952,10 +2928,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -3384,10 +3357,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -4293,10 +4263,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -4726,10 +4693,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -5065,10 +5029,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -5408,10 +5369,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -5887,10 +5845,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -6363,10 +6318,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -6546,10 +6498,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -6780,10 +6729,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -7030,10 +6976,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -7233,10 +7176,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -7566,10 +7506,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -7882,10 +7819,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -8073,10 +8007,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
@@ -8344,10 +8275,7 @@ namespace NeoCompose.Tests
         ""required"": true
       },
       ""dependencies"": {
-        ""recordIds"": [
-          ""class:inventory"",
-          ""synthetic:root""
-        ],
+        ""recordIds"": [""class:inventory"", ""synthetic:root""],
         ""typeNames"": []
       }
     }
