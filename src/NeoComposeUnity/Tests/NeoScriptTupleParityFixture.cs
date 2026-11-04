@@ -13,7 +13,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -297,7 +297,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 1,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -581,7 +581,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 3,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -732,7 +732,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 4,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -1030,7 +1030,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -1359,7 +1359,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 1,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -1637,7 +1637,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 4,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -2032,7 +2032,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 10,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -2500,7 +2500,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 10,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -2715,7 +2715,7 @@ namespace NeoCompose.Tests
                           }
                         },
                         ""function"": {
-                          ""compilerRevision"": 19,
+                          ""compilerRevision"": 20,
                           ""source"": {
                             ""coordinateSpace"": ""body"",
                             ""name"": ""getter <callback>""
@@ -2939,7 +2939,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 7,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -3051,7 +3051,7 @@ namespace NeoCompose.Tests
                 ""value"": {
                   ""code"": ""((a, b)) => a + b"",
                   ""action"": {
-                    ""compilerRevision"": 19,
+                    ""compilerRevision"": 20,
                     ""source"": {
                       ""coordinateSpace"": ""body"",
                       ""name"": ""getter <delegate>""
@@ -3368,7 +3368,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 8,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -3518,7 +3518,7 @@ namespace NeoCompose.Tests
                 ""argumentTypes"": []
               },
               ""action"": {
-                ""compilerRevision"": 19,
+                ""compilerRevision"": 20,
                 ""source"": {
                   ""coordinateSpace"": ""body"",
                   ""name"": ""getter <delegate>""
@@ -3855,7 +3855,7 @@ namespace NeoCompose.Tests
                   ""variableId"": ""#foreach65#collection""
                 },
                 ""function"": {
-                  ""compilerRevision"": 19,
+                  ""compilerRevision"": 20,
                   ""source"": {
                     ""name"": ""getter"",
                     ""coordinateSpace"": ""body""
@@ -4292,7 +4292,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -4722,7 +4722,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 2,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -5058,7 +5058,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 1,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -5398,7 +5398,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -5874,7 +5874,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -6347,7 +6347,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -6527,7 +6527,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 8,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -6758,7 +6758,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 9,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -7005,7 +7005,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 7,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -7205,7 +7205,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -7535,7 +7535,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""int"",
     ""expected"": 9,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -7848,7 +7848,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""
@@ -8036,7 +8036,7 @@ namespace NeoCompose.Tests
     ""returnType"": ""bool"",
     ""expected"": true,
     ""getter"": {
-      ""compilerRevision"": 19,
+      ""compilerRevision"": 20,
       ""source"": {
         ""name"": ""getter"",
         ""coordinateSpace"": ""body""

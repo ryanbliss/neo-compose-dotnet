@@ -38,6 +38,10 @@ namespace NeoCompose.Runtime
         private IReadOnlyDictionary<Type, string> enumIds = new Dictionary<Type, string>();
         private IReadOnlyDictionary<Type, string> interfaceIds = new Dictionary<Type, string>();
         private Dictionary<string, Type>? typesById;
+        internal int RegistrationRevision
+        {
+            get; private set;
+        }
         private readonly NeoClient client;
 
         internal NeoTypeArguments(NeoClient client)
@@ -58,6 +62,7 @@ namespace NeoCompose.Runtime
             this.enumIds = enumIds;
             this.interfaceIds = interfaceIds ?? new Dictionary<Type, string>();
             typesById = null;
+            RegistrationRevision++;
             cache.Clear();
             tables.Clear();
         }
@@ -100,7 +105,11 @@ namespace NeoCompose.Runtime
             {
                 var byId = new Dictionary<string, Type>(StringComparer.Ordinal);
                 foreach (KeyValuePair<Type, string> pair in classIds)
-                    byId["c:" + pair.Value] = pair.Key;
+                {
+                    string classKey = "c:" + pair.Value;
+                    if (!byId.TryGetValue(classKey, out var existing) || existing.IsInterface && !pair.Key.IsInterface)
+                        byId[classKey] = pair.Key;
+                }
                 foreach (KeyValuePair<Type, string> pair in enumIds)
                     byId["e:" + pair.Value] = pair.Key;
                 foreach (KeyValuePair<Type, string> pair in interfaceIds)
@@ -206,6 +215,8 @@ namespace NeoCompose.Runtime
                     };
                 }
             }
+            if (NeoGeneratedTypesSupport.BindingOfClr(client, type) is { Kind: TypeBindingKind.Closed } binding)
+                return NeoTypeBindings.ToTypeInfo(binding);
             throw new NeoTypeArgumentException(
                 $"Type argument '{type.FullName}' has no NeoScript type.");
         }

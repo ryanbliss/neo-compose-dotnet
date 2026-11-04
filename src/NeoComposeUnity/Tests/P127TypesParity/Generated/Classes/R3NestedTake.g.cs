@@ -21,13 +21,13 @@ namespace NeoCompose.Tests.P127TypesParity
 
         bool TryWritable(out R3NestedTake writable);
 
-        // Item: List is not generated yet.
+        NeoList<(object, IReadOnlyList<object>)> Item { get; }
     }
 
     public partial class R3NestedTake : NeoGeneratedClassValue, IReadOnlyR3NestedTake
     {
         internal R3NestedTake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "15f4b1c8-678f-4408-8a38-e8c3accc1d69", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1144fb17-9aea-4c02-bd39-90724e8b25c3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public R3NestedTake(IReadOnlyList<(object, IReadOnlyList<object>)> item)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "15f4b1c8-678f-4408-8a38-e8c3accc1d69", "c20e7bea-d11c-4a6f-b4b9-f2f046eab4d2", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "1144fb17-9aea-4c02-bd39-90724e8b25c3", "a75a870f-fd58-4c6a-98de-b24af15ef3b9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
         {
         }
 
         public R3NestedTake()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "15f4b1c8-678f-4408-8a38-e8c3accc1d69", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "1144fb17-9aea-4c02-bd39-90724e8b25c3", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -95,21 +95,32 @@ namespace NeoCompose.Tests.P127TypesParity
             return TryWritable<R3NestedTake>(out writable);
         }
 
-        // Item: List is not generated yet.
+        public NeoList<(object, IReadOnlyList<object>)> Item
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Item");
+                if (TryGetStoredView<NeoList<(object, IReadOnlyList<object>)>>("Item", memberNode, out var cached)) return cached;
+                return CacheStoredView("Item", memberNode, new NeoList<(object, IReadOnlyList<object>)>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Item"), (client, child) => NeoGeneratedTypesSupport.ReadTuple<(object, IReadOnlyList<object>)>(NeoGeneratedTypesSupport.ReadTupleValue((NeoMemberTuple)child), 2, NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple => { object Element0() { return NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 0)!; } IReadOnlyList<object> Element1() { return NeoGeneratedTypesSupport.ReadScriptList<object>(NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 1), NeoGeneratedTypesSupportTupleElementNeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple1Entry => { return NeoGeneratedTypesSupportTupleElementNeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple1Entry!; }); } return (Element0(), Element1()); }), item => NeoGeneratedTypesSupport.TupleValue(client, writableNode.Get<NeoMemberListWritable>("Item"), item)));
+            }
+        }
 
         public sealed class Fields
         {
             private Fields() {}
+
+            public static readonly NeoField<NeoList<(object, IReadOnlyList<object>)>> Item = new("Item");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Item] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -123,10 +134,11 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Item] = () => Item,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

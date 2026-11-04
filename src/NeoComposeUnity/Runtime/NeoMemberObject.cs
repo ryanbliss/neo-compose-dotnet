@@ -38,35 +38,6 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        /// <summary>
-        /// A writable culture or number format's C# writes are writes to its
-        /// slot (§12.1), so a writable node hands out a row its own store
-        /// holds. One it inherits, such as an Asset default, is copied into
-        /// the store, and a member default with no row is bound to a new row,
-        /// as a vector write through either does. Neither copy changes the
-        /// value, so neither notifies. C# writes to a row already held are
-        /// published here and at commit.
-        /// </summary>
-        private MemberValue OwnHeldPayload(PayloadMemberValue row)
-        {
-            if (valueId is null)
-            {
-                var bound = (PayloadMemberValue)client.CloneRowForWrite(row);
-                bound.id = System.Guid.NewGuid().ToString();
-                bound.typeSource = null;
-                var plan = new NeoWritePlan(client);
-                BindNewValue(plan, bound);
-                plan.SilenceRows();
-                plan.Commit();
-                return bound;
-            }
-            if (client.HasWritableValue(ownership, row.id))
-                return client.DefersGlobalizationWrites ? row : client.PublishHeldPayloadWrite(ownership, row) ?? row;
-            client.EnsureWritableShadow(ownership, row.id);
-            RefreshCommittedValue();
-            return value ?? row;
-        }
-
         private object? ReadClass(MemberValue row)
         {
             if (row is not ObjectMemberValue { classId: string })

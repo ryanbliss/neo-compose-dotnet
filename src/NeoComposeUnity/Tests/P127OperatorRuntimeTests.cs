@@ -18,6 +18,12 @@ namespace NeoCompose.Tests
 {
     public sealed class P127OperatorRuntimeTests
     {
+        private sealed class NativeClassView : NeoGeneratedClassValue
+        {
+            internal NativeClassView(NeoClient owner, NeoMemberClass node)
+                : base(owner, node, node.ClassId, node is not NeoMemberClassWritable, node.ownership) { }
+        }
+
         private NeoClient client = null!;
         private NSGetterEvaluator.Context context = null!;
         private NeoScriptScope scope = null!;
@@ -235,6 +241,17 @@ namespace NeoCompose.Tests
             }
             client.ProjectDataForRuntime.classes[classId] = owner;
             client.InvalidateSchemaResolutionCaches();
+            client.RegisterGeneratedClassFactories(
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                {
+                    [classId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                        static (owner, node) => new NativeClassView(owner, node)),
+                },
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+                {
+                    [classId] = (c, n) => NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(c, n,
+                        static (owner, node) => new NativeClassView(owner, node)),
+                });
             using var first = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
             using var second = NeoGeneratedTypesSupport.CreateWritableClassValue(client, classId, new Dictionary<string, string>(), Array.Empty<MemberValue>());
             object? a = NSGetterEvaluator.UnwrapRow(first.value!, context, first.ownership, first.member);
@@ -602,9 +619,8 @@ namespace NeoCompose.Tests
                     string name = entry.Key;
                     invokers[memberId] = (_, _, args, _) =>
                     {
-                        Assert.That(args[0], Is.InstanceOf<NeoBox>());
-                        var box = (NeoBox)args[0]!;
-                        calls.Add(box.ValueType.Head!.Type == MemberKind.Tuple ? "rest:" + ((RuntimeTuple)box.Payload!).Count : box.Payload);
+                        Assert.That(args[0], Is.TypeOf<int>().Or.InstanceOf<System.Runtime.CompilerServices.ITuple>());
+                        calls.Add(args[0] is System.Runtime.CompilerServices.ITuple rest ? "rest:" + rest.Length : args[0]);
                         return name == "Equals" ? (object)true : name == "Compare" ? 0 : 7;
                     };
                 }

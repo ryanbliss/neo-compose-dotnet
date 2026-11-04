@@ -14,15 +14,15 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(PlanetOptions))]
     public enum Planet
     {
-        mercury = 1042523001,
-        venus = 2142830215,
-        earth = 270077890,
-        mars = 486754951,
-        jupiter = 1748620360,
-        saturn = 489352994,
-        uranus = 1153270554,
-        neptune = 186740340,
-        pluto = 550910398,
+        mercury = 0,
+        venus = 1,
+        earth = 2,
+        mars = 3,
+        jupiter = 4,
+        saturn = 5,
+        uranus = 6,
+        neptune = 7,
+        pluto = 8,
     }
 
     /// <summary>

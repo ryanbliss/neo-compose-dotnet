@@ -6,7 +6,10 @@
         "NeoCompose.Unity.Editor",
         "Unity.2D.Tilemap.Extras",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner"
+        "UnityEditor.TestRunner",
+        "NeoCompose.VariantRuntime.Tests",
+        "NeoCompose.CodegenShapes.Tests",
+        "NeoCompose.GeneratedRuntime.Tests"
     ],
     "includePlatforms": [
         "Editor"

@@ -89,7 +89,8 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public abstract NeoAnimationSegment<TValue> Segment { get; }
+        public NeoAnimationSegment<TValue> Segment => GetSegmentContract();
+        protected abstract NeoAnimationSegment<TValue> GetSegmentContract();
 
         IReadOnlyNeoAnimationSegment<TValue> IReadOnlyNeoAnimationSegmentTrack<TChild, TValue>.Segment => Segment;
 
@@ -129,7 +130,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -154,7 +155,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

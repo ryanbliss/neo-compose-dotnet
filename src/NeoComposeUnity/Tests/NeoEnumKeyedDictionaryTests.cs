@@ -328,7 +328,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var inventory = CreateWritableInventory(client, out _);
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => inventory.Add(default, "x"));
+            Assert.Throws<InvalidOperationException>(() => inventory.Add(default, "x"));
         }
 
         // ------------------------------------------------------------------

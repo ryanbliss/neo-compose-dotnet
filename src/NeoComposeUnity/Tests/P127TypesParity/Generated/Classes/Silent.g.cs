@@ -20,14 +20,12 @@ namespace NeoCompose.Tests.P127TypesParity
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Silent writable);
-
-        string? ToString();
     }
 
     public partial class Silent : NeoGeneratedClassValue, IReadOnlySilent
     {
         internal Silent(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0c985451-f5fc-4066-84f5-f2870599f32b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d1ff6dcb-564a-4983-a0e0-956fccd3239e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0c985451-f5fc-4066-84f5-f2870599f32b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d1ff6dcb-564a-4983-a0e0-956fccd3239e");
         }
 
         internal static Silent Create(NeoClient client, NeoMemberClass node)
@@ -97,7 +95,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
 
-        public virtual string? ToString()
+        public override string? ToString()
         {
             var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
             if (result is null) return null;
@@ -116,7 +114,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -133,7 +131,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

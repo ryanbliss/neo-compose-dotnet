@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+- Preserve the reflected host comparer factory in stripped players. Add shared Mono/player coverage for stored comparers and tuple boxes, generated comparer bridges and interface bodies, and generic statics.
+
+- Dispatch inherited system function forwarders through the evaluator, including nongeneric comparer bridges to authored overrides. Support CLR tuple boxes and Type crossings with single-element structural rests and nested rests for eight or more elements.
+
+- Refresh generated APIs and HelloWorld for P127: mapped CLR interfaces and comparer bridges, authored object overrides, operators, out parameters, default interface bodies, generic statics and actions, arity-overloaded names, and variance. Authored stored-collection comparers return their generated CLR implementation when registered.
+
+- Add construction-aware generated static bindings, cached static function/property nodes, and direct interface body invocation with closed type arguments. Generated generic class type arguments now map to their constructed NeoScript types.
+- Add `NeoOutArgument` for generated out parameters and native handlers. Generated out cells are assigned only after normal completion.
+- Add generated interface/comparer slot APIs for fields, statics and collection entries. Built-in comparers read from storage or returned by NeoScript call back into the evaluator and retain their CLR adapter identity.
+- Convert generated function and property results for `Type`, boxed primitives, generated class wrappers, collections and erased interfaces to CLR values; accept CLR `NumberStyles` arguments. Add `NeoDigitShapesOptions` for stored option ids and localization.
+
+- Generated class values override CLR `Equals(object)`, `GetHashCode()` and `ToString()` through NeoScript virtual dispatch, including authored overrides and row identity defaults.
+
+- Require NeoScript compiler revision 20 for P127 interface, generic math, boxing, comparer and globalization semantics. Revision 19 belongs to the earlier main recompile; older compiled bodies must be regenerated.
+
+- Number `NeoPlayDirection` and `NeoSpriteMaskInteraction` options from zero in declaration order. Their old hashed integer values change. Undeclared generated enum options now use the same deterministic negative FNV-1a numbers as NeoScript. Colliding orphan ids share a CLR value and reverse conversion retains the first id read.
+
 - Resolve declared dictionary entry payloads when checking function arguments, including cultures and number formats added in a previous execution.
 
 - Allow evaluator list-index assignments of declared and boxed object payloads, including stored cultures and number formats. Invalid NativeDigits lengths still refuse at the assignment.

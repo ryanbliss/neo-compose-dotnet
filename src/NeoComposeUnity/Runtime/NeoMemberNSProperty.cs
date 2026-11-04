@@ -36,6 +36,47 @@ namespace NeoCompose.Runtime
         public NeoMemberNSProperty(NeoClient client, NSPropertyMember member, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, member, overrideValueId, ownership) { }
 
+        private sealed class StaticProperties
+        {
+            internal object? Schema;
+            internal readonly Dictionary<(string, TypeBinding?), NeoMemberNSProperty> Nodes = new();
+        }
+        private static readonly ConditionalWeakTable<NeoClient, StaticProperties> staticProperties = new();
+        private TypeBinding? generatedConstruction;
+
+        public static NeoMemberNSProperty GetOrCreateStatic(NeoClient client, string memberId) =>
+            GetStatic(client, memberId, null);
+
+        public static NeoMemberNSProperty GetOrCreateStatic(NeoClient client, string memberId, TypeInfo construction) =>
+            GetStatic(client, memberId, NeoGeneratedTypesSupport.ConstructionIdentity(construction));
+
+        private static NeoMemberNSProperty GetStatic(NeoClient client, string memberId, TypeBinding? construction)
+        {
+            if (!client.TryGetMember(memberId, out Member? member) || member is not NSPropertyMember property
+                || property.Modifier != NeoMemberModifierKind.Static)
+                throw new System.InvalidOperationException($"Member '{memberId}' is not a static NeoScript property.");
+            var cache = staticProperties.GetOrCreateValue(client);
+            if (!ReferenceEquals(cache.Schema, client.SchemaResolution))
+            {
+                cache.Schema = client.SchemaResolution;
+                cache.Nodes.Clear();
+            }
+            var key = (memberId, construction);
+            if (!cache.Nodes.TryGetValue(key, out var node) || node.isDisposed)
+                cache.Nodes[key] = node = new NeoMemberNSProperty(client, property, null, NeoValueOwnership.Session)
+                {
+                    generatedConstruction = construction,
+                };
+            return node;
+        }
+
+        private void BindGeneratedConstruction(NSGetterEvaluator.Context ctx)
+        {
+            if (generatedConstruction is not null)
+                client.EnsureStaticConstruction(generatedConstruction);
+            ctx.staticConstruction = generatedConstruction;
+        }
+
         /// <summary>
         /// The effective compiled getter for this member. Sparse inheritance
         /// and authored-code null clears are projected during client load.
@@ -214,6 +255,7 @@ namespace NeoCompose.Runtime
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
             var ctx = client.RentDirectFunctionContext(ownership);
+            BindGeneratedConstruction(ctx);
 
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
@@ -257,7 +299,8 @@ namespace NeoCompose.Runtime
                 value = NSGetterEvaluator.Evaluate(getter, ctx, System.Array.Empty<object?>(), handlerFrame: -1);
                 // Inside the capture, so a watch hears a change to a stored
                 // collection's entries as well as to the collection.
-                hostValue = sequence ? value : NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                hostValue = sequence ? value : NeoGeneratedTypesSupport.GeneratedResult(value,
+                    NSGetterEvaluator.CloseContextType(resolvedReturnTypeInfo!, ctx), ctx);
             }
             catch (NSGetterRuntimeError ex)
             {
@@ -326,20 +369,20 @@ namespace NeoCompose.Runtime
             MemberValue? thisRow)
         {
             var ctx = client.RentDirectFunctionContext(ownership);
+            BindGeneratedConstruction(ctx);
 
             object? boundThis = ResolveThisValue(thisValue, thisRow, ctx);
-            if (boundThis is null)
-            {
+            bool isStatic = member.Modifier == NeoMemberModifierKind.Static;
+            if (boundThis is null && !isStatic)
                 return SetterError("Cannot invoke setter on a null receiver.");
-            }
 
             // A C# set is the write `this.X = value` makes, so it resolves
             // through a site of its own the way that write's does.
-            string effectiveMemberId = NSGetterEvaluator.ResolveSetterMember(
-                setterSite ??= new CallGetterPointer { memberId = member.id },
-                boundThis,
-                ctx,
-                out Member? resolvedMember);
+            Member? resolvedMember = member;
+            if (!isStatic)
+                NSGetterEvaluator.ResolveSetterMember(
+                    setterSite ??= new CallGetterPointer { memberId = member.id },
+                    boundThis!, ctx, out resolvedMember);
             var resolvedProperty = resolvedMember as NSPropertyMember;
             FunctionWithReturnType? setter = resolvedProperty?.setter;
             if (setter is null)
@@ -360,7 +403,7 @@ namespace NeoCompose.Runtime
             {
                 normalizedValue = NormalizeSetterValue(
                     value,
-                    returnTypeInfo,
+                    NSGetterEvaluator.CloseContextType(returnTypeInfo, ctx),
                     ctx);
             }
             catch (System.Exception ex)

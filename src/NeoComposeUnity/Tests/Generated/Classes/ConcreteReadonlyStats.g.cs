@@ -96,7 +96,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<ConcreteReadonlyStats>(out writable);
         }
 
-        public override int Damage
+        public new virtual int Damage
         {
             get
             {
@@ -107,6 +107,7 @@ namespace Assets.Scripts.Neo
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Damage")) ?? throw new InvalidOperationException("Required int 'Damage' has no value.");
             }
         }
+        protected override int GetDamageContract() => Damage;
 
         public new sealed class Fields
         {
@@ -123,7 +124,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -141,7 +142,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

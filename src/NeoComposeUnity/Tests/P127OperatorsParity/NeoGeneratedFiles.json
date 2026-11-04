@@ -1,0 +1,717 @@
+{
+  "schemaVersion": 1,
+  "projectId": "project-id",
+  "codegenRevision": "e44199d2925bf1da30a4d27cef4b268fdc4746fc9b9443e9f732c3410c1334e2",
+  "files": [
+    {
+      "id": "class:4d60ec0f-ae2d-42a7-87e9-affee99ff1f8",
+      "path": "Generated/Classes/AddOf.g.cs",
+      "hash": "e3e3aa84f07ea5b78c6934b4921a3fcca5d985e42258cc7f4a851bb26cfed540"
+    },
+    {
+      "id": "class:root-assets-class-id",
+      "path": "Generated/Classes/Assets.g.cs",
+      "hash": "fa9bec11ef5c75dcd42c69a43bdb6846f65e4a204e41746dc1123528b8d7b104"
+    },
+    {
+      "id": "class:f635c26d-4c75-4e03-a2b9-6261740df88a",
+      "path": "Generated/Classes/B0.g.cs",
+      "hash": "5186651d94bf17a425bc2609a10b486ebd354d4b072302f5e932965e39b56307"
+    },
+    {
+      "id": "class:43f5874e-4654-44b9-ab49-0bff68f4c7f1",
+      "path": "Generated/Classes/BadInit.g.cs",
+      "hash": "dc5290064e2f5248cf50f8dac203b0add05adcb4bb96000064346551bde8de7e"
+    },
+    {
+      "id": "class:72a75b89-a4ed-4ef6-9c9d-824d2d578b9b",
+      "path": "Generated/Classes/Bare.g.cs",
+      "hash": "f921628f538fe3f66562a1e252bec636d6f9a4f91869d8c464e29325607dbba0"
+    },
+    {
+      "id": "class:f06bebd3-5a42-4801-81f5-1cd847f41023",
+      "path": "Generated/Classes/CB.g.cs",
+      "hash": "e5775f5650d6caf12d59c26608dbb29b1ceb76b4965f56ffe4dee442076743ee"
+    },
+    {
+      "id": "class:2f450966-58ce-45f0-8696-6278cd45a987",
+      "path": "Generated/Classes/Cash.g.cs",
+      "hash": "1daef0f449d167cd8b8e8e62786bffb4f22aa928c51c8f086d2e810bbdeb95d8"
+    },
+    {
+      "id": "class:8ca0979a-fb4f-44c6-9365-f36359194f6d",
+      "path": "Generated/Classes/CashD.g.cs",
+      "hash": "82665ceaa4beadc4a943f211611c2c4af33003b2501fc8f7898d61098112d5b8"
+    },
+    {
+      "id": "class:8e2ab87c-0a3d-4b17-af45-5a73d1cc2da1",
+      "path": "Generated/Classes/CmpOf.g.cs",
+      "hash": "adce4d9b247bcd3633cd66b56b654823b937751bcea9fb0261c271e0e9314289"
+    },
+    {
+      "id": "class:9c1a4284-b680-4031-a12a-fc524a30fad3",
+      "path": "Generated/Classes/Coin.g.cs",
+      "hash": "bb70214bf4e01b60cb5a3f670fb0681d84924cf76ee463398d86441f2d6b1784"
+    },
+    {
+      "id": "class:d45cd322-afc4-4f3d-8c5c-8533da26625b",
+      "path": "Generated/Classes/CoinSub.g.cs",
+      "hash": "a02d27f587308abe36f938bcdcbb92044d454f4223f55e5731012c1d3b32dbf6"
+    },
+    {
+      "id": "class:2f23ac31-ac1f-4da2-944f-25eff0e721e0",
+      "path": "Generated/Classes/Conv.g.cs",
+      "hash": "308b6451c791bce3fb3b889c4b28933df59bc4a364a49476e323970494ff89ce"
+    },
+    {
+      "id": "class:8c362f23-586f-4c30-abf7-da2ce5c9d879",
+      "path": "Generated/Classes/Counter.g.cs",
+      "hash": "7a2133bf74fab03ef2378cf2496ead5fc17cf939b9a4f3ad326f3e02893c851e"
+    },
+    {
+      "id": "class:57894b26-b19c-4135-b13a-e659370ca61d",
+      "path": "Generated/Classes/D0.g.cs",
+      "hash": "abe5d0967285c5d22763fdf61197833201a2b9b360634153e2f49a5de60a25dc"
+    },
+    {
+      "id": "class:8bf6c476-d29f-4a2d-88b0-7ec9c7645eb1",
+      "path": "Generated/Classes/DefBox.g.cs",
+      "hash": "07a4bb5ff74a0d1955a765e0ec4772b44920ccdf4e029b8dce8ab08ebe0f67a8"
+    },
+    {
+      "id": "class:6f99cd0e-3d51-470c-9dfa-52dece4a21f4",
+      "path": "Generated/Classes/E0.g.cs",
+      "hash": "7f78eb140573034f951e7d9e4a976b4a46470c124b240adbae66437ad1d7bc49"
+    },
+    {
+      "id": "class:c02a366b-522c-4c4d-93df-d995719abf32",
+      "path": "Generated/Classes/EqOf.g.cs",
+      "hash": "80bfe0ebe11596b577f6957675e4800789776355a4fb6cf94286f9118da8a8db"
+    },
+    {
+      "id": "class:9a22b3db-671e-4e8b-a9eb-960e9593af8a",
+      "path": "Generated/Classes/Eqb.g.cs",
+      "hash": "237818a0522562f2c0a711a0d84e5477428f4f57c688e9d194974cacd6e9b060"
+    },
+    {
+      "id": "class:fe3aaa45-dec9-49e0-b8fd-82a531a4a984",
+      "path": "Generated/Classes/Euro.g.cs",
+      "hash": "d62cefba65e0d11ff1464f5c71e8e29755f181029860369e86ea3e0a8698bb5e"
+    },
+    {
+      "id": "class:06eb2163-4793-4fc4-ad01-9e30f5e322d6",
+      "path": "Generated/Classes/FieldCounter.g.cs",
+      "hash": "37e231ea3f1f7a63e3278b5f91bc30a8017444ef216a0ede120c07482adaca2c"
+    },
+    {
+      "id": "class:8750dc3f-7516-4f0d-90ef-794edf6e4082",
+      "path": "Generated/Classes/FieldStore.g.cs",
+      "hash": "a85a6baf97a4e52cccfa12c589ad581f2c5d4b94cddb8e7ef4f71d1a8517c410"
+    },
+    {
+      "id": "class:fce7769a-ac8b-4207-ab07-8392f82b551c",
+      "path": "Generated/Classes/Fix.g.cs",
+      "hash": "1dffc11d17ab899c48c8ed7ae63d331ee7c828d6bf0f6e22f4a4fd5bde1e2a5b"
+    },
+    {
+      "id": "class:3af572c4-06f5-4303-8c18-c51bafc8cfbc",
+      "path": "Generated/Classes/FmtOf.g.cs",
+      "hash": "eec95011c332e4379f30eb1b60a0058375e11522904a273464b2d3c51e3cdf2e"
+    },
+    {
+      "id": "class:a053ecea-c508-4c7e-a48c-526660bc023b",
+      "path": "Generated/Classes/Gen.g.cs",
+      "hash": "b6d6e0da2e4158f8930e20f14b59b1cedf34e7f3ae27683b25a0bd6df3df5db1"
+    },
+    {
+      "id": "class:1e2ea873-0fb6-4b75-9240-136fc78cc2fd",
+      "path": "Generated/Classes/Gm.g.cs",
+      "hash": "bbda2d12ef5089e4544d492264da07a759a0058ab1e97cfd4b4d114c6934ab49"
+    },
+    {
+      "id": "class:40173df9-8221-4c50-8cee-e1b3c443b565",
+      "path": "Generated/Classes/Hider.g.cs",
+      "hash": "f8e9245e73f1d34a2638b9694b21c534079918e5005192ccd1d7fb965d243047"
+    },
+    {
+      "id": "class:359e06fd-bcbc-464e-a400-1f4fb07a7674",
+      "path": "Generated/Classes/Holder.g.cs",
+      "hash": "8cefeaa6ac8692cf3367bde6e8290c12440963af486b5a328b761915ac0fa8fb"
+    },
+    {
+      "id": "class:5925034f-3946-4994-8d4c-4689b6adab4a",
+      "path": "Generated/Classes/Leaf.g.cs",
+      "hash": "b6cd10c85bb4d9ef9fde5b98a7a36331d2359e6466527f6906b48f235faedbc5"
+    },
+    {
+      "id": "class:3a485a30-def5-4482-b359-40cacf5612ad",
+      "path": "Generated/Classes/Log.g.cs",
+      "hash": "d5d2db67ed684d963407a195d75876b1cfe311a413e20a98282c9f2d67ebf344"
+    },
+    {
+      "id": "class:ab75942e-92e7-428a-94a4-1b9295f273c4",
+      "path": "Generated/Classes/Max.g.cs",
+      "hash": "5e5860da8f601b0882ecda1124d59f35e2a2b271a240470095d74af25e36a449"
+    },
+    {
+      "id": "class:0e4c54ab-bf7c-48db-84d1-afc9b8035af4",
+      "path": "Generated/Classes/Mid.g.cs",
+      "hash": "a30c96e82d5c6f155a9e11eeb15f5f247830c97a48434786a8f9dfa6827d2143"
+    },
+    {
+      "id": "class:system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
+      "path": "Generated/Classes/NeoArgumentError.g.cs",
+      "hash": "dd631b88d4b21c453e1c2a5da7a4c84f4db707336be12dfd0a6bac52c15da3f3"
+    },
+    {
+      "id": "class:system_78da8250-826b-4835-813e-fe2ae0d03653",
+      "path": "Generated/Classes/NeoArgumentNullError.g.cs",
+      "hash": "28437365fb61334c55428559e0d0d5edebbe758ee32b812b4de7b0d46f474746"
+    },
+    {
+      "id": "class:system_c7bd056b-9f80-4905-85e4-f33e1ac5093b",
+      "path": "Generated/Classes/NeoArgumentOutOfRangeError.g.cs",
+      "hash": "c85c1c39ab273ed539f87d5bcd33f09e4347148c9a6ce37c5e63472467a2c239"
+    },
+    {
+      "id": "class:system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab",
+      "path": "Generated/Classes/NeoArithmeticError.g.cs",
+      "hash": "79e4bb6f4f47cb2c6fb060b756c139e4f661cd8bfa1d3c0ef87880ef714bf7f2"
+    },
+    {
+      "id": "class:system_fb9c4080-0148-530e-b9c0-8cd1c17ff8e7",
+      "path": "Generated/Classes/NeoCellPattern.g.cs",
+      "hash": "a1d3ee7ef3421c9bdf3fb502fe0ff7a740cd3235e092f40d862d8b04e5e9ba0d"
+    },
+    {
+      "id": "class:system_2cc9e5a8-cfde-4090-a97e-e3dc287e348d",
+      "path": "Generated/Classes/NeoCollider.g.cs",
+      "hash": "7d876ec8be6818fc23695160222f652dea482a811aa308fc9f0c1b6fb48bda10"
+    },
+    {
+      "id": "class:system_3ca9b9c6-a628-459d-a931-85d690ab3639",
+      "path": "Generated/Classes/NeoCultureNotFoundError.g.cs",
+      "hash": "2e834f1c6a776db73f3d8b4f74e49bcb57d1829ea02d330d6f12e6e5dd9a7716"
+    },
+    {
+      "id": "class:system_d002b786-c17a-4371-905d-3653451db3d3",
+      "path": "Generated/Classes/NeoDivideByZeroError.g.cs",
+      "hash": "281e02fdf0409983799ff333a451cb42b0e70ec1590f1bec22f6862c3b088693"
+    },
+    {
+      "id": "class:system_791c90d0-8414-5971-8c1c-680f933ab42c",
+      "path": "Generated/Classes/NeoError.g.cs",
+      "hash": "ff1312ccdfc9bf98b261e45fb758c79f27be4e3f2128c29154eb64c7acbc1262"
+    },
+    {
+      "id": "class:system_87021243-5739-4af3-86ac-34fe2b5e4559",
+      "path": "Generated/Classes/NeoFormatError.g.cs",
+      "hash": "7f89e69d35ab5c4111d3e7b07e57d0aff57eb6594f24effdc6557dcf86e02a48"
+    },
+    {
+      "id": "class:system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
+      "path": "Generated/Classes/NeoHostError.g.cs",
+      "hash": "9bd727272b459c286881c950c491a12c3f5d602154aeabe7fcf13e5bf2413858"
+    },
+    {
+      "id": "class:system_0f2970bc-bd11-5173-847c-713e88b47a44",
+      "path": "Generated/Classes/NeoIndexOutOfRangeError.g.cs",
+      "hash": "cba09c044353168ca976b16a60b8b83b4af3f218bd3d969363b58361da248fb0"
+    },
+    {
+      "id": "class:system_fec6c25d-834f-42b1-b40c-ac02fd9dd916",
+      "path": "Generated/Classes/NeoInvalidCastError.g.cs",
+      "hash": "46f036640d4ef000c6d6c96daae88385ee17f5ba1e24d7195f1e92c935100dd0"
+    },
+    {
+      "id": "class:system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
+      "path": "Generated/Classes/NeoInvalidOperationError.g.cs",
+      "hash": "82188198a2cff03e6767fcbd92ba629c509dddaff8a98c96139114ab36352e63"
+    },
+    {
+      "id": "class:system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
+      "path": "Generated/Classes/NeoKeyNotFoundError.g.cs",
+      "hash": "302bfc649b00bda93b4ab5aaa5b82f4f69114f0e669bc819783b249c7fd044e2"
+    },
+    {
+      "id": "class:system_bf076e9b-c8da-47dc-bae3-7527d0c307a8",
+      "path": "Generated/Classes/NeoLayerGroupBase.g.cs",
+      "hash": "1016e7f8d2c624b6fcad3491ad8828ebeadc00b98e6a5bd56da5188beeaf0ed0"
+    },
+    {
+      "id": "class:system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05",
+      "path": "Generated/Classes/NeoNotSupportedError.g.cs",
+      "hash": "d862585ed004806a0090477fcd645f74ac66a6c6856ca70440600c22d77d39ad"
+    },
+    {
+      "id": "class:system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
+      "path": "Generated/Classes/NeoNullReferenceError.g.cs",
+      "hash": "3472fa8e46b6a4c99895f672777e6a59e05ced9c0ba140ec310b0077875f236a"
+    },
+    {
+      "id": "class:system_f671535d-0eb6-4139-9caf-5c5276febd31",
+      "path": "Generated/Classes/NeoObject.g.cs",
+      "hash": "c4bcb98eb29412f6ed741de15ed77ffdd3a299ce7f3b754b5164e23adbc7c985"
+    },
+    {
+      "id": "class:system_61b30a92-90dc-4bf8-8503-ee4f6414effc",
+      "path": "Generated/Classes/NeoObjectBase.g.cs",
+      "hash": "f8c2d3e31a06c1007e0394d27b26030f014ae4caf3ca07ea7475245457b202f0"
+    },
+    {
+      "id": "class:system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0",
+      "path": "Generated/Classes/NeoOverflowError.g.cs",
+      "hash": "cafeb1d1025c5fc70fba13cc6264a2864c693a98857010b211fce577bc6ca4ae"
+    },
+    {
+      "id": "class:system_8244dd57-5f81-569e-96b8-6a4d46dc5e09",
+      "path": "Generated/Classes/NeoPlacementResult.g.cs",
+      "hash": "ac1d542018ce110c84e073524db9ec8a50009687221aff224765465174703938"
+    },
+    {
+      "id": "class:system_ccc3330c-2db5-44dc-9c8e-5ebfe430dec9",
+      "path": "Generated/Classes/NeoPlacementTile.g.cs",
+      "hash": "b4f2e0ac74c88a19964374b00c9c4d0761424d3999d457949701f80cbd39ad90"
+    },
+    {
+      "id": "class:system_75b4633d-65d0-5da1-ac09-e7c2de0cd102",
+      "path": "Generated/Classes/NeoRandom.g.cs",
+      "hash": "aec084ba60ecd4c4d708b2f7672ba3f32799b55f9baeb9b699d108f10ab52d3d"
+    },
+    {
+      "id": "class:system_9f34deed-2616-43c9-b614-d812da89ee51",
+      "path": "Generated/Classes/NeoSmartTile.g.cs",
+      "hash": "78f56cbf56a716da22cf3cb2b727edf8565ae60a6b8dd6273e28b7d1e8ecdf55"
+    },
+    {
+      "id": "class:system_49803132-d83b-4e1e-8a10-6699dca5dc1c",
+      "path": "Generated/Classes/NeoSmartTileNeighbor.g.cs",
+      "hash": "8ac4db17b900412003e7e135adc8ffde995900b3463c1aff8c2a2072bcdf7f36"
+    },
+    {
+      "id": "class:system_49f62a6e-7238-4bee-b5fd-66458a138903",
+      "path": "Generated/Classes/NeoSmartTileRule.g.cs",
+      "hash": "1f0cc15fb20f6ff98cf84299a4d252cbadb0e2286369da5fd806c1f23f139b22"
+    },
+    {
+      "id": "class:system_d7fa161b-b269-4bf1-9ec9-3aebec67e6e0",
+      "path": "Generated/Classes/NeoTile.g.cs",
+      "hash": "28d4460d2a0da6538ecd5da9c95e0caa2a834a5849a74a91397558ea3a669c47"
+    },
+    {
+      "id": "class:system_b78f7f1d-f63c-4abb-ae65-852e69246534",
+      "path": "Generated/Classes/NeoTileGrid.g.cs",
+      "hash": "711c9dd79b618f6bcbf94527600d4c33325a71a4828312894335cbbaeb3291c3"
+    },
+    {
+      "id": "class:system_0b1427ff-db1a-4eed-8ef5-bea49da97282",
+      "path": "Generated/Classes/NeoTypeInitializationError.g.cs",
+      "hash": "96e40fa89627c402f9c51944440e8211e856c2dfc63a989855fd27d54c0c77e5"
+    },
+    {
+      "id": "class:b0a57967-03ac-4f0f-94d3-e43f00b7581e",
+      "path": "Generated/Classes/Num.g.cs",
+      "hash": "edfd9395d6576d58c61976143507b4765551d89ed7e2dc81b47ba90c76abf7e0"
+    },
+    {
+      "id": "class:1246747b-746c-4852-83b5-843874fa263a",
+      "path": "Generated/Classes/Only.g.cs",
+      "hash": "456ac68e0ceb2348983a3b1cdf8f0d50ddee466fee9823e03e3003d1cf89c532"
+    },
+    {
+      "id": "class:2ca05b27-ee0e-4710-af45-460b78b96a48",
+      "path": "Generated/Classes/PBox.g.cs",
+      "hash": "6675bf963f87cf91700fd207bcb353e301274a175e488a2159b9c9dc5abdbc59"
+    },
+    {
+      "id": "class:19392534-bfce-41e4-960d-cdcaedb3ab7b",
+      "path": "Generated/Classes/PClr.g.cs",
+      "hash": "f9e100d296565efbf465ce7ad0342bf9b51cebbf6bf41ac2b97be3566a921232"
+    },
+    {
+      "id": "class:804dd4f9-4df2-4cfd-abc0-13c242c3630f",
+      "path": "Generated/Classes/PDec.g.cs",
+      "hash": "482161e7adf7828d5e0efbcbce6ca6bdd479d73c9e739f533f3fd17fcff7cb22"
+    },
+    {
+      "id": "class:e5df6562-8feb-4cad-9b7c-0b3281fad146",
+      "path": "Generated/Classes/PFix.g.cs",
+      "hash": "95ceefc2a1290126002a9b32416eaa446af503b8cd58bd9d23fd7e7de67f5a44"
+    },
+    {
+      "id": "class:f8367eba-894d-4f6b-a971-376ded69685c",
+      "path": "Generated/Classes/PFld.g.cs",
+      "hash": "4570b570aa7a06ebb7f76eaf46f49bc437f7d5a5fc4d9eeec8b569a351d1ac47"
+    },
+    {
+      "id": "class:e2d71f66-4cb7-4c62-a8b7-13d6808d8d2e",
+      "path": "Generated/Classes/PFld2.g.cs",
+      "hash": "8045ffc3f71e9648fa0986446e4fcf4c210d04153b2a705000f51b780dbe6740"
+    },
+    {
+      "id": "class:f9384d83-0988-4620-a862-7171ced49dcd",
+      "path": "Generated/Classes/PGap.g.cs",
+      "hash": "de3218184b48d17ba80b35f8a3ec1b788bdea3bae5341781aa6a5e1538c3b083"
+    },
+    {
+      "id": "class:80f2fcaa-dd1d-450e-a7b3-4221b85539a5",
+      "path": "Generated/Classes/PIfaceOrder.g.cs",
+      "hash": "4c4c7a6474e2c22ee68ecf79fe441f80a49fd43cca5f174250f89a63cdf4a4b5"
+    },
+    {
+      "id": "class:bfcd8c65-b15c-4d71-be70-a9cf73c2c3bc",
+      "path": "Generated/Classes/PInner.g.cs",
+      "hash": "b4f5e7cbefefa2b0e25c622e61aeefa6f85d7f7c8c21dff4a2d60764a20166e7"
+    },
+    {
+      "id": "class:99a047bb-5946-4424-917e-6373e14e38ae",
+      "path": "Generated/Classes/PInner2.g.cs",
+      "hash": "fa6b9b98b4d3b59ad60edcb9e1e79d00405f458aea0bac9f7b0d3626116e67e4"
+    },
+    {
+      "id": "class:eb96f23b-2aeb-4ffb-8ebd-a0950dd4fb42",
+      "path": "Generated/Classes/PInst.g.cs",
+      "hash": "e2a9b69724bfb757e09d85da6c47b33749dd43e594d5a1354a75e5cb6a9344d5"
+    },
+    {
+      "id": "class:8ddb67e0-b558-4bb8-a571-a99c09e72b83",
+      "path": "Generated/Classes/PInstKind.g.cs",
+      "hash": "4f0af63607137e96a9d1e48ffd806d2e79d8509372d74b92b8c227aea2440f5a"
+    },
+    {
+      "id": "class:a7a209d8-ccc1-4ed3-86a1-13faa9403b41",
+      "path": "Generated/Classes/PMg.g.cs",
+      "hash": "cb121cfa6035bfcb90ef83a656ee3aa7df00e0066b3b2460ada46ed480709462"
+    },
+    {
+      "id": "class:f16c5158-c9e5-46da-a302-467de09b0c17",
+      "path": "Generated/Classes/PNs.g.cs",
+      "hash": "734ce1da26ae92adce05e5fffe259161743fa301788659421355a149a93e8bac"
+    },
+    {
+      "id": "class:408bbe1e-497e-4ae0-b343-5d1afa42f938",
+      "path": "Generated/Classes/PNsdef.g.cs",
+      "hash": "4a33b1b0c0f4a5e49380411e715a39928fec561503b4ae1d64b44e2580bd3f76"
+    },
+    {
+      "id": "class:cc0f562f-154a-485d-8bb6-b652a32b13d6",
+      "path": "Generated/Classes/PNsdef2.g.cs",
+      "hash": "14b90555a8df6087ed50043622e6018a28d1cc4eebfd270dba10d7d46079dadc"
+    },
+    {
+      "id": "class:c507c7ab-3d53-4ce1-822e-de3f5e3a73f0",
+      "path": "Generated/Classes/PNsloc.g.cs",
+      "hash": "540378a56e88271464c7b0ef286f9ad484cfc1413985a122c9964d2de1a43830"
+    },
+    {
+      "id": "class:0c616d0d-f705-4acf-9aa3-958778bb2c0b",
+      "path": "Generated/Classes/PObj.g.cs",
+      "hash": "5a10505732cda2191e1f7bc316c65e1759cbb1771ea0f4c4007ce2a766fce82b"
+    },
+    {
+      "id": "class:16622263-7ef8-40a5-b5df-7820111e4389",
+      "path": "Generated/Classes/PObj2b.g.cs",
+      "hash": "e56482b79243ae7b060805a59ecdbe0f25c1467977a123ae28c4a0368e7988c7"
+    },
+    {
+      "id": "class:651360f4-6018-4419-9d4d-a3a5b523c672",
+      "path": "Generated/Classes/PObjp.g.cs",
+      "hash": "da870b9029b5b46f621a891c5ab5112bd428e5b6910e94b4246bea8f04fba253"
+    },
+    {
+      "id": "class:73f172d4-ef83-4b84-b8ae-07a9b103df2a",
+      "path": "Generated/Classes/POps.g.cs",
+      "hash": "27985a606edf46f2b075e4aa311faa2b939f27f3ebbaa57179c96691e2ee3b24"
+    },
+    {
+      "id": "class:13c653f1-db40-4902-a160-b3148b4e67cd",
+      "path": "Generated/Classes/POutgen.g.cs",
+      "hash": "bf6f94167ad3add3ca95df1febad4fe6507277ff8b0751d19d95d7174f564997"
+    },
+    {
+      "id": "class:7999fcaa-c292-46bd-9300-8513b703e569",
+      "path": "Generated/Classes/PSelf.g.cs",
+      "hash": "3ef4ff3519f152212b58604ee72fda0dad607ef407572c750f57c39abb51c399"
+    },
+    {
+      "id": "class:5f39bbb1-70fd-480a-b1f7-63f7dae32f4c",
+      "path": "Generated/Classes/PStmt.g.cs",
+      "hash": "25585fc6989f0fadeec1170c42b4b2a10a6c5227cff7c27d17e6e694f186a647"
+    },
+    {
+      "id": "class:79f5679c-a7a8-486d-8fd6-d4dfa41a9839",
+      "path": "Generated/Classes/PSurf.g.cs",
+      "hash": "2e04505fc16e7cfa8c9067d5d76022ea8b1a7954b72daf69a58f9e54e637c8db"
+    },
+    {
+      "id": "class:c9f077e4-e622-4e4a-9ca2-ef251612d118",
+      "path": "Generated/Classes/PTarget.g.cs",
+      "hash": "29b90d9a766e452fe49e8886bc1d70a5cc5ff86d6ad8137edcf5477c973a9889"
+    },
+    {
+      "id": "class:0c6a21cc-3ec9-413c-b8c2-4c5dbbb4cf04",
+      "path": "Generated/Classes/PTself.g.cs",
+      "hash": "139eba4c47e113c257472c0f65b9a65a6384a195daba95b7f728a5f92dfc984b"
+    },
+    {
+      "id": "class:4061adf2-0a2a-4858-a9e3-ec8aa3c26bf9",
+      "path": "Generated/Classes/PTup.g.cs",
+      "hash": "77182673b64929f9781f40392f34edeadd2675d71dd471603d94a48c359f9b64"
+    },
+    {
+      "id": "class:29473359-14a7-4214-8811-38712c5e6c32",
+      "path": "Generated/Classes/Plain.g.cs",
+      "hash": "e21db293fba7fa31b261afb68f8130d5de13077304781a2805be5011fb1f50a6"
+    },
+    {
+      "id": "class:a09cb32b-a7b2-4920-bf21-4f48556bfa8b",
+      "path": "Generated/Classes/Probe.g.cs",
+      "hash": "342bfe0547a0e8e7bdb3c6838c5aa1b056e1238c8d773caa1116721955acf2d0"
+    },
+    {
+      "id": "class:6df7e98a-0a6d-44ec-b069-507e8cbe960d",
+      "path": "Generated/Classes/Pt.g.cs",
+      "hash": "63f6c5eac2657082701667b55db7a9a624d3ae14a1669660f9e13a3e116f8b19"
+    },
+    {
+      "id": "class:b082c78b-7e13-4afa-86a5-4f0c55a6b60d",
+      "path": "Generated/Classes/PtC.g.cs",
+      "hash": "3dad97f5a13f00dd856f7ed60324fced5462d3b93372667fd053932af7811cf6"
+    },
+    {
+      "id": "class:root-save-class-id",
+      "path": "Generated/Classes/Save.g.cs",
+      "hash": "9bdabedf6d3b57c09f3e5b01044d893cc4cd5c2ca38f8a28f55508c89d57ba9e"
+    },
+    {
+      "id": "class:e9ad9f8d-81a6-44e0-8e59-5f7c8a4dfe0f",
+      "path": "Generated/Classes/SelfA.g.cs",
+      "hash": "263f51d57b2959bce5b88799edf35c83493cef580f98fabab01a0653cd6b38db"
+    },
+    {
+      "id": "class:67d651be-09fd-4101-a7c2-22c8d32a27a4",
+      "path": "Generated/Classes/SelfB.g.cs",
+      "hash": "18085639dc9b3a2aec4f912ea33743f3054e023f41ed0d1dd0519c719ea11dc6"
+    },
+    {
+      "id": "class:d71b8008-f5ac-411a-98b3-131e5d1751c8",
+      "path": "Generated/Classes/SelfC.g.cs",
+      "hash": "0e318d6be43f4ab370cf73c0366819029f9ddaffbdce0669e2fde30b6b949d6b"
+    },
+    {
+      "id": "class:root-session-class-id",
+      "path": "Generated/Classes/Session.g.cs",
+      "hash": "3c7105a95a722b9e3d0c9642c9ca0fdb4a779459dc32886cebef113f145a5a2b"
+    },
+    {
+      "id": "class:702b85a8-76a8-4745-b15a-ed1eb1adb9a4",
+      "path": "Generated/Classes/Store.g.cs",
+      "hash": "58181532e5092e3d41843f756ac356230083e1fb212e7fdda52458daf70eb1c7"
+    },
+    {
+      "id": "class:887c7284-10e2-4f8e-af91-1d21c5e997ee",
+      "path": "Generated/Classes/TEq.g.cs",
+      "hash": "fe11929d99e7feed714acc083f3853522f7f531263ce80501540b00ac08deb82"
+    },
+    {
+      "id": "class:b751e2df-e6af-48f8-b68d-3aa30616edee",
+      "path": "Generated/Classes/TMoney.g.cs",
+      "hash": "3bb9117f95b37520954dbdb64b023c3210191ebc08b49006469a54b17a7cbaff"
+    },
+    {
+      "id": "class:9452d445-587f-4788-8595-f229d73bf802",
+      "path": "Generated/Classes/Tk.g.cs",
+      "hash": "abda48d667071e35865843fe65281482ded3934c51488d0803fc9b8c60d3c52e"
+    },
+    {
+      "id": "class:96c616e0-e204-5f56-9f77-90b195896a5a",
+      "path": "Generated/Classes/User.g.cs",
+      "hash": "55473c2b02e1c646f3c451eb00729233d65618c2ee6377cbba00c0c8cf1a8384"
+    },
+    {
+      "id": "class:93f82070-da31-4f21-8503-f4459417b819",
+      "path": "Generated/Classes/Wallet.g.cs",
+      "hash": "b7145a1ddf52d3cd97438864b5a37bd61f36b338f23eded0d6504d80e822d2b0"
+    },
+    {
+      "id": "class:d2bd96f6-02cc-4b2b-97d1-5dbd0a47059f",
+      "path": "Generated/Classes/Zv.g.cs",
+      "hash": "a81c76307f1b1997e5153f9c4d30272ae92bf94352e12b7e175c7fd2aa43265b"
+    },
+    {
+      "id": "dialogues:root",
+      "path": "Generated/Dialogues/NeoDialogues.g.cs",
+      "hash": "97c524c77c41b66494004555bc8e78241e08ed4525f7e871147c3c14dea1574d"
+    },
+    {
+      "id": "enum:system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
+      "path": "Generated/Enums/NeoCellPatternExcluding.g.cs",
+      "hash": "7c3920703d7ae5f86f9f4d9c94c7fe73264f63470868924e45663eeeb9873296"
+    },
+    {
+      "id": "enum:system_fb8a4243-fa52-4142-8097-765d9e86ff25",
+      "path": "Generated/Enums/NeoSelectorRefreshKind.g.cs",
+      "hash": "f093fa9ada012bf004f1cf252227f8b425b479544c24b8a7fd86d62fe6eb5bb9"
+    },
+    {
+      "id": "enum:system_6ff1b376-1b30-449d-8439-d822be95cec1",
+      "path": "Generated/Enums/NeoSmartTileCollider.g.cs",
+      "hash": "8c755a2e8469d1c250b924c540a46ba2e1ff8f85917bcf12802f71cd7a9c6d68"
+    },
+    {
+      "id": "enum:system_ba63d042-51c1-4bce-be70-d9848e6bb240",
+      "path": "Generated/Enums/NeoSmartTileCondition.g.cs",
+      "hash": "5de1212d3cffe031dc4a8f58481d92e55c887988c237bfb0ad90b2eedd23c73c"
+    },
+    {
+      "id": "enum:system_551025ad-e441-4d43-90b0-2821c6235786",
+      "path": "Generated/Enums/NeoSmartTileOutput.g.cs",
+      "hash": "b72e7bc1bafacc483ed202af087bdc64e31041da7aa35a21fe5f9613e4ef22d1"
+    },
+    {
+      "id": "enum:system_d97f73bc-656f-489f-86de-6cb874ca8181",
+      "path": "Generated/Enums/NeoSmartTileTransform.g.cs",
+      "hash": "1039b74331f80f3f21a86f7f50a6e1896ac7fa48b79713c6f37221b82bea3d6e"
+    },
+    {
+      "id": "enum:c23eb7ac-fc82-4a51-b88f-47c053dcf96b",
+      "path": "Generated/Enums/Planet.g.cs",
+      "hash": "ea18a09d4294fd8fa4c7c83872276a9f6f22d6cfcad270ea646c5de281b6e7d8"
+    },
+    {
+      "id": "interface:02b4cf54-c601-4473-9d18-b9fd4ce1d569",
+      "path": "Generated/Interfaces/IA.g.cs",
+      "hash": "af74e92f89996288f6231c74ab5027adb4c0facd51af7f365fe5b146a9bc4d7b"
+    },
+    {
+      "id": "interface:6348e4d8-3a21-4df7-9ce2-4c36cc99ee7b",
+      "path": "Generated/Interfaces/IAdd.g.cs",
+      "hash": "bc6b4624d96db42811f6b2b592958afcdbb3f4f05cbba5c7accf866d285916c3"
+    },
+    {
+      "id": "interface:59553f66-71d9-4e10-9f0d-ea322cdbf90b",
+      "path": "Generated/Interfaces/IB.g.cs",
+      "hash": "83833f2efc9705db3a64bf0082388a23b68439d2dfa4a67383322b2414116105"
+    },
+    {
+      "id": "interface:system_c1b7f48c-5615-4e61-a071-5ff8b2a70c97",
+      "path": "Generated/Interfaces/INeoOnLoad.g.cs",
+      "hash": "3818681be1309693f8933a11bc82f4abbb9b684994e3cd7376ceccadd80e2213"
+    },
+    {
+      "id": "interface:system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb",
+      "path": "Generated/Interfaces/INeoOnUnload.g.cs",
+      "hash": "e7b641d0e5a973b0d4aa994976a83cfd6f2dbc7c967e2f58aab19acd147e16c9"
+    },
+    {
+      "id": "interface:system_e080a0a4-bb13-42a8-a1c5-17548dc5ccdb",
+      "path": "Generated/Interfaces/INeoUnityAwake.g.cs",
+      "hash": "c74c2b62613587fb24645478d09078ff6c146d1ab7347bd5732962d2c062b153"
+    },
+    {
+      "id": "interface:system_23677dec-fa02-4a09-8b0a-f762b10e467e",
+      "path": "Generated/Interfaces/INeoUnityFixedUpdate.g.cs",
+      "hash": "49f6dd499ebfed060b6f28068902ac8c364ceedb0d33d71c24437c9d8470507d"
+    },
+    {
+      "id": "interface:system_f2ecf221-8b14-44b1-b871-24c10c401b4b",
+      "path": "Generated/Interfaces/INeoUnityLateUpdate.g.cs",
+      "hash": "61fa3a1cd6a9bba1ae70ba7bdcb52025ba9a6d27e42c21b45cd892687893f46d"
+    },
+    {
+      "id": "interface:system_f1ab6738-fb6d-4d74-95cc-b4681f3feb85",
+      "path": "Generated/Interfaces/INeoUnityOnApplicationPause.g.cs",
+      "hash": "c7b6fced46e401a0d4abd3164bf08d59e82bd27a11c473287da005e9355748a4"
+    },
+    {
+      "id": "interface:system_9156948c-a575-462b-9981-9d22bd262079",
+      "path": "Generated/Interfaces/INeoUnityOnApplicationQuit.g.cs",
+      "hash": "307b3d2dc6242bc5403e01df95f33f2432405d3ed6fc2ae926704eba3dd890bc"
+    },
+    {
+      "id": "interface:system_6f4099d5-3d13-4bea-b432-3069cbd8b18d",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionEnter2D.g.cs",
+      "hash": "ca86788e17797f61f6243c10531ff09a0e8c51a12d3f49bee352ad54b74f4b64"
+    },
+    {
+      "id": "interface:system_a6157ec0-e5e1-4f77-9ba1-8f5eb022e6a4",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionExit2D.g.cs",
+      "hash": "2a779d0919133b0af8daf7fc92bb834bf2058ab3d2022224612eb2e30b1f1d1e"
+    },
+    {
+      "id": "interface:system_75350119-0b1e-4560-bf94-0a34590f4cc2",
+      "path": "Generated/Interfaces/INeoUnityOnCollisionStay2D.g.cs",
+      "hash": "fef6bf315481d3ad3225d3c2fd9a863c0df1d23e8ced1de72ef6c1d02550015d"
+    },
+    {
+      "id": "interface:system_fe306522-8df2-4f30-8931-204d8dab4d96",
+      "path": "Generated/Interfaces/INeoUnityOnDestroy.g.cs",
+      "hash": "92830756d3d7f0d164f83dc7c0c071cfd842d7d7e37a3fe20e6f9b789214b163"
+    },
+    {
+      "id": "interface:system_81750392-22a9-4881-a117-8d9de3e200cd",
+      "path": "Generated/Interfaces/INeoUnityOnDisable.g.cs",
+      "hash": "08fc14d654cd52efab6e3a75a92580c2e338a05252bb2eeff8466dd1c4ce3bdd"
+    },
+    {
+      "id": "interface:system_3c3a67d4-9926-4b11-ac89-bcf30c2b5d90",
+      "path": "Generated/Interfaces/INeoUnityOnEnable.g.cs",
+      "hash": "06b02a6cdfdf61adbea27fd245f5b96b36771aef9fe7cc48e803557020306887"
+    },
+    {
+      "id": "interface:system_9faab5e9-701c-4cd8-8723-5f9794b8e8c0",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerEnter2D.g.cs",
+      "hash": "87704ee286a0520d324a54e12c3841ccce55a5cbc4fe4e2b21436e985e826b71"
+    },
+    {
+      "id": "interface:system_9da00dcd-4035-46cc-8d98-00f5b8d91545",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerExit2D.g.cs",
+      "hash": "70125868f909a7903a83fd099e5c0ccc0eb1b20be830a508d34f0082d92cb3f0"
+    },
+    {
+      "id": "interface:system_a66ca3a6-3df3-4cb2-a9ba-7f63c494932c",
+      "path": "Generated/Interfaces/INeoUnityOnTriggerStay2D.g.cs",
+      "hash": "754e2f84eb3f395779dae7080f27afb3f176b366594b23e2c1597f4c52e997e8"
+    },
+    {
+      "id": "interface:system_b7e94d04-1c00-4e17-afb2-3de8b40fc5eb",
+      "path": "Generated/Interfaces/INeoUnityStart.g.cs",
+      "hash": "01ed53277d916c8d1fe8ba15ed357cc18abe88fbea2904d5e8f9ea2fb79dcca1"
+    },
+    {
+      "id": "interface:system_9e3923ce-a569-491f-95d8-dca8411611eb",
+      "path": "Generated/Interfaces/INeoUnityUpdate.g.cs",
+      "hash": "2b1a31fd22674748b277a065fbe1773b69d426e81c1341cad050dc61609ad7ab"
+    },
+    {
+      "id": "interface:36501797-6091-4b02-9702-6a2d6a1db5cb",
+      "path": "Generated/Interfaces/ITake.g.cs",
+      "hash": "499e742eb1b684dca2986d832d6fc60fb8a8eae5c4abfe72c402970041a71279"
+    },
+    {
+      "id": "interface:0dda6ea3-7d18-4be7-b78a-26845b3d5af2",
+      "path": "Generated/Interfaces/IZv.g.cs",
+      "hash": "4ac56a8e4658f6055f96f6216714ee465918fa416a33ca9fb147caf63af607bf"
+    },
+    {
+      "id": "project:factories",
+      "path": "Generated/TestProjectNeo.Factories.g.cs",
+      "hash": "888733fb4af6d8f4d9bef157e70df1777637718bcc5f5fc65861d03ff013a8a6"
+    },
+    {
+      "id": "project:functions",
+      "path": "Generated/TestProjectNeo.Functions.g.cs",
+      "hash": "a23b792fe345be99bbac523c4d0674019ed883167f5043e72147aa6b5e49f54c"
+    },
+    {
+      "id": "project:client",
+      "path": "Generated/TestProjectNeo.g.cs",
+      "hash": "2b4d641b20b3e7008e68ad541cdbcbd112b9e121a7593f86b97375f2bf5527ad"
+    },
+    {
+      "id": "project:user-client",
+      "path": "Generated/TestProjectUserNeo.g.cs",
+      "hash": "5c9738af4bcdfed7330a9dc7ffab7edeb65396a7036550e3671c5cb157f4afae"
+    }
+  ]
+}

@@ -8079,6 +8079,9 @@ namespace NeoCompose.Runtime
             generatedWritableClassFactories = writableFactories;
         }
 
+        internal bool HasGeneratedClassFactories => generatedReadOnlyClassFactories is not null
+            && generatedWritableClassFactories is not null;
+
         internal NeoGeneratedClassValue? ResolveRegisteredGeneratedClassValue(
             string valueId,
             NeoValueOwnership? ownership = null,
@@ -8230,11 +8233,19 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                if (InEffectCapture())
-                    return InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs, typeArguments);
-                return NormalizeNativeFunctionReturn(
-                    member.returnTypeInfo,
-                    invoker(this, receiver, preparedArgs, typeArguments));
+                object? result = InEffectCapture()
+                    ? InvokeNativeOutsideEffectCapture(member, invoker, receiver, preparedArgs, typeArguments)
+                    : NormalizeNativeFunctionReturn(member.returnTypeInfo, invoker(this, receiver, preparedArgs, typeArguments));
+                for (int i = 0; i < preparedArgs.Length; i++)
+                {
+                    if (preparedArgs[i] is NeoOutArgument { NativeTarget: { } target } output)
+                    {
+                        Json.TypeInfo parameterType = typeArguments is null ? member.argumentTypes[i]
+                            : NeoScript.NeoFunctionTypeArguments.BindArgument(member.argumentTypes[i], typeArguments);
+                        target.Write(NormalizeNativeFunctionReturn(parameterType, output.Value));
+                    }
+                }
+                return result;
             }
             catch (NeoScript.NeoScriptException error)
             {
@@ -8608,6 +8619,18 @@ namespace NeoCompose.Runtime
             {
                 FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
                 object? source = sourceArgs[i];
+                if (argument.mode == NeoParameterModeKind.Out)
+                {
+                    if (expectedDeferred)
+                        throw new NeoScript.NSGetterRuntimeError("A deferred native function cannot have out parameters.");
+                    preparedArgs[i] = source switch
+                    {
+                        NeoScript.NeoOutReference reference => new NeoOutArgument { NativeTarget = reference },
+                        NeoOutArgument host => host,
+                        _ => throw new NeoScript.NSGetterRuntimeError($"Parameter '{argument.name}' requires an out argument."),
+                    };
+                    continue;
+                }
                 object? primitive = PrepareNativePrimitive(source, argument.type);
                 if (!ReferenceEquals(primitive, NotNativePrimitive))
                 {
@@ -8620,13 +8643,16 @@ namespace NeoCompose.Runtime
                 var subject = NeoScriptValueMarshaller.ValueSubject.NativeArgument(function, i);
                 try
                 {
-                    if (argument.type == MemberKind.Interface)
+                    if (argument.type is MemberKind.Interface or MemberKind.Object
+                        || NeoScript.NSGetterEvaluator.UnwrapComparer(source) is not null)
                     {
                         var context = CreateGetterContext(NeoValueOwnership.Session);
                         context.BindThis(receiver);
                         context.BindFunctionTypeArguments(typeArguments ?? function.defaultTypeArguments);
-                        preparedArgs[i] = NeoScriptValueMarshaller.NormalizeResolved(this, context.valueOwnership,
-                            source, NeoScript.NSGetterEvaluator.CloseContextType(argument, context), context, subject);
+                        var declared = NeoScript.NSGetterEvaluator.CloseContextType(argument, context);
+                        object? normalized = NeoScriptValueMarshaller.NormalizeResolved(this, context.valueOwnership,
+                            source, declared, context, subject);
+                        preparedArgs[i] = NeoGeneratedTypesSupport.GeneratedResult(normalized, declared, context);
                         continue;
                     }
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
@@ -8729,6 +8755,8 @@ namespace NeoCompose.Runtime
                             subject.ToString());
                     }
                     return value;
+                case MemberKind.Enum when typeInfo.enumId == NeoPrimitiveConformance.NumberStylesEnumId:
+                    return System.Convert.ToInt32(value);
                 case MemberKind.Enum:
                     {
                         string[] optionIds = NormalizeNativeFunctionEnumArgument(
@@ -8822,12 +8850,28 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static object? NormalizeNativeFunctionReturn(
+        private object? NormalizeNativeFunctionReturn(
             Json.TypeInfo returnTypeInfo,
             object? value)
         {
             if (returnTypeInfo is VoidTypeInfo)
                 return null;
+            if (returnTypeInfo.type is MemberKind.Object or MemberKind.Interface)
+            {
+                var context = RentDirectFunctionContext(NeoValueOwnership.Session);
+                object? result = null;
+                try
+                {
+                    result = NeoScriptValueMarshaller.NormalizeResolved(this, context.valueOwnership, value, returnTypeInfo, context, "native return");
+                    return result;
+                }
+                finally
+                {
+                    ReturnDirectFunctionContext(context, result);
+                }
+            }
+            if (returnTypeInfo is EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId })
+                return System.Convert.ToInt32(value);
             switch (returnTypeInfo.type)
             {
                 case MemberKind.Vector2:
