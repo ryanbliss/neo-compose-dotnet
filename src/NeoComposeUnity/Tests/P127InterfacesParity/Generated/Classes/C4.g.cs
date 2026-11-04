@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class C4 : NeoGeneratedClassValue, IReadOnlyC4
     {
         internal C4(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "04262176-8ab4-4856-a76b-f7e845a3c308", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "98212139-32d9-41eb-ad95-0d1f89600a9b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "04262176-8ab4-4856-a76b-f7e845a3c308",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "e7dfb1ea-4895-4006-b5af-fdefaa21f38d", Stored)
+                "98212139-32d9-41eb-ad95-0d1f89600a9b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "88b28ef0-0680-4a18-ad46-a90d3d19deb3", Stored)
             );
         }
 
