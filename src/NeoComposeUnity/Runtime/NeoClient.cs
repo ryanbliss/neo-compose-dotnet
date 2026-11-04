@@ -1036,6 +1036,12 @@ namespace NeoCompose.Runtime
             // parent. They share cached children and belong to this client too.
             foreach (var node in new List<NeoMember>(nodesInternal.Values))
                 node.Dispose();
+            getterSubscriptionsByRow.Clear();
+            pendingGetterSubscriptions.Clear();
+            getterWatchersByRow.Clear();
+            pendingGetterChanges.Clear();
+            pendingGetterChangeSet.Clear();
+            InvalidateGetterMemo();
         }
 
         internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member

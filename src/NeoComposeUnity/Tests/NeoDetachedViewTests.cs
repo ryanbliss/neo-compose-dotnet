@@ -180,6 +180,346 @@ namespace NeoCompose.Tests
             CollectionAssert.Contains(captured, scoreId, "The kept result replays the value ids it read.");
         }
 
+        [TestCase("list", false)]
+        [TestCase("values", false)]
+        [TestCase("list", true)]
+        [TestCase("values", true)]
+        [TestCase("dictionary", false)]
+        [TestCase("dictionary", true)]
+        [TestCase("set", false)]
+        [TestCase("set", true)]
+        [TestCase("tuple", false)]
+        [TestCase("tuple", true)]
+        [TestCase("tuple-list", false)]
+        [TestCase("tuple-list", true)]
+        public void ConstructedListGetter_SharesEntriesAcrossExecutionsAndInvalidation(string shape, bool materialize)
+        {
+            var finalize = new FunctionMember
+            {
+                id = "finalize-report",
+                name = "FinalizeReport",
+                projectId = ProjectId,
+                kind = MemberKind.Function,
+                Modifier = NeoMemberModifierKind.Static,
+                returnTypeInfo = ReportType,
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "report", type = MemberKind.Class, classId = "class-report", required = true } },
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+            };
+            using NeoClient client = BuildClient(extraMember: finalize);
+            int evaluations = 0;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [finalize.id] = (_, _, args, _) =>
+                {
+                    evaluations++;
+                    if (materialize)
+                    {
+                        TestReport result = ReadReport(client, args[0]);
+                        _ = result.valueId;
+                        result.Total += 1;
+                    }
+                    return args[0];
+                },
+            });
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? property));
+            var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = ReportType };
+            var entry = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                memberId = finalize.id,
+                receiver = CallReceiver.Static(finalize.id),
+                args = new Pointer[] { Report(ThisScore()) },
+                callSiteId = "finalize-report-call",
+            };
+            Pointer resultPointer = shape is "values" or "dictionary"
+                ? new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new CollectionQueryFunction
+                    {
+                        type = FunctionKind.CollectionQuery,
+                        info = new FunctionCollectionQueryInfo
+                        {
+                            op = "Values",
+                            collectionPointer = new DictLiteralPointer
+                            {
+                                type = PointerKind.DictLiteral,
+                                typeInfo = new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = ReportType },
+                                entries = new[] { new DictLiteralPair { key = Literal("need", MemberKind.String), value = entry } },
+                            },
+                        },
+                    },
+                }
+                : new ListLiteralPointer { type = PointerKind.ListLiteral, typeInfo = listType, entries = new Pointer[] { entry } };
+            TypeInfo resultType = listType;
+            if (shape == "dictionary")
+            {
+                resultPointer = ((CollectionQueryFunction)((FunctionPointer)resultPointer).function).info.collectionPointer;
+                resultType = new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = ReportType };
+            }
+            else if (shape == "set")
+            {
+                resultPointer = new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new CollectionQueryFunction
+                    {
+                        type = FunctionKind.CollectionQuery,
+                        info = new FunctionCollectionQueryInfo { op = "ToSet", reference = true, collectionPointer = resultPointer },
+                    },
+                };
+                resultType = new CollectionTypeInfo { type = MemberKind.Set, required = true, entryTypeInfo = ReportType };
+            }
+            if (shape is "tuple" or "tuple-list")
+            {
+                var tupleType = new TupleTypeInfo
+                {
+                    type = MemberKind.Tuple,
+                    required = true,
+                    elements = new[] { new TupleElementTypeInfo { typeInfo = shape == "tuple-list" ? listType : ReportType }, new TupleElementTypeInfo { typeInfo = IntType } },
+                };
+                resultType = tupleType;
+                resultPointer = new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new TupleCreateFunction
+                    {
+                        type = FunctionKind.TupleCreate,
+                        info = new FunctionTupleCreateInfo { typeInfo = tupleType, elementPointers = new Pointer[] { shape == "tuple-list" ? resultPointer : entry, Literal(1, MemberKind.Int) } },
+                    },
+                };
+            }
+            object? Entry(object? result)
+            {
+                if (result is Dictionary<string, object?> dictionary)
+                    return dictionary["need"];
+                if (result is RuntimeSet set)
+                    return set.Snapshot()[0];
+                if (result is RuntimeTuple tuple)
+                {
+                    if (shape == "tuple-list")
+                        return ((object?[])tuple[0]!)[0];
+                    return tuple[0];
+                }
+                return ((object?[])result!)[0];
+            }
+            property!.returnTypeInfo = resultType;
+            property.getter.typeInfo = resultType;
+            property.getter.instructions = new Instruction[] { new ReturnInstruction { type = InstructionKind.Return, pointer = resultPointer } };
+            TestLine owner = ReadReport(client, EvaluateReport(client), out _).Lines[0];
+            string receiverId = owner.valueId!;
+            NeoMemberNSProperty getter = owner.BackingNode.Get<NeoMemberNSProperty>("Summary");
+            object? Read()
+            {
+                NSGetterResult result = getter.Compute(receiverId);
+                Assert.IsTrue(result.ok, result.error);
+                return Entry(result.value);
+            }
+            object? first = Read();
+            var key = new NeoClient.GetterMemoKey(NeoValueOwnership.Session, receiverId, property.id, NeoValueOwnership.Session);
+            NeoClient.GetterMemoEntry memo = client.FindMemoizedGetter(key)!;
+            Assert.IsNotNull(memo);
+            Assert.IsFalse(memo.valueless);
+            Assert.IsNotNull(memo.list);
+            TestReport report = ReadReport(client, first);
+            for (int i = 0; i < 100; i++)
+                Assert.AreSame(report, ReadReport(client, Read()));
+            var call = new CallGetterPointer
+            {
+                type = PointerKind.CallGetter,
+                memberId = property.id,
+                receiver = CallReceiver.Instance(new ReferencePointer { type = PointerKind.Reference, valueId = receiverId }),
+            };
+            Assert.AreSame(report, ReadReport(client, Entry(Evaluate(client, resultType, call, NeoValueOwnership.Session))));
+            if (shape == "tuple-list")
+            {
+                var firstTuple = (RuntimeTuple)Evaluate(client, resultType, call, NeoValueOwnership.Session)!;
+                var secondTuple = (RuntimeTuple)Evaluate(client, resultType, call, NeoValueOwnership.Session)!;
+                Assert.AreSame(firstTuple[0], secondTuple[0], "Tuple list handles keep their identity.");
+                var held = (object?[])firstTuple[0]!;
+                var mutationScope = new Dictionary<string, object?> { ["held"] = held, ["entry"] = held[0] };
+                NeoScriptExecutor.Execute(client, new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = Array.Empty<Variable>(),
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = new Instruction[]
+                    {
+                        new CollectionCallInstruction
+                        {
+                            type = InstructionKind.CollectionCall,
+                            target = new WriteTarget { pointer = Variable("held"), typeInfo = listType, writability = WritabilityKind.Local },
+                            mutation = CollectionMutationKind.Add,
+                            args = new Pointer[] { Variable("entry") },
+                        },
+                    },
+                }, mutationScope, client.CreateGetterContext(NeoValueOwnership.Session));
+                // Reading a tuple element follows its existing live list handle.
+                var readElement = new FunctionPointer
+                {
+                    type = PointerKind.Function,
+                    function = new TupleElementFunction
+                    {
+                        type = FunctionKind.TupleElement,
+                        info = new FunctionTupleElementInfo { tuplePointer = call, index = 0 },
+                    },
+                };
+                var currentList = (object?[])Evaluate(client, listType, readElement, NeoValueOwnership.Session)!;
+                Assert.AreEqual(2, currentList.Length);
+            }
+            Assert.AreEqual(1, evaluations, "Hits retain values, not merely dependencies.");
+            string id = report.valueId!;
+            report.Total = 19;
+            Assert.AreEqual(id, ReadReport(client, Read()).valueId);
+            Assert.AreEqual(19, ReadReport(client, Read()).Total);
+            Assert.AreNotEqual(id, client.ImportValueReference(NeoValueOwnership.Save, id));
+            var heard = new List<TestReport>();
+            using IDisposable watch = owner.WatchAnyChange((_, changed, _) =>
+            {
+                if (changed.member.id == property.id)
+                    heard.Add(ReadReport(client, Read()));
+            });
+            Assert.IsTrue(client.TryGetValue(NeoValueOwnership.Session, receiverId, out ObjectMemberValue? row));
+            client.SetWritableValue(NeoValueOwnership.Session, new NumberMemberValue { id = row!.value!["Score"], value = 8 });
+            Assert.AreEqual(1, heard.Count);
+            Assert.AreEqual(2, evaluations, "Notification preparation, callback, and consumer share one rebuild.");
+            Assert.AreSame(heard[0], ReadReport(client, Read()));
+            Assert.AreEqual(materialize ? 9 : 8, heard[0].Total);
+            Assert.AreEqual(19, report.Total, "Existing holders retain the retired result.");
+            client.Dispose();
+            Assert.IsNull(memo.list, "Disposal releases cached graphs, including entries retained by a property view.");
+            Assert.IsNull(client.FindMemoizedGetter(key));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ConstructedListGetter_PreservesLiveFieldOriginsAndNestedLists(bool nested)
+        {
+            using NeoClient client = BuildClient();
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? property));
+            var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = LineType };
+            var resultType = nested
+                ? new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = listType }
+                : listType;
+            Pointer field = Key(Report(ThisScore()), "Lines");
+            property!.returnTypeInfo = resultType;
+            property.getter.typeInfo = resultType;
+            property.getter.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = nested ? new ListLiteralPointer { type = PointerKind.ListLiteral, typeInfo = resultType, entries = new[] { field } } : field,
+                },
+            };
+            using var line = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            var getter = line.Get<NeoMemberNSProperty>("Summary");
+            object?[] Read()
+            {
+                var result = getter.Compute("line-a");
+                Assert.IsTrue(result.ok, result.error);
+                var value = (object?[])result.value!;
+                return nested ? (object?[])value[0]! : value;
+            }
+            var first = Read();
+            Assert.AreSame(first[0], Read()[0]);
+            Assert.IsTrue(NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(first, out var origin));
+            TestReport owner = ReadReport(client, origin!.owner);
+            TestLine added = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client,
+                Evaluate(client, LineType, Line()), true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+            owner.Lines.Add(added);
+            Assert.AreEqual(2, Read().Length, "The memo retains the live list slot, not its old array.");
+            _ = owner.valueId;
+            Assert.AreEqual(2, Read().Length, "The same slot remains live after materialization.");
+            Assert.AreEqual(added.valueId, NeoGeneratedTypesSupport.ValueId(Read()[1]));
+        }
+
+        [TestCase(32)]
+        [TestCase(256)]
+        public void ConstructedListGetter_EagerSiblingProjectionEvaluatesOnce(int count)
+        {
+            var finalize = new FunctionMember
+            {
+                id = "finalize-report",
+                name = "FinalizeReport",
+                projectId = ProjectId,
+                kind = MemberKind.Function,
+                Modifier = NeoMemberModifierKind.Static,
+                returnTypeInfo = ReportType,
+                argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "report", type = MemberKind.Class, classId = "class-report", required = true } },
+                Dispatch = NeoFunctionDispatchKind.Synchronous,
+            };
+            using NeoClient client = BuildClient(extraMember: finalize);
+            int evaluations = 0;
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                [finalize.id] = (_, _, args, _) =>
+                {
+                    evaluations++;
+                    _ = ReadReport(client, args[0]).valueId;
+                    return args[0];
+                },
+            });
+            Assert.IsTrue(client.TryGetMember("member-line-summary", out NSPropertyMember? property));
+            var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = LineType };
+            var lines = new Pointer[count];
+            for (int i = 0; i < count; i++)
+                lines[i] = Line();
+            var report = Report(ThisScore());
+            ((ClassConstructorFunction)report.function).info.fields[1].valuePointer = new ListLiteralPointer
+            {
+                type = PointerKind.ListLiteral,
+                typeInfo = listType,
+                entries = lines,
+            };
+            property!.returnTypeInfo = listType;
+            property.getter.typeInfo = listType;
+            property.getter.instructions = new Instruction[]
+            {
+                new ReturnInstruction
+                {
+                    type = InstructionKind.Return,
+                    pointer = new FunctionPointer
+                    {
+                        type = PointerKind.Function,
+                        function = new CollectionQueryFunction
+                        {
+                            type = FunctionKind.CollectionQuery,
+                            info = new FunctionCollectionQueryInfo
+                            {
+                                op = "Reverse",
+                                collectionPointer = Key(new CallFunctionPointer
+                                {
+                                    type = PointerKind.CallFunction, memberId = finalize.id, receiver = CallReceiver.Static(finalize.id),
+                                    args = new Pointer[] { report }, callSiteId = "finalize-report-call",
+                                }, "Lines"),
+                            },
+                        },
+                    },
+                },
+            };
+            using var source = new NeoMemberClass(client, "member-report-line", "line-a", NeoValueOwnership.Asset);
+            var getter = source.Get<NeoMemberNSProperty>("Summary");
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            var first = getter.Compute("line-a");
+            timer.Stop();
+            Assert.IsTrue(first.ok, first.error);
+            double cold = timer.Elapsed.TotalMilliseconds;
+            var entries = (object?[])first.value!;
+            Assert.AreEqual(count, entries.Length);
+            string? id = NeoGeneratedTypesSupport.ValueId(entries[0]);
+            timer.Restart();
+            for (int i = 0; i < 100; i++)
+            {
+                var result = getter.Compute("line-a");
+                Assert.IsTrue(result.ok, result.error);
+                Assert.AreEqual(id, NeoGeneratedTypesSupport.ValueId(((object?[])result.value!)[0]));
+            }
+            timer.Stop();
+            Assert.AreEqual(1, evaluations);
+            TestContext.WriteLine($"eager siblings={count} cold-ms={cold:F3} cached-read-ms={timer.Elapsed.TotalMilliseconds / 100:F4} evaluations={evaluations}");
+        }
+
         [Test]
         public void ConstructedGetter_SharesItsMutableResultAcrossExecutions()
         {
@@ -1166,7 +1506,7 @@ namespace NeoCompose.Tests
                 }));
 
         /// <summary><c>return value;</c></summary>
-        private static object? Evaluate(NeoClient client, ClassTypeInfo type, Pointer value, NeoValueOwnership ownership = NeoValueOwnership.Save) =>
+        private static object? Evaluate(NeoClient client, TypeInfo type, Pointer value, NeoValueOwnership ownership = NeoValueOwnership.Save) =>
             NSGetterEvaluator.Evaluate(
                 new FunctionWithReturnType
                 {

@@ -1011,6 +1011,26 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Compute_MemoizedListKeepsMixedSessionSaveAndAssetEntries()
+        {
+            using var client = BuildClient(out NSPropertyMember property);
+            var type = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "class-root" };
+            property.getter = ListGetter(KeyOf(RootVariable(), "Save"), type);
+            var returned = (ReturnInstruction)property.getter.instructions[0];
+            ((ListLiteralPointer)returned.pointer).entries = new Pointer[]
+            {
+                KeyOf(RootVariable(), "Session"), KeyOf(RootVariable(), "Save"), KeyOf(RootVariable(), "Assets"),
+            };
+            var node = new NeoMemberNSProperty(client, property, null);
+            var first = node.Compute("value-receiver");
+            Assert.IsTrue(first.ok, first.error);
+            Assert.IsTrue(client.FindMemoizedGetter(ListKey(property)) is { list: not null, valueless: false });
+            var second = (object?[])node.Compute("value-receiver").value!;
+            CollectionAssert.AreEqual(new[] { "value-session", "value-save", "value-assets" },
+                Array.ConvertAll(second, entry => ((INeoValueReference)entry!).valueId));
+        }
+
+        [Test]
         public void ForEach_RecyclesOnlyTheListItsOwnMemoHitLent()
         {
             using var client = BuildClient(out NSPropertyMember property);

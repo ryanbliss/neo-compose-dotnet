@@ -1073,8 +1073,9 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { 1, 1, 1 }, heard, "The run reads the cell again.");
         }
 
-        [Test]
-        public void NeoScriptGridQuery_AConstructedGetterSharesEachWatcherRebuild()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NeoScriptGridQuery_AConstructedGetterSharesEachWatcherRebuild(bool collection)
         {
             ProjectData data = BuildGridGetterProjectData();
             var resultType = new ClassTypeInfo { type = MemberKind.Class, classId = "query-result", required = true };
@@ -1114,6 +1115,19 @@ namespace NeoCompose.Tests
                     },
                 },
             };
+            if (collection)
+            {
+                var listType = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = resultType };
+                property.returnTypeInfo = listType;
+                property.getter.typeInfo = listType;
+                var returned = (ReturnInstruction)property.getter.instructions[1];
+                returned.pointer = new ListLiteralPointer
+                {
+                    type = PointerKind.ListLiteral,
+                    typeInfo = listType,
+                    entries = new[] { returned.pointer },
+                };
+            }
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             RegisterGridGetterContent(client);
             var view = TestGridGetterView.Resolve(client, "shop-1");
@@ -1122,7 +1136,7 @@ namespace NeoCompose.Tests
             {
                 NSGetterResult result = getter.Compute("shop-1");
                 Assert.IsTrue(result.ok, result.error);
-                return result.value;
+                return collection ? ((object?[])result.value!)[0] : result.value;
             }
             object? first = Read();
             Assert.AreSame(first, Read());

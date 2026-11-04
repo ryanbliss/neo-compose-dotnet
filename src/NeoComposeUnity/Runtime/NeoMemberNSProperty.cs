@@ -186,7 +186,7 @@ namespace NeoCompose.Runtime
                     if (hit.list is not null)
                     {
                         var listCtx = client.CreateGetterContext(ownership);
-                        if (NSGetterEvaluator.ResolveMemoizedList(hit.list, hit.listEntryMember, listCtx) is { } hitList)
+                        if (NSGetterEvaluator.ResolveMemoizedCollection(hit.list, listCtx) is { } hitList)
                         {
                             client.ReplayGetterReads(hit);
                             return NSGetterResult.Ok(NSGetterEvaluator.ResolveHostCollection(hitList, listCtx));
@@ -298,9 +298,9 @@ namespace NeoCompose.Runtime
                     client.ShareConstructedGetterRow(resultRef, value, ctx, capture);
                     memoEntry = client.MemoizeGetter(memoKey, null, resultRef, capture);
                 }
-                else if (value is object?[] entries
-                    && NSGetterEvaluator.MemoizableList(entries, ctx, out Member? entryMember) is { } list)
-                    memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
+                else if (value is object?[] or System.Collections.Generic.Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+                    && NSGetterEvaluator.MemoizableCollection(value, ctx, capture) is { } list)
+                    memoEntry = client.MemoizeGetter(memoKey, null, null, capture, list);
                 else
                     client.MemoizeGetterReads(memoKey, capture);
                 memoRowId = memoKey.rowId;
