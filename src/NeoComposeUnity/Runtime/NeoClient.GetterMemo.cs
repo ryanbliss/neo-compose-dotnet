@@ -1181,6 +1181,9 @@ namespace NeoCompose.Runtime
         /// <summary>Drops every memoized getter that read one of the changed rows.</summary>
         private void InvalidateGetterMemoForRows(HashSet<(NeoValueOwnership ownership, string valueId)> changed)
         {
+            if (NeoScript.NSGetterEvaluator.HasStoredEqualityIndexes(this))
+                foreach (var (ownership, valueId) in changed)
+                    NeoScript.NSGetterEvaluator.InvalidateStoredEquality(this, ownership, valueId);
             if (!HasReadDependents && !Random.HasStoredInstances)
                 return;
             foreach (var (ownership, valueId) in changed)

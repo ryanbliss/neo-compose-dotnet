@@ -171,9 +171,8 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Validates a <c>BuiltInComparer</c> payload. A
-        /// <c>Default</c>, <c>SetEquality</c> or <c>Create</c> comparer stores
-        /// its closed <c>type</c>; only <c>Create</c> stores
-        /// <c>delegates</c>, each a stored <c>NSDelegate</c> value.
+        /// <c>Default</c> or <c>SetEquality</c> comparer stores its closed
+        /// <c>type</c>. Create delegates use the ordinary stored delegate shape.
         /// </summary>
         internal static (NeoBuiltInComparerKind kind, NeoComparerFamilyKind family) ValidateBuiltInComparer(JToken? payload, string context)
         {
@@ -219,11 +218,15 @@ namespace NeoCompose.Runtime.Json
                     ? "EqualityComparer<T>.Create stores [equals, getHashCode?]"
                     : "Comparer<T>.Create stores [comparison]");
             }
-            foreach (JToken entry in delegates)
+            for (int i = 0; i < delegates.Count; i++)
             {
-                if (!NeoDelegateValueConverter.LooksLikeValue(entry))
-                    throw Error(context, "each delegate must be a bound member target or a closure");
-                entry.ToObject<NeoDelegateValue>();
+                if (delegates[i] is not JObject storedDelegate)
+                    throw Error(context, $"Create delegate {i} must be an object");
+                NeoDelegateValue value = storedDelegate.ToObject<NeoDelegateValue>()!;
+                if (value.IsClosure && string.IsNullOrWhiteSpace(value.code))
+                    throw Error(context, $"stores a Create comparer whose delegate {i} has no source to compile");
+                if (value.captures is { Length: > 0 })
+                    throw Error(context, $"comparer delegate {i} cannot capture values");
             }
             return (kind, family);
         }
@@ -381,8 +384,7 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// P127 §1.3 and §7.2. The system classes a held built-in comparer
     /// comes from, by class id. System ids are contract ids, the same in
-    /// every project (P39 §1.1a), so one table serves every project: each
-    /// project load registers the comparer classes its export holds.
+    /// every project (P39 §1.1a), so one minted table serves every project.
     /// </summary>
     internal static class NeoSystemComparerClasses
     {
@@ -390,72 +392,40 @@ namespace NeoCompose.Runtime.Json
         internal const string Comparer = "Comparer";
         internal const string ReferenceEqualityComparer = "ReferenceEqualityComparer";
 
-        private static readonly ConcurrentDictionary<string, string> NamesById = new(StringComparer.Ordinal);
+        internal const string ReferenceEqualityComparerId = "system_07f7d2cd-daab-411d-9637-cbf7594893f1";
+        internal const string ComparerId = "system_2848aabe-772e-43a0-b230-c63a36d19a1b";
+        internal const string EqualityComparerId = "system_624b009f-dadc-469f-83be-db6ba3294971";
 
-        /// <summary>Registers the comparer classes among an export's <c>classes</c> map.</summary>
-        internal static void Register(JToken? classes)
+        internal static string? NameOf(string classId) => classId switch
         {
-            if (classes is not JObject map)
-                return;
-            foreach (JProperty property in map.Properties())
+            EqualityComparerId => EqualityComparer,
+            ComparerId => Comparer,
+            ReferenceEqualityComparerId => ReferenceEqualityComparer,
+            _ => null,
+        };
+
+        // Member ids are pinned by the system schema; overloaded names are
+        // not sufficient to distinguish the non-generic entry points.
+        internal static readonly IReadOnlyDictionary<string, (string Owner, string Operation)> Operations =
+            new Dictionary<string, (string, string)>(StringComparer.Ordinal)
             {
-                if (property.Value is not JObject schemaClass
-                    || schemaClass["id"]?.Type != JTokenType.String
-                    || schemaClass["name"]?.Type != JTokenType.String)
-                {
-                    continue;
-                }
-                string id = schemaClass.Value<string>("id")!;
-                if (!id.StartsWith("system_", StringComparison.Ordinal))
-                    continue;
-                string name = schemaClass.Value<string>("name")!;
-                int arity = schemaClass["genericParams"] is JArray parameters ? parameters.Count : 0;
-                if (arity == 1 && (name == EqualityComparer || name == Comparer)
-                    || arity == 0 && name == ReferenceEqualityComparer)
-                {
-                    NamesById[id] = name;
-                }
-            }
-        }
+                ["system_2b1546e0-95ee-4529-bc4f-09507d4cda27"] = (ReferenceEqualityComparer, "GetInstance"),
+                ["system_875b9ee4-ee02-400f-addf-95f1a0af4b7e"] = (ReferenceEqualityComparer, "Equals"),
+                ["system_e44698d7-5fd4-4a70-b0d1-90ea065024e2"] = (ReferenceEqualityComparer, "GetHashCode"),
+                ["system_4abc87b5-da88-4feb-aa49-2f2bcc40ef5f"] = (ReferenceEqualityComparer, "GetHashCode"),
+                ["system_aa5cb4c4-1492-48f4-a58b-3bd2e2539ca8"] = (ReferenceEqualityComparer, "GetHashCode"),
+                ["system_53041aa0-ad45-4bf7-a995-367394b660cb"] = (Comparer, "GetDefault"),
+                ["system_66941395-a39c-420b-b3bc-13d01141f4d1"] = (Comparer, "Create"),
+                ["system_b45b77cd-ba29-45c8-85bb-e0c293f0edc2"] = (Comparer, "Compare"),
+                ["system_37a5ce29-bc05-4fbf-b752-82caebe71e89"] = (Comparer, "CompareObject"),
+                ["system_b5d0bc7f-8f01-48c2-a683-98c3f75dac87"] = (EqualityComparer, "GetDefault"),
+                ["system_fedbd8cd-50e9-44a4-8a79-6ac3da8f8fc5"] = (EqualityComparer, "Create"),
+                ["system_1199e1ec-4232-42ae-a67f-bb0b889c32c3"] = (EqualityComparer, "Equals"),
+                ["system_8b820172-3b60-40af-aa63-4163cb3e57f3"] = (EqualityComparer, "GetHashCode"),
+                ["system_5df2ea47-f04b-4e44-b6ba-30d40e938483"] = (EqualityComparer, "EqualsObject"),
+                ["system_954562aa-03c7-46bf-be0e-bd0a58e88337"] = (EqualityComparer, "GetHashCodeObject"),
+            };
 
-        /// <summary>The comparer class <paramref name="classId"/> names, or null.</summary>
-        internal static string? NameOf(string classId) =>
-            NamesById.TryGetValue(classId, out string? name) ? name : null;
-
-        /// <summary>
-        /// INTERIM (P127 §8.1): the closed interfaces comparer class
-        /// <paramref name="name"/> implements, with <paramref name="typeArgument"/>
-        /// as its <c>T</c>, or null for another class. The spec has these
-        /// classes conform through their class records' interface lists, as
-        /// authored classes do; this stands in until those records are
-        /// minted, then goes away. Twin of the TypeScript
-        /// <c>interimBuiltInComparerConstructions</c>.
-        /// </summary>
-        internal static NeoClosedConstruction[]? InterimConstructions(string? name, NeoRuntimeTypeKey? typeArgument)
-        {
-            switch (name)
-            {
-                case EqualityComparer:
-                    return typeArgument is null
-                        ? new[] { Closed("IEqualityComparer") }
-                        : new[] { Closed("IEqualityComparer`1", typeArgument), Closed("IEqualityComparer") };
-                case Comparer:
-                    return typeArgument is null
-                        ? new[] { Closed("IComparer") }
-                        : new[] { Closed("IComparer`1", typeArgument), Closed("IComparer") };
-                case ReferenceEqualityComparer:
-                    return new[]
-                    {
-                        Closed("IEqualityComparer`1", NeoPrimitiveConformance.Builtin("object")),
-                        Closed("IEqualityComparer"),
-                    };
-                default:
-                    return null;
-            }
-        }
-
-        private static NeoClosedConstruction Closed(string name, params NeoRuntimeTypeKey[] arguments) =>
-            new NeoClosedConstruction(NeoPrimitiveConformance.InterfaceId(name), arguments);
     }
 
     /// <summary>
@@ -468,6 +438,7 @@ namespace NeoCompose.Runtime.Json
     [JsonConverter(typeof(NeoCollectionComparerConverter))]
     public sealed class NeoCollectionComparer
     {
+        [JsonIgnore] internal object? runtimeIdentity;
         public NeoCollectionComparerKind kind;
 
         /// <summary>The <c>BuiltInComparer</c> payload of a <c>BuiltIn</c> comparer.</summary>

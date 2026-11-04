@@ -34,6 +34,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             try
             {
+                if (instruction is CollectionCallInstruction { equality: not null } or CollectionCallInstruction { ordering: not null })
+                    return true;
                 if (instruction is ForEachInstruction { collectionTypeInfo: { type: MemberKind.Interface or MemberKind.Class } })
                     return true;
                 return AnyPointer(instruction, IsCall);
@@ -45,7 +47,8 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         private static readonly Func<Pointer, bool> IsCall =
-            pointer => pointer is CallFunctionPointer or ObjectInitializerPointer or IncrementPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
+            pointer => pointer is FunctionPointer { function: ContainsFunction { info: { equality: not null } } or IndexOfFunction { info: { equality: not null } } or CollectionQueryFunction { info: { equality: not null } or { ordering: not null } } }
+                or CallFunctionPointer or ObjectInitializerPointer or IncrementPointer or SequenceConversionPointer { operation: not "retainCollectionType" };
 
         private static bool AnyPointer(
             Instruction instruction,
@@ -84,7 +87,10 @@ namespace NeoCompose.Runtime.NeoScript
                 case CollectionCallInstruction collectionCall:
                     if (AnyPointer(collectionCall.target.pointer, predicate))
                         return true;
-                    return AnyPointer(collectionCall.args, predicate) || (collectionCall.comparison is not null && AnyPointer(collectionCall.comparison.instructions, predicate));
+                    return Optional(collectionCall.equality?.comparer, predicate)
+                        || Optional(collectionCall.ordering?.comparer, predicate)
+                        || Optional(collectionCall.index, predicate) || Optional(collectionCall.count, predicate)
+                        || AnyPointer(collectionCall.args, predicate) || (collectionCall.comparison is not null && AnyPointer(collectionCall.comparison.instructions, predicate));
                 case FunctionCallInstruction functionCall:
                     return AnyPointer(functionCall.call, predicate);
                 case WhileInstruction loop:
@@ -161,6 +167,9 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        private static bool Optional(Pointer? pointer, Func<Pointer, bool> predicate) =>
+            pointer is not null && AnyPointer(pointer, predicate);
+
         private static bool AnyPointer(
             Pointer pointer,
             Func<Pointer, bool> predicate)
@@ -178,7 +187,12 @@ namespace NeoCompose.Runtime.NeoScript
                         || AnyPointer(keyOf.keyOf.key, predicate);
                 case ListLiteralPointer list:
                     return AnyPointer(list.entries, predicate);
+                case CollectionComparerPointer comparer:
+                    return Optional(comparer.collection, predicate);
                 case DictLiteralPointer dictionary:
+                    if (Optional(dictionary.capacity, predicate) || Optional(dictionary.copyFrom, predicate)
+                        || Optional(dictionary.equality?.comparer, predicate))
+                        return true;
                     foreach (DictLiteralPair entry in
                         dictionary.entries ?? Array.Empty<DictLiteralPair>())
                     {
@@ -246,7 +260,7 @@ namespace NeoCompose.Runtime.NeoScript
                         || AnyPointer(conditional.whenTrue, predicate)
                         || AnyPointer(conditional.whenFalse, predicate);
                 case DelegateClosurePointer closure:
-                    return AnyPointer(closure.captures, predicate)
+                    return Optional(closure.target, predicate) || AnyPointer(closure.captures, predicate)
                         || AnyPointer(closure.action.instructions, predicate);
                 case ToBoolPointer boolean:
                     return AnyPointer(boolean.pointer, predicate);
@@ -338,7 +352,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return AnyPointer(select.info.collectionPointer, predicate)
                         || AnyPointer(select.info.function.instructions, predicate);
                 case CollectionQueryFunction query:
-                    return AnyPointer(query.info.collectionPointer, predicate)
+                    return Optional(query.info.capacity, predicate) || Optional(query.info.equality?.comparer, predicate)
+                        || Optional(query.info.ordering?.comparer, predicate) || AnyPointer(query.info.collectionPointer, predicate)
                         || (query.info.countPointer is not null && AnyPointer(query.info.countPointer, predicate))
                         || (query.info.otherPointer is not null && AnyPointer(query.info.otherPointer, predicate))
                         || (query.info.seedPointer is not null && AnyPointer(query.info.seedPointer, predicate))
@@ -360,10 +375,10 @@ namespace NeoCompose.Runtime.NeoScript
                         || (count.info.function is not null
                             && AnyPointer(count.info.function.instructions, predicate));
                 case ContainsFunction contains:
-                    return AnyPointer(contains.info.collectionPointer, predicate)
+                    return Optional(contains.info.equality?.comparer, predicate) || AnyPointer(contains.info.collectionPointer, predicate)
                         || AnyPointer(contains.info.valuePointer, predicate);
                 case IndexOfFunction indexOf:
-                    return AnyPointer(indexOf.info.collectionPointer, predicate)
+                    return Optional(indexOf.info.equality?.comparer, predicate) || AnyPointer(indexOf.info.collectionPointer, predicate)
                         || AnyPointer(indexOf.info.valuePointer, predicate);
                 case VisitCountFunction visitCount:
                     return AnyPointer(visitCount.info.pointer, predicate);
@@ -383,7 +398,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case TupleElementFunction tuple:
                     return AnyPointer(tuple.info.tuplePointer, predicate);
                 case TupleEqualFunction tuple:
-                    return AnyPointer(tuple.info.left, predicate) || AnyPointer(tuple.info.right, predicate);
+                    return Optional(tuple.info.equality?.comparer, predicate) || AnyPointer(tuple.info.left, predicate) || AnyPointer(tuple.info.right, predicate);
                 case VectorConstructorFunction vector:
                     return AnyPointer(vector.info.componentPointers, predicate);
                 case ImageSliceFunction slice:

@@ -25,6 +25,16 @@ namespace NeoCompose.Runtime.NeoScript
             snapshot = null;
             return true;
         }
+        internal void Set(TKey key, TValue value)
+        {
+            if (keys.TryGetValue(key, out var entry))
+            {
+                entry.node.Value = value;
+                snapshot = null;
+            }
+            else
+                Add(key, value);
+        }
         internal bool Remove(TKey key)
         {
             if (!keys.TryGetValue(key, out var node))

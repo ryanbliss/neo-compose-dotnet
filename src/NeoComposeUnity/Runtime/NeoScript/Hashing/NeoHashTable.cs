@@ -110,9 +110,12 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         /// <c>HashSet</c> whose comparer equals this one (<c>ConstructFrom</c>):
         /// its slots are copied, or re-added when they would fit a smaller table.
         /// </summary>
-        internal static NeoHashTable<TKey, TValue> CopySet(NeoHashTable<TKey, TValue> source)
+        /// <param name="preserveHashes">The evaluator's equal-comparer copy
+        /// contract retains hashes even when compacting a sparse table.</param>
+        /// <param name="comparer">The destination's equal comparer, when supplied.</param>
+        internal static NeoHashTable<TKey, TValue> CopySet(NeoHashTable<TKey, TValue> source, bool preserveHashes = false, IEqualityComparer<TKey>? comparer = null)
         {
-            var table = new NeoHashTable<TKey, TValue>(source.Comparer, NeoHashTableKind.Set);
+            var table = new NeoHashTable<TKey, TValue>(comparer ?? source.Comparer, NeoHashTableKind.Set);
             if (source.Count == 0 || source.buckets is null)
                 return table;
             if (NeoHashPrimes.ExpandPrime(source.Count + 1) >= source.buckets.Length)
@@ -128,6 +131,11 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
                 return table;
             }
             table.Initialize(source.Count);
+            if (preserveHashes)
+            {
+                table.CompactFrom(source.count, source.hashCodes, source.nexts, source.keyAt, source.valueAt);
+                return table;
+            }
             for (int i = 0; i < source.count; i++)
             {
                 if (source.nexts[i] >= -1)
@@ -144,12 +152,13 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         internal static NeoHashTable<TKey, TValue> CopyDictionary(
             NeoHashTable<TKey, TValue> source,
             IEqualityComparer<TKey> comparer,
-            Func<TKey, string>? keyText = null)
+            Func<TKey, string>? keyText = null,
+            bool sameComparer = false)
         {
             var table = new NeoHashTable<TKey, TValue>(comparer, NeoHashTableKind.Dictionary, source.Count, keyText);
             if (source.Count == 0)
                 return table;
-            if (ReferenceEquals(comparer, source.Comparer))
+            if (sameComparer || ReferenceEquals(comparer, source.Comparer))
             {
                 table.CompactFrom(source.count, source.hashCodes, source.nexts, source.keyAt, source.valueAt);
                 return table;
@@ -159,6 +168,26 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
                 if (source.nexts[i] >= -1)
                     table.Add(source.keyAt[i], source.valueAt[i], NeoInsertBehavior.Throw);
             }
+            return table;
+        }
+
+        /// <summary>Projects values without invoking the key comparer again.</summary>
+        internal NeoHashTable<TKey, TResult> MapValues<TResult>(Func<TValue, TResult> project, NeoHashTableKind kind)
+        {
+            var table = new NeoHashTable<TKey, TResult>(Comparer, kind, keyText: keyText)
+            {
+                buckets = buckets is null ? null : (int[])buckets.Clone(),
+                hashCodes = (int[])hashCodes.Clone(),
+                nexts = (int[])nexts.Clone(),
+                keyAt = (TKey[])keyAt.Clone(),
+                valueAt = new TResult[valueAt.Length],
+                count = count,
+                freeList = freeList,
+                freeCount = freeCount,
+            };
+            for (int i = 0; i < count; i++)
+                if (nexts[i] >= -1)
+                    table.valueAt[i] = project(valueAt[i]);
             return table;
         }
 
@@ -188,8 +217,17 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         internal TValue ValueAt(int index) => valueAt[index];
 
         /// <summary><c>AddIfNotPresent</c>/<c>TryInsert</c>: true when the key was added (or, overwriting, its value set).</summary>
-        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior)
+        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior) => Insert(key, value, behavior, out _, out _);
+
+        /// <summary>Returns the canonical key without probing the comparer a second time.</summary>
+        internal bool Add(TKey key, TValue value, NeoInsertBehavior behavior, out TKey storedKey) => Insert(key, value, behavior, out _, out storedKey);
+
+        internal bool GetOrAdd(TKey key, TValue value, out TValue stored) => Insert(key, value, NeoInsertBehavior.None, out stored, out _);
+
+        private bool Insert(TKey key, TValue value, NeoInsertBehavior behavior, out TValue stored, out TKey storedKey)
         {
+            stored = value;
+            storedKey = key;
             CheckKey(key);
             if (buckets is null)
                 Initialize(0);
@@ -201,6 +239,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
             {
                 if (hashCodes[i] == hashCode && Comparer.Equals(keyAt[i], key))
                 {
+                    storedKey = keyAt[i];
                     if (behavior == NeoInsertBehavior.Overwrite)
                     {
                         valueAt[i] = value;
@@ -208,6 +247,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
                     }
                     if (behavior == NeoInsertBehavior.Throw)
                         throw NeoHashingErrors.DuplicateKey(keyText(key));
+                    stored = valueAt[i];
                     return false;
                 }
                 i = nexts[i];
@@ -238,8 +278,11 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         }
 
         /// <summary><c>Remove</c>: frees the key's slot, which the next insert reuses first.</summary>
-        internal bool Remove(TKey key)
+        internal bool Remove(TKey key) => Remove(key, out _);
+
+        internal bool Remove(TKey key, out TKey removed)
         {
+            removed = default!;
             CheckKey(key);
             if (buckets is null)
                 return false;
@@ -256,6 +299,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
                     else
                         nexts[last] = nexts[i];
                     nexts[i] = StartOfFreeList - freeList;
+                    removed = keyAt[i];
                     keyAt[i] = default!;
                     valueAt[i] = default!;
                     freeList = i;

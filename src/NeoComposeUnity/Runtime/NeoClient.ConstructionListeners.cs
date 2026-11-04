@@ -231,6 +231,8 @@ namespace NeoCompose.Runtime
                         Visit(child);
                     foreach (var child in node.dictionaryChildren.Values)
                         Visit(child);
+                    if (node.comparerChild is not null)
+                        Visit(node.comparerChild);
                     spans[node] = (start, sequence);
                 }
                 Visit(root);

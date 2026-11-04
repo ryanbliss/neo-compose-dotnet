@@ -16,6 +16,12 @@ namespace NeoCompose.Runtime
     /// </summary>
     public sealed class NeoValuePayload
     {
+        /// <summary>The comparer retained by a Set or Dictionary assignment.</summary>
+        public NeoCollectionComparer? comparer
+        {
+            get; set;
+        }
+
         public object? value
         {
             get;

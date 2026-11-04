@@ -6,6 +6,9 @@
 using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript.Ordering;
+using NeoCompose.Runtime.NeoScript.Hashing;
+using NeoCompose.Runtime.NeoScript.Numerics;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -117,7 +120,7 @@ namespace NeoCompose.Runtime.NeoScript
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, object> detachedCollectionAliases = new();
 
         internal static bool IsUnboundMutableCollection(object? value, Context ctx) =>
-            value is RuntimeSet or Dictionary<string, object?> && FindRowReference(value, ctx) is null;
+            value is RuntimeSet or RuntimeDictionary or Dictionary<string, object?> && FindRowReference(value, ctx) is null;
 
         internal static void PrepareAssignedCollectionAlias(
             NeoWritePlan plan, Context ctx, NeoValueOwnership ownership,
@@ -156,7 +159,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     foreach (object alias in aliases)
                     {
-                        if (alias is not (RuntimeSet or object?[] or Dictionary<string, object?>)
+                        if (alias is not (RuntimeSet or object?[] or RuntimeDictionary or Dictionary<string, object?>)
                             || FindRowReference(alias, ctx) is not { } reference
                             || reference.valueId != valueId || reference.ownership != ownership)
                             continue;
@@ -170,8 +173,8 @@ namespace NeoCompose.Runtime.NeoScript
                     detachedCollectionAliases.AddOrUpdate(outgoing, outgoing);
                     assignedCollections.Remove(outgoing);
                     InvalidateCachedCollection(valueId, ownership, ctx);
-                    if (outgoing is Dictionary<string, object?> dictionary
-                        && snapshot is Dictionary<string, object?> values)
+                    if (outgoing is IDictionary<string, object?> dictionary
+                        && snapshot is IDictionary<string, object?> values)
                     {
                         dictionary.Clear();
                         foreach (var pair in values)
@@ -297,7 +300,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return;
             var reference = new RowReference(id, ownership, row.classId, member);
             SetRowReference(ctx, value, reference);
-            if (value is RuntimeSet or Dictionary<string, object?>)
+            if (value is RuntimeSet or RuntimeDictionary or Dictionary<string, object?>)
             {
                 assignedCollections.AddOrUpdate(value, ctx.rowReverseIndex);
                 PatchCachedShape(row, value, ctx);
@@ -428,6 +431,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static object? RuntimeSetKey(object? value, RuntimeSet set, Context ctx)
         {
+            if (set.Equality is not null)
+                return ResolveValueIfId(value, ctx);
             if (set.EnumEntries && value is object?[] { Length: 1 } selected)
                 value = selected[0];
             if (set.DecimalEntries && value is not null)
@@ -491,7 +496,31 @@ namespace NeoCompose.Runtime.NeoScript
                 orderedResults.Remove(paired);
         }
 
-        private static object? QueryEntry(object? entry, bool? enumEntries) => enumEntries == true && entry is string ? new object?[] { entry } : entry;
+        private static object? QueryEntry(object? entry, bool? enumEntries) => enumEntries == true && entry is string ? MarkEnumValue(new object?[] { entry }) : entry;
+
+        private static object EqualitySetQuery(FunctionCollectionQueryInfo info, object? collection, NeoScriptScope scope, Context ctx)
+        {
+            int capacity = info.capacity is null ? 0 : NeoInt32.Wrap(Number(EvalPointer(info.capacity, scope, ctx)!));
+            var equality = BindEquality(info.equality!, scope, ctx);
+            var table = new NeoHashTable<object?, object?>(equality, NeoHashTableKind.Set, capacity);
+            if (info.op == "ToSet" && RuntimeCollection(collection, ctx) is RuntimeSet { Table: { } original, Equality: { } sourceEquality } originalSet
+                && SameEquality(sourceEquality, equality, ctx))
+                return KeepDerived(new RuntimeSet(NeoHashTable<object?, object?>.CopySet(original, preserveHashes: true, comparer: equality), equality, originalSet), CollectionEntryMember(collection, ctx), true);
+            var cursor = new CollectionCursor(collection, ctx);
+            try
+            {
+                while (cursor.MoveNextUnresolved())
+                {
+                    object? entry = cursor.ResolveEntry(ctx);
+                    table.Add(entry, entry, NeoInsertBehavior.None);
+                }
+            }
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally { cursor.Dispose(); }
+            if (info.op == "ToSet")
+                return KeepDerived(new RuntimeSet(table, equality), CollectionEntryMember(collection, ctx), true);
+            return KeepDerived(table.Keys().ToArray(), CollectionEntryMember(collection, ctx), true);
+        }
 
         private static object? EvalCollectionQuery(
             FunctionCollectionQueryInfo info,
@@ -500,6 +529,10 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? collection = ListQueryReceiver(EvalPointer(info.collectionPointer, scope, ctx), ctx);
             bool isList = CollectionIsList(collection);
+            if (info.equality is not null && info.op is "Distinct" or "ToSet")
+                return EqualitySetQuery(info, collection, scope, ctx);
+            if (info.op == "ToSet" && info.capacity is not null && Number(EvalPointer(info.capacity, scope, ctx)!) < 0)
+                throw NeoHashingErrors.CapacityRange();
             if (info.op is "Aggregate" or "Zip")
                 return EvalPairQuery(info, collection, scope, ctx);
             double count = 0;
@@ -538,12 +571,12 @@ namespace NeoCompose.Runtime.NeoScript
             try
             {
                 if (info.op is "Sum" or "Average" or "Min" or "Max" or "MinBy" or "MaxBy")
-                    return result = ReduceCollection(info, collection, ref callback, ctx);
+                    return result = ReduceCollection(info, collection, ref callback, scope, ctx);
                 if (info.op is "GroupBy" or "ToDictionary")
                     return result = DictionaryQuery(info, collection, ref callback, scope, ctx);
                 if (info.op is "OrderBy" or "OrderByDescending" or "ThenBy" or "ThenByDescending")
                 {
-                    object?[] ordered = OrderCollection(collection, info, ref callback, ctx);
+                    object?[] ordered = OrderCollection(collection, info, ref callback, scope, ctx);
                     // Each entry was resolved, so a string there is a value.
                     return KeepDerived(ordered, CollectionEntryMember(collection, ctx), HasString(ordered));
                 }
@@ -744,41 +777,49 @@ namespace NeoCompose.Runtime.NeoScript
                         return StringComparer.Ordinal.GetHashCode(text);
                     case bool flag:
                         return flag ? 1 : 2;
-                    case object?[] array:
-                        {
-                            int hash = 17;
-                            foreach (object? entry in array)
-                                hash = hash * 31 + Hash(entry);
-                            return hash;
-                        }
-                    case IDictionary<string, object?> record:
-                        {
-                            // Field order doesn't matter to JsEqual.
-                            int hash = 19;
-                            foreach (KeyValuePair<string, object?> field in record)
-                                hash ^= StringComparer.Ordinal.GetHashCode(field.Key) * 31 + Hash(field.Value);
-                            return hash;
-                        }
-                    case NeoDelegateValue:
-                        return 3;
+                    case object?[]:
+                    case IDictionary<string, object?>:
+                        return IdentityHash(value, context);
+                    case NeoDelegateValue callable:
+                        return DelegateHash(callable, context);
                     case NSSlotReference reference:
                         return StringComparer.Ordinal.GetHashCode(reference.TargetId);
                 }
                 if (TryAsDouble(value, out double number))
                     return number == 0 ? 0 : number.GetHashCode();
-                return value.GetHashCode();
+                return IdentityHash(value, context);
             }
         }
 
         private sealed class OrderedResult
         {
+            internal object?[]? Source;
+            internal List<NeoOrderLevel<object?>>? TypedLevels;
             internal object?[][] Keys = null!;
             internal List<(string? type, bool descending)> Levels = null!;
         }
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OrderedResult> orderedResults = new();
 
-        private static object?[] OrderCollection(object? collection, FunctionCollectionQueryInfo info, ref PreparedCollectionCallback callback, Context ctx)
+        private static object?[] OrderCollection(object? collection, FunctionCollectionQueryInfo info, ref PreparedCollectionCallback callback, NeoScriptScope scope, Context ctx)
         {
+            if (info.ordering is null && info.keyType is "int" or "float" or "decimal" or "bool" or "string")
+                info.ordering = new OrderingSite
+                {
+                    type = new PrimitiveTypeInfo
+                    {
+                        type = info.keyType switch
+                        {
+                            "int" => MemberKind.Int,
+                            "float" => MemberKind.Float,
+                            "decimal" => MemberKind.Decimal,
+                            "bool" => MemberKind.Bool,
+                            _ => MemberKind.String,
+                        },
+                        required = true
+                    }
+                };
+            if (info.ordering is not null)
+                return OrderTypedCollection(collection, info, ref callback, scope, ctx);
             bool secondary = info.op is "ThenBy" or "ThenByDescending";
             OrderedResult? previous = null;
             if (secondary && (collection is null || !orderedResults.TryGetValue(collection is EnumerableQuery query ? query.Source! : collection, out previous)))
@@ -823,6 +864,49 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 cursor.Dispose();
             }
+        }
+
+        private static object?[] OrderTypedCollection(object? collection, FunctionCollectionQueryInfo info,
+            ref PreparedCollectionCallback callback, NeoScriptScope scope, Context ctx)
+        {
+            BoundComparison comparison = BindComparison(info.ordering!, scope, ctx);
+            bool secondary = info.op is "ThenBy" or "ThenByDescending";
+            OrderedResult? previous = null;
+            object? source = collection is EnumerableQuery query ? query.Source : collection;
+            if (secondary && (source is null || !orderedResults.TryGetValue(source, out previous) || previous.TypedLevels is null))
+                throw new NSGetterRuntimeError($"{info.op} requires an ordered result.");
+            source = previous?.Source ?? collection;
+            var entries = new List<object?>();
+            var positions = new List<CollectionCursor>();
+            var cursor = new CollectionCursor(source, ctx);
+            try
+            {
+                while (cursor.MoveNextUnresolved())
+                {
+                    entries.Add(cursor.ResolveEntry(ctx));
+                    positions.Add(cursor);
+                }
+                var keys = new object?[entries.Count];
+                if (entries.Count > 1)
+                    for (int index = 0; index < entries.Count; index++)
+                    {
+                        var position = positions[index];
+                        keys[index] = callback.Project(in position, entries[index]);
+                    }
+                var levels = previous?.TypedLevels is { } existing ? new List<NeoOrderLevel<object?>>(existing) : new();
+                levels.Add(new NeoOrderLevel<object?>(keys, comparison.Compare, info.op.EndsWith("Descending", StringComparison.Ordinal),
+                    comparison.UsesDefault && TypeBindings.IsValueType(comparison.Default.Type.Head!)));
+                var original = entries.ToArray();
+                object?[] result = NeoEnumerableOrdering.OrderBy(original, levels,
+                    () => "System.Comparison`1[System.Int32]", NeoScriptErrorClassification.IsAuthoredCatchable);
+                if (info.enumEntries == true)
+                    for (int index = 0; index < result.Length; index++)
+                        result[index] = QueryEntry(result[index], true);
+                orderedResults.Add(result, new OrderedResult { Source = original, TypedLevels = levels });
+                return result;
+            }
+            catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+            finally { cursor.Dispose(); }
         }
 
         private static T[] StableCollectionSort<T>(T[] entries, Comparison<T> compare)
