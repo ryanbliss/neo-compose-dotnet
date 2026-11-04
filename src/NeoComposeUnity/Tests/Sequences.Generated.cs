@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -123,7 +123,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -365,7 +365,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -385,7 +385,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -504,7 +504,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -522,7 +522,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -677,7 +677,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -695,7 +695,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -817,7 +817,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -837,7 +837,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1027,7 +1027,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1045,7 +1045,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1220,7 +1220,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1239,7 +1239,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1385,7 +1385,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1403,7 +1403,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1517,7 +1517,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1534,7 +1534,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1857,7 +1857,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1874,7 +1874,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1976,7 +1976,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1993,7 +1993,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2133,7 +2133,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2151,7 +2151,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2343,7 +2343,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2362,7 +2362,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2476,7 +2476,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2493,7 +2493,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2607,7 +2607,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2624,7 +2624,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2759,14 +2759,20 @@ namespace NeoCompose.Tests.SequenceGenerated
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyNumberStream)] = "12500000-0000-4000-8000-000000000006",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceApi)] = "12500000-0000-4000-8000-000000000008",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceApi)] = "12500000-0000-4000-8000-000000000008",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.Box<>)] = "12500000-0000-4000-8000-000000000020",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyBox<>)] = "12500000-0000-4000-8000-000000000020",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceStorage)] = "12500000-0000-4000-8000-000000000030",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceStorage)] = "12500000-0000-4000-8000-000000000030",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IntBox)] = "12500000-0000-4000-8000-000000000040",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyIntBox)] = "12500000-0000-4000-8000-000000000040",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceConstrained<>)] = "12500000-0000-4000-8000-000000000050",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceConstrained<>)] = "12500000-0000-4000-8000-000000000050",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.SequenceItem)] = "12500000-0000-4000-8000-000000000069",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlySequenceItem)] = "12500000-0000-4000-8000-000000000069",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.MutableSequence)] = "12500000-0000-4000-8000-000000000073",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyMutableSequence)] = "12500000-0000-4000-8000-000000000073",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.GenericSequenceValue<>)] = "12500000-0000-4000-8000-000000000076",
+                [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyGenericSequenceValue<>)] = "12500000-0000-4000-8000-000000000076",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.InheritedMutableSequence)] = "12500000-0000-4000-8000-000000000078",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.IReadOnlyInheritedMutableSequence)] = "12500000-0000-4000-8000-000000000078",
                 [typeof(global::NeoCompose.Tests.SequenceGenerated.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
