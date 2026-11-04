@@ -91,7 +91,14 @@ namespace NeoCompose.Runtime
             if (staticConstructionStates.TryGetValue(construction, out var existing))
             {
                 if (existing.Error is not null)
-                    throw StaticInitializationError(construction, existing.Error);
+                {
+                    if (existing.Error is NSGetterRuntimeError cached)
+                    {
+                        cached.Payload.Searched = false;
+                        cached.Payload.Selection = null;
+                    }
+                    throw existing.Error;
+                }
                 if (existing.Initialized || existing.Initializing)
                     return;
             }
@@ -189,8 +196,14 @@ namespace NeoCompose.Runtime
             }
             catch (Exception error)
             {
-                state.Error = error;
-                throw StaticInitializationError(construction, error);
+                state.Error = NeoScriptErrorClassification.IsAuthoredCatchable(error)
+                    ? StaticInitializationError(construction, error) : error;
+                if (state.Error is NSGetterRuntimeError cached)
+                {
+                    cached.Payload.Searched = false;
+                    cached.Payload.Selection = null;
+                }
+                throw state.Error;
             }
             finally
             {

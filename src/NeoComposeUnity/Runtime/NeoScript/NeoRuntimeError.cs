@@ -26,9 +26,7 @@ namespace NeoCompose.Runtime.NeoScript
     }
 
     /// <summary>
-    /// A runtime library failure with .NET's message. Until the §3.5 classes
-    /// are minted, each throws as its nearest minted base class, as the
-    /// compose twin's <c>neoErrorClassId</c> does.
+    /// A runtime library failure with .NET's message and its canonical §3.5 class.
     /// </summary>
     internal sealed class NeoRuntimeError : NSGetterRuntimeError
     {
@@ -42,6 +40,7 @@ namespace NeoCompose.Runtime.NeoScript
             : base(message, ClassId(errorClass), cause)
         {
             ErrorClass = errorClass;
+            Payload.InnerError = (cause as NSGetterRuntimeError)?.Payload;
         }
 
         internal NeoErrorClass ErrorClass
@@ -51,15 +50,19 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string ClassId(NeoErrorClass errorClass) => errorClass switch
         {
-            NeoErrorClass.NeoArithmeticError => NeoErrorContract.NeoArithmeticError,
-            NeoErrorClass.NeoOverflowError => NeoErrorContract.NeoArithmeticError,
-            NeoErrorClass.NeoDivideByZeroError => NeoErrorContract.NeoArithmeticError,
+            NeoErrorClass.NeoArgumentError => NeoErrorContract.NeoArgumentError,
             NeoErrorClass.NeoInvalidOperationError => NeoErrorContract.NeoInvalidOperationError,
-            NeoErrorClass.NeoFormatError => NeoErrorContract.NeoError,
-            NeoErrorClass.NeoInvalidCastError => NeoErrorContract.NeoError,
-            NeoErrorClass.NeoNotSupportedError => NeoErrorContract.NeoError,
-            NeoErrorClass.NeoTypeInitializationError => NeoErrorContract.NeoError,
-            _ => NeoErrorContract.NeoArgumentError,
+            NeoErrorClass.NeoArithmeticError => NeoErrorContract.NeoArithmeticError,
+            NeoErrorClass.NeoOverflowError => NeoErrorContract.NeoOverflowError,
+            NeoErrorClass.NeoDivideByZeroError => NeoErrorContract.NeoDivideByZeroError,
+            NeoErrorClass.NeoFormatError => NeoErrorContract.NeoFormatError,
+            NeoErrorClass.NeoInvalidCastError => NeoErrorContract.NeoInvalidCastError,
+            NeoErrorClass.NeoNotSupportedError => NeoErrorContract.NeoNotSupportedError,
+            NeoErrorClass.NeoArgumentNullError => NeoErrorContract.NeoArgumentNullError,
+            NeoErrorClass.NeoArgumentOutOfRangeError => NeoErrorContract.NeoArgumentOutOfRangeError,
+            NeoErrorClass.NeoCultureNotFoundError => NeoErrorContract.NeoCultureNotFoundError,
+            NeoErrorClass.NeoTypeInitializationError => NeoErrorContract.NeoTypeInitializationError,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(errorClass)),
         };
 
         internal static NeoRuntimeError ArgumentNull(string parameter) => new(
