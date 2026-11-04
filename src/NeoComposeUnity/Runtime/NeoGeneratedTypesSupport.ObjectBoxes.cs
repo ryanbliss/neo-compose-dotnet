@@ -36,6 +36,15 @@ namespace NeoCompose.Runtime
         // writing it back stores the type it was read as.
         private static readonly ConditionalWeakTable<object, TypeBinding> heldTypes = new();
 
+        // Conversion depends on the client's schema and generated factories.
+        private sealed class ClrBoxIdentities
+        {
+            internal readonly ConditionalWeakTable<object, NeoBox> ToNeo = new();
+            internal readonly ConditionalWeakTable<NeoBox, object> ToClr = new();
+        }
+
+        private static readonly ConditionalWeakTable<NeoClient, ClrBoxIdentities> clrBoxIdentities = new();
+
         private static readonly ConcurrentDictionary<Type, Func<NeoClient, Member, NeoMember, object?>> codecReaders = new();
         private static readonly ConcurrentDictionary<Type, Func<NeoMemberDelegate, NeoClient, Delegate>> delegateBinders = new();
 
@@ -119,6 +128,110 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The write payload for a NeoScript box or <c>Type</c> value
+        /// assigned to <paramref name="slot"/> (§1.3). A class value inside
+        /// the box is imported as a C# write imports it.
+        /// </summary>
+        internal static NeoValuePayload EvaluatorObjectPayload(
+            NeoClient client,
+            ObjectMember slot,
+            NeoValueOwnership ownership,
+            object value,
+            NSGetterEvaluator.Context context,
+            string? destinationId = null,
+            NeoWritePlan? plan = null,
+            CollectionInsertion? insertion = null)
+        {
+            if (IsBoxedCollection(client, value))
+                return EvaluatorCollectionBox(client, slot, ownership, (NeoBox)value, context,
+                    destinationId ?? Guid.NewGuid().ToString(), plan, insertion);
+            if (value is NeoBox box)
+                insertion = insertion?.ForBox(BoxedCollectionRefusal(client, box, slot.name))
+                    ?? new CollectionInsertion(plan, context, ownership, BoxedCollectionRefusal(client, box, slot.name));
+            NeoValuePayload payload = ObjectSlotPayload(
+                client,
+                slot,
+                slot.name,
+                ownership,
+                value,
+                new NeoSlotContext(client),
+                new List<MemberValue>(),
+                item => NSGetterEvaluator.ConstructorReferenceOf(item, context) is { valueId: { Length: > 0 } } source
+                    ? new NeoConstructorValueReference(plan is null ? source.valueId
+                        : client.ImportValueReference(plan, ownership, source.valueId, out bool _), ownership)
+                    : null, insertion,
+                value is NeoBox heldBox && insertion?.Destination(destinationId)?.valueType?.Equals(heldBox.ValueType) == true ? destinationId : null);
+            // Constructor provenance must reuse the box the body stored,
+            // rather than trying to attach its adopted tuple children again.
+            if (value is NeoBox { ValueType: { Head: { Type: MemberKind.Tuple } } } tupleBox && destinationId is not null)
+                insertion!.Publish(slot, tupleBox,
+                    MemberValueFactory.Create(slot, payload, destinationId, NeoTimestamp.Now(), NeoTimestamp.Now()));
+            return payload;
+        }
+
+        internal static bool IsBoxedCollection(NeoClient client, object? value) =>
+            value is NeoBox box && client.TypeRules.Box(box.ValueType).Member is { } member && IsCollectionMember(member);
+
+        private static string BoxedCollectionRefusal(NeoClient client, NeoBox box, string label) =>
+            $"Writing a boxed {NeoTypeNames.Of(box.ValueType, client.ProjectDataForRuntime)} into {label} would share a collection already owned by another slot. Call Clone() or use Reference.";
+
+        private static void ValidateBoxedConstructorArguments(NeoResolvedDeclaredConstructor resolved, object?[] values, NSGetterEvaluator.Context ctx)
+        {
+            if (resolved.link.record is not { } record)
+                return;
+            for (int index = 0; index < values.Length; index++)
+            {
+                if (values[index] is not NeoBox box)
+                    continue;
+                string label = $"constructor argument '{NeoClient.ConstructorParameterId(record, index)}'";
+                string refusal = BoxedCollectionRefusal(resolved.client, box, label);
+                var plan = new NeoWritePlan(resolved.client);
+                var insertion = new CollectionInsertion(plan, ctx, NeoValueOwnership.Session, refusal);
+                // Preparing the complete payload checks nested ownership before
+                // the constructor body can observe or mutate its arguments.
+                EvaluatorObjectPayload(resolved.client,
+                    new ObjectMember { id = label, name = label, kind = MemberKind.Object },
+                    NeoValueOwnership.Session, box, ctx, plan: plan, insertion: insertion);
+            }
+        }
+
+        private static NeoValuePayload EvaluatorCollectionBox(
+            NeoClient client, ObjectMember slot, NeoValueOwnership ownership, NeoBox box,
+            NSGetterEvaluator.Context context, string id, NeoWritePlan? plan, CollectionInsertion? insertion)
+        {
+            Member held = client.TypeRules.Box(box.ValueType).Member!;
+            string refusal = insertion?.boxedRefusal ?? BoxedCollectionRefusal(client, box, slot.name);
+            RequireObjectSlotHolds(client, slot, slot.name, new NullMemberValue { id = id, valueType = box.ValueType }, new NeoSlotContext(client));
+            if (NSGetterEvaluator.FindRowReference(box.Payload, context) is { } existing)
+            {
+                if (existing.valueId != id || existing.ownership != ownership)
+                    throw new NSGetterRuntimeError(refusal);
+                if (!client.TryGetValue(ownership, id, out MemberValue? stored))
+                    throw new NSGetterRuntimeError($"Collection row '{id}' is missing.");
+                object? raw = stored switch
+                {
+                    ArrayMemberValue array => array.value,
+                    ObjectMemberValue map => map.value,
+                    _ => null
+                };
+                return NeoValuePayload.Boxed(raw, box.ValueType, held, Array.Empty<MemberValue>(), box);
+            }
+            insertion = insertion?.ForBox(refusal) ?? new CollectionInsertion(plan, context, ownership, refusal);
+            insertion.Reserve(held, box.Payload, id);
+            var rows = new List<MemberValue>();
+            NeoTimestamp now = NeoTimestamp.Now();
+            object? rawPayload = ComputeRuntimeConstructorPayload(client, held, box.Payload, rows, now,
+                item => NSGetterEvaluator.ConstructorReferenceOf(item, context), NeoGenericResolution.EmptyEnv,
+                slot.name, scope: null, insertion: insertion,
+                selections: plan is null ? null : new LocalCollectionSelections.Materialization(plan, context, ownership));
+            var payload = NeoValuePayload.Boxed(rawPayload, box.ValueType, held, rows, box);
+            MemberValue root = MemberValueFactory.Create(slot, payload, id, now, now);
+            insertion.Publish(held, box.Payload, root);
+            insertion.Publish(held, box, root);
+            return payload;
+        }
+
+        /// <summary>
         /// The payload an object slot stores for a non-null C# value that
         /// isn't a class value: a <c>Type</c>, <c>CultureInfo</c> or
         /// <c>NumberFormatInfo</c> slot's own payload, or a box.
@@ -131,19 +244,53 @@ namespace NeoCompose.Runtime
             object value,
             in NeoSlotContext slotContext,
             List<MemberValue> rows,
-            Func<object?, NeoConstructorValueReference?> valueReference)
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            CollectionInsertion? insertion = null,
+            string? destinationId = null)
         {
             if (slot.objectType is NeoObjectTypeKind.Type or NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo)
-                return NeoValuePayload.Declared(DeclaredPayload(client, slot.objectType.Value, name, value), value);
+            {
+                JObject declared = DeclaredPayload(client, slot.objectType.Value, name, value);
+                return NeoValuePayload.Declared(declared, IsEvaluatorValue(value) ? null : value);
+            }
+            // An evaluator box already names its held type (§1.2).
+            if (value is NeoBox box)
+                return BoxedPayload(client, slot, name, ownership, box.ValueType, box.Payload, null, box, slotContext, rows, valueReference, insertion, destinationId);
             JObject? comparer = IsComparer(value) ? ComparerPayload(client, name, value) : null;
             TypeBinding valueType = comparer is null ? HeldType(client, name, value) : ComparerType(client, name, comparer);
+            return BoxedPayload(client, slot, name, ownership, valueType, value, comparer, value as NeoTypeValue, slotContext, rows, valueReference, insertion, destinationId);
+        }
+
+        /// <summary>
+        /// The box of <paramref name="value"/> held as <paramref name="valueType"/>
+        /// (§1.3). <paramref name="evaluatorValue"/> is the evaluator's box or
+        /// <c>Type</c> value when it wrote it, and the row reads back as that
+        /// box (§1.2).
+        /// </summary>
+        private static NeoValuePayload BoxedPayload(
+            NeoClient client,
+            ObjectMember slot,
+            string name,
+            NeoValueOwnership ownership,
+            TypeBinding valueType,
+            object? value,
+            JObject? comparer,
+            object? evaluatorValue,
+            in NeoSlotContext slotContext,
+            List<MemberValue> rows,
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            CollectionInsertion? insertion = null,
+            string? destinationId = null)
+        {
             RequireObjectSlotHolds(client, slot, name, new NullMemberValue { id = name, valueType = valueType }, slotContext);
             NeoBoxForm form = client.TypeRules.Box(valueType);
             switch (form.Kind)
             {
                 case NeoBoxFormKind.Identity:
-                    return NeoValuePayload.Boxed(null, valueType, null, Array.Empty<MemberValue>(), value);
+                    return NeoValuePayload.Boxed(null, valueType, null, Array.Empty<MemberValue>(), evaluatorValue is null ? value : evaluatorValue as NeoBox);
                 case NeoBoxFormKind.Comparer:
+                    if (comparer is null)
+                        throw new NotSupportedException($"Object field '{name}' can't store a NeoScript comparer yet (P127 B6).");
                     return NeoValuePayload.Boxed(comparer, valueType, null, Array.Empty<MemberValue>(), value);
                 case NeoBoxFormKind.Member:
                     break;
@@ -151,10 +298,11 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException($"Cannot write object field '{name}': {form.Invalid}");
             }
             Member held = form.Member!;
-            object? payload = BoxPayload(client, held, name, ownership, value, rows, valueReference);
+            object? payload = BoxPayload(client, held, name, ownership, value!, rows, valueReference, insertion, destinationId);
             // A collection box reads as a view over its new row, not as the
-            // collection it was copied from.
-            object? origin = IsCollectionMember(held) ? null : value;
+            // collection it was copied from, and an evaluator value is no C#
+            // object.
+            object? origin = evaluatorValue is not null ? evaluatorValue as NeoBox : IsCollectionMember(held) ? null : value;
             return NeoValuePayload.Boxed(payload, valueType, held, rows, origin);
         }
 
@@ -170,11 +318,24 @@ namespace NeoCompose.Runtime
             List<MemberValue> rows,
             NeoTimestamp now,
             Func<object?, NeoConstructorValueReference?> valueReference,
-            string path)
+            string path,
+            CollectionInsertion? insertion = null,
+            string? destinationId = null)
         {
+            if (insertion is not null && value is NeoBox && insertion.TryBox(value, out string existing))
+                return existing;
+            string valueId = destinationId ?? Guid.NewGuid().ToString();
+            if (insertion is not null && value is NeoBox)
+            {
+                insertion.RememberBox(value, valueId);
+                NeoValuePayload collection = EvaluatorObjectPayload(client, slot, insertion.ownership, value,
+                    insertion.context, valueId, insertion: insertion);
+                rows.AddRange(collection.valueRows);
+                rows.Add(MemberValueFactory.Create(slot, collection, valueId, now, now));
+                return valueId;
+            }
             var boxRows = new List<MemberValue>();
-            NeoValuePayload payload = ObjectSlotPayload(client, slot, path, NeoValueOwnership.Session, value, new NeoSlotContext(client), boxRows, valueReference);
-            string valueId = Guid.NewGuid().ToString();
+            NeoValuePayload payload = ObjectSlotPayload(client, slot, path, NeoValueOwnership.Session, value, new NeoSlotContext(client), boxRows, valueReference, insertion);
             rows.AddRange(boxRows);
             rows.Add(MemberValueFactory.Create(slot, payload, valueId, now, now));
             return valueId;
@@ -195,9 +356,14 @@ namespace NeoCompose.Runtime
             _ => false,
         };
 
+        /// <summary>Whether <paramref name="value"/> is the evaluator's own value, which C# never reads back.</summary>
+        private static bool IsEvaluatorValue(object? value) => value is NeoBox or NeoTypeValue;
+
         /// <summary>The closed type a C# value boxes as (§1.2), or a refusal naming the slot and the C# type.</summary>
         private static TypeBinding HeldType(NeoClient client, string name, object value)
         {
+            if (value is NeoTypeValue)
+                return TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: NeoObjectTypeKind.Type));
             if (value is INeoCollectionView view)
                 return CollectionViewType(client, name, view);
             if (!value.GetType().IsValueType && heldTypes.TryGetValue(value, out TypeBinding? read))
@@ -254,7 +420,7 @@ namespace NeoCompose.Runtime
         /// A held type erases nullable references and tuple labels at every
         /// depth (§1.3, §12.1); a value type keeps its <c>?</c>.
         /// </summary>
-        private static TypeBinding Erased(TypeBinding binding)
+        internal static TypeBinding Erased(TypeBinding binding)
         {
             if (binding.Kind != TypeBindingKind.Closed)
                 return binding;
@@ -277,12 +443,21 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             object value,
             List<MemberValue> rows,
-            Func<object?, NeoConstructorValueReference?> valueReference)
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            CollectionInsertion? insertion = null,
+            string? destinationId = null)
         {
             switch (held)
             {
                 case ObjectMember { objectType: NeoObjectTypeKind declared }:
                     return DeclaredPayload(client, declared, name, value);
+                case DelegateMember when value is NeoDelegateValue evaluated:
+                    {
+                        NeoDelegateValue persisted = evaluated.PersistedCopy();
+                        if (ownership != NeoValueOwnership.User)
+                            client.CheckDelegateReferences(ownership, persisted);
+                        return persisted;
+                    }
                 case DelegateMember:
                     {
                         NeoDelegateValue binding = NeoMemberDelegate.PersistedBindingOf((Delegate)value, out NeoClient? source)!;
@@ -299,7 +474,7 @@ namespace NeoCompose.Runtime
                     break;
             }
             object? payload = ComputeRuntimeConstructorPayload(client, held, value, rows, NeoTimestamp.Now(),
-                valueReference, NeoGenericResolution.EmptyEnv, name, scope: null);
+                valueReference, NeoGenericResolution.EmptyEnv, name, scope: null, insertion: insertion, destinationId: destinationId);
             return payload is NeoValuePayload wrapped ? wrapped.value : payload;
         }
 
@@ -323,6 +498,8 @@ namespace NeoCompose.Runtime
         {
             switch (objectType)
             {
+                case NeoObjectTypeKind.Type when value is NeoTypeValue evaluated:
+                    return new JObject { ["type"] = JObject.FromObject(evaluated.Binding) };
                 case NeoObjectTypeKind.Type when value is Type type:
                     {
                         TypeBinding binding = BindingOfClr(client, type)
@@ -567,6 +744,12 @@ namespace NeoCompose.Runtime
         /// <summary>Caches <paramref name="box"/> as what <paramref name="row"/> reads as.</summary>
         internal static void RememberBox(MemberValue row, object box)
         {
+            // An evaluator box is the evaluator's own; C# reads the row afresh.
+            if (box is NeoBox written)
+            {
+                NeoBox.Remember(row, written);
+                return;
+            }
             rowBoxes.Remove(row);
             rowBoxes.Add(row, box);
             // C#'s writes to a stored culture or number format persist through the slot (§12.1).
@@ -608,6 +791,72 @@ namespace NeoCompose.Runtime
             {
                 client.ReturnDirectFunctionContext(context, unwrapped);
             }
+        }
+
+        /// <summary>
+        /// A C# value passed to a NeoScript <c>object</c> parameter (§14), as
+        /// the evaluator holds it: a <c>Type</c> as its <c>Type</c> value, a
+        /// value of a NeoScript value type or a string as a box of its
+        /// normalized payload, and <c>new object()</c> as its one identity
+        /// box. A class value, a collection or an evaluator value passes
+        /// through.
+        /// </summary>
+        internal static object BoxClrArgument(
+            NeoClient client,
+            NeoValueOwnership ownership,
+            object value,
+            NSGetterEvaluator.Context ctx,
+            in NeoScriptValueMarshaller.ValueSubject subject)
+        {
+            if (value is Type type)
+            {
+                return NeoTypeValue.Of(BindingOfClr(client, type)
+                    ?? throw new NotSupportedException($"{subject} is typeof({CSharpTypeName(type)}), which names no NeoScript type."));
+            }
+            ClrBoxIdentities identities = clrBoxIdentities.GetOrCreateValue(client);
+            if (identities.ToNeo.TryGetValue(value, out NeoBox cached))
+                return cached;
+            // An evaluator number is already NeoScript's; C# has no double to box.
+            if (value is double || value.GetType() != typeof(object) && value is not (string or ValueType))
+                return value;
+            NeoBox box;
+            if (value.GetType() == typeof(object))
+                box = NeoBox.NewObject();
+            else
+            {
+                TypeBinding valueType = HeldType(client, subject.ToString(), value);
+                object? payload = NeoScriptValueMarshaller.Normalize(client, ownership, value, NeoTypeBindings.ToTypeInfo(valueType), ctx, subject);
+                box = NeoBox.Of(valueType, payload!);
+            }
+            identities.ToNeo.Add(value, box);
+            identities.ToClr.Add(box, value);
+            return box;
+        }
+
+        /// <summary>The C# value a NeoScript box holds: <c>new object()</c>, or its payload as its held type's C# type.</summary>
+        private static object ConvertBox(
+            NeoClient client,
+            NeoBox box,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory>? readOnlyFactories,
+            IReadOnlyDictionary<string, WritableClassFactory>? savedFactories,
+            InterfaceResolver? interfaceResolver)
+        {
+            ClrBoxIdentities identities = clrBoxIdentities.GetOrCreateValue(client);
+            if (identities.ToClr.TryGetValue(box, out object cached))
+                return cached;
+            object converted;
+            if (box.Payload is null)
+                converted = new object();
+            else
+            {
+                Type type = BoxClrType(client, box.ValueType)
+                    ?? throw new NotSupportedException(
+                        $"A '{NeoTypeNames.Of(box.ValueType, client.ProjectDataForRuntime)}' box has no C# type in this project.");
+                converted = ConvertTypeArgument(client, box.Payload, type, readOnlyFactories, savedFactories, interfaceResolver)!;
+            }
+            identities.ToClr.Add(box, converted);
+            identities.ToNeo.GetValue(converted, _ => box);
+            return converted;
         }
 
         /// <summary>Whether a tuple holds an <c>object</c> element, directly or in a nested tuple.</summary>
