@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.6] - 2026-11-03
+
+- Cache constructed Session objects in getter collection results, including dictionaries, sets, tuples, nested containers, and live constructed list fields, while preserving entry identity and dependency notifications. Release cached results when the client is disposed.
+
 ## [0.81.5] - 2026-11-03
 
 - Preserve authored row identities when copying nested declaration defaults, so exported references resolve the same slot and value as direct member reads.

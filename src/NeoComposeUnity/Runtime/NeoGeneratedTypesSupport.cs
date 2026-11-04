@@ -6751,8 +6751,8 @@ namespace NeoCompose.Runtime
         private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object,
             NeoScript.NSGetterEvaluator.RowReference> ConstructorCollectionOrigins = new();
 
-        internal static bool HasConstructorCollectionOrigin(object collection) =>
-            ConstructorCollectionOrigins.TryGetValue(collection, out _);
+        internal static bool TryGetConstructorCollectionOrigin(object collection, out NeoScript.NSGetterEvaluator.RowReference? origin) =>
+            ConstructorCollectionOrigins.TryGetValue(collection, out origin);
 
         internal static void PreserveConstructorCollectionOrigin(object source, object destination)
         {

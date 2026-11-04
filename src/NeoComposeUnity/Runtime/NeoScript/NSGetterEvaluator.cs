@@ -5339,7 +5339,7 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     if (hit.list is not null)
                     {
-                        if (ResolveMemoizedList(hit.list, hit.listEntryMember, ctx, lendingMemberId: memberId) is { } hitList)
+                        if (ResolveMemoizedCollection(hit.list, ctx, lendingMemberId: memberId) is { } hitList)
                         {
                             client.ReplayGetterReads(hit);
                             return hitList;
@@ -5419,9 +5419,9 @@ namespace NeoCompose.Runtime.NeoScript
                 client.ShareConstructedGetterRow(resultRef, result, ctx, capture);
                 memoized = client.MemoizeGetter(memoKey, null, resultRef, capture);
             }
-            else if (result is object?[] entries
-                && MemoizableList(entries, ctx, out JsonMember? entryMember) is { } list)
-                memoized = client.MemoizeGetter(memoKey, null, null, capture, list, entryMember);
+            else if (result is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+                && MemoizableCollection(result, ctx, capture) is { } list)
+                memoized = client.MemoizeGetter(memoKey, null, null, capture, list);
             else
                 client.MemoizeGetterReads(memoKey, capture);
             if (memoized is not null)
@@ -12079,67 +12079,144 @@ namespace NeoCompose.Runtime.NeoScript
         internal static object? UnwrapMemoizedRow(MemberValue row, Context ctx, RowReference reference) =>
             UnwrapCached(row, ctx, reference.ownership, reference.member, reference.node);
 
-        /// <summary>
-        /// What a getter memo keeps of a derived list result: each scalar entry
-        /// as is and each row entry as its reference. Null for a row's own
-        /// list, an array a copy would detach from its origin, or an entry
-        /// another evaluation context cannot re-resolve.
-        /// </summary>
-        internal static object?[]? MemoizableList(object?[] entries, Context ctx, out JsonMember? entryMember)
+        /// <summary>Container recipes retain shared entries and preserve live slot origins.</summary>
+        internal sealed class MemoizedCollection
         {
-            entryMember = null;
-            if (FindRowReference(entries, ctx) is not null
-                || NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(entries, out _)
-                || NeoGeneratedTypesSupport.HasConstructorCollectionOrigin(entries))
-                return null;
-            var recipe = new object?[entries.Length];
-            for (int i = 0; i < entries.Length; i++)
-            {
-                object? entry = entries[i];
-                if (entry is null or string or bool or double or int or long or float)
-                    recipe[i] = entry;
-                else if (entry is not NeoScriptObject { attachedId: null }
-                    && FindRowReference(entry, ctx) is { } entryRef
-                    && entryRef.ownership != NeoValueOwnership.Session)
-                    recipe[i] = entryRef;
-                else
-                    return null;
-            }
-            entryMember = DerivedEntryMember(entries);
-            return HoldsValues(entries) ? KeepDerived(recipe, null, true) : recipe;
+            internal object?[]? entries;
+            internal JsonMember? entryMember;
+            internal NeoGeneratedTypesSupport.DetachedArrayOrigin? detached;
+            internal RowReference? row;
+            internal string[]? keys;
+            internal RuntimeTuple? tuple;
+            internal bool isSet;
+            internal bool referenceEntries;
+            internal bool enumEntries;
+            internal bool decimalEntries;
         }
 
-        /// <summary>
-        /// Rebuilds a memoized list into a fresh array the caller owns, or
-        /// null when one of its rows is gone. With <paramref name="lendingMemberId"/>,
-        /// an array with no entry member is lent out: a foreach over that
-        /// getter's call hands it back through <see cref="RecycleMemoizedList"/>
-        /// once it has taken its snapshot.
-        /// </summary>
-        internal static object?[]? ResolveMemoizedList(
-            object?[] recipe,
-            JsonMember? entryMember,
-            Context ctx,
-            string? lendingMemberId = null)
+        internal static MemoizedCollection? MemoizableCollection(object value, Context ctx, NeoClient.GetterCaptureFrame capture)
         {
-            bool lend = lendingMemberId is not null && entryMember is null;
-            var entries = lend
-                ? TemporaryLists.Rent(recipe.Length)
-                : new object?[recipe.Length];
+            // Share the owned-child lookup cache across all eagerly constructed siblings.
+            ctx.allocationTracker.MarkEscaped(value, ctx);
+            return Capture(value);
+
+            MemoizedCollection? Capture(object source)
+            {
+                if (source is object?[] array && NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(array, out var origin))
+                {
+                    origin!.owner.ShareGetterResult();
+                    return new MemoizedCollection { detached = origin };
+                }
+                RowReference? sourceRef = FindRowReference(source, ctx);
+                if (sourceRef is not null || NeoGeneratedTypesSupport.TryGetConstructorCollectionOrigin(source, out sourceRef))
+                {
+                    ctx.client.ShareConstructedGetterRow(sourceRef!, source, ctx, capture, markEscaped: false);
+                    return new MemoizedCollection { row = sourceRef };
+                }
+                var memo = new MemoizedCollection { entryMember = DerivedEntryMember(source) };
+                object?[] values;
+                if (source is Dictionary<string, object?> dictionary)
+                {
+                    memo.keys = new string[dictionary.Count];
+                    values = new object?[dictionary.Count];
+                    int i = 0;
+                    foreach (var pair in dictionary)
+                    {
+                        memo.keys[i] = pair.Key;
+                        values[i++] = pair.Value;
+                    }
+                }
+                else if (source is RuntimeSet set)
+                {
+                    memo.isSet = true;
+                    memo.referenceEntries = set.Reference;
+                    memo.enumEntries = set.EnumEntries;
+                    memo.decimalEntries = set.DecimalEntries;
+                    values = set.Snapshot();
+                }
+                else if (source is RuntimeTuple tuple)
+                {
+                    memo.tuple = tuple;
+                    values = new object?[tuple.Count];
+                    for (int i = 0; i < values.Length; i++)
+                        values[i] = tuple[i];
+                }
+                else
+                    values = (object?[])source;
+                var recipe = new object?[values.Length];
+                for (int i = 0; i < values.Length; i++)
+                {
+                    object? entry = values[i];
+                    if (entry is null or string or bool or double or int or long or float)
+                        recipe[i] = entry;
+                    else if (entry is NeoScriptObject { attachedId: null } constructed)
+                    {
+                        constructed.ShareGetterResult();
+                        recipe[i] = constructed;
+                    }
+                    else if (FindRowReference(entry, ctx) is { } entryRef)
+                    {
+                        ctx.client.ShareConstructedGetterRow(entryRef, entry, ctx, capture, markEscaped: false);
+                        recipe[i] = entryRef;
+                    }
+                    else if (entry is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+                        && Capture(entry) is { } nestedRecipe)
+                        recipe[i] = nestedRecipe;
+                    else
+                        return null;
+                }
+                if (memo.tuple is null)
+                    memo.entries = HoldsValues(source) ? KeepDerived(recipe, null, true) : recipe;
+                return memo;
+            }
+        }
+
+        /// <summary>Resolve row and live slot aliases; derived containers remain caller-owned.</summary>
+        internal static object? ResolveMemoizedCollection(MemoizedCollection memo, Context ctx, string? lendingMemberId = null)
+        {
+            if (memo.detached is { } detached)
+                return ReadDetachedArrayAlias(detached, ctx);
+            if (memo.row is { } rowRef)
+                return ctx.client.ReadReplayReference(rowRef.valueId, ref rowRef.node, rowRef.ownership) is { } rowValue
+                    ? UnwrapCached(rowValue, ctx, rowRef.ownership, rowRef.member, rowRef.node)
+                    : null;
+            // Tuple slots are immutable and retain handle identity for captured
+            // collections. Their contents were shared during capture above.
+            if (memo.tuple is { } tuple)
+                return tuple;
+            object?[] recipe = memo.entries!;
+            bool lend = lendingMemberId is not null && memo.entryMember is null
+                && memo.keys is null && !memo.isSet;
+            var entries = lend ? TemporaryLists.Rent(recipe.Length) : new object?[recipe.Length];
             for (int i = 0; i < recipe.Length; i++)
             {
-                if (recipe[i] is not RowReference entryRef)
+                if (recipe[i] is MemoizedCollection nested)
                 {
-                    entries[i] = recipe[i];
-                    continue;
+                    if (ResolveMemoizedCollection(nested, ctx) is not { } resolved)
+                        return null;
+                    entries[i] = resolved;
                 }
-                if (ctx.client.ReadReplayReference(entryRef.valueId, ref entryRef.node, entryRef.ownership) is not { } row)
-                    return null;
-                entries[i] = UnwrapCached(row, ctx, entryRef.ownership, entryRef.member, entryRef.node);
+                else if (recipe[i] is RowReference entryRef)
+                {
+                    if (ctx.client.ReadReplayReference(entryRef.valueId, ref entryRef.node, entryRef.ownership) is not { } row)
+                        return null;
+                    entries[i] = UnwrapCached(row, ctx, entryRef.ownership, entryRef.member, entryRef.node);
+                }
+                else
+                    entries[i] = recipe[i];
             }
+            if (memo.keys is { } keys)
+            {
+                var result = new Dictionary<string, object?>(keys.Length, StringComparer.Ordinal);
+                for (int i = 0; i < keys.Length; i++)
+                    result.Add(keys[i], entries[i]);
+                return KeepDerived(result, memo.entryMember, HoldsValues(recipe));
+            }
+            if (memo.isSet)
+                return MakeRuntimeSet(entries, memo.referenceEntries, memo.enumEntries, ctx, cache: false, decimalEntries: memo.decimalEntries);
             if (lend)
                 TemporaryLists.Lend(entries, lendingMemberId!);
-            return KeepDerived(entries, lend ? null : entryMember, HoldsValues(recipe));
+            return KeepDerived(entries, lend ? null : memo.entryMember, HoldsValues(recipe));
         }
 
         /// <summary>

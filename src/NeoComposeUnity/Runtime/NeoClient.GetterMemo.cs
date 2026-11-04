@@ -70,10 +70,9 @@ namespace NeoCompose.Runtime
         {
             public object? scalar;
             public NeoScript.NSGetterEvaluator.RowReference? row;
-            // A derived list result, rebuilt into a fresh array on every hit:
-            // each entry is a scalar or the RowReference of a row entry.
-            public object?[]? list;
-            public Member? listEntryMember;
+            // A container recipe keeps shared entry identities and live slot origins.
+            // Derived containers are rebuilt for each caller.
+            public NeoScript.NSGetterEvaluator.MemoizedCollection? list;
             // The rows and grid cells the evaluation read, each once, in order.
             // They are the entry's invalidation set, and a hit under dependency
             // capture (an NSProperty compute) reports them as the evaluation
@@ -124,7 +123,6 @@ namespace NeoCompose.Runtime
                 scalar = null;
                 row = null;
                 list = null;
-                listEntryMember = null;
                 valueReads = null;
             }
         }
@@ -376,12 +374,14 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.RowReference row,
             object? result,
             NeoScript.NSGetterEvaluator.Context ctx,
-            GetterCaptureFrame capture)
+            GetterCaptureFrame capture,
+            bool markEscaped = true)
         {
             if (row.ownership != NeoValueOwnership.Session
                 || capture.constructedRows?.Contains(row.valueId) != true)
                 return;
-            ctx.allocationTracker.MarkEscaped(result, ctx);
+            if (markEscaped)
+                ctx.allocationTracker.MarkEscaped(result, ctx);
             // Protect the returned owned graph, including a returned child,
             // from adoption by an assignment into a stored member.
             var pending = new Stack<(string valueId, Member? member)>();
@@ -638,8 +638,7 @@ namespace NeoCompose.Runtime
             object? scalar,
             NeoScript.NSGetterEvaluator.RowReference? row,
             GetterCaptureFrame capture,
-            object?[]? list = null,
-            Member? listEntryMember = null)
+            NeoScript.NSGetterEvaluator.MemoizedCollection? list = null)
         {
             GetterMemoEntry? entry = Memoize(key, capture, valueless: false);
             if (entry is null)
@@ -647,7 +646,6 @@ namespace NeoCompose.Runtime
             entry.scalar = scalar;
             entry.row = row;
             entry.list = list;
-            entry.listEntryMember = listEntryMember;
             return entry;
         }
 

@@ -194,3 +194,10 @@ repository with `NEO_NESTED_COLOR_EXPORT=<absolute SDK Tests path>/nested-color-
 `unity test samples/HelloWorld --mode EditMode --filter NestedColorReferenceTests`.
 The test compares exported reference identity and color with direct nested-default
 access on cold and warm reads and fresh client loads.
+
+Getter memoization retains constructed Session entries in lists, dictionaries,
+sets, tuples, and nested containers, including `Dictionary.Values` results. Unchanged dependencies reuse the same entry objects;
+a dependency change rebuilds once for subscribers and subsequent readers. The
+cache keeps these objects in Session. Assigning a shared constructed result into
+stored ownership copies it, and existing holders may continue using an older
+result after invalidation. Disposing the client clears its getter memo.
