@@ -237,6 +237,15 @@
     "interface IR11C : IR11A1, IR11B1 { }",
     "class R11C : IR11C { public int Get() => 1; string IR11B1.Get() => \"b\"; }",
     "class R11D : IR11A1, IR11B1 { public int Get() => 1; string IR11B1.Get() => \"b\"; }",
+    "interface IR12A { int V => 1; }",
+    "interface IR12B : IR12A { private int V => 2; int Read() => this.V; int ReadBare() => V; }",
+    "class R12C : IR12B { }",
+    "interface IR12Prop { int V { get; } }",
+    "interface IR12Method { int V(); }",
+    "interface IR12Combined : IR12Prop, IR12Method { }",
+    "class R12Mixed : IR12Combined { int IR12Prop.V => 2; public int V() => 3; }",
+    "class R12Reverse : IR12Combined { int IR12Method.V() => 3; public int V => 2; }",
+    "class R12AllExplicit : IR11C { public bool Get() => true; int IR11A1.Get() => 3; string IR11B1.Get() => \"c\"; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -400,6 +409,11 @@
     "  static int R11ReadT<T extends IR11AB>(T c) => c.V;",
     "  public static string R11AccessibleRead() { IR11AB ab = new R11X(); IR11BA ba = new R11X(); return ab.V.ToString() + \",\" + ba.V.ToString() + \",\" + Probe.R11ReadT<R11X>(new R11X()).ToString(); }",
     "  public static string R11MixedImplementation() { IR11C c = new R11C(); IR11A1 da = new R11D(); IR11B1 db = new R11D(); return ((IR11A1)c).Get().ToString() + \",\" + ((IR11B1)c).Get() + \",\" + da.Get().ToString() + \",\" + db.Get() + \",\" + new R11D().Get().ToString(); }",
+    "  public static string R12PrivateRead() { IR12B b = new R12C(); return b.Read().ToString() + \",\" + b.ReadBare().ToString(); }",
+    "  static int R12ReadBounds<T extends IR11A & IR11B>(T c) => c.V;",
+    "  static int R12ReadSwapped<T extends IR11B & IR11A>(T c) => c.V;",
+    "  public static string R12ConstraintRead() => Probe.R12ReadBounds<R11X>(new R11X()).ToString() + \",\" + Probe.R12ReadSwapped<R11X>(new R11X()).ToString();",
+    "  public static string R12MixedKinds() { R12Mixed m = new R12Mixed(); R12Reverse r = new R12Reverse(); R12AllExplicit e = new R12AllExplicit(); return (((IR12Prop)m).V + ((IR12Method)m).V()).ToString() + \",\" + (((IR12Prop)r).V + ((IR12Method)r).V()).ToString() + \",\" + ((IR11A1)e).Get().ToString() + \",\" + ((IR11B1)e).Get() + \",\" + (e.Get() ? \"t\" : \"f\"); }",
     "}"
   ],
   "returns": {
@@ -548,6 +562,9 @@
     "McAccessibleConstraint": "2,2",
     "R11Constructions": "31,31,11,20,31",
     "R11AccessibleRead": "2,2,2",
-    "R11MixedImplementation": "1,b,1,b,1"
+    "R11MixedImplementation": "1,b,1,b,1",
+    "R12PrivateRead": "2,2",
+    "R12ConstraintRead": "2,2",
+    "R12MixedKinds": "5,5,3,c,t"
   }
 }

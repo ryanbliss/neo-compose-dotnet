@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class RowNestedDictionaryK : NeoGeneratedClassValue, IReadOnlyRowNestedDictionaryK
     {
         internal RowNestedDictionaryK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c89c0b0c-1a92-4e8b-86f1-4080953c4a0e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "82b9396a-15b1-478e-97c9-5a101b72da60", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c89c0b0c-1a92-4e8b-86f1-4080953c4a0e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("D", "1e6e68f4-8c46-44a9-bcb6-4abbea1ceb1e", D)
+                "82b9396a-15b1-478e-97c9-5a101b72da60",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("D", "33588971-072b-421a-bfe4-ed17325e5520", D)
             );
         }
 
@@ -123,7 +123,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
 
-        [NeoMemberMethod("2d3a2647-8641-49e1-87e8-28def11e0b94")]
+        [NeoMemberMethod("32dab1a5-bb7b-4173-9c24-b25fab296922")]
         public void Write()
         {
             InvokeFunction("Write");
