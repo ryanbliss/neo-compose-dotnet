@@ -198,6 +198,11 @@
     "class BoxR { public int V; public BoxR(int v) { V = v; } }",
     "class SCR<T> { public static int A = SCR<T>.Seed(); public static BoxR B = new BoxR(5); public static int Seed() { SCR<T>.B = new BoxR(40); return SCR<T>.B.V; } }",
     "class SLR<T> { public static int A = SLR<T>.Fill(); public static List<int> L = [7]; public static int Fill() { SLR<T>.L = [1, 2]; return SLR<T>.L.Count; } }",
+    "interface IProtSelf { protected int F(); protected int P { get; } protected int G() => 10; protected int Q => 20; protected static int S() => 30; protected static abstract int SA(); int Plain() => F() + P + G() + Q + S(); int Self() => this.F() + this.P + this.G() + this.Q + IProtSelf.S(); static int ViaT<T extends IProtSelf>() => T.SA(); static int SumSA() => ViaT<ProtSelfC>() + ViaT<ProtSelfD>(); }",
+    "interface IProtSelfGen<T> { protected T Make(T x); protected T Body(T x) => x; T Plain(T x) => Body(Make(x)); T Self(T x) => this.Body(this.Make(x)); }",
+    "class ProtSelfC : IProtSelf { int IProtSelf.F() => 1; int IProtSelf.P => 2; int IProtSelf.G() => 100; static int IProtSelf.SA() => 5; }",
+    "class ProtSelfD : IProtSelf { int IProtSelf.F() => 3; int IProtSelf.P => 4; static int IProtSelf.SA() => 6; }",
+    "class ProtSelfGc : IProtSelfGen<int> { int IProtSelfGen<int>.Make(int x) => x * 2; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -341,6 +346,9 @@
     "  public static string StaticInitWriteForwardR() => SFR<int>.A.ToString() + \",\" + SFR<int>.B.ToString();",
     "  public static string StaticInitWriteClassR() { SCR<int>.B.V = SCR<int>.B.V + 1; return SCR<int>.A.ToString() + \",\" + SCR<int>.B.V.ToString() + \",\" + SCR<bool>.B.V.ToString(); }",
     "  public static string StaticInitWriteListR() { SLR<int>.L.Add(8); return SLR<int>.A.ToString() + \",\" + SLR<int>.L.Count.ToString() + \",\" + SLR<int>.L[0].ToString(); }",
+    "  public static string ProtectedSelfCalls() { IProtSelf c = new ProtSelfC(); IProtSelf d = new ProtSelfD(); return c.Plain().ToString() + \",\" + c.Self().ToString() + \",\" + d.Plain().ToString() + \",\" + d.Self().ToString(); }",
+    "  public static string ProtectedSelfGeneric() { IProtSelfGen<int> g = new ProtSelfGc(); return g.Plain(5).ToString() + \",\" + g.Self(5).ToString(); }",
+    "  public static int ProtectedSelfStaticAbstract() => IProtSelf.SumSA();",
     "}"
   ],
   "returns": {
@@ -478,6 +486,9 @@
     "StaticInitWriteReversedR": "10,5",
     "StaticInitWriteForwardR": "15,15",
     "StaticInitWriteClassR": "40,6,5",
-    "StaticInitWriteListR": "2,2,7"
+    "StaticInitWriteListR": "2,2,7",
+    "ProtectedSelfCalls": "153,153,67,67",
+    "ProtectedSelfGeneric": "10,10",
+    "ProtectedSelfStaticAbstract": 11
   }
 }
