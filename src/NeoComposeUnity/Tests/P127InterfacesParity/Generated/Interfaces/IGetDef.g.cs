@@ -18,13 +18,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "9d9783de-7d30-49d6-a4df-3a98a6392a1e", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "7c7a3288-0c4a-434b-92a4-d372f772eb63", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "9d9783de-7d30-49d6-a4df-3a98a6392a1e", NeoInterfaceBody.Set, client.TypeArguments.Of<IGetDef>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "7c7a3288-0c4a-434b-92a4-d372f772eb63", NeoInterfaceBody.Set, client.TypeArguments.Of<IGetDef>(), new object?[] { value });
             }
         }
     }
