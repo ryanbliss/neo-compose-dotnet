@@ -1540,7 +1540,7 @@ namespace NeoCompose.Tests
             Assert.That(first.ToString(), Does.Contain("Point"));
         }
 
-        private sealed class B8Provider : IFormatProvider
+        private sealed class UnconvertibleProvider : IFormatProvider
         {
             public object? GetFormat(Type? type) => null;
         }
@@ -1579,8 +1579,8 @@ namespace NeoCompose.Tests
             using var restored = Reload(client);
             var reread = NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(restored, restored.save, "Slot", false)!;
             Assert.That(((NumberFormatInfo)reread.GetFormat(typeof(NumberFormatInfo))!).NumberDecimalSeparator, Is.EqualTo("?"));
-            var refusal = Assert.Throws<NSGetterRuntimeError>(() => NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", new B8Provider(), "Root.Slot"))!;
-            Assert.That(refusal.Message, Does.Contain("Slot 'Root.Slot' cannot store a value of CLR type").And.Contain(nameof(B8Provider)));
+            var refusal = Assert.Throws<NSGetterRuntimeError>(() => NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", new UnconvertibleProvider(), "Root.Slot"))!;
+            Assert.That(refusal.Message, Does.Contain("Slot 'Root.Slot' cannot store a value of CLR type").And.Contain(nameof(UnconvertibleProvider)));
             NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", null, "Root.Slot");
             Assert.That(NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(client, client.save, "Slot", false), Is.Null);
         }

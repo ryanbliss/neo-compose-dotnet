@@ -21,9 +21,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         bool TryWritable(out Ov writable);
 
-        int M(int x);
+        new int M(int x);
 
-        int M(string s);
+        new int M(string s);
     }
 
     public partial class Ov : NeoGeneratedClassValue, IReadOnlyOv

@@ -3,9 +3,6 @@
     "references": [
         "NeoCompose.Unity"
     ],
-    "includePlatforms": [
-        "Editor"
-    ],
     "autoReferenced": false,
     "overrideReferences": true,
     "precompiledReferences": [

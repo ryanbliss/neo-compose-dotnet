@@ -20,8 +20,6 @@ namespace NeoCompose.Tests.P127OperatorsParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out CoinSub writable);
-
-        new string? ToString();
     }
 
     public partial class CoinSub : Coin, IReadOnlyCoinSub

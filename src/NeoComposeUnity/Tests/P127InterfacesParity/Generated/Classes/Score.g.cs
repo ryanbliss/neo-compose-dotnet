@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         new string Name();
 
-        new int Rank(IReadOnlyScore other);
+        int Rank(IReadOnlyScore other);
 
         int Value { get; }
     }

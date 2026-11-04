@@ -23,14 +23,16 @@ namespace NeoCompose.Tests
             foreach (var test in JObject.Parse(File.ReadAllText(Fixture))["returns"]!.Children<JProperty>())
                 foreach (bool generated in new[] { false, true })
                     yield return new TestCaseData(test.Name, test.Value, generated)
-                        .SetName("B8_Shapes_" + test.Name + (generated ? "_Generated" : "_Evaluator"));
+                        .SetName("Shapes_" + test.Name + (generated ? "_Generated" : "_Evaluator"));
         }
 
         [Test]
-        public void DeliveryContainsAllSeventeenCasesAndItsRequiredExport()
+        public void DeliveryContainsAllCasesAndItsRequiredExport()
         {
             Assert.That(File.Exists(Export), Is.True, "The shared export is required; missing delivery must fail.");
-            Assert.That(JObject.Parse(File.ReadAllText(Fixture))["returns"]!.Children().Count(), Is.EqualTo(17));
+            var fixture = JObject.Parse(File.ReadAllText(Fixture));
+            Assert.That(fixture["returns"]!.Children().Count(), Is.EqualTo(28));
+            Assert.That(fixture["csharpBridges"]!.Children().Count(), Is.EqualTo(7));
         }
 
         [TestCaseSource(nameof(Cases))]
@@ -60,6 +62,17 @@ namespace NeoCompose.Tests
                     "NonGenericComparerEquals" => G.Probe.NonGenericComparerEquals(),
                     "NonGenericComparerGetHashCode" => G.Probe.NonGenericComparerGetHashCode(),
                     "NonGenericComparerCompare" => G.Probe.NonGenericComparerCompare(),
+                    "AbstractOverrideHash" => G.Probe.AbstractOverrideHash(),
+                    "InheritedEquatable" => G.Probe.InheritedEquatable(),
+                    "ExplicitEquatable" => G.Probe.ExplicitEquatable(),
+                    "ExplicitComparable" => G.Probe.ExplicitComparable(),
+                    "ProtectedAndPrivateGetters" => G.Probe.ProtectedAndPrivateGetters(),
+                    "ReferenceIntWrite" => G.Probe.ReferenceIntWrite(),
+                    "ReferenceIntRead" => G.Probe.ReferenceIntRead(),
+                    "ReferenceClassWrite" => G.Probe.ReferenceClassWrite(),
+                    "ReferenceClassSame" => G.Probe.ReferenceClassSame(),
+                    "ReferenceStoredInt" => G.Probe.ReferenceStoredInt(),
+                    "ReferenceStoredClass" => G.Probe.ReferenceStoredClass(),
                     _ => throw new InvalidOperationException("Unconsumed shared case: " + name),
                 };
             else
@@ -80,7 +93,7 @@ namespace NeoCompose.Tests
                 yield return new TestCaseData(entry["name"]!.Value<string>(),
                     entry["receiver"]!.Value<string>(), entry["interface"]!.Value<string>(),
                     entry["call"]!.Value<string>(), entry["returns"]!)
-                    .SetName("B8_CSharpBridge_" + entry["name"]!.Value<string>());
+                    .SetName("CSharpBridge_" + entry["name"]!.Value<string>() + "_" + entry["interface"]!.Value<string>());
         }
 
         [TestCaseSource(nameof(Bridges))]
@@ -97,6 +110,14 @@ namespace NeoCompose.Tests
                     ((System.Collections.IEqualityComparer)G.Probe.FoldComparer).GetHashCode("abc"),
                 ("Probe.LengthComparer", "System.Collections.IComparer", "Compare(\"aa\", \"b\")") =>
                     ((System.Collections.IComparer)G.Probe.LengthComparer).Compare("aa", "b"),
+                ("Probe.EqLeft", "System.IEquatable<ExplicitEq>", "Equals(Probe.EqRight)") =>
+                    ((IEquatable<G.ExplicitEq>)G.Probe.EqLeft).Equals(G.Probe.EqRight),
+                ("Probe.EqLeft", "System.IEquatable<IReadOnlyExplicitEq>", "Equals(Probe.EqRight)") =>
+                    ((IEquatable<G.IReadOnlyExplicitEq>)G.Probe.EqLeft).Equals(G.Probe.EqRight),
+                ("Probe.CmpLeft", "System.IComparable<ExplicitCmp>", "CompareTo(Probe.CmpRight)") =>
+                    ((IComparable<G.ExplicitCmp>)G.Probe.CmpLeft).CompareTo(G.Probe.CmpRight),
+                ("Probe.CmpLeft", "System.IComparable<IReadOnlyExplicitCmp>", "CompareTo(Probe.CmpRight)") =>
+                    ((IComparable<G.IReadOnlyExplicitCmp>)G.Probe.CmpLeft).CompareTo(G.Probe.CmpRight),
                 _ => throw new InvalidOperationException("Unconsumed C# bridge: " + name),
             };
             Assert.That(JToken.DeepEquals(JToken.FromObject(actual), expected), Is.True, name);

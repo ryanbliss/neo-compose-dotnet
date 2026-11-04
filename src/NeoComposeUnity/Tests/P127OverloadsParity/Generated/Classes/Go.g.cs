@@ -21,9 +21,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         bool TryWritable(out Go writable);
 
-        string M(int x);
+        new string M(int x);
 
-        string M(string s);
+        new string M(string s);
     }
 
     public partial class Go : NeoGeneratedClassValue, IReadOnlyGo

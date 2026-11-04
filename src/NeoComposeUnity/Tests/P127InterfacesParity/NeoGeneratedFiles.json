@@ -16,7 +16,7 @@
     {
       "id": "class:76e9a54f-b3e5-4f84-a4cf-9f555ab89b17",
       "path": "Generated/Classes/AnyTaker.g.cs",
-      "hash": "ec315d331e2e4cffa4ef8d077a0a4abd78ff0683a570d969a4da43034a8a2d61"
+      "hash": "7b2465a40a5c47ebe46cbe3657b09e2c219093c75e5ae0755667e1973304015d"
     },
     {
       "id": "class:root-assets-class-id",
@@ -381,7 +381,7 @@
     {
       "id": "class:c6b7cb5e-07e0-4ae8-8c8f-4a340055cc2c",
       "path": "Generated/Classes/JC.g.cs",
-      "hash": "968c45bb062d707b651599d967e3f67890b57f4d22c360e9019b223c95071a4c"
+      "hash": "ec569063d4f10b5774f115bcf49e44de7781a01c8d4bb1cf3cd0942f49330c53"
     },
     {
       "id": "class:1e8c5a76-820c-4dca-8814-1a2fdc3890ca",
@@ -736,7 +736,7 @@
     {
       "id": "class:8ba09ca4-5b7a-4a73-a562-b04de497433d",
       "path": "Generated/Classes/Score.g.cs",
-      "hash": "efa0e29e4db773f09f6dd59d0c7dbf5d0d76831592d833fd5d52b54a3f4a4b23"
+      "hash": "3b92243ca3091861305f0df1f06852521d26129df429cea6245a2590e29777b2"
     },
     {
       "id": "class:root-session-class-id",
