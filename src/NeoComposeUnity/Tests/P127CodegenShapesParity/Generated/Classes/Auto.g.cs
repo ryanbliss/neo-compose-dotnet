@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Auto : NeoGeneratedClassValue, IReadOnlyAuto
     {
         internal Auto(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "88ae7ae4-f304-4c11-833c-9c0e383d0fd6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e169ec41-cc69-4089-9d63-1647ef0793d1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "88ae7ae4-f304-4c11-833c-9c0e383d0fd6",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "09c67637-375e-46d9-9a70-1b4caf73e2e6", W)
+                "e169ec41-cc69-4089-9d63-1647ef0793d1",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "2fa2fe78-e9a0-449f-85bc-a8613b72729d", W)
             );
         }
 

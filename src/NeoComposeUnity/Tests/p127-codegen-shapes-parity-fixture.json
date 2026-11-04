@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), `out` results a flow attribute or a nullable type lets stay null, explicit IEquatable<C> and IComparable<C> implementations (with their read-only bridges), protected and private getters, and Reference<T> under a system-interface constraint bound to int (a slot) and to a class (a handle). The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface`; it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
+  "$comment": "P127 B8 (section 14). Generated C# shapes no other SDK-compiled parity fixture declares: an arity pair (Box and Box<T>, IShape and IShape<T>), a comparer slot, the non-generic IEqualityComparer and IComparer bridges on comparer subclasses, a generic class's static listener, an abstract object-member override, a shift whose count isn't int (left out of C#), `out` results a flow attribute or a nullable type lets stay null, explicit IEquatable<C> and IComparable<C> implementations (with their read-only bridges), protected and private getters, a derived class's own construction of an interface its base already implements (IComparable, IEquatable and a user interface, each called through both constructions, and a generic GD<T> : G<T> re-implementing IComparable<GD<T>> and IX<GD<T>> explicitly over a public base and publicly over an explicit base), and Reference<T> under a system-interface constraint bound to int (a slot) and to a class (a handle). The rest of the source repeats shapes other fixtures cover so the shapes test pins them in one place. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result, which matches .NET 10. The web half runs through `neo test` and pins the generated C# (cli/src/commands/p127-codegen-shapes.test.ts); the Unity half runs the same cases over a `neo export`, and makes each `csharpBridges` call from C# on the generated receiver cast to `interface`; it must return the `returns` of the probe with the same name. Vendor this file verbatim.",
   "source": [
     "class Box { public int A = 1; }",
     "class Box<T> { public T? V; public static int Count = 0; public static NeoAction Changed; }",
@@ -35,6 +35,18 @@
     "class Gated { public int P { protected get; set; } = 0; public int Q { private get; set; } = 0; public int Sum() => P * 10 + Q; }",
     "class GatedSub : Gated { public int ReadP() => P; }",
     "class Money : IComparable<Money> { public int V = 0; public int CompareTo(Money? other) => other == null ? 1 : V - other.V; }",
+    "class BaseC : IComparable<BaseC> { public int K = 1; public int CompareTo(BaseC? other) => other == null ? -1 : 10 + other.K; }",
+    "class DerC : BaseC, IComparable<DerC> { int IComparable<DerC>.CompareTo(DerC? other) => other == null ? -1 : 40 + other.K; }",
+    "class BaseE : IEquatable<BaseE> { public bool Equals(BaseE? other) => other != null; }",
+    "class DerE : BaseE, IEquatable<DerE> { bool IEquatable<DerE>.Equals(DerE? other) => false; }",
+    "interface IMeasure<T> { int Measure(T other); }",
+    "class BaseM : IMeasure<BaseM> { public int Measure(BaseM other) => 1; }",
+    "class DerM : BaseM, IMeasure<DerM> { int IMeasure<DerM>.Measure(DerM other) => 2; }",
+    "interface IX<T> { int X(T o); }",
+    "class GE<T> : IComparable<GE<T>>, IX<GE<T>> { public int CompareTo(GE<T>? o) => 0; public int X(GE<T> o) => 0; }",
+    "class GDE<T> : GE<T>, IComparable<GDE<T>>, IX<GDE<T>> { int IComparable<GDE<T>>.CompareTo(GDE<T>? o) => 5; int IX<GDE<T>>.X(GDE<T> o) => 6; }",
+    "class GP<T> : IComparable<GP<T>>, IX<GP<T>> { int IComparable<GP<T>>.CompareTo(GP<T>? o) => 0; int IX<GP<T>>.X(GP<T> o) => 0; }",
+    "class GDP<T> : GP<T>, IComparable<GDP<T>>, IX<GDP<T>> { public int CompareTo(GDP<T>? o) => 5; public int X(GDP<T> o) => 6; }",
     "class Slot<T extends IComparable<T>> { public T Value; public Reference<T> R; public Slot(T value) { this.Value = value; this.R = Reference(this.Value); } }",
     "class Parsed {",
     "  public int V = 0;",
@@ -49,6 +61,16 @@
     "  public static ExplicitEq EqRight = new ExplicitEq(4);",
     "  public static ExplicitCmp CmpLeft = new ExplicitCmp(5);",
     "  public static ExplicitCmp CmpRight = new ExplicitCmp(2);",
+    "  public static DerC DerLeft = new DerC();",
+    "  public static DerC DerRight = new DerC();",
+    "  public static DerE DerEqLeft = new DerE();",
+    "  public static DerE DerEqRight = new DerE();",
+    "  public static DerM MeasureLeft = new DerM();",
+    "  public static DerM MeasureRight = new DerM();",
+    "  public static GDE<int> GenericExplicitLeft = new GDE<int>();",
+    "  public static GDE<int> GenericExplicitRight = new GDE<int>();",
+    "  public static GDP<int> GenericPublicLeft = new GDP<int>();",
+    "  public static GDP<int> GenericPublicRight = new GDP<int>();",
     "  public static Fold FoldComparer = new Fold();",
     "  public static ByLen LengthComparer = new ByLen();",
     "  public static bool TryIt(out int v) { v = 1; return true; }",
@@ -73,6 +95,18 @@
     "  public static bool InheritedEquatable() { IKeyedBy<ById> k = new ById(); return k.Equals(new ById()); }",
     "  public static bool ExplicitEquatable() { IEquatable<ExplicitEq> e = EqLeft; return e.Equals(EqRight); }",
     "  public static int ExplicitComparable() { IComparable<ExplicitCmp> c = CmpLeft; return c.CompareTo(CmpRight); }",
+    "  public static int DerivedComparable() { IComparable<DerC> c = DerLeft; return c.CompareTo(DerRight); }",
+    "  public static int DerivedBaseComparable() { IComparable<BaseC> c = DerLeft; return c.CompareTo(DerRight); }",
+    "  public static bool DerivedEquatable() { IEquatable<DerE> e = DerEqLeft; return e.Equals(DerEqRight); }",
+    "  public static bool DerivedBaseEquatable() { IEquatable<BaseE> e = DerEqLeft; return e.Equals(DerEqRight); }",
+    "  public static int DerivedInterface() { IMeasure<DerM> m = MeasureLeft; return m.Measure(MeasureRight); }",
+    "  public static int ExplicitGenericCmp() { IComparable<GDE<int>> a = new GDE<int>(); return a.CompareTo(new GDE<int>()); }",
+    "  public static int ExplicitGenericX() { IX<GDE<int>> b = new GDE<int>(); return b.X(new GDE<int>()); }",
+    "  public static int ExplicitGenericBase() { IComparable<GE<int>> g = new GDE<int>(); return g.CompareTo(new GE<int>()); }",
+    "  public static int PublicGenericCmp() { IComparable<GDP<int>> a = new GDP<int>(); return a.CompareTo(new GDP<int>()); }",
+    "  public static int PublicGenericX() { IX<GDP<int>> b = new GDP<int>(); return b.X(new GDP<int>()); }",
+    "  public static int PublicGenericBase() { IComparable<GP<int>> g = new GDP<int>(); return g.CompareTo(new GP<int>()); }",
+    "  public static int DerivedBaseInterface() { IMeasure<BaseM> m = MeasureLeft; return m.Measure(MeasureRight); }",
     "  public static int ProtectedAndPrivateGetters() { var g = new GatedSub(); g.P = 2; g.Q = 3; return g.Sum() * 10 + g.ReadP(); }",
     "  public static int ReferenceIntWrite() { var s = new Slot<int>(3); s.R = 9; return s.Value; }",
     "  public static int ReferenceIntRead() { var s = new Slot<int>(4); return s.R; }",
@@ -110,7 +144,19 @@
     "ReferenceClassWrite": 8,
     "ReferenceClassSame": true,
     "ReferenceStoredInt": 11,
-    "ReferenceStoredClass": 12
+    "ReferenceStoredClass": 12,
+    "DerivedComparable": 41,
+    "DerivedBaseComparable": 11,
+    "DerivedEquatable": false,
+    "DerivedBaseEquatable": true,
+    "DerivedInterface": 2,
+    "DerivedBaseInterface": 1,
+    "ExplicitGenericCmp": 5,
+    "ExplicitGenericX": 6,
+    "ExplicitGenericBase": 0,
+    "PublicGenericCmp": 5,
+    "PublicGenericX": 6,
+    "PublicGenericBase": 0
   },
   "csharpBridges": [
     {
@@ -161,6 +207,146 @@
       "interface": "System.IComparable<IReadOnlyExplicitCmp>",
       "call": "CompareTo(Probe.CmpRight)",
       "returns": 3
+    },
+    {
+      "name": "DerivedComparable",
+      "receiver": "Probe.DerLeft",
+      "interface": "System.IComparable<DerC>",
+      "call": "CompareTo(Probe.DerRight)",
+      "returns": 41
+    },
+    {
+      "name": "DerivedComparable",
+      "receiver": "Probe.DerLeft",
+      "interface": "System.IComparable<IReadOnlyDerC>",
+      "call": "CompareTo(Probe.DerRight)",
+      "returns": 41
+    },
+    {
+      "name": "DerivedBaseComparable",
+      "receiver": "Probe.DerLeft",
+      "interface": "System.IComparable<BaseC>",
+      "call": "CompareTo(Probe.DerRight)",
+      "returns": 11
+    },
+    {
+      "name": "DerivedBaseComparable",
+      "receiver": "Probe.DerLeft",
+      "interface": "System.IComparable<IReadOnlyBaseC>",
+      "call": "CompareTo(Probe.DerRight)",
+      "returns": 11
+    },
+    {
+      "name": "DerivedEquatable",
+      "receiver": "Probe.DerEqLeft",
+      "interface": "System.IEquatable<DerE>",
+      "call": "Equals(Probe.DerEqRight)",
+      "returns": false
+    },
+    {
+      "name": "DerivedEquatable",
+      "receiver": "Probe.DerEqLeft",
+      "interface": "System.IEquatable<IReadOnlyDerE>",
+      "call": "Equals(Probe.DerEqRight)",
+      "returns": false
+    },
+    {
+      "name": "DerivedBaseEquatable",
+      "receiver": "Probe.DerEqLeft",
+      "interface": "System.IEquatable<BaseE>",
+      "call": "Equals(Probe.DerEqRight)",
+      "returns": true
+    },
+    {
+      "name": "DerivedBaseEquatable",
+      "receiver": "Probe.DerEqLeft",
+      "interface": "System.IEquatable<IReadOnlyBaseE>",
+      "call": "Equals(Probe.DerEqRight)",
+      "returns": true
+    },
+    {
+      "name": "DerivedInterface",
+      "receiver": "Probe.MeasureLeft",
+      "interface": "IMeasure<DerM>",
+      "call": "Measure(Probe.MeasureRight)",
+      "returns": 2
+    },
+    {
+      "name": "DerivedBaseInterface",
+      "receiver": "Probe.MeasureLeft",
+      "interface": "IMeasure<BaseM>",
+      "call": "Measure(Probe.MeasureRight)",
+      "returns": 1
+    },
+    {
+      "name": "ExplicitGenericCmp",
+      "receiver": "Probe.GenericExplicitLeft",
+      "interface": "System.IComparable<GDE<int>>",
+      "call": "CompareTo(Probe.GenericExplicitRight)",
+      "returns": 5
+    },
+    {
+      "name": "ExplicitGenericCmp",
+      "receiver": "Probe.GenericExplicitLeft",
+      "interface": "System.IComparable<IReadOnlyGDE<int>>",
+      "call": "CompareTo(Probe.GenericExplicitRight)",
+      "returns": 5
+    },
+    {
+      "name": "ExplicitGenericX",
+      "receiver": "Probe.GenericExplicitLeft",
+      "interface": "IX<GDE<int>>",
+      "call": "X(Probe.GenericExplicitRight)",
+      "returns": 6
+    },
+    {
+      "name": "ExplicitGenericBase",
+      "receiver": "Probe.GenericExplicitLeft",
+      "interface": "System.IComparable<GE<int>>",
+      "call": "CompareTo(Probe.GenericExplicitRight)",
+      "returns": 0
+    },
+    {
+      "name": "ExplicitGenericBase",
+      "receiver": "Probe.GenericExplicitLeft",
+      "interface": "System.IComparable<IReadOnlyGE<int>>",
+      "call": "CompareTo(Probe.GenericExplicitRight)",
+      "returns": 0
+    },
+    {
+      "name": "PublicGenericCmp",
+      "receiver": "Probe.GenericPublicLeft",
+      "interface": "System.IComparable<GDP<int>>",
+      "call": "CompareTo(Probe.GenericPublicRight)",
+      "returns": 5
+    },
+    {
+      "name": "PublicGenericCmp",
+      "receiver": "Probe.GenericPublicLeft",
+      "interface": "System.IComparable<IReadOnlyGDP<int>>",
+      "call": "CompareTo(Probe.GenericPublicRight)",
+      "returns": 5
+    },
+    {
+      "name": "PublicGenericX",
+      "receiver": "Probe.GenericPublicLeft",
+      "interface": "IX<GDP<int>>",
+      "call": "X(Probe.GenericPublicRight)",
+      "returns": 6
+    },
+    {
+      "name": "PublicGenericBase",
+      "receiver": "Probe.GenericPublicLeft",
+      "interface": "System.IComparable<GP<int>>",
+      "call": "CompareTo(Probe.GenericPublicRight)",
+      "returns": 0
+    },
+    {
+      "name": "PublicGenericBase",
+      "receiver": "Probe.GenericPublicLeft",
+      "interface": "System.IComparable<IReadOnlyGP<int>>",
+      "call": "CompareTo(Probe.GenericPublicRight)",
+      "returns": 0
     }
   ]
 }
