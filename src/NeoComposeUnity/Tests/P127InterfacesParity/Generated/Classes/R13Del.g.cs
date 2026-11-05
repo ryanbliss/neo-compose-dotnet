@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R13Del : NeoGeneratedClassValue, IReadOnlyR13Del
     {
         internal R13Del(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0aec07c4-e377-40e9-ab9f-6be9fc612243", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "98b1e8c7-b59e-4676-8070-bc64e9e90eac", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0aec07c4-e377-40e9-ab9f-6be9fc612243");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "98b1e8c7-b59e-4676-8070-bc64e9e90eac");
         }
 
         internal static R13Del Create(NeoClient client, NeoMemberClass node)

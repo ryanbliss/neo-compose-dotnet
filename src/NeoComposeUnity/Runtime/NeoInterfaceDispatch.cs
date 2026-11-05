@@ -10,12 +10,13 @@ using NeoCompose.Runtime.NeoScript;
 
 namespace NeoCompose.Runtime
 {
-    /// <summary>Closed interface graphs and accessor mappings, scoped to the client's schema.</summary>
+    /// <summary>Interface graphs and accessor mappings, scoped to the client's schema.</summary>
     internal sealed class NeoInterfaceDispatch
     {
         private static readonly ConditionalWeakTable<NeoClient, NeoInterfaceDispatch> Caches = new();
         private readonly NeoClient client;
         private readonly object schema;
+        private readonly bool schemaValidation;
         private readonly Dictionary<TypeBinding, List<TypeBinding>> closures = new();
         private readonly Dictionary<(TypeBinding, TypeBinding), bool> primitiveConformance = new();
         private readonly Dictionary<TypeBinding, bool> ownEquatable = new();
@@ -24,11 +25,11 @@ namespace NeoCompose.Runtime
         {
             if (type.Head?.Type != MemberKind.Class)
                 return false;
-            type = Identity(type);
+            type = DispatchIdentity(type);
             if (ownEquatable.TryGetValue(type, out bool cached))
                 return cached;
             return ownEquatable[type] = Closure(type).Any(item => item.Head!.InterfaceId == NeoPrimitiveConformance.InterfaceId("IEquatable`1")
-                && item.Bindings!.Values.Any(argument => Identity(argument).Equals(type)));
+                && item.Bindings!.Values.Any(argument => DispatchIdentity(argument).Equals(type)));
         }
         private readonly Dictionary<TypeBinding, IReadOnlyList<TypeBinding>> annotatedClosures = new();
         private readonly Dictionary<TypeBinding, List<TypeBinding>> classes = new();
@@ -60,11 +61,24 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private NeoInterfaceDispatch(NeoClient client)
+        private NeoInterfaceDispatch(NeoClient client, bool schemaValidation = false)
         {
             this.client = client;
+            this.schemaValidation = schemaValidation;
             schema = client.SchemaResolution;
         }
+
+        // Declaration validation uses symbolic parameters and separate caches;
+        // runtime dispatch continues to require fully closed constructions.
+        internal static NeoInterfaceDispatch ForSchemaValidation(NeoClient client) => new(client, schemaValidation: true);
+
+        private TypeBinding DispatchIdentity(TypeBinding binding) => schemaValidation
+            ? SchemaIdentity(binding) : Identity(binding);
+
+        private static TypeBinding SchemaIdentity(TypeBinding binding) => binding.IsOpen ? binding
+            : TypeBinding.Closed(binding.Head!.WithoutNames().WithRequired(
+                TypeBindings.IsValueType(binding.Head) ? binding.Head.Required : true),
+                binding.Bindings?.ToDictionary(pair => pair.Key, pair => SchemaIdentity(pair.Value)));
 
         internal static NeoInterfaceDispatch Of(NeoClient client)
         {
@@ -98,13 +112,13 @@ namespace NeoCompose.Runtime
             return TypeBinding.Closed(binding.Head!, binding.Bindings?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, owner)));
         }
 
-        private static TypeBinding Construct(InterfaceConstruction declared, TypeBinding owner) =>
-            Identity(TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: declared.interfaceId),
+        private TypeBinding Construct(InterfaceConstruction declared, TypeBinding owner) =>
+            DispatchIdentity(TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: declared.interfaceId),
                 declared.arguments?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, owner))));
 
         internal IReadOnlyList<TypeBinding> ClassChain(TypeBinding type)
         {
-            type = Identity(type);
+            type = DispatchIdentity(type);
             if (classes.TryGetValue(type, out var found))
                 return found;
             var chain = new List<TypeBinding>();
@@ -116,7 +130,7 @@ namespace NeoCompose.Runtime
                 var declaration = client.ProjectDataForRuntime.classes[id];
                 if (declaration.extendsClassId is not string parent)
                     break;
-                current = Identity(TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: parent),
+                current = DispatchIdentity(TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: parent),
                     declaration.extendsGenericBindings?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, current))));
             }
             classes[type] = chain;
@@ -154,7 +168,7 @@ namespace NeoCompose.Runtime
 
         internal IReadOnlyList<TypeBinding> Closure(TypeBinding type)
         {
-            type = Identity(type);
+            type = DispatchIdentity(type);
             if (closures.TryGetValue(type, out var found))
                 return found;
             if (NeoPrimitiveConformance.Kind(type) is not null)
@@ -248,10 +262,12 @@ namespace NeoCompose.Runtime
 
         internal bool Converts(TypeBinding from, TypeBinding to)
         {
-            from = Identity(from);
-            to = Identity(to);
+            from = DispatchIdentity(from);
+            to = DispatchIdentity(to);
             if (from.Equals(to))
                 return true;
+            if (from.IsOpen || to.IsOpen)
+                return false;
             if (to.Head!.Type == MemberKind.Interface && NeoPrimitiveConformance.Kind(from) is not null)
                 return PrimitiveConforms(from, to);
             if (TypeBindings.IsValueType(from.Head!) || TypeBindings.IsValueType(to.Head!))
@@ -309,8 +325,8 @@ namespace NeoCompose.Runtime
 
         internal bool PrimitiveConforms(TypeBinding type, TypeBinding requested)
         {
-            type = Identity(type);
-            requested = Identity(requested);
+            type = DispatchIdentity(type);
+            requested = DispatchIdentity(requested);
             var key = (type, requested);
             if (primitiveConformance.TryGetValue(key, out bool cached))
                 return cached;
@@ -338,8 +354,8 @@ namespace NeoCompose.Runtime
 
         internal Implementation Resolve(TypeBinding receiver, TypeBinding requested, string memberId, string accessor, bool direct = false)
         {
-            receiver = Identity(receiver);
-            requested = Identity(requested);
+            receiver = DispatchIdentity(receiver);
+            requested = DispatchIdentity(requested);
             var key = (receiver, requested, memberId, accessor, direct);
             if (mappings.TryGetValue(key, out var cached))
                 return cached;
@@ -510,7 +526,7 @@ namespace NeoCompose.Runtime
             if (contract.kind == NeoInterfaceMemberKind.Property)
             {
                 TypeInfo? actual = member is NSPropertyMember property ? property.returnTypeInfo
-                    : NeoTypeRules.BindingTypeInfo(client, NeoGenericResolution.SubstituteMember(client, member, Environment(owner)));
+                    : NeoTypeRules.BindingTypeInfo(client, schemaValidation ? member : NeoGenericResolution.SubstituteMember(client, member, Environment(owner)));
                 if (actual is null || !MatchesType(actual, contract.typeInfo!, owner, requested))
                     return null;
             }
@@ -583,11 +599,26 @@ namespace NeoCompose.Runtime
             member.explicitImplementation is null && member.Access == NeoMemberAccessKind.Public
             && (member.Modifier == NeoMemberModifierKind.Static) == contract.IsStatic && HasAccessor(member, accessor)
             && (accessor != "get" || member.GetterAccess == NeoMemberAccessKind.Public)
-            && (accessor != "set" || member.SetterAccess == NeoMemberAccessKind.Public);
+            && (accessor != "set" || member.SetterAccess == NeoMemberAccessKind.Public
+                && (member.DeclaredAccessors is NeoPropertyAccessorsKind.GetInit or NeoPropertyAccessorsKind.Init)
+                    == (contract.Accessors is NeoPropertyAccessorsKind.GetInit or NeoPropertyAccessorsKind.Init));
 
-        private bool MatchesType(TypeInfo actual, TypeInfo expected, TypeBinding owner, TypeBinding requested) =>
-            NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, actual, Environment(owner))).Equals(
-                NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, expected, Environment(requested))));
+        private bool MatchesType(TypeInfo actual, TypeInfo expected, TypeBinding owner, TypeBinding requested)
+        {
+            if (!schemaValidation)
+                return NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, actual, Environment(owner))).Equals(
+                    NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, expected, Environment(requested))));
+            TypeBinding Bind(TypeInfo type, TypeBinding construction)
+            {
+                var bindings = new Dictionary<string, TypeBinding>();
+                var chain = construction.Head!.Type == MemberKind.Class ? ClassChain(construction) : Closure(construction);
+                foreach (var entry in chain)
+                    foreach (var pair in entry.Bindings ?? new Dictionary<string, TypeBinding>())
+                        bindings.TryAdd(pair.Key, pair.Value);
+                return SchemaIdentity(Substitute(NeoCallableSignature.TypeIdentity(type), TypeBinding.Closed(construction.Head, bindings)));
+            }
+            return Bind(actual, owner).Equals(Bind(expected, requested));
+        }
 
         private static bool InterfaceHasAccessor(InterfaceMember member, string accessor) => accessor == "get"
             ? member.Accessors is NeoPropertyAccessorsKind.Get or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit
@@ -634,6 +665,8 @@ namespace NeoCompose.Runtime
             return member;
         }
 
+        // "set" selects a write body, including init during construction. Interface
+        // eligibility separately requires the implementation's exact write-accessor kind.
         internal static bool HasAccessor(Member member, string accessor) => accessor switch
         {
             "call" => member is NSFunctionMember or FunctionMember,

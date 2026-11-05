@@ -295,6 +295,15 @@
     "class R15NC : R15NB<int>, IR15N<int>, IR15N<string> { public int V => 3; }",
     "class R15StaticOwn : IR15V { public static int V => 3; int IR15V.V => 2; }",
     "class R15StaticInherited : R15VB, IR15V { public static int V => 3; }",
+    "interface IR16V { int V { get; set; } }",
+    "class R16B : IR16V { public int S { get; set; } = 0; int IR16V.V { get => 2; set { this.S = value; } } }",
+    "class R16GetOnly : R16B, IR16V { public int V => 3; }",
+    "class R16ProtectedSet : R16B, IR16V { public int V { get => 3; protected set { this.S = value * 10; } } }",
+    "class R16Init : R16B, IR16V { public int V { get => 3; init { this.S = value * 10; } } }",
+    "class R16ProtectedGet : R16B, IR16V { public int V { protected get => 9; set { this.S = value * 10; } } }",
+    "interface IR16G<T> { T V { get; set; } }",
+    "class R16GB<T> : IR16G<T> { public int S { get; set; } = 0; T IR16G<T>.V { get => default(T)!; set { this.S = 7; } } }",
+    "class R16GGetOnly : R16GB<int>, IR16G<int> { public int V => 3; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -489,6 +498,8 @@
     "  public static string R15Constraints() => Probe.R15ViaLater<R15Later>(new R15Later()).ToString() + \",\" + Probe.R15ViaEarlier<R15Later>(new R15Later()).ToString() + \",\" + Probe.R15ViaThree<R15Three>(new R15Three()).ToString() + \",\" + Probe.R15ViaLastFirst<R15Three>(new R15Three()).ToString() + \",\" + Probe.R15ViaPair<R15Pair>(new R15Pair()).ToString();",
     "  public static string R15Reimplementation() { IR15V a = new R15Wrong(); IR15G<int> b = new R15GWrong(); IR15V c = new R15Match(); IR15V d = new R15Unlisted(); IR15N<int> e = new R15NC(); IR15N<string> f = new R15NC(); return a.V.ToString() + \",\" + Probe.R15ViaBound<R15Wrong>(new R15Wrong()).ToString() + \",\" + b.V.ToString() + \",\" + c.V.ToString() + \",\" + d.V.ToString() + \",\" + e.V.ToString() + \",\" + f.V.ToString(); }",
     "  public static string R15StaticBeside() { IR15V a = new R15StaticOwn(); IR15V b = new R15StaticInherited(); return (a.V * 10 + R15StaticOwn.V).ToString() + \",\" + (b.V * 10 + R15StaticInherited.V).ToString(); }",
+    "  static int R16Write(IR16V x, R16B b) { x.V = 5; return x.V * 1000 + b.S; }",
+    "  public static string R16Accessors() { R16GetOnly a = new R16GetOnly(); R16ProtectedSet b = new R16ProtectedSet(); R16Init c = new R16Init(); R16ProtectedGet d = new R16ProtectedGet(); R16GGetOnly e = new R16GGetOnly(); IR16G<int> g = e; g.V = 5; return Probe.R16Write(a, a).ToString() + \",\" + Probe.R16Write(b, b).ToString() + \",\" + Probe.R16Write(c, c).ToString() + \",\" + Probe.R16Write(d, d).ToString() + \",\" + (g.V * 1000 + e.S).ToString(); }",
     "}"
   ],
   "returns": {
@@ -650,6 +661,7 @@
     "R14InheritedExplicit": "s,0,t,0,2,3",
     "R15Constraints": "2,2,123,3,12",
     "R15Reimplementation": "2,2,0,3,2,3,3",
-    "R15StaticBeside": "23,23"
+    "R15StaticBeside": "23,23",
+    "R16Accessors": "3005,3005,3005,2050,3007"
   }
 }
