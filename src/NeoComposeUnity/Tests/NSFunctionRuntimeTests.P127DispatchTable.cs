@@ -31,19 +31,29 @@ namespace NeoCompose.Tests
                 ("ReplaceSeveral", "Z-body", "D11"), ("DropAncestor", "Z-body", "D11"),
                 ("SameDefinition", "K-body", "D1"), ("SameDefinitionReverse", "K-body", "D11"),
                 ("ExactCovariantOwners", "A-body", "D1"),
-                ("ExactAmbiguity", "ambiguous", ""), ("Reabstracted", "missing", "")
+                ("ExactAmbiguity", "ambiguous", ""), ("Reabstracted", "missing", ""),
+                // Round 22 follow-up: generic classes merge the target, while
+                // each body's U identifies the winning constructed holder.
+                ("HolderExactCast", "A-body", "D1"), ("HolderReversed", "A-body", "D1"),
+                ("HolderUnrelated", "ambiguous", ""), ("HolderCross", "LA-body", "D1"),
+                ("HolderCrossR", "LA-body", "D1"), ("HolderCrossN", "ambiguous", ""),
+                ("HolderThree", "A-body", "D11"), ("HolderInvariant", "ambiguous", ""),
+                ("HolderExactCastD1", "A-body", "D1")
             };
             foreach (var row in rows)
                 foreach (string operation in new[] { "get", "call", "generic", "set", "static" })
-                    yield return new TestCaseData(row.Shape, operation, row.Body, row.Frame)
-                        .SetName($"P127Interface_DefaultWalk_{row.Shape}_{operation}");
+                {
+                    string form = operation == "static" && row.Shape.StartsWith("Holder", StringComparison.Ordinal) ? "static-call" : operation;
+                    yield return new TestCaseData(row.Shape, form, row.Body, row.Frame)
+                        .SetName($"P127Interface_DefaultWalk_{row.Shape}_{form}");
+                }
         }
 
         [TestCaseSource(nameof(DefaultWalkCases))]
         public void P127Interface_DefaultWalk(string shape, string operation, string expectedBody, string expectedFrame)
         {
-            bool function = operation is "call" or "generic";
-            bool isStatic = operation == "static";
+            bool function = operation is "call" or "generic" or "static-call";
+            bool isStatic = operation is "static" or "static-call";
             bool contra = shape.StartsWith("Contra", StringComparison.Ordinal);
             var records = new List<NeoCompose.Runtime.Json.Member>();
             var classes = new Dictionary<string, NeoSchemaClass>();
@@ -131,6 +141,17 @@ namespace NeoCompose.Tests
                 name = "U",
                 variance = NeoGenericParamVarianceKind.Out
             });
+            Interface("LA", 7, "A");
+            interfaces["LA"].genericParams!.Add(new()
+            {
+                id = "LA-U",
+                name = "U",
+                variance = NeoGenericParamVarianceKind.Out
+            });
+            interfaces["LA"].extendsInterfaces![0].arguments!["A-U"] = Param("LA", "U");
+            if (shape == "HolderInvariant")
+                interfaces["A"].genericParams![1].variance = null;
+
             NeoSchemaClass Class(string id, string? parent = null, params InterfaceConstruction[] listings)
             {
                 var result = ReceiverClass();
@@ -265,6 +286,60 @@ namespace NeoCompose.Tests
                     second.arguments!["A-U"] = Type("Ba");
                     r.Add(second);
                     break;
+                case "HolderExactCast":
+                case "HolderReversed":
+                case "HolderUnrelated":
+                case "HolderCross":
+                case "HolderCrossR":
+                case "HolderCrossN":
+                case "HolderThree":
+                case "HolderInvariant":
+                case "HolderExactCastD1":
+                    void Generic(NeoSchemaClass owner, params string[] names)
+                    {
+                        owner.genericParams = new();
+                        foreach (string name in names)
+                            owner.genericParams.Add(new()
+                            {
+                                id = owner.id + "-" + name,
+                                name = name
+                            });
+                        if (owner.extendsClassId is string parent)
+                        {
+                            owner.extendsGenericBindings = new();
+                            foreach (var parameter in classes[parent].genericParams!)
+                                owner.extendsGenericBindings[parameter.id] = Param(owner.id, parameter.name);
+                        }
+                    }
+                    void Holder(NeoSchemaClass owner, string id, string parameter, string argument)
+                    {
+                        var construction = Listing(id, Param(owner.id, parameter));
+                        construction.arguments![id + "-U"] = Type(argument);
+                        owner.implementsInterfaces!.Add(construction);
+                    }
+                    Generic(classes["base"], "T");
+                    Generic(receiver, "T", "U");
+                    string baseHolder = shape == "HolderCrossR" ? "LA" : "A";
+                    string baseArgument = shape is "HolderReversed" or "HolderCross" ? "Ba" : "D1";
+                    Holder(classes["base"], baseHolder, "T", baseArgument);
+                    if (shape == "HolderThree")
+                    {
+                        var middle = Class("middle", "base");
+                        Generic(middle, "T", "U");
+                        Holder(middle, "A", "U", "Ba");
+                        receiver.extendsClassId = middle.id;
+                        Generic(receiver, "T", "U", "W");
+                        Holder(receiver, "A", "W", "D11");
+                    }
+                    else
+                    {
+                        string ownHolder = shape is "HolderCross" or "HolderCrossN" ? "LA" : "A";
+                        string ownArgument = shape is "HolderReversed" or "HolderCross" ? "D1" : shape == "HolderUnrelated" ? "D2" : "Ba";
+                        Holder(receiver, ownHolder, "U", ownArgument);
+                    }
+                    if (shape == "HolderExactCastD1")
+                        view = "D1";
+                    break;
                 case "ExactAmbiguity":
                     Add(r, "K", "Ba");
                     Add(r, "L", "Ba");
@@ -277,12 +352,19 @@ namespace NeoCompose.Tests
                     throw new ArgumentOutOfRangeException(nameof(shape));
             }
             var row = ObjectValue("receiver-value", receiver.id);
+            if (receiver.genericParams is not null)
+            {
+                row.genericBindings = new();
+                foreach (var parameter in receiver.genericParams)
+                    row.genericBindings[parameter.id] = Type(shape == "HolderExactCastD1" && parameter.name == "T" ? "D1" : "Ba");
+            }
+            var receiverType = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: receiver.id), row.genericBindings);
             using var client = BuildClient(records.ToArray(), receiver, new List<NeoSchemaClass>(classes.Values).ToArray(), new[] { row }, interfaces);
             var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "I"), Listing("I", Type(view)).arguments);
             string accessor = function ? "call" : operation == "set" ? "set" : "get";
             foreach (var dispatch in new[] { NeoInterfaceDispatch.Of(client), NeoInterfaceDispatch.ForSchemaValidation(client) })
             {
-                NeoInterfaceDispatch.Implementation Run() => dispatch.Resolve(Type(receiver.id), requested, "I-slot", accessor);
+                NeoInterfaceDispatch.Implementation Run() => dispatch.Resolve(receiverType, requested, "I-slot", accessor);
                 if (expectedBody is "ambiguous" or "missing")
                 {
                     Assert.That(Assert.Throws<NSGetterRuntimeError>(() => Run())!.Message,
@@ -293,7 +375,7 @@ namespace NeoCompose.Tests
                 Assert.That(answer.MemberId, Is.EqualTo(expectedBody));
                 var frame = answer.InterfaceConstruction ?? answer.StaticConstruction;
                 if (expectedFrame.Length != 0)
-                    Assert.That(frame!.Bindings![shape == "ExactCovariantOwners" ? "A-U" : frame.Head!.InterfaceId + "-T"], Is.EqualTo(Type(expectedFrame)));
+                    Assert.That(frame!.Bindings![frame.Head!.InterfaceId + (frame.Bindings.ContainsKey(frame.Head.InterfaceId + "-U") ? "-U" : "-T")], Is.EqualTo(Type(expectedFrame)));
                 Assert.That(Run(), Is.SameAs(answer));
             }
         }
