@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GNMA<T> : NeoGeneratedClassValue, IReadOnlyGNMA<T>
     {
         internal GNMA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "69b6a502-0198-4bf4-a694-27eb7c2ddd22", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f6dc645b-f903-4af4-8925-8aa7cc128bd3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static string Nm()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9fc552f6-e6ad-4cea-b085-625b84e9de84", client.TypeArguments.Of<GNMA<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c98ed356-a678-41ab-a3bf-4f478f7e60cb", client.TypeArguments.Of<GNMA<T>>());
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "69b6a502-0198-4bf4-a694-27eb7c2ddd22" => new GNMA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f6dc645b-f903-4af4-8925-8aa7cc128bd3" => new GNMA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GNMA' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "69b6a502-0198-4bf4-a694-27eb7c2ddd22" => new GNMA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f6dc645b-f903-4af4-8925-8aa7cc128bd3" => new GNMA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GNMA' without a concrete client type id."),
                 };
             });

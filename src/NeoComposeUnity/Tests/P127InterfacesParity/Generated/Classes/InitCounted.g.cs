@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class InitCounted : NeoGeneratedClassValue, IReadOnlyInitCounted
     {
         internal InitCounted(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5e50f27b-9ac6-4875-98f2-3db1acf03adc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b3b365b6-0c06-494e-b3bf-aeba9db10496", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "5e50f27b-9ac6-4875-98f2-3db1acf03adc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Id", "6ce8b872-07b9-40f0-a6d5-18ba3d1e66b7", Id),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seen", "8fd8e50c-6bf6-4814-ba1f-1d44d3ad5aa9", Seen)
+                "b3b365b6-0c06-494e-b3bf-aeba9db10496",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Id", "84b1192f-8672-4551-bc06-1b163ce68be0", Id),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seen", "7941caad-c9f2-4a48-974e-789efff16d24", Seen)
             );
         }
 
