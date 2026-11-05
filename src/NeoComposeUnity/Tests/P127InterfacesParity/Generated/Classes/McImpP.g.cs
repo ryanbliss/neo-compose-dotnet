@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McImpP : NeoGeneratedClassValue, IReadOnlyMcImpP
     {
         internal McImpP(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "022c7f24-3a2d-461f-8422-7136f58251b6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "40578cb1-0e94-4ec9-b066-7929f3260069", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "022c7f24-3a2d-461f-8422-7136f58251b6");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "40578cb1-0e94-4ec9-b066-7929f3260069");
         }
 
         internal static McImpP Create(NeoClient client, NeoMemberClass node)
@@ -105,19 +105,19 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         public int Set(bool v)
         {
-            var result = InvokeFunction("Set#08ece16e-cbcc-42be-9bf8-83b5e6d022ed", (object?)(v));
+            var result = InvokeFunction("Set#5825605f-a841-4404-9bd1-3cd3fe78c494", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(int v)
         {
-            var result = InvokeFunction("Set#49182616-8610-466a-b08f-ff18b1b7f9e3", (object?)(v));
+            var result = InvokeFunction("Set#157c9c3c-9d27-4883-a086-1c1975f4051d", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(string v)
         {
-            var result = InvokeFunction("Set#b59d7cbc-8dc4-4ad1-ad25-514af5a556a5", (object?)(v));
+            var result = InvokeFunction("Set#a79945ed-3817-4f62-b3b7-e7273f3e7a54", (object?)(v));
             return Convert.ToInt32(result);
         }
 
