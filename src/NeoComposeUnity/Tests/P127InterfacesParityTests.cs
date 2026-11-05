@@ -25,6 +25,18 @@ namespace NeoCompose.Tests
             .Children<JProperty>().Select(test => new TestCaseData(test.Name, test.Value).SetName("B3_" + test.Name));
 
         [Test]
+        public void GeneratedUnlistedInterfaceKeepsBaseExplicitSite()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
+            var owner = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "R15Unlisted");
+            var node = NeoGeneratedTypesSupport.CreateWritableClassValue(client, owner.id);
+            var value = P127InterfacesParity.R15Unlisted.CreateWritable(client, node);
+
+            Assert.That(value.V, Is.EqualTo(3));
+            Assert.That(((P127InterfacesParity.IR15V)value).V, Is.EqualTo(2));
+        }
+
+        [Test]
         public void GenericStaticCollectionsSaveRoundTrip()
         {
             var schema = NeoTestExport.Read(File.ReadAllText(Export));

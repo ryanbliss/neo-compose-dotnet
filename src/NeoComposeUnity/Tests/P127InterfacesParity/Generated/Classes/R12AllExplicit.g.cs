@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R12AllExplicit : NeoGeneratedClassValue, IReadOnlyR12AllExplicit
     {
         internal R12AllExplicit(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5fdd9a5d-b73c-422e-8e1b-e75d4c67b6b9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "25497af9-298a-47d6-9218-9e26bef70929", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5fdd9a5d-b73c-422e-8e1b-e75d4c67b6b9");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "25497af9-298a-47d6-9218-9e26bef70929");
         }
 
         internal static R12AllExplicit Create(NeoClient client, NeoMemberClass node)
@@ -105,13 +105,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int IR11A1.Get()
         {
-            var result = InvokeFunction("Get#94fb14af-569c-40d5-8fc1-9943f06b2c02");
+            var result = InvokeFunction("Get#83501f90-0c5b-4f7c-a43a-07b0aab5c0e4");
             return Convert.ToInt32(result);
         }
 
         string IR11B1.Get()
         {
-            var result = InvokeFunction("Get#7c2565bf-c795-46d9-8487-86e2042d3a6f");
+            var result = InvokeFunction("Get#abe479fd-5017-4cee-a332-b74017017f78");
             return (string)result!;
         }
 
