@@ -364,6 +364,99 @@ namespace NeoCompose.Tests
             StringAssert.Contains("cannot fulfill settable interface property", error!.Message);
         }
 
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void Validation_InitPropertyUsesInheritedExplicitSetter(bool generic, bool explicitSetter)
+        {
+            ProjectData data = BuildProjectData();
+            var integer = new PrimitiveTypeInfo { type = MemberKind.Int, required = true };
+            var contract = new Interface
+            {
+                id = "init-contract",
+                name = "IInitContract",
+                projectId = ProjectId,
+                genericParams = generic ? new() { new() { id = "I-T", name = "T" } } : null,
+                members = new()
+                {
+                    ["P"] = new InterfaceMember
+                    {
+                        id = "init-slot",
+                        kind = NeoInterfaceMemberKind.Property,
+                        typeInfo = generic ? new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerInterfaceId = "init-contract", genericParamId = "I-T" } : integer,
+                        Accessors = NeoPropertyAccessorsKind.GetSet
+                    }
+                }
+            };
+            InterfaceConstruction Construction(string owner, string param) => new()
+            {
+                interfaceId = contract.id,
+                arguments = generic ? new()
+                {
+                    ["I-T"] = TestTypeBindings.Open(owner, param)
+                } : null
+            };
+            var baseClass = ClassOf("init-base", "InitBase", new());
+            baseClass.genericParams = generic ? new() { new() { id = "B-T", name = "T" } } : null;
+            baseClass.implementsInterfaces = new() { Construction(baseClass.id, "B-T") };
+            var setter = new NSPropertyMember
+            {
+                id = "explicit-property",
+                name = "P",
+                projectId = ProjectId,
+                kind = MemberKind.NSProperty,
+                Access = NeoMemberAccessKind.Private,
+                Accessors = NeoPropertyAccessorsKind.GetSet,
+                returnTypeInfo = generic ? new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerClassId = baseClass.id, genericParamId = "B-T" } : integer,
+                code = "return default;",
+                setterCode = "return;",
+                explicitImplementation = new() { interfaceId = contract.id, interfaceMemberId = "init-slot", arguments = Construction(baseClass.id, "B-T").arguments }
+            };
+            if (explicitSetter)
+            {
+                data.members[setter.id] = setter;
+                baseClass.schema["P#init-slot"] = setter.id;
+            }
+            Member property = generic
+                ? new GenericMember { kind = MemberKind.Generic, genericParamId = "D-T" }
+                : new IntMember { kind = MemberKind.Int };
+            property.id = "init-property";
+            property.name = "P";
+            property.projectId = ProjectId;
+            property.Requirement = NeoMemberRequirementKind.Required;
+            property.Mutability = NeoMemberMutabilityKind.ReadOnly;
+            property.DeclaredDeclarationForm = NeoMemberDeclarationFormKind.AutoProperty;
+            property.DeclaredAccessors = NeoPropertyAccessorsKind.GetInit;
+            var derived = ClassOf("init-derived", "InitDerived", new()
+            {
+                ["P"] = property.id
+            });
+            derived.genericParams = generic ? new() { new() { id = "D-T", name = "T" } } : null;
+            derived.extendsClassId = baseClass.id;
+            derived.extendsGenericBindings = generic ? new()
+            {
+                ["B-T"] = TestTypeBindings.Open(derived.id, "D-T")
+            } : null;
+            derived.implementsInterfaces = new() { Construction(derived.id, "D-T") };
+            data.members[property.id] = property;
+            data.classes[baseClass.id] = baseClass;
+            data.classes[derived.id] = derived;
+            data.interfaces[contract.id] = contract;
+            if (!explicitSetter)
+            {
+                var error = Assert.Throws<System.InvalidOperationException>(() => LoadClient(data));
+                Assert.That(error!.Message, Does.Contain("cannot fulfill settable interface property"));
+                return;
+            }
+            using var client = LoadClient(data);
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: derived.id),
+                generic ? new Dictionary<string, TypeBinding> { ["D-T"] = TypeBinding.Closed(new TypeHead(MemberKind.Int, true)) } : null);
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id),
+                generic ? new Dictionary<string, TypeBinding> { ["I-T"] = TypeBinding.Closed(new TypeHead(MemberKind.Int, true)) } : null);
+            Assert.That(NeoInterfaceDispatch.Of(client).Resolve(receiver, requested, "init-slot", "set").MemberId, Is.EqualTo(setter.id));
+        }
+
         private static void ConfigureAbstractDamageContract(
             ProjectData data,
             bool addOverride = true,

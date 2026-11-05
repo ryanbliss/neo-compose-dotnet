@@ -758,6 +758,87 @@ namespace NeoCompose.Tests
             Assert.That(Read(text), Is.EqualTo(5));
         }
 
+        [TestCase(false, false, false)]
+        [TestCase(false, true, false)]
+        [TestCase(true, false, false)]
+        [TestCase(true, true, false)]
+        [TestCase(false, false, true)]
+        [TestCase(false, true, true)]
+        [TestCase(true, false, true)]
+        [TestCase(true, true, true)]
+        public void P127Interface_RelistedPropertyKeepsSetAndInitContractsDistinct(bool contractInit, bool implementationInit, bool stored)
+        {
+            var contractAccessors = contractInit ? NeoPropertyAccessorsKind.GetInit : NeoPropertyAccessorsKind.GetSet;
+            var implementationAccessors = implementationInit ? NeoPropertyAccessorsKind.GetInit : NeoPropertyAccessorsKind.GetSet;
+            NSPropertyMember Property(string id, NeoPropertyAccessorsKind accessors) => new()
+            {
+                id = id,
+                name = "P",
+                projectId = ProjectId,
+                kind = MemberKind.NSProperty,
+                Accessors = accessors,
+                returnTypeInfo = IntType(),
+                code = "return 1;",
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(1))),
+                setterCode = "return;",
+                setter = Action(new PrimitiveTypeInfo { type = MemberKind.Null, required = true }, Array.Empty<FunctionArgumentTypeInfo>())
+            };
+            var root = Property("base-property", contractAccessors);
+            root.Access = NeoMemberAccessKind.Private;
+            root.explicitImplementation = new()
+            {
+                interfaceId = "contract",
+                interfaceMemberId = "slot"
+            };
+            NeoCompose.Runtime.Json.Member derived = stored
+                ? new IntMember
+                {
+                    id = "derived-property",
+                    name = "P",
+                    projectId = ProjectId,
+                    kind = MemberKind.Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredDeclarationForm = NeoMemberDeclarationFormKind.AutoProperty,
+                    DeclaredAccessors = implementationAccessors,
+                    Mutability = implementationInit ? NeoMemberMutabilityKind.ReadOnly : NeoMemberMutabilityKind.Mutable
+                }
+                : Property("derived-property", implementationAccessors);
+            var contract = new Interface
+            {
+                id = "contract",
+                name = "I",
+                projectId = ProjectId,
+                members = new()
+                {
+                    ["P"] = new InterfaceMember { id = "slot", kind = NeoInterfaceMemberKind.Property, typeInfo = IntType(), Accessors = contractAccessors }
+                }
+            };
+            var baseClass = new NeoSchemaClass
+            {
+                id = "base-class",
+                name = "Base",
+                projectId = ProjectId,
+                schema = new() { ["P#slot"] = root.id },
+                implementsInterfaces = new() { new() { interfaceId = contract.id } }
+            };
+            var owner = ReceiverClass(("P", derived.id));
+            owner.extendsClassId = baseClass.id;
+            owner.implementsInterfaces = new() { new() { interfaceId = contract.id } };
+            using var client = BuildClient(new[] { root, derived }, owner, additionalClasses: new[] { baseClass },
+                interfaces: new()
+                {
+                    [contract.id] = contract
+                });
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id));
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id));
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "get").MemberId, Is.EqualTo(derived.id), "Getter mapping is independent of the write accessor.");
+            string expected = contractInit == implementationInit ? derived.id : root.id;
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "set").MemberId, Is.EqualTo(expected), "Only the same write-accessor kind can reimplement the contract.");
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "set").MemberId, Is.EqualTo(expected), "Cached mappings preserve the accessor kind.");
+            Assert.That(dispatch.ClassAccessor(owner.id, derived.id, "set").id, Is.EqualTo(derived.id), "Direct class writes still find init accessors during construction.");
+        }
+
         [Test]
         public void P127Interface_PropertyMapsGetterAndSetterSeparately()
         {
