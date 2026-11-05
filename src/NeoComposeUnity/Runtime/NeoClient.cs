@@ -2863,12 +2863,15 @@ namespace NeoCompose.Runtime
             NeoInterfaceDispatch dispatch)
         {
             var readOnlyKeys = new Dictionary<string, Member>();
+            var readOnlySites = new Dictionary<(string, string), Member>();
             foreach (MergedSchemaEntry entry in surface)
             {
                 if (data.members.TryGetValue(entry.memberId, out Member? member)
                     && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     readOnlyKeys[entry.schemaKey] = member;
+                    if (member.explicitImplementation is { } site)
+                        readOnlySites.TryAdd((site.interfaceId, site.interfaceMemberId), member);
                 }
             }
             if (readOnlyKeys.Count == 0)
@@ -2887,22 +2890,23 @@ namespace NeoCompose.Runtime
                         continue;
                     string slot = pair.Value.id ?? pair.Key;
                     Member? member = readOnlyKeys.GetValueOrDefault(pair.Key)
-                        ?? readOnlyKeys.Values.FirstOrDefault(candidate => candidate.explicitImplementation is { } site
-                            && site.interfaceId == contract.id && site.interfaceMemberId == slot);
+                        ?? readOnlySites.GetValueOrDefault((contract.id, slot));
                     if (member is null)
                         continue;
+                    Member setter;
                     try
                     {
-                        var implementation = dispatch.Resolve(receiver, construction, slot, "set");
-                        if (data.members[implementation.MemberId].Mutability != NeoMemberMutabilityKind.ReadOnly)
-                            continue;
+                        setter = data.members[dispatch.Resolve(receiver, construction, slot, "set").MemberId];
                     }
                     catch (NeoScript.NSGetterRuntimeError)
                     {
-                        // Retain the read-only contract diagnostic when no setter maps.
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}): no setter implements it.");
                     }
+                    if (setter.Mutability != NeoMemberMutabilityKind.ReadOnly)
+                        continue;
                     throw new InvalidOperationException(
-                        $"Read-only member '{member.name}' ({member.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
+                        $"Read-only member '{setter.name}' ({setter.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
                 }
             }
         }
