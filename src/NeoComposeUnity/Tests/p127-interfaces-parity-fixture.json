@@ -304,6 +304,24 @@
     "interface IR16G<T> { T V { get; set; } }",
     "class R16GB<T> : IR16G<T> { public int S { get; set; } = 0; T IR16G<T>.V { get => default(T)!; set { this.S = 7; } } }",
     "class R16GGetOnly : R16GB<int>, IR16G<int> { public int V => 3; }",
+    "interface IR19J<A, B> { int V { get; } }",
+    "interface IR19F<A, B> { int F(); }",
+    "class R19Tag {}",
+    "class R19B<T, U> : IR19J<R19Tag, T>, IR19F<R19Tag, T> { int IR19J<R19Tag, T>.V => 2; public int V => 9; int IR19F<R19Tag, T>.F() => 2; public int F() => 9; }",
+    "class R19P<T, U> : R19B<T, U> {}",
+    "class R19M<T, U> : R19P<T, T>, IR19J<R19Tag, U>, IR19F<R19Tag, U> {}",
+    "class R19Q<T, U> : R19M<T, U> {}",
+    "class R19Eq<T, U> : R19P<T, T>, IR19J<R19Tag, T>, IR19F<R19Tag, T> {}",
+    "class R19EqBelow<T, U> : R19M<T, U>, IR19J<R19Tag, T>, IR19F<R19Tag, T> {}",
+    "class R19Closed : R19Q<int, int>, IR19J<R19Tag, int>, IR19F<R19Tag, int> {}",
+    "class R19ClosedTop : R19B<int, int>, IR19J<R19Tag, int>, IR19F<R19Tag, int> {}",
+    "class R19N<T, U> : R19M<T, U>, IR19J<R19Tag, T> { int IR19J<R19Tag, T>.V => 5; }",
+    "class R19NQ<T, U> : R19N<T, U>, IR19J<R19Tag, U> {}",
+    "class R19VB<T, U> : IR19J<R19Tag, T> { public virtual int V => 9; }",
+    "class R19VM<T, U> : R19VB<T, T>, IR19J<R19Tag, U> { int IR19J<R19Tag, U>.V => 5; }",
+    "class R19VQ<T, U> : R19VM<T, U> { public override int V => 7; }",
+    "class R19VR<T, U> : R19VQ<T, U>, IR19J<R19Tag, T> {}",
+    "class R19VO<T, U> : R19VM<T, U>, IR19J<R19Tag, T> { public override int V => 7; }",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -500,6 +518,7 @@
     "  public static string R15StaticBeside() { IR15V a = new R15StaticOwn(); IR15V b = new R15StaticInherited(); return (a.V * 10 + R15StaticOwn.V).ToString() + \",\" + (b.V * 10 + R15StaticInherited.V).ToString(); }",
     "  static int R16Write(IR16V x, R16B b) { x.V = 5; return x.V * 1000 + b.S; }",
     "  public static string R16Accessors() { R16GetOnly a = new R16GetOnly(); R16ProtectedSet b = new R16ProtectedSet(); R16Init c = new R16Init(); R16ProtectedGet d = new R16ProtectedGet(); R16GGetOnly e = new R16GGetOnly(); IR16G<int> g = e; g.V = 5; return Probe.R16Write(a, a).ToString() + \",\" + Probe.R16Write(b, b).ToString() + \",\" + Probe.R16Write(c, c).ToString() + \",\" + Probe.R16Write(d, d).ToString() + \",\" + (g.V * 1000 + e.S).ToString(); }",
+    "  public static string R19MergeChain() { IR19J<R19Tag, int> q = new R19Q<int, int>(); IR19J<R19Tag, string> m = new R19M<string, int>(); IR19J<R19Tag, int> eq = new R19Eq<int, int>(); IR19J<R19Tag, int> below = new R19EqBelow<int, int>(); IR19J<R19Tag, int> closed = new R19Closed(); IR19J<R19Tag, int> top = new R19ClosedTop(); IR19J<R19Tag, int> nq = new R19NQ<int, int>(); IR19J<R19Tag, int> vr = new R19VR<int, int>(); IR19J<R19Tag, int> vo = new R19VO<int, int>(); IR19F<R19Tag, int> fq = new R19Q<int, int>(); IR19F<R19Tag, int> fbelow = new R19EqBelow<int, int>(); IR19F<R19Tag, int> fclosed = new R19Closed(); IR19F<R19Tag, int> ftop = new R19ClosedTop(); IR19F<R19Tag, int> feq = new R19Eq<int, int>(); return q.V.ToString() + \",\" + m.V.ToString() + \",\" + eq.V.ToString() + \",\" + below.V.ToString() + \",\" + closed.V.ToString() + \",\" + top.V.ToString() + \",\" + nq.V.ToString() + \",\" + vr.V.ToString() + \",\" + vo.V.ToString() + \",\" + fq.F().ToString() + \",\" + fbelow.F().ToString() + \",\" + fclosed.F().ToString() + \",\" + ftop.F().ToString() + \",\" + feq.F().ToString(); }",
     "}"
   ],
   "returns": {
@@ -662,6 +681,7 @@
     "R15Constraints": "2,2,123,3,12",
     "R15Reimplementation": "2,2,0,3,2,3,3",
     "R15StaticBeside": "23,23",
-    "R16Accessors": "3005,3005,3005,2050,3007"
+    "R16Accessors": "3005,3005,3005,2050,3007",
+    "R19MergeChain": "9,2,2,9,9,2,5,5,7,9,9,9,2,2"
   }
 }

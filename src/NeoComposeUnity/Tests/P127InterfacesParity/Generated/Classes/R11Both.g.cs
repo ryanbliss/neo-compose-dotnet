@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R11Both : NeoGeneratedClassValue, IReadOnlyR11Both
     {
         internal R11Both(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9e8e02f6-a441-47c6-b53c-0e7aebaa35e3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b31f2a20-7539-4dc2-b5eb-b74735e5ecb4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int M(int x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f5f1cc9a-a149-47e5-af1d-31504c69c9b0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9eb4600c-a9a4-4006-9dff-4557c4f9ba66");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int M(string x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "493ab89f-479a-4d17-bef9-9cd511d7924e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "29ca3774-9cba-44a3-90d4-8b2cf3445eec");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9e8e02f6-a441-47c6-b53c-0e7aebaa35e3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b31f2a20-7539-4dc2-b5eb-b74735e5ecb4");
         }
 
         internal static R11Both Create(NeoClient client, NeoMemberClass node)

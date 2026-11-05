@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R12Mixed : NeoGeneratedClassValue, IReadOnlyR12Mixed
     {
         internal R12Mixed(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b8e0c3ef-8e20-4e6c-97fd-24ffb0f98fb8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "38de88c2-9d0e-4d3f-96df-73a934912b0b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b8e0c3ef-8e20-4e6c-97fd-24ffb0f98fb8");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "38de88c2-9d0e-4d3f-96df-73a934912b0b");
         }
 
         internal static R12Mixed Create(NeoClient client, NeoMemberClass node)
@@ -107,7 +107,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#6d656c91-9edb-4db2-8810-7b2befa6c3de");
+                var result = ComputeProperty("V#315c9e79-b018-45e0-846b-37d188a5355b");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
