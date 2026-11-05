@@ -18,14 +18,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "c87d251f-1d0d-48a0-8949-b044d3403604", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "7dd3a071-ff36-4a2b-b922-3fdb54127442", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
         }
         int IR22NI<T>.F<X>()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "a232163a-ca90-470f-a8c6-d8741bb718eb", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "90ab81b2-3544-4824-ba31-0681904b9dc8", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
             return Convert.ToInt32(result);
         }
         int IR22NI<T>.P
@@ -33,13 +33,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "606f4f48-bec0-4270-a4a4-31dd6dbe2036", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "b67cf0cc-7419-4fdc-83c0-b8f4d1a54e7b", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22NL<T>>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "606f4f48-bec0-4270-a4a4-31dd6dbe2036", NeoInterfaceBody.Set, client.TypeArguments.Of<IR22NL<T>>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "b67cf0cc-7419-4fdc-83c0-b8f4d1a54e7b", NeoInterfaceBody.Set, client.TypeArguments.Of<IR22NL<T>>(), new object?[] { value });
             }
         }
     }
