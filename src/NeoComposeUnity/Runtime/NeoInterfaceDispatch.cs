@@ -406,12 +406,23 @@ namespace NeoCompose.Runtime
             (TypeBinding Owner, InterfaceMember Member)? winner = null;
             if (exact)
             {
-                var winners = candidates.Where(candidate => !candidates.Any(other =>
-                    !other.Owner.Equals(candidate.Owner) && Converts(other.Owner, candidate.Owner))).ToList();
-                if (winners.Count > 1)
-                    throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
-                if (winners.Count == 1)
-                    winner = winners[0];
+                if (candidates.Count != 0)
+                {
+                    // A universal winner survives the fold. Confirm it beats
+                    // every rival, including holders of the same declaration:
+                    // exactly 2(n - 1) constructed-specificity checks.
+                    int best = 0;
+                    for (int index = 1; index < candidates.Count; index++)
+                        if (Converts(candidates[index].Owner, candidates[best].Owner))
+                            best = index;
+                    bool ambiguous = false;
+                    for (int index = 0; index < candidates.Count; index++)
+                        if (index != best && !Converts(candidates[best].Owner, candidates[index].Owner))
+                            ambiguous = true;
+                    if (ambiguous)
+                        throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
+                    winner = candidates[best];
+                }
             }
             else
             {
