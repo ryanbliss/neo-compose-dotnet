@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 
@@ -67,6 +68,81 @@ namespace NeoCompose.Runtime
 
             foreach (var row in copies)
                 plan.Set(targetOwnership, row, silent: true);
+        }
+
+        // Most captures contain only attached recipes. Check their indexed
+        // placements before paying for a full durable reachability walk. This
+        // gate never decides which rows to remove; ambiguous cases take that walk.
+        private bool HasUnplacedPersistedRecipe()
+        {
+            string? rootId = data.members[RootMemberId(PersistedOwnership)].valueId;
+            var staticRoots = RentIdSet();
+            var parents = RentIdSet();
+            try
+            {
+                foreach (var member in ValueInferenceIndex.StaticMembers)
+                    if (ResolveStaticOwnership(member) == PersistedOwnership
+                        && TryResolveStaticBinding(member.id, out _, out _, out string? id))
+                        staticRoots.Add(id);
+                foreach (var row in PersistedData.values.Values)
+                {
+                    if (row is not ObjectMemberValue recipe || !IsVirtualInstanceRoot(recipe)
+                        || row.IsRemoved || row.id == rootId || staticRoots.Contains(row.id)
+                        || authoredStorageRoots.TryGetValue(row.id, out var scope) && scope == PersistedOwnership
+                        || IsVirtualStorageBoundary(row.id, PersistedOwnership, out _)
+                        || row.mapKey is { Length: > 0 } map && !loadedPartitionRowIds.ContainsKey(map))
+                        continue;
+                    parents.Clear();
+                    CollectPlacementParents(row.id, parents);
+                    if (row.containerId is not null)
+                        parents.Add(row.containerId);
+                    bool placed = false;
+                    foreach (string parentId in parents)
+                    {
+                        if (!TryGetOverlaidValue(PersistedOwnership, parentId, out MemberValue? parent) || parent.IsRemoved)
+                            continue;
+                        if (row.containerId == parentId && parent is ArrayMemberValue { value: not null })
+                        {
+                            placed = true;
+                            break;
+                        }
+                        TryInferMemberForValueId(parentId, out var member);
+                        if (member is ListMember or DictionaryMember)
+                        {
+                            if (TryResolveCollectionEntryMember(member, parent) is Member entry
+                                && ChildOwnership(entry, PersistedOwnership) == PersistedOwnership
+                                && HasCollectionEntryLink(PersistedOwnership, parentId, row.id, parent))
+                            {
+                                placed = true;
+                                break;
+                            }
+                            continue;
+                        }
+                        if (parent is ObjectMemberValue obj
+                            && (ConstructorArgsReference(obj, row.id)
+                                || EnumerateOwnedChildLinks(obj, member)
+                                    .Any(child => child.valueId == row.id && ChildOwnership(child.member, PersistedOwnership) == PersistedOwnership)))
+                        {
+                            placed = true;
+                            break;
+                        }
+                        if (EnumerateVirtualReachableChildLinks(PersistedOwnership, parentId)
+                            .Any(child => child.valueId == row.id && ChildOwnership(child.member, PersistedOwnership) == PersistedOwnership))
+                        {
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed)
+                        return true;
+                }
+                return false;
+            }
+            finally
+            {
+                ReturnIdSet(staticRoots);
+                ReturnIdSet(parents);
+            }
         }
 
         private static readonly NeoValueOwnership[] WritableStores =

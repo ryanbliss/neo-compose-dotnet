@@ -9622,15 +9622,66 @@ namespace NeoCompose.Runtime
         /// than once per row field on the worker.
         /// </summary>
         private SaveCapture CaptureSave(bool captureListenerEndpoints = false,
-            IReadOnlyDictionary<string, HashSet<string>>? listenerOwners = null)
+            IReadOnlyDictionary<string, HashSet<string>>? listenerOwners = null,
+            NeoSaveSynchronizer.DirtyRecords? dirty = null)
         {
             var sessionKeysByClass = new Dictionary<string, string[]>();
             foreach (var value in PersistedData.values.Values)
                 if (value is ObjectMemberValue { classId: { Length: > 0 } classId, value: { Count: > 0 } }
                     && !sessionKeysByClass.ContainsKey(classId))
                     sessionKeysByClass[classId] = SessionFieldKeys(classId);
-            return new SaveCapture(PersistedData.DetachedCopy(), sessionKeysByClass,
-                captureListenerEndpoints ? CaptureListenerEndpoints(listenerOwners) : null);
+            // Runtime retention includes inputs of temporary Session recipes.
+            // A saved graph must stand on its own after those recipes disappear.
+            var snapshot = PersistedData.DetachedCopy();
+            // An empty dirty set requests a full diff; adding marks would narrow it.
+            var targetedDirty = dirty is { IsEmpty: false } ? dirty : null;
+            var reachable = HasUnplacedPersistedRecipe()
+                ? BuildReachableWritableValueIds(PersistedOwnership, includeOtherStoreInputs: false)
+                : null;
+            var omitted = reachable is null ? new HashSet<string>()
+                : new HashSet<string>(snapshot.values.Keys.Where(id => !reachable.Contains(id)));
+            foreach (string id in omitted)
+            {
+                snapshot.values.Remove(id);
+                targetedDirty?.MarkValue(id, null);
+            }
+            if (snapshot.changeListeners is not null && omitted.Count != 0)
+            {
+                // Include every surviving endpoint if filtering changes a map,
+                // even when its owner was not among the caller's dirty records.
+                listenerOwners = null;
+                foreach (var root in snapshot.changeListeners.ToArray())
+                {
+                    var map = new NeoChangeListenerMap();
+                    foreach (var owner in root.Value)
+                    {
+                        if (!DurableEndpoint(owner.Key))
+                        {
+                            targetedDirty?.MarkListener(root.Key, owner.Key);
+                            continue;
+                        }
+                        var slots = new Dictionary<string, NeoDelegateValue[]>();
+                        foreach (var slot in owner.Value)
+                        {
+                            var targets = slot.Value.Where(target => target.valueId is null || DurableEndpoint(target.valueId)).ToArray();
+                            slots[slot.Key] = targets;
+                            if (targets.Length != slot.Value.Length)
+                                targetedDirty?.MarkListener(root.Key, owner.Key);
+                        }
+                        map[owner.Key] = slots;
+                    }
+                    snapshot.changeListeners[root.Key] = map;
+                }
+            }
+            var endpoints = captureListenerEndpoints ? CaptureListenerEndpoints(listenerOwners) : null;
+            if (endpoints is not null && reachable is not null)
+                foreach (string id in endpoints.Keys.Where(id => !DurableEndpoint(id)).ToArray())
+                    endpoints.Remove(id);
+            return new SaveCapture(snapshot, sessionKeysByClass, endpoints);
+
+            bool DurableEndpoint(string id) => reachable is null
+                || ListenerOwnerScope(PersistedOwnership, id) != PersistedOwnership
+                || reachable.Contains(id);
         }
 
         private string[] SessionFieldKeys(string classId)
@@ -9915,7 +9966,7 @@ namespace NeoCompose.Runtime
                     dirty = synchronizer.TakeDirtyRecords();
                 }
                 var listenerOwners = forceCapture || PersistedData.serverId is null ? null : synchronizer?.ListenerOwnersForCapture(dirty);
-                await CommitSaveAsync(CaptureSave(captureListenerEndpoints: true, listenerOwners), dirty, replaceSnapshot, flushLiveImmediately, forceCapture);
+                await CommitSaveAsync(CaptureSave(captureListenerEndpoints: true, listenerOwners, dirty), dirty, replaceSnapshot, flushLiveImmediately, forceCapture);
             }
             catch
             {
@@ -10342,7 +10393,7 @@ namespace NeoCompose.Runtime
         private static readonly Unity.Profiling.ProfilerMarker ReachabilityMarker = new("NeoCompose.Values.Reachability");
 #endif
 
-        private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership)
+        private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership, bool includeOtherStoreInputs = true)
         {
 #if NEO_COMPOSE_PROFILING
             using var marker = ReachabilityMarker.Auto();
@@ -10401,7 +10452,8 @@ namespace NeoCompose.Runtime
             {
                 MarkReachableValue(ownership, rowId, reachable);
             }
-            MarkOtherStoreConstructorInputs(ownership, reachable);
+            if (includeOtherStoreInputs)
+                MarkOtherStoreConstructorInputs(ownership, reachable);
             // Storage partitions: overlay rows stamped into a partition that
             // is NOT currently loaded cannot be judged — their containment
             // container (and the rest of the authored subtree anchoring them)

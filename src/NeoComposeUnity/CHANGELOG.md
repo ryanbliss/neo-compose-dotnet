@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.9] - 2026-11-05
+
+- Exclude detached objects retained only for temporary Session constructors from saved snapshots, while keeping them available to the live session. Prevents selling a used furnace from leaving detached furnace data that blocks the next load. Include omitted rows and listener changes in incremental cloud patches.
+
 ## [0.81.8] - 2026-11-04
 
 - Preserve live getter dependencies while lifecycle departure snapshots are retained. Fixes newly transferred furnace ore staying in its slot at zero quantity when consumption runs in the same boundary as row removal.

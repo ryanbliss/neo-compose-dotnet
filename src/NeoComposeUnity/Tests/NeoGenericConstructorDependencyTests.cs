@@ -151,6 +151,137 @@ namespace NeoCompose.Tests
             Assert.DoesNotThrow(() => client.FindUnlinkedSaveValueIds());
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void SnapshotKeepsConstructorInputsOnlyWhenTheirRecipeIsPersisted(bool persistRecipe)
+        {
+            var data = BuildProjectData();
+            data.classes["modifier-class"].schema["Child"] = "modifier-child";
+            data.classes["child-class"] = new NeoSchemaClass { id = "child-class", projectId = ProjectId, name = "Child", schema = new Dictionary<string, string>() };
+            data.members["modifier-child"] = new ClassMember
+            {
+                id = "modifier-child",
+                projectId = ProjectId,
+                name = "Child",
+                kind = MemberKind.Class,
+                DeclaredClassId = "child-class",
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new ObjectMemberValueBase { value = new Dictionary<string, string>() }
+            };
+            data.classes["watcher-class"].genericParams = null;
+            ((ClassMember)data.members["member-quantity"]).classArguments = null;
+            var parameter = new FunctionArgumentTypeInfo
+            {
+                name = "initial",
+                type = MemberKind.Class,
+                required = true,
+                classId = "modifier-class"
+            };
+            data.constructors["watcher-constructor"].argumentTypes = new[] { parameter };
+            data.constructors["watcher-constructor"].action.parameters[2].typeInfo = parameter;
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var input = ObjectValue(ModifierValueId, "modifier-class");
+            input.instanceConstructorId = null;
+            input.constructorArgs = new Dictionary<string, JToken?>();
+            client.SetWritableValue(NeoValueOwnership.Save, input);
+            var recipe = ObjectValue(WatcherValueId, "watcher-class");
+            recipe.instanceConstructorId = "watcher-constructor";
+            recipe.constructorArgs = new Dictionary<string, JToken?> { ["__arg_0__"] = ModifierValueId };
+            if (persistRecipe)
+            {
+                var root = ObjectValue("value-save", "root-class");
+                root.value!["Quantity"] = WatcherValueId;
+                client.SetWritableValue(NeoValueOwnership.Save, root);
+            }
+            client.SetWritableValue(persistRecipe ? NeoValueOwnership.Save : NeoValueOwnership.Session, recipe);
+            string? virtualId = null;
+            if (!persistRecipe)
+            {
+                using var node = new NeoMemberClassWritable(client, "member-binding-modifier", ModifierValueId, NeoValueOwnership.Save);
+                virtualId = node.Get<NeoMemberClassWritable>("Child").value!.id;
+                Assert.That(client.saveValues.ContainsKey(virtualId), Is.False);
+                var saved = (ProjectSaveData)typeof(NeoClient).GetField("saveData", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(client)!;
+                saved.changeListeners = new Dictionary<string, NeoChangeListenerMap>
+                {
+                    [ModifierValueId] = new NeoChangeListenerMap
+                    {
+                        [virtualId] = new Dictionary<string, NeoDelegateValue[]> { ["changed"] = new[] { new NeoDelegateValue { memberId = "surviving-handler", valueId = "value-save" } } }
+                    },
+                    ["value-save"] = new NeoChangeListenerMap
+                    {
+                        ["value-save"] = new Dictionary<string, NeoDelegateValue[]>
+                        {
+                            ["changed"] = new[]
+                        {
+                            new NeoDelegateValue { memberId = "removed-handler", valueId = virtualId },
+                            new NeoDelegateValue { memberId = "surviving-handler", valueId = "value-save" }
+                        }
+                        }
+                    }
+                };
+                var capture = typeof(NeoClient).GetMethod("CaptureSave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+                var dirty = new NeoSaveSynchronizer.DirtyRecords();
+                dirty.MarkValue("value-save", "value");
+                capture.Invoke(client, new object?[] { false, null, dirty });
+                Assert.That(dirty.valueFields.ContainsKey(ModifierValueId), Is.True,
+                    "A targeted cloud patch must delete a row omitted only by capture.");
+                var fullDiff = new NeoSaveSynchronizer.DirtyRecords();
+                capture.Invoke(client, new object?[] { false, null, fullDiff });
+                Assert.That(fullDiff.IsEmpty, Is.True, "Capture must not narrow an already requested full diff.");
+            }
+            var snapshot = JObject.Parse(client.SerializeSaveData());
+            Assert.That(snapshot["values"]![ModifierValueId] is not null, Is.EqualTo(persistRecipe));
+            if (virtualId is not null)
+            {
+                Assert.That(snapshot["changeListeners"]![ModifierValueId]![virtualId], Is.Null);
+                var targets = (JArray)snapshot["changeListeners"]!["value-save"]!["value-save"]!["changed"]!;
+                Assert.That(targets.Count, Is.EqualTo(1));
+                Assert.That(targets[0]["valueId"]!.Value<string>(), Is.EqualTo("value-save"));
+                // The synthetic handler IDs exercise capture filtering only.
+                snapshot.Remove("changeListeners");
+            }
+            Assert.That(client.TryGetWritableValue(NeoValueOwnership.Save, ModifierValueId, out _), Is.True,
+                "Serializing must not remove an input still used by the live Session recipe.");
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: snapshot.ToString());
+            Assert.That(reopened.TryGetWritableValue(NeoValueOwnership.Save, ModifierValueId, out _), Is.EqualTo(persistRecipe));
+        }
+
+        [Test]
+        public void SparseDictionaryEntriesHaveIndexedDurablePlacements()
+        {
+            var data = BuildProjectData();
+            data.classes["root-class"].schema["Items"] = "items-member";
+            data.members["items-member"] = new DictionaryMember
+            {
+                id = "items-member",
+                projectId = ProjectId,
+                name = "Items",
+                kind = MemberKind.Dictionary,
+                entryMemberId = "member-binding-modifier",
+                KeyKind = NeoDictionaryKeyKind.String,
+                Requirement = NeoMemberRequirementKind.Required
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var root = ObjectValue("value-save", "root-class");
+            root.value!["Items"] = "items";
+            var dictionary = ObjectValue("items", null!);
+            var rows = new List<MemberValue> { root, dictionary };
+            for (int i = 0; i < 100; i++)
+            {
+                var entry = ObjectValue("entry-" + i, "modifier-class");
+                entry.instanceConstructorId = null;
+                entry.constructorArgs = new Dictionary<string, JToken?>();
+                dictionary.value!["key-" + i] = entry.id;
+                rows.Add(entry);
+            }
+            client.SetWritableValues(NeoValueOwnership.Save, rows);
+            var gate = typeof(NeoClient).GetMethod("HasUnplacedPersistedRecipe", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            Assert.That(gate.Invoke(client, null), Is.False, "Attached dictionary entries need no full graph sweep.");
+            using var reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: client.SerializeSaveData());
+            for (int i = 0; i < 100; i++)
+                Assert.That(reopened.saveValues.ContainsKey("entry-" + i), Is.True);
+        }
+
         private static ProjectData BuildProjectData()
         {
             var rootClass = new NeoSchemaClass
