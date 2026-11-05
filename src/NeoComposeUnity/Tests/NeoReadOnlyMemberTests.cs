@@ -457,6 +457,98 @@ namespace NeoCompose.Tests
             Assert.That(NeoInterfaceDispatch.Of(client).Resolve(receiver, requested, "init-slot", "set").MemberId, Is.EqualTo(setter.id));
         }
 
+        [Test]
+        public void Validation_ReadOnlySetterDiagnosticNamesResolvedConstruction()
+        {
+            ProjectData data = BuildGenericSetterDiagnosticProject(includeIntSite: true);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() => LoadClient(data));
+
+            Assert.That(error!.Message, Is.EqualTo(
+                "Read-only member 'P' (int-site) on Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface)."));
+            Assert.That(error.Message, Does.Not.Contain("string-site"));
+        }
+
+        [Test]
+        public void Validation_MissingSetterDiagnosticDoesNotNameAnotherConstruction()
+        {
+            ProjectData data = BuildGenericSetterDiagnosticProject(includeIntSite: false);
+
+            var error = Assert.Throws<System.InvalidOperationException>(() => LoadClient(data));
+
+            Assert.That(error!.Message, Is.EqualTo(
+                "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): no setter implements it."));
+            Assert.That(error.Message, Does.Not.Contain("UnrelatedString"));
+            Assert.That(error.Message, Does.Not.Contain("string-site"));
+        }
+
+        private static ProjectData BuildGenericSetterDiagnosticProject(bool includeIntSite)
+        {
+            ProjectData data = BuildProjectData();
+            var contract = new Interface
+            {
+                id = "diagnostic-interface",
+                name = "I",
+                projectId = ProjectId,
+                genericParams = new() { new() { id = "I-T", name = "T" } },
+                members = new()
+                {
+                    ["P"] = new InterfaceMember
+                    {
+                        id = "diagnostic-slot",
+                        kind = NeoInterfaceMemberKind.Property,
+                        typeInfo = new GenericTypeInfo
+                        {
+                            type = MemberKind.Generic,
+                            required = true,
+                            ownerInterfaceId = "diagnostic-interface",
+                            genericParamId = "I-T"
+                        },
+                        Accessors = NeoPropertyAccessorsKind.GetSet
+                    }
+                }
+            };
+            InterfaceConstruction Construction(MemberKind kind) => new()
+            {
+                interfaceId = contract.id,
+                arguments = new()
+                {
+                    ["I-T"] = TypeBinding.Closed(new TypeHead(kind, true))
+                }
+            };
+            var owner = ClassOf("diagnostic-class", "C", new());
+            // Resolve the int contract first, while the fallback first encounters the string site.
+            owner.implementsInterfaces = new() { Construction(MemberKind.Int), Construction(MemberKind.String) };
+            foreach (MemberKind kind in new[] { MemberKind.String, MemberKind.Int })
+            {
+                if (kind == MemberKind.Int && !includeIntSite)
+                    continue;
+                Member property = kind == MemberKind.Int
+                    ? new IntMember { kind = kind }
+                    : new StringMember { kind = kind };
+                property.id = kind == MemberKind.Int ? "int-site" : "string-site";
+                property.name = kind == MemberKind.Int ? "P" : "UnrelatedString";
+                property.projectId = ProjectId;
+                property.Requirement = NeoMemberRequirementKind.Required;
+                property.Mutability = NeoMemberMutabilityKind.ReadOnly;
+                property.Modifier = NeoMemberModifierKind.Sealed;
+                property.Access = NeoMemberAccessKind.Private;
+                property.DeclaredDeclarationForm = NeoMemberDeclarationFormKind.AutoProperty;
+                property.DeclaredAccessors = NeoPropertyAccessorsKind.GetInit;
+                property.explicitImplementation = new()
+                {
+                    interfaceId = contract.id,
+                    interfaceMemberId = "diagnostic-slot",
+                    arguments = Construction(kind).arguments
+                };
+                data.members[property.id] = property;
+                owner.schema["P#" + property.id] = property.id;
+            }
+            data.interfaces[contract.id] = contract;
+            data.classes[owner.id] = owner;
+            return data;
+        }
+
         private static void ConfigureAbstractDamageContract(
             ProjectData data,
             bool addOverride = true,
