@@ -479,8 +479,6 @@ namespace NeoCompose.Runtime
         {
             internal readonly TypeBinding Owner;
             internal readonly TypeBinding[] Listed;
-            internal HashSet<TypeBinding>? Inherited;
-            internal HashSet<TypeBinding>? All;
 
             internal ClassListings(TypeBinding owner, TypeBinding[] listed)
             {
@@ -502,44 +500,77 @@ namespace NeoCompose.Runtime
             return classListings[classId] = new ClassListings(owner, Listed(owner).ToArray());
         }
 
-        // Build coverage only for a listing without an own implementer, once per
-        // class, substituting the immediate base's cache rather than rescanning it.
-        private HashSet<TypeBinding> InheritedConstructions(string classId)
+        private readonly Dictionary<(TypeBinding Owner, TypeBinding Requested), bool> constructionQueries = new();
+
+        private TypeBinding? BaseConstruction(TypeBinding owner)
         {
-            if (Listings(classId).Inherited is { } cached)
-                return cached;
-            var pending = new List<NeoSchemaClass>();
-            var seen = new HashSet<string>();
-            for (string? id = classId; id is not null && Listings(id).Inherited is null;)
+            var declaration = client.ProjectDataForRuntime.classes[owner.Head!.ClassId!];
+            return declaration.extendsClassId is string parent
+                ? TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: parent),
+                    declaration.extendsGenericBindings?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, owner)))
+                : null;
+        }
+
+        // Alpha-normalize the whole query, not each argument separately: a base
+        // bound as B<T,T> must remain distinct from B<T,U>. Parameter renames then
+        // share suffix answers without retaining the calling descendant's names.
+        private static (TypeBinding Owner, TypeBinding Requested) ConstructionQuery(TypeBinding owner, TypeBinding requested)
+        {
+            var parameters = new Dictionary<TypeBinding, TypeBinding>();
+            TypeBinding Normalize(TypeBinding binding)
             {
+                if (binding.IsOpen)
+                {
+                    if (!parameters.TryGetValue(binding, out var parameter))
+                    {
+                        parameter = TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: owner.Head!.ClassId!),
+                            parameters.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        parameters.Add(binding, parameter);
+                    }
+                    return parameter;
+                }
+                return TypeBinding.Closed(binding.Head!, binding.Bindings?.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                    .ToDictionary(pair => pair.Key, pair => Normalize(pair.Value)));
+            }
+            return (Normalize(owner), Normalize(requested));
+        }
+
+        // Answer only this membership question. Compress every visited suffix,
+        // including misses; never materialize inherited construction prefixes.
+        private bool InheritsConstruction(TypeBinding owner, TypeBinding requested)
+        {
+            var pending = new List<(TypeBinding Owner, TypeBinding Requested)>();
+            var seen = new HashSet<string>();
+            bool result = false;
+            for (var current = BaseConstruction(owner); current is not null; current = BaseConstruction(current))
+            {
+                var key = ConstructionQuery(current, requested);
+                if (constructionQueries.TryGetValue(key, out result))
+                    break;
+                current = key.Owner;
+                requested = key.Requested;
+                string id = current.Head!.ClassId!;
                 if (!seen.Add(id))
                     throw new NSGetterRuntimeError($"Circular class extension detected at '{id}'.");
-                var declaration = client.ProjectDataForRuntime.classes[id];
-                pending.Add(declaration);
-                id = declaration.extendsClassId;
+                pending.Add(key);
+                foreach (var construction in Listings(id).Listed)
+                    if (SchemaIdentity(Substitute(construction, current)).Equals(requested))
+                    {
+                        result = true;
+                        break;
+                    }
+                if (result)
+                    break;
             }
-            for (int index = pending.Count - 1; index >= 0; index--)
-            {
-                var declaration = pending[index];
-                var listing = Listings(declaration.id);
-                var inherited = new HashSet<TypeBinding>();
-                if (declaration.extendsClassId is string parent)
-                {
-                    var parentConstruction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: parent),
-                        declaration.extendsGenericBindings?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, listing.Owner)));
-                    foreach (var construction in classListings[parent].All!)
-                        inherited.Add(SchemaIdentity(Substitute(construction, parentConstruction)));
-                }
-                listing.Inherited = inherited;
-                listing.All = new HashSet<TypeBinding>(inherited);
-                listing.All.UnionWith(listing.Listed);
-            }
-            return classListings[classId].Inherited!;
+            foreach (var key in pending)
+                constructionQueries[key] = result;
+            return result;
         }
 
         // Match Compose's listedImplementer: each matching listing decides in its
-        // own parameters. A listing with no own implementer inherits its base slot
-        // only when the base already covers that symbolic construction.
+        // own parameters. Empty class mappings continue to the next listing; a
+        // default body applies only after all matching listings have been tried.
+        // Inherited candidates keep the base slot when it covers the same symbolic construction.
         private Implementation? ListedImplementer(IReadOnlyList<TypeBinding> chain, int start, TypeBinding requested,
             string memberId, string name, InterfaceMember contract, string accessor)
         {
@@ -553,11 +584,11 @@ namespace NeoCompose.Runtime
                     continue;
                 var own = declarations.Explicit(listing.Owner, construction, memberId, accessor, contract.IsStatic)
                     ?? declarations.Implicit(listing.Owner, construction, name, contract, accessor);
-                if (own is null && declarations.InheritedConstructions(ownerConstruction.Head.ClassId!).Contains(construction))
+                if (own is null && declarations.InheritsConstruction(listing.Owner, construction))
                     continue;
                 var mapped = own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
                 if (mapped is null)
-                    return null;
+                    continue;
                 if (declarations.classSchemaKeys.TryGetValue(mapped.MemberId, out var schemaKey))
                     classSchemaKeys[mapped.MemberId] = schemaKey;
                 return new Implementation(mapped.MemberId,
