@@ -2899,10 +2899,10 @@ namespace NeoCompose.Runtime
                     {
                         setter = data.members[dispatch.Resolve(receiver, construction, slot, "set").MemberId];
                     }
-                    catch (NeoScript.NSGetterRuntimeError)
+                    catch (NeoScript.NSGetterRuntimeError error)
                     {
                         throw new InvalidOperationException(
-                            $"Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}): no setter implements it.");
+                            $"Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}): {error.Message}", error);
                     }
                     if (setter.Mutability != NeoMemberMutabilityKind.ReadOnly)
                         continue;
