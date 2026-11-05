@@ -476,8 +476,76 @@ namespace NeoCompose.Tests
 
             var error = Assert.Throws<System.InvalidOperationException>(() => LoadClient(data));
 
-            Assert.That(error!.Message, Is.EqualTo(
-                "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): no setter implements it."));
+            Assert.That(error!.Message, Does.StartWith(
+                "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): "));
+            Assert.That(error.Message, Does.Contain("does not implement interface member"));
+            Assert.That(error.InnerException, Is.InstanceOf<NeoCompose.Runtime.NeoScript.NSGetterRuntimeError>());
+            Assert.That(error.Message, Does.EndWith(error.InnerException!.Message));
+            Assert.That(error.Message, Does.Not.Contain("UnrelatedString"));
+            Assert.That(error.Message, Does.Not.Contain("string-site"));
+        }
+
+        [Test]
+        public void Validation_AmbiguousDefaultSettersPreserveDispatchDiagnostic()
+        {
+            ProjectData data = BuildGenericSetterDiagnosticProject(includeIntSite: false);
+            var owner = data.classes["diagnostic-class"];
+            foreach (string id in new[] { "left", "right" })
+            {
+                var construction = new InterfaceConstruction
+                {
+                    interfaceId = "diagnostic-interface",
+                    arguments = new() { ["I-T"] = TypeBinding.Closed(new TypeHead(MemberKind.Int, true)) }
+                };
+                var body = new NSPropertyMember
+                {
+                    id = id + "-body",
+                    name = "P",
+                    projectId = ProjectId,
+                    kind = MemberKind.NSProperty,
+                    Accessors = NeoPropertyAccessorsKind.GetSet,
+                    returnTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    code = "return 0;",
+                    setterCode = "return;"
+                };
+                data.members[body.id] = body;
+                data.interfaces[id] = new Interface
+                {
+                    id = id,
+                    name = id,
+                    projectId = ProjectId,
+                    extendsInterfaces = new() { construction },
+                    members = new()
+                    {
+                        ["P#diagnostic-slot"] = new InterfaceMember
+                        {
+                            id = id + "-slot",
+                            kind = NeoInterfaceMemberKind.Property,
+                            typeInfo = body.returnTypeInfo,
+                            Accessors = NeoPropertyAccessorsKind.GetSet,
+                            implementationMemberId = body.id,
+                            explicitImplementation = new()
+                            {
+                                interfaceId = construction.interfaceId,
+                                interfaceMemberId = "diagnostic-slot",
+                                arguments = construction.arguments
+                            }
+                        }
+                    }
+                };
+                owner.implementsInterfaces!.Add(new()
+                {
+                    interfaceId = id
+                });
+            }
+
+            var error = Assert.Throws<System.InvalidOperationException>(() => LoadClient(data));
+
+            Assert.That(error!.Message, Does.StartWith(
+                "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): "));
+            Assert.That(error.Message, Does.Contain("No most specific implementation of 'P'"));
+            Assert.That(error.InnerException, Is.InstanceOf<NSGetterRuntimeError>());
+            Assert.That(error.Message, Does.EndWith(error.InnerException!.Message));
             Assert.That(error.Message, Does.Not.Contain("UnrelatedString"));
             Assert.That(error.Message, Does.Not.Contain("string-site"));
         }
