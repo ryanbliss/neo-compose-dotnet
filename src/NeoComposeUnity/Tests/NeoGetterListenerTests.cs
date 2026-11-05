@@ -465,6 +465,158 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void SubscriptionCreatedByAnEffectObservesTheNextEffect()
+        {
+            using Fixture fixture = Build(data =>
+            {
+                var arm = ScriptFunction("member-arm", "Arm", new FunctionCallInstruction
+                {
+                    type = InstructionKind.FunctionCall,
+                    call = new CallFunctionPointer
+                    {
+                        type = PointerKind.CallFunction,
+                        memberId = "member-explode",
+                        receiver = CallReceiver.Instance(This()),
+                        args = Array.Empty<Pointer>(),
+                        callSiteId = "arm",
+                    },
+                });
+                arm.Effect = NeoEffectKind.Auto;
+                var consume = ScriptFunction("member-consume", "Consume",
+                    Assign(KeyOf(This(), "Left"), KeyOf(This(), "Right")));
+                consume.Effect = NeoEffectKind.Auto;
+                data.members[arm.id] = arm;
+                data.members[consume.id] = consume;
+                data.classes["class-watcher"].schema["Arm"] = arm.id;
+                data.classes["class-watcher"].schema["Consume"] = consume.id;
+            });
+            fixture.client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["member-heard"] = (_, _, args, _) =>
+                {
+                    fixture.heard.Add(("member-heard", Convert.ToInt32(args[0])));
+                    return null;
+                },
+                ["member-explode"] = (_, _, _, _) =>
+                {
+                    fixture.Subscribe("member-value");
+                    fixture.WriteLeft(5);
+                    fixture.Write("watcher-right", "member-right", 2);
+                    return 0;
+                },
+            });
+            fixture.client.StartScriptRuntime();
+            CollectionAssert.AreEqual(new[] { ("member-heard", 2) }, fixture.heard);
+        }
+
+        [Test]
+        public void FailedArmingLeavesOtherSubscriptionsAndEffectsRecoverable()
+        {
+            using Fixture fixture = Build(data =>
+            {
+                var consume = ScriptFunction("member-consume", "Consume",
+                    Assign(KeyOf(This(), "Left"), KeyOf(This(), "Right")));
+                consume.Effect = NeoEffectKind.Auto;
+                data.members[consume.id] = consume;
+                data.classes["class-watcher"].schema["Consume"] = consume.id;
+            });
+            fixture.explode = true;
+            UnityEngine.TestTools.LogAssert.Expect(UnityEngine.LogType.Exception, new System.Text.RegularExpressions.Regex("InvalidOperationException: Boom."));
+            Assert.Throws<NeoScriptException>(() => fixture.client.RunTransaction(() =>
+            {
+                fixture.Subscribe("member-boom");
+                fixture.Subscribe("member-value", "member-also");
+                fixture.Write("watcher-right", "member-right", 3);
+                fixture.client.StartScriptRuntime();
+            }));
+            fixture.explode = false;
+            fixture.client.RunTransaction(() => fixture.Write("watcher-right", "member-right", 4));
+            Assert.That(fixture.heard, Does.Contain(("member-also", 4)));
+            Assert.That(fixture.heard, Does.Contain(("member-heard", 4)));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void AdoptedSubscriptionClearsConsumedValueAndKeepsNullAfterReload(bool delayed)
+        {
+            using Fixture fixture = Build(data =>
+            {
+                ((ClassMember)data.members["member-watcher"]).Requirement = NeoMemberRequirementKind.Optional;
+                data.members["member-slots"] = new ListMember
+                {
+                    id = "member-slots",
+                    projectId = ProjectId,
+                    name = "Slots",
+                    kind = MemberKind.List,
+                    entryMemberId = "member-watcher",
+                    Requirement = NeoMemberRequirementKind.Required,
+                };
+                data.classes["class-save-root"].schema["Slots"] = "member-slots";
+                ((ObjectMemberValue)data.values["value-save"]).value!["Slots"] = "value-slots";
+                data.values["value-slots"] = new ArrayMemberValue { id = "value-slots", value = new[] { "value-empty" }, containerId = "value-save" };
+                data.values["value-empty"] = new NullMemberValue { id = "value-empty", containerId = "value-slots" };
+                var consume = ScriptFunction("member-consume", "Consume",
+                    Assign(KeyOf(This(), "Left"), KeyOf(This(), "Right")));
+                consume.Effect = NeoEffectKind.Auto;
+                data.members[consume.id] = consume;
+                data.classes["class-watcher"].schema["Consume"] = consume.id;
+            });
+            fixture.client.save.SetSerializedValue("Watcher", null);
+            if (!delayed)
+                fixture.client.StartScriptRuntime();
+            var constructed = NeoGeneratedTypesSupport.CreateWritableClassValue(fixture.client, "class-watcher",
+                new NeoGeneratedConstructorValue("Left", "member-left", 5),
+                new NeoGeneratedConstructorValue("Right", "member-right", 0));
+            using var view = new GetterWatchView(fixture.client, constructed);
+            var slots = fixture.client.save.Get<NeoMemberListWritable>("Slots");
+            fixture.onHeard = _ => slots.SetSerialized(0, null);
+            fixture.client.RunTransaction(() =>
+            {
+                fixture.client.EditMemberChangeListener(view.valueId!, NeoValueOwnership.Session, "member-value", IntType(),
+                    new NeoDelegateValue { memberId = "member-heard", valueId = "value-save" }, true);
+                slots.SetSerialized(0, NeoValueWritePayload.FromValueReference(view.valueId!, view));
+            });
+            if (delayed)
+                fixture.client.StartScriptRuntime();
+            CollectionAssert.AreEqual(new[] { ("member-heard", 0) }, fixture.heard);
+            void AssertEmpty(NeoClient client)
+            {
+                Assert.That(client.TryGetValue(NeoValueOwnership.Save, "value-save", out ObjectMemberValue? root), Is.True);
+                Assert.That(client.TryGetValue(NeoValueOwnership.Save, root!.value!["Slots"], out ArrayMemberValue? list), Is.True);
+                Assert.That(list!.value, Has.Length.EqualTo(1));
+                Assert.That(client.TryGetValue(NeoValueOwnership.Save, list.value![0], out MemberValue? slot), Is.True);
+                Assert.That(JObject.FromObject(slot!)["value"]!.Type, Is.EqualTo(JTokenType.Null));
+            }
+            AssertEmpty(fixture.client);
+            using var reopened = NeoTestSaveStack.ClientFromSchema(fixture.client.ProjectDataForRuntime,
+                loadedSaveContent: fixture.client.SerializeSaveData());
+            AssertEmpty(reopened);
+        }
+
+        [Test]
+        public void NewSubscriptionObservesAnEffectInTheSameBoundary()
+        {
+            using Fixture fixture = Build(data =>
+            {
+                var consume = ScriptFunction("member-consume", "Consume",
+                    Assign(KeyOf(This(), "Left"), KeyOf(This(), "Right")));
+                consume.Effect = NeoEffectKind.Auto;
+                data.members[consume.id] = consume;
+                data.classes["class-watcher"].schema["Consume"] = consume.id;
+            });
+            fixture.client.StartScriptRuntime();
+            fixture.client.RunTransaction(() =>
+            {
+                fixture.Subscribe("member-value");
+                fixture.WriteLeft(5);
+                fixture.Write("watcher-right", "member-right", 1);
+                Assert.That(fixture.heard, Is.Empty);
+            });
+            CollectionAssert.AreEqual(new[] { ("member-heard", 1) }, fixture.heard,
+                "The subscribing script is silent, but its queued effect must be observed.");
+        }
+
+        [Test]
         public void AScriptSubscriptionHearsLaterWritesButNotItsOwn()
         {
             using Fixture fixture = Build();

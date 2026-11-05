@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.7] - 2026-11-04
+
+- Arm newly registered getter change listeners before subsequent lifecycle callbacks and effects run, so immediate consumption of a newly stored inventory stack notifies its quantity listener and clears the depleted slot. Preserve settled-state notifications and subscribing-script behavior.
+
 ## [0.81.6] - 2026-11-03
 
 - Cache constructed Session objects in getter collection results, including dictionaries, sets, tuples, nested containers, and live constructed list fields, while preserving entry identity and dependency notifications. Release cached results when the client is disposed.

@@ -1454,6 +1454,7 @@ namespace NeoCompose.Runtime
                 return;
             if (pendingGetterChanges.Count != 0)
                 RaiseGetterChanges();
+            ArmGetterSubscriptions();
             if (pendingGetterSubscriptions.Count != 0)
                 DispatchGetterSubscriptions();
         }
@@ -1505,7 +1506,7 @@ namespace NeoCompose.Runtime
         {
             // An idle boundary has nothing to drain or raise.
             if (getterChangeHolds > 1
-                || (pendingGetterChanges.Count == 0 && pendingGetterSubscriptions.Count == 0
+                || (pendingGetterChanges.Count == 0 && pendingGetterSubscriptions.Count == 0 && pendingGetterArms.Count == 0
                     && !EffectsPending && !userChangesPending && !dialogueTurnPending && pendingFieldChanges is null))
                 getterChangeHolds--;
             else
