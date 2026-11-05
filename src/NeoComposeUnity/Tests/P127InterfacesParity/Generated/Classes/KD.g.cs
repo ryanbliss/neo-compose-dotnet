@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class KD<T> : NeoGeneratedClassValue, IReadOnlyKD<T>
     {
         internal KD(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "49184012-e9d5-41e5-8087-d4369105bf21", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5a6ee159-8fea-4109-9815-10103effc19c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "49184012-e9d5-41e5-8087-d4369105bf21" => new KD<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5a6ee159-8fea-4109-9815-10103effc19c" => new KD<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'KD' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "49184012-e9d5-41e5-8087-d4369105bf21" => new KD<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5a6ee159-8fea-4109-9815-10103effc19c" => new KD<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'KD' without a concrete client type id."),
                 };
             });

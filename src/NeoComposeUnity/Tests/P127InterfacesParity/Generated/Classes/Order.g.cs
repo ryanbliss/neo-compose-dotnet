@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Order<T> : NeoGeneratedClassValue, IReadOnlyOrder<T>
     {
         internal Order(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b9b8a9f2-e61b-4ece-995c-41463c954599", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ccd115ea-64f4-4555-a5de-b3a0e9e0c534", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f4d5339a-8197-403d-ade5-87d72682801b", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "598a1340-aac5-403e-8e26-3d275b7d07c3", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'A' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f4d5339a-8197-403d-ade5-87d72682801b", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "598a1340-aac5-403e-8e26-3d275b7d07c3", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -49,14 +49,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "efb31a0c-bcfe-4102-a139-633bb10615b3", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ab2a56ab-5a54-4cd5-84ff-f14337a89c34", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'B' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "efb31a0c-bcfe-4102-a139-633bb10615b3", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ab2a56ab-5a54-4cd5-84ff-f14337a89c34", NeoValueOwnership.Session, client.TypeArguments.Of<Order<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b9b8a9f2-e61b-4ece-995c-41463c954599" => new Order<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ccd115ea-64f4-4555-a5de-b3a0e9e0c534" => new Order<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Order' without a concrete client type id."),
                 };
             });
@@ -81,7 +81,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b9b8a9f2-e61b-4ece-995c-41463c954599" => new Order<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ccd115ea-64f4-4555-a5de-b3a0e9e0c534" => new Order<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Order' without a concrete client type id."),
                 };
             });

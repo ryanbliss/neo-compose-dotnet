@@ -46,14 +46,16 @@ namespace NeoCompose.Runtime
         internal sealed class Implementation
         {
             internal readonly string MemberId;
+            internal readonly string? ImplicitMemberId;
             internal readonly TypeBinding? InterfaceConstruction;
             internal readonly TypeBinding? StaticConstruction;
             internal readonly string? PrimitiveMember;
             internal readonly TypeBinding? PrimitiveType;
             internal NSGetterEvaluator.CallSiteTarget? CallTarget;
-            internal Implementation(string memberId, TypeBinding? interfaceConstruction = null, TypeBinding? staticConstruction = null, string? primitiveMember = null, TypeBinding? primitiveType = null)
+            internal Implementation(string memberId, TypeBinding? interfaceConstruction = null, TypeBinding? staticConstruction = null, string? primitiveMember = null, TypeBinding? primitiveType = null, string? implicitMemberId = null)
             {
                 MemberId = memberId;
+                ImplicitMemberId = implicitMemberId;
                 InterfaceConstruction = interfaceConstruction;
                 StaticConstruction = staticConstruction;
                 PrimitiveMember = primitiveMember;
@@ -116,9 +118,10 @@ namespace NeoCompose.Runtime
             DispatchIdentity(TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: declared.interfaceId),
                 declared.arguments?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, owner))));
 
-        internal IReadOnlyList<TypeBinding> ClassChain(TypeBinding type)
+        internal IReadOnlyList<TypeBinding> ClassChain(TypeBinding type) => ClassChainIdentity(DispatchIdentity(type));
+
+        private IReadOnlyList<TypeBinding> ClassChainIdentity(TypeBinding type)
         {
-            type = DispatchIdentity(type);
             if (classes.TryGetValue(type, out var found))
                 return found;
             var chain = new List<TypeBinding>();
@@ -166,9 +169,10 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        internal IReadOnlyList<TypeBinding> Closure(TypeBinding type)
+        internal IReadOnlyList<TypeBinding> Closure(TypeBinding type) => ClosureIdentity(DispatchIdentity(type));
+
+        private IReadOnlyList<TypeBinding> ClosureIdentity(TypeBinding type)
         {
-            type = DispatchIdentity(type);
             if (closures.TryGetValue(type, out var found))
                 return found;
             if (NeoPrimitiveConformance.Kind(type) is not null)
@@ -260,10 +264,32 @@ namespace NeoCompose.Runtime
             return environments[construction] = result;
         }
 
-        internal bool Converts(TypeBinding from, TypeBinding to)
+        private readonly Dictionary<TypeBinding, Dictionary<string, List<TypeBinding>>> constructionsByInterface = new();
+
+        private IReadOnlyList<TypeBinding> Constructions(TypeBinding owner, string interfaceId)
         {
-            from = DispatchIdentity(from);
-            to = DispatchIdentity(to);
+            if (!constructionsByInterface.TryGetValue(owner, out var byInterface))
+            {
+                byInterface = new();
+                foreach (var construction in ClosureIdentity(owner))
+                {
+                    string id = construction.Head!.InterfaceId!;
+                    if (!byInterface.TryGetValue(id, out var entries))
+                        byInterface[id] = entries = new();
+                    entries.Add(construction);
+                }
+                constructionsByInterface[owner] = byInterface;
+            }
+            return byInterface.TryGetValue(interfaceId, out var matches) ? matches : Array.Empty<TypeBinding>();
+        }
+
+        internal bool Converts(TypeBinding from, TypeBinding to) =>
+            ConvertsIdentity(DispatchIdentity(from), DispatchIdentity(to));
+
+        // Internal dispatch inputs and their arguments are already identities.
+        // Normalize only at the boundary, not at every specificity comparison.
+        private bool ConvertsIdentity(TypeBinding from, TypeBinding to)
+        {
             if (from.Equals(to))
                 return true;
             if (from.IsOpen || to.IsOpen)
@@ -282,7 +308,7 @@ namespace NeoCompose.Runtime
                         return false;
                     if (argument.Value.Equals(target))
                         continue;
-                    if (!(argument.Key == "0" ? Converts(argument.Value, target) : Converts(target, argument.Value)))
+                    if (!(argument.Key == "0" ? ConvertsIdentity(argument.Value, target) : ConvertsIdentity(target, argument.Value)))
                         return false;
                 }
                 return true;
@@ -290,13 +316,11 @@ namespace NeoCompose.Runtime
             if (to.Head!.Type == MemberKind.Object && to.Head.ObjectType is null)
                 return true;
             if (to.Head.Type == MemberKind.Class && from.Head!.Type == MemberKind.Class)
-                return ClassChain(from).Any(entry => entry.Equals(to));
+                return ClassChainIdentity(from).Any(entry => entry.Equals(to));
             if (to.Head.Type != MemberKind.Interface || from.Head!.Type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
-            foreach (var actual in Closure(from))
+            foreach (var actual in Constructions(from, to.Head.InterfaceId!))
             {
-                if (actual.Head!.InterfaceId != to.Head.InterfaceId)
-                    continue;
                 bool matches = true;
                 foreach (var parameter in client.ProjectDataForRuntime.interfaces[to.Head.InterfaceId!].genericParams ?? new List<GenericParamDeclaration>())
                 {
@@ -310,8 +334,8 @@ namespace NeoCompose.Runtime
                         continue;
                     matches = parameter.variance switch
                     {
-                        NeoGenericParamVarianceKind.Out => Converts(source, target!),
-                        NeoGenericParamVarianceKind.In => Converts(target!, source),
+                        NeoGenericParamVarianceKind.Out => ConvertsIdentity(source, target!),
+                        NeoGenericParamVarianceKind.In => ConvertsIdentity(target!, source),
                         _ => false,
                     };
                     if (!matches)
@@ -388,56 +412,62 @@ namespace NeoCompose.Runtime
             string name, InterfaceMember contract, string accessor)
         {
             var levels = DefaultLevels(receiver);
-            bool exact = levels.Any(level => level.Contains(requested));
-            var candidates = new List<(TypeBinding Owner, InterfaceMember Member)>();
-            foreach (var level in levels)
-                foreach (var owner in level)
-                {
-                    if (owner.Head!.InterfaceId == requested.Head!.InterfaceId
-                        && (exact ? owner.Equals(requested) : Converts(owner, requested)))
-                        candidates.Add((owner, contract));
-                    else
-                        foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head.InterfaceId!].members.Values)
-                            if (entry.explicitImplementation is { } site && site.interfaceMemberId == memberId
-                                && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor))
-                                && (exact ? Construct(site, owner).Equals(requested) : Converts(Construct(site, owner), requested)))
-                                candidates.Add((owner, entry));
-                }
-            (TypeBinding Owner, InterfaceMember Member)? winner = null;
-            if (exact)
+            // CoreCLR tries exact defaults, then variance whenever that pass
+            // supplies no body. Holding an abstract exact slot is not a stop.
+            for (int pass = 0; pass < 2; pass++)
             {
-                if (candidates.Count != 0)
+                bool exact = pass == 0;
+                var candidates = new List<(TypeBinding Owner, InterfaceMember Member)>();
+                foreach (var level in levels)
+                    foreach (var owner in level)
+                    {
+                        if (owner.Head!.InterfaceId == requested.Head!.InterfaceId
+                            && contract.implementationMemberId is not null
+                            && (exact ? owner.Equals(requested) : ConvertsIdentity(owner, requested)))
+                            candidates.Add((owner, contract));
+                        else
+                            foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head.InterfaceId!].members.Values)
+                                if (entry.explicitImplementation is { } site && site.interfaceMemberId == memberId
+                                    && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor))
+                                    && (exact ? Construct(site, owner).Equals(requested) : ConvertsIdentity(Construct(site, owner), requested)))
+                                    candidates.Add((owner, entry));
+                    }
+                (TypeBinding Owner, InterfaceMember Member)? winner = null;
+                if (exact)
                 {
-                    // A universal winner survives the fold. Confirm it beats
-                    // every rival, including holders of the same declaration:
-                    // exactly 2(n - 1) constructed-specificity checks.
-                    int best = 0;
-                    for (int index = 1; index < candidates.Count; index++)
-                        if (Converts(candidates[index].Owner, candidates[best].Owner))
-                            best = index;
-                    bool ambiguous = false;
-                    for (int index = 0; index < candidates.Count; index++)
-                        if (index != best && !Converts(candidates[best].Owner, candidates[index].Owner))
-                            ambiguous = true;
-                    if (ambiguous)
-                        throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
-                    winner = candidates[best];
+                    if (candidates.Count != 0)
+                    {
+                        // A universal winner survives the fold. Confirm it beats
+                        // every rival, including holders of the same declaration:
+                        // exactly 2(n - 1) constructed-specificity checks.
+                        int best = 0;
+                        for (int index = 1; index < candidates.Count; index++)
+                            if (ConvertsIdentity(candidates[index].Owner, candidates[best].Owner))
+                                best = index;
+                        bool ambiguous = false;
+                        for (int index = 0; index < candidates.Count; index++)
+                            if (index != best && !ConvertsIdentity(candidates[best].Owner, candidates[index].Owner))
+                                ambiguous = true;
+                        if (ambiguous)
+                            throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
+                        winner = candidates[best];
+                    }
                 }
+                else
+                {
+                    // The first CoreCLR candidate slot never disappears. Only a
+                    // more-specific holder of another declaration can replace it;
+                    // later unrelated slots cannot affect the first slot's answer.
+                    foreach (var candidate in candidates)
+                        if (winner is null || candidate.Owner.Head!.InterfaceId != winner.Value.Owner.Head!.InterfaceId
+                            && ConvertsIdentity(candidate.Owner, winner.Value.Owner))
+                            winner = candidate;
+                }
+                if (winner is { } selected && selected.Member.implementationMemberId is not null
+                    && selected.Member.DeclaredModifier != NeoMemberModifierKind.Abstract)
+                    return Body(selected.Member, selected.Owner);
             }
-            else
-            {
-                // The first CoreCLR candidate slot never disappears. Only a
-                // more-specific holder of another declaration can replace it;
-                // later unrelated slots cannot affect the first slot's answer.
-                foreach (var candidate in candidates)
-                    if (winner is null || candidate.Owner.Head!.InterfaceId != winner.Value.Owner.Head!.InterfaceId
-                        && Converts(candidate.Owner, winner.Value.Owner))
-                        winner = candidate;
-            }
-            if (winner is not { } selected || selected.Member.implementationMemberId is null
-                || selected.Member.DeclaredModifier == NeoMemberModifierKind.Abstract)
-                throw Missing(receiver, requested, name);
-            return Body(selected.Member, selected.Owner);
+            throw Missing(receiver, requested, name);
         }
 
         private IReadOnlyList<List<TypeBinding>> DefaultLevels(TypeBinding receiver)
@@ -549,6 +579,7 @@ namespace NeoCompose.Runtime
         {
             internal readonly Dictionary<TypeBinding, List<ListingEntry>> Exact = new();
             internal readonly Dictionary<string, List<ListingEntry>> Classes = new();
+            internal readonly Dictionary<string, List<ListingEntry>> Interfaces = new();
             internal readonly List<ListingEntry> Other = new();
         }
 
@@ -597,6 +628,8 @@ namespace NeoCompose.Runtime
                         AddListing(postings.Exact, argument.Value, entry);
                         if (argument.Value.Head?.ClassId is string classId)
                             AddListing(postings.Classes, classId, entry);
+                        else if (argument.Value.Head?.InterfaceId is string interfaceId)
+                            AddListing(postings.Interfaces, interfaceId, entry);
                         else
                             postings.Other.Add(entry);
                     }
@@ -638,10 +671,46 @@ namespace NeoCompose.Runtime
                     yield return current;
         }
 
+        private Dictionary<string, List<string>>? interfaceChildren;
+
+        private IEnumerable<string> RelatedInterfaces(string id, bool descendants)
+        {
+            if (descendants && interfaceChildren is null)
+            {
+                interfaceChildren = new();
+                foreach (var declaration in client.ProjectDataForRuntime.interfaces.Values)
+                    foreach (var parent in declaration.extendsInterfaces ?? new())
+                    {
+                        if (!interfaceChildren.TryGetValue(parent.interfaceId, out var children))
+                            interfaceChildren[parent.interfaceId] = children = new();
+                        children.Add(declaration.id);
+                    }
+            }
+            var pending = new Stack<string>();
+            var seen = new HashSet<string>();
+            pending.Push(id);
+            while (pending.Count != 0)
+            {
+                string current = pending.Pop();
+                if (!seen.Add(current))
+                    continue;
+                yield return current;
+                if (descendants)
+                {
+                    if (interfaceChildren!.TryGetValue(current, out var children))
+                        foreach (string child in children)
+                            pending.Push(child);
+                }
+                else
+                    foreach (var parent in client.ProjectDataForRuntime.interfaces[current].extendsInterfaces ?? new())
+                        pending.Push(parent.interfaceId);
+            }
+        }
+
         // A posting is only a necessary condition; Converts remains the source
-        // of truth. Invariant arguments use identity. Variant class arguments
-        // use declaration ancestry, so unrelated Tag<T> queries don't scan every
-        // listing. Other argument kinds conservatively retain their candidates.
+        // of truth. Invariant arguments use identity. Variant class/interface
+        // arguments use declaration ancestry to prune unrelated declarations;
+        // generic constructions and mixed kinds still require full conversion.
         private IEnumerable<ListingEntry> MatchingListings(ReceiverListingIndex index, TypeBinding requested)
         {
             string id = requested.Head!.InterfaceId!;
@@ -664,6 +733,19 @@ namespace NeoCompose.Runtime
                     foreach (string related in RelatedClasses(classId, parameter.variance == NeoGenericParamVarianceKind.Out))
                         if (postings.Classes.TryGetValue(related, out var entries))
                             buckets.Add(entries);
+                    // A class can convert to an interface in a contravariant slot.
+                    if (parameter.variance == NeoGenericParamVarianceKind.In)
+                        buckets.AddRange(postings.Interfaces.Values);
+                    buckets.Add(postings.Other);
+                }
+                else if (argument.Head!.InterfaceId is string interfaceId)
+                {
+                    foreach (string related in RelatedInterfaces(interfaceId, parameter.variance == NeoGenericParamVarianceKind.Out))
+                        if (postings.Interfaces.TryGetValue(related, out var entries))
+                            buckets.Add(entries);
+                    // An implementing class can supply a covariant interface argument.
+                    if (parameter.variance == NeoGenericParamVarianceKind.Out)
+                        buckets.AddRange(postings.Classes.Values);
                     buckets.Add(postings.Other);
                 }
                 else
@@ -677,7 +759,7 @@ namespace NeoCompose.Runtime
                 if (count == 0)
                     break;
             }
-            return selected.Where(entry => Converts(entry.Closed, requested))
+            return selected.Where(entry => ConvertsIdentity(entry.Closed, requested))
                 .OrderBy(entry => entry.Level).ThenBy(entry => entry.Closed.Equals(requested) ? 0 : 1).ThenBy(entry => entry.Order);
         }
 
@@ -761,7 +843,19 @@ namespace NeoCompose.Runtime
             return SchemaIdentity(Substitute(template!, owner));
         }
 
-        private readonly Dictionary<(TypeBinding Owner, TypeBinding Requested), bool> constructionQueries = new();
+        private sealed class ConstructionLister
+        {
+            internal readonly string ClassId;
+            internal readonly ConstructionLister? Next;
+            internal ConstructionLister(string classId, ConstructionLister? next)
+            {
+                ClassId = classId;
+                Next = next;
+            }
+        }
+
+        private readonly Dictionary<(TypeBinding Owner, TypeBinding Requested), ConstructionLister?> constructionQueries = new();
+        private readonly Dictionary<(ConstructionLister, string, string), bool> possibleImplementations = new();
 
         private TypeBinding? BaseConstruction(TypeBinding owner)
         {
@@ -796,13 +890,13 @@ namespace NeoCompose.Runtime
             return (Normalize(owner), Normalize(requested));
         }
 
-        // Answer only this membership question. Compress every visited suffix,
-        // including misses; never materialize inherited construction prefixes.
-        private bool InheritsConstruction(TypeBinding owner, TypeBinding requested)
+        // Retain shared suffixes, never each class's inherited prefix. Alpha
+        // normalization also shares a suffix across generic parameter renames.
+        private ConstructionLister? InheritedListings(TypeBinding owner, TypeBinding requested)
         {
-            var pending = new List<(TypeBinding Owner, TypeBinding Requested)>();
+            var pending = new List<((TypeBinding Owner, TypeBinding Requested) Key, string? Lister)>();
             var seen = new HashSet<string>();
-            bool result = false;
+            ConstructionLister? result = null;
             for (var current = BaseConstruction(owner); current is not null; current = BaseConstruction(current))
             {
                 var key = ConstructionQuery(current, requested);
@@ -813,19 +907,90 @@ namespace NeoCompose.Runtime
                 string id = current.Head!.ClassId!;
                 if (!seen.Add(id))
                     throw new NSGetterRuntimeError($"Circular class extension detected at '{id}'.");
-                pending.Add(key);
-                foreach (var construction in Listings(id).Listed)
-                    if (SchemaIdentity(Substitute(construction, current)).Equals(requested))
+                bool listed = Listings(id).Listed.Any(construction => SchemaIdentity(Substitute(construction, current)).Equals(requested));
+                pending.Add((key, listed ? id : null));
+            }
+            for (int index = pending.Count - 1; index >= 0; index--)
+            {
+                var entry = pending[index];
+                if (entry.Lister is not null)
+                    result = new ConstructionLister(entry.Lister, result);
+                constructionQueries[entry.Key] = result;
+            }
+            return result;
+        }
+
+        private readonly Dictionary<(string, string), ConstructionLister?> overrideOwners = new();
+
+        private ConstructionLister? OverrideOwners(string memberId, string accessor)
+        {
+            var pending = new List<Member>();
+            var seen = new HashSet<string>();
+            ConstructionLister? result = null;
+            for (string? current = memberId; current is not null && seen.Add(current);)
+            {
+                if (overrideOwners.TryGetValue((current, accessor), out result))
+                    break;
+                var member = client.ProjectDataForRuntime.members[current];
+                pending.Add(member);
+                current = member.extendsMemberId;
+            }
+            for (int index = pending.Count - 1; index >= 0; index--)
+            {
+                var member = pending[index];
+                if (HasAccessor(member, accessor))
+                    result = new ConstructionLister(client.SchemaOwnerClassId(member.id)!, result);
+                overrideOwners[(member.id, accessor)] = result;
+            }
+            return result;
+        }
+
+        // Roslyn's possible-implementation rule is per accessor. A public
+        // member between listers needs a new mapping; an override whose root
+        // belongs to a lister (or precedes all listers) keeps the inherited slot.
+        private bool KeepsBaseSlot(TypeBinding owner, TypeBinding requested, Implementation mapped,
+            string accessor, bool isStatic, ReceiverListingIndex index)
+        {
+            var lister = InheritedListings(owner, requested);
+            if (lister is null)
+                return false;
+            if (mapped.ImplicitMemberId is not string memberId)
+                return true;
+            int Level(string id) => index.Levels[client.SchemaOwnerClassId(id)!];
+            if (isStatic)
+                return index.Levels[lister.ClassId] <= Level(memberId);
+            var key = (lister, memberId, accessor);
+            if (possibleImplementations.TryGetValue(key, out bool known))
+                return known;
+            var passed = new List<ConstructionLister>();
+            int memberLevel = Level(memberId);
+            while (lister is not null)
+            {
+                if (possibleImplementations.TryGetValue((lister, memberId, accessor), out known))
+                    break;
+                passed.Add(lister);
+                if (index.Levels[lister.ClassId] >= memberLevel)
+                    break;
+                lister = lister.Next;
+            }
+            if (lister is null || !possibleImplementations.ContainsKey((lister, memberId, accessor)))
+            {
+                known = false;
+                for (var current = OverrideOwners(memberId, accessor); current is not null; current = current.Next)
+                {
+                    int level = index.Levels[current.ClassId];
+                    while (lister is not null && index.Levels[lister.ClassId] < level)
+                        lister = lister.Next;
+                    if (lister is null || index.Levels[lister.ClassId] == level)
                     {
-                        result = true;
+                        known = true;
                         break;
                     }
-                if (result)
-                    break;
+                }
             }
-            foreach (var key in pending)
-                constructionQueries[key] = result;
-            return result;
+            foreach (var entry in passed)
+                possibleImplementations[(entry, memberId, accessor)] = known;
+            return known;
         }
 
         // One class walk for invariant and variant interfaces. At each level,
@@ -857,12 +1022,12 @@ namespace NeoCompose.Runtime
                 var ownerConstruction = chain[level];
                 var listing = declarations.Listings(ownerConstruction.Head!.ClassId!);
                 var construction = entry.Symbolic;
-                var own = declarations.Explicit(listing.Owner, construction, memberId, accessor, contract.IsStatic)
-                    ?? declarations.Implicit(listing.Owner, construction, name, contract, accessor);
+                var mapped = declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
                 var matching = index.ByConstruction[entry.Closed];
-                bool inherited = own is null && matching[^1].Level > level
-                    && declarations.InheritsConstruction(listing.Owner, construction);
-                var mapped = inherited ? null : own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
+                if (mapped is not null && client.SchemaOwnerClassId(mapped.ImplicitMemberId ?? mapped.MemberId) != listing.Owner.Head!.ClassId
+                    && matching[^1].Level > level
+                    && declarations.KeepsBaseSlot(listing.Owner, construction, mapped, accessor, contract.IsStatic, index))
+                    mapped = null;
                 if (mapped is not null)
                 {
                     if (declarations.classSchemaKeys.TryGetValue(mapped.MemberId, out var schemaKey))
@@ -934,7 +1099,7 @@ namespace NeoCompose.Runtime
                 }
                 // Valid overrides always have a root; retain the override like TS if none matches.
                 chosen ??= matches[0];
-                return new Implementation(chosen.id, staticConstruction: contract.IsStatic ? declaringOwner : null);
+                return new Implementation(chosen.id, staticConstruction: contract.IsStatic ? declaringOwner : null, implicitMemberId: matches[0].id);
             }
             if (!client.ProjectDataForRuntime.classes[owner.Head!.ClassId!].schema.TryGetValue(name, out var id))
                 return null;
@@ -953,7 +1118,7 @@ namespace NeoCompose.Runtime
                 if (actual is null || !MatchesType(actual, contract.typeInfo!, owner, requested))
                     return null;
             }
-            return new Implementation(member.id, staticConstruction: contract.IsStatic ? owner : null);
+            return new Implementation(member.id, staticConstruction: contract.IsStatic ? owner : null, implicitMemberId: member.id);
         }
 
         // Called only while filling a class mapping. The per-class name index retains
@@ -1091,13 +1256,19 @@ namespace NeoCompose.Runtime
             return member;
         }
 
+        // Loading materializes inherited setterCode on sparse overrides. That
+        // body remains callable, but it does not declare a setter at this class.
+        private static NeoPropertyAccessorsKind DeclaredPropertyAccessors(NSPropertyMember property) =>
+            property.DeclaredAccessors ?? (property.DeclaresWireField("setterCode") && property.setterCode is not null
+                ? NeoPropertyAccessorsKind.GetSet : NeoPropertyAccessorsKind.Get);
+
         // "set" selects a write body, including init during construction. Interface
         // eligibility separately requires the implementation's exact write-accessor kind.
         internal static bool HasAccessor(Member member, string accessor) => accessor switch
         {
             "call" => member is NSFunctionMember or FunctionMember,
-            "get" => member is NSPropertyMember property ? property.Accessors is NeoPropertyAccessorsKind.Get or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit : member is not NSFunctionMember and not FunctionMember,
-            "set" => member is NSPropertyMember property ? property.Accessors is NeoPropertyAccessorsKind.Set or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit or NeoPropertyAccessorsKind.Init : member.Mutability != NeoMemberMutabilityKind.ReadOnly || member.DeclaredAccessors == NeoPropertyAccessorsKind.GetInit,
+            "get" => member is NSPropertyMember property ? DeclaredPropertyAccessors(property) is NeoPropertyAccessorsKind.Get or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit : member is not NSFunctionMember and not FunctionMember,
+            "set" => member is NSPropertyMember property ? DeclaredPropertyAccessors(property) is NeoPropertyAccessorsKind.Set or NeoPropertyAccessorsKind.GetSet or NeoPropertyAccessorsKind.GetInit or NeoPropertyAccessorsKind.Init : member.Mutability != NeoMemberMutabilityKind.ReadOnly || member.DeclaredAccessors == NeoPropertyAccessorsKind.GetInit,
             _ => false,
         };
 

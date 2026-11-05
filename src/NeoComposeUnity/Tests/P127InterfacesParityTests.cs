@@ -36,6 +36,24 @@ namespace NeoCompose.Tests
             Assert.That(((P127InterfacesParity.IR15V)value).V, Is.EqualTo(2));
         }
 
+        [TestCase(true, 2, 3)]
+        [TestCase(false, 3, 2)]
+        public void GeneratedRelistingPropertyMapsEachAccessor(bool getterOverride, int expectedGet, int expectedSet)
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
+            string name = getterOverride ? "R23CX" : "R23CY";
+            var owner = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == name);
+            var node = NeoGeneratedTypesSupport.CreateWritableClassValue(client, owner.id);
+            P127InterfacesParity.R23CIPV<P127InterfacesParity.R23CBa> value = getterOverride
+                ? P127InterfacesParity.R23CX.CreateWritable(client, node)
+                : P127InterfacesParity.R23CY.CreateWritable(client, node);
+            Assert.That(value.P, Is.EqualTo(expectedGet));
+            value.P = 0;
+            var recorder = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "R23CRec");
+            var binding = NeoGeneratedTypesSupport.StaticBinding(client, recorder.schema["S"], NeoValueOwnership.Session);
+            Assert.That(NeoGeneratedTypesSupport.ReadInt(binding.GetRequiredNode<NeoMemberInt>()), Is.EqualTo(expectedSet));
+        }
+
         [Test]
         public void GenericStaticCollectionsSaveRoundTrip()
         {
