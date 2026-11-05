@@ -376,37 +376,64 @@ namespace NeoCompose.Runtime
             if (receiver.Head!.Type == MemberKind.Class)
             {
                 var receiverChain = ClassChain(receiver);
-                for (int level = 0; level < receiverChain.Count; level++)
+                if (!(client.ProjectDataForRuntime.interfaces[requested.Head!.InterfaceId!].genericParams
+                    ?.Any(parameter => parameter.variance is not null) ?? false))
                 {
-                    var owner = receiverChain[level];
-                    var listings = DeclarationDispatch.Listings(owner.Head!.ClassId!);
-                    if (listings.Listed.Any(candidate => SchemaIdentity(Substitute(candidate, owner)).Equals(requested)))
+                    var index = ReceiverListings(receiver);
+                    index.ByConstruction.TryGetValue(requested, out var matching);
+                    int firstListing = matching is { Count: > 0 } ? matching[0].Level : receiverChain.Count;
+                    for (var id = NearestMemberOwner(receiver.Head!.ClassId!, memberId, declaration.Name); id is not null;
+                        id = ParentMemberOwner(id, memberId, declaration.Name))
                     {
-                        var mapped = ListedImplementer(receiverChain, level, requested, memberId, declaration.Name, contract, accessor);
+                        int level = index.Levels[id];
+                        if (level >= firstListing)
+                            break;
+                        var exact = Explicit(receiverChain[level], requested, memberId, accessor, contract.IsStatic);
+                        if (exact is not null)
+                            return mappings[key] = DispatchVirtual(receiver, exact, accessor);
+                    }
+                    if (matching is { Count: > 0 })
+                    {
+                        var mapped = ListedImplementer(receiverChain, firstListing, requested, memberId, declaration.Name, contract, accessor);
                         if (mapped is not null)
                             return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
-                        break;
                     }
-                    var exact = Explicit(owner, requested, memberId, accessor, contract.IsStatic);
-                    if (exact is not null)
-                        return mappings[key] = DispatchVirtual(receiver, exact, accessor);
-                    var listed = Listed(owner).ToList();
-                    foreach (var candidate in listed.Where(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested)))
+                }
+                else
+                {
+                    for (int level = 0; level < receiverChain.Count; level++)
                     {
-                        var mapped = MapClass(owner, candidate, memberId, declaration.Name, contract, accessor);
-                        if (mapped is null)
-                            continue;
-                        var chain = ClassChain(owner);
-                        var inherited = chain.Count > 1 && Closure(chain[1]).Contains(candidate)
-                            ? MapClass(chain[1], candidate, memberId, declaration.Name, contract, accessor) : null;
-                        if (inherited?.MemberId != mapped.MemberId)
-                            return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
+                        var owner = receiverChain[level];
+                        var listings = DeclarationDispatch.Listings(owner.Head!.ClassId!);
+                        if (listings.Listed.Any(candidate => SchemaIdentity(Substitute(candidate, owner)).Equals(requested)))
+                        {
+                            var mapped = ListedImplementer(receiverChain, level, requested, memberId, declaration.Name, contract, accessor);
+                            if (mapped is not null)
+                                return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
+                            break;
+                        }
+                        var exact = Explicit(owner, requested, memberId, accessor, contract.IsStatic);
+                        if (exact is not null)
+                            return mappings[key] = DispatchVirtual(receiver, exact, accessor);
+                        var listed = Listed(owner).ToList();
+                        foreach (var candidate in listed.Where(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested)))
+                        {
+                            var mapped = MapClass(owner, candidate, memberId, declaration.Name, contract, accessor);
+                            if (mapped is null)
+                                continue;
+                            var chain = ClassChain(owner);
+                            var inherited = chain.Count > 1 && Closure(chain[1]).Contains(candidate)
+                                ? MapClass(chain[1], candidate, memberId, declaration.Name, contract, accessor) : null;
+                            if (inherited?.MemberId != mapped.MemberId)
+                                return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
+                        }
                     }
                 }
             }
             var closure = Closure(receiver);
-            TypeBinding? implemented = closure.FirstOrDefault(item => item.Equals(requested))
-                ?? closure.FirstOrDefault(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested));
+            TypeBinding? implemented = closure.FirstOrDefault(item => item.Equals(requested));
+            bool variant = implemented is null;
+            implemented ??= closure.FirstOrDefault(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested));
             if (implemented is null)
                 throw Missing(receiver, requested, declaration.Name);
             var candidates = new List<(TypeBinding Owner, InterfaceMember Member)> { (implemented, contract) };
@@ -417,7 +444,7 @@ namespace NeoCompose.Runtime
                         && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor)))
                         candidates.Add((owner, entry));
             var winners = candidates.Where(candidate => !candidates.Any(other => !other.Owner.Equals(candidate.Owner) && Closure(other.Owner).Contains(candidate.Owner))).ToList();
-            if (winners.Count != 1)
+            if (winners.Count == 0 || winners.Count != 1 && !variant)
                 throw new NSGetterRuntimeError($"No most specific implementation of '{declaration.Name}' for '{NeoTypeNames.Of(receiver)}'.");
             var winner = winners[0];
             if (winner.Member.implementationMemberId is null || winner.Member.DeclaredModifier == NeoMemberModifierKind.Abstract)
@@ -500,6 +527,121 @@ namespace NeoCompose.Runtime
             return classListings[classId] = new ClassListings(owner, Listed(owner).ToArray());
         }
 
+        private sealed class ReceiverListingIndex
+        {
+            internal readonly Dictionary<string, int> Levels = new();
+            internal readonly Dictionary<TypeBinding, List<(int Level, TypeBinding Symbolic)>> ByConstruction = new();
+        }
+
+        private readonly Dictionary<TypeBinding, ReceiverListingIndex> receiverListings = new();
+
+        // Substitute each own listing once per receiver, rather than once per
+        // request. A symbolic equality implies equality after closing, so this
+        // index can also rule out inherited coverage without caching a miss at
+        // every ancestor. Remaining collisions still use the symbolic rule.
+        private ReceiverListingIndex ReceiverListings(TypeBinding receiver)
+        {
+            if (receiverListings.TryGetValue(receiver, out var cached))
+                return cached;
+            var index = new ReceiverListingIndex();
+            var chain = ClassChain(receiver);
+            for (int level = 0; level < chain.Count; level++)
+            {
+                var owner = chain[level];
+                index.Levels.Add(owner.Head!.ClassId!, level);
+                foreach (var symbolic in DeclarationDispatch.Listings(owner.Head.ClassId!).Listed)
+                {
+                    var construction = SchemaIdentity(Substitute(symbolic, owner));
+                    if (!index.ByConstruction.TryGetValue(construction, out var entries))
+                        index.ByConstruction[construction] = entries = new();
+                    // The existing rule selects the first spelling at a level.
+                    if (entries.Count == 0 || entries[entries.Count - 1].Level != level)
+                        entries.Add((level, symbolic));
+                }
+            }
+            return receiverListings[receiver] = index;
+        }
+
+        private readonly Dictionary<(string ClassId, string MemberId, string Name), string?> memberOwners = new();
+
+        private string? ParentMemberOwner(string classId, string memberId, string name) =>
+            client.ProjectDataForRuntime.classes[classId].extendsClassId is string parent
+                ? NearestMemberOwner(parent, memberId, name) : null;
+
+        // Member placement does not depend on an interface construction. Share
+        // the nearest relevant declaration, including an absent declaration,
+        // across all construction queries for this member.
+        private string? NearestMemberOwner(string classId, string memberId, string name)
+        {
+            if (!schemaValidation)
+                return DeclarationDispatch.NearestMemberOwner(classId, memberId, name);
+            var pending = new List<string>();
+            var seen = new HashSet<string>();
+            string? result = null;
+            for (string? current = classId; current is not null; current = client.ProjectDataForRuntime.classes[current].extendsClassId)
+            {
+                if (memberOwners.TryGetValue((current, memberId, name), out result))
+                    break;
+                if (!seen.Add(current))
+                    throw new NSGetterRuntimeError($"Circular class extension detected at '{current}'.");
+                pending.Add(current);
+                if (ExplicitSites(current).ContainsKey(memberId)
+                    || client.ProjectDataForRuntime.classes[current].schema.ContainsKey(name)
+                    || ownFunctionsByName[current].ContainsKey(name))
+                {
+                    result = current;
+                    break;
+                }
+            }
+            foreach (string current in pending)
+                memberOwners[(current, memberId, name)] = result;
+            return result;
+        }
+
+        private static bool ClosedSignatureType(TypeBinding binding) => binding.Kind == TypeBindingKind.Closed
+            && (binding.Bindings is null || binding.Bindings.Values.All(ClosedSignatureType));
+
+        private static bool ClosedSignatureType(TypeInfo type) => ClosedSignatureType(NeoCallableSignature.TypeIdentity(type));
+
+        private readonly Dictionary<(string ClassId, string AncestorId), TypeBinding> ancestorConstructions = new();
+
+        // Compose a declaration-to-ancestor environment once, then substitute
+        // each caller's arguments into it. Distinct interface requests share
+        // both the member-placement search and this environment, including
+        // generic and static members that cannot share a closed mapping.
+        private TypeBinding AncestorConstruction(TypeBinding owner, string ancestorId)
+        {
+            if (!schemaValidation)
+                return DeclarationDispatch.AncestorConstruction(owner, ancestorId);
+            string classId = owner.Head!.ClassId!;
+            if (classId == ancestorId)
+                return owner;
+            var key = (classId, ancestorId);
+            if (!ancestorConstructions.TryGetValue(key, out var template))
+            {
+                var pending = new List<string>();
+                var seen = new HashSet<string>();
+                string current = classId;
+                while (current != ancestorId && !ancestorConstructions.TryGetValue((current, ancestorId), out template))
+                {
+                    if (!seen.Add(current))
+                        throw new NSGetterRuntimeError($"Circular class extension detected at '{current}'.");
+                    pending.Add(current);
+                    current = client.ProjectDataForRuntime.classes[current].extendsClassId
+                        ?? throw new NSGetterRuntimeError($"'{ancestorId}' is not an ancestor of '{classId}'.");
+                }
+                if (current == ancestorId)
+                    template = Listings(ancestorId).Owner;
+                for (int index = pending.Count - 1; index >= 0; index--)
+                {
+                    string id = pending[index];
+                    template = SchemaIdentity(Substitute(template!, BaseConstruction(Listings(id).Owner)!));
+                    ancestorConstructions[(id, ancestorId)] = template;
+                }
+            }
+            return SchemaIdentity(Substitute(template!, owner));
+        }
+
         private readonly Dictionary<(TypeBinding Owner, TypeBinding Requested), bool> constructionQueries = new();
 
         private TypeBinding? BaseConstruction(TypeBinding owner)
@@ -575,16 +717,19 @@ namespace NeoCompose.Runtime
             string memberId, string name, InterfaceMember contract, string accessor)
         {
             var declarations = DeclarationDispatch;
-            for (int index = start; index < chain.Count; index++)
+            if (!ReceiverListings(chain[0]).ByConstruction.TryGetValue(requested, out var matching))
+                return null;
+            for (int index = 0; index < matching.Count; index++)
             {
-                var ownerConstruction = chain[index];
-                var listing = declarations.Listings(ownerConstruction.Head!.ClassId!);
-                var construction = listing.Listed.FirstOrDefault(candidate => SchemaIdentity(Substitute(candidate, ownerConstruction)).Equals(requested));
-                if (construction is null)
+                var entry = matching[index];
+                if (entry.Level < start)
                     continue;
+                var ownerConstruction = chain[entry.Level];
+                var listing = declarations.Listings(ownerConstruction.Head!.ClassId!);
+                var construction = entry.Symbolic;
                 var own = declarations.Explicit(listing.Owner, construction, memberId, accessor, contract.IsStatic)
                     ?? declarations.Implicit(listing.Owner, construction, name, contract, accessor);
-                if (own is null && declarations.InheritsConstruction(listing.Owner, construction))
+                if (own is null && index + 1 < matching.Count && declarations.InheritsConstruction(listing.Owner, construction))
                     continue;
                 var mapped = own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
                 if (mapped is null)
@@ -604,8 +749,10 @@ namespace NeoCompose.Runtime
                 return cached;
             var searched = new List<TypeBinding>();
             Implementation? result = null;
-            foreach (var current in ClassChain(owner))
+            for (var id = NearestMemberOwner(owner.Head!.ClassId!, memberId, name); id is not null;
+                id = ParentMemberOwner(id, memberId, name))
             {
+                var current = AncestorConstruction(owner, id);
                 if (classMappings.TryGetValue((current, requested, memberId, accessor), out result))
                     break;
                 searched.Add(current);
@@ -614,11 +761,11 @@ namespace NeoCompose.Runtime
                 if (result is not null)
                     break;
             }
-            // Cache each searched suffix, including misses, so repeated base-list entries
-            // do not restart the same inheritance walk for this member.
+            // Cache the relevant declaration sites, including misses. Empty
+            // ancestry is shared by memberOwners, not retained per request.
             foreach (var current in searched)
                 classMappings[(current, requested, memberId, accessor)] = result;
-            return result;
+            return classMappings[key] = result;
         }
 
         private Implementation? Implicit(TypeBinding owner, TypeBinding requested, string name, InterfaceMember contract, string accessor)
@@ -751,6 +898,9 @@ namespace NeoCompose.Runtime
                     NeoCallableSignature.TypeIdentity(NeoGenericResolution.SubstituteTypeInfo(client, expected, Environment(requested))));
             TypeBinding Bind(TypeInfo type, TypeBinding construction)
             {
+                var identity = NeoCallableSignature.TypeIdentity(type);
+                if (ClosedSignatureType(identity))
+                    return SchemaIdentity(identity);
                 var bindings = new Dictionary<string, TypeBinding>();
                 var chain = construction.Head!.Type == MemberKind.Class ? ClassChain(construction) : Closure(construction);
                 foreach (var entry in chain)
