@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4ef5cc7c-4f18-4820-9184-35712009a7dd" => new R19VQ<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2399514f-a585-47e1-bb1a-a4dad28d216e" => new R19VQ<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VQ' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4ef5cc7c-4f18-4820-9184-35712009a7dd" => new R19VQ<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2399514f-a585-47e1-bb1a-a4dad28d216e" => new R19VQ<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VQ' without a concrete client type id."),
                 };
             });
@@ -91,7 +91,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(IR19J<R19Tag, T>) == typeof(IR19J<R19Tag, U>))
                 {
-                    var result = ComputeProperty("V#f19d372d-7aad-4cfc-88fc-6113d5572ebe");
+                    var result = ComputeProperty("V#0ee6bc6e-ff57-4ac9-a986-6ebb61f998cc");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

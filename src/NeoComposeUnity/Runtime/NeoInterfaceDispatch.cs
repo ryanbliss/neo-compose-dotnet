@@ -375,81 +375,73 @@ namespace NeoCompose.Runtime
                 return mappings[key] = Body(contract, requested);
             if (receiver.Head!.Type == MemberKind.Class)
             {
-                var receiverChain = ClassChain(receiver);
-                if (!(client.ProjectDataForRuntime.interfaces[requested.Head!.InterfaceId!].genericParams
-                    ?.Any(parameter => parameter.variance is not null) ?? false))
-                {
-                    var index = ReceiverListings(receiver);
-                    index.ByConstruction.TryGetValue(requested, out var matching);
-                    int firstListing = matching is { Count: > 0 } ? matching[0].Level : receiverChain.Count;
-                    for (var id = NearestMemberOwner(receiver.Head!.ClassId!, memberId, declaration.Name); id is not null;
-                        id = ParentMemberOwner(id, memberId, declaration.Name))
-                    {
-                        int level = index.Levels[id];
-                        if (level >= firstListing)
-                            break;
-                        var exact = Explicit(receiverChain[level], requested, memberId, accessor, contract.IsStatic);
-                        if (exact is not null)
-                            return mappings[key] = DispatchVirtual(receiver, exact, accessor);
-                    }
-                    if (matching is { Count: > 0 })
-                    {
-                        var mapped = ListedImplementer(receiverChain, firstListing, requested, memberId, declaration.Name, contract, accessor);
-                        if (mapped is not null)
-                            return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
-                    }
-                }
-                else
-                {
-                    for (int level = 0; level < receiverChain.Count; level++)
-                    {
-                        var owner = receiverChain[level];
-                        var listings = DeclarationDispatch.Listings(owner.Head!.ClassId!);
-                        if (listings.Listed.Any(candidate => SchemaIdentity(Substitute(candidate, owner)).Equals(requested)))
-                        {
-                            var mapped = ListedImplementer(receiverChain, level, requested, memberId, declaration.Name, contract, accessor);
-                            if (mapped is not null)
-                                return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
-                            break;
-                        }
-                        var exact = Explicit(owner, requested, memberId, accessor, contract.IsStatic);
-                        if (exact is not null)
-                            return mappings[key] = DispatchVirtual(receiver, exact, accessor);
-                        var listed = Listed(owner).ToList();
-                        foreach (var candidate in listed.Where(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested)))
-                        {
-                            var mapped = MapClass(owner, candidate, memberId, declaration.Name, contract, accessor);
-                            if (mapped is null)
-                                continue;
-                            var chain = ClassChain(owner);
-                            var inherited = chain.Count > 1 && Closure(chain[1]).Contains(candidate)
-                                ? MapClass(chain[1], candidate, memberId, declaration.Name, contract, accessor) : null;
-                            if (inherited?.MemberId != mapped.MemberId)
-                                return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
-                        }
-                    }
-                }
+                var mapped = ListedImplementer(receiver, requested, memberId, declaration.Name, contract, accessor);
+                if (mapped is not null)
+                    return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
             }
-            var closure = Closure(receiver);
-            TypeBinding? implemented = closure.FirstOrDefault(item => item.Equals(requested));
-            bool variant = implemented is null;
-            implemented ??= closure.FirstOrDefault(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested));
-            if (implemented is null)
-                throw Missing(receiver, requested, declaration.Name);
-            var candidates = new List<(TypeBinding Owner, InterfaceMember Member)> { (implemented, contract) };
-            foreach (var owner in closure)
-                foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head!.InterfaceId!].members.Values)
-                    if (entry.explicitImplementation is { } implementation
-                        && implementation.interfaceMemberId == memberId && Construct(implementation, owner).Equals(implemented)
-                        && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor)))
-                        candidates.Add((owner, entry));
-            var winners = candidates.Where(candidate => !candidates.Any(other => !other.Owner.Equals(candidate.Owner) && Closure(other.Owner).Contains(candidate.Owner))).ToList();
-            if (winners.Count == 0 || winners.Count != 1 && !variant)
-                throw new NSGetterRuntimeError($"No most specific implementation of '{declaration.Name}' for '{NeoTypeNames.Of(receiver)}'.");
-            var winner = winners[0];
-            if (winner.Member.implementationMemberId is null || winner.Member.DeclaredModifier == NeoMemberModifierKind.Abstract)
-                throw Missing(receiver, requested, declaration.Name);
-            return mappings[key] = Body(winner.Member, winner.Owner);
+            return mappings[key] = DefaultImplementation(receiver, requested, memberId, declaration.Name, contract, accessor);
+        }
+
+        // CoreCLR's two default passes: exact constructed targets first; only
+        // then variance, in the interface-map order added by each class level.
+        private Implementation DefaultImplementation(TypeBinding receiver, TypeBinding requested, string memberId,
+            string name, InterfaceMember contract, string accessor)
+        {
+            var levels = DefaultLevels(receiver);
+            bool exact = levels.Any(level => level.Contains(requested));
+            var candidates = new List<(TypeBinding Owner, InterfaceMember Member)>();
+            foreach (var level in levels)
+                foreach (var owner in level)
+                {
+                    if (owner.Head!.InterfaceId == requested.Head!.InterfaceId
+                        && (exact ? owner.Equals(requested) : Converts(owner, requested)))
+                        candidates.Add((owner, contract));
+                    else
+                        foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head.InterfaceId!].members.Values)
+                            if (entry.explicitImplementation is { } site && site.interfaceMemberId == memberId
+                                && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor))
+                                && (exact ? Construct(site, owner).Equals(requested) : Converts(Construct(site, owner), requested)))
+                                candidates.Add((owner, entry));
+                }
+            (TypeBinding Owner, InterfaceMember Member)? winner = null;
+            if (exact)
+            {
+                var winners = candidates.Where(candidate => !candidates.Any(other =>
+                    !other.Owner.Equals(candidate.Owner) && Converts(other.Owner, candidate.Owner))).ToList();
+                if (winners.Count > 1)
+                    throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
+                if (winners.Count == 1)
+                    winner = winners[0];
+            }
+            else
+            {
+                // The first CoreCLR candidate slot never disappears. Only a
+                // more-specific holder of another declaration can replace it;
+                // later unrelated slots cannot affect the first slot's answer.
+                foreach (var candidate in candidates)
+                    if (winner is null || candidate.Owner.Head!.InterfaceId != winner.Value.Owner.Head!.InterfaceId
+                        && Converts(candidate.Owner, winner.Value.Owner))
+                        winner = candidate;
+            }
+            if (winner is not { } selected || selected.Member.implementationMemberId is null
+                || selected.Member.DeclaredModifier == NeoMemberModifierKind.Abstract)
+                throw Missing(receiver, requested, name);
+            return Body(selected.Member, selected.Owner);
+        }
+
+        private IReadOnlyList<List<TypeBinding>> DefaultLevels(TypeBinding receiver)
+        {
+            if (receiver.Head!.Type == MemberKind.Interface)
+                return new[] { Closure(receiver).ToList() };
+            var index = ReceiverListings(receiver);
+            var levels = Enumerable.Range(0, index.Levels.Count).Select(_ => new List<TypeBinding>()).ToArray();
+            // A repeated construction belongs to its oldest class level, even
+            // when a derived class lists it before a newly added construction.
+            var seen = new HashSet<TypeBinding>();
+            foreach (var entry in index.All)
+                if (index.ByConstruction[entry.Closed][^1].Level == entry.Level && seen.Add(entry.Closed))
+                    levels[entry.Level].Add(entry.Closed);
+            return levels;
         }
 
         private static NSGetterRuntimeError Missing(TypeBinding receiver, TypeBinding requested, string name) =>
@@ -527,18 +519,48 @@ namespace NeoCompose.Runtime
             return classListings[classId] = new ClassListings(owner, Listed(owner).ToArray());
         }
 
+        private sealed class ListingEntry
+        {
+            internal readonly int Level;
+            internal readonly int Order;
+            internal readonly TypeBinding Symbolic;
+            internal readonly TypeBinding Closed;
+            internal ListingEntry(int level, int order, TypeBinding symbolic, TypeBinding closed)
+            {
+                Level = level;
+                Order = order;
+                Symbolic = symbolic;
+                Closed = closed;
+            }
+        }
+
+        private sealed class ArgumentListings
+        {
+            internal readonly Dictionary<TypeBinding, List<ListingEntry>> Exact = new();
+            internal readonly Dictionary<string, List<ListingEntry>> Classes = new();
+            internal readonly List<ListingEntry> Other = new();
+        }
+
         private sealed class ReceiverListingIndex
         {
             internal readonly Dictionary<string, int> Levels = new();
-            internal readonly Dictionary<TypeBinding, List<(int Level, TypeBinding Symbolic)>> ByConstruction = new();
+            internal readonly Dictionary<TypeBinding, List<ListingEntry>> ByConstruction = new();
+            internal readonly Dictionary<string, List<ListingEntry>> ByInterface = new();
+            internal readonly Dictionary<(string, string), ArgumentListings> Arguments = new();
+            internal readonly List<ListingEntry> All = new();
         }
 
         private readonly Dictionary<TypeBinding, ReceiverListingIndex> receiverListings = new();
 
-        // Substitute each own listing once per receiver, rather than once per
-        // request. A symbolic equality implies equality after closing, so this
-        // index can also rule out inherited coverage without caching a miss at
-        // every ancestor. Remaining collisions still use the symbolic rule.
+        private static void AddListing<TKey>(Dictionary<TKey, List<ListingEntry>> index, TKey key, ListingEntry entry)
+        {
+            if (!index.TryGetValue(key, out var entries))
+                index[key] = entries = new();
+            entries.Add(entry);
+        }
+
+        // Both exact and variant dispatch use this index. Closing an own listing
+        // is receiver work, never repeated for each requested construction.
         private ReceiverListingIndex ReceiverListings(TypeBinding receiver)
         {
             if (receiverListings.TryGetValue(receiver, out var cached))
@@ -552,14 +574,100 @@ namespace NeoCompose.Runtime
                 foreach (var symbolic in DeclarationDispatch.Listings(owner.Head.ClassId!).Listed)
                 {
                     var construction = SchemaIdentity(Substitute(symbolic, owner));
-                    if (!index.ByConstruction.TryGetValue(construction, out var entries))
-                        index.ByConstruction[construction] = entries = new();
-                    // The existing rule selects the first spelling at a level.
-                    if (entries.Count == 0 || entries[entries.Count - 1].Level != level)
-                        entries.Add((level, symbolic));
+                    var entry = new ListingEntry(level, index.All.Count, symbolic, construction);
+                    index.All.Add(entry);
+                    AddListing(index.ByConstruction, construction, entry);
+                    string id = construction.Head!.InterfaceId!;
+                    AddListing(index.ByInterface, id, entry);
+                    foreach (var argument in construction.Bindings ?? new Dictionary<string, TypeBinding>())
+                    {
+                        if (!index.Arguments.TryGetValue((id, argument.Key), out var postings))
+                            index.Arguments[(id, argument.Key)] = postings = new();
+                        AddListing(postings.Exact, argument.Value, entry);
+                        if (argument.Value.Head?.ClassId is string classId)
+                            AddListing(postings.Classes, classId, entry);
+                        else
+                            postings.Other.Add(entry);
+                    }
                 }
             }
             return receiverListings[receiver] = index;
+        }
+
+        private Dictionary<string, List<string>>? classChildren;
+
+        private IEnumerable<string> RelatedClasses(string id, bool descendants)
+        {
+            if (descendants)
+            {
+                if (classChildren is null)
+                {
+                    classChildren = new();
+                    foreach (var owner in client.ProjectDataForRuntime.classes.Values)
+                        if (owner.extendsClassId is string parent)
+                        {
+                            if (!classChildren.TryGetValue(parent, out var children))
+                                classChildren[parent] = children = new();
+                            children.Add(owner.id);
+                        }
+                }
+                var pending = new Stack<string>();
+                pending.Push(id);
+                while (pending.Count != 0)
+                {
+                    string current = pending.Pop();
+                    yield return current;
+                    if (classChildren.TryGetValue(current, out var children))
+                        foreach (string child in children)
+                            pending.Push(child);
+                }
+            }
+            else
+                for (string? current = id; current is not null; current = client.ProjectDataForRuntime.classes[current].extendsClassId)
+                    yield return current;
+        }
+
+        // A posting is only a necessary condition; Converts remains the source
+        // of truth. Invariant arguments use identity. Variant class arguments
+        // use declaration ancestry, so unrelated Tag<T> queries don't scan every
+        // listing. Other argument kinds conservatively retain their candidates.
+        private IEnumerable<ListingEntry> MatchingListings(ReceiverListingIndex index, TypeBinding requested)
+        {
+            string id = requested.Head!.InterfaceId!;
+            if (!index.ByInterface.TryGetValue(id, out var all))
+                return Array.Empty<ListingEntry>();
+            IEnumerable<ListingEntry> selected = all;
+            int count = all.Count;
+            foreach (var parameter in client.ProjectDataForRuntime.interfaces[id].genericParams ?? new())
+            {
+                var argument = requested.Bindings![parameter.id];
+                var postings = index.Arguments[(id, parameter.id)];
+                var buckets = new List<List<ListingEntry>>();
+                if (parameter.variance is null || argument.IsOpen || TypeBindings.IsValueType(argument.Head!))
+                {
+                    if (postings.Exact.TryGetValue(argument, out var exact))
+                        buckets.Add(exact);
+                }
+                else if (argument.Head!.ClassId is string classId)
+                {
+                    foreach (string related in RelatedClasses(classId, parameter.variance == NeoGenericParamVarianceKind.Out))
+                        if (postings.Classes.TryGetValue(related, out var entries))
+                            buckets.Add(entries);
+                    buckets.Add(postings.Other);
+                }
+                else
+                    continue;
+                int size = buckets.Sum(bucket => bucket.Count);
+                if (size < count)
+                {
+                    selected = buckets.SelectMany(bucket => bucket);
+                    count = size;
+                }
+                if (count == 0)
+                    break;
+            }
+            return selected.Where(entry => Converts(entry.Closed, requested))
+                .OrderBy(entry => entry.Level).ThenBy(entry => entry.Closed.Equals(requested) ? 0 : 1).ThenBy(entry => entry.Order);
         }
 
         private readonly Dictionary<(string ClassId, string MemberId, string Name), string?> memberOwners = new();
@@ -709,35 +817,51 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        // Match Compose's listedImplementer: each matching listing decides in its
-        // own parameters. Empty class mappings continue to the next listing; a
-        // default body applies only after all matching listings have been tried.
-        // Inherited candidates keep the base slot when it covers the same symbolic construction.
-        private Implementation? ListedImplementer(IReadOnlyList<TypeBinding> chain, int start, TypeBinding requested,
+        // One class walk for invariant and variant interfaces. At each level,
+        // exact own listings precede variant own listings. An unchanged inherited
+        // mapping belongs to its base level, so it cannot pre-empt a derived
+        // variant member. Each listing is decided in its declaration's parameters.
+        private Implementation? ListedImplementer(TypeBinding receiver, TypeBinding requested,
             string memberId, string name, InterfaceMember contract, string accessor)
         {
+            var chain = ClassChain(receiver);
+            var index = ReceiverListings(receiver);
             var declarations = DeclarationDispatch;
-            if (!ReceiverListings(chain[0]).ByConstruction.TryGetValue(requested, out var matching))
-                return null;
-            for (int index = 0; index < matching.Count; index++)
+            using var entries = MatchingListings(index, requested).GetEnumerator();
+            bool hasEntry = entries.MoveNext();
+            string? memberOwner = NearestMemberOwner(receiver.Head!.ClassId!, memberId, name);
+            while (hasEntry || memberOwner is not null)
             {
-                var entry = matching[index];
-                if (entry.Level < start)
+                int level = hasEntry ? entries.Current.Level : chain.Count;
+                int memberLevel = memberOwner is null ? chain.Count : index.Levels[memberOwner];
+                if (memberLevel < level)
+                {
+                    var explicitSite = Explicit(chain[memberLevel], requested, memberId, accessor, contract.IsStatic);
+                    if (explicitSite is not null)
+                        return explicitSite;
+                    memberOwner = ParentMemberOwner(memberOwner!, memberId, name);
                     continue;
-                var ownerConstruction = chain[entry.Level];
+                }
+                var entry = entries.Current;
+                var ownerConstruction = chain[level];
                 var listing = declarations.Listings(ownerConstruction.Head!.ClassId!);
                 var construction = entry.Symbolic;
                 var own = declarations.Explicit(listing.Owner, construction, memberId, accessor, contract.IsStatic)
                     ?? declarations.Implicit(listing.Owner, construction, name, contract, accessor);
-                if (own is null && index + 1 < matching.Count && declarations.InheritsConstruction(listing.Owner, construction))
-                    continue;
-                var mapped = own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
-                if (mapped is null)
-                    continue;
-                if (declarations.classSchemaKeys.TryGetValue(mapped.MemberId, out var schemaKey))
-                    classSchemaKeys[mapped.MemberId] = schemaKey;
-                return new Implementation(mapped.MemberId,
-                    staticConstruction: mapped.StaticConstruction is null ? null : SchemaIdentity(Substitute(mapped.StaticConstruction, ownerConstruction)));
+                var matching = index.ByConstruction[entry.Closed];
+                bool inherited = own is null && matching[^1].Level > level
+                    && declarations.InheritsConstruction(listing.Owner, construction);
+                var mapped = inherited ? null : own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
+                if (mapped is not null)
+                {
+                    if (declarations.classSchemaKeys.TryGetValue(mapped.MemberId, out var schemaKey))
+                        classSchemaKeys[mapped.MemberId] = schemaKey;
+                    return new Implementation(mapped.MemberId,
+                        staticConstruction: mapped.StaticConstruction is null ? null : SchemaIdentity(Substitute(mapped.StaticConstruction, ownerConstruction)));
+                }
+                hasEntry = entries.MoveNext();
+                if (memberLevel == level && (!hasEntry || entries.Current.Level != level))
+                    memberOwner = ParentMemberOwner(memberOwner!, memberId, name);
             }
             return null;
         }
