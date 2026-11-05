@@ -322,6 +322,21 @@
     "class R19VQ<T, U> : R19VM<T, U> { public override int V => 7; }",
     "class R19VR<T, U> : R19VQ<T, U>, IR19J<R19Tag, T> {}",
     "class R19VO<T, U> : R19VM<T, U>, IR19J<R19Tag, T> { public override int V => 7; }",
+    "class R20Rec { public static int S = 0; }",
+    "interface IR20I<T> { int V => 4; int F() => 4; int G<X>() => 4; }",
+    "interface IR20P<T> { int P { get => 4; set { R20Rec.S = 4; } } }",
+    "interface IR20K<X> : IR20I<X> { int IR20I<X>.V => 6; int IR20I<X>.F() => 6; }",
+    "class R20B<T, U> : IR20I<T>, IR20P<T> { int IR20I<T>.V => 2; int IR20I<T>.F() => 2; int IR20I<T>.G<X>() => 2; int IR20P<T>.P { get => 2; set { R20Rec.S = 2; } } }",
+    "class R20M<T, U> : R20B<T, T>, IR20I<U>, IR20P<U> {}",
+    "class R20N<T, U> : R20M<T, U> {}",
+    "class R20Z<T, U, W> : R20M<T, U>, IR20I<W> {}",
+    "class R20MK<T, U> : R20B<T, T>, IR20K<U> {}",
+    "class R20MS<T, U> : R20B<T, T>, IR20P<U> { public int P => 9; }",
+    "class R20B9<T, U> : IR20I<T> { int IR20I<T>.V => 2; public int V => 9; int IR20I<T>.F() => 2; public int F() => 9; int IR20I<T>.G<X>() => 2; public int G<X>() => 9; }",
+    "class R20M9<T, U> : R20B9<T, T>, IR20I<U> {}",
+    "class R20Z9<T, U, W> : R20M9<T, U>, IR20I<W> {}",
+    "class R20B0<T, U> : IR20I<T> {}",
+    "class R20MK0<T, U> : R20B0<T, T>, IR20K<U> {}",
     "class Probe {",
     "  public static int NullableConstructions() { NBox<string>.Count = 3; NBox<int>.Count = 5; return NBox<string?>.Count * 10 + NBox<int?>.Count; }",
     "  public static int GenericInterfaceStatics() { ICounter<int>.Bump(); ICounter<int>.Bump(); ICounter<string>.Bump(); return ICounter<int>.Count * 10 + ICounter<string>.Count; }",
@@ -519,6 +534,9 @@
     "  static int R16Write(IR16V x, R16B b) { x.V = 5; return x.V * 1000 + b.S; }",
     "  public static string R16Accessors() { R16GetOnly a = new R16GetOnly(); R16ProtectedSet b = new R16ProtectedSet(); R16Init c = new R16Init(); R16ProtectedGet d = new R16ProtectedGet(); R16GGetOnly e = new R16GGetOnly(); IR16G<int> g = e; g.V = 5; return Probe.R16Write(a, a).ToString() + \",\" + Probe.R16Write(b, b).ToString() + \",\" + Probe.R16Write(c, c).ToString() + \",\" + Probe.R16Write(d, d).ToString() + \",\" + (g.V * 1000 + e.S).ToString(); }",
     "  public static string R19MergeChain() { IR19J<R19Tag, int> q = new R19Q<int, int>(); IR19J<R19Tag, string> m = new R19M<string, int>(); IR19J<R19Tag, int> eq = new R19Eq<int, int>(); IR19J<R19Tag, int> below = new R19EqBelow<int, int>(); IR19J<R19Tag, int> closed = new R19Closed(); IR19J<R19Tag, int> top = new R19ClosedTop(); IR19J<R19Tag, int> nq = new R19NQ<int, int>(); IR19J<R19Tag, int> vr = new R19VR<int, int>(); IR19J<R19Tag, int> vo = new R19VO<int, int>(); IR19F<R19Tag, int> fq = new R19Q<int, int>(); IR19F<R19Tag, int> fbelow = new R19EqBelow<int, int>(); IR19F<R19Tag, int> fclosed = new R19Closed(); IR19F<R19Tag, int> ftop = new R19ClosedTop(); IR19F<R19Tag, int> feq = new R19Eq<int, int>(); return q.V.ToString() + \",\" + m.V.ToString() + \",\" + eq.V.ToString() + \",\" + below.V.ToString() + \",\" + closed.V.ToString() + \",\" + top.V.ToString() + \",\" + nq.V.ToString() + \",\" + vr.V.ToString() + \",\" + vo.V.ToString() + \",\" + fq.F().ToString() + \",\" + fbelow.F().ToString() + \",\" + fclosed.F().ToString() + \",\" + ftop.F().ToString() + \",\" + feq.F().ToString(); }",
+    "  static string R20Read<T>(IR20I<T> i) => i.V.ToString() + i.F().ToString() + i.G<string>().ToString();",
+    "  static string R20Write<T>(IR20P<T> p) { R20Rec.S = 0; int g = p.P; p.P = 1; return g.ToString() + \"/\" + R20Rec.S.ToString(); }",
+    "  public static string R20DefaultSlots() => R20Read<int>(new R20M<int, int>()) + \",\" + R20Read<string>(new R20M<string, int>()) + \",\" + R20Read<int>(new R20M<string, int>()) + \",\" + R20Read<int>(new R20N<int, int>()) + \",\" + R20Read<int>(new R20Z<int, int, int>()) + \",\" + R20Read<string>(new R20Z<int, int, string>()) + \",\" + R20Read<string>(new R20Z<string, int, string>()) + \",\" + R20Read<int>(new R20MK<int, int>()) + \",\" + R20Read<int>(new R20MK<string, int>()) + \",\" + R20Write<int>(new R20M<int, int>()) + \",\" + R20Write<int>(new R20MS<int, int>()) + \",\" + R20Write<int>(new R20MS<string, int>()) + \",\" + R20Read<int>(new R20Z9<int, int, int>()) + \",\" + R20Read<int>(new R20MK0<int, int>()) + \",\" + R20Read<int>(new R20MK0<string, int>()) + \",\" + R20Read<string>(new R20MK0<string, int>());",
     "}"
   ],
   "returns": {
@@ -682,6 +700,7 @@
     "R15Reimplementation": "2,2,0,3,2,3,3",
     "R15StaticBeside": "23,23",
     "R16Accessors": "3005,3005,3005,2050,3007",
-    "R19MergeChain": "9,2,2,9,9,2,5,5,7,9,9,9,2,2"
+    "R19MergeChain": "9,2,2,9,9,2,5,5,7,9,9,9,2,2",
+    "R20DefaultSlots": "222,222,444,222,222,444,222,222,664,2/2,9/2,9/4,999,664,664,444"
   }
 }
