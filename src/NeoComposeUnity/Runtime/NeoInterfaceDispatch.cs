@@ -375,13 +375,23 @@ namespace NeoCompose.Runtime
                 return mappings[key] = Body(contract, requested);
             if (receiver.Head!.Type == MemberKind.Class)
             {
-                foreach (var owner in ClassChain(receiver))
+                var receiverChain = ClassChain(receiver);
+                for (int level = 0; level < receiverChain.Count; level++)
                 {
+                    var owner = receiverChain[level];
+                    var listings = DeclarationDispatch.Listings(owner.Head!.ClassId!);
+                    if (listings.Listed.Any(candidate => SchemaIdentity(Substitute(candidate, owner)).Equals(requested)))
+                    {
+                        var mapped = ListedImplementer(receiverChain, level, requested, memberId, declaration.Name, contract, accessor);
+                        if (mapped is not null)
+                            return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
+                        break;
+                    }
                     var exact = Explicit(owner, requested, memberId, accessor, contract.IsStatic);
                     if (exact is not null)
                         return mappings[key] = DispatchVirtual(receiver, exact, accessor);
                     var listed = Listed(owner).ToList();
-                    foreach (var candidate in listed.Where(item => item.Equals(requested)).Concat(listed.Where(item => !item.Equals(requested) && item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested))))
+                    foreach (var candidate in listed.Where(item => item.Head!.InterfaceId == requested.Head!.InterfaceId && Converts(item, requested)))
                     {
                         var mapped = MapClass(owner, candidate, memberId, declaration.Name, contract, accessor);
                         if (mapped is null)
@@ -461,6 +471,101 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        private NeoInterfaceDispatch? declarationDispatch;
+        private NeoInterfaceDispatch DeclarationDispatch => schemaValidation
+            ? this : declarationDispatch ??= ForSchemaValidation(client);
+
+        private sealed class ClassListings
+        {
+            internal readonly TypeBinding Owner;
+            internal readonly TypeBinding[] Listed;
+            internal HashSet<TypeBinding>? Inherited;
+            internal HashSet<TypeBinding>? All;
+
+            internal ClassListings(TypeBinding owner, TypeBinding[] listed)
+            {
+                Owner = owner;
+                Listed = listed;
+            }
+        }
+
+        private readonly Dictionary<string, ClassListings> classListings = new();
+
+        private ClassListings Listings(string classId)
+        {
+            if (classListings.TryGetValue(classId, out var cached))
+                return cached;
+            var declaration = client.ProjectDataForRuntime.classes[classId];
+            var owner = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: classId),
+                declaration.genericParams?.ToDictionary(parameter => parameter.id,
+                    parameter => TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: classId), parameter.id)));
+            return classListings[classId] = new ClassListings(owner, Listed(owner).ToArray());
+        }
+
+        // Build coverage only for a listing without an own implementer, once per
+        // class, substituting the immediate base's cache rather than rescanning it.
+        private HashSet<TypeBinding> InheritedConstructions(string classId)
+        {
+            if (Listings(classId).Inherited is { } cached)
+                return cached;
+            var pending = new List<NeoSchemaClass>();
+            var seen = new HashSet<string>();
+            for (string? id = classId; id is not null && Listings(id).Inherited is null;)
+            {
+                if (!seen.Add(id))
+                    throw new NSGetterRuntimeError($"Circular class extension detected at '{id}'.");
+                var declaration = client.ProjectDataForRuntime.classes[id];
+                pending.Add(declaration);
+                id = declaration.extendsClassId;
+            }
+            for (int index = pending.Count - 1; index >= 0; index--)
+            {
+                var declaration = pending[index];
+                var listing = Listings(declaration.id);
+                var inherited = new HashSet<TypeBinding>();
+                if (declaration.extendsClassId is string parent)
+                {
+                    var parentConstruction = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: parent),
+                        declaration.extendsGenericBindings?.ToDictionary(pair => pair.Key, pair => Substitute(pair.Value, listing.Owner)));
+                    foreach (var construction in classListings[parent].All!)
+                        inherited.Add(SchemaIdentity(Substitute(construction, parentConstruction)));
+                }
+                listing.Inherited = inherited;
+                listing.All = new HashSet<TypeBinding>(inherited);
+                listing.All.UnionWith(listing.Listed);
+            }
+            return classListings[classId].Inherited!;
+        }
+
+        // Match Compose's listedImplementer: each matching listing decides in its
+        // own parameters. A listing with no own implementer inherits its base slot
+        // only when the base already covers that symbolic construction.
+        private Implementation? ListedImplementer(IReadOnlyList<TypeBinding> chain, int start, TypeBinding requested,
+            string memberId, string name, InterfaceMember contract, string accessor)
+        {
+            var declarations = DeclarationDispatch;
+            for (int index = start; index < chain.Count; index++)
+            {
+                var ownerConstruction = chain[index];
+                var listing = declarations.Listings(ownerConstruction.Head!.ClassId!);
+                var construction = listing.Listed.FirstOrDefault(candidate => SchemaIdentity(Substitute(candidate, ownerConstruction)).Equals(requested));
+                if (construction is null)
+                    continue;
+                var own = declarations.Explicit(listing.Owner, construction, memberId, accessor, contract.IsStatic)
+                    ?? declarations.Implicit(listing.Owner, construction, name, contract, accessor);
+                if (own is null && declarations.InheritedConstructions(ownerConstruction.Head.ClassId!).Contains(construction))
+                    continue;
+                var mapped = own ?? declarations.MapClass(listing.Owner, construction, memberId, name, contract, accessor);
+                if (mapped is null)
+                    return null;
+                if (declarations.classSchemaKeys.TryGetValue(mapped.MemberId, out var schemaKey))
+                    classSchemaKeys[mapped.MemberId] = schemaKey;
+                return new Implementation(mapped.MemberId,
+                    staticConstruction: mapped.StaticConstruction is null ? null : SchemaIdentity(Substitute(mapped.StaticConstruction, ownerConstruction)));
+            }
+            return null;
+        }
+
         private Implementation? MapClass(TypeBinding owner, TypeBinding requested, string memberId, string name, InterfaceMember contract, string accessor)
         {
             var key = (owner, requested, memberId, accessor);
@@ -525,7 +630,12 @@ namespace NeoCompose.Runtime
                 return null;
             if (contract.kind == NeoInterfaceMemberKind.Property)
             {
-                TypeInfo? actual = member is NSPropertyMember property ? property.returnTypeInfo
+                TypeInfo? actual = member is NSPropertyMember property
+                    ? property.returnTypeInfo ?? NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                        property.id,
+                        parent => client.ProjectDataForRuntime.members.GetValueOrDefault(parent),
+                        ancestor => ancestor is NSPropertyMember inherited ? inherited.returnTypeInfo : null,
+                        requireKind: MemberKind.NSProperty)
                     : NeoTypeRules.BindingTypeInfo(client, schemaValidation ? member : NeoGenericResolution.SubstituteMember(client, member, Environment(owner)));
                 if (actual is null || !MatchesType(actual, contract.typeInfo!, owner, requested))
                     return null;
