@@ -330,6 +330,7 @@ namespace NeoCompose.Runtime
             while (true)
             {
                 SyncEffectInstances();
+                ArmGetterSubscriptions();
                 if (RunPendingLifecycleHook())
                     continue;
                 if (pendingEffects.Count == 0)

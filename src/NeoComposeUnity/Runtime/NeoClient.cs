@@ -1038,6 +1038,7 @@ namespace NeoCompose.Runtime
                 node.Dispose();
             getterSubscriptionsByRow.Clear();
             pendingGetterSubscriptions.Clear();
+            pendingGetterArms.Clear();
             getterWatchersByRow.Clear();
             pendingGetterChanges.Clear();
             pendingGetterChangeSet.Clear();

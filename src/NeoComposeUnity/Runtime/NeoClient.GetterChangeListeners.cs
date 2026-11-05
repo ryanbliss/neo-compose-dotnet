@@ -47,6 +47,7 @@ namespace NeoCompose.Runtime
         }
 
         private readonly Dictionary<string, Dictionary<string, GetterSubscription>> getterSubscriptionsByRow = new(StringComparer.Ordinal);
+        private readonly Queue<GetterSubscription> pendingGetterArms = new();
         private List<GetterSubscription> pendingGetterSubscriptions = new();
         private List<GetterSubscription>? spareGetterSubscriptions;
 
@@ -130,7 +131,19 @@ namespace NeoCompose.Runtime
             if (subscription.Queued)
                 return;
             subscription.Queued = true;
-            pendingGetterSubscriptions.Add(subscription);
+            if (subscription.Arming)
+                pendingGetterArms.Enqueue(subscription);
+            else
+                pendingGetterSubscriptions.Add(subscription);
+        }
+
+        private void ArmGetterSubscriptions()
+        {
+            // Establish dependencies after the subscribing script's writes settle,
+            // but before a later lifecycle callback or effect can change them.
+            // Arming reads never invoke user handlers.
+            while (pendingGetterArms.Count != 0)
+                DispatchGetterSubscription(pendingGetterArms.Dequeue());
         }
 
         private void DropGetterSubscription(GetterSubscription subscription)
