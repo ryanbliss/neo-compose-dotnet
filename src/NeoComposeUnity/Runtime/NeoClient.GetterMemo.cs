@@ -895,8 +895,9 @@ namespace NeoCompose.Runtime
         private GetterMemoEntry? Memoize(GetterMemoKey key, GetterCaptureFrame capture, bool valueless)
         {
             // P98 §2.4: the memo is keyed by row id, so an answer read from
-            // a departed row would outlive it.
-            if (departedNodes.Count != 0)
+            // a departed row would outlive it. Ordinary live reads cannot see
+            // departed rows and must still record dependencies for listeners.
+            if (departedReads != DepartedReads.None && departedNodes.Count != 0)
             {
                 RecycleGetterCapture(capture);
                 return null;

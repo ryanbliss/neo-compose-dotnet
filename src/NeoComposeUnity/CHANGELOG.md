@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.8] - 2026-11-04
+
+- Preserve live getter dependencies while lifecycle departure snapshots are retained. Fixes newly transferred furnace ore staying in its slot at zero quantity when consumption runs in the same boundary as row removal.
+
 ## [0.81.7] - 2026-11-04
 
 - Arm newly registered getter change listeners before subsequent lifecycle callbacks and effects run, so immediate consumption of a newly stored inventory stack notifies its quantity listener and clears the depleted slot. Preserve settled-state notifications and subscribing-script behavior.

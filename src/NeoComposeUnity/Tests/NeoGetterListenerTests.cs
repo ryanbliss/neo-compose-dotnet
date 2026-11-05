@@ -593,8 +593,9 @@ namespace NeoCompose.Tests
             AssertEmpty(reopened);
         }
 
-        [Test]
-        public void NewSubscriptionObservesAnEffectInTheSameBoundary()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void NewSubscriptionObservesAnEffectInTheSameBoundary(bool withDeparture)
         {
             using Fixture fixture = Build(data =>
             {
@@ -603,10 +604,29 @@ namespace NeoCompose.Tests
                 consume.Effect = NeoEffectKind.Auto;
                 data.members[consume.id] = consume;
                 data.classes["class-watcher"].schema["Consume"] = consume.id;
+                if (withDeparture)
+                {
+                    var unload = ScriptFunction("member-unload", "OnUnload");
+                    data.members[unload.id] = unload;
+                    data.classes["class-watcher"].schema["OnUnload"] = unload.id;
+                    data.classes["class-watcher"].implementsInterfaceIds = new List<string>
+                    {
+                        "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb"
+                    };
+                }
             });
+            fixture.client.SetWritableValues(NeoValueOwnership.Save, new MemberValue[] { Number("temporary-row", 0) });
             fixture.client.StartScriptRuntime();
             fixture.client.RunTransaction(() =>
             {
+                if (withDeparture)
+                {
+                    // An unrelated removed row remains available to lifecycle hooks
+                    // until this transaction's effects finish draining.
+                    var removal = new NeoWritePlan(fixture.client);
+                    removal.Remove(NeoValueOwnership.Save, "temporary-row");
+                    removal.Commit();
+                }
                 fixture.Subscribe("member-value");
                 fixture.WriteLeft(5);
                 fixture.Write("watcher-right", "member-right", 1);
