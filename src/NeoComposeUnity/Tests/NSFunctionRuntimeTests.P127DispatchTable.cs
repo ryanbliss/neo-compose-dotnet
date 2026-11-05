@@ -38,13 +38,48 @@ namespace NeoCompose.Tests
                 ("HolderUnrelated", "ambiguous", ""), ("HolderCross", "LA-body", "D1"),
                 ("HolderCrossR", "LA-body", "D1"), ("HolderCrossN", "ambiguous", ""),
                 ("HolderThree", "A-body", "D11"), ("HolderInvariant", "ambiguous", ""),
-                ("HolderExactCastD1", "A-body", "D1")
+                ("HolderExactCastD1", "A-body", "D1"),
+                // Internal fallback coverage. C# rejects a concrete class with
+                // this unimplemented exact abstract slot (CS0535).
+                ("AbstractExactThenVariant", "K-body", "D1"),
+                ("MapOrder", "Q-body", "D1"), ("MapOrderReverse", "K-body", "D2"),
+                ("MapOrderClass", "Q-body", "D1"),
+                ("RelistIntermediate", "middle-public", ""), ("UnlistedIntermediate", "base-1", ""),
+                ("RelistTwoIntermediates", "middle-public", ""), ("RelistTwice", "middle-public", ""),
+                ("RelistIntermediateLists", "middle-public", ""), ("RelistBeforeIntermediate", "middle-public", ""),
+                ("RelistVirtual", "override-public", ""), ("RelistOverrideBelow", "override-public", ""),
+                ("RelistOwnOverride", "receiver-public", ""),
+                ("RelistExactBeforeVariant", "middle-public", ""), ("RelistViaSubinterface", "middle-public", ""),
+                ("RelistVariant", "middle-public", ""), ("RelistNewExact", "middle-public", ""),
+                ("RelistNewVariant", "middle-public", ""), ("RelistPublicBase", "middle-public", ""),
+                ("KeepPublicLister", "receiver-2", ""), ("KeepOverrideLister", "receiver-2", ""),
+                ("KeepInheritedVirtual", "receiver-2", ""),
+                ("RelistAccessorSplit", "middle-public", ""),
+                ("RelistFitClosed", "middle-public", ""), ("RelistFitOpen", "base-1", ""),
+                ("RelistFitWrong", "base-1", ""),
+                ("RelistMergeBetween", "middle-public", ""), ("RelistMergeVirtualBetween", "middle-public", ""),
+                ("RelistMergeBetweenDistinct", "middle-public", ""),
+                ("RelistMergeOverride", "merge-5", ""), ("RelistMergeDoubleOverride", "merge-5", ""),
+                ("RelistMergeOverrideDistinct", "override-public", ""),
+                ("RelistMergeAboveLister", "merge-5", ""),
+                ("ArgumentInterfaceOut", "receiver-2", ""), ("ArgumentInterfaceIn", "receiver-2", ""),
+                ("ArgumentClassToInterfaceOut", "receiver-2", ""), ("ArgumentClassToInterfaceIn", "receiver-2", ""),
+                ("RelistAccessorOverrideGet", "receiver-2", ""), ("RelistAccessorOverrideGetWireDefault", "receiver-2", ""), ("RelistAccessorOverrideSet", "middle-public", "")
             };
             foreach (var row in rows)
                 foreach (string operation in new[] { "get", "call", "generic", "set", "static" })
                 {
-                    string form = operation == "static" && row.Shape.StartsWith("Holder", StringComparison.Ordinal) ? "static-call" : operation;
-                    yield return new TestCaseData(row.Shape, form, row.Body, row.Frame)
+                    if (row.Shape.StartsWith("RelistAccessorOverride", StringComparison.Ordinal) && operation is not ("get" or "set"))
+                        continue;
+                    string form = operation == "static" && (row.Shape.StartsWith("Holder", StringComparison.Ordinal) || row.Shape.Contains("Relist") || row.Shape.StartsWith("Keep", StringComparison.Ordinal) || row.Shape.StartsWith("MapOrder", StringComparison.Ordinal) || row.Shape == "UnlistedIntermediate") ? "static-call" : operation;
+                    string body = operation == "set" && row.Shape is "RelistAccessorOverrideGet" or "RelistAccessorOverrideGetWireDefault" ? "middle-public"
+                        : operation == "set" && row.Shape == "RelistAccessorOverrideSet" ? "receiver-2"
+                        : operation == "static" && row.Shape == "KeepOverrideLister" ? "override-public"
+                        : operation == "static" && row.Shape == "KeepInheritedVirtual" ? "middle-public"
+                        : operation == "static" && row.Shape == "RelistMergeOverrideDistinct" ? "base-public"
+                        : operation == "set" && row.Shape == "RelistAccessorSplit" ? "base-1"
+                        : operation == "static" && row.Shape is "RelistMergeBetween" or "RelistMergeVirtualBetween" ? "merge-7" : row.Body;
+                    yield return new TestCaseData(row.Shape, form, body, row.Frame)
                         .SetName($"P127Interface_DefaultWalk_{row.Shape}_{form}");
                 }
         }
@@ -58,7 +93,8 @@ namespace NeoCompose.Tests
             var records = new List<NeoCompose.Runtime.Json.Member>();
             var classes = new Dictionary<string, NeoSchemaClass>();
             var interfaces = new Dictionary<string, Interface>();
-            TypeBinding Type(string id) => TestTypeBindings.Class(id);
+            TypeBinding Type(string id) => id.StartsWith("Tag", StringComparison.Ordinal)
+                ? TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: id)) : TestTypeBindings.Class(id);
             TypeBinding Param(string id, string name = "T") => TestTypeBindings.Open(id, id + "-" + name);
             InterfaceConstruction Listing(string id, TypeBinding argument) => new()
             {
@@ -132,7 +168,7 @@ namespace NeoCompose.Tests
             Interface("I", 4);
             Interface("K", 6, "I");
             Interface("L", 7, shape is "Nested" or "NestedBelow" or "ContraNested" or "ExactNested" ? "K" : "I");
-            Interface("Q", 9, "I");
+            Interface("Q", 8, "I");
             Interface("Z", 8, "K", "L");
             Interface("A", 6, "I");
             interfaces["A"].genericParams!.Add(new()
@@ -174,6 +210,14 @@ namespace NeoCompose.Tests
                     arguments = Listing("I", Type(argument)).arguments
                 };
                 classes[owner].schema[body.id] = body.id;
+            }
+            void Public(string owner, bool virtualMember = false, string? overridden = null)
+            {
+                var body = Body(owner + "-public", owner == "override" ? 7 : 5);
+                body.Access = NeoMemberAccessKind.Public;
+                body.Modifier = isStatic ? NeoMemberModifierKind.Static : virtualMember ? NeoMemberModifierKind.Virtual : NeoMemberModifierKind.Sealed;
+                body.extendsMemberId = isStatic ? null : overridden;
+                classes[owner].schema["V"] = body.id;
             }
             Class("Top");
             Class("Ba", "Top");
@@ -340,6 +384,252 @@ namespace NeoCompose.Tests
                     if (shape == "HolderExactCastD1")
                         view = "D1";
                     break;
+                case "ArgumentInterfaceOut":
+                case "ArgumentInterfaceIn":
+                case "ArgumentClassToInterfaceOut":
+                case "ArgumentClassToInterfaceIn":
+                    interfaces["TagBase"] = new Interface { id = "TagBase", name = "TagBase", projectId = ProjectId, members = new() };
+                    interfaces["TagDerived"] = new Interface { id = "TagDerived", name = "TagDerived", projectId = ProjectId, members = new(), extendsInterfaces = new() { new() { interfaceId = "TagBase" } } };
+                    var implementing = Class("Implementing");
+                    implementing.implementsInterfaces = new() { new() { interfaceId = "TagDerived" } };
+                    bool argumentIn = shape.EndsWith("In", StringComparison.Ordinal);
+                    interfaces["I"].genericParams![0].variance = argumentIn ? NeoGenericParamVarianceKind.In : NeoGenericParamVarianceKind.Out;
+                    string descendant = shape.Contains("ClassToInterface") ? "Implementing" : "TagDerived";
+                    view = argumentIn ? descendant : "TagBase";
+                    string listedArgument = argumentIn ? "TagBase" : descendant;
+                    Add(r, "I", listedArgument);
+                    Explicit("receiver", listedArgument, 2);
+                    break;
+                case "MapOrder":
+                case "MapOrderReverse":
+                case "MapOrderClass":
+                    Class("Other");
+                    var ordered = new List<InterfaceConstruction> { Listing("K", Type("Other")) };
+                    ordered.Add(Listing(shape == "MapOrderReverse" ? "K" : "Q", Type(shape == "MapOrderReverse" ? "D2" : "D1")));
+                    ordered.Add(Listing(shape == "MapOrderReverse" ? "Q" : "K", Type(shape == "MapOrderReverse" ? "D1" : "D2")));
+                    if (shape == "MapOrderClass")
+                        r.AddRange(ordered);
+                    else
+                    {
+                        interfaces["Order"] = new Interface { id = "Order", name = "Order", projectId = ProjectId, members = new(), extendsInterfaces = ordered };
+                        r.Add(new InterfaceConstruction { interfaceId = "Order" });
+                    }
+                    break;
+                case "RelistFitClosed":
+                case "RelistFitOpen":
+                case "RelistFitWrong":
+                    var typeContract = interfaces["I"].members["V"];
+                    var genericReturn = new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerInterfaceId = "I", genericParamId = "I-T" };
+                    if (function)
+                        typeContract.returnTypeInfo = genericReturn;
+                    else
+                        typeContract.typeInfo = genericReturn;
+                    Add(b, "I", "Ba");
+                    Explicit("base", "Ba", 1);
+                    if (function)
+                        ((NSFunctionMember)records.Find(member => member.id == "base-1")!).returnTypeInfo = NeoTypeBindings.ToTypeInfo(Type("Ba"));
+                    else
+                        ((NSPropertyMember)records.Find(member => member.id == "base-1")!).returnTypeInfo = NeoTypeBindings.ToTypeInfo(Type("Ba"));
+                    var genericMiddle = Class("middle", "base");
+                    genericMiddle.genericParams = new() { new() { id = "middle-T", name = "T" } };
+                    Public("middle");
+                    var middleReturn = new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerClassId = "middle", genericParamId = "middle-T" };
+                    if (function)
+                        ((NSFunctionMember)records.Find(member => member.id == "middle-public")!).returnTypeInfo = middleReturn;
+                    else
+                        ((NSPropertyMember)records.Find(member => member.id == "middle-public")!).returnTypeInfo = middleReturn;
+                    receiver.extendsClassId = "middle";
+                    if (shape == "RelistFitOpen")
+                        receiver.genericParams = new() { new() { id = "receiver-T", name = "T" } };
+                    receiver.extendsGenericBindings = new()
+                    {
+                        ["middle-T"] = shape == "RelistFitOpen" ? Param("receiver") : Type(shape == "RelistFitWrong" ? "D1" : "Ba")
+                    };
+                    Add(r, "I", "Ba");
+                    break;
+                case "RelistMergeBetween":
+                case "RelistMergeVirtualBetween":
+                case "RelistMergeBetweenDistinct":
+                case "RelistMergeOverride":
+                case "RelistMergeDoubleOverride":
+                case "RelistMergeOverrideDistinct":
+                case "RelistMergeAboveLister":
+                    interfaces["I"].genericParams![0].variance = null;
+                    void MakeGeneric(NeoSchemaClass owner, bool mergeParent = false)
+                    {
+                        owner.genericParams = new() { new() { id = owner.id + "-T", name = "T" }, new() { id = owner.id + "-U", name = "U" } };
+                        if (owner.extendsClassId is string parent)
+                            owner.extendsGenericBindings = new()
+                            {
+                                [parent + "-T"] = Param(owner.id),
+                                [parent + "-U"] = Param(owner.id, mergeParent ? "T" : "U")
+                            };
+                    }
+                    void GenericExplicit(string owner, string param, int value)
+                    {
+                        Explicit(owner, "Ba", value);
+                        records.Find(member => member.id == owner + "-" + value)!.explicitImplementation!.arguments = Listing("I", Param(owner, param)).arguments;
+                    }
+                    MakeGeneric(classes["base"]);
+                    bool between = shape.Contains("Between");
+                    bool above = shape == "RelistMergeAboveLister";
+                    if (!above)
+                        b.Add(Listing("I", Param("base")));
+                    if (between)
+                        GenericExplicit("base", "T", 1);
+                    else
+                        Public("base", !isStatic);
+                    string mergeParent = "base";
+                    if (between || above)
+                    {
+                        var publicMiddle = Class("middle", "base");
+                        MakeGeneric(publicMiddle);
+                        if (between)
+                            Public("middle", shape == "RelistMergeVirtualBetween");
+                        var lister = Class("lister", "middle");
+                        MakeGeneric(lister);
+                        lister.implementsInterfaces!.Add(Listing("I", Param("lister")));
+                        mergeParent = "lister";
+                    }
+                    var merged = Class("merge", mergeParent);
+                    MakeGeneric(merged, !between);
+                    merged.implementsInterfaces!.Add(Listing("I", Param("merge", "U")));
+                    GenericExplicit("merge", "U", between ? 7 : 5);
+                    receiver.extendsClassId = "merge";
+                    if (!between && !above)
+                    {
+                        var overridden = Class("override", "merge");
+                        MakeGeneric(overridden);
+                        Public("override", overridden: "base-public");
+                        receiver.extendsClassId = "override";
+                        // Static members have no override chain; the static pin
+                        // is XS, with no intermediate declaration.
+                        if (isStatic)
+                            overridden.schema.Clear();
+                        if (shape == "RelistMergeDoubleOverride")
+                        {
+                            var secondOverride = Class("second", "override");
+                            MakeGeneric(secondOverride);
+                            if (!isStatic)
+                                Public("second", overridden: "override-public");
+                            receiver.extendsClassId = "second";
+                        }
+                    }
+                    MakeGeneric(receiver);
+                    r.Add(Listing("I", Param("receiver")));
+                    break;
+                case "RelistAccessorOverrideGetWireDefault":
+                case "RelistAccessorOverrideGet":
+                case "RelistAccessorOverrideSet":
+                    Add(b, "I", "Ba");
+                    Explicit("base", "Ba", 1);
+                    Class("middle", "base");
+                    Public("middle", true);
+                    var bothAccessors = (NSPropertyMember)records.Find(member => member.id == "middle-public")!;
+                    bothAccessors.Accessors = NeoPropertyAccessorsKind.GetSet;
+                    bothAccessors.setterCode = "compiled setter";
+                    bothAccessors.setter = Action(new PrimitiveTypeInfo { type = MemberKind.Null, required = true }, Array.Empty<FunctionArgumentTypeInfo>());
+                    Class("override", "middle", Listing("I", Type("Ba")));
+                    Public("override", overridden: "middle-public");
+                    var splitOverride = (NSPropertyMember)records.Find(member => member.id == "override-public")!;
+                    splitOverride.Accessors = shape != "RelistAccessorOverrideSet" ? NeoPropertyAccessorsKind.Get : NeoPropertyAccessorsKind.Set;
+                    if (shape == "RelistAccessorOverrideSet")
+                        splitOverride.getter = null!;
+                    else
+                        splitOverride.setter = null;
+                    if (shape == "RelistAccessorOverrideGetWireDefault")
+                        splitOverride.DeclaredAccessors = null; // Wire-default Get; materialized setterCode belongs to the base.
+                    receiver.extendsClassId = "override";
+                    Add(r, "I", "Ba");
+                    Add(r, "I", "D1");
+                    Explicit("receiver", "D1", 2);
+                    break;
+                case "RelistAccessorSplit":
+                case "RelistIntermediate":
+                case "UnlistedIntermediate":
+                case "RelistTwoIntermediates":
+                case "RelistTwice":
+                case "RelistIntermediateLists":
+                case "RelistBeforeIntermediate":
+                case "RelistVirtual":
+                case "RelistOverrideBelow":
+                case "RelistOwnOverride":
+                case "RelistExactBeforeVariant":
+                case "RelistViaSubinterface":
+                case "RelistVariant":
+                case "RelistNewExact":
+                case "RelistNewVariant":
+                case "RelistPublicBase":
+                case "KeepPublicLister":
+                case "KeepOverrideLister":
+                case "KeepInheritedVirtual":
+                    string relistedBaseArgument = shape is "RelistVariant" or "RelistNewExact" or "RelistNewVariant" ? "D1" : "Ba";
+                    Add(b, "I", relistedBaseArgument);
+                    Explicit("base", relistedBaseArgument, 1);
+                    var mid = Class("middle", "base");
+                    receiver.extendsClassId = "middle";
+                    bool virtualPublic = shape is "RelistVirtual" or "RelistOverrideBelow" or "RelistOwnOverride" or "KeepOverrideLister" or "KeepInheritedVirtual";
+                    Public("middle", virtualPublic);
+                    if (shape == "RelistAccessorSplit" && operation == "set")
+                    {
+                        var getterOnly = (NSPropertyMember)records.Find(member => member.id == "middle-public")!;
+                        getterOnly.Accessors = NeoPropertyAccessorsKind.Get;
+                        getterOnly.setter = null;
+                    }
+                    if (shape == "RelistPublicBase")
+                    {
+                        classes["base"].schema.Clear();
+                        Public("base");
+                    }
+                    if (shape == "KeepInheritedVirtual")
+                    {
+                        classes["base"].schema.Clear();
+                        Public("base", true);
+                        if (!isStatic)
+                            records.Find(member => member.id == "middle-public")!.extendsMemberId = "base-public";
+                    }
+                    if (shape is "RelistIntermediateLists" or "KeepPublicLister" or "KeepOverrideLister")
+                        Add(mid.implementsInterfaces!, "I", "Ba");
+                    if (shape == "RelistBeforeIntermediate")
+                    {
+                        Class("before", "base", Listing("I", Type("Ba")));
+                        mid.extendsClassId = "before";
+                    }
+                    if (shape is "RelistTwoIntermediates" or "RelistTwice")
+                    {
+                        var interveningClass = Class("between", "middle");
+                        receiver.extendsClassId = "between";
+                        if (shape == "RelistTwice")
+                            Add(interveningClass.implementsInterfaces!, "I", "Ba");
+                    }
+                    if (shape is "RelistVirtual" or "RelistOverrideBelow" or "KeepOverrideLister")
+                    {
+                        Class("override", "middle");
+                        receiver.extendsClassId = "override";
+                        Public("override", overridden: "middle-public");
+                        if (shape == "RelistOverrideBelow")
+                        {
+                            Add(mid.implementsInterfaces!, "I", "Ba");
+                        }
+                    }
+                    if (shape == "RelistOwnOverride")
+                        Public("receiver", overridden: "middle-public");
+                    if (shape != "UnlistedIntermediate")
+                        Add(r, shape == "RelistViaSubinterface" ? "K" : "I", shape is "RelistVariant" or "RelistNewVariant" ? "D2" : "Ba");
+                    if (shape == "RelistVariant")
+                        r[0] = Listing("I", Type("D1"));
+                    if (shape is "RelistExactBeforeVariant" or "KeepPublicLister" or "KeepOverrideLister" or "KeepInheritedVirtual")
+                    {
+                        Add(r, "I", "D1");
+                        Explicit("receiver", "D1", 2);
+                    }
+                    break;
+                case "AbstractExactThenVariant":
+                    Add(r, "I", "Ba");
+                    Add(r, "K", "D1");
+                    interfaces["I"].members["V"].implementationMemberId = null;
+                    interfaces["I"].members["V"].DeclaredModifier = NeoMemberModifierKind.Abstract;
+                    break;
                 case "ExactAmbiguity":
                     Add(r, "K", "Ba");
                     Add(r, "L", "Ba");
@@ -351,15 +641,38 @@ namespace NeoCompose.Tests
                 default:
                     throw new ArgumentOutOfRangeException(nameof(shape));
             }
+            foreach (var record in records)
+                if (record is NSFunctionMember declaredFunction && declaredFunction.returnTypeInfo is not null)
+                    declaredFunction.action!.typeInfo = declaredFunction.returnTypeInfo;
+            foreach (var record in records)
+                if (record.extendsMemberId is not null)
+                {
+                    if (record is NSFunctionMember inheritedFunction)
+                    {
+                        inheritedFunction.returnTypeInfo = null!;
+                        inheritedFunction.argumentTypes = null!;
+                        inheritedFunction.DeclaredDispatch = null;
+                        inheritedFunction.genericParams = null;
+                    }
+                    else if (record is NSPropertyMember inheritedProperty)
+                        inheritedProperty.returnTypeInfo = null!;
+                }
             var row = ObjectValue("receiver-value", receiver.id);
             if (receiver.genericParams is not null)
             {
                 row.genericBindings = new();
                 foreach (var parameter in receiver.genericParams)
-                    row.genericBindings[parameter.id] = Type(shape == "HolderExactCastD1" && parameter.name == "T" ? "D1" : "Ba");
+                    row.genericBindings[parameter.id] = Type((shape == "HolderExactCastD1" && parameter.name == "T") || (shape.EndsWith("Distinct", StringComparison.Ordinal) && parameter.name == "U") ? "D1" : "Ba");
             }
             var receiverType = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: receiver.id), row.genericBindings);
             using var client = BuildClient(records.ToArray(), receiver, new List<NeoSchemaClass>(classes.Values).ToArray(), new[] { row }, interfaces);
+            if (shape == "RelistAccessorOverrideGetWireDefault")
+            {
+                var loaded = (NSPropertyMember)client.ProjectDataForRuntime.members["override-public"];
+                Assert.That(loaded.DeclaredAccessors, Is.Null);
+                Assert.That(loaded.setterCode, Is.Not.Null, "The loader materializes the base's setter body.");
+                Assert.That(loaded.DeclaresWireField("setterCode"), Is.False);
+            }
             var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "I"), Listing("I", Type(view)).arguments);
             string accessor = function ? "call" : operation == "set" ? "set" : "get";
             foreach (var dispatch in new[] { NeoInterfaceDispatch.Of(client), NeoInterfaceDispatch.ForSchemaValidation(client) })
