@@ -17,7 +17,7 @@ using G = NeoCompose.Tests.P127InterfacesParity;
 namespace NeoCompose.Tests
 {
     /// <summary>The SDK consumer of the B3 source/export parity pair.</summary>
-    public class P127InterfacesParityTests
+    public partial class P127InterfacesParityTests
     {
         private const string Root = "Packages/com.ryanbliss.neocompose/Tests/";
         private const string Export = Root + "p127-interfaces-parity-export.json";

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McImpB : NeoGeneratedClassValue, IReadOnlyMcImpB
     {
         internal McImpB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4a1f1cf5-45df-465e-833d-d73df8a7e55e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5bb59508-7fdf-46bb-9a55-08d027573b37", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4a1f1cf5-45df-465e-833d-d73df8a7e55e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5bb59508-7fdf-46bb-9a55-08d027573b37");
         }
 
         internal static McImpB Create(NeoClient client, NeoMemberClass node)
@@ -102,13 +102,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         public int Set(int v)
         {
-            var result = InvokeFunction("Set#5b7d92ad-f7bc-4cea-9c0d-f4645c054c39", (object?)(v));
+            var result = InvokeFunction("Set#9779ac7c-e1fa-40cb-968e-1c1fab1b692f", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(string v)
         {
-            var result = InvokeFunction("Set#66183926-5a23-4869-9506-556ee39f7573", (object?)(v));
+            var result = InvokeFunction("Set#1f451b02-3520-40f2-a885-56c749bc64cd", (object?)(v));
             return Convert.ToInt32(result);
         }
 
