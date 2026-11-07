@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R24BG0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3621d766-5355-4485-b644-45a6a6c10bd7", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a6459bcc-ecd8-4a26-a47f-23e11732b7c8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,16 +39,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "195032b1-4cff-40b7-adcf-74a59ad06e88" => (R24BG0<T>)(object)new R24BM2c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "25853944-5a3e-467d-8bfe-7e98d37962e6" => (R24BG0<T>)(object)new R24BGB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "26de61d0-0391-4711-bef4-4aa1667d5d76" => (R24BG0<T>)(object)new R24BN1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "28601330-fbbb-4059-89a1-88a5331c8763" => (R24BG0<T>)(object)new R24BM2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "67de97e5-8423-4465-b2ac-5f097f24196f" => (R24BG0<T>)(object)new R24BM1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "6c4ce196-ef50-4cd0-9a5e-baa7a4ff9e9e" => (R24BG0<T>)(object)new R24BM5c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "b25d68c2-6377-43c5-9dc8-07d38bd4cfac" => (R24BG0<T>)(object)new R24BM5(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "b2f49df3-f421-43f4-9206-5bc3ed4996e7" => (R24BG0<T>)(object)new R24BM8(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "db441ed3-eebc-4b36-887e-e0b8de2d2d4c" => (R24BG0<T>)(object)new R24BG1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "3621d766-5355-4485-b644-45a6a6c10bd7" => new R24BG0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0fc58540-70cc-48da-bfbb-5cc2ea9853ea" => (R24BG0<T>)(object)new R24BG1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "292e7814-03db-412c-acbc-f40580592732" => (R24BG0<T>)(object)new R24BN1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "446c22b7-e710-45a5-b250-0d7b0b25b0f2" => (R24BG0<T>)(object)new R24BM1(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "57a267df-6529-465a-acd4-11191a551146" => (R24BG0<T>)(object)new R24BM8(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5fc7f38a-49e9-434a-8604-b8a19d3a1c79" => (R24BG0<T>)(object)new R24BM2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "600cb74a-95f8-4a8d-a980-b176fa878730" => (R24BG0<T>)(object)new R24BM5(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a854fbd0-b731-460f-b7e9-439270653fed" => (R24BG0<T>)(object)new R24BM2c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d1072770-eb15-403c-8b1e-20f1d4d7f3bd" => (R24BG0<T>)(object)new R24BGB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e0969e07-6567-48ed-8308-104d71dd36e1" => (R24BG0<T>)(object)new R24BM5c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a6459bcc-ecd8-4a26-a47f-23e11732b7c8" => new R24BG0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24BG0' without a concrete client type id."),
                 };
             });
@@ -61,16 +61,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "195032b1-4cff-40b7-adcf-74a59ad06e88" => (R24BG0<T>)(object)new R24BM2c(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "25853944-5a3e-467d-8bfe-7e98d37962e6" => (R24BG0<T>)(object)new R24BGB(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "26de61d0-0391-4711-bef4-4aa1667d5d76" => (R24BG0<T>)(object)new R24BN1(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "28601330-fbbb-4059-89a1-88a5331c8763" => (R24BG0<T>)(object)new R24BM2(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "67de97e5-8423-4465-b2ac-5f097f24196f" => (R24BG0<T>)(object)new R24BM1(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "6c4ce196-ef50-4cd0-9a5e-baa7a4ff9e9e" => (R24BG0<T>)(object)new R24BM5c(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "b25d68c2-6377-43c5-9dc8-07d38bd4cfac" => (R24BG0<T>)(object)new R24BM5(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "b2f49df3-f421-43f4-9206-5bc3ed4996e7" => (R24BG0<T>)(object)new R24BM8(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "db441ed3-eebc-4b36-887e-e0b8de2d2d4c" => (R24BG0<T>)(object)new R24BG1(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "3621d766-5355-4485-b644-45a6a6c10bd7" => new R24BG0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0fc58540-70cc-48da-bfbb-5cc2ea9853ea" => (R24BG0<T>)(object)new R24BG1(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "292e7814-03db-412c-acbc-f40580592732" => (R24BG0<T>)(object)new R24BN1(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "446c22b7-e710-45a5-b250-0d7b0b25b0f2" => (R24BG0<T>)(object)new R24BM1(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "57a267df-6529-465a-acd4-11191a551146" => (R24BG0<T>)(object)new R24BM8(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5fc7f38a-49e9-434a-8604-b8a19d3a1c79" => (R24BG0<T>)(object)new R24BM2(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "600cb74a-95f8-4a8d-a980-b176fa878730" => (R24BG0<T>)(object)new R24BM5(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a854fbd0-b731-460f-b7e9-439270653fed" => (R24BG0<T>)(object)new R24BM2c(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d1072770-eb15-403c-8b1e-20f1d4d7f3bd" => (R24BG0<T>)(object)new R24BGB(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e0969e07-6567-48ed-8308-104d71dd36e1" => (R24BG0<T>)(object)new R24BM5c(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a6459bcc-ecd8-4a26-a47f-23e11732b7c8" => new R24BG0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24BG0' without a concrete client type id."),
                 };
             });
@@ -100,7 +100,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#596e3270-4e63-4084-8bf7-09ae9faad68a");
+                var result = ComputeProperty("V#220ec746-858f-4073-b872-54891ee3b98d");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

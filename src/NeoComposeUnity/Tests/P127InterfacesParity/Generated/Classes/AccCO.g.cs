@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class AccCO : NeoGeneratedClassValue, IReadOnlyAccCO
     {
         internal AccCO(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "164d55f8-1875-4fb2-86ac-4c531c4ed2ac", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b40576ba-1607-4832-bc23-5da8ec14e1dc", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "164d55f8-1875-4fb2-86ac-4c531c4ed2ac");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b40576ba-1607-4832-bc23-5da8ec14e1dc");
         }
 
         internal static AccCO Create(NeoClient client, NeoMemberClass node)
