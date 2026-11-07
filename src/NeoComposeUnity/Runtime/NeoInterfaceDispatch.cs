@@ -16,6 +16,7 @@ namespace NeoCompose.Runtime
 #if UNITY_EDITOR
         // Actual-operation counters for cold-query regression tests. No player cost.
         internal long TestConversions, TestGraphPops, TestGraphEdges;
+        internal long TestDefaultOwnerVisits, TestDefaultMemberVisits, TestDefaultCandidateVisits, TestResolveCalls;
         internal long TestIndexPops, TestIndexEdges, TestGlobalNodes, TestGlobalEdges;
 #endif
         private static readonly ConditionalWeakTable<NeoClient, NeoInterfaceDispatch> Caches = new();
@@ -40,7 +41,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<TypeBinding, List<TypeBinding>> classes = new();
         private readonly Dictionary<TypeBinding, IReadOnlyDictionary<string, NeoGenericEnvEntry>> environments = new();
         private readonly Dictionary<(string, string, string), Member> accessors = new();
-        private readonly Dictionary<(TypeBinding, TypeBinding, string, string, bool), Implementation> mappings = new();
+        private readonly Dictionary<(TypeBinding, TypeBinding, string, string, bool), (Implementation? Answer, string? Ambiguity)> mappings = new();
         private readonly Dictionary<(string, string), (string Name, InterfaceMember Member)> declarations = new();
         private readonly HashSet<string> indexedInterfaces = new();
         private readonly Dictionary<string, Dictionary<string, List<Member>>> explicitByClass = new();
@@ -386,11 +387,33 @@ namespace NeoCompose.Runtime
 
         internal Implementation Resolve(TypeBinding receiver, TypeBinding requested, string memberId, string accessor, bool direct = false)
         {
+#if UNITY_EDITOR
+            TestResolveCalls++;
+#endif
             receiver = DispatchIdentity(receiver);
             requested = DispatchIdentity(requested);
             var key = (receiver, requested, memberId, accessor, direct);
             if (mappings.TryGetValue(key, out var cached))
-                return cached;
+            {
+                if (cached.Ambiguity is string message)
+                    throw new NeoAmbiguousImplementationError(message);
+                return cached.Answer!;
+            }
+            try
+            {
+                var answer = ResolveUncached(receiver, requested, memberId, accessor, direct);
+                mappings[key] = (answer, null);
+                return answer;
+            }
+            catch (NeoAmbiguousImplementationError error)
+            {
+                mappings[key] = (null, error.Message);
+                throw;
+            }
+        }
+
+        private Implementation ResolveUncached(TypeBinding receiver, TypeBinding requested, string memberId, string accessor, bool direct)
+        {
             var declaration = Declaration(requested, memberId);
             var contract = declaration.Member;
             if (NeoPrimitiveConformance.Kind(receiver) is { } primitiveKind)
@@ -398,48 +421,45 @@ namespace NeoCompose.Runtime
                 if (!PrimitiveConforms(receiver, requested))
                     throw new NeoScriptPreExecutionValidationError($"Primitive '{NeoTypeNames.Of(receiver)}' has no intrinsic for interface member '{memberId}'.");
                 string intrinsic = NeoPrimitiveIntrinsics.Resolve(primitiveKind, requested.Head!.InterfaceId!, declaration.Name);
-                return mappings[key] = intrinsic == "default" ? Body(contract, requested)
+                return intrinsic == "default" ? Body(contract, requested)
                     : new Implementation(memberId, primitiveMember: intrinsic, primitiveType: receiver);
             }
             if (direct || contract.Access == NeoMemberAccessKind.Private || contract.DeclaredModifier == NeoMemberModifierKind.Sealed
                 || accessor == "get" && contract.GetterAccess == NeoMemberAccessKind.Private
                 || accessor == "set" && contract.SetterAccess == NeoMemberAccessKind.Private)
-                return mappings[key] = Body(contract, requested);
+                return Body(contract, requested);
             if (receiver.Head!.Type == MemberKind.Class)
             {
                 var mapped = ListedImplementer(receiver, requested, memberId, declaration.Name, contract, accessor);
                 if (mapped is not null)
-                    return mappings[key] = DispatchVirtual(receiver, mapped, accessor);
+                    return DispatchVirtual(receiver, mapped, accessor);
             }
-            return mappings[key] = DefaultImplementation(receiver, requested, memberId, declaration.Name, contract, accessor);
+            return DefaultImplementation(receiver, requested, memberId, declaration.Name, accessor);
         }
 
         // CoreCLR's two default passes: exact constructed targets first; only
         // then variance, in the interface-map order added by each class level.
         private Implementation DefaultImplementation(TypeBinding receiver, TypeBinding requested, string memberId,
-            string name, InterfaceMember contract, string accessor)
+            string name, string accessor)
         {
-            var levels = DefaultLevels(receiver);
+            var entries = DefaultCandidates(receiver, memberId);
             // CoreCLR tries exact defaults, then variance whenever that pass
             // supplies no body. Holding an abstract exact slot is not a stop.
             for (int pass = 0; pass < 2; pass++)
             {
                 bool exact = pass == 0;
                 var candidates = new List<(TypeBinding Owner, InterfaceMember Member)>();
-                foreach (var level in levels)
-                    foreach (var owner in level)
-                    {
-                        if (owner.Head!.InterfaceId == requested.Head!.InterfaceId
-                            && contract.implementationMemberId is not null
-                            && (exact ? owner.Equals(requested) : ConvertsIdentity(owner, requested)))
-                            candidates.Add((owner, contract));
-                        else
-                            foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head.InterfaceId!].members.Values)
-                                if (entry.explicitImplementation is { } site && site.interfaceMemberId == memberId
-                                    && (entry.kind != NeoInterfaceMemberKind.Property || InterfaceHasAccessor(entry, accessor))
-                                    && (exact ? Construct(site, owner).Equals(requested) : ConvertsIdentity(Construct(site, owner), requested)))
-                                    candidates.Add((owner, entry));
-                    }
+                foreach (var entry in entries)
+                {
+#if UNITY_EDITOR
+                    TestDefaultCandidateVisits++;
+#endif
+                    if (entry.IsOverride && entry.Member.kind == NeoInterfaceMemberKind.Property
+                        && !InterfaceHasAccessor(entry.Member, accessor))
+                        continue;
+                    if (exact ? entry.Target.Equals(requested) : ConvertsIdentity(entry.Target, requested))
+                        candidates.Add((entry.Owner, entry.Member));
+                }
                 (TypeBinding Owner, InterfaceMember Member)? winner = null;
                 if (exact)
                 {
@@ -476,6 +496,60 @@ namespace NeoCompose.Runtime
                     return Body(selected.Member, selected.Owner);
             }
             throw Missing(receiver, requested, name);
+        }
+
+        private readonly Dictionary<TypeBinding, Dictionary<string, List<DefaultCandidate>>> defaultsByReceiver = new();
+
+        private readonly struct DefaultCandidate
+        {
+            internal readonly TypeBinding Owner, Target;
+            internal readonly InterfaceMember Member;
+            internal readonly bool IsOverride;
+            internal DefaultCandidate(TypeBinding owner, TypeBinding target, InterfaceMember member, bool isOverride)
+            {
+                Owner = owner;
+                Target = target;
+                Member = member;
+                IsOverride = isOverride;
+            }
+        }
+
+        private IReadOnlyList<DefaultCandidate> DefaultCandidates(TypeBinding receiver, string memberId)
+        {
+            if (!defaultsByReceiver.TryGetValue(receiver, out var byMember))
+            {
+                byMember = new();
+                void Add(string id, DefaultCandidate candidate)
+                {
+                    if (!byMember.TryGetValue(id, out var entries))
+                        byMember[id] = entries = new();
+                    entries.Add(candidate);
+                }
+                // Retain the exact interface-map order from the shared listings.
+                // A member is indexed under its own slot and, for an override,
+                // under the slot it implements. No unrelated owner is revisited
+                // by a subsequent distinct-slot query.
+                foreach (var level in DefaultLevels(receiver))
+                    foreach (var owner in level)
+                    {
+#if UNITY_EDITOR
+                        TestDefaultOwnerVisits++;
+#endif
+                        foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head!.InterfaceId!].members)
+                        {
+#if UNITY_EDITOR
+                            TestDefaultMemberVisits++;
+#endif
+                            var member = entry.Value;
+                            if (member.implementationMemberId is not null)
+                                Add(member.id ?? entry.Key, new DefaultCandidate(owner, owner, member, false));
+                            if (member.explicitImplementation is { } site)
+                                Add(site.interfaceMemberId, new DefaultCandidate(owner, Construct(site, owner), member, true));
+                        }
+                    }
+                defaultsByReceiver[receiver] = byMember;
+            }
+            return byMember.TryGetValue(memberId, out var matches) ? matches : Array.Empty<DefaultCandidate>();
         }
 
         private IReadOnlyList<List<TypeBinding>> DefaultLevels(TypeBinding receiver)

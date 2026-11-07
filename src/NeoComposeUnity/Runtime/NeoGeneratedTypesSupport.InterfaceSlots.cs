@@ -14,9 +14,15 @@ namespace NeoCompose.Runtime
     public static partial class NeoGeneratedTypesSupport
     {
         public static object? InvokeInterfaceSlot(NeoClient client, object? receiver, string slotMemberId,
-            NeoInterfaceBody body, TypeInfo slotConstruction, string? callerMemberId, TypeInfo? callerConstruction,
+            NeoInterfaceBody body, TypeInfo slotConstruction, string callerMemberId, TypeInfo callerConstruction,
             object?[] args, TypeInfo[]? typeArguments = null)
         {
+            if (callerMemberId is null)
+                throw new ArgumentNullException(nameof(callerMemberId));
+            if (callerConstruction is null)
+                throw new ArgumentNullException(nameof(callerConstruction));
+            if (TrustRuntimeInterfaceDispatch)
+                return InvokeInterfaceMember(client, receiver, callerMemberId, body, callerConstruction, args, typeArguments);
             var ctx = client.RentDirectFunctionContext(receiver is NeoGeneratedClassValue generated
                 ? generated.StorageOwnership : NeoValueOwnership.Session, function: body == NeoInterfaceBody.Function);
             object? result = null;
@@ -24,9 +30,7 @@ namespace NeoCompose.Runtime
             {
                 object? target = receiver;
                 var implementation = ResolveInterfaceSlot(client, ref target, slotMemberId, body, slotConstruction,
-                    callerMemberId, callerConstruction, args, ctx, out var contract);
-                if (implementation is null)
-                    return result = InvokeInterfaceMember(client, receiver, callerMemberId!, body, callerConstruction!, args, typeArguments);
+                    args, ctx, out var contract);
                 if (body == NeoInterfaceBody.Get)
                     return result = GeneratedResult(NSGetterEvaluator.ReadImplementation(implementation, target, ctx),
                         NSGetterEvaluator.CloseContextType(contract.typeInfo!, ctx), ctx);
@@ -61,11 +65,17 @@ namespace NeoCompose.Runtime
         }
 
         public static Task<object?> InvokeInterfaceSlotAsync(NeoClient client, object? receiver, string slotMemberId,
-            NeoInterfaceBody body, TypeInfo slotConstruction, string? callerMemberId, TypeInfo? callerConstruction,
+            NeoInterfaceBody body, TypeInfo slotConstruction, string callerMemberId, TypeInfo callerConstruction,
             object?[] args, TypeInfo[]? typeArguments = null)
         {
             try
             {
+                if (callerMemberId is null)
+                    throw new ArgumentNullException(nameof(callerMemberId));
+                if (callerConstruction is null)
+                    throw new ArgumentNullException(nameof(callerConstruction));
+                if (TrustRuntimeInterfaceDispatch)
+                    return InvokeInterfaceMemberAsync(client, receiver, callerMemberId, body, callerConstruction, args, typeArguments);
                 if (body != NeoInterfaceBody.Function)
                     return Task.FromResult(InvokeInterfaceSlot(client, receiver, slotMemberId, body, slotConstruction, callerMemberId, callerConstruction, args, typeArguments));
                 var ctx = client.CreateGetterContext(receiver is NeoGeneratedClassValue generated
@@ -73,9 +83,7 @@ namespace NeoCompose.Runtime
                 ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
                 object? target = receiver;
                 var implementation = ResolveInterfaceSlot(client, ref target, slotMemberId, body, slotConstruction,
-                    callerMemberId, callerConstruction, args, ctx, out _);
-                if (implementation is null)
-                    return InvokeInterfaceMemberAsync(client, receiver, callerMemberId!, body, callerConstruction!, args, typeArguments);
+                    args, ctx, out _);
                 var call = implementation.CallTarget ??= new NSGetterEvaluator.CallSiteTarget(client, null, implementation.MemberId, null);
                 var function = call.function;
                 if (!(function?.Deferred ?? call.nativeFunction?.signature.Dispatch == NeoFunctionDispatchKind.Asynchronous))
@@ -92,15 +100,10 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static NeoInterfaceDispatch.Implementation? ResolveInterfaceSlot(NeoClient client, ref object? receiver,
-            string slotMemberId, NeoInterfaceBody body, TypeInfo slotConstruction, string? callerMemberId, TypeInfo? callerConstruction,
-            object?[] args,
+        private static NeoInterfaceDispatch.Implementation ResolveInterfaceSlot(NeoClient client, ref object? receiver,
+            string slotMemberId, NeoInterfaceBody body, TypeInfo slotConstruction, object?[] args,
             NSGetterEvaluator.Context ctx, out InterfaceMember contract)
         {
-            if (callerMemberId is not null && callerConstruction is null)
-                throw new ArgumentException("InvokeInterfaceSlot needs both the caller member and its construction, or neither; got only callerMemberId.");
-            if (callerMemberId is null && callerConstruction is not null)
-                throw new ArgumentException("InvokeInterfaceSlot needs both the caller member and its construction, or neither; got only callerConstruction.");
             if (receiver is null)
                 throw new ArgumentNullException(nameof(receiver));
             if (receiver is NeoGeneratedClassValue generated && !ReferenceEquals(client, generated.Client))
@@ -146,9 +149,6 @@ namespace NeoCompose.Runtime
             {
                 // Kept separate from execution: an ambiguity in an authored
                 // body is not a failure to resolve this entry's slot.
-                bool exactAmbiguity = EnforcesExactAmbiguity;
-                if (callerMemberId is not null && exactAmbiguity)
-                    return null;
                 throw new AmbiguousImplementationException(error.Message);
             }
             catch (NeoMissingInterfaceImplementationError error)
@@ -157,53 +157,78 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static class ExactAmbiguityProbe
+        private static class RuntimeInterfaceDispatchProbe
         {
-            internal static readonly bool Enforces = ProbeExactAmbiguity();
+            internal static readonly bool Trusted = ProbeRuntimeInterfaceDispatch();
         }
 
-        internal static bool EnforcesExactAmbiguity => ExactAmbiguityProbe.Enforces;
+        // The diamond classifies the runtime, not each individual request.
+        // It does not establish generated-C# parity for every IL2CPP shape.
+        internal static bool TrustRuntimeInterfaceDispatch
+        {
+            get
+            {
 #if UNITY_EDITOR
+                if (TestTrustRuntimeInterfaceDispatch is bool decision)
+                    return decision;
+#endif
+                return RuntimeInterfaceDispatchProbe.Trusted;
+            }
+        }
+#if UNITY_EDITOR
+        [ThreadStatic]
+        internal static bool? TestTrustRuntimeInterfaceDispatch;
         internal static int TestAmbiguityProbeRuns;
 #endif
 
-        private static bool ProbeExactAmbiguity()
+        private static bool ProbeRuntimeInterfaceDispatch()
         {
 #if UNITY_EDITOR
             TestAmbiguityProbeRuns++;
 #endif
+            return ProbeRuntimeInterfaceDispatch(() => ((INeoInterfaceDispatchProbeJ<object>)new NeoInterfaceDispatchProbeC<object, object>()).V);
+        }
+
+        internal static bool ProbeRuntimeInterfaceDispatch(Func<int> probe)
+        {
             try
             {
-                _ = ((INeoAmbiguityProbeJ<object>)new NeoAmbiguityProbeC<object, object>()).V;
+                _ = probe();
                 return false;
             }
             catch (AmbiguousImplementationException)
             {
                 return true;
             }
+            catch (Exception)
+            {
+                // Unsupported runtime behavior must select SDK resolution,
+                // not poison the holder with a TypeInitializationException.
+                return false;
+            }
         }
 
         [Preserve]
-        internal interface INeoAmbiguityProbeJ<T>
+        internal interface INeoInterfaceDispatchProbeJ<out T>
         {
             [Preserve]
             int V => 0;
         }
 
         [Preserve]
-        internal interface INeoAmbiguityProbeA<T, U> : INeoAmbiguityProbeJ<T>
+        internal interface INeoInterfaceDispatchProbeA<out T, U> : INeoInterfaceDispatchProbeJ<T>
         {
             [Preserve]
-            int INeoAmbiguityProbeJ<T>.V => 1;
+            int INeoInterfaceDispatchProbeJ<T>.V => 1;
         }
 
         [Preserve]
-        internal class NeoAmbiguityProbeB<T> : INeoAmbiguityProbeA<T, int>
+        internal class NeoInterfaceDispatchProbeB<T> : INeoInterfaceDispatchProbeA<T, int>
         {
         }
 
         [Preserve]
-        internal class NeoAmbiguityProbeC<T, U> : NeoAmbiguityProbeB<T>, INeoAmbiguityProbeA<U, string>
+        internal class NeoInterfaceDispatchProbeC<T, U> : NeoInterfaceDispatchProbeB<T>, INeoInterfaceDispatchProbeA<U, string>
         {
         }
     }

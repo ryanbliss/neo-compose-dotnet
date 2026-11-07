@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class ProtSelfD : NeoGeneratedClassValue, IReadOnlyProtSelfD
     {
         internal ProtSelfD(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2864e1bb-5c15-41a5-bc2e-e158ed22b7d0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "065b494f-e5c8-42b0-b2c9-342981bae20b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2864e1bb-5c15-41a5-bc2e-e158ed22b7d0");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "065b494f-e5c8-42b0-b2c9-342981bae20b");
         }
 
         internal static ProtSelfD Create(NeoClient client, NeoMemberClass node)

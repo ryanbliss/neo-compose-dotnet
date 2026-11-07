@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "57f5925f-40f1-43ea-9400-c0426cb29224" => new R24VW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2dc10f4f-f833-4956-ae2b-29e9eec4758e" => new R24VW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VW' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "57f5925f-40f1-43ea-9400-c0426cb29224" => new R24VW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2dc10f4f-f833-4956-ae2b-29e9eec4758e" => new R24VW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VW' without a concrete client type id."),
                 };
             });
@@ -71,53 +71,6 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public bool TryWritable(out R24VW<T> writable)
         {
             return TryWritable<R24VW<T>>(out writable);
-        }
-
-        int R24VIPV<R24VIQ<R24VBa>>.P
-        {
-            get
-            {
-                if (typeof(R24VIPV<R24VIQ<R24VBa>>).IsAssignableFrom(typeof(R24VIPV<R24VG<T>>)))
-                {
-                    var result = ComputeProperty("P#1bef9df7-bb90-4261-9f4d-cb3e6d0a27c3");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else
-                {
-                    var result = ComputeProperty("P");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-            }
-            set
-            {
-                var result = writableNode.Get<NeoMemberNSProperty>("P").Set(valueId!, value);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-            }
-        }
-
-        int R24VIPV<R24VG<T>>.P
-        {
-            get
-            {
-                var result = ComputeProperty("P#1bef9df7-bb90-4261-9f4d-cb3e6d0a27c3");
-                result.ThrowIfFailed();
-                return Convert.ToInt32(result.value);
-            }
-            set
-            {
-                if (typeof(R24VIPV<R24VG<T>>).IsAssignableFrom(typeof(R24VIPV<R24VIQ<R24VBa>>)))
-                {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P").Set(valueId!, value);
-                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-                }
-                else
-                {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P#1bef9df7-bb90-4261-9f4d-cb3e6d0a27c3").Set(valueId!, value);
-                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-                }
-            }
         }
 
         public new sealed class Fields
