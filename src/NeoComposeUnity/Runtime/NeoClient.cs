@@ -2822,6 +2822,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            var interfaceDispatch = NeoInterfaceDispatch.ForSchemaValidation(this);
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
                 IList<MergedSchemaEntry> surface =
@@ -2841,7 +2842,7 @@ namespace NeoCompose.Runtime
                     }
                 }
 
-                ValidateReadOnlyInterfaceSetters(schemaClass, surface);
+                ValidateReadOnlyInterfaceSetters(schemaClass, surface, interfaceDispatch);
             }
         }
 
@@ -2858,73 +2859,55 @@ namespace NeoCompose.Runtime
 
         private void ValidateReadOnlyInterfaceSetters(
             NeoSchemaClass schemaClass,
-            IList<MergedSchemaEntry> surface)
+            IList<MergedSchemaEntry> surface,
+            NeoInterfaceDispatch dispatch)
         {
             var readOnlyKeys = new Dictionary<string, Member>();
+            var readOnlySites = new Dictionary<(string, string), Member>();
             foreach (MergedSchemaEntry entry in surface)
             {
                 if (data.members.TryGetValue(entry.memberId, out Member? member)
                     && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     readOnlyKeys[entry.schemaKey] = member;
+                    if (member.explicitImplementation is { } site)
+                        readOnlySites.TryAdd((site.interfaceId, site.interfaceMemberId), member);
                 }
             }
             if (readOnlyKeys.Count == 0)
                 return;
 
-            var visited = new HashSet<string>();
-            foreach (NeoSchemaClass ancestor in ResolveClassInheritanceChain(schemaClass.id))
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: schemaClass.id),
+                schemaClass.genericParams?.ToDictionary(parameter => parameter.id,
+                    parameter => TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: schemaClass.id), parameter.id)));
+            foreach (var construction in dispatch.Closure(receiver))
             {
-                if (ancestor.implementsInterfaces is null)
-                    continue;
-                foreach (InterfaceConstruction construction in ancestor.implementsInterfaces)
-                {
-                    ValidateReadOnlyInterfaceSetters(
-                        schemaClass,
-                        construction.interfaceId,
-                        readOnlyKeys,
-                        visited);
-                }
-            }
-        }
-
-        private void ValidateReadOnlyInterfaceSetters(
-            NeoSchemaClass schemaClass,
-            string interfaceId,
-            IReadOnlyDictionary<string, Member> readOnlyKeys,
-            HashSet<string> visited)
-        {
-            if (!visited.Add(interfaceId)
-                || !data.interfaces.TryGetValue(interfaceId, out Interface? contract))
-            {
-                return;
-            }
-            if (contract.members is not null)
-            {
+                var contract = data.interfaces[construction.Head!.InterfaceId!];
                 foreach (var pair in contract.members)
                 {
-                    if (pair.Value.kind != NeoInterfaceMemberKind.Property
-                        || pair.Value.IsStatic
-                        || !pair.Value.IsSettable
-                        || pair.Value.SetterAccess == NeoMemberAccessKind.Private
-                        || pair.Value.implementationMemberId is not null
-                        || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
-                    {
+                    if (pair.Value.kind != NeoInterfaceMemberKind.Property || pair.Value.IsStatic
+                        || !pair.Value.IsSettable || pair.Value.SetterAccess == NeoMemberAccessKind.Private)
                         continue;
+                    string slot = pair.Value.id ?? pair.Key;
+                    Member? member = readOnlyKeys.GetValueOrDefault(pair.Key)
+                        ?? readOnlySites.GetValueOrDefault((contract.id, slot));
+                    if (member is null)
+                        continue;
+                    Member setter;
+                    try
+                    {
+                        setter = data.members[dispatch.Resolve(receiver, construction, slot, "set").MemberId];
                     }
+                    catch (NeoScript.NSGetterRuntimeError error)
+                    {
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}): {error.Message}", error);
+                    }
+                    if (setter.Mutability != NeoMemberMutabilityKind.ReadOnly)
+                        continue;
                     throw new InvalidOperationException(
-                        $"Read-only member '{member.name}' ({member.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
+                        $"Read-only member '{setter.name}' ({setter.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
                 }
-            }
-            if (contract.extendsInterfaces is null)
-                return;
-            foreach (InterfaceConstruction parent in contract.extendsInterfaces)
-            {
-                ValidateReadOnlyInterfaceSetters(
-                    schemaClass,
-                    parent.interfaceId,
-                    readOnlyKeys,
-                    visited);
             }
         }
 
