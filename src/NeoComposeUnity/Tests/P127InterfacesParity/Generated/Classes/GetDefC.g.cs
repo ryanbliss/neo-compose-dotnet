@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GetDefC : NeoGeneratedClassValue, IReadOnlyGetDefC
     {
         internal GetDefC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "51c0ce70-9b7c-4a25-ae5b-521fb578cdcf", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cf8cb461-9b5f-419b-b3c6-6fcdfb60d372", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,9 +46,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "51c0ce70-9b7c-4a25-ae5b-521fb578cdcf",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "9d1d7067-2849-4aa0-9494-d3508ffeec91", Q),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "9806a416-269e-41f7-94ea-11b622b9c45c", Stored)
+                "cf8cb461-9b5f-419b-b3c6-6fcdfb60d372",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "29933200-998c-4ad8-bcb7-bb648a333f3b", Q),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "c1032211-8c29-4b28-94b8-726b961ec8f8", Stored)
             );
         }
 
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "49694f88-9ad1-45e6-939c-017b2fb0cd0e", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "97175c28-9a32-4215-b9b3-dae7fbb27a5e", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
             set
