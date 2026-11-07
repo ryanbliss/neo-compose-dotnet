@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R24OB0 : NeoGeneratedClassValue, IReadOnlyR24OB0
     {
         internal R24OB0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "49c28c68-fda3-4220-ae15-643a99df8c12", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6759f3ae-e149-4da7-95a8-0e070c439976", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "49c28c68-fda3-4220-ae15-643a99df8c12");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6759f3ae-e149-4da7-95a8-0e070c439976");
         }
 
         internal static R24OB0 Create(NeoClient client, NeoMemberClass node)
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9eff9de3-2168-4f09-aca9-f888681dedd7" => new R24OR(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "1dd1a2ed-3c59-48be-8692-989c3d475c1b" => new R24OR(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R24OB0(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9eff9de3-2168-4f09-aca9-f888681dedd7" => new R24OR(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "1dd1a2ed-3c59-48be-8692-989c3d475c1b" => new R24OR(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R24OB0(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -75,8 +75,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "9eff9de3-2168-4f09-aca9-f888681dedd7" => new R24OR(client, value, !saved),
-                "49c28c68-fda3-4220-ae15-643a99df8c12" => new R24OB0(client, value, !saved),
+                "1dd1a2ed-3c59-48be-8692-989c3d475c1b" => new R24OR(client, value, !saved),
+                "6759f3ae-e149-4da7-95a8-0e070c439976" => new R24OB0(client, value, !saved),
                 _ => null,
             };
         }
@@ -105,13 +105,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#fb9d65cc-07dc-4817-bf5c-ccd5a059d932");
+                var result = ComputeProperty("V#bd955497-9e05-4817-9671-dd50db4df951");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("V#fb9d65cc-07dc-4817-bf5c-ccd5a059d932").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("V#bd955497-9e05-4817-9671-dd50db4df951").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

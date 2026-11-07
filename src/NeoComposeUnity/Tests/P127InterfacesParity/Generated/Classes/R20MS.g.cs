@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "adb884e4-b98d-4d66-843a-9cda5e359ade" => new R20MS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cf35586f-8642-43f7-b0cd-b6d5d3c0a204" => new R20MS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MS' without a concrete client type id."),
                 };
             });
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "adb884e4-b98d-4d66-843a-9cda5e359ade" => new R20MS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cf35586f-8642-43f7-b0cd-b6d5d3c0a204" => new R20MS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MS' without a concrete client type id."),
                 };
             });
@@ -105,14 +105,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = ComputeProperty("P#aaf3dbcf-113b-4f1c-bb3c-1fd32d8ccb88");
+                    var result = ComputeProperty("P#7fe3bec7-dcc4-4129-9dcd-6efe50355fdf");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#aaf3dbcf-113b-4f1c-bb3c-1fd32d8ccb88").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#7fe3bec7-dcc4-4129-9dcd-6efe50355fdf").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

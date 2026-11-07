@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "12296485-f1d6-4aea-a53e-481ed35cfefa");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0247e876-57d7-4b0b-aaba-6c2e5a06eb30");
         }
 
         internal new static R23SXN Create(NeoClient client, NeoMemberClass node)
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "72838032-3992-4ac2-8af0-d5563af0786b" => new R23SX2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "688387f7-8e25-48a2-a5c0-4573120147f1" => new R23SX2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23SXN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "72838032-3992-4ac2-8af0-d5563af0786b" => new R23SX2(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "688387f7-8e25-48a2-a5c0-4573120147f1" => new R23SX2(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23SXN(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -75,8 +75,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "72838032-3992-4ac2-8af0-d5563af0786b" => new R23SX2(client, value, !saved),
-                "12296485-f1d6-4aea-a53e-481ed35cfefa" => new R23SXN(client, value, !saved),
+                "688387f7-8e25-48a2-a5c0-4573120147f1" => new R23SX2(client, value, !saved),
+                "0247e876-57d7-4b0b-aaba-6c2e5a06eb30" => new R23SXN(client, value, !saved),
                 _ => null,
             };
         }

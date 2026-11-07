@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class TwoA : NeoGeneratedClassValue, IReadOnlyTwoA
     {
         internal TwoA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8b74b392-df07-4d1f-9ba6-167ff1666d67", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "02f506e4-ed3d-476c-b952-777325658b91", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8b74b392-df07-4d1f-9ba6-167ff1666d67");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "02f506e4-ed3d-476c-b952-777325658b91");
         }
 
         internal static TwoA Create(NeoClient client, NeoMemberClass node)
@@ -96,13 +96,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         string IV2A<KittenA>.N()
         {
-            var result = InvokeFunction("N#e2d07646-2a0b-4ac6-8859-7b8701dd9e65");
+            var result = InvokeFunction("N#f2cde840-84db-457e-8e15-927098e81c85");
             return (string)result!;
         }
 
         string IV2A<BeastA>.N()
         {
-            var result = InvokeFunction("N#15a9ebe1-79fa-410e-bd06-34c0664430f2");
+            var result = InvokeFunction("N#c0701272-90d7-4eff-b03d-2763e9c6e2be");
             return (string)result!;
         }
 
