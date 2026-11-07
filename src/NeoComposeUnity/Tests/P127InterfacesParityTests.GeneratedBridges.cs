@@ -987,6 +987,210 @@ namespace NeoCompose.Tests
             yield return new TestCaseData("R24BSN", -1, "7", null,
                 (Func<NeoClient, object?>)(client => { return G.R24BSN.S(); }))
                 .SetName("GeneratedBridge_R24BSNClassStatic");
+            yield return new TestCaseData("R26DiamondSlots", 0, "ambiguous", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26C<G.R26Ba, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X1");
+            yield return new TestCaseData("R26DiamondSlots", 1, "AR26D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26C<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X2_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DiamondSlots", 2, "AR26D1", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26C<G.R26D1, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X3");
+            yield return new TestCaseData("R26DiamondSlots", 3, "AR26Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26C<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X4");
+            yield return new TestCaseData("R26DiamondSlots", 4, "ambiguous", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26D1> x = CreateParityValue(client, G.R26E<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X5");
+            yield return new TestCaseData("R26DiamondSlots", 5, "AR26D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26E<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X6_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DiamondSlots", 6, "ambiguous", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26E<G.R26Ba, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X7");
+            yield return new TestCaseData("R26DiamondSlots", 7, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26H<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X8");
+            yield return new TestCaseData("R26DiamondSlots", 8, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26D1> x = CreateParityValue(client, G.R26H<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X9");
+            yield return new TestCaseData("R26DiamondSlots", 9, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26H<G.R26Ba, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X10");
+            yield return new TestCaseData("R26DiamondSlots", 10, "AR26D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26K<G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X11_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DiamondSlots", 11, "AR26Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26K<G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X12");
+            yield return new TestCaseData("R26DiamondSlots", 12, "ambiguous", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26D1> x = CreateParityValue(client, G.R26C<G.R26D1, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X13");
+            yield return new TestCaseData("R26DiamondSlots", 13, "AR26Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26E<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X14");
+            yield return new TestCaseData("R26DiamondSlots", 14, "AR26D1", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26D1> x = CreateParityValue(client, G.R26E<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X17");
+            yield return new TestCaseData("R26DiamondSlots", 15, "AR26D1", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26Ba> x = CreateParityValue(client, G.R26E<G.R26D1, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X18");
+            yield return new TestCaseData("R26DiamondSlots", 16, "AR26Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26J<G.R26D1> x = CreateParityValue(client, G.R26E<G.R26D1, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26X22");
+            yield return new TestCaseData("R26RelistSlots", 0, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26D1> x = CreateParityValue(client, G.R26TH<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M1");
+            yield return new TestCaseData("R26RelistSlots", 1, "F", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26D1> x = CreateParityValue(client, G.R26W<G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M2");
+            yield return new TestCaseData("R26RelistSlots", 2, "Q", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26Ba> x = CreateParityValue(client, G.R26Q<G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M3");
+            yield return new TestCaseData("R26RelistSlots", 3, "Q2", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26Ba> x = CreateParityValue(client, G.R26Q2.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M4");
+            yield return new TestCaseData("R26RelistSlots", 4, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26Ba> x = CreateParityValue(client, G.R26TH<G.R26D1, G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M5");
+            yield return new TestCaseData("R26RelistSlots", 5, "F", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26F<G.R26Ba> x = CreateParityValue(client, G.R26W<G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26M6");
+            yield return new TestCaseData("R26RelistSlots", 6, "H", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26I<G.R26D1> x = CreateParityValue(client, G.R26IH<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26I1");
+            yield return new TestCaseData("R26RelistSlots", 7, "I", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26I<G.R26D1> x = CreateParityValue(client, G.R26IW<G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26I2");
+            yield return new TestCaseData("R26RelistSlots", 8, "I", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26I<G.R26Ba> x = CreateParityValue(client, G.R26IH<G.R26Ba, G.R26D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26I3");
+            yield return new TestCaseData("R26RelistSlots", 9, "I", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26I<G.R26Ba> x = CreateParityValue(client, G.R26IW<G.R26Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26I4");
+            yield return new TestCaseData("R26CarriedSlots", 0, "5", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26Ba> x = CreateParityValue(client, G.R26NQ<G.R26Ba, G.R26D1>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N1");
+            yield return new TestCaseData("R26CarriedSlots", 1, "9", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26D1> x = CreateParityValue(client, G.R26NQ<G.R26Ba, G.R26D1>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N2");
+            yield return new TestCaseData("R26CarriedSlots", 2, "5", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26D1> x = CreateParityValue(client, G.R26NQ<G.R26D1, G.R26Ba>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N3");
+            yield return new TestCaseData("R26CarriedSlots", 3, "9", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26Ba> x = CreateParityValue(client, G.R26NQ<G.R26D1, G.R26Ba>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N4");
+            yield return new TestCaseData("R26CarriedSlots", 4, "5", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26Ba> x = CreateParityValue(client, G.R26NQ<G.R26Ba, G.R26Ba>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N5");
+            yield return new TestCaseData("R26CarriedSlots", 5, "5", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26D1> x = CreateParityValue(client, G.R26NQ<G.R26D1, G.R26D1>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N6");
+            yield return new TestCaseData("R26CarriedSlots", 6, "5", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26D1> x = CreateParityValue(client, G.R26NN<G.R26D1, G.R26Ba>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N7");
+            yield return new TestCaseData("R26CarriedSlots", 7, "9", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR26N<G.R26Ba, G.R26Ba> x = CreateParityValue(client, G.R26NM<G.R26D1, G.R26Ba>.CreateWritable); return x.V.ToString(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26N8");
+            yield return new TestCaseData("R26CallerSlots", 0, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D1, G.R22D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D1Get_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 1, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D1, G.R22D1>.CreateWritable); return x.M(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D1Method_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 2, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D1, G.R22D1>.CreateWritable); return x.G<int>(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D1Generic_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 3, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D1, G.R22D1>.CreateWritable); x.P = ""; return G.R22YRec.S; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D1Set_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 4, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D2, G.R22D2>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D2Get_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 5, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D2, G.R22D2>.CreateWritable); return x.M(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D2Method_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 6, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D2, G.R22D2>.CreateWritable); return x.G<int>(); } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D2Generic_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26CallerSlots", 7, "AR22Ba", "AR22D1",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YI<G.R22Ba> x = CreateParityValue(client, G.R22YC0<G.R22D2, G.R22D2>.CreateWritable); x.P = ""; return G.R22YRec.S; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F1D2Set_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DistinctSlots", 0, "KR22D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22Ba> x = CreateParityValue(client, G.R22YX5<G.R22Ba, G.R22D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4BaD1AsBa_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DistinctSlots", 1, "LR22Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22D1> x = CreateParityValue(client, G.R22YX5<G.R22Ba, G.R22D1>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4BaD1AsD1");
+            yield return new TestCaseData("R26DistinctSlots", 2, "KR22D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22Ba> x = CreateParityValue(client, G.R22YX5<G.R22Ba, G.R22D2>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4BaD2AsBa_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DistinctSlots", 3, "LR22Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22D2> x = CreateParityValue(client, G.R22YX5<G.R22Ba, G.R22D2>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4BaD2AsD2");
+            yield return new TestCaseData("R26DistinctSlots", 4, "KR22D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22D1> x = CreateParityValue(client, G.R22YX5<G.R22D1, G.R22Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4D1BaAsD1_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DistinctSlots", 5, "LR22Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22Ba> x = CreateParityValue(client, G.R22YX5<G.R22D1, G.R22Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4D1BaAsBa");
+            yield return new TestCaseData("R26DistinctSlots", 6, "KR22D1", "ambiguous",
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22D2> x = CreateParityValue(client, G.R22YX5<G.R22D2, G.R22Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4D2BaAsD2_Mono_2488")
+                .SetDescription("Pinned Mono dispatch limitation, #2488: " + MonoDispatchIssue);
+            yield return new TestCaseData("R26DistinctSlots", 7, "LR22Ba", null,
+                (Func<NeoClient, object?>)(client => { try { G.IR22YJ<G.R22Ba> x = CreateParityValue(client, G.R22YX5<G.R22D2, G.R22Ba>.CreateWritable); return x.V; } catch (System.Runtime.AmbiguousImplementationException) { return "ambiguous"; } }))
+                .SetName("GeneratedBridge_R26F4D2BaAsBa");
+            yield return new TestCaseData("R26NeverSlots", 0, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.IR26VQ<G.R26Ba>> x = CreateParityValue(client, G.R26VC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V1");
+            yield return new TestCaseData("R26NeverSlots", 1, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.IR26VQ<G.R26Ba>> x = CreateParityValue(client, G.R26VC<G.R26D1>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V2");
+            yield return new TestCaseData("R26NeverSlots", 2, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.IR26VQ<G.R26Ba>> x = CreateParityValue(client, G.R26VD<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V3");
+            yield return new TestCaseData("R26NeverSlots", 3, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.IR26VQ<G.R26Ba>> x = CreateParityValue(client, G.R26VD<G.R26D1>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V4");
+            yield return new TestCaseData("R26NeverSlots", 4, "7", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.R26VG<G.R26Ba>> x = CreateParityValue(client, G.R26VC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V5");
+            yield return new TestCaseData("R26NeverSlots", 5, "7", null,
+                (Func<NeoClient, object?>)(client => { G.IR26VV<G.IR26VIG<G.R26Ba>> x = CreateParityValue(client, G.R26VD<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26V6");
+            yield return new TestCaseData("R26RelistBelowSlots", 0, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.IR26YG<G.R26Ba>> x = CreateParityValue(client, G.R26YC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y1");
+            yield return new TestCaseData("R26RelistBelowSlots", 1, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.IR26YQ<G.R26Ba>> x = CreateParityValue(client, G.R26YC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y2");
+            yield return new TestCaseData("R26RelistBelowSlots", 2, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.IR26YQ<G.R26Ba>> x = CreateParityValue(client, G.R26YC<G.R26D1>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y3");
+            yield return new TestCaseData("R26RelistBelowSlots", 3, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.IR26YG<G.R26Ba>> x = CreateParityValue(client, G.R26YC<G.R26D1>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y4");
+            yield return new TestCaseData("R26RelistBelowSlots", 4, "7", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.IR26YG<G.R26D1>> x = CreateParityValue(client, G.R26YC<G.R26D1>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y5");
+            yield return new TestCaseData("R26RelistBelowSlots", 5, "1", null,
+                (Func<NeoClient, object?>)(client => { G.IR26YV<G.R26YK> x = CreateParityValue(client, G.R26YC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
+                .SetName("GeneratedBridge_R26Y6");
         }
 
         [TestCaseSource(nameof(HistoricalGeneratedCases))]

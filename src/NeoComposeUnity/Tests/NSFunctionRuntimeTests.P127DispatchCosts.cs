@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -126,6 +127,76 @@ namespace NeoCompose.Tests
                     Assert.That(dispatch.Resolve(ClassType("Receiver"), pair.Requested, "slot", "get"), Is.SameAs(pair.Answer));
             Assert.That((dispatch.TestConversions, dispatch.TestGraphPops, dispatch.TestGraphEdges,
                 dispatch.TestIndexPops, dispatch.TestIndexEdges, dispatch.TestGlobalNodes, dispatch.TestGlobalEdges), Is.EqualTo(cold));
+        }
+        [TestCase(8)]
+        [TestCase(16)]
+        [TestCase(32)]
+        [TestCase(64)]
+        public void P127Interface_DistinctDefaultSlotsVisitOwnersAndMembersOnce(int n)
+        {
+            var data = new ProjectData { classes = new(), interfaces = new(), members = new() };
+            var owner = new NeoSchemaClass
+            {
+                id = "Receiver", name = "Receiver", schema = new(), implementsInterfaces = new()
+            };
+            data.classes[owner.id] = owner;
+            for (int index = 0; index < n; index++)
+            {
+                string id = "I" + index;
+                data.interfaces[id] = new Interface
+                {
+                    id = id, name = id,
+                    members = new()
+                    {
+                        ["V"] = new()
+                        {
+                            id = "slot" + index, kind = NeoInterfaceMemberKind.Property,
+                            typeInfo = IntType(), implementationMemberId = "body" + index
+                        }
+                    }
+                };
+                owner.implementsInterfaces.Add(new() { interfaceId = id });
+            }
+            var client = (NeoClient)FormatterServices.GetUninitializedObject(typeof(NeoClient));
+            typeof(NeoClient).GetField("data", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(client, data);
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id));
+            for (int index = 0; index < n; index++)
+            {
+                var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "I" + index));
+                Assert.That(dispatch.Resolve(receiver, requested, "slot" + index, "get").MemberId, Is.EqualTo("body" + index));
+            }
+            TestContext.WriteLine($"N={n}: owners={dispatch.TestDefaultOwnerVisits}, members={dispatch.TestDefaultMemberVisits}, candidates={dispatch.TestDefaultCandidateVisits}");
+            Assert.That(dispatch.TestDefaultOwnerVisits, Is.EqualTo(n), "Actual default-owner visits, including index construction");
+            Assert.That(dispatch.TestDefaultMemberVisits, Is.EqualTo(n), "Actual default-member visits, including index construction");
+            Assert.That(dispatch.TestDefaultCandidateVisits, Is.EqualTo(n), "Only the requested slot's candidate is examined");
+        }
+
+        [TestCase(8)]
+        [TestCase(16)]
+        [TestCase(32)]
+        [TestCase(64)]
+        public void P127Interface_AmbiguityOutcomeAddsNoWarmSearchWork(int noise)
+        {
+            using var client = AmbiguousInterfaceSlotClient();
+            for (int index = 0; index < noise; index++)
+            {
+                string id = "Noise" + index;
+                client.ProjectDataForRuntime.interfaces[id] = new Interface { id = id, name = id, members = new() };
+                client.ProjectDataForRuntime.classes["receiver-class"].implementsInterfaces!.Add(new() { interfaceId = id });
+            }
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: "receiver-class"));
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "slot-contract"));
+            var first = Assert.Throws<NeoAmbiguousImplementationError>(() => dispatch.Resolve(receiver, requested, "slot", "call"))!;
+            var cold = (dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions);
+            Assert.That(dispatch.TestDefaultOwnerVisits, Is.GreaterThanOrEqualTo(noise));
+            for (int repeat = 0; repeat < 100; repeat++)
+                Assert.That(Assert.Throws<NeoAmbiguousImplementationError>(() => dispatch.Resolve(receiver, requested, "slot", "call"))!.Message,
+                    Is.EqualTo(first.Message));
+            var warm = (dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions);
+            TestContext.WriteLine($"Noise={noise}: cold={cold}, after 100 warm errors={warm}");
+            Assert.That(warm, Is.EqualTo(cold), "Ambiguity is an outcome cached under the existing resolution key");
         }
     }
 }

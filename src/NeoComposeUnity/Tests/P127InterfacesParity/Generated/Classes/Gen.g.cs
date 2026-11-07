@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Gen : NeoGeneratedClassValue, IReadOnlyGen
     {
         internal Gen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "48881aba-60a8-4ad4-a28b-b8d3c4d78d92", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "823754d2-6d38-432a-a5c4-c0263fe78eea", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static IReadOnlyBag<NeoList<T>> G<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f5cfc173-2fd4-49b8-b810-792ec99f18d0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1cd66241-a954-47a0-8006-4277dc41aae8");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Bag<NeoList<T>>.CreateWritable(factoryClient, factoryNode));
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static bool Wrap<T>(T x, int n)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "996328d6-6ddf-40e0-b3d8-41285a835311");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c46a1c35-e16f-478f-a890-fffd10308c6c");
             var result = node.InvokeGenericStatic(new object?[] { x, n }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "48881aba-60a8-4ad4-a28b-b8d3c4d78d92");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "823754d2-6d38-432a-a5c4-c0263fe78eea");
         }
 
         internal static Gen Create(NeoClient client, NeoMemberClass node)

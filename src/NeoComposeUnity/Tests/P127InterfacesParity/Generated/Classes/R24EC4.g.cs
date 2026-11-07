@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3990c67f-ad2e-4deb-91f4-98f60f064881" => new R24EC4<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3d23177f-4051-49ac-a38d-51bd85c0666d" => new R24EC4<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC4' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3990c67f-ad2e-4deb-91f4-98f60f064881" => new R24EC4<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3d23177f-4051-49ac-a38d-51bd85c0666d" => new R24EC4<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC4' without a concrete client type id."),
                 };
             });
@@ -71,25 +71,6 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public bool TryWritable(out R24EC4<T> writable)
         {
             return TryWritable<R24EC4<T>>(out writable);
-        }
-
-        int R24EIV<R24EIQ<R24EK4>>.V
-        {
-            get
-            {
-                if (typeof(R24EIV<R24EIQ<R24EK4>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
-                {
-                    var result = ComputeProperty("V#aa3d478d-c9ec-4c45-9c22-318c452cab7e");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else
-                {
-                    var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "6aa82c9e-d5ae-4e05-8042-5825556e14c3", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK4>>>(), null, null, Array.Empty<object?>());
-                    return Convert.ToInt32(result);
-                }
-            }
         }
 
         public new sealed class Fields

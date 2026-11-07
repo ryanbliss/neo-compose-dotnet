@@ -15,6 +15,25 @@ namespace NeoCompose.Tests
 {
     public partial class NSFunctionRuntimeTests
     {
+        private sealed class InterfaceSlotRuntimeDecision : IDisposable
+        {
+#if UNITY_EDITOR
+            private readonly bool? saved = NeoGeneratedTypesSupport.TestTrustRuntimeInterfaceDispatch;
+#endif
+            internal InterfaceSlotRuntimeDecision(bool? decision)
+            {
+#if UNITY_EDITOR
+                NeoGeneratedTypesSupport.TestTrustRuntimeInterfaceDispatch = decision;
+#endif
+            }
+            public void Dispose()
+            {
+#if UNITY_EDITOR
+                NeoGeneratedTypesSupport.TestTrustRuntimeInterfaceDispatch = saved;
+#endif
+            }
+        }
+
         private static InterfaceTypeInfo SlotConstruction() => new()
         {
             type = MemberKind.Interface,
@@ -74,10 +93,11 @@ namespace NeoCompose.Tests
         [TestCase(true, true, 17)]
         public void P127Interface_SlotEntryResolvesExactAndKeepsWarmWorkConstant(bool property, bool classImplementation, int expected)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = InterfaceSlotClient(property, classImplementation);
             object receiver = SlotReceiver(client);
             object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
-                property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>());
+                property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>());
             Assert.That(Invoke(), Is.EqualTo(expected));
 #if UNITY_EDITOR
             var dispatch = NeoInterfaceDispatch.Of(client);
@@ -114,9 +134,11 @@ namespace NeoCompose.Tests
             }
         }
 
-        [Test]
-        public void P127Interface_SlotDefaultBodyRunsDirectlyWithoutClrRecursion()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P127Interface_SlotDefaultBodyRunsDirectlyWithoutClrRecursion(bool trusted)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(trusted);
             using var client = InterfaceSlotClient();
             using var receiver = new SlotCallingValue(client);
             Assert.That(((ISlotCallingBody)receiver).M(), Is.EqualTo(42));
@@ -126,12 +148,13 @@ namespace NeoCompose.Tests
         [Test]
         public void P127Interface_SlotEntryRejectsInvalidCalls()
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = InterfaceSlotClient(property: true);
             using var other = InterfaceSlotClient(property: true);
             using var generated = new SlotCallingValue(other);
             object receiver = SlotReceiver(client);
             object? Invoke(object? target, NeoInterfaceBody body, params object?[] args) =>
-                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, target, "slot", body, SlotConstruction(), null, null, args);
+                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, target, "slot", body, SlotConstruction(), "slot", SlotConstruction(), args);
             Assert.That(Assert.Throws<ArgumentNullException>(() => Invoke(null, NeoInterfaceBody.Get))!.ParamName, Is.EqualTo("receiver"));
             Assert.That(Assert.Throws<InvalidOperationException>(() => Invoke(generated, NeoInterfaceBody.Get))!.Message,
                 Does.Contain("different project client"));
@@ -149,10 +172,11 @@ namespace NeoCompose.Tests
         [Test]
         public void P127Interface_SlotEntryReportsMissingImplementation()
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = InterfaceSlotClient();
             client.ProjectDataForRuntime.interfaces["slot-contract"].members["M"].implementationMemberId = null;
             var error = Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client,
-                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()));
+                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()));
             Assert.That(error!.Message, Does.StartWith("Interface member 'slot' has no implementation for '"));
             Assert.That(error.InnerException, Is.TypeOf<NeoMissingInterfaceImplementationError>());
         }
@@ -194,37 +218,41 @@ namespace NeoCompose.Tests
         [Test]
         public void P127Interface_SlotEntryTranslatesResolutionAmbiguity()
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = AmbiguousInterfaceSlotClient();
             var receiverType = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: "receiver-class"));
             var requested = NeoTypeBindings.FromTypeInfo(SlotConstruction());
             Assert.Throws<NeoAmbiguousImplementationError>(() => NeoInterfaceDispatch.Of(client).Resolve(receiverType, requested, "slot", "call"));
             var error = Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client,
-                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()));
+                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()));
             Assert.That(error!.Message, Does.Contain("No most specific implementation"));
             Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client,
-                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()).GetAwaiter().GetResult());
+                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()).GetAwaiter().GetResult());
         }
 
         [Test]
         public void P127Interface_SlotAsyncCompletesPropertiesAndRejectsImmediateFunctions()
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             using var propertyClient = InterfaceSlotClient(property: true);
             var value = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(propertyClient, SlotReceiver(propertyClient), "slot",
-                NeoInterfaceBody.Get, SlotConstruction(), null, null, Array.Empty<object?>());
+                NeoInterfaceBody.Get, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>());
             Assert.That(value.IsCompleted, Is.True);
             Assert.That(value.GetAwaiter().GetResult(), Is.EqualTo(42));
             using var functionClient = InterfaceSlotClient();
             Assert.Throws<ArgumentException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(functionClient,
-                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Get, SlotConstruction(), null, null, Array.Empty<object?>()));
+                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Get, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()));
             Assert.Throws<ArgumentException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(functionClient,
-                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, new object?[] { 1 }));
+                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), new object?[] { 1 }));
             Assert.That(Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(functionClient,
-                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()).GetAwaiter().GetResult())!.Message,
+                SlotReceiver(functionClient), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()).GetAwaiter().GetResult())!.Message,
                 Does.Contain("immediate"));
         }
-        [Test]
-        public void P127Interface_SlotDeferredFunctionsKeepCallsSeparate()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P127Interface_SlotDeferredFunctionsKeepCallsSeparate(bool trusted)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(trusted);
             var native = NativeFunction("interface-fetch", "Fetch", true);
             var body = ScriptFunction("interface-body", "M", true, IntType(), Array.Empty<FunctionArgumentTypeInfo>(),
                 Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Call(native.id, "interface-wait"))));
@@ -261,9 +289,9 @@ namespace NeoCompose.Tests
             object target = NSGetterEvaluator.ResolveValueIfId("receiver-value", context)!;
             var construction = new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = contract.id };
             Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, target, "slot",
-                NeoInterfaceBody.Function, construction, null, null, Array.Empty<object?>()));
-            var first = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, target, "slot", NeoInterfaceBody.Function, construction, null, null, Array.Empty<object?>());
-            var second = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, target, "slot", NeoInterfaceBody.Function, construction, null, null, Array.Empty<object?>());
+                NeoInterfaceBody.Function, construction, "slot", construction, Array.Empty<object?>()));
+            var first = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, target, "slot", NeoInterfaceBody.Function, construction, "slot", construction, Array.Empty<object?>());
+            var second = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, target, "slot", NeoInterfaceBody.Function, construction, "slot", construction, Array.Empty<object?>());
             Assert.That(first.IsCompleted, Is.False);
             pending[1].Complete(22);
             pending[0].Complete(11);
@@ -275,6 +303,7 @@ namespace NeoCompose.Tests
         [TestCase(true)]
         public void P127Interface_SlotSetterUsesResolvedClassOrDefaultBody(bool classBody)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             var stored = new IntMember
             {
                 id = "slot-stored",
@@ -336,83 +365,81 @@ namespace NeoCompose.Tests
             });
             object receiver = SlotReceiver(client);
             Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Set,
-                SlotConstruction(), null, null, new object?[] { 31 }), Is.Null);
+                SlotConstruction(), "slot", SlotConstruction(), new object?[] { 31 }), Is.Null);
             Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Get,
-                SlotConstruction(), null, null, Array.Empty<object?>()), Is.EqualTo(31));
+                SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()), Is.EqualTo(31));
             var task = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, receiver, "slot", NeoInterfaceBody.Set,
-                SlotConstruction(), null, null, new object?[] { 47 });
+                SlotConstruction(), "slot", SlotConstruction(), new object?[] { 47 });
             Assert.That(task.IsCompleted, Is.True);
             Assert.That(task.GetAwaiter().GetResult(), Is.Null);
             Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Get,
-                SlotConstruction(), null, null, Array.Empty<object?>()), Is.EqualTo(47));
+                SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()), Is.EqualTo(47));
         }
 
-        [Test]
-        public void P127Interface_SlotAmbiguityUsesCallerOnlyOnEnforcingRuntimes()
+        [TestCase(false)]
+        [TestCase(true)]
+        public void P127Interface_SlotAmbiguityUsesCallerOnlyOnTrustedRuntimes(bool trusted)
         {
-            bool enforces = NeoGeneratedTypesSupport.EnforcesExactAmbiguity;
+            using var decision = new InterfaceSlotRuntimeDecision(trusted);
             using var client = AmbiguousInterfaceSlotClient();
             object receiver = SlotReceiver(client);
             var caller = new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = "right" };
+            var dispatch = NeoInterfaceDispatch.Of(client);
+#if UNITY_EDITOR
+            long before = dispatch.TestResolveCalls;
+#endif
             object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Function,
                 SlotConstruction(), "right-slot", caller, Array.Empty<object?>());
-            if (enforces)
+            if (trusted)
                 Assert.That(Invoke(), Is.EqualTo(17), "Run the caller's own body directly.");
             else
                 Assert.Throws<AmbiguousImplementationException>(() => Invoke());
-            Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
-                NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()), "Class callers always throw.");
             var asyncCall = NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, receiver, "slot", NeoInterfaceBody.Function,
                 SlotConstruction(), "right-slot", caller, Array.Empty<object?>());
-            if (enforces)
+            if (trusted)
                 Assert.That(Assert.Throws<InvalidOperationException>(() => asyncCall.GetAwaiter().GetResult())!.Message, Does.Contain("immediate"));
             else
                 Assert.Throws<AmbiguousImplementationException>(() => asyncCall.GetAwaiter().GetResult());
+#if UNITY_EDITOR
+            Assert.That(dispatch.TestResolveCalls - before, Is.EqualTo(trusted ? 0 : 2));
+#endif
         }
 
         [Test]
-        public void P127Interface_SlotAmbiguityProbeIsLazyAndRunsOnce()
+        public void P127Interface_SlotRuntimeProbeRunsOnce()
         {
-#if UNITY_EDITOR
-            int runsBeforeOrdinaryCall = NeoGeneratedTypesSupport.TestAmbiguityProbeRuns;
-#endif
-            using var ordinary = InterfaceSlotClient();
-            NeoGeneratedTypesSupport.InvokeInterfaceSlot(ordinary, SlotReceiver(ordinary), "slot", NeoInterfaceBody.Function,
-                SlotConstruction(), null, null, Array.Empty<object?>());
-#if UNITY_EDITOR
-            Assert.That(NeoGeneratedTypesSupport.TestAmbiguityProbeRuns, Is.EqualTo(runsBeforeOrdinaryCall),
-                "An ordinary slot call does not initialize the ambiguity probe.");
-#endif
+            using var decision = new InterfaceSlotRuntimeDecision(null);
             var results = new bool[100];
             System.Threading.Tasks.Parallel.For(0, results.Length,
-                index => results[index] = NeoGeneratedTypesSupport.EnforcesExactAmbiguity);
-            bool actual = NeoGeneratedTypesSupport.EnforcesExactAmbiguity;
-            TestContext.WriteLine($"Runtime enforces exact ambiguity: {actual}");
+                index => results[index] = NeoGeneratedTypesSupport.TrustRuntimeInterfaceDispatch);
+            bool actual = NeoGeneratedTypesSupport.TrustRuntimeInterfaceDispatch;
+            TestContext.WriteLine($"Runtime interface dispatch trusted: {actual}");
             foreach (bool result in results)
                 Assert.That(result, Is.EqualTo(actual));
-            using var ambiguous = AmbiguousInterfaceSlotClient();
-            Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(ambiguous,
-                SlotReceiver(ambiguous), "slot", NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()));
 #if UNITY_EDITOR
             Assert.That(NeoGeneratedTypesSupport.TestAmbiguityProbeRuns, Is.EqualTo(1));
 #endif
         }
 
-        [TestCase(false)]
-        [TestCase(true)]
-        public void P127Interface_SlotRejectsHalfACaller(bool hasMember)
+        [TestCase(0, false)]
+        [TestCase(1, true)]
+        [TestCase(2, false)]
+        public void P127Interface_SlotProbeFailureSelectsSdkResolution(int outcome, bool expected)
         {
-            using var client = InterfaceSlotClient();
-            var error = Assert.Throws<ArgumentException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, SlotReceiver(client), "slot",
-                NeoInterfaceBody.Function, SlotConstruction(), hasMember ? "slot" : null, hasMember ? null : SlotConstruction(), Array.Empty<object?>()));
-            Assert.That(error!.Message, Is.EqualTo("InvokeInterfaceSlot needs both the caller member and its construction, or neither; got only "
-                + (hasMember ? "callerMemberId." : "callerConstruction.")));
+            int Probe() => outcome switch
+            {
+                0 => 1,
+                1 => throw new AmbiguousImplementationException(),
+                _ => throw new InvalidProgramException("The runtime cannot execute this diamond."),
+            };
+            Assert.That(NeoGeneratedTypesSupport.ProbeRuntimeInterfaceDispatch(Probe), Is.EqualTo(expected));
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public void P127Interface_SlotDefaultUsesWinningHoldersClosedEnvironment(bool property)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             var resultType = new ObjectTypeInfo { type = MemberKind.Object, required = true, objectType = NeoObjectTypeKind.Type };
             var parameter = new GenericTypeInfo { type = MemberKind.Generic, required = true, ownerInterfaceId = "slot-holder", genericParamId = "U" };
             var action = Action(resultType, Array.Empty<FunctionArgumentTypeInfo>(), Return(new TypeOfPointer { typeInfo = parameter }));
@@ -485,14 +512,22 @@ namespace NeoCompose.Tests
                 interfaceId = contract.id,
                 typeArguments = new() { ["T"] = IntType() }
             };
+            var caller = new InterfaceTypeInfo
+            {
+                type = MemberKind.Interface,
+                required = true,
+                interfaceId = holder.id,
+                typeArguments = new() { ["V"] = IntType(), ["U"] = new PrimitiveTypeInfo { type = MemberKind.String, required = true } }
+            };
             Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, SlotReceiver(client), "slot",
-                property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, construction, null, null, Array.Empty<object?>()), Is.EqualTo(typeof(string)));
+                property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, construction, "holder-slot", caller, Array.Empty<object?>()), Is.EqualTo(typeof(string)));
         }
 
         [TestCase(false)]
         [TestCase(true)]
         public void P127Interface_SlotClassAnswerCanBeANativeFunction(bool deferred)
         {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
             var native = NativeFunction("slot-native", "M", deferred);
             var declaration = new Interface
             {
@@ -529,13 +564,73 @@ namespace NeoCompose.Tests
             if (deferred)
             {
                 Assert.Throws<InvalidOperationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
-                    NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()));
+                    NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()));
                 Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client, receiver, "slot",
-                    NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()).GetAwaiter().GetResult(), Is.EqualTo(52));
+                    NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()).GetAwaiter().GetResult(), Is.EqualTo(52));
             }
             else
                 Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
-                    NeoInterfaceBody.Function, SlotConstruction(), null, null, Array.Empty<object?>()), Is.EqualTo(51));
+                    NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()), Is.EqualTo(51));
+        }
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void P127Interface_SlotTrustedCallerWinsEvenWhenExactResolutionDiffers(bool trusted, bool property)
+        {
+            using var decision = new InterfaceSlotRuntimeDecision(trusted);
+            using var client = InterfaceSlotClient(property, classImplementation: true);
+            object receiver = SlotReceiver(client);
+            var dispatch = NeoInterfaceDispatch.Of(client);
+#if UNITY_EDITOR
+            long before = dispatch.TestResolveCalls;
+#endif
+            for (int repeat = 0; repeat < 100; repeat++)
+                Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
+                    property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()),
+                    Is.EqualTo(trusted ? 42 : 17));
+#if UNITY_EDITOR
+            Assert.That(dispatch.TestResolveCalls - before, Is.EqualTo(trusted ? 0 : 100), "Trusted caller execution never resolves the implemented slot");
+#endif
+        }
+
+        [Test]
+        public void P127Interface_SlotRepeatedAmbiguityDoesNoWarmSearchWork()
+        {
+            using var decision = new InterfaceSlotRuntimeDecision(false);
+            using var client = AmbiguousInterfaceSlotClient();
+            object receiver = SlotReceiver(client);
+            var caller = new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = "right" };
+            object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Function,
+                SlotConstruction(), "right-slot", caller, Array.Empty<object?>());
+            Assert.Throws<AmbiguousImplementationException>(() => Invoke());
+#if UNITY_EDITOR
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var cold = (dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions);
+#endif
+            for (int repeat = 0; repeat < 100; repeat++)
+                Assert.Throws<AmbiguousImplementationException>(() => Invoke());
+#if UNITY_EDITOR
+            Assert.That((dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions), Is.EqualTo(cold));
+#endif
+        }
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void P127Interface_SlotRequiresCallerOnEitherRuntime(bool trusted, bool missingMember)
+        {
+            using var decision = new InterfaceSlotRuntimeDecision(trusted);
+            using var client = InterfaceSlotClient();
+            string? member = missingMember ? null : "slot";
+            var construction = missingMember ? SlotConstruction() : null;
+            string parameter = missingMember ? "callerMemberId" : "callerConstruction";
+            Assert.That(Assert.Throws<ArgumentNullException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client,
+                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), member!, construction!, Array.Empty<object?>()))!.ParamName,
+                Is.EqualTo(parameter));
+            Assert.That(Assert.Throws<ArgumentNullException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client,
+                SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), member!, construction!, Array.Empty<object?>()).GetAwaiter().GetResult())!.ParamName,
+                Is.EqualTo(parameter));
         }
     }
 }
