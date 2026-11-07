@@ -20,7 +20,15 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R23TXS<T, U> : R23TMS<T, U>, IReadOnlyR23TXS<T, U>
+    public abstract partial class R23TXSListings<T, U> : R23TMS<T, U>, R23TJS<R23TTag, U>
+    {
+        internal R23TXSListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+    }
+
+    public partial class R23TXS<T, U> : R23TXSListings<T, U>, IReadOnlyR23TXS<T, U>
     {
         internal R23TXS(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85dcdc65-87d6-46ee-a375-c5f1109895ec" => new R23TXS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "090630ff-2086-4654-9c4c-3f8c9cbd27fe" => new R23TXS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TXS' without a concrete client type id."),
                 };
             });
@@ -47,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85dcdc65-87d6-46ee-a375-c5f1109895ec" => new R23TXS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "090630ff-2086-4654-9c4c-3f8c9cbd27fe" => new R23TXS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TXS' without a concrete client type id."),
                 };
             });

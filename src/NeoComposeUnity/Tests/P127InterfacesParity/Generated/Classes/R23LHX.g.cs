@@ -20,7 +20,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R23LHX<T, U> : R23LHM<T, U>, IReadOnlyR23LHX<T, U>
+    public abstract partial class R23LHXListings<T, U> : R23LHM<T, U>, R23LJ<R23LTag, U>
+    {
+        internal R23LHXListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int R23LJ<R23LTag, U>.V
+        {
+            get
+            {
+                var result = ComputeProperty("V#3d1a6bb4-6c76-4404-8b01-b5e523d848ef");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+    }
+
+    public partial class R23LHX<T, U> : R23LHXListings<T, U>, IReadOnlyR23LHX<T, U>
     {
         internal R23LHX(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f306b65d-977a-4858-8c4b-9eedd1515502" => new R23LHX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0e8f1df6-e5e3-443d-97fd-78f4ae5091f7" => new R23LHX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LHX' without a concrete client type id."),
                 };
             });
@@ -47,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f306b65d-977a-4858-8c4b-9eedd1515502" => new R23LHX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0e8f1df6-e5e3-443d-97fd-78f4ae5091f7" => new R23LHX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LHX' without a concrete client type id."),
                 };
             });

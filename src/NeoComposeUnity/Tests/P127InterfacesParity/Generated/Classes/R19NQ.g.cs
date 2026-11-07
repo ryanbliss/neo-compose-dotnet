@@ -20,7 +20,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R19NQ<T, U> : R19N<T, U>, IReadOnlyR19NQ<T, U>
+    public abstract partial class R19NQListings<T, U> : R19N<T, U>, IR19J<R19Tag, T>
+    {
+        internal R19NQListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int IR19J<R19Tag, T>.V
+        {
+            get
+            {
+                var result = ComputeProperty("V#a23bd67a-6f33-48fc-bee4-ec8a081d690f");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+    }
+
+    public partial class R19NQ<T, U> : R19NQListings<T, U>, IReadOnlyR19NQ<T, U>
     {
         internal R19NQ(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "01dcabe9-cdbb-4a9a-a9d3-bdbd689149f7" => new R19NQ<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2f4ca04b-6968-4aa2-a692-59a09c41345b" => new R19NQ<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19NQ' without a concrete client type id."),
                 };
             });
@@ -47,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "01dcabe9-cdbb-4a9a-a9d3-bdbd689149f7" => new R19NQ<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2f4ca04b-6968-4aa2-a692-59a09c41345b" => new R19NQ<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19NQ' without a concrete client type id."),
                 };
             });
