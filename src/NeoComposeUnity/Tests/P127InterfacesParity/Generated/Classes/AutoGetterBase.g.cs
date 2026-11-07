@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class AutoGetterBase : NeoGeneratedClassValue, IReadOnlyAutoGetterBase
     {
         internal AutoGetterBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8505cb6f-2ebb-41a5-a0e8-e0e63cf004f0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2a94dbcf-ad11-4368-98c5-3f09aeffee53", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8505cb6f-2ebb-41a5-a0e8-e0e63cf004f0",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "aa12260f-26f6-4c64-b5de-51df7c7f2554", V)
+                "2a94dbcf-ad11-4368-98c5-3f09aeffee53",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "d9e6d4f0-05b9-4d6e-91e7-da5622aba0c4", V)
             );
         }
 
@@ -60,10 +60,10 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "24f37e74-0b0d-422c-9057-f386deb64aae" => new AutoSetterDerived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "481724ad-b77f-4168-8337-8cc49c7ce74c" => new AutoGetterDerived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "505a0c19-77c1-48ff-9c72-bc5380bc765c" => new AutoOverrideGetter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "5733b1d2-f735-4e73-9bb9-711ddb450029" => new AutoOverride(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "12ef1f63-1d45-4b64-849a-b7ddfef13d99" => new AutoGetterDerived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5f0a69d6-aeb8-448f-b4dc-0882dbfa81a1" => new AutoOverride(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "91c1c220-6fe6-40fb-8e40-2dd7ce603986" => new AutoSetterDerived(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "da0952d3-0502-4d3c-86c7-98961d3e258b" => new AutoOverrideGetter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new AutoGetterBase(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -76,10 +76,10 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "24f37e74-0b0d-422c-9057-f386deb64aae" => new AutoSetterDerived(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "481724ad-b77f-4168-8337-8cc49c7ce74c" => new AutoGetterDerived(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "505a0c19-77c1-48ff-9c72-bc5380bc765c" => new AutoOverrideGetter(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "5733b1d2-f735-4e73-9bb9-711ddb450029" => new AutoOverride(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "12ef1f63-1d45-4b64-849a-b7ddfef13d99" => new AutoGetterDerived(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5f0a69d6-aeb8-448f-b4dc-0882dbfa81a1" => new AutoOverride(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "91c1c220-6fe6-40fb-8e40-2dd7ce603986" => new AutoSetterDerived(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "da0952d3-0502-4d3c-86c7-98961d3e258b" => new AutoOverrideGetter(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new AutoGetterBase(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -89,11 +89,11 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "24f37e74-0b0d-422c-9057-f386deb64aae" => new AutoSetterDerived(client, value, !saved),
-                "481724ad-b77f-4168-8337-8cc49c7ce74c" => new AutoGetterDerived(client, value, !saved),
-                "505a0c19-77c1-48ff-9c72-bc5380bc765c" => new AutoOverrideGetter(client, value, !saved),
-                "5733b1d2-f735-4e73-9bb9-711ddb450029" => new AutoOverride(client, value, !saved),
-                "8505cb6f-2ebb-41a5-a0e8-e0e63cf004f0" => new AutoGetterBase(client, value, !saved),
+                "12ef1f63-1d45-4b64-849a-b7ddfef13d99" => new AutoGetterDerived(client, value, !saved),
+                "5f0a69d6-aeb8-448f-b4dc-0882dbfa81a1" => new AutoOverride(client, value, !saved),
+                "91c1c220-6fe6-40fb-8e40-2dd7ce603986" => new AutoSetterDerived(client, value, !saved),
+                "da0952d3-0502-4d3c-86c7-98961d3e258b" => new AutoOverrideGetter(client, value, !saved),
+                "2a94dbcf-ad11-4368-98c5-3f09aeffee53" => new AutoGetterBase(client, value, !saved),
                 _ => null,
             };
         }
@@ -136,7 +136,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
         }
 
-        [NeoMemberMethod("4f04ab54-ba14-4153-a135-83e6589734b5")]
+        [NeoMemberMethod("c9e90cc6-7d39-4cd7-9554-db0b1f9348ef")]
         public void SetV(int x)
         {
             InvokeFunction("SetV", (object?)(x));

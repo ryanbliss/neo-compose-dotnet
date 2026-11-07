@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0abba136-2ca9-4331-a97c-07757955975d");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "12fa86f3-9e53-404e-84f1-5f14b5e42f38");
         }
 
         internal new static R23RPE Create(NeoClient client, NeoMemberClass node)
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d6ae4a12-a141-48c5-a997-af126dd0d1bc" => new R23RP5(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "31b0a783-b418-4c58-b13f-c160ce03944e" => new R23RP5(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23RPE(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d6ae4a12-a141-48c5-a997-af126dd0d1bc" => new R23RP5(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "31b0a783-b418-4c58-b13f-c160ce03944e" => new R23RP5(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23RPE(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,8 +77,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "d6ae4a12-a141-48c5-a997-af126dd0d1bc" => new R23RP5(client, value, !saved),
-                "0abba136-2ca9-4331-a97c-07757955975d" => new R23RPE(client, value, !saved),
+                "31b0a783-b418-4c58-b13f-c160ce03944e" => new R23RP5(client, value, !saved),
+                "12fa86f3-9e53-404e-84f1-5f14b5e42f38" => new R23RPE(client, value, !saved),
                 _ => null,
             };
         }

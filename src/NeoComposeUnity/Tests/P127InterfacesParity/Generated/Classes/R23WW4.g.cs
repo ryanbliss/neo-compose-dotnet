@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ad5d9da8-51cd-4b1e-93e6-53bea1ae74cd");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "cc90bcc1-a4cc-480e-862a-d2b6a3e8212d");
         }
 
         internal new static R23WW4 Create(NeoClient client, NeoMemberClass node)
@@ -92,43 +92,6 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public bool TryWritable(out R23WW4 writable)
         {
             return TryWritable<R23WW4>(out writable);
-        }
-
-        int R23WIW.F()
-        {
-            var result = InvokeFunction("F");
-            return Convert.ToInt32(result);
-        }
-
-        int R23WIW.G<X>()
-        {
-            var result = InvokeGenericFunction("G", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
-            return Convert.ToInt32(result);
-        }
-
-        int R23WIW.P
-        {
-            get
-            {
-                var result = ComputeProperty("P");
-                result.ThrowIfFailed();
-                return Convert.ToInt32(result.value);
-            }
-            set
-            {
-                var result = writableNode.Get<NeoMemberNSProperty>("P").Set(valueId!, value);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-            }
-        }
-
-        int R23WIW.V
-        {
-            get
-            {
-                var result = ComputeProperty("V");
-                result.ThrowIfFailed();
-                return Convert.ToInt32(result.value);
-            }
         }
 
         public new sealed class Fields
