@@ -26,6 +26,21 @@ namespace NeoCompose.Tests.P127InterfacesParity
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
+
+        int IR20I<U>.G<X>()
+        {
+            if (typeof(IR20I<U>) == typeof(IR20I<T>))
+            {
+                var result = InvokeGenericFunction("G#e91fe961-d13e-4a44-b9ab-e44282b9ec7d", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
+                return Convert.ToInt32(result);
+            }
+            else
+            {
+                var client = TestProjectNeo.RequireInstance().Client;
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "0cdd9a3f-dabd-49e7-b5df-a1f5db961fcd", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<U>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
+                return Convert.ToInt32(result);
+            }
+        }
     }
 
     public partial class R20MK<T, U> : R20MKListings<T, U>, IReadOnlyR20MK<T, U>
@@ -42,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "81539fcf-7ae9-4cce-b6b4-7d8f480c6921" => new R20MK<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "480faad0-b099-4a1e-a383-a39146549784" => new R20MK<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MK' without a concrete client type id."),
                 };
             });
@@ -55,7 +70,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "81539fcf-7ae9-4cce-b6b4-7d8f480c6921" => new R20MK<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "480faad0-b099-4a1e-a383-a39146549784" => new R20MK<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MK' without a concrete client type id."),
                 };
             });

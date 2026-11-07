@@ -30,7 +30,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int S()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a7d870af-0410-4a5f-b7a5-97a49c4b7e46", client.TypeArguments.Of<R23TSD<T, U>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4a771401-5f70-47a7-a598-8ec893fc5fe0", client.TypeArguments.Of<R23TSD<T, U>>());
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6f76374d-cb5a-4653-b732-23d3f07b3abc" => new R23TSD<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "bec0e491-e1d0-478d-b6a5-a51f4708eb93" => new R23TSD<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TSD' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6f76374d-cb5a-4653-b732-23d3f07b3abc" => new R23TSD<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "bec0e491-e1d0-478d-b6a5-a51f4708eb93" => new R23TSD<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TSD' without a concrete client type id."),
                 };
             });

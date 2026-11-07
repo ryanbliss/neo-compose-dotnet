@@ -20,7 +20,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R23LOX<T, U> : R23LOP<T, U>, IReadOnlyR23LOX<T, U>
+    public abstract partial class R23LOXListings<T, U> : R23LOP<T, U>, R23LJ<R23LTag, U>
+    {
+        internal R23LOXListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int R23LJ<R23LTag, U>.V
+        {
+            get
+            {
+                var result = ComputeProperty("V#6eb08e2b-7d54-46b5-b884-865f2058a828");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+    }
+
+    public partial class R23LOX<T, U> : R23LOXListings<T, U>, IReadOnlyR23LOX<T, U>
     {
         internal R23LOX(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9d64dca7-1b6a-4336-ab12-e357c7fcbf91" => new R23LOX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9c5c4cc6-1dca-447c-8031-8be6a78a71bc" => new R23LOX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LOX' without a concrete client type id."),
                 };
             });
@@ -47,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9d64dca7-1b6a-4336-ab12-e357c7fcbf91" => new R23LOX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9c5c4cc6-1dca-447c-8031-8be6a78a71bc" => new R23LOX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LOX' without a concrete client type id."),
                 };
             });
