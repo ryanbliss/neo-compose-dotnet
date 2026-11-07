@@ -64,6 +64,8 @@ namespace NeoCompose.Tests
                 ("RelistMergeAboveLister", "merge-5", ""),
                 ("ArgumentInterfaceOut", "receiver-2", ""), ("ArgumentInterfaceIn", "receiver-2", ""),
                 ("ArgumentClassToInterfaceOut", "receiver-2", ""), ("ArgumentClassToInterfaceIn", "receiver-2", ""),
+                ("ArgumentInheritedClassToInterfaceOut", "receiver-2", ""), ("ArgumentInheritedClassToInterfaceIn", "receiver-2", ""),
+                ("ArgumentConstructedOut", "receiver-2", ""), ("ArgumentConstructedReject", "missing", ""),
                 ("RelistAccessorOverrideGet", "receiver-2", ""), ("RelistAccessorOverrideGetWireDefault", "receiver-2", ""), ("RelistAccessorOverrideSet", "middle-public", "")
             };
             foreach (var row in rows)
@@ -93,8 +95,11 @@ namespace NeoCompose.Tests
             var records = new List<NeoCompose.Runtime.Json.Member>();
             var classes = new Dictionary<string, NeoSchemaClass>();
             var interfaces = new Dictionary<string, Interface>();
-            TypeBinding Type(string id) => id.StartsWith("Tag", StringComparison.Ordinal)
-                ? TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: id)) : TestTypeBindings.Class(id);
+            TypeBinding Type(string id) => id == "TagConstructed"
+                ? TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "TagGeneric"),
+                    new Dictionary<string, TypeBinding> { ["TagGeneric-T"] = TestTypeBindings.Class(shape == "ArgumentConstructedReject" ? "D2" : "Ba") })
+                : id.StartsWith("Tag", StringComparison.Ordinal)
+                    ? TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: id)) : TestTypeBindings.Class(id);
             TypeBinding Param(string id, string name = "T") => TestTypeBindings.Open(id, id + "-" + name);
             InterfaceConstruction Listing(string id, TypeBinding argument) => new()
             {
@@ -384,6 +389,30 @@ namespace NeoCompose.Tests
                     if (shape == "HolderExactCastD1")
                         view = "D1";
                     break;
+                case "ArgumentConstructedOut":
+                case "ArgumentConstructedReject":
+                    interfaces["TagGeneric"] = new Interface
+                    {
+                        id = "TagGeneric",
+                        name = "TagGeneric",
+                        projectId = ProjectId,
+                        members = new(),
+                        genericParams = new() { new() { id = "TagGeneric-T", name = "T", variance = NeoGenericParamVarianceKind.Out } }
+                    };
+                    var genericParent = Class("GenericImplementing");
+                    genericParent.genericParams = new() { new() { id = "GenericImplementing-T", name = "T" } };
+                    genericParent.implementsInterfaces = new() { Listing("TagGeneric", Param("GenericImplementing")) };
+                    var closedChild = Class("Implementing", "GenericImplementing");
+                    closedChild.extendsGenericBindings = new()
+                    {
+                        ["GenericImplementing-T"] = Type("D1")
+                    };
+                    view = "TagConstructed";
+                    Add(r, "I", "Implementing");
+                    Explicit("receiver", "Implementing", 2);
+                    break;
+                case "ArgumentInheritedClassToInterfaceOut":
+                case "ArgumentInheritedClassToInterfaceIn":
                 case "ArgumentInterfaceOut":
                 case "ArgumentInterfaceIn":
                 case "ArgumentClassToInterfaceOut":
@@ -392,6 +421,13 @@ namespace NeoCompose.Tests
                     interfaces["TagDerived"] = new Interface { id = "TagDerived", name = "TagDerived", projectId = ProjectId, members = new(), extendsInterfaces = new() { new() { interfaceId = "TagBase" } } };
                     var implementing = Class("Implementing");
                     implementing.implementsInterfaces = new() { new() { interfaceId = "TagDerived" } };
+                    if (shape.StartsWith("ArgumentInherited", StringComparison.Ordinal))
+                    {
+                        var parentImplementing = Class("ParentImplementing");
+                        parentImplementing.implementsInterfaces = implementing.implementsInterfaces;
+                        implementing.implementsInterfaces = new();
+                        implementing.extendsClassId = parentImplementing.id;
+                    }
                     bool argumentIn = shape.EndsWith("In", StringComparison.Ordinal);
                     interfaces["I"].genericParams![0].variance = argumentIn ? NeoGenericParamVarianceKind.In : NeoGenericParamVarianceKind.Out;
                     string descendant = shape.Contains("ClassToInterface") ? "Implementing" : "TagDerived";

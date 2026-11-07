@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CCY<V> : NeoGeneratedClassValue, IReadOnlyCCY<V>
     {
         internal CCY(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bfa2249c-2081-44f5-acfc-8c1cca757185", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a88dae86-5420-4b5c-8027-17263204eb31", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bfa2249c-2081-44f5-acfc-8c1cca757185" => new CCY<V>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a88dae86-5420-4b5c-8027-17263204eb31" => new CCY<V>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CCY' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bfa2249c-2081-44f5-acfc-8c1cca757185" => new CCY<V>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a88dae86-5420-4b5c-8027-17263204eb31" => new CCY<V>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CCY' without a concrete client type id."),
                 };
             });

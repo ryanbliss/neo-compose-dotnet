@@ -58,8 +58,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "99fbb04e-5288-46bc-8851-14e74b61f461" => (R19M<T, U>)(object)new R19Closed(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "50b9f9ae-4309-487e-bcd0-f872474c410a" => new R19M<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e4a9dd98-6e2f-4e9e-bda8-45969dc947bf" => (R19M<T, U>)(object)new R19Closed(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "82a1a5aa-5a74-4bc2-b247-2ec3acc4c0fd" => new R19M<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19M' without a concrete client type id."),
                 };
             });
@@ -72,8 +72,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "99fbb04e-5288-46bc-8851-14e74b61f461" => (R19M<T, U>)(object)new R19Closed(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "50b9f9ae-4309-487e-bcd0-f872474c410a" => new R19M<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e4a9dd98-6e2f-4e9e-bda8-45969dc947bf" => (R19M<T, U>)(object)new R19Closed(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "82a1a5aa-5a74-4bc2-b247-2ec3acc4c0fd" => new R19M<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19M' without a concrete client type id."),
                 };
             });
@@ -111,7 +111,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = ComputeProperty("V#daaf2847-9241-4846-9375-9c67971c9161");
+                    var result = ComputeProperty("V#2e8f831d-f9b2-4d72-804d-a573aba491f1");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
@@ -127,7 +127,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             else
             {
-                var result = InvokeFunction("F#22b8e553-bcd2-4abb-93fa-2526353317cd");
+                var result = InvokeFunction("F#a121dd3b-c552-4be5-b611-2d200527bd7e");
                 return Convert.ToInt32(result);
             }
         }

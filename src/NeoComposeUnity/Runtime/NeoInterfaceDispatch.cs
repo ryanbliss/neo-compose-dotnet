@@ -638,72 +638,64 @@ namespace NeoCompose.Runtime
             return receiverListings[receiver] = index;
         }
 
-        private Dictionary<string, List<string>>? classChildren;
+        private Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>>? declarationChildren;
 
-        private IEnumerable<string> RelatedClasses(string id, bool descendants)
+        private IEnumerable<(MemberKind Kind, string Id)> DeclarationParents((MemberKind Kind, string Id) declaration)
         {
-            if (descendants)
+            if (declaration.Kind == MemberKind.Class)
             {
-                if (classChildren is null)
-                {
-                    classChildren = new();
-                    foreach (var owner in client.ProjectDataForRuntime.classes.Values)
-                        if (owner.extendsClassId is string parent)
-                        {
-                            if (!classChildren.TryGetValue(parent, out var children))
-                                classChildren[parent] = children = new();
-                            children.Add(owner.id);
-                        }
-                }
-                var pending = new Stack<string>();
-                pending.Push(id);
-                while (pending.Count != 0)
-                {
-                    string current = pending.Pop();
-                    yield return current;
-                    if (classChildren.TryGetValue(current, out var children))
-                        foreach (string child in children)
-                            pending.Push(child);
-                }
+                var owner = client.ProjectDataForRuntime.classes[declaration.Id];
+                if (owner.extendsClassId is string parent)
+                    yield return (MemberKind.Class, parent);
+                foreach (var implemented in owner.implementsInterfaces ?? new())
+                    yield return (MemberKind.Interface, implemented.interfaceId);
             }
             else
-                for (string? current = id; current is not null; current = client.ProjectDataForRuntime.classes[current].extendsClassId)
-                    yield return current;
+                foreach (var parent in client.ProjectDataForRuntime.interfaces[declaration.Id].extendsInterfaces ?? new())
+                    yield return (MemberKind.Interface, parent.interfaceId);
         }
 
-        private Dictionary<string, List<string>>? interfaceChildren;
-
-        private IEnumerable<string> RelatedInterfaces(string id, bool descendants)
+        // Class-to-interface edges matter in both variance directions. Build
+        // only direct reverse edges, then visit each reachable declaration once;
+        // never retain a full ancestor/descendant set for every declaration.
+        private IEnumerable<(MemberKind Kind, string Id)> RelatedDeclarations(
+            (MemberKind Kind, string Id) declaration, bool descendants)
         {
-            if (descendants && interfaceChildren is null)
+            if (descendants && declarationChildren is null)
             {
-                interfaceChildren = new();
-                foreach (var declaration in client.ProjectDataForRuntime.interfaces.Values)
-                    foreach (var parent in declaration.extendsInterfaces ?? new())
+                declarationChildren = new();
+                void AddParents((MemberKind Kind, string Id) child)
+                {
+                    foreach (var parent in DeclarationParents(child))
                     {
-                        if (!interfaceChildren.TryGetValue(parent.interfaceId, out var children))
-                            interfaceChildren[parent.interfaceId] = children = new();
-                        children.Add(declaration.id);
+                        if (!declarationChildren.TryGetValue(parent, out var children))
+                            declarationChildren[parent] = children = new();
+                        children.Add(child);
                     }
+                }
+                foreach (string id in client.ProjectDataForRuntime.classes.Keys)
+                    AddParents((MemberKind.Class, id));
+                foreach (string id in client.ProjectDataForRuntime.interfaces.Keys)
+                    AddParents((MemberKind.Interface, id));
             }
-            var pending = new Stack<string>();
-            var seen = new HashSet<string>();
-            pending.Push(id);
+            var pending = new Stack<(MemberKind Kind, string Id)>();
+            var seen = new HashSet<(MemberKind Kind, string Id)>();
+            pending.Push(declaration);
             while (pending.Count != 0)
             {
-                string current = pending.Pop();
+                var current = pending.Pop();
                 if (!seen.Add(current))
                     continue;
                 yield return current;
                 if (descendants)
                 {
-                    if (interfaceChildren!.TryGetValue(current, out var children))
-                        foreach (string child in children)
+                    if (declarationChildren!.TryGetValue(current, out var children))
+                        foreach (var child in children)
                             pending.Push(child);
                 }
                 else
-                    foreach (var parent in client.ProjectDataForRuntime.interfaces[current].extendsInterfaces ?? new())
-                        pending.Push(parent.interfaceId);
+                    foreach (var parent in DeclarationParents(current))
+                        pending.Push(parent);
             }
         }
 
@@ -728,24 +720,15 @@ namespace NeoCompose.Runtime
                     if (postings.Exact.TryGetValue(argument, out var exact))
                         buckets.Add(exact);
                 }
-                else if (argument.Head!.ClassId is string classId)
+                else if (argument.Head!.Type is MemberKind.Class or MemberKind.Interface)
                 {
-                    foreach (string related in RelatedClasses(classId, parameter.variance == NeoGenericParamVarianceKind.Out))
-                        if (postings.Classes.TryGetValue(related, out var entries))
+                    var definition = (argument.Head.Type, argument.Head.ClassId ?? argument.Head.InterfaceId!);
+                    foreach (var related in RelatedDeclarations(definition, parameter.variance == NeoGenericParamVarianceKind.Out))
+                    {
+                        var byKind = related.Kind == MemberKind.Class ? postings.Classes : postings.Interfaces;
+                        if (byKind.TryGetValue(related.Id, out var entries))
                             buckets.Add(entries);
-                    // A class can convert to an interface in a contravariant slot.
-                    if (parameter.variance == NeoGenericParamVarianceKind.In)
-                        buckets.AddRange(postings.Interfaces.Values);
-                    buckets.Add(postings.Other);
-                }
-                else if (argument.Head!.InterfaceId is string interfaceId)
-                {
-                    foreach (string related in RelatedInterfaces(interfaceId, parameter.variance == NeoGenericParamVarianceKind.Out))
-                        if (postings.Interfaces.TryGetValue(related, out var entries))
-                            buckets.Add(entries);
-                    // An implementing class can supply a covariant interface argument.
-                    if (parameter.variance == NeoGenericParamVarianceKind.Out)
-                        buckets.AddRange(postings.Classes.Values);
+                    }
                     buckets.Add(postings.Other);
                 }
                 else
