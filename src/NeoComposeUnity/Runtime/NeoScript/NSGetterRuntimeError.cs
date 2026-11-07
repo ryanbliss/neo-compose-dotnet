@@ -61,6 +61,16 @@ namespace NeoCompose.Runtime.NeoScript
         }
     }
 
+    internal sealed class NeoAmbiguousImplementationError : NSGetterRuntimeError
+    {
+        internal NeoAmbiguousImplementationError(string message) : base(message) { }
+    }
+
+    internal sealed class NeoMissingInterfaceImplementationError : NSGetterRuntimeError
+    {
+        internal NeoMissingInterfaceImplementationError(string message) : base(message) { }
+    }
+
     /// <summary>
     /// A persisted-body validation failure raised before that body's first
     /// instruction executes. Authored try/catch blocks must not intercept

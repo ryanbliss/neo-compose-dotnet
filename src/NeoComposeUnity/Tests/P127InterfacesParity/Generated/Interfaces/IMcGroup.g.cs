@@ -16,25 +16,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
         NeoDelegateValue SetInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "59d3d317-1df5-490a-a3df-90dcfa228cb7", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c3b3624f-0d48-48ff-9820-d9f72e60b231", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), "c3b3624f-0d48-48ff-9820-d9f72e60b231", client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
         NeoDelegateValue SetText()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "4ae99771-4e06-46bc-9702-09870472a5be", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "3605f344-ef25-45b9-b10f-0909710bba61", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), "3605f344-ef25-45b9-b10f-0909710bba61", client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
         NeoDelegateValue GetInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "ec779d11-b190-40e8-90a4-77213b7bb9b2", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "936d7916-d1c6-4fbf-8e05-18216bd054c7", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), "936d7916-d1c6-4fbf-8e05-18216bd054c7", client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
         NeoDelegateValue GetText()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "871f8613-af2c-4edc-8c99-38da45cd2864", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8a4a1d63-c32a-44ce-833a-d508fbd40d41", NeoInterfaceBody.Function, client.TypeArguments.Of<IMcGroup>(), "8a4a1d63-c32a-44ce-833a-d508fbd40d41", client.TypeArguments.Of<IMcGroup>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
     }

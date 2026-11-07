@@ -13,6 +13,11 @@ namespace NeoCompose.Runtime
     /// <summary>Interface graphs and accessor mappings, scoped to the client's schema.</summary>
     internal sealed class NeoInterfaceDispatch
     {
+#if UNITY_EDITOR
+        // Actual-operation counters for cold-query regression tests. No player cost.
+        internal long TestConversions, TestGraphPops, TestGraphEdges;
+        internal long TestIndexPops, TestIndexEdges, TestGlobalNodes, TestGlobalEdges;
+#endif
         private static readonly ConditionalWeakTable<NeoClient, NeoInterfaceDispatch> Caches = new();
         private readonly NeoClient client;
         private readonly object schema;
@@ -290,6 +295,9 @@ namespace NeoCompose.Runtime
         // Normalize only at the boundary, not at every specificity comparison.
         private bool ConvertsIdentity(TypeBinding from, TypeBinding to)
         {
+#if UNITY_EDITOR
+            TestConversions++;
+#endif
             if (from.Equals(to))
                 return true;
             if (from.IsOpen || to.IsOpen)
@@ -449,7 +457,7 @@ namespace NeoCompose.Runtime
                             if (index != best && !ConvertsIdentity(candidates[best].Owner, candidates[index].Owner))
                                 ambiguous = true;
                         if (ambiguous)
-                            throw new NSGetterRuntimeError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
+                            throw new NeoAmbiguousImplementationError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
                         winner = candidates[best];
                     }
                 }
@@ -485,7 +493,7 @@ namespace NeoCompose.Runtime
             return levels;
         }
 
-        private static NSGetterRuntimeError Missing(TypeBinding receiver, TypeBinding requested, string name) =>
+        private static NeoMissingInterfaceImplementationError Missing(TypeBinding receiver, TypeBinding requested, string name) =>
             new($"'{NeoTypeNames.Of(receiver)}' does not implement interface member '{NeoTypeNames.Of(requested)}.{name}'.");
 
         private static Implementation Body(InterfaceMember member, TypeBinding construction) =>
@@ -581,6 +589,7 @@ namespace NeoCompose.Runtime
             internal readonly Dictionary<string, List<ListingEntry>> Classes = new();
             internal readonly Dictionary<string, List<ListingEntry>> Interfaces = new();
             internal readonly List<ListingEntry> Other = new();
+            internal Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>>? Relevant;
         }
 
         private sealed class ReceiverListingIndex
@@ -655,47 +664,99 @@ namespace NeoCompose.Runtime
                     yield return (MemberKind.Interface, parent.interfaceId);
         }
 
-        // Class-to-interface edges matter in both variance directions. Build
-        // only direct reverse edges, then visit each reachable declaration once;
-        // never retain a full ancestor/descendant set for every declaration.
-        private IEnumerable<(MemberKind Kind, string Id)> RelatedDeclarations(
-            (MemberKind Kind, string Id) declaration, bool descendants)
+        private Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>> DeclarationChildren()
         {
-            if (descendants && declarationChildren is null)
+            if (declarationChildren is not null)
+                return declarationChildren;
+            declarationChildren = new();
+            void AddParents((MemberKind Kind, string Id) child)
             {
-                declarationChildren = new();
-                void AddParents((MemberKind Kind, string Id) child)
+#if UNITY_EDITOR
+                TestGlobalNodes++;
+#endif
+                foreach (var parent in DeclarationParents(child))
                 {
-                    foreach (var parent in DeclarationParents(child))
-                    {
-                        if (!declarationChildren.TryGetValue(parent, out var children))
-                            declarationChildren[parent] = children = new();
-                        children.Add(child);
-                    }
+#if UNITY_EDITOR
+                    TestGlobalEdges++;
+#endif
+                    if (!declarationChildren.TryGetValue(parent, out var children))
+                        declarationChildren[parent] = children = new();
+                    children.Add(child);
                 }
-                foreach (string id in client.ProjectDataForRuntime.classes.Keys)
-                    AddParents((MemberKind.Class, id));
-                foreach (string id in client.ProjectDataForRuntime.interfaces.Keys)
-                    AddParents((MemberKind.Interface, id));
             }
+            foreach (string id in client.ProjectDataForRuntime.classes.Keys)
+                AddParents((MemberKind.Class, id));
+            foreach (string id in client.ProjectDataForRuntime.interfaces.Keys)
+                AddParents((MemberKind.Interface, id));
+            return declarationChildren;
+        }
+
+        // Walk backwards from all postings once, retaining only direct edges
+        // that a query can follow to a posting. Shared branches are visited once
+        // during construction, rather than once for every cold request.
+        private Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>> RelevantDeclarations(
+            ArgumentListings postings, bool descendants)
+        {
+            if (postings.Relevant is not null)
+                return postings.Relevant;
+            var graph = new Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>>();
+            var pending = new Stack<(MemberKind Kind, string Id)>();
+            void Add((MemberKind Kind, string Id) declaration)
+            {
+                if (graph.TryAdd(declaration, new()))
+                    pending.Push(declaration);
+            }
+            foreach (string id in postings.Classes.Keys)
+                Add((MemberKind.Class, id));
+            foreach (string id in postings.Interfaces.Keys)
+                Add((MemberKind.Interface, id));
+            var children = descendants ? null : DeclarationChildren();
+            while (pending.Count != 0)
+            {
+                var current = pending.Pop();
+#if UNITY_EDITOR
+                TestIndexPops++;
+#endif
+                IEnumerable<(MemberKind Kind, string Id)> adjacent = descendants
+                    ? DeclarationParents(current)
+                    : children!.TryGetValue(current, out var entries) ? entries : Array.Empty<(MemberKind, string)>();
+                foreach (var next in adjacent)
+                {
+#if UNITY_EDITOR
+                    TestIndexEdges++;
+#endif
+                    Add(next);
+                    graph[next].Add(current);
+                }
+            }
+            return postings.Relevant = graph;
+        }
+
+        private IEnumerable<(MemberKind Kind, string Id)> RelatedDeclarations(
+            ArgumentListings postings, (MemberKind Kind, string Id) declaration, bool descendants)
+        {
+            var graph = RelevantDeclarations(postings, descendants);
+            if (!graph.ContainsKey(declaration))
+                yield break;
             var pending = new Stack<(MemberKind Kind, string Id)>();
             var seen = new HashSet<(MemberKind Kind, string Id)>();
             pending.Push(declaration);
             while (pending.Count != 0)
             {
                 var current = pending.Pop();
+#if UNITY_EDITOR
+                TestGraphPops++;
+#endif
                 if (!seen.Add(current))
                     continue;
                 yield return current;
-                if (descendants)
+                foreach (var next in graph[current])
                 {
-                    if (declarationChildren!.TryGetValue(current, out var children))
-                        foreach (var child in children)
-                            pending.Push(child);
+#if UNITY_EDITOR
+                    TestGraphEdges++;
+#endif
+                    pending.Push(next);
                 }
-                else
-                    foreach (var parent in DeclarationParents(current))
-                        pending.Push(parent);
             }
         }
 
@@ -723,7 +784,7 @@ namespace NeoCompose.Runtime
                 else if (argument.Head!.Type is MemberKind.Class or MemberKind.Interface)
                 {
                     var definition = (argument.Head.Type, argument.Head.ClassId ?? argument.Head.InterfaceId!);
-                    foreach (var related in RelatedDeclarations(definition, parameter.variance == NeoGenericParamVarianceKind.Out))
+                    foreach (var related in RelatedDeclarations(postings, definition, parameter.variance == NeoGenericParamVarianceKind.Out))
                     {
                         var byKind = related.Kind == MemberKind.Class ? postings.Classes : postings.Interfaces;
                         if (byKind.TryGetValue(related.Id, out var entries))

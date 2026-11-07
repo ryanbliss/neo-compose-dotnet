@@ -716,7 +716,7 @@ namespace NeoCompose.Tests
                 NeoInterfaceDispatch.Implementation Run() => dispatch.Resolve(receiverType, requested, "I-slot", accessor);
                 if (expectedBody is "ambiguous" or "missing")
                 {
-                    Assert.That(Assert.Throws<NSGetterRuntimeError>(() => Run())!.Message,
+                    Assert.That(Assert.Catch<NSGetterRuntimeError>(() => Run())!.Message,
                         Does.Contain(expectedBody == "ambiguous" ? "No most specific implementation" : "does not implement interface member"));
                     continue;
                 }

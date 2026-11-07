@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "afba102f-b29d-4f7d-af4f-1ac4f52bd936" => new R24EC4<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3990c67f-ad2e-4deb-91f4-98f60f064881" => new R24EC4<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC4' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "afba102f-b29d-4f7d-af4f-1ac4f52bd936" => new R24EC4<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3990c67f-ad2e-4deb-91f4-98f60f064881" => new R24EC4<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC4' without a concrete client type id."),
                 };
             });
@@ -73,58 +73,20 @@ namespace NeoCompose.Tests.P127InterfacesParity
             return TryWritable<R24EC4<T>>(out writable);
         }
 
-        int R24EIV<R24EIQ<R24EK0>>.V
-        {
-            get
-            {
-                if (typeof(R24EIV<R24EIQ<R24EK0>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
-                {
-                    var result = ComputeProperty("V#4bf989f7-88cd-490d-811a-829a4d74d4e5");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else
-                {
-                    var result = ComputeProperty("V#029a931b-a914-478e-9823-f5fe52f51b7a");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-            }
-        }
-
-        int R24EIV<R24EIQ<R24EK2>>.V
-        {
-            get
-            {
-                if (typeof(R24EIV<R24EIQ<R24EK2>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
-                {
-                    var result = ComputeProperty("V#4bf989f7-88cd-490d-811a-829a4d74d4e5");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else
-                {
-                    var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "5be140a9-6e00-4650-9629-f5bffbf13a91", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK2>>>(), Array.Empty<object?>());
-                    return Convert.ToInt32(result);
-                }
-            }
-        }
-
         int R24EIV<R24EIQ<R24EK4>>.V
         {
             get
             {
                 if (typeof(R24EIV<R24EIQ<R24EK4>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
                 {
-                    var result = ComputeProperty("V#4bf989f7-88cd-490d-811a-829a4d74d4e5");
+                    var result = ComputeProperty("V#aa3d478d-c9ec-4c45-9c22-318c452cab7e");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, this, "5be140a9-6e00-4650-9629-f5bffbf13a91", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK4>>>(), Array.Empty<object?>());
+                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "6aa82c9e-d5ae-4e05-8042-5825556e14c3", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK4>>>(), null, null, Array.Empty<object?>());
                     return Convert.ToInt32(result);
                 }
             }
