@@ -20,7 +20,15 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R23TSX<T, U> : R23TSMg<T, U>, IReadOnlyR23TSX<T, U>
+    public abstract partial class R23TSXListings<T, U> : R23TSMg<T, U>, R23TJS<R23TTag, U>
+    {
+        internal R23TSXListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+    }
+
+    public partial class R23TSX<T, U> : R23TSXListings<T, U>, IReadOnlyR23TSX<T, U>
     {
         internal R23TSX(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3905d0ce-c172-4b4b-ad53-5e841c32525f" => new R23TSX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3c15231f-d64b-4a8b-b98a-841281966a7f" => new R23TSX<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TSX' without a concrete client type id."),
                 };
             });
@@ -47,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3905d0ce-c172-4b4b-ad53-5e841c32525f" => new R23TSX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3c15231f-d64b-4a8b-b98a-841281966a7f" => new R23TSX<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TSX' without a concrete client type id."),
                 };
             });

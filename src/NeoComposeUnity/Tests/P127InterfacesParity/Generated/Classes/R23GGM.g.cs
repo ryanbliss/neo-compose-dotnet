@@ -36,9 +36,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b37e9899-a6d9-454b-85dc-78ca037bd4ff" => (R23GGM<T>)(object)new R23GG3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "ff3d974c-e56a-4fed-8cf5-97eeeb5828f1" => (R23GGM<T>)(object)new R23GG2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "d9b8a4f6-16e1-46c2-a520-6cbcfe06a7ed" => new R23GGM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "757de5b7-f444-42cc-b8d9-b56c133f12b9" => (R23GGM<T>)(object)new R23GG3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a7134801-cb80-40c0-bfca-3531f1be1044" => (R23GGM<T>)(object)new R23GG2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ab75f4d1-255b-4419-9e99-d44fb90bd3d9" => new R23GGM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23GGM' without a concrete client type id."),
                 };
             });
@@ -51,9 +51,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b37e9899-a6d9-454b-85dc-78ca037bd4ff" => (R23GGM<T>)(object)new R23GG3(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "ff3d974c-e56a-4fed-8cf5-97eeeb5828f1" => (R23GGM<T>)(object)new R23GG2(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "d9b8a4f6-16e1-46c2-a520-6cbcfe06a7ed" => new R23GGM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "757de5b7-f444-42cc-b8d9-b56c133f12b9" => (R23GGM<T>)(object)new R23GG3(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a7134801-cb80-40c0-bfca-3531f1be1044" => (R23GGM<T>)(object)new R23GG2(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ab75f4d1-255b-4419-9e99-d44fb90bd3d9" => new R23GGM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23GGM' without a concrete client type id."),
                 };
             });

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McShowN : NeoGeneratedClassValue, IReadOnlyMcShowN
     {
         internal McShowN(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f93605fd-a688-4625-ad3c-bce14f8abb70", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "bf7cc63d-e35c-4e93-83d8-932ec993e91c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f93605fd-a688-4625-ad3c-bce14f8abb70");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bf7cc63d-e35c-4e93-83d8-932ec993e91c");
         }
 
         internal static McShowN Create(NeoClient client, NeoMemberClass node)

@@ -20,7 +20,31 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class R19EqBelow<T, U> : R19M<T, U>, IReadOnlyR19EqBelow<T, U>
+    public abstract partial class R19EqBelowListings<T, U> : R19M<T, U>, IR19J<R19Tag, U>, IR19F<R19Tag, U>
+    {
+        internal R19EqBelowListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int IR19J<R19Tag, U>.V
+        {
+            get
+            {
+                var result = ComputeProperty("V");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+        int IR19F<R19Tag, U>.F()
+        {
+            var result = InvokeFunction("F");
+            return Convert.ToInt32(result);
+        }
+    }
+
+    public partial class R19EqBelow<T, U> : R19EqBelowListings<T, U>, IReadOnlyR19EqBelow<T, U>
     {
         internal R19EqBelow(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -34,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a68ad9d5-bd9e-4322-8854-4a13a0657460" => new R19EqBelow<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c437f03a-e261-43c2-9374-0965064cc7d1" => new R19EqBelow<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19EqBelow' without a concrete client type id."),
                 };
             });
@@ -47,7 +71,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a68ad9d5-bd9e-4322-8854-4a13a0657460" => new R19EqBelow<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c437f03a-e261-43c2-9374-0965064cc7d1" => new R19EqBelow<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19EqBelow' without a concrete client type id."),
                 };
             });

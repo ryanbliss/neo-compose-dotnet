@@ -22,7 +22,34 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new int V { get; }
     }
 
-    public partial class R19VO<T, U> : R19VM<T, U>, IReadOnlyR19VO<T, U>
+    public abstract partial class R19VOListings<T, U> : R19VM<T, U>, IR19J<R19Tag, U>
+    {
+        internal R19VOListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int IR19J<R19Tag, U>.V
+        {
+            get
+            {
+                if (typeof(IR19J<R19Tag, U>) == typeof(IR19J<R19Tag, T>))
+                {
+                    var result = ComputeProperty("V");
+                    result.ThrowIfFailed();
+                    return Convert.ToInt32(result.value);
+                }
+                else
+                {
+                    var result = ComputeProperty("V#6fb7d679-4e39-44e5-a06e-040bd83be4e1");
+                    result.ThrowIfFailed();
+                    return Convert.ToInt32(result.value);
+                }
+            }
+        }
+    }
+
+    public partial class R19VO<T, U> : R19VOListings<T, U>, IReadOnlyR19VO<T, U>
     {
         internal R19VO(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -36,7 +63,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "66a09648-31ec-4f78-ab1a-971d15bc0ca8" => new R19VO<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e3528dd7-fce2-4399-aacc-addf686d2443" => new R19VO<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VO' without a concrete client type id."),
                 };
             });
@@ -49,7 +76,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "66a09648-31ec-4f78-ab1a-971d15bc0ca8" => new R19VO<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e3528dd7-fce2-4399-aacc-addf686d2443" => new R19VO<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VO' without a concrete client type id."),
                 };
             });
@@ -76,6 +103,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         public override int V
+        {
+            get
+            {
+                var result = ComputeProperty("V");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+        int IR19J<R19Tag, T>.V
         {
             get
             {
