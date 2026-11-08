@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e0ccfdae-b3e5-4e84-b583-13a9906a62d2");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b826f8b4-630b-4566-80ae-b85f8f2ad7bb");
         }
 
         internal new static R23RKE Create(NeoClient client, NeoMemberClass node)
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f5fe56c2-8171-45a4-b27c-6d23f888d0f2" => new R23RK6(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0896eb6d-b681-4a98-8496-2edf95998a99" => new R23RK6(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23RKE(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f5fe56c2-8171-45a4-b27c-6d23f888d0f2" => new R23RK6(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0896eb6d-b681-4a98-8496-2edf95998a99" => new R23RK6(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23RKE(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,8 +77,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "f5fe56c2-8171-45a4-b27c-6d23f888d0f2" => new R23RK6(client, value, !saved),
-                "e0ccfdae-b3e5-4e84-b583-13a9906a62d2" => new R23RKE(client, value, !saved),
+                "0896eb6d-b681-4a98-8496-2edf95998a99" => new R23RK6(client, value, !saved),
+                "b826f8b4-630b-4566-80ae-b85f8f2ad7bb" => new R23RKE(client, value, !saved),
                 _ => null,
             };
         }

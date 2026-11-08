@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GNA<T> : NeoGeneratedClassValue, IReadOnlyGNA<T>
     {
         internal GNA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "78a1efb6-faba-4ef7-9660-3e0091a249e5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ce4bf5dd-42c1-4b10-aa06-c2153f761c9f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static string Nm()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "95afeed1-c5cf-4ed1-a6db-323263e63bb9", client.TypeArguments.Of<GNA<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ad5255f8-567f-47e7-b2f3-02db06ee5070", client.TypeArguments.Of<GNA<T>>());
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -42,8 +42,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "52632b83-ce41-4ff8-846c-74d75c96c784" => (GNA<T>)(object)new GNDA(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "78a1efb6-faba-4ef7-9660-3e0091a249e5" => new GNA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "567dfc1f-29fa-42d0-9d2b-2d27f2f9a309" => (GNA<T>)(object)new GNDA(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ce4bf5dd-42c1-4b10-aa06-c2153f761c9f" => new GNA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GNA' without a concrete client type id."),
                 };
             });
@@ -56,8 +56,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "52632b83-ce41-4ff8-846c-74d75c96c784" => (GNA<T>)(object)new GNDA(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "78a1efb6-faba-4ef7-9660-3e0091a249e5" => new GNA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "567dfc1f-29fa-42d0-9d2b-2d27f2f9a309" => (GNA<T>)(object)new GNDA(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ce4bf5dd-42c1-4b10-aa06-c2153f761c9f" => new GNA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GNA' without a concrete client type id."),
                 };
             });

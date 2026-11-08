@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "30b59484-ada3-455d-b1d5-181eb46637c3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "88fa21b9-6015-4afb-81dc-2fc7dc668d92");
         }
 
         internal new static R27O8N6 Create(NeoClient client, NeoMemberClass node)
@@ -104,6 +104,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
         IReadOnlyR27O8S<IReadOnlyR27O8Ba> IReadOnlyR27O8S<IReadOnlyR27O8Ba>.Clone()
         {
             return (IReadOnlyR27O8S<IReadOnlyR27O8Ba>)(object)Clone();
+        }
+
+        string IR27O8J<R27O8Ba>.V
+        {
+            get
+            {
+                var client = TestProjectNeo.RequireInstance().Client;
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d430dd6e-1b51-4e46-b38f-2b0c284e19f9", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8J<R27O8Ba>>(), "d430dd6e-1b51-4e46-b38f-2b0c284e19f9", client.TypeArguments.Of<IR27O8J<R27O8Ba>>(), Array.Empty<object?>());
+                return (string)result!;
+            }
         }
 
         public new sealed class Fields

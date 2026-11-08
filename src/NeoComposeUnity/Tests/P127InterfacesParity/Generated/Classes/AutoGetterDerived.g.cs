@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "650e7eb7-c0bc-4547-95c0-cabf35025092",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "f997ac30-f252-4ffd-8af5-4c5df7f92fe5", V)
+                "4274fb2f-39f6-422b-82b9-985c1e3b11e9",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "ab8699ea-c137-4aed-9a15-93ae427dd3e1", V)
             );
         }
 
@@ -115,7 +115,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
         }
 
-        [NeoMemberMethod("c28ab0f5-7892-4223-97f4-3da2c9279108")]
+        [NeoMemberMethod("80102f97-d827-411e-904b-42c212bdf8b8")]
         public void Bump()
         {
             InvokeFunction("Bump");

@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
     }
 
-    public partial class R27O8N4 : R27O8N4Listings, IReadOnlyR27O8N4
+    public partial class R27O8N4 : R27O8N4Listings, IReadOnlyR27O8N4, IR27O8J<R27O8Ba>
     {
         internal R27O8N4(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7fd90411-c343-432b-88d7-56201abca707");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "da8565ea-e1ad-4fb0-bf1f-fad4cb346e66");
         }
 
         internal new static R27O8N4 Create(NeoClient client, NeoMemberClass node)
@@ -122,6 +122,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
         IReadOnlyR27O8S<IReadOnlyR27O8D1> IReadOnlyR27O8S<IReadOnlyR27O8D1>.Clone()
         {
             return (IReadOnlyR27O8S<IReadOnlyR27O8D1>)(object)Clone();
+        }
+
+        string IR27O8J<R27O8D1>.V
+        {
+            get
+            {
+                var client = TestProjectNeo.RequireInstance().Client;
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d430dd6e-1b51-4e46-b38f-2b0c284e19f9", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8J<R27O8D1>>(), "d430dd6e-1b51-4e46-b38f-2b0c284e19f9", client.TypeArguments.Of<IR27O8J<R27O8D1>>(), Array.Empty<object?>());
+                return (string)result!;
+            }
         }
 
         public new sealed class Fields
