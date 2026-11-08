@@ -20,7 +20,15 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public abstract partial class R26EListings<T, U> : R26C<T, U>, IR26J<R26D1>
+    public abstract partial class R26EListings2<T, U> : R26C<T, U>, IR26J<U>
+    {
+        internal R26EListings2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+    }
+
+    public abstract partial class R26EListings<T, U> : R26EListings2<T, U>, IR26J<R26D1>
     {
         internal R26EListings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -42,7 +50,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7a3a1927-c5a0-42bc-b742-0a349516d5a7" => new R26E<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e882fe21-3abd-471e-b226-883a5b31dc67" => new R26E<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26E' without a concrete client type id."),
                 };
             });
@@ -55,7 +63,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7a3a1927-c5a0-42bc-b742-0a349516d5a7" => new R26E<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e882fe21-3abd-471e-b226-883a5b31dc67" => new R26E<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26E' without a concrete client type id."),
                 };
             });

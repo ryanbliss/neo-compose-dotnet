@@ -20,11 +20,77 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public abstract partial class R24VV2Bridges<T, U> : R24VX<T>, R24VIPV<R24VIQ<R24VBa>>, R24VIPV<R24VG<T>>
+    public abstract partial class R24VV2Bridges<T, U> : R24VX<T>, R24VIPV<R24VG<T>>
     {
         internal R24VV2Bridges(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
+        }
+
+        int R24VIPV<R24VG<T>>.P
+        {
+            get
+            {
+                if (typeof(R24VIPV<R24VG<T>>) == typeof(R24VIPV<R24VG<U>>))
+                {
+                    var result = ComputeProperty("P#246c92e1-cb7f-479f-9085-0d6e06509dee");
+                    result.ThrowIfFailed();
+                    return Convert.ToInt32(result.value);
+                }
+                else if (typeof(R24VIPV<R24VG<T>>).IsAssignableFrom(typeof(R24VIPV<R24VG<U>>)))
+                {
+                    var result = ComputeProperty("P#246c92e1-cb7f-479f-9085-0d6e06509dee");
+                    result.ThrowIfFailed();
+                    return Convert.ToInt32(result.value);
+                }
+                else
+                {
+                    var result = ComputeProperty("P#7b909763-8084-4344-a36d-4a4c40046e7f");
+                    result.ThrowIfFailed();
+                    return Convert.ToInt32(result.value);
+                }
+            }
+            set
+            {
+                if (typeof(R24VIPV<R24VG<T>>) == typeof(R24VIPV<R24VG<U>>))
+                {
+                    var result = writableNode.Get<NeoMemberNSProperty>("P#246c92e1-cb7f-479f-9085-0d6e06509dee").Set(valueId!, value);
+                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
+                }
+                else if (typeof(R24VIPV<R24VG<T>>).IsAssignableFrom(typeof(R24VIPV<R24VG<U>>)))
+                {
+                    var result = writableNode.Get<NeoMemberNSProperty>("P#246c92e1-cb7f-479f-9085-0d6e06509dee").Set(valueId!, value);
+                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
+                }
+                else
+                {
+                    var result = writableNode.Get<NeoMemberNSProperty>("P#7b909763-8084-4344-a36d-4a4c40046e7f").Set(valueId!, value);
+                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
+                }
+            }
+        }
+    }
+
+    public abstract partial class R24VV2Listings<T, U> : R24VV2Bridges<T, U>, R24VIPV<R24VG<U>>, R24VIPV<R24VIQ<R24VBa>>
+    {
+        internal R24VV2Listings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int R24VIPV<R24VG<U>>.P
+        {
+            get
+            {
+                var result = ComputeProperty("P#246c92e1-cb7f-479f-9085-0d6e06509dee");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+            set
+            {
+                var result = writableNode.Get<NeoMemberNSProperty>("P#246c92e1-cb7f-479f-9085-0d6e06509dee").Set(valueId!, value);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
+            }
         }
 
         int R24VIPV<R24VIQ<R24VBa>>.P
@@ -33,13 +99,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R24VIPV<R24VIQ<R24VBa>>).IsAssignableFrom(typeof(R24VIPV<R24VG<U>>)))
                 {
-                    var result = ComputeProperty("P#83694671-3585-45b7-94d6-bd291e205ca8");
+                    var result = ComputeProperty("P#246c92e1-cb7f-479f-9085-0d6e06509dee");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
                 else if (typeof(R24VIPV<R24VIQ<R24VBa>>).IsAssignableFrom(typeof(R24VIPV<R24VG<T>>)))
                 {
-                    var result = ComputeProperty("P#12b86b62-2288-48c0-9eb4-8d8c6adbd528");
+                    var result = ComputeProperty("P#7b909763-8084-4344-a36d-4a4c40046e7f");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
@@ -53,72 +119,6 @@ namespace NeoCompose.Tests.P127InterfacesParity
             set
             {
                 var result = writableNode.Get<NeoMemberNSProperty>("P").Set(valueId!, value);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-            }
-        }
-
-        int R24VIPV<R24VG<T>>.P
-        {
-            get
-            {
-                if (typeof(R24VIPV<R24VG<T>>) == typeof(R24VIPV<R24VG<U>>))
-                {
-                    var result = ComputeProperty("P#83694671-3585-45b7-94d6-bd291e205ca8");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else if (typeof(R24VIPV<R24VG<T>>).IsAssignableFrom(typeof(R24VIPV<R24VG<U>>)))
-                {
-                    var result = ComputeProperty("P#83694671-3585-45b7-94d6-bd291e205ca8");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-                else
-                {
-                    var result = ComputeProperty("P#12b86b62-2288-48c0-9eb4-8d8c6adbd528");
-                    result.ThrowIfFailed();
-                    return Convert.ToInt32(result.value);
-                }
-            }
-            set
-            {
-                if (typeof(R24VIPV<R24VG<T>>) == typeof(R24VIPV<R24VG<U>>))
-                {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P#83694671-3585-45b7-94d6-bd291e205ca8").Set(valueId!, value);
-                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-                }
-                else if (typeof(R24VIPV<R24VG<T>>).IsAssignableFrom(typeof(R24VIPV<R24VG<U>>)))
-                {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P#83694671-3585-45b7-94d6-bd291e205ca8").Set(valueId!, value);
-                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-                }
-                else
-                {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P#12b86b62-2288-48c0-9eb4-8d8c6adbd528").Set(valueId!, value);
-                    if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
-                }
-            }
-        }
-    }
-
-    public abstract partial class R24VV2Listings<T, U> : R24VV2Bridges<T, U>, R24VIPV<R24VG<U>>
-    {
-        internal R24VV2Listings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, isReadOnly, inheritedStorageOwnership)
-        {
-        }
-
-        int R24VIPV<R24VG<U>>.P
-        {
-            get
-            {
-                var result = ComputeProperty("P#83694671-3585-45b7-94d6-bd291e205ca8");
-                result.ThrowIfFailed();
-                return Convert.ToInt32(result.value);
-            }
-            set
-            {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#83694671-3585-45b7-94d6-bd291e205ca8").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
@@ -138,7 +138,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2e9859f1-29e9-4a98-b804-0b9adad7e757" => new R24VV2<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2d2f43e7-21ab-4008-aa0e-692a9c1e3a58" => new R24VV2<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VV2' without a concrete client type id."),
                 };
             });
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2e9859f1-29e9-4a98-b804-0b9adad7e757" => new R24VV2<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2d2f43e7-21ab-4008-aa0e-692a9c1e3a58" => new R24VV2<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VV2' without a concrete client type id."),
                 };
             });

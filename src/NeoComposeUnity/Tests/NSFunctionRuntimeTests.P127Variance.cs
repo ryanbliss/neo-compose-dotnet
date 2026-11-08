@@ -232,7 +232,7 @@ namespace NeoCompose.Tests
                 };
                 object? Run() => NSGetterEvaluator.EvaluatePointer(pointer, new NeoScriptScope(), context);
                 if (exactView)
-                    Assert.That(Assert.Throws<NeoAmbiguousImplementationError>(() => Run())!.Message, Does.Contain("No most specific implementation"));
+                    Assert.That(Assert.Throws<NeoAmbiguousImplementationError>(() => Run())!.Message, Does.Contain("has competing implementations"));
                 else
                     Assert.That(Run(), Is.EqualTo(expected));
                 return;
@@ -327,7 +327,7 @@ namespace NeoCompose.Tests
             if (stringView)
                 Assert.That(Run(), Is.EqualTo(6));
             else
-                Assert.That(Assert.Throws<NeoAmbiguousImplementationError>(() => Run())!.Message, Does.Contain("No most specific implementation"));
+                Assert.That(Assert.Throws<NeoAmbiguousImplementationError>(() => Run())!.Message, Does.Contain("has competing implementations"));
         }
     }
 }

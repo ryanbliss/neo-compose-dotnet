@@ -1484,7 +1484,7 @@
       "source": [
         "class Use { public static int U() { NeoDelegate<int, int> g = int.Abs<int>; return g(1); } }"
       ],
-      "message": "CS0308: The non-generic method 'int.Abs(int)' cannot be used with type arguments"
+      "message": "non-generic-type-arguments: 'int.Abs(int)' is not generic and cannot receive type arguments."
     }
   ]
 }

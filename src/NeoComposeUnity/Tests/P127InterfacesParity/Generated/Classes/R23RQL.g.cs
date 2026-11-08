@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bd009b4b-b565-4c36-8285-466086eb88fb");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "56dd5ae8-5aaa-46ff-8936-c5bfa0a42618");
         }
 
         internal new static R23RQL Create(NeoClient client, NeoMemberClass node)
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eeb4dacf-f117-466d-a0d2-7fab49d74127" => new R23RQ4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "aff03004-2bd6-4041-8c76-0f1e331ebcf7" => new R23RQ4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23RQL(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eeb4dacf-f117-466d-a0d2-7fab49d74127" => new R23RQ4(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "aff03004-2bd6-4041-8c76-0f1e331ebcf7" => new R23RQ4(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23RQL(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -75,8 +75,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "eeb4dacf-f117-466d-a0d2-7fab49d74127" => new R23RQ4(client, value, !saved),
-                "bd009b4b-b565-4c36-8285-466086eb88fb" => new R23RQL(client, value, !saved),
+                "aff03004-2bd6-4041-8c76-0f1e331ebcf7" => new R23RQ4(client, value, !saved),
+                "56dd5ae8-5aaa-46ff-8936-c5bfa0a42618" => new R23RQL(client, value, !saved),
                 _ => null,
             };
         }

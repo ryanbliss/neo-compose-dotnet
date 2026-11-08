@@ -75,7 +75,7 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public NeoGenericParamVarianceKind? variance;
 
-        /// <summary>The class constraint, which C# puts first (CS0406).</summary>
+        /// <summary>The class constraint is stored before any interface constraints.</summary>
         [JsonIgnore]
         public GenericParamConstraint? ClassConstraint =>
             constraints is { Count: > 0 } && constraints[0].kind == NeoGenericParamConstraintKind.Class

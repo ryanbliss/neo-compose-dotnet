@@ -478,7 +478,7 @@ namespace NeoCompose.Tests
 
             Assert.That(error!.Message, Does.StartWith(
                 "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): "));
-            Assert.That(error.Message, Does.Contain("does not implement interface member"));
+            Assert.That(error.Message, Does.Contain("has no implementation for"));
             Assert.That(error.InnerException, Is.InstanceOf<NeoCompose.Runtime.NeoScript.NSGetterRuntimeError>());
             Assert.That(error.Message, Does.EndWith(error.InnerException!.Message));
             Assert.That(error.Message, Does.Not.Contain("UnrelatedString"));
@@ -543,7 +543,7 @@ namespace NeoCompose.Tests
 
             Assert.That(error!.Message, Does.StartWith(
                 "Class 'C' cannot fulfill settable interface property 'P' from Interface 'I' (diagnostic-interface): "));
-            Assert.That(error.Message, Does.Contain("No most specific implementation of 'P'"));
+            Assert.That(error.Message, Does.Contain("Interface member 'P' has competing implementations"));
             Assert.That(error.InnerException, Is.InstanceOf<NSGetterRuntimeError>());
             Assert.That(error.Message, Does.EndWith(error.InnerException!.Message));
             Assert.That(error.Message, Does.Not.Contain("UnrelatedString"));

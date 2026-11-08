@@ -14,6 +14,7 @@ directories=(
     "samples/HelloWorld/Assets/Tests"
     "scripts/performance"
     "scripts/extension-codegen-tests"
+    "scripts/interface-parity-tests"
 )
 # Exclusions are relative to each folder workspace, not the repository root.
 for directory in "${directories[@]}"; do

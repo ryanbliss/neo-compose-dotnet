@@ -401,21 +401,21 @@
       "source": [
         "class D { public static void M() { CultureInfo.InvariantCulture.Name = \"x\"; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'CultureInfo.Name' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'CultureInfo.Name'."
     },
     {
       "name": "NumberFormatIsReadOnlyWrite",
       "source": [
         "class D { public static void M() { NumberFormatInfo.InvariantInfo.IsReadOnly = true; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'NumberFormatInfo.IsReadOnly' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'NumberFormatInfo.IsReadOnly'."
     },
     {
       "name": "CurrentCultureWrite",
       "source": [
         "class D { public static void M() { CultureInfo.CurrentCulture = CultureInfo.InvariantCulture; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'CultureInfo.CurrentCulture' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'CultureInfo.CurrentCulture'."
     },
     {
       "name": "IntToStringIntProvider",
