@@ -1230,6 +1230,129 @@ namespace NeoCompose.Tests
             yield return new TestCaseData("R27NeighbourSlots", 5, "J", null,
                 (Func<NeoClient, object?>)(client => { G.IR27O7J<G.R27O7D1> x = CreateParityValue(client, G.R27O7W<G.R27O7Ba>.CreateWritable); return x.V; }))
                 .SetName("GeneratedBridge_R27O6");
+            yield return new TestCaseData("R29DefaultSlots", 0, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6BaV");
+            yield return new TestCaseData("R29DefaultSlots", 1, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6BaM");
+            yield return new TestCaseData("R29DefaultSlots", 2, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<object> x = CreateParityValue(client, G.R29N6.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6ObjV");
+            yield return new TestCaseData("R29DefaultSlots", 3, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<object> x = CreateParityValue(client, G.R29N6.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6ObjM");
+            yield return new TestCaseData("R29DefaultSlots", 4, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6g<G.R29Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6gBaV");
+            yield return new TestCaseData("R29DefaultSlots", 5, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6g<G.R29Ba>.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6gBaM");
+            yield return new TestCaseData("R29DefaultSlots", 6, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29N6g<G.R29D1>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6gD1V");
+            yield return new TestCaseData("R29DefaultSlots", 7, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29N6g<G.R29D1>.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6gD1M");
+            yield return new TestCaseData("R29DefaultSlots", 8, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<object> x = CreateParityValue(client, G.R29N6g<G.R29Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6gObjV");
+            yield return new TestCaseData("R29DefaultSlots", 9, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<object> x = CreateParityValue(client, G.R29N6g<G.R29Ba>.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6gObjM");
+            yield return new TestCaseData("R29DefaultSlots", 10, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29P.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29PBaV");
+            yield return new TestCaseData("R29DefaultSlots", 11, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29P.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PBaM");
+            yield return new TestCaseData("R29DefaultSlots", 12, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29N4.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N4D1V");
+            yield return new TestCaseData("R29DefaultSlots", 13, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29N4.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N4D1M");
+            yield return new TestCaseData("R29DefaultSlots", 14, "n", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N4.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N4BaV");
+            yield return new TestCaseData("R29DefaultSlots", 15, "n", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N4.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N4BaM");
+            yield return new TestCaseData("R29DefaultSlots", 16, "I", null,
+                (Func<NeoClient, object?>)(client => { G.IR29I<G.R29Ba> x = CreateParityValue(client, G.R29N6i.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6iBaV");
+            yield return new TestCaseData("R29DefaultSlots", 17, "I", null,
+                (Func<NeoClient, object?>)(client => { G.IR29I<G.R29Ba> x = CreateParityValue(client, G.R29N6i.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6iBaM");
+            yield return new TestCaseData("R29DefaultSlots", 18, "e", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29G.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29GBaV");
+            yield return new TestCaseData("R29DefaultSlots", 19, "e", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29G.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29GBaM");
+            yield return new TestCaseData("R29DefaultSlots", 20, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N9.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N9BaV");
+            yield return new TestCaseData("R29DefaultSlots", 21, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N9.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N9BaM");
+            yield return new TestCaseData("R29DefaultSlots", 22, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29H.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29HBaV");
+            yield return new TestCaseData("R29DefaultSlots", 23, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29H.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29HBaM");
+            yield return new TestCaseData("R29DefaultSlots", 24, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6v.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29N6vBaV");
+            yield return new TestCaseData("R29DefaultSlots", 25, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29N6v.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29N6vBaM");
+            yield return new TestCaseData("R29DefaultSlots", 26, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29W.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29WD1V");
+            yield return new TestCaseData("R29DefaultSlots", 27, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29D1> x = CreateParityValue(client, G.R29W.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29WD1M");
+            yield return new TestCaseData("R29DefaultSlots", 28, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29W.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29WBaV");
+            yield return new TestCaseData("R29DefaultSlots", 29, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR29J<G.R29Ba> x = CreateParityValue(client, G.R29W.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29WBaM");
+            yield return new TestCaseData("R29DefaultSlots", 30, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PA.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29PAV");
+            yield return new TestCaseData("R29DefaultSlots", 31, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PA.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PAM");
+            yield return new TestCaseData("R29DefaultSlots", 32, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PA2.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29PA2V");
+            yield return new TestCaseData("R29DefaultSlots", 33, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PA2.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PA2M");
+            yield return new TestCaseData("R29DefaultSlots", 34, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PB.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29PBV");
+            yield return new TestCaseData("R29DefaultSlots", 35, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PB.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PBM");
+            yield return new TestCaseData("R29DefaultSlots", 36, "n", null,
+                (Func<NeoClient, object?>)(client => { G.IR29K x = CreateParityValue(client, G.R29PV.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R29PVV");
+            yield return new TestCaseData("R29DefaultSlots", 37, "n", null,
+                (Func<NeoClient, object?>)(client => { G.IR29K x = CreateParityValue(client, G.R29PV.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PVM");
+            yield return new TestCaseData("R29DefaultSlots", 38, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29PM.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29PMM");
+            yield return new TestCaseData("R29DefaultSlots", 39, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29C2.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29C2M");
+            yield return new TestCaseData("R29DefaultSlots", 40, "A", null,
+                (Func<NeoClient, object?>)(client => { G.IR29A x = CreateParityValue(client, G.R29B2.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R29B2M");
         }
 
         [TestCaseSource(nameof(HistoricalGeneratedCases))]

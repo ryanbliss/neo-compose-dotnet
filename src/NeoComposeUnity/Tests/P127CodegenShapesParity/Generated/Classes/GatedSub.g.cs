@@ -46,9 +46,9 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "d328fb3b-a26e-4ca6-a39f-36c4395ffb90",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "aac8cb46-0f04-46ad-b61f-a77e8f5db580", P),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "b2e4f723-ba93-4b50-9d56-3b511cdedb47", Q)
+                "cf0f78a4-c1f4-421b-a0b3-6d2bf2e254d6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "8e6f67ff-7f42-4590-8d73-e4fd1e153415", P),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "5f72edf9-5ca0-4625-85ab-d34bbdeaa26b", Q)
             );
         }
 
