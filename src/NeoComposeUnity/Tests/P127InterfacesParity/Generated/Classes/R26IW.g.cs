@@ -26,6 +26,16 @@ namespace NeoCompose.Tests.P127InterfacesParity
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
+
+        string IR26I<R26D1>.V
+        {
+            get
+            {
+                var client = TestProjectNeo.RequireInstance().Client;
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "5f2b58f8-08ff-4890-82d7-4e9f468807bd", NeoInterfaceBody.Get, client.TypeArguments.Of<IR26I<R26D1>>(), "5f2b58f8-08ff-4890-82d7-4e9f468807bd", client.TypeArguments.Of<IR26I<R26D1>>(), Array.Empty<object?>());
+                return (string)result!;
+            }
+        }
     }
 
     public partial class R26IW<T> : R26IWListings<T>, IReadOnlyR26IW<T>
@@ -42,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "56643c01-fb85-4cc6-a7eb-e2d61ac49937" => new R26IW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "002c7232-5c62-4574-bab3-d1f04bcfec02" => new R26IW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IW' without a concrete client type id."),
                 };
             });
@@ -55,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "56643c01-fb85-4cc6-a7eb-e2d61ac49937" => new R26IW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "002c7232-5c62-4574-bab3-d1f04bcfec02" => new R26IW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IW' without a concrete client type id."),
                 };
             });

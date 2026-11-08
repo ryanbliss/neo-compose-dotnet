@@ -17,6 +17,7 @@ namespace NeoCompose.Runtime
         // Actual-operation counters for cold-query regression tests. No player cost.
         internal long TestConversions, TestGraphPops, TestGraphEdges;
         internal long TestDefaultOwnerVisits, TestDefaultMemberVisits, TestDefaultCandidateVisits, TestResolveCalls;
+        internal long TestExplicitSiteVisits, TestInheritedListingVisits, TestClassMemberOwnerVisits;
         internal long TestIndexPops, TestIndexEdges, TestGlobalNodes, TestGlobalEdges;
 #endif
         private static readonly ConditionalWeakTable<NeoClient, NeoInterfaceDispatch> Caches = new();
@@ -83,7 +84,7 @@ namespace NeoCompose.Runtime
         private TypeBinding DispatchIdentity(TypeBinding binding) => schemaValidation
             ? SchemaIdentity(binding) : Identity(binding);
 
-        private static TypeBinding SchemaIdentity(TypeBinding binding) => binding.IsOpen ? binding
+        private static TypeBinding SchemaIdentity(TypeBinding binding) => binding.Kind is TypeBindingKind.Open or TypeBindingKind.MethodParam ? binding
             : TypeBinding.Closed(binding.Head!.WithoutNames().WithRequired(
                 TypeBindings.IsValueType(binding.Head) ? binding.Head.Required : true),
                 binding.Bindings?.ToDictionary(pair => pair.Key, pair => SchemaIdentity(pair.Value)));
@@ -111,6 +112,9 @@ namespace NeoCompose.Runtime
 
         internal static TypeBinding Substitute(TypeBinding binding, TypeBinding owner)
         {
+            // Method parameters identify signature positions, not owner bindings.
+            if (binding.Kind == TypeBindingKind.MethodParam)
+                return binding;
             if (binding.IsOpen)
             {
                 if (owner.Bindings?.TryGetValue(binding.Param!, out var argument) == true)
@@ -449,7 +453,9 @@ namespace NeoCompose.Runtime
             {
                 bool exact = pass == 0;
                 var candidates = new List<(TypeBinding Owner, InterfaceMember Member)>();
-                foreach (var entry in entries)
+                foreach (var entry in exact
+                    ? entries.ByConstruction.GetValueOrDefault(requested) ?? Enumerable.Empty<DefaultCandidate>()
+                    : MatchingConstructions(entries, requested, entry => entry.Target).OrderBy(entry => entry.Order))
                 {
 #if UNITY_EDITOR
                     TestDefaultCandidateVisits++;
@@ -457,8 +463,7 @@ namespace NeoCompose.Runtime
                     if (entry.IsOverride && entry.Member.kind == NeoInterfaceMemberKind.Property
                         && !InterfaceHasAccessor(entry.Member, accessor))
                         continue;
-                    if (exact ? entry.Target.Equals(requested) : ConvertsIdentity(entry.Target, requested))
-                        candidates.Add((entry.Owner, entry.Member));
+                    candidates.Add((entry.Owner, entry.Member));
                 }
                 (TypeBinding Owner, InterfaceMember Member)? winner = null;
                 if (exact)
@@ -477,7 +482,7 @@ namespace NeoCompose.Runtime
                             if (index != best && !ConvertsIdentity(candidates[best].Owner, candidates[index].Owner))
                                 ambiguous = true;
                         if (ambiguous)
-                            throw new NeoAmbiguousImplementationError($"No most specific implementation of '{name}' for '{NeoTypeNames.Of(receiver)}'.");
+                            throw new NeoAmbiguousImplementationError($"Interface member '{name}' has competing implementations on '{NeoTypeNames.Of(receiver)}'.");
                         winner = candidates[best];
                     }
                 }
@@ -498,32 +503,35 @@ namespace NeoCompose.Runtime
             throw Missing(receiver, requested, name);
         }
 
-        private readonly Dictionary<TypeBinding, Dictionary<string, List<DefaultCandidate>>> defaultsByReceiver = new();
+        private readonly Dictionary<TypeBinding, Dictionary<string, ConstructionIndex<DefaultCandidate>>> defaultsByReceiver = new();
 
         private readonly struct DefaultCandidate
         {
             internal readonly TypeBinding Owner, Target;
             internal readonly InterfaceMember Member;
             internal readonly bool IsOverride;
-            internal DefaultCandidate(TypeBinding owner, TypeBinding target, InterfaceMember member, bool isOverride)
+            internal readonly int Order;
+            internal DefaultCandidate(TypeBinding owner, TypeBinding target, InterfaceMember member, bool isOverride, int order)
             {
                 Owner = owner;
                 Target = target;
                 Member = member;
                 IsOverride = isOverride;
+                Order = order;
             }
         }
 
-        private IReadOnlyList<DefaultCandidate> DefaultCandidates(TypeBinding receiver, string memberId)
+        private ConstructionIndex<DefaultCandidate> DefaultCandidates(TypeBinding receiver, string memberId)
         {
             if (!defaultsByReceiver.TryGetValue(receiver, out var byMember))
             {
                 byMember = new();
-                void Add(string id, DefaultCandidate candidate)
+                int order = 0;
+                void Add(string id, TypeBinding owner, TypeBinding target, InterfaceMember member, bool isOverride)
                 {
                     if (!byMember.TryGetValue(id, out var entries))
                         byMember[id] = entries = new();
-                    entries.Add(candidate);
+                    IndexConstruction(entries, target, new DefaultCandidate(owner, target, member, isOverride, order++));
                 }
                 // Retain the exact interface-map order from the shared listings.
                 // A member is indexed under its own slot and, for an override,
@@ -542,14 +550,14 @@ namespace NeoCompose.Runtime
 #endif
                             var member = entry.Value;
                             if (member.implementationMemberId is not null)
-                                Add(member.id ?? entry.Key, new DefaultCandidate(owner, owner, member, false));
+                                Add(member.id ?? entry.Key, owner, owner, member, false);
                             if (member.explicitImplementation is { } site)
-                                Add(site.interfaceMemberId, new DefaultCandidate(owner, Construct(site, owner), member, true));
+                                Add(site.interfaceMemberId, owner, Construct(site, owner), member, true);
                         }
                     }
                 defaultsByReceiver[receiver] = byMember;
             }
-            return byMember.TryGetValue(memberId, out var matches) ? matches : Array.Empty<DefaultCandidate>();
+            return byMember.TryGetValue(memberId, out var matches) ? matches : byMember[memberId] = new();
         }
 
         private IReadOnlyList<List<TypeBinding>> DefaultLevels(TypeBinding receiver)
@@ -568,7 +576,7 @@ namespace NeoCompose.Runtime
         }
 
         private static NeoMissingInterfaceImplementationError Missing(TypeBinding receiver, TypeBinding requested, string name) =>
-            new($"'{NeoTypeNames.Of(receiver)}' does not implement interface member '{NeoTypeNames.Of(requested)}.{name}'.");
+            new($"'{NeoTypeNames.Of(receiver)}' has no implementation for '{NeoTypeNames.Of(requested)}.{name}'.");
 
         private static Implementation Body(InterfaceMember member, TypeBinding construction) =>
             member.implementationMemberId is string id
@@ -604,12 +612,33 @@ namespace NeoCompose.Runtime
             return explicitByClass[classId] = sites;
         }
 
+        private readonly Dictionary<(TypeBinding, string), Dictionary<TypeBinding, List<Member>>> explicitConstructions = new();
+
         private Implementation? Explicit(TypeBinding owner, TypeBinding requested, string memberId, string accessor, bool isStatic)
         {
-            if (ExplicitSites(owner.Head!.ClassId!).TryGetValue(memberId, out var sites))
-                foreach (var member in sites)
-                    if (Construct(member.explicitImplementation!, owner).Equals(requested) && HasAccessor(member, accessor))
+            var key = (owner, memberId);
+            if (!explicitConstructions.TryGetValue(key, out var constructions))
+            {
+                constructions = new();
+                if (ExplicitSites(owner.Head!.ClassId!).TryGetValue(memberId, out var sites))
+                    foreach (var member in sites)
+                    {
+#if UNITY_EDITOR
+                        TestExplicitSiteVisits++;
+#endif
+                        AddListing(constructions, Construct(member.explicitImplementation!, owner), member);
+                    }
+                explicitConstructions[key] = constructions;
+            }
+            if (constructions.TryGetValue(requested, out var matches))
+                foreach (var member in matches)
+                {
+#if UNITY_EDITOR
+                    TestExplicitSiteVisits++;
+#endif
+                    if (HasAccessor(member, accessor))
                         return new Implementation(member.id, staticConstruction: isStatic ? owner : null);
+                }
             return null;
         }
 
@@ -657,31 +686,56 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private sealed class ArgumentListings
+        private sealed class ArgumentListings<TEntry>
         {
-            internal readonly Dictionary<TypeBinding, List<ListingEntry>> Exact = new();
-            internal readonly Dictionary<string, List<ListingEntry>> Classes = new();
-            internal readonly Dictionary<string, List<ListingEntry>> Interfaces = new();
-            internal readonly List<ListingEntry> Other = new();
+            internal readonly Dictionary<TypeBinding, List<TEntry>> Exact = new();
+            internal readonly Dictionary<string, List<TEntry>> Classes = new();
+            internal readonly Dictionary<string, List<TEntry>> Interfaces = new();
+            internal readonly List<TEntry> Other = new();
             internal Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>>? Relevant;
         }
 
-        private sealed class ReceiverListingIndex
+        // Class listings and default bodies share the same exact/variance
+        // postings. Consumers retain their own dispatch order after selection.
+        private class ConstructionIndex<TEntry>
+        {
+            internal readonly Dictionary<TypeBinding, List<TEntry>> ByConstruction = new();
+            internal readonly Dictionary<string, List<TEntry>> ByInterface = new();
+            internal readonly Dictionary<(string, string), ArgumentListings<TEntry>> Arguments = new();
+        }
+
+        private sealed class ReceiverListingIndex : ConstructionIndex<ListingEntry>
         {
             internal readonly Dictionary<string, int> Levels = new();
-            internal readonly Dictionary<TypeBinding, List<ListingEntry>> ByConstruction = new();
-            internal readonly Dictionary<string, List<ListingEntry>> ByInterface = new();
-            internal readonly Dictionary<(string, string), ArgumentListings> Arguments = new();
             internal readonly List<ListingEntry> All = new();
         }
 
         private readonly Dictionary<TypeBinding, ReceiverListingIndex> receiverListings = new();
 
-        private static void AddListing<TKey>(Dictionary<TKey, List<ListingEntry>> index, TKey key, ListingEntry entry)
+        private static void AddListing<TKey, TEntry>(Dictionary<TKey, List<TEntry>> index, TKey key, TEntry entry)
         {
             if (!index.TryGetValue(key, out var entries))
                 index[key] = entries = new();
             entries.Add(entry);
+        }
+
+        private static void IndexConstruction<TEntry>(ConstructionIndex<TEntry> index, TypeBinding construction, TEntry entry)
+        {
+            AddListing(index.ByConstruction, construction, entry);
+            string id = construction.Head!.InterfaceId!;
+            AddListing(index.ByInterface, id, entry);
+            foreach (var argument in construction.Bindings ?? new Dictionary<string, TypeBinding>())
+            {
+                if (!index.Arguments.TryGetValue((id, argument.Key), out var postings))
+                    index.Arguments[(id, argument.Key)] = postings = new();
+                AddListing(postings.Exact, argument.Value, entry);
+                if (argument.Value.Head?.ClassId is string classId)
+                    AddListing(postings.Classes, classId, entry);
+                else if (argument.Value.Head?.InterfaceId is string interfaceId)
+                    AddListing(postings.Interfaces, interfaceId, entry);
+                else
+                    postings.Other.Add(entry);
+            }
         }
 
         // Both exact and variant dispatch use this index. Closing an own listing
@@ -701,21 +755,7 @@ namespace NeoCompose.Runtime
                     var construction = SchemaIdentity(Substitute(symbolic, owner));
                     var entry = new ListingEntry(level, index.All.Count, symbolic, construction);
                     index.All.Add(entry);
-                    AddListing(index.ByConstruction, construction, entry);
-                    string id = construction.Head!.InterfaceId!;
-                    AddListing(index.ByInterface, id, entry);
-                    foreach (var argument in construction.Bindings ?? new Dictionary<string, TypeBinding>())
-                    {
-                        if (!index.Arguments.TryGetValue((id, argument.Key), out var postings))
-                            index.Arguments[(id, argument.Key)] = postings = new();
-                        AddListing(postings.Exact, argument.Value, entry);
-                        if (argument.Value.Head?.ClassId is string classId)
-                            AddListing(postings.Classes, classId, entry);
-                        else if (argument.Value.Head?.InterfaceId is string interfaceId)
-                            AddListing(postings.Interfaces, interfaceId, entry);
-                        else
-                            postings.Other.Add(entry);
-                    }
+                    IndexConstruction(index, construction, entry);
                 }
             }
             return receiverListings[receiver] = index;
@@ -768,8 +808,8 @@ namespace NeoCompose.Runtime
         // Walk backwards from all postings once, retaining only direct edges
         // that a query can follow to a posting. Shared branches are visited once
         // during construction, rather than once for every cold request.
-        private Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>> RelevantDeclarations(
-            ArgumentListings postings, bool descendants)
+        private Dictionary<(MemberKind Kind, string Id), List<(MemberKind Kind, string Id)>> RelevantDeclarations<TEntry>(
+            ArgumentListings<TEntry> postings, bool descendants)
         {
             if (postings.Relevant is not null)
                 return postings.Relevant;
@@ -806,8 +846,8 @@ namespace NeoCompose.Runtime
             return postings.Relevant = graph;
         }
 
-        private IEnumerable<(MemberKind Kind, string Id)> RelatedDeclarations(
-            ArgumentListings postings, (MemberKind Kind, string Id) declaration, bool descendants)
+        private IEnumerable<(MemberKind Kind, string Id)> RelatedDeclarations<TEntry>(
+            ArgumentListings<TEntry> postings, (MemberKind Kind, string Id) declaration, bool descendants)
         {
             var graph = RelevantDeclarations(postings, descendants);
             if (!graph.ContainsKey(declaration))
@@ -838,18 +878,23 @@ namespace NeoCompose.Runtime
         // of truth. Invariant arguments use identity. Variant class/interface
         // arguments use declaration ancestry to prune unrelated declarations;
         // generic constructions and mixed kinds still require full conversion.
-        private IEnumerable<ListingEntry> MatchingListings(ReceiverListingIndex index, TypeBinding requested)
+        private IEnumerable<ListingEntry> MatchingListings(ReceiverListingIndex index, TypeBinding requested) =>
+            MatchingConstructions(index, requested, entry => entry.Closed)
+                .OrderBy(entry => entry.Level).ThenBy(entry => entry.Closed.Equals(requested) ? 0 : 1).ThenBy(entry => entry.Order);
+
+        private IEnumerable<TEntry> MatchingConstructions<TEntry>(ConstructionIndex<TEntry> index, TypeBinding requested,
+            Func<TEntry, TypeBinding> construction)
         {
             string id = requested.Head!.InterfaceId!;
             if (!index.ByInterface.TryGetValue(id, out var all))
-                return Array.Empty<ListingEntry>();
-            IEnumerable<ListingEntry> selected = all;
+                return Array.Empty<TEntry>();
+            IEnumerable<TEntry> selected = all;
             int count = all.Count;
             foreach (var parameter in client.ProjectDataForRuntime.interfaces[id].genericParams ?? new())
             {
                 var argument = requested.Bindings![parameter.id];
                 var postings = index.Arguments[(id, parameter.id)];
-                var buckets = new List<List<ListingEntry>>();
+                var buckets = new List<List<TEntry>>();
                 if (parameter.variance is null || argument.IsOpen || TypeBindings.IsValueType(argument.Head!))
                 {
                     if (postings.Exact.TryGetValue(argument, out var exact))
@@ -877,44 +922,60 @@ namespace NeoCompose.Runtime
                 if (count == 0)
                     break;
             }
-            return selected.Where(entry => ConvertsIdentity(entry.Closed, requested))
-                .OrderBy(entry => entry.Level).ThenBy(entry => entry.Closed.Equals(requested) ? 0 : 1).ThenBy(entry => entry.Order);
+            return selected.Where(entry => ConvertsIdentity(construction(entry), requested));
         }
 
-        private readonly Dictionary<(string ClassId, string MemberId, string Name), string?> memberOwners = new();
+        private sealed class MemberOwnerIndex
+        {
+            internal readonly List<string> Chain = new();
+            internal readonly Dictionary<string, int> Levels = new();
+            internal readonly Dictionary<string, List<int>> Explicit = new(), Named = new();
+        }
+
+        private readonly Dictionary<string, MemberOwnerIndex> memberOwners = new();
 
         private string? ParentMemberOwner(string classId, string memberId, string name) =>
             client.ProjectDataForRuntime.classes[classId].extendsClassId is string parent
                 ? NearestMemberOwner(parent, memberId, name) : null;
 
-        // Member placement does not depend on an interface construction. Share
-        // the nearest relevant declaration, including an absent declaration,
-        // across all construction queries for this member.
+        // Index the chain once for all slot/name queries, including absent
+        // members. Ancestors share this index and query only their suffix.
         private string? NearestMemberOwner(string classId, string memberId, string name)
         {
             if (!schemaValidation)
                 return DeclarationDispatch.NearestMemberOwner(classId, memberId, name);
-            var pending = new List<string>();
-            var seen = new HashSet<string>();
-            string? result = null;
-            for (string? current = classId; current is not null; current = client.ProjectDataForRuntime.classes[current].extendsClassId)
+            if (!memberOwners.TryGetValue(classId, out var index))
             {
-                if (memberOwners.TryGetValue((current, memberId, name), out result))
-                    break;
-                if (!seen.Add(current))
-                    throw new NSGetterRuntimeError($"Circular class extension detected at '{current}'.");
-                pending.Add(current);
-                if (ExplicitSites(current).ContainsKey(memberId)
-                    || client.ProjectDataForRuntime.classes[current].schema.ContainsKey(name)
-                    || ownFunctionsByName[current].ContainsKey(name))
+                index = new();
+                for (string? current = classId; current is not null; current = client.ProjectDataForRuntime.classes[current].extendsClassId)
                 {
-                    result = current;
-                    break;
+                    if (!index.Levels.TryAdd(current, index.Chain.Count))
+                        throw new NSGetterRuntimeError($"Circular class extension detected at '{current}'.");
+#if UNITY_EDITOR
+                    TestClassMemberOwnerVisits++;
+#endif
+                    int level = index.Chain.Count;
+                    index.Chain.Add(current);
+                    foreach (string slot in ExplicitSites(current).Keys)
+                        AddListing(index.Explicit, slot, level);
+                    foreach (string key in client.ProjectDataForRuntime.classes[current].schema.Keys.Concat(ownFunctionsByName[current].Keys).Distinct())
+                        AddListing(index.Named, key, level);
                 }
+                foreach (string owner in index.Chain)
+                    memberOwners.TryAdd(owner, index);
             }
-            foreach (string current in pending)
-                memberOwners[(current, memberId, name)] = result;
-            return result;
+            int start = index.Levels[classId];
+            int First(Dictionary<string, List<int>> postings, string key)
+            {
+                if (!postings.TryGetValue(key, out var levels))
+                    return index.Chain.Count;
+                int position = levels.BinarySearch(start);
+                if (position < 0)
+                    position = ~position;
+                return position == levels.Count ? index.Chain.Count : levels[position];
+            }
+            int nearest = Math.Min(First(index.Explicit, memberId), First(index.Named, name));
+            return nearest == index.Chain.Count ? null : index.Chain[nearest];
         }
 
         private static bool ClosedSignatureType(TypeBinding binding) => binding.Kind == TypeBindingKind.Closed
@@ -1008,6 +1069,25 @@ namespace NeoCompose.Runtime
             return (Normalize(owner), Normalize(requested));
         }
 
+        private readonly Dictionary<TypeBinding, HashSet<TypeBinding>> ownListingConstructions = new();
+
+        private bool ListsConstruction(TypeBinding owner, TypeBinding requested)
+        {
+            if (!ownListingConstructions.TryGetValue(owner, out var listed))
+            {
+                listed = new();
+                foreach (var construction in Listings(owner.Head!.ClassId!).Listed)
+                {
+#if UNITY_EDITOR
+                    TestInheritedListingVisits++;
+#endif
+                    listed.Add(SchemaIdentity(Substitute(construction, owner)));
+                }
+                ownListingConstructions[owner] = listed;
+            }
+            return listed.Contains(requested);
+        }
+
         // Retain shared suffixes, never each class's inherited prefix. Alpha
         // normalization also shares a suffix across generic parameter renames.
         private ConstructionLister? InheritedListings(TypeBinding owner, TypeBinding requested)
@@ -1025,7 +1105,7 @@ namespace NeoCompose.Runtime
                 string id = current.Head!.ClassId!;
                 if (!seen.Add(id))
                     throw new NSGetterRuntimeError($"Circular class extension detected at '{id}'.");
-                bool listed = Listings(id).Listed.Any(construction => SchemaIdentity(Substitute(construction, current)).Equals(requested));
+                bool listed = ListsConstruction(current, requested);
                 pending.Add((key, listed ? id : null));
             }
             for (int index = pending.Count - 1; index >= 0; index--)

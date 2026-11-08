@@ -20,7 +20,37 @@ namespace NeoCompose.Tests.P127InterfacesParity
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public abstract partial class R20Z9Listings<T, U, W> : R20M9<T, U>, IR20I<W>
+    public abstract partial class R20Z9Listings2<T, U, W> : R20M9<T, U>, IR20I<U>
+    {
+        internal R20Z9Listings2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        int IR20I<U>.F()
+        {
+            var result = InvokeFunction("F");
+            return Convert.ToInt32(result);
+        }
+
+        int IR20I<U>.G<X>()
+        {
+            var result = InvokeGenericFunction("G", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
+            return Convert.ToInt32(result);
+        }
+
+        int IR20I<U>.V
+        {
+            get
+            {
+                var result = ComputeProperty("V");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+    }
+
+    public abstract partial class R20Z9Listings<T, U, W> : R20Z9Listings2<T, U, W>, IR20I<W>
     {
         internal R20Z9Listings(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -64,7 +94,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e29de995-4587-45f7-875e-6d129a3b62c6" => new R20Z9<T, U, W>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "db71bbe6-1daf-4374-bf86-f86f1397e826" => new R20Z9<T, U, W>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20Z9' without a concrete client type id."),
                 };
             });
@@ -77,7 +107,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e29de995-4587-45f7-875e-6d129a3b62c6" => new R20Z9<T, U, W>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "db71bbe6-1daf-4374-bf86-f86f1397e826" => new R20Z9<T, U, W>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20Z9' without a concrete client type id."),
                 };
             });
@@ -117,7 +147,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             else
             {
-                var result = InvokeFunction("F#f48cef7e-fe6e-43a0-905f-53f01d4ab4e4");
+                var result = InvokeFunction("F#c2ec433a-954d-4eb4-a8c4-407795b79976");
                 return Convert.ToInt32(result);
             }
         }
@@ -136,7 +166,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             else
             {
-                var result = InvokeGenericFunction("G#d7c6f961-7fa8-4692-91b1-fb6faf1a2702", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
+                var result = InvokeGenericFunction("G#6ea975f6-ed8a-4807-a4e3-74dda18152c0", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
                 return Convert.ToInt32(result);
             }
         }
@@ -159,7 +189,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = ComputeProperty("V#dce21639-d672-4686-985a-cd8c45e82af5");
+                    var result = ComputeProperty("V#7982b544-f404-45a9-a70e-98d48a06730d");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

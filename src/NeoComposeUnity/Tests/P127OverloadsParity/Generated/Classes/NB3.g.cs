@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NB3 : NeoGeneratedClassValue, IReadOnlyNB3
     {
         internal NB3(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ecb6e7c4-f978-40a1-a886-8c5e685f6f54", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b72969d6-ea82-4a33-8816-4764dda01196", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int N(int? x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "96d0aa74-bf65-480b-a4c2-b5d0124453c0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bc14dd45-cf07-4288-bad1-a26f7d238038");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int N(float? f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "16907627-3e93-44ae-a4a5-fc48e6ad458c");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "06432a77-67be-47a5-8b50-a4e7418d50da");
             var result = node.InvokeStatic((object?)(f));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ecb6e7c4-f978-40a1-a886-8c5e685f6f54");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b72969d6-ea82-4a33-8816-4764dda01196");
         }
 
         internal static NB3 Create(NeoClient client, NeoMemberClass node)

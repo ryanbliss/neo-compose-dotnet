@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Match generic interface method parameters by their position during declaration dispatch, including nested collection and return types.
+
+- Explain invalid operator declarations, duplicate interface signatures and interface dispatch failures in NeoScript terms, without C# compiler codes or copied compiler messages.
+
 - Preserve the reflected host comparer factory in stripped players. Add shared Mono/player coverage for stored comparers and tuple boxes, generated comparer bridges and interface bodies, and generic statics.
 
 - Dispatch inherited system function forwarders through the evaluator, including nongeneric comparer bridges to authored overrides. Support CLR tuple boxes and Type crossings with single-element structural rests and nested rests for eight or more elements.

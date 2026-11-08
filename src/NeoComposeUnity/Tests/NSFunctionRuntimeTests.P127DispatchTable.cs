@@ -40,7 +40,7 @@ namespace NeoCompose.Tests
                 ("HolderThree", "A-body", "D11"), ("HolderInvariant", "ambiguous", ""),
                 ("HolderExactCastD1", "A-body", "D1"),
                 // Internal fallback coverage. C# rejects a concrete class with
-                // this unimplemented exact abstract slot (CS0535).
+                // this exact abstract slot left unimplemented.
                 ("AbstractExactThenVariant", "K-body", "D1"),
                 ("MapOrder", "Q-body", "D1"), ("MapOrderReverse", "K-body", "D2"),
                 ("MapOrderClass", "Q-body", "D1"),
@@ -717,7 +717,7 @@ namespace NeoCompose.Tests
                 if (expectedBody is "ambiguous" or "missing")
                 {
                     Assert.That(Assert.Catch<NSGetterRuntimeError>(() => Run())!.Message,
-                        Does.Contain(expectedBody == "ambiguous" ? "No most specific implementation" : "does not implement interface member"));
+                        Does.Contain(expectedBody == "ambiguous" ? "has competing implementations" : "has no implementation for"));
                     continue;
                 }
                 var answer = Run();

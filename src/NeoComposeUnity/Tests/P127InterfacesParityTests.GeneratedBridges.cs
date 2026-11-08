@@ -1191,6 +1191,45 @@ namespace NeoCompose.Tests
             yield return new TestCaseData("R26RelistBelowSlots", 5, "1", null,
                 (Func<NeoClient, object?>)(client => { G.IR26YV<G.R26YK> x = CreateParityValue(client, G.R26YC<G.R26Ba>.CreateWritable); return x.V.ToString(); }))
                 .SetName("GeneratedBridge_R26Y6");
+            yield return new TestCaseData("R27MergeSlots", 0, "H", null,
+                (Func<NeoClient, object?>)(client => { G.IR27IJ<G.R27Ba> x = CreateParityValue(client, G.R27iX20HT<G.R27Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M1");
+            yield return new TestCaseData("R27MergeSlots", 1, "H", null,
+                (Func<NeoClient, object?>)(client => { G.IR27OJ<G.R27Ba> x = CreateParityValue(client, G.R27oX20HT<G.R27Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M2");
+            yield return new TestCaseData("R27MergeSlots", 2, "H", null,
+                (Func<NeoClient, object?>)(client => { G.IR27OJ<G.R27Ba> x = CreateParityValue(client, G.R27oX20HT<G.R27D1>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M3");
+            yield return new TestCaseData("R27MergeSlots", 3, "H", null,
+                (Func<NeoClient, object?>)(client => { G.IR27OJ<G.R27D1> x = CreateParityValue(client, G.R27oX31HU<G.R27Ba, G.R27D1>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M4");
+            yield return new TestCaseData("R27MergeSlots", 4, "H", null,
+                (Func<NeoClient, object?>)(client => { G.IR27OJ<G.R27Ba> x = CreateParityValue(client, G.R27oX31HU<G.R27Ba, G.R27D1>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M5");
+            yield return new TestCaseData("R27MergeSlots", 5, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR27IJ<G.R27Ba> x = CreateParityValue(client, G.R27iX35PU<G.R27D1, object, G.R27Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M6");
+            yield return new TestCaseData("R27MergeSlots", 6, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR27OJ<G.R27Ba> x = CreateParityValue(client, G.R27oX35PU<G.R27D1, object, G.R27Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27M7");
+            yield return new TestCaseData("R27NeighbourSlots", 0, "I", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O8I<G.R27O8D1> x = CreateParityValue(client, G.R27O8N8.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27O1");
+            yield return new TestCaseData("R27NeighbourSlots", 1, "I", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O8I<G.R27O8D1> x = CreateParityValue(client, G.R27O8Wi<G.R27O8Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27O2");
+            yield return new TestCaseData("R27NeighbourSlots", 2, "W", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O8I<G.R27O8D1> x = CreateParityValue(client, G.R27O8Wi<G.R27O8D1>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27O3");
+            yield return new TestCaseData("R27NeighbourSlots", 3, "n", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O9J x = CreateParityValue(client, G.R27O9N5.CreateWritable); return x.M(); }))
+                .SetName("GeneratedBridge_R27O4");
+            yield return new TestCaseData("R27NeighbourSlots", 4, "h", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O7J<G.R27O7Ba> x = CreateParityValue(client, G.R27O7HH<G.R27O7Ba, G.R27O7Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27O5");
+            yield return new TestCaseData("R27NeighbourSlots", 5, "J", null,
+                (Func<NeoClient, object?>)(client => { G.IR27O7J<G.R27O7D1> x = CreateParityValue(client, G.R27O7W<G.R27O7Ba>.CreateWritable); return x.V; }))
+                .SetName("GeneratedBridge_R27O6");
         }
 
         [TestCaseSource(nameof(HistoricalGeneratedCases))]
@@ -1207,17 +1246,19 @@ namespace NeoCompose.Tests
                 object? evaluated = NeoMemberNSFunction.GetOrCreateStatic(client, owner.schema["S"]).InvokeStatic(Array.Empty<object?>());
                 Assert.That(Convert.ToString(evaluated, System.Globalization.CultureInfo.InvariantCulture), Is.EqualTo(neoExpected), "Direct class static body");
             }
+            bool monoPin = Type.GetType("Mono.Runtime") is not null && monoExpected is not null;
+            string expected = monoPin ? monoExpected! : neoExpected;
             object? value;
             try
             {
                 value = invoke(client);
             }
-            catch (System.Runtime.AmbiguousImplementationException) when ((monoExpected ?? neoExpected) == "ambiguous")
+            catch (System.Runtime.AmbiguousImplementationException) when (expected == "ambiguous")
             {
                 value = "ambiguous";
             }
             string? actual = Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
-            Assert.That(actual, Is.EqualTo(monoExpected ?? neoExpected), monoExpected is null ? group : "Pinned Mono behavior: " + MonoDispatchIssue);
+            Assert.That(actual, Is.EqualTo(expected), monoPin ? "Pinned Mono behavior: " + MonoDispatchIssue : group);
         }
     }
 }

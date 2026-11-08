@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R22YDB<T> : NeoGeneratedClassValue, IReadOnlyR22YDB<T>
     {
         internal R22YDB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3872dd16-f143-4142-ab09-fb8bb3e7b9c9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cb436258-9cf1-4eba-aa8b-57e6d33e1d6f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3872dd16-f143-4142-ab09-fb8bb3e7b9c9" => new R22YDB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cb436258-9cf1-4eba-aa8b-57e6d33e1d6f" => new R22YDB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YDB' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3872dd16-f143-4142-ab09-fb8bb3e7b9c9" => new R22YDB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cb436258-9cf1-4eba-aa8b-57e6d33e1d6f" => new R22YDB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YDB' without a concrete client type id."),
                 };
             });

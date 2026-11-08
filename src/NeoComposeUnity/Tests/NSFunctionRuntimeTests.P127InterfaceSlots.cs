@@ -225,7 +225,7 @@ namespace NeoCompose.Tests
             Assert.Throws<NeoAmbiguousImplementationError>(() => NeoInterfaceDispatch.Of(client).Resolve(receiverType, requested, "slot", "call"));
             var error = Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client,
                 SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()));
-            Assert.That(error!.Message, Does.Contain("No most specific implementation"));
+            Assert.That(error!.Message, Does.Contain("has competing implementations"));
             Assert.Throws<AmbiguousImplementationException>(() => NeoGeneratedTypesSupport.InvokeInterfaceSlotAsync(client,
                 SlotReceiver(client), "slot", NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()).GetAwaiter().GetResult());
         }

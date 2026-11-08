@@ -1024,7 +1024,7 @@ namespace NeoCompose.Runtime.Json
                     var declaration = member.ToObject<InterfaceMember>()!;
                     string identity = NeoCallableSignature.ParametersKey(declaration.genericParams?.Length ?? 0, declaration.argumentTypes!);
                     if (identities.TryGetValue((name, declaration.IsStatic, identity), out var previous))
-                        throw new JsonSerializationException($"{label} declares functions \"{previous}\" and \"{id}\" with one name and the same parameters (CS0111).");
+                        throw new JsonSerializationException($"{label} declares functions \"{previous}\" and \"{id}\" with the same name and parameter signature.");
                     identities[(name, declaration.IsStatic, identity)] = id ?? key;
                 }
             }
