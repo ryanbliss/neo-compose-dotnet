@@ -221,9 +221,9 @@ namespace NeoCompose.Runtime
     [NeoEnum(typeof(NeoSpriteMaskInteractionOptions))]
     public enum NeoSpriteMaskInteraction
     {
-        None = 218713620,
-        VisibleInsideMask = 452037583,
-        VisibleOutsideMask = 743191512,
+        None = 0,
+        VisibleInsideMask = 1,
+        VisibleOutsideMask = 2,
     }
 
     /// <summary>

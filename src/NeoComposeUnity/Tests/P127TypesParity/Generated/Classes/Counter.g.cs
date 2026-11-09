@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Counter : NeoGeneratedClassValue, IReadOnlyCounter
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "489ebc96-8844-472d-abbd-b7b27d1ade21", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "257fba24-2c5e-4d87-8109-9422a592096c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "489ebc96-8844-472d-abbd-b7b27d1ade21",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "9ee52ad8-f3ed-4b07-9aa5-f3cebb9f9edb", Count)
+                "257fba24-2c5e-4d87-8109-9422a592096c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "591c25bb-8e58-4a88-bb49-24b4512e67a2", Count)
             );
         }
 
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -150,7 +150,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

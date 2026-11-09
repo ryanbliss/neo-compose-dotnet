@@ -1,0 +1,14 @@
+{
+    "name": "NeoCompose.CodegenShapes.Tests",
+    "references": [
+        "NeoCompose.Unity"
+    ],
+    "autoReferenced": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
+}

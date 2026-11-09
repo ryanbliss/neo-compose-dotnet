@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.InterfaceParity
     [NeoEnum(typeof(NeoSmartTileOutputOptions))]
     public enum NeoSmartTileOutput
     {
-        Single = 1118587374,
-        Random = 1179893951,
-        Animation = 1375921733,
+        Single = 0,
+        Random = 1,
+        Animation = 2,
     }
 
     /// <summary>

@@ -14,8 +14,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     [NeoEnum(typeof(SaturnMoonOptions))]
     public enum SaturnMoon
     {
-        titan = 1382943264,
-        enceladus = 919004852,
+        titan = 0,
+        enceladus = 1,
     }
 
     /// <summary>

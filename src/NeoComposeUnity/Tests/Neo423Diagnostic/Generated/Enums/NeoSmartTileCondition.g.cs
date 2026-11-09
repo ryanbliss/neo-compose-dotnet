@@ -14,10 +14,10 @@ namespace NeoCompose.Tests.Diagnostic423
     [NeoEnum(typeof(NeoSmartTileConditionOptions))]
     public enum NeoSmartTileCondition
     {
-        This = 2760026,
-        NotThis = 1386909328,
-        InheritsFromClass = 1807736213,
-        NotInheritsFromClass = 1244387747,
+        This = 0,
+        NotThis = 1,
+        InheritsFromClass = 2,
+        NotInheritsFromClass = 3,
     }
 
     /// <summary>

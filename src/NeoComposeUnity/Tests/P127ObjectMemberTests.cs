@@ -93,6 +93,134 @@ namespace NeoCompose.Tests
             yield return new TestCaseData(new HashSet<P127Season> { P127Season.Summer }, "Set<e:season>", typeof(NeoEnumSet<P127Season>)).SetName("{m}(enum Set)");
         }
 
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(7)]
+        [TestCase(8)]
+        [TestCase(9)]
+        [TestCase(15)]
+        public void TupleBoxesAndTypesCrossWithTheirClrRestShape(int count)
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var type = new TupleTypeInfo
+            {
+                type = MemberKind.Tuple,
+                required = true,
+                elements = Enumerable.Range(0, count).Select(_ => new TupleElementTypeInfo
+                {
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                }).ToArray(),
+            };
+            var binding = NeoTypeBindings.FromTypeInfo(type);
+            var tuple = new RuntimeTuple(Enumerable.Range(1, count).Select(value => (object?)value).ToArray(), type, structuralRest: count == 1);
+            var box = NeoBox.Of(binding, tuple);
+            var slot = new ObjectTypeInfo { type = MemberKind.Object, required = true };
+            object crossed = NeoGeneratedTypesSupport.GeneratedResult(box, slot, context)!;
+            var clr = (System.Runtime.CompilerServices.ITuple)crossed;
+            Assert.That(clr.Length, Is.EqualTo(count));
+            for (int index = 0; index < count; index++)
+                Assert.That(clr[index], Is.EqualTo(index + 1));
+            Assert.That(NeoGeneratedTypesSupport.ClrTypeOf(client, binding), Is.EqualTo(crossed.GetType()));
+            Assert.That(NeoGeneratedTypesSupport.BindingOfClr(client, crossed.GetType()), Is.EqualTo(binding));
+            Assert.That(NeoGeneratedTypesSupport.GeneratedResult(box, slot, context), Is.SameAs(crossed));
+            Assert.That(NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Session,
+                crossed, slot, context, "Tuple"), Is.SameAs(box));
+        }
+
+        public static IEnumerable<TestCaseData> CrossingBoxes()
+        {
+            foreach (var row in Boxes())
+                yield return row;
+            yield return new TestCaseData(1.25f, "float");
+            yield return new TestCaseData(new Vector3(1, 2, 3), "Vector3");
+            yield return new TestCaseData(new Vector2Int(1, 2), "Vector2Int");
+            yield return new TestCaseData(P127Season.Summer, "e:season");
+        }
+
+        [TestCaseSource(nameof(CrossingBoxes))]
+        public void EveryClrBoxKeepsIdentityAcrossBothFirstCrossings(object original, string key)
+        {
+            using NeoClient client = BuildClient();
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var type = new ObjectTypeInfo { type = MemberKind.Object, required = true };
+            object Normalize(NeoClient owner, NSGetterEvaluator.Context ctx, object value) =>
+                NeoScriptValueMarshaller.NormalizeResolved(owner, NeoValueOwnership.Session, value, type, ctx, "Payload")!;
+            var boxed = (NeoBox)Normalize(client, context, original);
+            Assert.That(Normalize(client, context, original), Is.SameAs(boxed), key);
+            Assert.That(NeoGeneratedTypesSupport.ReadTypeArgument<object>(client, boxed, "Payload", null!, null!), Is.SameAs(original), key);
+
+            // The second client's weak maps have never seen either object.
+            // Its first crossing therefore starts with the evaluator box.
+            using NeoClient other = BuildClient();
+            var otherContext = new NSGetterEvaluator.Context(other, null, null);
+            object projected = NeoGeneratedTypesSupport.ReadTypeArgument<object>(other, boxed, "Payload", null!, null!);
+            Assert.That(projected.GetType(), Is.EqualTo(original.GetType()), key);
+            Assert.That(projected, Is.EqualTo(original), key);
+            Assert.That(NeoGeneratedTypesSupport.ReadTypeArgument<object>(other, boxed, "Payload", null!, null!), Is.SameAs(projected), key);
+            Assert.That(Normalize(other, otherContext, projected), Is.SameAs(boxed), key);
+        }
+
+        [TestCaseSource(nameof(Collections))]
+        public void CollectionBoxesCrossBothWaysWithoutLosingTheirRow(IEnumerable written, string key, Type view)
+        {
+            using NeoClient client = BuildClient();
+            Write(client, client.save, written);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var type = new ObjectTypeInfo { type = MemberKind.Object, required = true };
+            object original = Read(client.save)!;
+            object runtime = NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Save, original, type, context, "Collection")!;
+            Assert.That(runtime, Is.InstanceOf<NeoBox>());
+            Assert.That(NeoGeneratedTypesSupport.GeneratedResult(runtime, type, context), Is.SameAs(original));
+            Assert.That(NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Save, original, type, context, "Collection"), Is.SameAs(runtime));
+
+            using NeoClient reloaded = Reload(client);
+            var reloadedContext = new NSGetterEvaluator.Context(reloaded, null, null);
+            object fromScript = NSGetterEvaluator.UnwrapRow(SlotRow(reloaded.save), reloadedContext, NeoValueOwnership.Save)!;
+            object projected = NeoGeneratedTypesSupport.GeneratedResult(fromScript, type, reloadedContext)!;
+            Assert.That(projected, Is.TypeOf(view));
+            Assert.That(projected, Is.EquivalentTo(written));
+            Assert.That(NeoGeneratedTypesSupport.GeneratedResult(fromScript, type, reloadedContext), Is.SameAs(projected));
+            Assert.That(NeoScriptValueMarshaller.NormalizeResolved(reloaded, NeoValueOwnership.Save, projected, type, reloadedContext, "Collection"), Is.SameAs(fromScript));
+            if (projected is NeoList<int> list)
+            {
+                list.Add(3);
+                Assert.That(Read(reloaded.save), Is.EqualTo(new[] { 1, 2, 3 }));
+            }
+        }
+
+        [Test]
+        public void GeneratedClassCrossesAnObjectBoundaryAsItsCachedWrapper()
+        {
+            using NeoClient client = BuildClient();
+            client.RegisterGeneratedClassFactories(ReadOnlyFactories(), WritableFactories());
+            NeoGeneratedClassValue original = client.ResolveRegisteredGeneratedClassValue("point-asset")!;
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var type = new ObjectTypeInfo { type = MemberKind.Object, required = true };
+            object runtime = NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Asset, original, type, context, "Point")!;
+            Assert.That(NeoGeneratedTypesSupport.GeneratedResult(runtime, type, context), Is.SameAs(original));
+            Assert.That(NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Asset, original, type, context, "Point"), Is.SameAs(runtime));
+        }
+
+        [Test]
+        public void PendingClassCrossesAnObjectBoundaryWithoutAttachingRows()
+        {
+            using NeoClient client = BuildClient();
+            client.RegisterGeneratedDetachedClassFactories(new Dictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>>
+            {
+                [PointClass] = (owner, value, saved) => new PointValue(owner, value, !saved),
+            });
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var plan = NeoGeneratedTypesSupport.ResolveDetachedClassPlan(client, PointClass)!;
+            var temporary = NeoGeneratedTypesSupport.CreateDetached(plan, Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>(), context)!;
+            var type = new ObjectTypeInfo { type = MemberKind.Object, required = true };
+            object first = NeoGeneratedTypesSupport.GeneratedResult(temporary, type, context)!;
+            Assert.That(first, Is.TypeOf<PointValue>());
+            Assert.That(NeoGeneratedTypesSupport.GeneratedResult(temporary, type, context), Is.SameAs(first));
+            Assert.That(NeoScriptValueMarshaller.NormalizeResolved(client, NeoValueOwnership.Session, first, type, context, "Point"), Is.SameAs(temporary));
+            Assert.That(temporary.attachedId, Is.Null);
+        }
+
         [Test]
         public void ObjectFieldsHaveANode()
         {
@@ -1012,10 +1140,12 @@ namespace NeoCompose.Tests
             Assert.That(row.valueType, Is.EqualTo(TestTypeBindings.FromKey(key, client.ProjectDataForRuntime)));
 
             NeoMemberClassWritable clone = NeoGeneratedTypesSupport.CloneClassValue(client, new ValueRef(client.save.value!.id));
-            Assert.That(Read(clone), Is.SameAs(comparer));
+            Assert.That(Read(clone), Is.SameAs(Read(clone)));
+            Assert.That(Read(clone), Is.InstanceOf<System.Collections.IComparer>().Or.InstanceOf<System.Collections.IEqualityComparer>());
 
             using NeoClient reloaded = Reload(client);
-            Assert.That(Read(reloaded.save), Is.SameAs(comparer));
+            Assert.That(Read(reloaded.save), Is.SameAs(Read(reloaded.save)));
+            Assert.That(Read(reloaded.save), Is.InstanceOf<System.Collections.IComparer>().Or.InstanceOf<System.Collections.IEqualityComparer>());
         }
 
         [Test]
@@ -1026,7 +1156,9 @@ namespace NeoCompose.Tests
             Assert.That(SlotRow(client.save).valueType, Is.EqualTo(TestTypeBindings.FromKey("c:" + EqualityComparerId + "<Set<int>>", client.ProjectDataForRuntime)));
 
             using NeoClient reloaded = Reload(client);
-            Assert.That(Read(reloaded.save), Is.EqualTo(new NeoSetEqualityComparer<int>()));
+            var stored = (System.Collections.IEqualityComparer)Read(reloaded.save)!;
+            Assert.That(stored.Equals(null, null), Is.True);
+            Assert.That(stored.GetHashCode(null!), Is.Zero);
         }
 
         [Test]
@@ -1048,7 +1180,7 @@ namespace NeoCompose.Tests
             using NeoClient reloaded = Reload(client);
             var stored = (IEqualityComparer<int>)Read(reloaded.save)!;
             Assert.That(stored.Equals(1, 2), Is.True);
-            Assert.Throws<NotSupportedException>(() => stored.GetHashCode(1));
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => stored.GetHashCode(1))!.ErrorClass, Is.EqualTo(NeoErrorClass.NeoNotSupportedError));
         }
 
         [Test]
@@ -1396,6 +1528,88 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedObjectOverridesUseRowIdentity()
+        {
+            using var client = BuildClient();
+            var node = (NeoMemberClass)NeoMember.Create(client, new ClassMember { id = "point-view", name = "Point", kind = MemberKind.Class, DeclaredClassId = PointClass }, "point-asset");
+            var first = new PointValue(client, node, true);
+            var second = new PointValue(client, node, true);
+            Assert.That(first.Equals(second), Is.True);
+            Assert.That(first.GetHashCode(), Is.EqualTo(second.GetHashCode()));
+            Assert.That(first.Equals(null), Is.False);
+            Assert.That(first.ToString(), Does.Contain("Point"));
+        }
+
+        private sealed class UnconvertibleProvider : IFormatProvider
+        {
+            public object? GetFormat(Type? type) => null;
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GeneratedProviderSlotKeepsIdentityAndMutationsAcrossReload(bool culture)
+        {
+            var contracts = NeoTestExport.Read(System.IO.File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/p127-types-parity-export.json")).interfaces;
+            using var client = BuildClient(data =>
+            {
+                data.interfaces = contracts;
+                data.members["slot-field"] = new ClassMember
+                {
+                    id = "slot-field",
+                    name = "Slot",
+                    kind = MemberKind.Class,
+                    DeclaredInterfaceId = NeoPrimitiveConformance.InterfaceId("IFormatProvider")
+                };
+            });
+            IFormatProvider original = culture ? (IFormatProvider)new CultureInfo("") : new NumberFormatInfo();
+            NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", original, "Root.Slot");
+            var first = NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(client, client.save, "Slot", false)!;
+            Assert.That(first, Is.SameAs(original));
+            var format = (NumberFormatInfo)first.GetFormat(typeof(NumberFormatInfo))!;
+            format.NumberDecimalSeparator = "!";
+            var context = client.CreateGetterContext(NeoValueOwnership.Save);
+            object? held = NSGetterEvaluator.ResolveValueIfId(client.save.value!.value!["Slot"], context, preferredOwnership: NeoValueOwnership.Save);
+            if (held is NeoBox box)
+                held = box.Payload;
+            var scriptFormat = (NumberFormatInfo)((IFormatProvider)held!).GetFormat(typeof(NumberFormatInfo))!;
+            Assert.That(scriptFormat.NumberDecimalSeparator, Is.EqualTo("!"));
+            NeoCompose.Runtime.NeoScript.Globalization.NeoNumberFormatInfos.Set(scriptFormat, "NumberDecimalSeparator", "?");
+            Assert.That(format.NumberDecimalSeparator, Is.EqualTo("?"));
+            Assert.That(NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(client, client.save, "Slot", false), Is.SameAs(original));
+            using var restored = Reload(client);
+            var reread = NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(restored, restored.save, "Slot", false)!;
+            Assert.That(((NumberFormatInfo)reread.GetFormat(typeof(NumberFormatInfo))!).NumberDecimalSeparator, Is.EqualTo("?"));
+            var refusal = Assert.Throws<NSGetterRuntimeError>(() => NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", new UnconvertibleProvider(), "Root.Slot"))!;
+            Assert.That(refusal.Message, Does.Contain("Slot 'Root.Slot' cannot store a value of CLR type").And.Contain(nameof(UnconvertibleProvider)));
+            NeoGeneratedTypesSupport.SetInterfaceObject(client, client.save, "Slot", null, "Root.Slot");
+            Assert.That(NeoGeneratedTypesSupport.ReadInterfaceObject<IFormatProvider>(client, client.save, "Slot", false), Is.Null);
+        }
+
+        [Test]
+        public void GeneratedComparerSlotReadsWritesAndReloads()
+        {
+            using NeoClient client = BuildClient(data => data.members["slot-field"] = new ClassMember
+            {
+                id = "slot-field",
+                name = "Slot",
+                kind = MemberKind.Class,
+                DeclaredClassId = EqualityComparerId,
+                classArguments = new Dictionary<string, TypeBinding> { ["equality-t"] = TestTypeBindings.FromKey("int") },
+            });
+            NeoGeneratedTypesSupport.SetComparer(client, client.save, "Slot", EqualityComparer<int>.Default, "Root.Slot");
+            var first = NeoGeneratedTypesSupport.ReadComparer<IEqualityComparer<int>>(client, client.save, "Slot", false)!;
+            Assert.That(first.Equals(3, 3), Is.True);
+            Assert.That(first.Equals(3, 4), Is.False);
+            Assert.That(first.GetHashCode(3), Is.EqualTo(3));
+            Assert.That(NeoGeneratedTypesSupport.ReadComparer<IEqualityComparer<int>>(client, client.save, "Slot", false), Is.SameAs(first));
+            NeoGeneratedTypesSupport.SetComparer(client, client.save, "Slot", first, "Root.Slot");
+            using var reloaded = Reload(client);
+            Assert.That(NeoGeneratedTypesSupport.ReadComparer<IEqualityComparer<int>>(reloaded, reloaded.save, "Slot", false)!.Equals(7, 7), Is.True);
+            NeoGeneratedTypesSupport.SetComparer(client, client.save, "Slot", null, "Root.Slot");
+            Assert.That(NeoGeneratedTypesSupport.ReadComparer<IEqualityComparer<int>>(client, client.save, "Slot", false), Is.Null);
+        }
+
+        [Test]
         public void EvaluatorComparerStoresInItsClosedClassSlot()
         {
             using NeoClient client = BuildClient(data => data.members["slot-field"] = new ClassMember
@@ -1624,11 +1838,49 @@ namespace NeoCompose.Tests
             {
             }
 
+            internal PointValue(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+                : base(client, value, isReadOnly) { }
+
             internal static PointValue Create(NeoClient client, NeoMemberClass node) =>
                 (PointValue)NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(client, node, () => new PointValue(client, node, true));
 
             internal static PointValue CreateWritable(NeoClient client, NeoMemberClassWritable node) =>
                 (PointValue)NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(client, node, () => new PointValue(client, node, false));
+        }
+
+        private interface IReadOnlyBoxValue<T>
+        {
+        }
+
+        [Test]
+        public void GeneratedTypeArgumentsCloseClassesAndPreferConcreteReverseTypes()
+        {
+            using var client = BuildClient();
+            client.TypeArguments.Register(new Dictionary<Type, string>
+            {
+                [typeof(BoxValue<>)] = BoxClass,
+                [typeof(IReadOnlyBoxValue<>)] = BoxClass,
+            }, new Dictionary<Type, string>
+            {
+                [typeof(NumberStyles)] = NeoPrimitiveConformance.NumberStylesEnumId,
+                [typeof(DigitShapes)] = "system_94a8cb10-30fb-482c-8898-f3f4a67b8520",
+            });
+            var closed = (ClassTypeInfo)client.TypeArguments.Of<BoxValue<int>>();
+            Assert.That(closed.classId, Is.EqualTo(BoxClass));
+            Assert.That(closed.typeArguments!["box-t"].type, Is.EqualTo(MemberKind.Int));
+            Assert.That(client.TypeArguments.Of<BoxValue<int>>(), Is.SameAs(closed));
+            Assert.That(((ClassTypeInfo)client.TypeArguments.Of<BoxValue<int?>>()).typeArguments!["box-t"].required, Is.False);
+            Assert.That(NeoGeneratedTypesSupport.ClrTypeOf(client, NeoTypeBindings.FromTypeInfo(closed)), Is.EqualTo(typeof(BoxValue<int>)));
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<object>()).objectType, Is.Null);
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<System.ValueType>()).objectType, Is.EqualTo(NeoObjectTypeKind.ValueType));
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<System.Enum>()).objectType, Is.EqualTo(NeoObjectTypeKind.Enum));
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<Type>()).objectType, Is.EqualTo(NeoObjectTypeKind.Type));
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<CultureInfo>()).objectType, Is.EqualTo(NeoObjectTypeKind.CultureInfo));
+            Assert.That(((ObjectTypeInfo)client.TypeArguments.Of<NumberFormatInfo>()).objectType, Is.EqualTo(NeoObjectTypeKind.NumberFormatInfo));
+            Assert.That(((EnumTypeInfo)client.TypeArguments.Of<NumberStyles>()).enumId, Is.EqualTo(NeoPrimitiveConformance.NumberStylesEnumId));
+            Assert.That(((EnumTypeInfo)client.TypeArguments.Of<DigitShapes>()).enumId, Is.EqualTo("system_94a8cb10-30fb-482c-8898-f3f4a67b8520"));
+            client.TypeArguments.Register(new Dictionary<Type, string>(), new Dictionary<Type, string>());
+            Assert.That(NeoGeneratedTypesSupport.ClrTypeOf(client, NeoTypeBindings.FromTypeInfo(closed)), Is.Null, "Re-registration invalidates the reverse cache.");
         }
 
         private sealed class BoxValue<T>

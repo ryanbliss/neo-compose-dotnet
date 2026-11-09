@@ -10142,7 +10142,7 @@ namespace NeoCompose.Runtime.NeoScript
             return ResolveOwnershipForValueId(ctx, selectedId, ref node);
         }
 
-        private static object? UnwrapGeneratedValue(object? value, Context ctx)
+        internal static object? UnwrapGeneratedValue(object? value, Context ctx)
         {
             // A pending C# view hands back its temporary; asking it for an
             // id would make rows nothing here needs.

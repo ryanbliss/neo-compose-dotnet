@@ -250,6 +250,11 @@ namespace NeoCompose.Tests
             };
             var context = new NSGetterEvaluator.Context(client, null, null);
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), context), Is.EqualTo(expected));
+            var receiver = NSGetterEvaluator.ResolveValueIfId("receiver-value", context);
+            Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceMember(client, receiver, contract.id!, NeoInterfaceBody.Function,
+                new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = declaration.id }, Array.Empty<object?>()),
+                Is.EqualTo(2), "The CLR has selected the declared body; do not redispatch to the class.");
+
             Assert.That(NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), context), Is.EqualTo(expected));
         }
 
@@ -303,6 +308,11 @@ namespace NeoCompose.Tests
             var call = new CallFunctionPointer { interfaceMember = reference, receiver = receiver, args = Array.Empty<Pointer>(), callSiteId = "generic-default" };
             var result = (NeoTypeValue)NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), context)!;
             Assert.That(result.Binding.Head!.Type, Is.EqualTo(argument));
+            object target = NSGetterEvaluator.ResolveValueIfId("receiver-value", context)!;
+            Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceMember(client, target, "slot", NeoInterfaceBody.Function,
+                NeoTypeBindings.ToTypeInfo(TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: declaration.id),
+                    new Dictionary<string, TypeBinding> { ["T"] = TypeBinding.Closed(new TypeHead(argument, true)) })),
+                Array.Empty<object?>()), Is.EqualTo(argument == MemberKind.Int ? typeof(int) : typeof(string)));
             var group = (NeoDelegateValue)NSGetterEvaluator.EvaluatePointer(new MemberTargetPointer { receiver = receiver, interfaceMember = reference }, new NeoScriptScope(), context)!;
             var persisted = JsonConvert.DeserializeObject<NeoDelegateValue>(JsonConvert.SerializeObject(group))!;
             Assert.That(((NeoTypeValue)NSGetterEvaluator.InvokeDelegate(persisted, Array.Empty<object?>(), context)!).Binding.Head!.Type, Is.EqualTo(argument));
@@ -399,6 +409,11 @@ namespace NeoCompose.Tests
             var fallback = dispatch.Resolve(receiver, Requested(MemberKind.Int), "result-slot", accessor);
             Assert.That(fallback.MemberId, Is.EqualTo(body.id));
             Assert.That(fallback.InterfaceConstruction, Is.EqualTo(Requested(MemberKind.Int)));
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            object target = NSGetterEvaluator.ResolveValueIfId("receiver-value", context)!;
+            Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceMember(client, target, "result-slot",
+                property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function,
+                NeoTypeBindings.ToTypeInfo(Requested(MemberKind.Int)), Array.Empty<object?>()), Is.EqualTo(0));
         }
 
         [Test]
@@ -649,8 +664,8 @@ namespace NeoCompose.Tests
             });
             TypeBinding Construction(MemberKind kind) => TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id),
                 new Dictionary<string, TypeBinding> { ["T"] = TypeBinding.Closed(new TypeHead(kind, true)) });
-            var integer = client.ConstructedStaticBinding(count.id, Construction(MemberKind.Int));
-            var floating = client.ConstructedStaticBinding(count.id, Construction(MemberKind.Float));
+            var integer = NeoGeneratedTypesSupport.StaticBinding(client, count.id, NeoValueOwnership.Save, NeoTypeBindings.ToTypeInfo(Construction(MemberKind.Int)));
+            var floating = NeoGeneratedTypesSupport.StaticBinding(client, count.id, NeoValueOwnership.Save, NeoTypeBindings.ToTypeInfo(Construction(MemberKind.Float)));
             Assert.That(integer.ValueId, Is.Not.EqualTo(floating.ValueId));
             integer.SetValue(NeoValueWritePayload.FromInt(9));
             Assert.That(NeoGeneratedTypesSupport.ReadInt(integer.GetRequiredNode<NeoMemberInt>()), Is.EqualTo(9));
@@ -892,6 +907,17 @@ namespace NeoCompose.Tests
             owner.genericParams = new() { new() { id = "T", name = "T" } };
             using var client = BuildClient(new NeoCompose.Runtime.Json.Member[] { body, count }, owner);
             var construction = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = owner.id, typeArguments = new() { ["T"] = IntType() } };
+            var generated = NeoMemberNSFunction.GetOrCreateStatic(client, body.id, construction);
+            Assert.That(generated, Is.SameAs(NeoMemberNSFunction.GetOrCreateStatic(client, body.id, construction)));
+            Assert.That(generated.InvokeStatic(), Is.EqualTo(typeof(int)));
+            var textConstruction = new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = owner.id,
+                typeArguments = new() { ["T"] = new PrimitiveTypeInfo { type = MemberKind.String, required = true } }
+            };
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(client, body.id, textConstruction).InvokeStatic(), Is.EqualTo(typeof(string)));
             var receiver = new CallReceiver { kind = CallReceiverKind.Static, memberId = body.id };
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var call = new CallFunctionPointer { memberId = body.id, receiver = receiver, args = Array.Empty<Pointer>(), staticConstruction = construction, callSiteId = "generic-static" };
@@ -899,7 +925,7 @@ namespace NeoCompose.Tests
             var group = (NeoDelegateValue)NSGetterEvaluator.EvaluatePointer(new MemberTargetPointer { memberId = body.id, receiver = receiver, staticConstruction = construction }, new NeoScriptScope(), ctx)!;
             var restored = JsonConvert.DeserializeObject<NeoDelegateValue>(JsonConvert.SerializeObject(group))!;
             Assert.That(((NeoTypeValue)NSGetterEvaluator.InvokeDelegate(restored, Array.Empty<object?>(), ctx)!).Binding.Head!.Type, Is.EqualTo(MemberKind.Int));
-            Assert.That(JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!.staticConstructions, Has.Count.EqualTo(1));
+            Assert.That(JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!.staticConstructions, Has.Count.EqualTo(2));
             Assert.That(NSGetterEvaluator.EvaluatePointer(new StaticMemberPointer { memberId = count.id, staticConstruction = construction }, new NeoScriptScope(), ctx), Is.EqualTo(0));
         }
 

@@ -14,9 +14,9 @@ namespace NeoCompose.Tests.Diagnostic423
     [NeoEnum(typeof(MailStatusOptions))]
     public enum MailStatus
     {
-        Scheduled = 931233976,
-        Delivered = 1248636915,
-        Viewed = 2437353,
+        Scheduled = 0,
+        Delivered = 1,
+        Viewed = 2,
     }
 
     /// <summary>

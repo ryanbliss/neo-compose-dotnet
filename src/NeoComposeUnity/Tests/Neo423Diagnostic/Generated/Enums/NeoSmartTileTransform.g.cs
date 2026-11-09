@@ -14,12 +14,12 @@ namespace NeoCompose.Tests.Diagnostic423
     [NeoEnum(typeof(NeoSmartTileTransformOptions))]
     public enum NeoSmartTileTransform
     {
-        Fixed = 1566557690,
-        Rotated = 1537911835,
-        MirrorX = 327122220,
-        MirrorY = 2025283841,
-        MirrorXY = 2130027825,
-        RotatedMirror = 1525170712,
+        Fixed = 0,
+        Rotated = 1,
+        MirrorX = 2,
+        MirrorY = 3,
+        MirrorXY = 4,
+        RotatedMirror = 5,
     }
 
     /// <summary>

@@ -168,9 +168,8 @@ namespace NeoCompose.Runtime
 
         static NeoEnumOptions()
         {
-            Type? options = ((NeoEnumAttribute?)Attribute.GetCustomAttribute(
-                typeof(TEnum),
-                typeof(NeoEnumAttribute)))?.Options;
+            Type? options = typeof(TEnum) == typeof(System.Globalization.DigitShapes) ? typeof(NeoDigitShapesOptions)
+                : ((NeoEnumAttribute?)Attribute.GetCustomAttribute(typeof(TEnum), typeof(NeoEnumAttribute)))?.Options;
             if (options is null)
                 return;
             FromOptionId = (Func<string, TEnum>?)options
@@ -195,9 +194,10 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Option ids a Neo enum's members do not declare, such as an option
     /// deleted with "keep orphaned" while data still selects it. Each id gets
-    /// the next negative number on first sight, so it round-trips through
+    /// a deterministic negative FNV-1a number, so it round-trips through
     /// <c>FromOptionId</c> and <c>OptionId</c> and lands in a <c>switch</c>'s
-    /// <c>default</c> arm. The numbers are per process and never persisted.
+    /// <c>default</c> arm. The numbers match NeoScript. Colliding ids share a CLR value; the first
+    /// id read is retained for reverse conversion.
     /// </summary>
     /// <remarks>
     /// Modded options would take this same path: a mod's ids are unknown until
@@ -219,9 +219,10 @@ namespace NeoCompose.Runtime
             {
                 if (values.TryGetValue(optionId, out var known))
                     return known;
-                var value = (TEnum)System.Enum.ToObject(typeof(TEnum), -(values.Count + 1));
+                var value = (TEnum)System.Enum.ToObject(typeof(TEnum), NeoScript.Hashing.NeoEnums.OrphanValue(optionId));
                 values.Add(optionId, value);
-                optionIds.Add(value, optionId);
+                if (!optionIds.ContainsKey(value))
+                    optionIds.Add(value, optionId);
                 return value;
             }
         }
@@ -233,9 +234,7 @@ namespace NeoCompose.Runtime
                 if (optionIds.TryGetValue(value, out var optionId))
                     return optionId;
             }
-            throw new ArgumentOutOfRangeException(
-                nameof(value),
-                value,
+            throw new InvalidOperationException(
                 $"{typeof(TEnum).Name} declares no option for this value, and no option id was read for it.");
         }
     }
@@ -2418,6 +2417,8 @@ namespace NeoCompose.Runtime
                     return tupleCollectionReaders.GetOrAdd(type, CreateTupleCollectionReader)(
                         client, value, readOnlyFactories, savedFactories);
             }
+            if (type == typeof(System.Globalization.NumberStyles))
+                return (System.Globalization.NumberStyles)Convert.ToInt32(value);
             if (type.IsEnum)
                 return ReadSelectedId(value) is { } optionId ? NeoScriptValueMarshaller.EnumFromOptionId(type, optionId) : null;
             if (type == typeof(NeoDialogueReference))
@@ -5447,6 +5448,7 @@ namespace NeoCompose.Runtime
             bool replayDefaultRoot = false)
         {
             NeoClient client = resolved.client;
+            var hostOut = NeoOutArgument.Bind(ref argumentValues, resolved.link.record?.argumentTypes ?? Array.Empty<FunctionArgumentTypeInfo>());
             if (!replayDefaultRoot)
                 ValidateBoxedConstructorArguments(resolved, argumentValues, ctx);
             using var replayCapture = client.BeginNestedConstructorCapture();
@@ -5555,6 +5557,7 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException($"Declared constructor lost root '{root.id}'.");
                 replayCapture?.Complete(current, fields);
                 listenerCapture?.Complete(current.id);
+                NeoOutArgument.Complete(hostOut, ctx);
                 return new RuntimeConstructedClassValue(current, constructed.member);
             }
             finally
@@ -7036,7 +7039,7 @@ namespace NeoCompose.Runtime
             }
             if (declared.mode == NeoParameterModeKind.Out)
             {
-                if (argument.value is not NeoScript.NeoOutReference)
+                if (argument.value is not (NeoScript.NeoOutReference or NeoOutArgument))
                     throw new NeoScript.NSGetterRuntimeError($"Constructor '{record.id}' parameter '{declared.name}' requires an out argument.");
                 return argument.value;
             }
