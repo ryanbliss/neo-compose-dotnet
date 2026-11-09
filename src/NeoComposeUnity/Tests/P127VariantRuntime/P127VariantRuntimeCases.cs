@@ -3,6 +3,8 @@
 #nullable enable
 using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -11,47 +13,48 @@ namespace NeoCompose.Tests
     {
         public static IEnumerable<TestCaseData> Rows()
         {
-            yield return new TestCaseData("Money", "String").SetName("Variant_Money");
-            yield return new TestCaseData("Two", "A").SetName("Variant_Two");
-            yield return new TestCaseData("TwoRev", "B").SetName("Variant_TwoRev");
-            yield return new TestCaseData("Derived", "A").SetName("Variant_Derived");
-            yield return new TestCaseData("Inh", "String").SetName("Variant_Inh");
-            yield return new TestCaseData("Exact", "Object").SetName("Variant_Exact");
-            yield return new TestCaseData("Cons", "Object").SetName("Variant_Cons");
-            yield return new TestCaseData("Cons2", "String").SetName("Variant_Cons2");
-            yield return new TestCaseData("T2", "default-A").SetName("Variant_T2");
-            yield return new TestCaseData("Same", "default-Object").SetName("Variant_Same");
-            yield return new TestCaseData("Derived15", "base-explicit-object").SetName("Variant_Derived15");
-            yield return new TestCaseData("Derived13", "default-Object").SetName("Variant_Derived13");
-            yield return new TestCaseData("Derived8", "base-explicit-A").SetName("Variant_Derived8");
-            yield return new TestCaseData("Derived12", "base12-explicit-A").SetName("Variant_Derived12");
-            yield return new TestCaseData("Derived18", "base-explicit-A").SetName("Variant_Derived18");
-            yield return new TestCaseData("Derived1", "default-Object").SetName("Variant_Derived1");
-            yield return new TestCaseData("DerC", "explicit-A").SetName("Variant_DerC");
-            yield return new TestCaseData("DerD", "explicit-A").SetName("Variant_DerD");
-            yield return new TestCaseData("DerE", "explicit-A").SetName("Variant_DerE");
-            yield return new TestCaseData("DerF", "mid-explicit-A").SetName("Variant_DerF");
-            yield return new TestCaseData("PD", "pb-explicit-A").SetName("Variant_PD");
-            yield return new TestCaseData("ND", "nb-explicit-A").SetName("Variant_ND");
-            yield return new TestCaseData("Q2", "q1-explicit-A").SetName("Variant_Q2");
-            yield return new TestCaseData("D21", "b19-explicit-A").SetName("Variant_D21");
-            yield return new TestCaseData("D19", "b19-explicit-A").SetName("Variant_D19");
-            yield return new TestCaseData("G2", "g1-explicit-A").SetName("Variant_G2");
-            yield return new TestCaseData("RD2", "rb2-explicit-A").SetName("Variant_RD2");
-            yield return new TestCaseData("RD3", "rb2-explicit-A").SetName("Variant_RD3");
+            yield return new TestCaseData("Money", "String", "String").SetName("Variant_Money");
+            yield return new TestCaseData("Two", "A", "A").SetName("Variant_Two");
+            yield return new TestCaseData("TwoRev", "B", "B").SetName("Variant_TwoRev");
+            yield return new TestCaseData("Derived", "A", "B").SetName("Variant_Derived");
+            yield return new TestCaseData("Inh", "String", "String").SetName("Variant_Inh");
+            yield return new TestCaseData("Exact", "Object", "Object").SetName("Variant_Exact");
+            yield return new TestCaseData("Cons", "Object", "Object").SetName("Variant_Cons");
+            yield return new TestCaseData("Cons2", "String", "String").SetName("Variant_Cons2");
+            yield return new TestCaseData("T2", "default-A", "default-A").SetName("Variant_T2");
+            yield return new TestCaseData("Same", "default-Object", "explicit-string").SetName("Variant_Same");
+            yield return new TestCaseData("Derived15", "base-explicit-object", "derived-explicit-string").SetName("Variant_Derived15");
+            yield return new TestCaseData("Derived13", "default-Object", "derived-explicit-string").SetName("Variant_Derived13");
+            yield return new TestCaseData("Derived8", "base-explicit-A", "default-B").SetName("Variant_Derived8");
+            yield return new TestCaseData("Derived12", "base12-explicit-A", "over-B").SetName("Variant_Derived12");
+            yield return new TestCaseData("Derived18", "base-explicit-A", "base-explicit-A").SetName("Variant_Derived18");
+            yield return new TestCaseData("Derived1", "default-Object", "default-String").SetName("Variant_Derived1");
+            yield return new TestCaseData("DerC", "explicit-A", "base-public").SetName("Variant_DerC");
+            yield return new TestCaseData("DerD", "explicit-A", "base-public").SetName("Variant_DerD");
+            yield return new TestCaseData("DerE", "explicit-A", "base-public").SetName("Variant_DerE");
+            yield return new TestCaseData("DerF", "mid-explicit-A", "basef-public").SetName("Variant_DerF");
+            yield return new TestCaseData("PD", "pb-explicit-A", "pb-public-virtual").SetName("Variant_PD");
+            yield return new TestCaseData("ND", "nb-explicit-A", "nb-public-nonvirtual").SetName("Variant_ND");
+            yield return new TestCaseData("Q2", "q1-explicit-A", "q0-public").SetName("Variant_Q2");
+            yield return new TestCaseData("D21", "b19-explicit-A", "b19-explicit-A").SetName("Variant_D21");
+            yield return new TestCaseData("D19", "b19-explicit-A", "b19-explicit-A").SetName("Variant_D19");
+            yield return new TestCaseData("G2", "g1-explicit-A", "g1-explicit-A").SetName("Variant_G2");
+            yield return new TestCaseData("RD2", "rb2-explicit-A", "rd2-override").SetName("Variant_RD2");
+            yield return new TestCaseData("RD3", "rb2-explicit-A", "rd3-override").SetName("Variant_RD3");
         }
 
         [TestCaseSource(nameof(Rows))]
-        public void ClrDispatchMatchesPinnedUnityResult(string row, string expected)
+        public void ClrDispatchMatchesPinnedUnityResult(string row, string monoExpected, string il2cppExpected)
         {
             string actual = Invoke(row);
 #if ENABLE_IL2CPP
-            // This baseline awaits the first authorized IL2CPP run. Keep the
-            // actual result in the test output if that runtime differs from Mono.
-            TestContext.WriteLine($"IL2CPP {row}: {actual}");
+            string expected = il2cppExpected;
+            const string runtime = "IL2CPP";
 #else
-            TestContext.WriteLine($"Mono {row}: {actual}");
+            string expected = monoExpected;
+            const string runtime = "Mono";
 #endif
+            TestContext.WriteLine($"{runtime} {row}: {actual}");
             Assert.That(actual, Is.EqualTo(expected), row);
         }
 
@@ -280,9 +283,8 @@ namespace NeoCompose.Tests
         }
     }
 
-#if !UNITY_EDITOR
+    [UnityPlatform(exclude = new[] { RuntimePlatform.OSXEditor, RuntimePlatform.WindowsEditor, RuntimePlatform.LinuxEditor })]
     public sealed class P127VariantPlayerTests : P127VariantRuntimeCases
     {
     }
-#endif
 }

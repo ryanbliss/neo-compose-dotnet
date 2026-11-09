@@ -13,6 +13,281 @@ namespace NeoCompose.Tests
 {
     public partial class NSFunctionRuntimeTests
     {
+        [TestCase(true, false, false, 2)]
+        [TestCase(false, false, false, 2)]
+        [TestCase(true, true, false, 2)]
+        [TestCase(false, true, false, 2)]
+        [TestCase(true, true, true, 4)]
+        [TestCase(false, true, true, 4)]
+        public void P127Interface_EmptyMergedListingKeepsInheritedSlot(bool property, bool unequal, bool requestInt, int expected)
+        {
+            TypeBinding Param(string owner, string name) => TestTypeBindings.Open(owner, owner + "-" + name);
+            InterfaceConstruction Listing(TypeBinding argument) => new()
+            {
+                interfaceId = "I",
+                arguments = new()
+                {
+                    ["I-T"] = argument
+                }
+            };
+            NeoCompose.Runtime.Json.Member Body(string id, int value) => property
+                ? new NSPropertyMember { id = id, name = "V", projectId = ProjectId, kind = MemberKind.NSProperty, returnTypeInfo = IntType(), code = "return " + value + ";", getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(value))) }
+                : ScriptFunction(id, "V", false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(value))));
+            var fallback = Body("default", 4);
+            var explicitBody = Body("explicit", 2);
+            explicitBody.Access = NeoMemberAccessKind.Private;
+            explicitBody.Modifier = NeoMemberModifierKind.Sealed;
+            explicitBody.explicitImplementation = new()
+            {
+                interfaceId = "I",
+                interfaceMemberId = "slot",
+                arguments = Listing(Param("B", "T")).arguments
+            };
+            var contract = new InterfaceMember
+            {
+                id = "slot",
+                kind = property ? NeoInterfaceMemberKind.Property : NeoInterfaceMemberKind.Function,
+                typeInfo = property ? IntType() : null,
+                returnTypeInfo = property ? null : IntType(),
+                argumentTypes = property ? null : new(),
+                implementationMemberId = fallback.id
+            };
+            var declaration = new Interface
+            {
+                id = "I",
+                name = "I",
+                projectId = ProjectId,
+                genericParams = new() { new() { id = "I-T", name = "T" } },
+                members = new() { ["V"] = contract }
+            };
+            var parent = ReceiverClass(("V#explicit", explicitBody.id));
+            parent.id = "B";
+            parent.genericParams = new() { new() { id = "B-T", name = "T" }, new() { id = "B-U", name = "U" } };
+            parent.implementsInterfaces = new() { Listing(Param("B", "T")) };
+            var receiver = ReceiverClass();
+            receiver.id = "M";
+            receiver.genericParams = new() { new() { id = "M-T", name = "T" }, new() { id = "M-U", name = "U" } };
+            receiver.extendsClassId = parent.id;
+            receiver.extendsGenericBindings = new()
+            {
+                ["B-T"] = Param("M", "T"),
+                ["B-U"] = Param("M", "T")
+            };
+            receiver.implementsInterfaces = new() { Listing(Param("M", "U")) };
+            var row = ObjectValue("receiver-value", receiver.id);
+            row.genericBindings = new()
+            {
+                ["M-T"] = TestTypeBindings.Of(unequal ? MemberKind.String : MemberKind.Int),
+                ["M-U"] = TestTypeBindings.Of(MemberKind.Int)
+            };
+            using var client = BuildClient(new[] { fallback, explicitBody }, receiver, new[] { parent }, new[] { row }, new()
+            {
+                ["I"] = declaration
+            });
+            var argument = TestTypeBindings.Of(unequal && !requestInt ? MemberKind.String : MemberKind.Int);
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: "I"), Listing(argument).arguments);
+            var receiverType = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: "M"), row.genericBindings);
+            string accessor = property ? "get" : "call";
+            var runtime = NeoInterfaceDispatch.Of(client).Resolve(receiverType, requested, "slot", accessor);
+            Assert.That(NeoInterfaceDispatch.ForSchemaValidation(client).Resolve(receiverType, requested, "slot", accessor).MemberId, Is.EqualTo(runtime.MemberId));
+            var reference = new InterfaceMemberRef { interfaceId = "I", memberId = "slot", arguments = new() { ["I-T"] = NeoTypeBindings.ToTypeInfo(argument) } };
+            var callReceiver = new CallReceiver { kind = CallReceiverKind.Instance, pointer = new ReferencePointer { valueId = row.id } };
+            Pointer call = property
+                ? new CallGetterPointer { receiver = callReceiver, interfaceMember = reference }
+                : new CallFunctionPointer { receiver = callReceiver, interfaceMember = reference, args = Array.Empty<Pointer>(), callSiteId = "empty-merge" };
+            Assert.That(NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), new NSGetterEvaluator.Context(client, null, null)), Is.EqualTo(expected));
+        }
+
+        [TestCase("M", 9, true)]
+        [TestCase("M", 9, false)]
+        [TestCase("Q", 9, true)]
+        [TestCase("Q", 9, false)]
+        [TestCase("MString", 2, true)]
+        [TestCase("MString", 2, false)]
+        [TestCase("Eq", 2, true)]
+        [TestCase("Eq", 2, false)]
+        [TestCase("EqBelow", 9, true)]
+        [TestCase("EqBelow", 9, false)]
+        [TestCase("Top", 2, true)]
+        [TestCase("Top", 2, false)]
+        [TestCase("Closed", 9, true)]
+        [TestCase("Closed", 9, false)]
+        [TestCase("NQ", 5, true)]
+        [TestCase("NQ", 5, false)]
+        [TestCase("VR", 5, true)]
+        [TestCase("VR", 5, false)]
+        [TestCase("VO", 7, true)]
+        [TestCase("VO", 7, false)]
+        public void P127Interface_RelistedMergeUsesDeclarationParameters(string family, int expected, bool property)
+        {
+            var records = new List<NeoCompose.Runtime.Json.Member>();
+            var classes = new Dictionary<string, NeoSchemaClass>();
+            var interfaces = new Dictionary<string, Interface>();
+            TypeBinding Param(string owner, string name) => TestTypeBindings.Open(owner, owner + "-" + name);
+            var tag = ReceiverClass();
+            tag.id = "Tag";
+            classes.Add(tag.id, tag);
+            foreach (string id in new[] { "J", "F" })
+                interfaces[id] = new Interface
+                {
+                    id = id,
+                    name = id,
+                    projectId = ProjectId,
+                    genericParams = new() { new() { id = id + "-A", name = "A" }, new() { id = id + "-B", name = "B" } },
+                    members = new()
+                    {
+                        [id == "J" ? "V" : "F"] = new InterfaceMember
+                        {
+                            id = id + "-slot",
+                            kind = id == "J" ? NeoInterfaceMemberKind.Property : NeoInterfaceMemberKind.Function,
+                            typeInfo = id == "J" ? IntType() : null,
+                            returnTypeInfo = id == "F" ? IntType() : null,
+                            argumentTypes = id == "F" ? new() : null
+                        }
+                    }
+                };
+            InterfaceConstruction Listing(string id, TypeBinding argument) => new()
+            {
+                interfaceId = id,
+                arguments = new()
+                {
+                    [id + "-A"] = TestTypeBindings.Class("Tag"),
+                    [id + "-B"] = argument
+                }
+            };
+            NeoSchemaClass Class(string id, string? parent = null, bool merge = false, string? listing = null, bool closed = false)
+            {
+                var owner = ReceiverClass();
+                owner.id = id;
+                owner.name = id;
+                owner.genericParams = closed ? null : new() { new() { id = id + "-T", name = "T" }, new() { id = id + "-U", name = "U" } };
+                owner.extendsClassId = parent;
+                if (parent is not null)
+                    owner.extendsGenericBindings = new()
+                    {
+                        [parent + "-T"] = closed ? TestTypeBindings.Of(MemberKind.Int) : Param(id, "T"),
+                        [parent + "-U"] = closed ? TestTypeBindings.Of(MemberKind.Int) : Param(id, merge ? "T" : "U")
+                    };
+                if (listing is not null)
+                {
+                    var argument = closed ? TestTypeBindings.Of(MemberKind.Int) : Param(id, listing);
+                    owner.implementsInterfaces = new() { Listing("J", argument), Listing("F", argument) };
+                }
+                classes.Add(id, owner);
+                return owner;
+            }
+            void Bodies(string ownerId, int value, string? explicitParameter = null, string? overrideOwner = null)
+            {
+                var owner = classes[ownerId];
+                foreach (string id in new[] { "J", "F" })
+                {
+                    string name = id == "J" ? "V" : "F";
+                    string key = explicitParameter is null ? name : name + "#explicit";
+                    string memberId = ownerId + "-" + key;
+                    var body = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(value)));
+                    NeoCompose.Runtime.Json.Member member = id == "J"
+                        ? new NSPropertyMember { id = memberId, name = name, projectId = ProjectId, kind = MemberKind.NSProperty, returnTypeInfo = IntType(), code = "return " + value + ";", getter = body }
+                        : ScriptFunction(memberId, name, false, IntType(), Array.Empty<FunctionArgumentTypeInfo>(), body);
+                    if (explicitParameter is not null)
+                    {
+                        member.Access = NeoMemberAccessKind.Private;
+                        member.Modifier = NeoMemberModifierKind.Sealed;
+                        member.explicitImplementation = new()
+                        {
+                            interfaceId = id,
+                            interfaceMemberId = id + "-slot",
+                            arguments = Listing(id, Param(ownerId, explicitParameter)).arguments
+                        };
+                    }
+                    if (overrideOwner is not null)
+                    {
+                        member.extendsMemberId = overrideOwner + "-" + name;
+                        if (member is NSFunctionMember function)
+                        {
+                            function.returnTypeInfo = null;
+                            function.argumentTypes = null;
+                            function.DeclaredDispatch = null;
+                        }
+                        else if (member is NSPropertyMember overrideProperty)
+                        {
+                            overrideProperty.returnTypeInfo = null!;
+                        }
+                    }
+                    owner.schema[key] = memberId;
+                    records.Add(member);
+                }
+            }
+            Class("B", listing: "T");
+            Bodies("B", 2, explicitParameter: "T");
+            Bodies("B", 9);
+            Class("P", "B");
+            Class("M", "P", merge: true, listing: "U");
+            Class("Q", "M");
+            Class("Eq", "P", merge: true, listing: "T");
+            Class("EqBelow", "M", listing: "T");
+            Class("Closed", "Q", listing: "T", closed: true);
+            Class("Top", "B", listing: "T", closed: true);
+            Class("N", "M", listing: "T");
+            Bodies("N", 5, explicitParameter: "T");
+            Class("NQ", "N", listing: "U");
+            Class("VB", listing: "T");
+            Bodies("VB", 9);
+            Class("VM", "VB", merge: true, listing: "U");
+            Bodies("VM", 5, explicitParameter: "U");
+            Class("VQ", "VM");
+            Bodies("VQ", 7, overrideOwner: "VB");
+            Class("VR", "VQ", listing: "T");
+            Class("VO", "VM", listing: "T");
+            Bodies("VO", 7, overrideOwner: "VB");
+            string receiverId = family == "MString" ? "M" : family;
+            var receiver = classes[receiverId];
+            var row = ObjectValue("receiver-value", receiverId);
+            row.genericBindings = receiver.genericParams is null ? null : new()
+            {
+                [receiverId + "-T"] = TestTypeBindings.Of(family == "MString" ? MemberKind.String : MemberKind.Int),
+                [receiverId + "-U"] = TestTypeBindings.Of(MemberKind.Int)
+            };
+            using var client = BuildClient(records.ToArray(), receiver, new List<NeoSchemaClass>(classes.Values).ToArray(), new[] { row }, interfaces);
+            var context = new NSGetterEvaluator.Context(client, null, null);
+            var receiverType = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: receiverId), row.genericBindings);
+            {
+                string id = property ? "J" : "F";
+                var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: id),
+                    Listing(id, TestTypeBindings.Of(family == "MString" ? MemberKind.String : MemberKind.Int)).arguments);
+                var runtime = NeoInterfaceDispatch.Of(client).Resolve(receiverType, requested, id + "-slot", id == "J" ? "get" : "call");
+                var validation = NeoInterfaceDispatch.ForSchemaValidation(client).Resolve(receiverType, requested, id + "-slot", id == "J" ? "get" : "call");
+                Assert.That(validation.MemberId, Is.EqualTo(runtime.MemberId), "Schema validation and runtime must select the same slot.");
+                Assert.That(NeoInterfaceDispatch.Of(client).Resolve(receiverType, requested, id + "-slot", id == "J" ? "get" : "call"), Is.SameAs(runtime));
+                if (family == "M")
+                {
+                    var symbolicReceiver = TypeBinding.Closed(receiverType.Head!, new Dictionary<string, TypeBinding>
+                    {
+                        ["M-T"] = Param("M", "T"),
+                        ["M-U"] = Param("M", "U")
+                    });
+                    var symbolicRequest = TypeBinding.Closed(requested.Head!, Listing(id, Param("M", "U")).arguments);
+                    Assert.That(NeoInterfaceDispatch.ForSchemaValidation(client).Resolve(symbolicReceiver, symbolicRequest,
+                        id + "-slot", id == "J" ? "get" : "call").MemberId,
+                        Is.EqualTo(id == "J" ? "B-V" : "B-F"), "Schema validation keeps M's T and U distinct.");
+                }
+                var reference = new InterfaceMemberRef
+                {
+                    interfaceId = id,
+                    memberId = id + "-slot",
+                    arguments = new()
+                    {
+                        [id + "-A"] = NeoTypeBindings.ToTypeInfo(TestTypeBindings.Class("Tag")),
+                        [id + "-B"] = NeoTypeBindings.ToTypeInfo(TestTypeBindings.Of(family == "MString" ? MemberKind.String : MemberKind.Int))
+                    }
+                };
+                var callReceiver = new CallReceiver { kind = CallReceiverKind.Instance, pointer = new ReferencePointer { valueId = "receiver-value" } };
+                Pointer call = id == "J"
+                    ? new CallGetterPointer { receiver = callReceiver, interfaceMember = reference }
+                    : new CallFunctionPointer { receiver = callReceiver, interfaceMember = reference, args = Array.Empty<Pointer>(), callSiteId = "merge-call" };
+                Assert.That(NSGetterEvaluator.EvaluatePointer(call, new NeoScriptScope(), context), Is.EqualTo(expected), id + " on " + family);
+            }
+        }
+
         [Test]
         public void P127Interface_StaticListenersDeduplicatePerConstructionAndRunInItsFrame()
         {
@@ -756,6 +1031,87 @@ namespace NeoCompose.Tests
             Assert.That(notified, Is.True);
             Assert.That(Read(integer), Is.EqualTo(3));
             Assert.That(Read(text), Is.EqualTo(5));
+        }
+
+        [TestCase(false, false, false)]
+        [TestCase(false, true, false)]
+        [TestCase(true, false, false)]
+        [TestCase(true, true, false)]
+        [TestCase(false, false, true)]
+        [TestCase(false, true, true)]
+        [TestCase(true, false, true)]
+        [TestCase(true, true, true)]
+        public void P127Interface_RelistedPropertyKeepsSetAndInitContractsDistinct(bool contractInit, bool implementationInit, bool stored)
+        {
+            var contractAccessors = contractInit ? NeoPropertyAccessorsKind.GetInit : NeoPropertyAccessorsKind.GetSet;
+            var implementationAccessors = implementationInit ? NeoPropertyAccessorsKind.GetInit : NeoPropertyAccessorsKind.GetSet;
+            NSPropertyMember Property(string id, NeoPropertyAccessorsKind accessors) => new()
+            {
+                id = id,
+                name = "P",
+                projectId = ProjectId,
+                kind = MemberKind.NSProperty,
+                Accessors = accessors,
+                returnTypeInfo = IntType(),
+                code = "return 1;",
+                getter = Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(1))),
+                setterCode = "return;",
+                setter = Action(new PrimitiveTypeInfo { type = MemberKind.Null, required = true }, Array.Empty<FunctionArgumentTypeInfo>())
+            };
+            var root = Property("base-property", contractAccessors);
+            root.Access = NeoMemberAccessKind.Private;
+            root.explicitImplementation = new()
+            {
+                interfaceId = "contract",
+                interfaceMemberId = "slot"
+            };
+            NeoCompose.Runtime.Json.Member derived = stored
+                ? new IntMember
+                {
+                    id = "derived-property",
+                    name = "P",
+                    projectId = ProjectId,
+                    kind = MemberKind.Int,
+                    Requirement = NeoMemberRequirementKind.Required,
+                    DeclaredDeclarationForm = NeoMemberDeclarationFormKind.AutoProperty,
+                    DeclaredAccessors = implementationAccessors,
+                    Mutability = implementationInit ? NeoMemberMutabilityKind.ReadOnly : NeoMemberMutabilityKind.Mutable
+                }
+                : Property("derived-property", implementationAccessors);
+            var contract = new Interface
+            {
+                id = "contract",
+                name = "I",
+                projectId = ProjectId,
+                members = new()
+                {
+                    ["P"] = new InterfaceMember { id = "slot", kind = NeoInterfaceMemberKind.Property, typeInfo = IntType(), Accessors = contractAccessors }
+                }
+            };
+            var baseClass = new NeoSchemaClass
+            {
+                id = "base-class",
+                name = "Base",
+                projectId = ProjectId,
+                schema = new() { ["P#slot"] = root.id },
+                implementsInterfaces = new() { new() { interfaceId = contract.id } }
+            };
+            var owner = ReceiverClass(("P", derived.id));
+            owner.extendsClassId = baseClass.id;
+            owner.implementsInterfaces = new() { new() { interfaceId = contract.id } };
+            using var client = BuildClient(new[] { root, derived }, owner, additionalClasses: new[] { baseClass },
+                interfaces: new()
+                {
+                    [contract.id] = contract
+                });
+            var dispatch = NeoInterfaceDispatch.Of(client);
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: owner.id));
+            var requested = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: contract.id));
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "get").MemberId, Is.EqualTo(derived.id), "Getter mapping is independent of the write accessor.");
+            string expected = contractInit == implementationInit ? derived.id : root.id;
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "set").MemberId, Is.EqualTo(expected), "Only the same write-accessor kind can reimplement the contract.");
+            Assert.That(dispatch.Resolve(receiver, requested, "slot", "set").MemberId, Is.EqualTo(expected), "Cached mappings preserve the accessor kind.");
+            Assert.That(dispatch.ClassAccessor(owner.id, derived.id, "set").id, Is.EqualTo(derived.id), "Direct class writes still find init accessors during construction.");
         }
 
         [Test]

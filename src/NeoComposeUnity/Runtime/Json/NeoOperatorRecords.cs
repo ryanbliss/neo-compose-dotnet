@@ -65,18 +65,18 @@ namespace NeoCompose.Runtime.Json
             if (!inInterface && row.Property("extendsMemberId") is not null)
                 return "An operator can't override a member.";
             if (!(inInterface ? True(row["static"]) : Integer(row["modifier"]) == (int)NeoMemberModifierKind.Static))
-                return "User-defined operator must be declared static (CS0558).";
+                return "Declare operators as static members.";
             if (row.Property("access") is not null && Integer(row["access"]) != (int)NeoMemberAccessKind.Public && row.Property("explicitImplementation") is null)
-                return "User-defined operator must be declared public (CS0558).";
+                return "Give this operator public access, or implement an interface operator explicitly.";
             if (row["genericParams"] is JArray { Count: > 0 })
                 return "An operator can't declare type parameters.";
             var args = Args(row);
             if (args.Count != arity)
                 return $"'{name}' takes {arity} parameter(s), not {args.Count}.";
             if (args.Any(arg => arg is JObject obj && Integer(obj["mode"]) == (int)NeoParameterModeKind.Out))
-                return "An operator parameter can't be 'out' (CS0631).";
+                return "Operator operands cannot use the 'out' mode.";
             if (name is "op_True" or "op_False" && !(row["returnTypeInfo"] is JObject result && Integer(result["type"]) == (int)MemberKind.Bool && True(result["required"])))
-                return "The return type of operator True or False must be bool (CS0215).";
+                return "Return a non-nullable bool from true and false operators.";
             return null;
         }
 
@@ -158,27 +158,27 @@ namespace NeoCompose.Runtime.Json
                 if (name is "op_Increment" or "op_Decrement" or "op_CheckedIncrement" or "op_CheckedDecrement")
                 {
                     if (!Own(first))
-                        error = inInterface ? "The parameter type for ++ or -- operator must be the containing type, or its type parameter constrained to it (CS8922)." : "The parameter type for ++ or -- operator must be the containing type (CS0559).";
+                        error = inInterface ? "Use this interface or one of its self-constrained type parameters for the ++ or -- operand." : "Use the declaring class for the ++ or -- operand type.";
                     else if (TypeKey(first) != TypeKey(returned) && !(inInterface ? Own(returned) && !(Integer(first["type"]) == (int)MemberKind.Generic && parameters.Contains(Text(first["genericParamId"]))) : Subclass(returned)))
-                        error = inInterface ? "The return type for ++ or -- operator must either match the parameter type, or be derived from the parameter type, or be the containing type's type parameter constrained to it unless the parameter type is a different type parameter (CS8923)." : "The return type for ++ or -- operator must match the parameter type or be derived from the parameter type (CS0448).";
+                        error = inInterface ? "For ++ or --, return the operand's type or a subtype. An interface may instead return its own self-constrained type parameter, unless the operand already uses another type parameter." : "For ++ or --, return the operand's type or a subclass of it.";
                 }
                 else if (args.Count == 1 && !Own(first))
-                    error = inInterface ? "The parameter of a unary operator must be the containing type, or its type parameter constrained to it (CS8921)." : "The parameter of a unary operator must be the containing type (CS0562).";
+                    error = inInterface ? "Use this interface or one of its self-constrained type parameters as the unary operand type." : "Use the declaring class as the unary operand type.";
                 else if (name is "op_LeftShift" or "op_RightShift" or "op_UnsignedRightShift")
                 {
                     if (!Own(first))
-                        error = inInterface ? "The first operand of an overloaded shift operator must have the same type as the containing type or its type parameter constrained to it (CS8925)." : "The first operand of an overloaded shift operator must have the same type as the containing type (CS0564).";
+                        error = inInterface ? "Use this interface or one of its self-constrained type parameters as the left operand type for a shift." : "Use the declaring class as the left operand type for a shift.";
                 }
                 else if (args.Count == 2 && !Own(first) && !Own(args[1]))
-                    error = inInterface ? "One of the parameters of a binary operator must be the containing type, or its type parameter constrained to it (CS8924)." : "One of the parameters of a binary operator must be the containing type (CS0563).";
+                    error = inInterface ? "Give at least one binary operand this interface type or one of its self-constrained type parameters." : "Give at least one binary operand the declaring class type.";
                 if (error is not null)
                     throw new JsonSerializationException($"{prefix} '{name}': {error}");
                 if (row.Property("explicitImplementation") is not null)
                     continue;
                 if (Pairs.TryGetValue(name, out string paired) && !signatures.Contains(Signature(paired, row)))
-                    throw new JsonSerializationException($"{prefix} The operator '{name}' requires a matching operator '{paired}' to also be defined (CS0216).");
+                    throw new JsonSerializationException($"{prefix} '{name}': Add '{paired}' with the same operand and result types.");
                 if (name.StartsWith("op_Checked", StringComparison.Ordinal) && !signatures.Contains(Signature("op_" + name.Substring(10), row)))
-                    throw new JsonSerializationException($"{prefix} The operator '{name}' requires a matching non-checked version of the operator to also be defined (CS9025).");
+                    throw new JsonSerializationException($"{prefix} '{name}': Add its unchecked operator with the same operand and result types.");
             }
         }
 

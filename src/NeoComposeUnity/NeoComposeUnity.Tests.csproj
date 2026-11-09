@@ -16,6 +16,9 @@
          up Runtime / Editor sources, which already belong to other csprojs. -->
     <Compile Remove="**/*.cs" />
     <Compile Include="Tests/**/*.cs" />
+    <!-- Unity compiles the codegen-shapes fixture as its own assembly; this
+         shim merges every folder, so keep a single IsExternalInit. -->
+    <Compile Remove="Tests/P127InterfacesParity/Generated/IsExternalInit.g.cs" />
   </ItemGroup>
 
   <ItemGroup>

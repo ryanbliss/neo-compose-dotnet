@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITX<T> : NeoGeneratedClassValue, IReadOnlyITX<T>
     {
         internal ITX(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6271db6c-5740-4b51-95c0-2f196c810503", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e6ec4f5b-4c19-45f1-bcd3-553943790898", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,8 +38,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "38c53755-3598-41f9-9b3c-2067ab5b82db" => (ITX<T>)(object)new ITXD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "6271db6c-5740-4b51-95c0-2f196c810503" => new ITX<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c92f28eb-6173-49e3-9042-597930d0dfc9" => (ITX<T>)(object)new ITXD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e6ec4f5b-4c19-45f1-bcd3-553943790898" => new ITX<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITX' without a concrete client type id."),
                 };
             });
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "38c53755-3598-41f9-9b3c-2067ab5b82db" => (ITX<T>)(object)new ITXD(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "6271db6c-5740-4b51-95c0-2f196c810503" => new ITX<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c92f28eb-6173-49e3-9042-597930d0dfc9" => (ITX<T>)(object)new ITXD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e6ec4f5b-4c19-45f1-bcd3-553943790898" => new ITX<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITX' without a concrete client type id."),
                 };
             });
@@ -89,7 +89,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(T a, int b)
         {
-            var result = InvokeFunction("M#5336cdd3-cc40-4270-9946-b47f84b7687f", a, b);
+            var result = InvokeFunction("M#f19d4e78-b4f5-4f45-ba61-e9b2c94fbf54", a, b);
             return Convert.ToInt32(result);
         }
 

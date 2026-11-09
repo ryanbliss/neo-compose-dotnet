@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CastPet : NeoGeneratedClassValue, IReadOnlyCastPet
     {
         internal CastPet(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "22d5bfcc-b3f4-4f0b-88fc-e87931a1bed1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "22d5bfcc-b3f4-4f0b-88fc-e87931a1bed1");
         }
 
         internal static CastPet Create(NeoClient client, NeoMemberClass node)
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4863d38b-28c0-4bb4-a8d1-c73a1e2a8ee4" => new CastCat(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5e948694-01f4-43a4-b23d-a46e96708f7f" => new CastDog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new CastPet(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -66,8 +66,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4863d38b-28c0-4bb4-a8d1-c73a1e2a8ee4" => new CastCat(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5e948694-01f4-43a4-b23d-a46e96708f7f" => new CastDog(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new CastPet(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,9 +77,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(client, value, !saved),
-                "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(client, value, !saved),
-                "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501" => new CastPet(client, value, !saved),
+                "4863d38b-28c0-4bb4-a8d1-c73a1e2a8ee4" => new CastCat(client, value, !saved),
+                "5e948694-01f4-43a4-b23d-a46e96708f7f" => new CastDog(client, value, !saved),
+                "22d5bfcc-b3f4-4f0b-88fc-e87931a1bed1" => new CastPet(client, value, !saved),
                 _ => null,
             };
         }

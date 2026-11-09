@@ -1590,7 +1590,7 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? defaultType;
 
-        /// <summary>The class constraint, which C# puts first (CS0406).</summary>
+        /// <summary>The class constraint is stored before any interface constraints.</summary>
         [JsonIgnore]
         public ClassTypeInfo? ClassConstraint =>
             constraints is { Length: > 0 } ? constraints[0] as ClassTypeInfo : null;

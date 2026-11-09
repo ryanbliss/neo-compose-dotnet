@@ -42,7 +42,7 @@ namespace NeoCompose.Tests
         [TestCase("kind", "0", "operator is only valid on a function member.")]
         [TestCase("name", "'op_Bogus'", "'op_Bogus' is not an operator metadata name.")]
         [TestCase("extendsMemberId", "null", "An operator can't override a member.")]
-        [TestCase("modifier", "0", "User-defined operator must be declared static (CS0558).")]
+        [TestCase("modifier", "0", "Declare operators as static members.")]
         [TestCase("genericParams", "[{}]", "An operator can't declare type parameters.")]
         [TestCase("argumentTypes", "[]", "'op_Addition' takes 2 parameter(s), not 0.")]
         [TestCase("explicitImplementation", "{}", "explicitImplementation must name an interface, its arguments and an interface member.")]
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests
             var row = Row();
             row["argumentTypes"] = new JArray(Type(MemberKind.Int), Type(MemberKind.Int));
             Assert.That(Assert.Throws<JsonSerializationException>(() => NeoOperatorRecords.ValidateProject(Project(row)))!.Message,
-                Is.EqualTo("Class \"Money\" (money) operator 'op_Addition': One of the parameters of a binary operator must be the containing type (CS0563)."));
+                Is.EqualTo("Class \"Money\" (money) operator 'op_Addition': Give at least one binary operand the declaring class type."));
         }
         [Test]
         public void ValueNullableAnnotationsArePartOfPairIdentity()
@@ -79,7 +79,7 @@ namespace NeoCompose.Tests
             other["name"] = "op_Inequality";
             other["argumentTypes"]![1]!["required"] = false;
             Assert.That(Assert.Throws<JsonSerializationException>(() => NeoOperatorRecords.ValidateProject(Project(equal, other)))!.Message,
-                Is.EqualTo("Class \"Money\" (money) operator The operator 'op_Equality' requires a matching operator 'op_Inequality' to also be defined (CS0216)."));
+                Is.EqualTo("Class \"Money\" (money) operator 'op_Equality': Add 'op_Inequality' with the same operand and result types."));
             other["argumentTypes"]![1]!["required"] = true;
             Assert.DoesNotThrow(() => NeoOperatorRecords.ValidateProject(Project(equal, other)));
             equal["argumentTypes"]![1] = Type(MemberKind.String);
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests
         public void CheckedOperatorNeedsItsRegularPair()
         {
             Assert.That(Assert.Throws<JsonSerializationException>(() => NeoOperatorRecords.ValidateProject(Project(Row("op_CheckedAddition"))))!.Message,
-                Is.EqualTo("Class \"Money\" (money) operator The operator 'op_CheckedAddition' requires a matching non-checked version of the operator to also be defined (CS9025)."));
+                Is.EqualTo("Class \"Money\" (money) operator 'op_CheckedAddition': Add its unchecked operator with the same operand and result types."));
             Assert.DoesNotThrow(() => NeoOperatorRecords.ValidateProject(Project(Row("op_CheckedAddition"), Row())));
         }
     }

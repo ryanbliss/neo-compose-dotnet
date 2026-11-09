@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class NullableSlotK<T> : NeoGeneratedClassValue, IReadOnlyNullableSlotK<T>
     {
         internal NullableSlotK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "aef59ef4-0c22-4e4f-a6d3-7acafc631000", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "171dd3c3-ca04-431c-bfe5-1097e5ef360f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "aef59ef4-0c22-4e4f-a6d3-7acafc631000" => new NullableSlotK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "171dd3c3-ca04-431c-bfe5-1097e5ef360f" => new NullableSlotK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableSlotK' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "aef59ef4-0c22-4e4f-a6d3-7acafc631000" => new NullableSlotK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "171dd3c3-ca04-431c-bfe5-1097e5ef360f" => new NullableSlotK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableSlotK' without a concrete client type id."),
                 };
             });
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
 
-        [NeoMemberMethod("7598cca0-b7b5-438c-8d8d-b86d01136fc5")]
+        [NeoMemberMethod("ea009d23-eff4-4f5e-9c2d-36156955a5f4")]
         public void Write()
         {
             InvokeFunction("Write");
