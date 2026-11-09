@@ -426,6 +426,30 @@ namespace NeoCompose.Tests
             Assert.That(dropped.baseRecordRevisionToken, Is.EqualTo("token-2"));
         }
 
+        [Test]
+        public void ConstructionBaselineDoesNotChangeWhenLiveBindingsAreRebound()
+        {
+            var live = new List<NeoStaticConstruction>
+            {
+                Construction(BoxOf(MemberKind.Int), "before-int"),
+                Construction(BoxOf(MemberKind.String), "before-string"),
+            };
+            var baseline = NeoSaveSynchronizer.CopyConstructions(live);
+            live[0].value = "after-int";
+            live[1].value = "after-string";
+            var changes = NeoSaveSynchronizer.BuildLivePatch(new JObject(), new JObject(), null,
+                baselineConstructions: baseline, stagedConstructions: live).changes;
+            Assert.That(changes, Has.Count.EqualTo(2));
+            Assert.That(baseline[0].value, Is.EqualTo("before-int"));
+            Assert.That(baseline[1].value, Is.EqualTo("before-string"));
+            var reverse = NeoSaveSynchronizer.BuildLivePatch(new JObject(), new JObject(), null,
+                baselineConstructions: live, stagedConstructions: baseline).changes;
+            Assert.That(reverse.Cast<GameSaveStaticBindingSetChange>().Select(change => change.valueId),
+                Is.EqualTo(new[] { "before-int", "before-string" }));
+            Assert.That(reverse.Cast<GameSaveStaticBindingSetChange>().Select(change => change.construction),
+                Is.EqualTo(new[] { BoxOf(MemberKind.Int), BoxOf(MemberKind.String) }));
+        }
+
         private static TypeBinding BoxOf(MemberKind kind) =>
             TestTypeBindings.Class("box-class", true, ("box-t", TestTypeBindings.Of(kind)));
 

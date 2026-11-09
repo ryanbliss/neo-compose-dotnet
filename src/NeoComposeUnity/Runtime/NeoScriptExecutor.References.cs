@@ -76,7 +76,14 @@ namespace NeoCompose.Runtime
                     throw ReadonlyTargetError(slotMember, slot, ctx);
                 if (SlotStore(client, place, slotMember, ctx) == NeoValueOwnership.Asset)
                     throw AssetTargetError();
-                AssignTarget(client, SlotWriteTarget(client, target, target.typeInfo, slotMember, null), assigned, scope, ctx);
+                var writeTarget = place.StaticConstruction is null ? SlotWriteTarget(client, target, target.typeInfo, slotMember, null)
+                    : new WriteTarget
+                    {
+                        pointer = new StaticMemberPointer { memberId = slotMember.id, staticConstruction = NeoTypeBindings.ToTypeInfo(place.StaticConstruction) },
+                        typeInfo = target.typeInfo,
+                        writability = WritabilityKind.Runtime
+                    };
+                AssignTarget(client, writeTarget, assigned, scope, ctx);
                 return;
             }
             object owner = place.Owner!;
@@ -388,10 +395,12 @@ namespace NeoCompose.Runtime
                 return reference.TargetId;
             if (place.IsStatic)
             {
-                if (ctx.client.TryResolveStaticBinding(place.MemberId, out _, out _, out string? boundId))
+                var binding = NSGetterEvaluator.ResolveStaticBinding(place.MemberId,
+                    place.StaticConstruction is null ? null : NeoTypeBindings.ToTypeInfo(place.StaticConstruction), ctx);
+                if (binding.ValueId is string boundId)
                     return boundId;
-                ctx.client.StaticBinding(place.MemberId).BindEmpty();
-                return reference.TargetId;
+                binding.BindEmpty();
+                return binding.ValueId!;
             }
             object owner = place.Owner!;
             string key = place.Key!;

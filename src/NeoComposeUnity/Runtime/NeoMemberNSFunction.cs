@@ -647,7 +647,8 @@ namespace NeoCompose.Runtime
             object?[] args,
             NSGetterEvaluator.Context ctx,
             CallFunctionPointer? site = null,
-            NeoScriptScope? siteScope = null)
+            NeoScriptScope? siteScope = null,
+            TypeInfo[]? typeArguments = null, TypeBinding? boundStaticConstruction = null, TypeBinding? boundInterfaceConstruction = null)
         {
             if (function.Deferred)
             {
@@ -664,7 +665,8 @@ namespace NeoCompose.Runtime
                 ctx,
                 NeoScriptExecutionOptions.ForImmediate(client),
                 site: site,
-                siteScope: siteScope);
+                siteScope: siteScope, typeArguments: typeArguments,
+                boundStaticConstruction: boundStaticConstruction, boundInterfaceConstruction: boundInterfaceConstruction);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -702,7 +704,8 @@ namespace NeoCompose.Runtime
             bool ownsContext = false,
             CallFunctionPointer? site = null,
             NeoScriptScope? siteScope = null,
-            TypeInfo[]? typeArguments = null)
+            TypeInfo[]? typeArguments = null,
+            TypeBinding? boundStaticConstruction = null, TypeBinding? boundInterfaceConstruction = null)
         {
 #if NEO_COMPOSE_PROFILING
             using var sample = function.Profile.Auto();
@@ -718,7 +721,18 @@ namespace NeoCompose.Runtime
                 foreach (Pointer argument in site.args)
                     NSGetterEvaluator.EvalPointer(argument, siteScope!, ctx);
             }
-            ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx);
+            TypeBinding? staticConstruction = boundStaticConstruction ?? ((site?.receiver?.staticConstruction ?? site?.staticConstruction) is { } writtenConstruction
+                ? NeoInterfaceDispatch.Identity(NeoTypeBindings.FromTypeInfo(NSGetterEvaluator.CloseContextType(writtenConstruction, ctx))) : null);
+            TypeBinding? interfaceConstruction = boundInterfaceConstruction ?? site?.interfaceConstruction;
+            if (site?.interfaceMember is not null)
+            {
+                var implementation = NSGetterEvaluator.ResolveInterfaceCall(site, receiver, ctx);
+                staticConstruction = implementation.StaticConstruction;
+                interfaceConstruction = implementation.InterfaceConstruction;
+            }
+            ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx, staticConstruction is not null);
+            if (staticConstruction is not null)
+                client.EnsureStaticConstruction(staticConstruction);
             FunctionWithReturnType action = function.Action;
             bool isStatic = function.IsStatic;
             NeoBoundNSFunctionSignature? bound = function.GenericParams is null
@@ -735,7 +749,7 @@ namespace NeoCompose.Runtime
                     receiver!,
                     ctx,
                     effectiveReturnType,
-                    ref effectiveArgumentTypes);
+                    ref effectiveArgumentTypes, staticConstruction ?? interfaceConstruction);
             }
 
             // Immediate functions cannot retain a lexical scope after completion:
@@ -773,6 +787,8 @@ namespace NeoCompose.Runtime
                     nestedCtx = ctx.WithFunctionPushed(
                         function.MemberId, function.DirectCallStack, isStatic ? null : receiver, bound?.TypeArguments);
                 }
+                nestedCtx.staticConstruction = staticConstruction;
+                nestedCtx.interfaceConstruction = interfaceConstruction;
                 NeoScriptExecutionOptions functionOptions = options.ForFunction(function.Deferred);
                 NeoScriptExecutor.PrepareFunctionContext(nestedCtx, functionOptions, inPlaceFrame);
                 // Only the C# entry points own their context.
@@ -818,7 +834,8 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object? receiver,
             int argumentCount,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool hasStaticConstruction)
         {
             // The usual full-arity call passes every check below without
             // entering the method that names a failure.
@@ -827,11 +844,11 @@ namespace NeoCompose.Runtime
                 && argumentCount == function.ArgumentTypes.Length
                 && ctx.functionDepth < MaxCallableDepth
                 && function.Action.parameters?.Length == argumentCount + 2
-                && !(isStatic && function.HasGenericSignature))
+                && !(isStatic && function.HasGenericSignature && !hasStaticConstruction))
             {
                 return;
             }
-            ValidateUnusualInvocation(client, function, receiver, argumentCount, ctx);
+            ValidateUnusualInvocation(client, function, receiver, argumentCount, ctx, hasStaticConstruction);
         }
 
         private static void ValidateUnusualInvocation(
@@ -839,7 +856,8 @@ namespace NeoCompose.Runtime
             NeoResolvedNSFunction function,
             object? receiver,
             int argumentCount,
-            NSGetterEvaluator.Context ctx)
+            NSGetterEvaluator.Context ctx,
+            bool hasStaticConstruction)
         {
             bool isStatic = function.IsStatic;
             if (receiver is null && !isStatic && NeoExtensionRuntime.Descriptor(function.Member)?.receiverType.required != false)
@@ -888,7 +906,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Member.name}' compiled action parameter count is stale (expected {expectedParameters}, found {action.parameters?.Length ?? 0}).");
             }
-            if (isStatic && function.HasGenericSignature)
+            if (isStatic && function.HasGenericSignature && !hasStaticConstruction)
             {
                 throw new NSGetterRuntimeError(
                     $"Static NSFunction '{function.Member.name}' cannot use receiver-bound Generic signature classes.");
@@ -902,10 +920,11 @@ namespace NeoCompose.Runtime
             object receiver,
             NSGetterEvaluator.Context ctx,
             TypeInfo returnTypeInfo,
-            ref TypeInfo[] argumentTypes)
+            ref TypeInfo[] argumentTypes, TypeBinding? construction = null)
         {
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
-                ResolveReceiverGenericEnv(client, receiver, ctx, function);
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = construction is not null
+                ? NeoInterfaceDispatch.Of(client).Environment(construction)
+                : ResolveReceiverGenericEnv(client, receiver, ctx, function);
             TypeInfo returnType = ResolveInvocationTypeInfo(
                 client,
                 returnTypeInfo,

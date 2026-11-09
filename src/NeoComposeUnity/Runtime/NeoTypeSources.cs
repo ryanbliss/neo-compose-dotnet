@@ -1571,6 +1571,18 @@ namespace NeoCompose.Runtime
             Walk(client, graph, RootPosition(client, rootId, SchemaMember(client, member), declaringClassId), graph.Apply);
         }
 
+        /// <summary>A generic static is placed by its closed owner, without an instance row.</summary>
+        internal static void PlaceStaticConstructionRoot(NeoClient client, NeoWritePlan plan, string rootId, Member member, TypeBinding construction)
+        {
+            if (plan.Resolve(rootId) is not (ObjectMemberValue or ArrayMemberValue))
+                return;
+            var graph = new PlanGraph(client, plan);
+            Member placement = SchemaMember(client, member);
+            TypeBinding type = SourcedMemberType(client, placement, construction.Bindings!);
+            var position = new NeoTypeSourcePosition(rootId, placement, type, type, null, DeclaredMemberType(client, placement), null);
+            Walk(client, graph, position, graph.Apply);
+        }
+
         /// <summary>
         /// Places a construction's rows before it publishes: a fresh
         /// construction is ownerless, so its root is a binding node and every
