@@ -410,6 +410,10 @@ namespace NeoCompose.Runtime
             kind is MemberKind.Class or MemberKind.Interface or MemberKind.Object or MemberKind.List
                 or MemberKind.Set or MemberKind.Dictionary or MemberKind.Tuple;
 
+        internal static bool ConstructorArgumentStoresRow(TypeInfo type) =>
+            ConstructorArgumentStoresRow(type.type)
+            || NeoTypeRules.Plain(type) is LookupTypeInfo { collectionMemberId: null };
+
         private static object? ContainerValue(MemberValueBase row) => row switch
         {
             ObjectMemberValue objectRow => objectRow.value,
@@ -593,10 +597,11 @@ namespace NeoCompose.Runtime
             {
                 string parameterId = NeoClient.ConstructorParameterId(constructor, index);
                 arguments.TryGetValue(parameterId, out JToken? token);
-                if (token is null || token.Type is JTokenType.Null or JTokenType.Undefined)
-                    continue;
                 FunctionArgumentTypeInfo argument = constructor.argumentTypes[index];
-                if (argument.type is not MemberKind.Generic && !ConstructorArgumentStoresRow(argument.type))
+                if (NeoScript.NeoConstructorOut.Validate(argument, token, parameterId)
+                    || token is null || token.Type is JTokenType.Null or JTokenType.Undefined)
+                    continue;
+                if (argument.type is not MemberKind.Generic && !ConstructorArgumentStoresRow(argument))
                     continue;
                 Member parameter = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(argument)));
                 if (!HasTypeBinding(client, parameter))
@@ -1589,7 +1594,7 @@ namespace NeoCompose.Runtime
                 || root.constructorArgs is not { Count: > 0 }
                 || !client.TryGetConstructor(constructorId, out ConstructorRecord? constructor)
                 || !constructor.argumentTypes.Any(parameter =>
-                    parameter.type == MemberKind.Generic || ConstructorArgumentStoresRow(parameter.type)))
+                    parameter.type == MemberKind.Generic || ConstructorArgumentStoresRow(parameter)))
                 return null;
 
             MemberValueBase? Lookup(string id) => client.TryGetValue(NeoValueOwnership.Session, id, out MemberValue? row) ? row : null;

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript.Numerics;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -107,6 +108,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             int count = 0;
             double total = 0;
+            // Enumerable over ints: Sum is checked, Average totals in 64 bits (P127 §3.1).
+            int intSum = 0;
+            long intTotal = 0;
             string decimalTotal = "0";
             bool decimalSeeded = DecimalSumStartsAtZero(info, collection, ctx);
             object? selected = null, bestKey = null, first = null;
@@ -137,10 +141,13 @@ namespace NeoCompose.Runtime.NeoScript
                         {
                             if (!TryAsDouble(value, out double number))
                                 throw new NSGetterRuntimeError($"{info.op} value must be numeric.");
-                            total += number;
+                            if (info.keyType != "int")
+                                total += number;
+                            else if (info.op == "Sum")
+                                intSum = NeoInt32.Add(intSum, NeoInt32.Wrap(number), true);
+                            else
+                                intTotal += NeoInt32.Wrap(number);
                         }
-                        if (info.keyType == "int" && (double.IsNaN(total) || double.IsInfinity(total)))
-                            throw new NSGetterRuntimeError($"{info.op} integer total must be finite.");
                         continue;
                     }
                     int order = count == 1 ? 0 : CompareCollectionKeys(value, bestKey, info.keyType);
@@ -153,7 +160,15 @@ namespace NeoCompose.Runtime.NeoScript
                         break;
                 }
                 if (info.op == "Sum")
-                    return info.keyType == "decimal" ? decimalTotal : Box(info.keyType == "float" ? (double)(float)total : total);
+                {
+                    return info.keyType switch
+                    {
+                        "decimal" => decimalTotal,
+                        "int" => Box((double)intSum),
+                        "float" => Box((double)(float)total),
+                        _ => Box(total),
+                    };
+                }
                 if (count == 0)
                 {
                     if (by && visited)
@@ -164,6 +179,8 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 if (info.op == "Average")
                 {
+                    if (info.keyType == "int")
+                        return Box((double)(float)((double)intTotal / count));
                     if (info.keyType != "decimal")
                         return Box((double)(float)(total / count));
                     // Enumerable.Average: the sum over the count with decimal / (P127 §3.4).
