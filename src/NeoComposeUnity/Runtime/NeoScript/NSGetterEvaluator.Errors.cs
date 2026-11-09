@@ -21,10 +21,14 @@ namespace NeoCompose.Runtime.NeoScript
             if (!ctx.client.TryGetClass(payload.ClassId, out NeoSchemaClass? schemaClass))
                 throw new NeoScriptPreExecutionValidationError($"Runtime error class '{payload.ClassId}' is missing. Synchronize the project schema.");
             var fields = Array.Empty<NeoGeneratedTypesSupport.RuntimeConstructorField>();
+            object? inner = payload.InnerError is null ? null : ErrorValue(payload.InnerError, ctx);
+            bool hasInner = Array.Exists(ctx.client.ProjectDataForRuntime.constructors[schemaClass!.constructorIds[0]].argumentTypes, argument => argument.name == "innerError");
+            var parameterNames = hasInner ? new[] { "message", "innerError" } : new[] { "message" };
+            var arguments = hasInner ? new object?[] { payload.Message, inner } : new object?[] { payload.Message };
             var resolved = NeoGeneratedTypesSupport.ResolveDeclaredConstructor(ctx.client,
                 new ClassTypeInfo { type = MemberKind.Class, required = true, classId = payload.ClassId },
-                schemaClass!.constructorIds[0], new[] { "message" }, fields);
-            return payload.Value = ConstructDeclared(resolved, new object?[] { payload.Message }, fields, ctx, null, false)!;
+                schemaClass!.constructorIds[0], parameterNames, fields);
+            return payload.Value = ConstructDeclared(resolved, arguments, fields, ctx, null, false)!;
         }
 
         internal static NeoErrorBase ErrorView(NeoScriptErrorPayload payload, Context ctx)

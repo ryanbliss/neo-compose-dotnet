@@ -9,6 +9,13 @@ namespace NeoCompose.Runtime.NeoScript
 {
     public static partial class NSGetterEvaluator
     {
+        private static TypeBinding InterfaceReceiverType(object receiver, Context ctx)
+        {
+            if (receiver is int or long or float or double or decimal)
+                throw new NeoScriptPreExecutionValidationError("A numeric interface receiver must retain its primitive kind in a box.");
+            return RuntimeTypeOfValue(receiver, null, ctx);
+        }
+
         internal static NeoStaticBinding ResolveStaticBinding(string memberId, TypeInfo? construction, Context ctx)
         {
             TypeBinding? closed = construction is null ? null : RuntimeTypeOf(CloseContextType(construction, ctx));
@@ -19,7 +26,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? receiver = pointer.receiver.IsStatic ? null : EvalCallReceiver(pointer.receiver, scope, ctx);
             var selected = pointer.interfaceMember is null ? null
-                : NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOfValue(receiver!, null, ctx),
+                : NeoInterfaceDispatch.Of(ctx.client).Resolve(InterfaceReceiverType(receiver!, ctx),
                     InterfaceConstruction(pointer.interfaceMember, ctx), pointer.interfaceMember.memberId, "call", pointer.direct);
             TypeInfo? writtenConstruction = pointer.receiver.staticConstruction ?? pointer.staticConstruction;
             TypeBinding? construction = selected?.StaticConstruction ?? (writtenConstruction is null ? null : RuntimeTypeOf(CloseContextType(writtenConstruction, ctx)));
@@ -48,7 +55,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (receiver is null)
                 throw new NSGetterRuntimeError(NullReferenceMessage, NeoErrorContract.NeoNullReferenceError);
             var reference = pointer.interfaceMember!;
-            return NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOfValue(receiver, null, ctx),
+            return NeoInterfaceDispatch.Of(ctx.client).Resolve(InterfaceReceiverType(receiver, ctx),
                 InterfaceConstruction(reference, ctx), reference.memberId, "call", pointer.direct);
         }
 
@@ -62,13 +69,15 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(NullReferenceMessage, NeoErrorContract.NeoNullReferenceError);
             }
             var reference = pointer.interfaceMember!;
-            var target = NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOfValue(receiver, null, ctx),
+            var target = NeoInterfaceDispatch.Of(ctx.client).Resolve(InterfaceReceiverType(receiver, ctx),
                 InterfaceConstruction(reference, ctx), reference.memberId, "get", pointer.direct);
             return ReadImplementation(target, receiver, ctx);
         }
 
         private static object? ReadImplementation(NeoInterfaceDispatch.Implementation target, object? receiver, Context ctx)
         {
+            if (target.PrimitiveMember is not null)
+                return InvokePrimitiveImplementation(target, receiver, Array.Empty<object?>(), ctx);
             ctx.client.TryGetMember(target.MemberId, out var member);
             if (member is NSPropertyMember property)
                 return DispatchNSGetterById(target.MemberId, receiver, ctx, property.getter,
@@ -91,8 +100,6 @@ namespace NeoCompose.Runtime.NeoScript
             TypeInfo bound = CloseContextType(pointer.typeParameter, ctx);
             if (bound.type == MemberKind.Generic)
                 throw new NSGetterRuntimeError($"Type parameter has no binding in this frame for static member '{pointer.interfaceMember.memberId}'.");
-            if (bound.type is not (MemberKind.Class or MemberKind.Interface))
-                throw new NSGetterRuntimeError($"Static member '{pointer.interfaceMember.memberId}' through a type parameter bound to '{bound.type}' needs the primitive conformance table (P127 B5).");
             return NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOf(bound), InterfaceConstruction(pointer.interfaceMember, ctx), pointer.interfaceMember.memberId, accessor);
         }
 
@@ -102,6 +109,21 @@ namespace NeoCompose.Runtime.NeoScript
             var target = ResolveStaticParameter(pointer, ctx, operation.kind == "get" ? "get" : "call");
             if (operation.kind == "get")
                 return ReadImplementation(target, null, ctx);
+            if (operation.kind == "methodGroup")
+            {
+                var builtIn = NeoPrimitiveBuiltIns.Of(ctx.client).Bind(ctx.client, RuntimeTypeOf(CloseContextType(pointer.typeParameter, ctx)),
+                    pointer.interfaceMember.memberId,
+                    operation.typeArguments?.Select(type => RuntimeTypeOf(CloseContextType(type, ctx))).ToArray(),
+                    operation.delegateType is null ? null : RuntimeTypeOf(CloseContextType(operation.delegateType, ctx)));
+                if (builtIn is not null)
+                    return new NeoDelegateValue { builtIn = builtIn };
+            }
+            if (target.PrimitiveMember is not null)
+            {
+                var args = (operation.args ?? Array.Empty<Pointer>()).Select(arg => EvalPointer(arg, scope, ctx)).ToArray();
+                return InvokePrimitiveImplementation(target, null, args, ctx,
+                    operation.typeArguments?.Select(type => CloseContextType(type, ctx)).ToArray());
+            }
             if (operation.kind == "methodGroup")
                 return new NeoDelegateValue
                 {
@@ -147,7 +169,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 receiver = EvalCallReceiver(property.receiver, scope, ctx)
                     ?? throw new NSGetterRuntimeError(NullReferenceMessage, NeoErrorContract.NeoNullReferenceError);
-                target = NeoInterfaceDispatch.Of(ctx.client).Resolve(RuntimeTypeOfValue(receiver, null, ctx),
+                target = NeoInterfaceDispatch.Of(ctx.client).Resolve(InterfaceReceiverType(receiver, ctx),
                     InterfaceConstruction(reference, ctx), reference.memberId, "set", property.direct);
             }
             else
