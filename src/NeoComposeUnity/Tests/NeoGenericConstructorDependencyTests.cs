@@ -340,6 +340,15 @@ namespace NeoCompose.Tests
                             [ParamT] = TestTypeBindings.Class("modifier-class"),
                         },
                     },
+                    ["member-binding-modifier"] = new ClassMember
+                    {
+                        id = "member-binding-modifier",
+                        projectId = ProjectId,
+                        name = "ModifierBinding",
+                        kind = MemberKind.Class,
+                        DeclaredClassId = "modifier-class",
+                        Requirement = NeoMemberRequirementKind.Required,
+                    },
                 },
                 values = new Dictionary<string, MemberValue>
                 {
