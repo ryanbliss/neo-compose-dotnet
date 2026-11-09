@@ -609,9 +609,9 @@ namespace NeoCompose.Tests
                     var unload = ScriptFunction("member-unload", "OnUnload");
                     data.members[unload.id] = unload;
                     data.classes["class-watcher"].schema["OnUnload"] = unload.id;
-                    data.classes["class-watcher"].implementsInterfaceIds = new List<string>
+                    data.classes["class-watcher"].implementsInterfaces = new List<InterfaceConstruction>
                     {
-                        "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb"
+                        new() { interfaceId = "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb" }
                     };
                 }
             });
