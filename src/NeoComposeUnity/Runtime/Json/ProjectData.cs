@@ -130,7 +130,7 @@ namespace NeoCompose.Runtime.Json
         /// the wrong configuration rather than an error. It must reject the
         /// export.
         /// </summary>
-        public const int CurrentSchemaVersion = 46;
+        public const int CurrentSchemaVersion = 47;
 
         /// <summary>
         /// The main partition's file, relative to <c>project.json</c>'s
@@ -264,6 +264,16 @@ namespace NeoCompose.Runtime.Json
         public string classId = null!;
 
         /// <summary>
+        /// P127 §4.9. Closes a generic owning class: each of its generic
+        /// param ids to a closed type, so the target is <c>Box&lt;int&gt;</c>.
+        /// Present only for a generic class, binding every param, and equal
+        /// to its folder's. Null for a non-generic class.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(GenericBindingsStampConverter))]
+        public Dictionary<string, TypeBinding>? typeArguments;
+
+        /// <summary>
         /// Symbol name, unique per (classId, folder), case-insensitive. `Base`
         /// is reserved for the no-variant selection and never appears here.
         /// </summary>
@@ -297,6 +307,12 @@ namespace NeoCompose.Runtime.Json
     {
         public string id = null!;
         public string classId = null!;
+
+        /// <summary>P127 §4.9. The folder's closed target; see <see cref="VariantRecord.typeArguments"/>.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(GenericBindingsStampConverter))]
+        public Dictionary<string, TypeBinding>? typeArguments;
+
         public string path = null!;
         public VariantFolderBinding? binding;
     }
@@ -465,6 +481,12 @@ namespace NeoCompose.Runtime.Json
         internal NeoCompose.Runtime.NeoAuthoredIndexes? authoredIndexes;
 
         /// <summary>
+        /// This export's stored-type rules (P127 §1.3), built on first use and
+        /// shared by every client.
+        /// </summary>
+        internal NeoCompose.Runtime.NeoTypeRules? typeRules;
+
+        /// <summary>
         /// The export's named storage partitions
         /// (specs/list-member-and-tilegrid-scaling.md §6), keyed by
         /// <c>mapKey</c> (e.g. <c>world:&lt;gridClassId&gt;</c>): the
@@ -627,6 +649,7 @@ namespace NeoCompose.Runtime.Json
             ValidateMembers(root["members"]);
             ValidateClasses(root["classes"]);
             ValidateInterfaces(root["interfaces"]);
+            NeoSystemComparerClasses.Register(root["classes"]);
         }
 
         internal static void ValidateMemberRecord(JObject member)
@@ -673,6 +696,9 @@ namespace NeoCompose.Runtime.Json
                 member, "dispatch", "Function member");
             StrictRecordShapeEnums.ValidateOptional<NeoFunctionBodyKind>(
                 member, "bodyMode", "NSFunction member");
+            ValidateAccessorShape(member);
+            StrictRecordShapeEnums.ValidateOptional<NeoObjectTypeKind>(
+                member, "objectType", "Object member");
 
             if (member["indexes"] is JArray indexes)
             {
@@ -715,6 +741,45 @@ namespace NeoCompose.Runtime.Json
                 member, "accessors", "Interface property");
             StrictRecordShapeEnums.ValidateOptional<NeoFunctionDispatchKind>(
                 member, "dispatch", "Interface function");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "getterAccess", "Interface property");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "setterAccess", "Interface property");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberModifierKind>(
+                member, "modifier", "Interface member");
+            if (member.Value<int?>("modifier") == (int)NeoMemberModifierKind.Static)
+            {
+                throw new JsonSerializationException(
+                    "Interface member field 'modifier' cannot be Static; static members store 'static: true'.");
+            }
+            RequireTrueFlag(member, "static", "Interface member");
+            RequireTrueFlag(member, "operator", "Interface member");
+        }
+
+        /// <summary>P127 §4.7. A list field that is absent when empty.</summary>
+        internal static void RequireNonEmptyList(JObject record, string field, string context)
+        {
+            JToken? token = record[field];
+            if (token is null)
+                return;
+            if (token is not JArray { Count: > 0 })
+            {
+                throw new JsonSerializationException(
+                    $"{context} '{record.Value<string>("name")}' field '{field}' must be a non-empty array when present.");
+            }
+        }
+
+        /// <summary>P127. A flag field that is absent when false and stored only as <c>true</c>.</summary>
+        internal static void RequireTrueFlag(JObject record, string field, string context)
+        {
+            JToken? token = record[field];
+            if (token is null)
+                return;
+            if (token.Type != JTokenType.Boolean || !token.Value<bool>())
+            {
+                throw new JsonSerializationException(
+                    $"{context} field '{field}' must be true when present.");
+            }
         }
 
         internal static void ValidateGenericParamConstraint(JObject constraint)
@@ -725,12 +790,13 @@ namespace NeoCompose.Runtime.Json
                 "Generic param constraint");
         }
 
-        internal static void ValidateGenericBinding(JObject binding)
+        internal static void ValidateGenericParamDeclaration(JObject declaration)
         {
-            StrictRecordShapeEnums.ValidateOptional<NeoGenericBindingKind>(
-                binding,
-                "kind",
-                "Generic binding");
+            Reject(declaration, "constraint", "constraints", "Generic param");
+            StrictRecordShapeEnums.ValidateOptional<NeoGenericParamVarianceKind>(
+                declaration,
+                "variance",
+                "Generic param");
         }
 
         private static void ValidateExtensionMember(JObject member)
@@ -769,6 +835,75 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException($"Extension '{name}' requires authored code.");
             if (member.Value<int?>("access") is { } access && access != (int)NeoMemberAccessKind.Public)
                 throw new JsonSerializationException($"Extension '{name}' must be public.");
+        }
+
+        /// <summary>
+        /// P127 §5. <c>accessors</c> belongs to NSProperty rows, accessor
+        /// access to NSProperty rows and auto-property field members, and
+        /// <c>declarationForm</c> to field members.
+        /// </summary>
+        private static void ValidateAccessorShape(JObject member)
+        {
+            StrictRecordShapeEnums.ValidateOptional<NeoPropertyAccessorsKind>(
+                member, "accessors", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "getterAccess", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberAccessKind>(
+                member, "setterAccess", "Member");
+            StrictRecordShapeEnums.ValidateOptional<NeoMemberDeclarationFormKind>(
+                member, "declarationForm", "Field member");
+            MemberKind? kind = member["kind"]?.Type == JTokenType.Integer ? (MemberKind?)member.Value<int>("kind") : null;
+            bool property = kind == MemberKind.NSProperty;
+            bool function = kind == MemberKind.Function || kind == MemberKind.NSFunction;
+            bool accessorAccess = member.Property("getterAccess") is not null || member.Property("setterAccess") is not null;
+            string name = member.Value<string>("name") ?? "<unnamed>";
+            if ((property || function) && member.Property("declarationForm") is not null)
+                throw new JsonSerializationException($"Member '{name}' declares 'declarationForm', which only field members carry.");
+            bool autoProperty = !property
+                && !function
+                && member.Value<int?>("declarationForm") == (int)NeoMemberDeclarationFormKind.AutoProperty;
+            if (autoProperty)
+                ValidateAutoPropertyAccessors(member, name);
+            else if (!property && member.Property("accessors") is not null)
+                throw new JsonSerializationException($"Member '{name}' declares 'accessors', which only NSProperty members and auto-property field members carry.");
+            RequireTrueFlag(member, "operator", "Member");
+            if (!function && member.Property("operator") is not null)
+                throw new JsonSerializationException($"Member '{name}' declares 'operator', which only functions carry.");
+            if (function && accessorAccess)
+                throw new JsonSerializationException($"Function '{name}' cannot declare accessor access.");
+            if (!property
+                && !function
+                && accessorAccess
+                && member.Value<int?>("declarationForm") != (int)NeoMemberDeclarationFormKind.AutoProperty)
+            {
+                throw new JsonSerializationException($"Field member '{name}' declares accessor access without an AutoProperty declaration form.");
+            }
+        }
+
+        /// <summary>
+        /// P127 §5. An auto-property field member's required
+        /// <c>accessors</c>: <c>Get</c> and <c>GetInit</c> with
+        /// <c>ReadOnly</c> mutability, <c>GetSet</c> with mutable.
+        /// </summary>
+        private static void ValidateAutoPropertyAccessors(JObject member, string name)
+        {
+            int? accessors = member.Value<int?>("accessors");
+            if (accessors is null)
+                throw new JsonSerializationException($"Auto-property field member '{name}' must declare 'accessors'.");
+            var kind = (NeoPropertyAccessorsKind)accessors.Value;
+            if (kind != NeoPropertyAccessorsKind.Get
+                && kind != NeoPropertyAccessorsKind.GetSet
+                && kind != NeoPropertyAccessorsKind.GetInit)
+            {
+                throw new JsonSerializationException(
+                    $"Auto-property field member '{name}' declares accessors {kind}; an auto-property is Get, GetSet or GetInit.");
+            }
+            bool readOnly = member.Value<int?>("mutability") == (int)NeoMemberMutabilityKind.ReadOnly;
+            if (readOnly != (kind != NeoPropertyAccessorsKind.GetSet))
+            {
+                throw new JsonSerializationException(
+                    $"Auto-property field member '{name}' declares accessors {kind}, which needs {(readOnly ? "Mutable" : "ReadOnly")} mutability.");
+            }
         }
 
         private static void ValidateMembers(JToken? token)
@@ -811,6 +946,20 @@ namespace NeoCompose.Runtime.Json
                     schemaClass, "modifier", "Class");
                 StrictRecordShapeEnums.ValidateOptional<NeoMemberStorage>(
                     schemaClass, "allowedStorage", "Class");
+                Reject(schemaClass, "implementsInterfaceIds", "implementsInterfaces", "Class");
+                Reject(schemaClass, "implementsInterfaceArguments", "implementsInterfaces", "Class");
+                RequireNonEmptyList(schemaClass, "implementsInterfaces", "Class");
+                if (schemaClass["genericParams"] is not JArray genericParams)
+                    continue;
+                foreach (JToken genericParam in genericParams)
+                {
+                    // P127 §4.8. Variance is an interface parameter's only.
+                    if (genericParam is JObject declaration && declaration.Property("variance") is not null)
+                    {
+                        throw new JsonSerializationException(
+                            $"Class '{schemaClass.Value<string>("name")}' generic param '{declaration.Value<string>("name")}' cannot declare 'variance'.");
+                    }
+                }
             }
         }
 
@@ -820,11 +969,13 @@ namespace NeoCompose.Runtime.Json
                 return;
             foreach (JProperty property in interfaces.Properties())
             {
-                if (property.Value is not JObject neoInterface
-                    || neoInterface["members"] is not JObject members)
-                {
+                if (property.Value is not JObject neoInterface)
                     continue;
-                }
+                Reject(neoInterface, "extendsInterfaceIds", "extendsInterfaces", "Interface");
+                Reject(neoInterface, "extendsInterfaceArguments", "extendsInterfaces", "Interface");
+                RequireNonEmptyList(neoInterface, "extendsInterfaces", "Interface");
+                if (neoInterface["members"] is not JObject members)
+                    continue;
 
                 foreach (JProperty memberProperty in members.Properties())
                 {

@@ -31,17 +31,15 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
         /// <summary>
-        /// The object's local Position rounded to a cell, including when detached.
+        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
+        /// </summary>
+        NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
+
+
+        /// <summary>
+        /// The origin cell of this object's current placement. Detached objects have no cell.
         /// </summary>
         Vector2Int Cell { get; }
-
-        void Clear();
-
-        bool Contains(IReadOnlyNeoObjectBase obj);
-
-        int Count { get; }
-
-        new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator();
 
 
         /// <summary>
@@ -82,29 +80,23 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null);
 
-
-        /// <summary>
-        /// The origin cell in the owning grid, or null when this object is not in a grid.
-        /// </summary>
         Vector2Int? GridCell { get; }
 
+        IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj);
+
+        int Count { get; }
+
+        bool Contains(IReadOnlyNeoObjectBase obj);
+
         int IndexOf(IReadOnlyNeoObjectBase obj);
-
-
-        /// <summary>
-        /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
-        /// </summary>
-        NeoReadOnlyList<IReadOnlyNeoPlacementTile> PlacementTiles { get; }
 
         bool Remove(IReadOnlyNeoObjectBase obj);
 
         void RemoveAt(int index);
 
+        void Clear();
 
-        /// <summary>
-        /// Adds a composition child with no placement tiles. Cells are grid-relative when attached and local when detached; failure leaves both objects unchanged.
-        /// </summary>
-        IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj);
+        new global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator();
     }
 
     public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectCompositionSource, INeoObjectSpawnHooks
@@ -230,64 +222,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
         /// <summary>
-        /// The object's local Position rounded to a cell, including when detached.
-        /// </summary>
-        public virtual Vector2Int Cell
-        {
-            get
-            {
-                var result = ComputeProperty("Cell");
-                result.ThrowIfFailed();
-                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
-                return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
-            }
-        }
-
-        protected virtual NeoList<NeoObjectBase> Children
-        {
-            get
-            {
-                var memberNode = writableNode.Get<NeoMemberListWritable>("Children");
-                if (TryGetStoredView<NeoList<NeoObjectBase>>("Children", memberNode, out var cached)) return cached;
-                return CacheStoredView("Children", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.Children"), () => IsReadOnly));
-            }
-        }
-
-
-
-        public virtual int Count
-        {
-            get
-            {
-                var result = ComputeProperty("Count");
-                result.ThrowIfFailed();
-                return Convert.ToInt32(result.value);
-            }
-        }
-
-
-
-
-
-
-
-        /// <summary>
-        /// The origin cell in the owning grid, or null when this object is not in a grid.
-        /// </summary>
-        public virtual Vector2Int? GridCell
-        {
-            get
-            {
-                var result = ComputeProperty("GridCell");
-                result.ThrowIfFailed();
-                if (result.value is null) return null;
-                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
-                return resolvedVector;
-            }
-        }
-
-
-        /// <summary>
         /// The cells this object occupies, as offsets from its placement cell. An empty list occupies nothing: the object blocks no placement and answers no cell query, but a placed object still has a Cell.
         /// </summary>
         public virtual NeoList<NeoPlacementTile> PlacementTiles
@@ -310,20 +244,63 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-
-
-
-        [NeoMemberMethod("system_1a3fe1f5-4ee8-5934-9fc6-0a40a8aa106e")]
-        public virtual void Clear()
+        protected virtual NeoList<NeoObjectBase> Children
         {
-            InvokeFunction("Clear");
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Children");
+                if (TryGetStoredView<NeoList<NeoObjectBase>>("Children", memberNode, out var cached)) return cached;
+                return CacheStoredView("Children", memberNode, new NeoList<NeoObjectBase>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Children"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObject.Children"), () => IsReadOnly));
+            }
         }
 
-        public virtual bool Contains(IReadOnlyNeoObjectBase obj)
+        /// <summary>
+        /// The origin cell of this object's current placement. Detached objects have no cell.
+        /// </summary>
+        public virtual Vector2Int Cell
         {
-            var result = InvokeFunction("Contains", (object?)(obj));
-            return (bool)result!;
+            get
+            {
+                var result = ComputeProperty("Cell");
+                result.ThrowIfFailed();
+                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
+                return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
+            }
         }
+
+
+
+
+
+        public virtual Vector2Int? GridCell
+        {
+            get
+            {
+                var result = ComputeProperty("GridCell");
+                result.ThrowIfFailed();
+                if (result.value is null) return null;
+                var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result.value);
+                return resolvedVector;
+            }
+        }
+
+
+
+        public virtual int Count
+        {
+            get
+            {
+                var result = ComputeProperty("Count");
+                result.ThrowIfFailed();
+                return Convert.ToInt32(result.value);
+            }
+        }
+
+
+
+
+
+
 
         private Vector2Int GetCell()
         {
@@ -332,27 +309,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             return resolvedVector ?? throw new InvalidOperationException("NSProperty returned null for a required Vector2Int value.");
         }
 
-        public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator()
-        {
-            var result = InvokeFunction("GetEnumerator");
-            return NeoSequences.ReadEnumerator<IReadOnlyNeoObjectBase>(client, result, NeoSequences.ElementType<IReadOnlyNeoObjectBase>(client, true), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
-        }
-
-        private Vector2Int? GetGridCell()
-        {
-            var result = client.ScriptGridQueries.Invoke("system_a7c3197e-e672-5f58-a82e-39db2d864a78", this, new object?[] { });
-            if (result is null) return null;
-            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
-            return resolvedVector;
-        }
-
         /// <summary>
         /// Objects of type T at the cells around this placement, shifted by offset, in pattern order. A repeated footprint can appear more than once.
         /// </summary>
         public virtual global::System.Collections.Generic.IEnumerable<T> GetObjects<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoObject
         {
             var result = client.ScriptGridQueries.Invoke("system_f5ca386c-990c-54a1-8473-2d49d2cd887d", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObject.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObject.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
@@ -382,7 +345,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public virtual global::System.Collections.Generic.IEnumerable<T> GetTiles<T>(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null) where T : class, IReadOnlyNeoTile
         {
             var result = client.ScriptGridQueries.Invoke("system_5a41d36a-bcd9-4867-9e46-d743f6e09582", this, new object?[] { pattern, offset }, client.TypeArguments.Table<System.ValueTuple<T>>());
-            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, null), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+            return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoTile.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTile.CreateWritable(factoryClient, factoryNode)), "T", HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         /// <summary>
@@ -390,6 +353,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         public global::System.Collections.Generic.IEnumerable<IReadOnlyNeoTile> GetTiles(IReadOnlyNeoCellPattern pattern, Vector2Int? offset = null)
             => GetTiles<IReadOnlyNeoTile>(pattern, offset);
+
+        private Vector2Int? GetGridCell()
+        {
+            var result = client.ScriptGridQueries.Invoke("system_a7c3197e-e672-5f58-a82e-39db2d864a78", this, new object?[] { });
+            if (result is null) return null;
+            var resolvedVector = NeoGeneratedTypesSupport.ReadVector2IntValue(result);
+            return resolvedVector;
+        }
+
+        public virtual IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj)
+        {
+            var result = client.ScriptGridQueries.Invoke("system_767acaf4-4f8c-5fdf-b562-a2e910ad489e", this, new object?[] { cell, obj });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoPlacementResult.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoPlacementResult.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoPlacementResult.CreateDetached(factoryClient, factoryValue, factorySaved));
+        }
+
+        public virtual bool Contains(IReadOnlyNeoObjectBase obj)
+        {
+            var result = InvokeFunction("Contains", (object?)(obj));
+            return (bool)result!;
+        }
 
         public virtual int IndexOf(IReadOnlyNeoObjectBase obj)
         {
@@ -409,13 +392,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             InvokeFunction("RemoveAt", (object?)(index));
         }
 
-        /// <summary>
-        /// Adds a composition child with no placement tiles. Cells are grid-relative when attached and local when detached; failure leaves both objects unchanged.
-        /// </summary>
-        public virtual IReadOnlyNeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyNeoObjectBase obj)
+        [NeoMemberMethod("system_1a3fe1f5-4ee8-5934-9fc6-0a40a8aa106e")]
+        public virtual void Clear()
         {
-            var result = client.ScriptGridQueries.Invoke("system_767acaf4-4f8c-5fdf-b562-a2e910ad489e", this, new object?[] { cell, obj });
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoPlacementResult.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoPlacementResult.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoPlacementResult.CreateDetached(factoryClient, factoryValue, factorySaved));
+            InvokeFunction("Clear");
+        }
+
+        public virtual global::System.Collections.Generic.IEnumerator<IReadOnlyNeoObjectBase> GetEnumerator()
+        {
+            var result = InvokeFunction("GetEnumerator");
+            return NeoSequences.ReadEnumerator<IReadOnlyNeoObjectBase>(client, result, NeoSequences.ElementType<IReadOnlyNeoObjectBase>(client, false), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultSequenceElement, false, static (factoryClient, factoryNode) => NeoObjectBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoObjectBase.CreateWritable(factoryClient, factoryNode)); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
 
         global::System.Collections.IEnumerator global::System.Collections.IEnumerable.GetEnumerator() => ((global::System.Collections.Generic.IEnumerable<IReadOnlyNeoObjectBase>)this).GetEnumerator();
@@ -425,41 +411,41 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<int> Count = new("Count");
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
 
-            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.Cell] = () => null,
-                [Fields.Children] = () => null,
-                [Fields.Count] = () => null,
-                [Fields.GridCell] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -477,16 +463,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.Cell] = () => Cell,
-                [Fields.Children] = () => Children,
-                [Fields.Count] = () => Count,
-                [Fields.GridCell] = () => GridCell,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
             };
         }
 

@@ -10,7 +10,7 @@ class CollisionTileLayer : ConsoleTileLayer {
   public override string Name = "Collisions";
 
   @id("neo-tile-grid-record-relations-v1-member-b2410feb9b3bad4b60991f9934f0722d")
-  @settings(collection: Assets.SortingLayers, collectionValue: Reference(root.Assets.SortingLayers))
+  @settings(collection: Assets.SortingLayers, collectionValue: root.Assets.SortingLayers)
   @system(kind: .WorldAuthoring)
   public override Reference<NeoSortingLayer> SortingLayer = Reference<NeoSortingLayer>(id: "88c0d53b-94ee-4f48-839b-9148d07828fb");
 

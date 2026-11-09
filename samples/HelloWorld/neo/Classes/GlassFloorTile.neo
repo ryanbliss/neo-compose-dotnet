@@ -1,8 +1,8 @@
 @id("bda4cf72-c8da-4be0-8148-024d0fc2d826")
 @relations(
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-574a09bd601529a04070285f0c08ee7f")
-    BackgroundTileLayer,
+  @id("neo-tile-grid-record-relations-v1-relation-574a09bd601529a04070285f0c08ee7f")
+  BackgroundTileLayer,
   compatibleLayers: [
     @id("neo-tile-grid-record-relations-v1-relation-7922c85a1da60e114a8aec95ffeacb5f")
     BackgroundTileLayer,

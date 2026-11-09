@@ -6,11 +6,11 @@
 sealed class NeoLookupVariantFolder<
   @id("system_a5488f2b-966e-4643-93df-71995c9c24ad")
   TObject extends NeoObject,
-  @id("system_39544f5d-e527-44fb-96b7-f584b7cd1a25")
-  TValue
->(string path) {
-  @id("system_d36ebea5-151f-4d9d-95f2-28d8cfb05870")
-  @settings(format: .Plain)
-  @system(kind: .WorldAuthoring)
-  public virtual string Path = path;
-}
+@id("system_39544f5d-e527-44fb-96b7-f584b7cd1a25")
+TValue
+  >(string path) {
+    @id("system_d36ebea5-151f-4d9d-95f2-28d8cfb05870")
+    @settings(format: .Plain)
+    @system(kind: .WorldAuthoring)
+    public virtual string Path = path;
+  }

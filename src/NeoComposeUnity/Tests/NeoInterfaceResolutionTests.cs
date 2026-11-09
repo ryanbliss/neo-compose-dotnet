@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
@@ -82,7 +83,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = id,
                 members = new Dictionary<string, InterfaceMember>(),
-                extendsInterfaceIds = new List<string>(parents),
+                extendsInterfaces = parents.Select(parent => new InterfaceConstruction { interfaceId = parent }).ToList(),
             };
         }
 
@@ -98,9 +99,9 @@ namespace NeoCompose.Tests
                 name = id,
                 schema = new Dictionary<string, string>(),
                 extendsClassId = extendsClassId,
-                implementsInterfaceIds = implementsInterfaceId is null
+                implementsInterfaces = implementsInterfaceId is null
                     ? null
-                    : new List<string> { implementsInterfaceId },
+                    : new List<InterfaceConstruction> { new() { interfaceId = implementsInterfaceId } },
             };
         }
 

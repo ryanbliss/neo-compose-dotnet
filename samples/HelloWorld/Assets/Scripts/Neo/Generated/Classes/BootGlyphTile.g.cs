@@ -147,11 +147,11 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+
             public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
 
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
-
-            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -161,9 +161,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.BootGlyphAttuned] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
                 [Fields.Cell] = () => null,
                 [Fields.GridCell] = () => null,
-                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -184,9 +184,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.BootGlyphAttuned] = () => BootGlyphAttuned,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
                 [Fields.Cell] = () => Cell,
                 [Fields.GridCell] = () => GridCell,
-                [Fields.SmartTile] = () => SmartTile,
             };
         }
 

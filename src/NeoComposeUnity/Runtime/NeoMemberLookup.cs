@@ -191,7 +191,7 @@ namespace NeoCompose.Runtime
             }
             return holder is ClassMember
                 ? holder
-                : NeoGeneratedTypesSupport.UnplacedClassMember(classId, null, row);
+                : NeoGeneratedTypesSupport.UnplacedClassMember(client, classId, null, row);
         }
 
         private static MemberValue? ReadRow(NeoClient client, string id, out NeoValueOwnership ownership)
@@ -215,12 +215,44 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// An unbound reference selects any stored row of its declared class or
-        /// a subclass, or any other row that fits it (P112 §4.3).
+        /// a subclass whose closed type converts to it, any class row its
+        /// interface accepts, or any other row that fits it (P112 §4.3,
+        /// P113 §3.6, P127 §1.2).
         /// </summary>
-        private bool IsUnboundSelectable(string valueId) =>
-            member.declaredTypeInfo is ClassTypeInfo or GenericTypeInfo
-                ? IsStoredRowOf(client, valueId, UnboundTargetClassId())
-                : NeoScriptExecutor.ReferenceFits(client, member, value?.id, valueId);
+        private bool IsUnboundSelectable(string valueId) => member.declaredTypeInfo switch
+        {
+            ClassTypeInfo or GenericTypeInfo => IsStoredRowOf(client, valueId, UnboundTargetClassId()) && ObjectTargetRefusal(valueId) is null,
+            InterfaceTypeInfo when IsStoredRowOf(client, valueId, null) => ObjectTargetRefusal(valueId) is null,
+            _ => NeoScriptExecutor.ReferenceFits(client, member, value?.id, valueId),
+        };
+
+        /// <summary>
+        /// Why a closed generic class or interface target can't select
+        /// <paramref name="valueId"/>'s class row, in the server's words; null
+        /// when it can, or the target compares no type.
+        /// </summary>
+        private string? ObjectTargetRefusal(string valueId)
+        {
+            if (member.declaredTypeInfo is not (ClassTypeInfo { typeArguments: { Count: > 0 } } or InterfaceTypeInfo))
+                return null;
+            if (ReadRow(client, valueId, out NeoValueOwnership ownership) is not ObjectMemberValue row)
+                return null;
+            if (NeoGeneratedTypesSupport.ResolveClassValueClassId(client, valueId, row) is not { } rowClassId)
+                return null;
+            // Only an open class's row reads its slot's type.
+            bool open = NeoReferenceTypes.ClosedClassRowType(client, rowClassId) is null;
+            Member? slot = open ? NeoReferenceTypes.DeclaredRowSlot(client, valueId) : null;
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env = open
+                ? NeoReferenceTypes.RowSlotEnvironment(client, valueId, ownership)
+                : NeoGenericResolution.EmptyEnv;
+            return member.declaredTypeInfo is InterfaceTypeInfo
+                ? NeoReferenceTypes.InterfaceTargetRefusal(client, member, valueId, rowClassId, slot, env)
+                : NeoReferenceTypes.ClosedClassTargetRefusal(client, member, valueId, rowClassId, slot, env);
+        }
+
+        /// <summary>Why an unbound reference can't select <paramref name="valueId"/>.</summary>
+        private protected string UnboundRefusal(string valueId) =>
+            ObjectTargetRefusal(valueId) ?? $"Lookup selection id '{valueId}' is not a stored row of the reference's type.";
 
         /// <summary>
         /// Whether <paramref name="valueId"/> names a stored class row of
@@ -255,7 +287,7 @@ namespace NeoCompose.Runtime
                     }
                     return owner.genericParams?
                         .Find(param => param.id == generic.genericParamId)?
-                        .constraint?.classId;
+                        .ClassConstraint?.classId;
                 default:
                     throw new System.InvalidOperationException(
                         $"Unbound lookup '{member.name}' declares no class type.");
@@ -375,6 +407,11 @@ namespace NeoCompose.Runtime
             {
                 normalized = new[] { normalized[0] };
             }
+            foreach (string? id in normalized ?? System.Array.Empty<string>())
+            {
+                if (id is not null)
+                    RefuseGenericStaticTarget(id);
+            }
 
             NeoTimestamp nowIso = NeoTimestamp.Now();
 
@@ -408,6 +445,8 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     "Lookup selection id cannot be null or empty.");
             }
+            // The server refuses a generic static's row before judging its type.
+            RefuseGenericStaticTarget(valueId);
             // P112 §4.3. A value slot's row must fit and outlive this set, as NeoScript checks.
             if (member.collectionMemberId is null && NeoScriptExecutor.IsSlotLookup(client, member, value?.id))
                 return AddSelected(NeoGeneratedTypesSupport.ReferenceSelection(client, this, valueId)![0]);
@@ -415,7 +454,7 @@ namespace NeoCompose.Runtime
             {
                 throw new System.InvalidOperationException(
                     member.collectionMemberId is null
-                        ? $"Lookup selection id '{valueId}' is not a stored row of the reference's type."
+                        ? UnboundRefusal(valueId)
                         : $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
             }
             return AddSelected(valueId);
@@ -429,6 +468,13 @@ namespace NeoCompose.Runtime
             return member.collectionMemberId is null
                 ? AddSelected(NeoGeneratedTypesSupport.ReferenceSelection(client, this, reference)![0])
                 : Add(reference.TargetId);
+        }
+
+        /// <summary>P127 §5.3. No stored selection names a generic static's row.</summary>
+        private void RefuseGenericStaticTarget(string valueId)
+        {
+            if (client.GenericStaticTargetViolation(valueId) is { } violation)
+                throw new System.InvalidOperationException($"Lookup '{member.name}' {violation}");
         }
 
         private bool AddSelected(string valueId)

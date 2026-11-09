@@ -92,8 +92,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void MissingDescriptorNamesTheParameterAndKind()
+        public void ConstructionsNeedNoTypeDescriptorMembers()
         {
+            // A construction's type arguments are bindings (P127 §12.1), so
+            // the export's old descriptor members play no part.
             ProjectData data = Data();
             foreach (Member descriptor in data.members.Values
                 .Where(member => member.name == "Type argument" && member.kind == MemberKind.String)
@@ -103,11 +105,7 @@ namespace NeoCompose.Tests
             }
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
 
-            Exception error = Assert.Catch(() => InvokeProbe(client, "BoxCount"));
-
-            StringAssert.Contains(
-                "type argument 'T' (String) has no matching type descriptor",
-                error.ToString());
+            Assert.AreEqual(2, InvokeProbe(client, "BoxCount"));
         }
 
         [Test]
@@ -129,26 +127,26 @@ namespace NeoCompose.Tests
             data.classes["class-enchant"].Modifier = NeoClassModifierKind.Open;
             using var client = NeoTestSaveStack.ClientFromSchema(data);
             var type = new ClassTypeInfo { type = MemberKind.Class, classId = "class-enchant", required = true };
-            var args = new Dictionary<string, GenericBinding>
+            var args = new Dictionary<string, TypeBinding>
             {
-                [NeoGenericTestFixture.ParamT] = new() { kind = NeoGenericBindingKind.Member, memberId = "member-binding-float" },
+                [NeoGenericTestFixture.ParamT] = TypeBinding.Closed(new TypeHead(MemberKind.Float, true)),
             };
             var first = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
                 new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, args, replayStoredInstance: true);
-            var equivalent = new Dictionary<string, GenericBinding>
+            var equivalent = new Dictionary<string, TypeBinding>
             {
-                [NeoGenericTestFixture.ParamT] = new() { kind = NeoGenericBindingKind.Member, memberId = "member-binding-float" },
+                [NeoGenericTestFixture.ParamT] = TypeBinding.Closed(new TypeHead(MemberKind.Float, true)),
             };
             var again = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
                 new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, equivalent, replayStoredInstance: true);
             Assert.That(again.classPlan, Is.SameAs(first.classPlan));
-            args[NeoGenericTestFixture.ParamT].memberId = "member-binding-string";
+            args[NeoGenericTestFixture.ParamT] = TypeBinding.Closed(new TypeHead(MemberKind.String, false));
             var changed = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
                 new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, args, replayStoredInstance: true);
             Assert.That(changed.membersBySchemaKey["Speed"], Is.TypeOf<StringMember>());
             Assert.That(first.membersBySchemaKey["Speed"], Is.TypeOf<FloatMember>());
-            Assert.That(first.classPlan.factoryMember.classArguments[NeoGenericTestFixture.ParamT].memberId,
-                Is.EqualTo("member-binding-float"));
+            Assert.That(first.classPlan.factoryMember.classArguments[NeoGenericTestFixture.ParamT],
+                Is.EqualTo(TypeBinding.Closed(new TypeHead(MemberKind.Float, true))));
             NeoGeneratedTypesSupport.InvalidateConstructorSchemaCaches(client);
             var fresh = NeoGeneratedTypesSupport.ValidateRuntimeClassConstructorMetadata(client, type,
                 new[] { new NeoGeneratedTypesSupport.RuntimeConstructorField { schemaKey = "Speed", memberId = "member-speed" } }, equivalent, replayStoredInstance: true);

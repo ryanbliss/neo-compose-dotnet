@@ -10,7 +10,7 @@ sealed class CapitolOGIntro : NeoDialogue {
   @id("69423da3-5f79-546a-a341-144bed9e99f2")
   void Action1() {
     root.Save.Bits -= CapitolOG.Value;
-    	root.Save.Inventory.Add(CapitolOG);
+    root.Save.Inventory.Add(CapitolOG);
   }
 
   @id("637aae58-34b4-5e7d-a2a5-9bb8926306e2")
@@ -178,9 +178,9 @@ sealed class CapitolOGIntro : NeoDialogue {
     Outcome CanAfford = new(
       name: "Can afford",
       when: [
-      @id("2576959d-3416-587e-8ff9-6a7c106b6486")
-      Condition1,
-    ],
+        @id("2576959d-3416-587e-8ff9-6a7c106b6486")
+        Condition1,
+      ],
     ) => AddItemAction;
 
     @id("1b863d00-f027-46da-87a5-e4c08549bcf2")

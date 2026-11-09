@@ -177,12 +177,13 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void DecimalMinMax_TiesReturnTheFirstArgument()
+        public void DecimalMinMax_TiesFollowSystemDecimal()
         {
             // "1.10" and "1.1" are the same decimal spelled two ways, so which
-            // argument a tie returns is observable through the surviving scale.
+            // argument a tie returns is observable through the surviving scale:
+            // decimal.Min returns the second, decimal.Max the first.
             Assert.AreEqual(
-                "1.10",
+                "1.1",
                 EvaluateDecimal(DecimalMathOp(
                     MathOpKind.Min, DecimalLiteral("1.10"), DecimalLiteral("1.1"))));
             Assert.AreEqual(

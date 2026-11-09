@@ -27,8 +27,9 @@ namespace NeoCompose.Runtime
                 sequenceInterfaces.Clear();
                 var children = new Dictionary<string, List<string>>(StringComparer.Ordinal);
                 foreach (var declaration in data.interfaces.Values)
-                    foreach (string parent in declaration.extendsInterfaceIds ?? new List<string>())
+                    foreach (InterfaceConstruction parentConstruction in declaration.extendsInterfaces ?? new List<InterfaceConstruction>())
                     {
+                        string parent = parentConstruction.interfaceId;
                         if (!children.TryGetValue(parent, out var descendants))
                             children[parent] = descendants = new();
                         descendants.Add(declaration.id);

@@ -609,9 +609,9 @@ namespace NeoCompose.Tests
                     var unload = ScriptFunction("member-unload", "OnUnload");
                     data.members[unload.id] = unload;
                     data.classes["class-watcher"].schema["OnUnload"] = unload.id;
-                    data.classes["class-watcher"].implementsInterfaceIds = new List<string>
+                    data.classes["class-watcher"].implementsInterfaces = new List<InterfaceConstruction>
                     {
-                        "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb"
+                        new() { interfaceId = "system_c64e99f9-e8be-4d0a-927f-de20bdf9cdeb" }
                     };
                 }
             });
@@ -1022,7 +1022,7 @@ namespace NeoCompose.Tests
             {
                 id = "derived-sequence",
                 name = "DerivedSequence",
-                extendsInterfaceIds = new List<string> { NeoSequenceContract.Enumerable },
+                extendsInterfaces = new List<InterfaceConstruction> { new() { interfaceId = NeoSequenceContract.Enumerable } },
             });
             Assert.That(fixture.client.IsSequenceType(new InterfaceTypeInfo
             {
@@ -1184,7 +1184,7 @@ namespace NeoCompose.Tests
                 Number("box-item", 0),
                 Number("value-other", 0),
             };
-            ((ObjectMemberValue)values[4]).genericBindings = new Dictionary<string, string> { [BoxParam] = "member-box-binding" };
+            ((ObjectMemberValue)values[4]).genericBindings = TestTypeBindings.Stamp((BoxParam, TestTypeBindings.Of(MemberKind.Int)));
             var box = Class("class-box", null, ("Item", "member-item"), ("Current", "member-current"));
             box.genericParams = new List<GenericParamDeclaration> { new() { id = BoxParam, name = "T" } };
             var data = new ProjectData
