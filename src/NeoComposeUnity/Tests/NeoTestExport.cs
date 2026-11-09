@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
         /// <summary>The corpus's <c>project.json</c> and partition files, keyed by index path.</summary>
         internal static (string projectJson, Dictionary<string, string> partitionJsonByFile) Split(string corpusJson)
         {
-            JObject root = JObject.Parse(corpusJson);
+            JObject root = NeoInterningJsonReader.Deserialize<JObject>(corpusJson)!;
             var partitionJsonByFile = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [NeoProjectExportContract.MainPartitionFile] = (root["values"] as JObject ?? new JObject()).ToString(Formatting.None),

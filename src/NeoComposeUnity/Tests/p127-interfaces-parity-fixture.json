@@ -462,7 +462,7 @@
     "CtorReadsTypeK": "int,bool",
     "CtorTypedArgumentK": 21,
     "NullEntryTypeInitializerK": "The type initializer for 'CBagK<string>' threw an exception.",
-    "NullEntryK": "'BagK.Items[0]' is required and cannot store null.",
+    "NullEntryK": "Constructor 'BagK' was passed null for non-nullable parameter 'first'.",
     "NullableBindingListK": "1null",
     "NullableBindingFieldK": "null",
     "NullableBindingDictionaryK": "1null",
