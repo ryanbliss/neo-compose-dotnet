@@ -2041,14 +2041,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// The <c>CultureInfo</c> or <c>NumberFormatInfo</c> this row reads
         /// as, or was written from. Writes to it persist through the slot
-        /// (P127 §12.1), so <see cref="value"/> is its current payload.
+        /// (P127 §12.1), so <see cref="value"/> is its current payload, or
+        /// its last stored payload while retained NativeDigits has an invalid length.
         /// </summary>
         [JsonIgnore]
         internal object? live;
 
         public new JObject? value
         {
-            get => live is null ? base.value : NeoStorablePayloads.Encode(live);
+            get => live is null ? base.value : NeoStorablePayloads.TryEncode(live) ?? base.value;
             set => base.value = value;
         }
 

@@ -85,8 +85,8 @@ namespace NeoCompose.Runtime.NeoScript
                 case NeoBoxFormKind.Invalid:
                     throw new NSGetterRuntimeError($"Value '{row.id}' has {form.Invalid}.");
             }
-            if (form.Member is ObjectMember { objectType: NeoObjectTypeKind declared })
-                return ReadDeclaredRow(row, declared);
+            if (form.Member is ObjectMember { objectType: NeoObjectTypeKind } declared)
+                return ReadDeclaredRow(row, declared, ownership, ctx);
             object? held = UnwrapCached(row, ctx, ownership, form.Member);
             if (held is null)
                 return null;
@@ -95,18 +95,21 @@ namespace NeoCompose.Runtime.NeoScript
             return box;
         }
 
-        /// <summary>
-        /// A stored <c>Type</c>, as a <c>Type</c> slot or a box holds it
-        /// (§12.1). The evaluator reads no stored culture or number format
-        /// until P127 B7.
-        /// </summary>
-        private static object ReadDeclaredRow(MemberValue row, NeoObjectTypeKind objectType)
+        /// <summary>A stored built-in value, sharing the host's CLR culture and number format.</summary>
+        private static object ReadDeclaredRow(MemberValue row, ObjectMember member, NeoValueOwnership ownership, Context ctx)
         {
-            if (objectType != NeoObjectTypeKind.Type)
-                throw new NSGetterRuntimeError($"Reading a stored {NeoTypeNames.ObjectName(objectType)} isn't supported yet (P127 B7).");
-            if (row is not PayloadMemberValue { value: JObject payload })
-                throw new NSGetterRuntimeError($"Value '{row.id}' holds a Type without a Type payload.");
-            return NeoTypeValue.Of(TypeBindings.Read((JObject)payload["type"]!, $"Value '{row.id}' type"));
+            if (member.objectType == NeoObjectTypeKind.Type)
+            {
+                if (row is not PayloadMemberValue { value: JObject payload })
+                    throw new NSGetterRuntimeError($"Value '{row.id}' holds a Type without a Type payload.");
+                return NeoTypeValue.Of(TypeBindings.Read((JObject)payload["type"]!, $"Value '{row.id}' type"));
+            }
+            // The ordinary object node owns writable shadows and publishes live
+            // payload writes. Reuse it so evaluator reads never mutate Asset defaults.
+            var node = (NeoMemberObject)(ownership == NeoValueOwnership.Asset
+                ? NeoMember.Create(ctx.client, member, string.IsNullOrEmpty(row.id) ? null : row.id)
+                : NeoMember.CreateWritable(ctx.client, member, string.IsNullOrEmpty(row.id) ? null : row.id, ownership));
+            return node.ReadObject()!;
         }
 
         /// <summary>§3.1 <c>box</c>: rows, boxes and <c>Type</c> values pass through; any other value boxes.</summary>
@@ -174,11 +177,12 @@ namespace NeoCompose.Runtime.NeoScript
                             NeoObjectTypeKind.ValueType => held is { } valueType && TypeBindings.IsValueType(valueType.Head!),
                             NeoObjectTypeKind.Enum => held?.Head!.Type == MemberKind.Enum,
                             NeoObjectTypeKind.Type => value is NeoTypeValue,
-                            // Culture and format evaluator values belong to P127 B7.
+                            NeoObjectTypeKind.CultureInfo => payload is CultureInfo,
+                            NeoObjectTypeKind.NumberFormatInfo => payload is NumberFormatInfo,
                             _ => false,
                         };
                         if (matches)
-                            result = held is null || value is NeoBox or NeoTypeValue ? value : NeoBox.Of(held, value);
+                            result = held is null || value is NeoBox or NeoTypeValue or CultureInfo or NumberFormatInfo ? value : NeoBox.Of(held, value);
                         return matches;
                     }
                 case DelegateTypeInfo:
@@ -201,7 +205,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         if (!NeoInterfaceDispatch.Of(ctx.client).PrimitiveConforms(held, RuntimeTypeOf(CloseContextType(interfaceType, ctx))))
                             return false;
-                        result = value is NeoBox ? value : NeoBox.Of(held, payload);
+                        result = value is NeoBox or CultureInfo or NumberFormatInfo ? value : NeoBox.Of(held, payload);
                         return true;
                     }
                     // Restore the held collection's element type before checking its protocol.
@@ -482,6 +486,8 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (held.Head!.Type)
             {
+                case MemberKind.Object when held.Head.ObjectType == NeoObjectTypeKind.CultureInfo:
+                    return ((CultureInfo)payload).Equals(otherPayload);
                 case MemberKind.Float:
                     return SingleEquals(Number(payload), Number(otherPayload));
                 case MemberKind.Decimal:
@@ -547,6 +553,8 @@ namespace NeoCompose.Runtime.NeoScript
             }
             switch (held.Head!.Type)
             {
+                case MemberKind.Object when held.Head.ObjectType == NeoObjectTypeKind.CultureInfo:
+                    return ((CultureInfo)payload).GetHashCode();
                 case MemberKind.Int:
                     return NeoInt32.Wrap(Number(payload));
                 case MemberKind.Float:
@@ -650,19 +658,19 @@ namespace NeoCompose.Runtime.NeoScript
         /// <summary>
         /// <c>IFormattable.ToString(format, null)</c> of a built-in
         /// formattable value, or null when its type isn't one. Unity's vectors
-        /// and <c>Color</c> format their components with the invariant culture
+        /// and <c>Color</c> format their components through the provider
         /// and default to <c>F2</c> / <c>F3</c>.
         /// </summary>
-        private static string? FormattableText(object payload, TypeBinding held, string? format, Context ctx)
+        private static string? FormattableText(object payload, TypeBinding held, string? format, Context ctx, object? provider = null)
         {
             switch (held.Head!.Type)
             {
                 case MemberKind.Int:
-                    return NeoNumberFormatting.FormatInt32(NeoInt32.Wrap(Number(payload)), format, null);
+                    return NeoNumberFormatting.FormatInt32(NeoInt32.Wrap(Number(payload)), format, provider);
                 case MemberKind.Float:
-                    return NeoNumberFormatting.FormatSingle((float)Number(payload), format, null);
+                    return NeoNumberFormatting.FormatSingle((float)Number(payload), format, provider);
                 case MemberKind.Decimal:
-                    return NeoNumberFormatting.FormatDecimal(decimal.Parse((string)payload, NumberStyles.Float, CultureInfo.InvariantCulture), format, null);
+                    return NeoNumberFormatting.FormatDecimal(decimal.Parse((string)payload, NumberStyles.Float, CultureInfo.InvariantCulture), format, provider);
                 case MemberKind.Enum:
                     return held.Head.EnumId == NeoPrimitiveConformance.NumberStylesEnumId
                         ? NeoNumberStyles.Format(NeoInt32.Wrap(Number(payload)), format)
@@ -671,36 +679,36 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var vector = (NeoVector2Value)payload;
                         string component = UnityFormat(format, "F2");
-                        return $"({UnitySingle(vector.x, component)}, {UnitySingle(vector.y, component)})";
+                        return $"({UnitySingle(vector.x, component, provider)}, {UnitySingle(vector.y, component, provider)})";
                     }
                 case MemberKind.Vector3:
                     {
                         var vector = (NeoVector3Value)payload;
                         string component = UnityFormat(format, "F2");
-                        return $"({UnitySingle(vector.x, component)}, {UnitySingle(vector.y, component)}, {UnitySingle(vector.z, component)})";
+                        return $"({UnitySingle(vector.x, component, provider)}, {UnitySingle(vector.y, component, provider)}, {UnitySingle(vector.z, component, provider)})";
                     }
                 case MemberKind.Vector2Int:
                     {
                         var vector = (NeoVector2Value)payload;
-                        return $"({UnityInt32(vector.x, format)}, {UnityInt32(vector.y, format)})";
+                        return $"({UnityInt32(vector.x, format, provider)}, {UnityInt32(vector.y, format, provider)})";
                     }
                 case MemberKind.Vector3Int:
                     {
                         var vector = (NeoVector3Value)payload;
-                        return $"({UnityInt32(vector.x, format)}, {UnityInt32(vector.y, format)}, {UnityInt32(vector.z, format)})";
+                        return $"({UnityInt32(vector.x, format, provider)}, {UnityInt32(vector.y, format, provider)}, {UnityInt32(vector.z, format, provider)})";
                     }
                 case MemberKind.Color:
                     {
                         var color = (NeoColorValue)payload;
                         string component = UnityFormat(format, "F3");
-                        return $"RGBA({UnitySingle(color.r, component)}, {UnitySingle(color.g, component)}, {UnitySingle(color.b, component)}, {UnitySingle(color.a, component)})";
+                        return $"RGBA({UnitySingle(color.r, component, provider)}, {UnitySingle(color.g, component, provider)}, {UnitySingle(color.b, component, provider)}, {UnitySingle(color.a, component, provider)})";
                     }
                 default:
                     return null;
             }
         }
 
-        /// <summary>A held value's <c>ToString()</c> (§1.2's table), invariant until P127 B7 reads the current culture.</summary>
+        /// <summary>A held value's <c>ToString()</c> (§1.2's table), using the invariant current culture.</summary>
         private static string PayloadText(object? payload, TypeBinding held, Context ctx)
         {
             if (FormattableText(payload!, held, null, ctx) is { } formatted)
@@ -715,6 +723,10 @@ namespace NeoCompose.Runtime.NeoScript
                     return "object";
                 case MemberKind.Object when held.Head.ObjectType == NeoObjectTypeKind.Type:
                     return TypeName(((NeoTypeValue)payload!).Binding, ctx);
+                case MemberKind.Object when held.Head.ObjectType == NeoObjectTypeKind.CultureInfo:
+                    return ((CultureInfo)payload!).Name;
+                case MemberKind.Object when held.Head.ObjectType == NeoObjectTypeKind.NumberFormatInfo:
+                    return "System.Globalization.NumberFormatInfo";
                 case MemberKind.Tuple:
                     {
                         var tuple = (RuntimeTuple)payload!;
@@ -763,11 +775,11 @@ namespace NeoCompose.Runtime.NeoScript
                 : PayloadText(element, elementType.WithRequired(true), ctx);
         }
 
-        private static string UnitySingle(double value, string format) =>
-            NeoNumberFormatting.FormatSingle((float)value, format, CultureInfo.InvariantCulture);
+        private static string UnitySingle(double value, string format, object? provider = null) =>
+            NeoNumberFormatting.FormatSingle((float)value, format, provider);
 
-        private static string UnityInt32(double value, string? format) =>
-            NeoNumberFormatting.FormatInt32(NeoInt32.Wrap(value), format, CultureInfo.InvariantCulture);
+        private static string UnityInt32(double value, string? format, object? provider = null) =>
+            NeoNumberFormatting.FormatInt32(NeoInt32.Wrap(value), format, provider);
 
         /// <summary>A Unity float component's format: <paramref name="fallback"/> when none is given.</summary>
         private static string UnityFormat(string? format, string fallback) =>
@@ -818,6 +830,12 @@ namespace NeoCompose.Runtime.NeoScript
                 case NeoTypeValue:
                     payload = value;
                     return TypeType;
+                case CultureInfo:
+                    payload = value;
+                    return TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: NeoObjectTypeKind.CultureInfo));
+                case NumberFormatInfo:
+                    payload = value;
+                    return TypeBinding.Closed(new TypeHead(MemberKind.Object, true, objectType: NeoObjectTypeKind.NumberFormatInfo));
             }
             payload = value;
             if (staticType is null)
