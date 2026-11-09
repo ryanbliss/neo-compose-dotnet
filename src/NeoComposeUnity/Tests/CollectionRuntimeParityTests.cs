@@ -50,18 +50,19 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GenericSetEqualsMatchesCli()
+        public void GenericSetEqualsUsesIdentity()
         {
             using var client = NeoTestSaveStack.LoadClient(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/synth-example.json"));
             var body = Body("genericEquals");
             var context = new NSGetterEvaluator.Context(client, null, null);
             var a = NSGetterEvaluator.MakeRuntimeSet(new object?[] { 1d }, false, false, context);
             var b = NSGetterEvaluator.MakeRuntimeSet(new object?[] { 1d }, false, false, context);
-            Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(true));
+            Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(false));
+            Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, a }), Is.EqualTo(true));
             a.Add(2d, 2d);
             Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(false));
             b.Add(2d, 2d);
-            Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(true));
+            Assert.That(NSGetterEvaluator.Evaluate(body, context, new object?[] { a, b }), Is.EqualTo(false));
         }
 
         [Test]

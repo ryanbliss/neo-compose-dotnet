@@ -473,9 +473,9 @@ namespace NeoCompose.Tests
 
         // §1.3: a held built-in comparer's valueType names the public
         // system class it came from. The ids stand in for the system schema's.
-        private const string EqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e01";
-        private const string ComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e02";
-        private const string ReferenceEqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e03";
+        private const string EqualityComparerId = NeoSystemComparerClasses.EqualityComparerId;
+        private const string ComparerId = NeoSystemComparerClasses.ComparerId;
+        private const string ReferenceEqualityComparerId = NeoSystemComparerClasses.ReferenceEqualityComparerId;
 
         private static readonly string ComparerClassesJson = $@"{{
             '{EqualityComparerId}': {{ 'id': '{EqualityComparerId}', 'name': 'EqualityComparer', 'genericParams': [{{ 'id': 't1', 'name': 'T' }}] }},
@@ -497,7 +497,6 @@ namespace NeoCompose.Tests
         /// </summary>
         private static MemberValue ReadHeldComparer(string heldKey, string payload)
         {
-            NeoSystemComparerClasses.Register(JObject.Parse(ComparerClassesJson));
             ProjectData schema = ComparerSchema();
             JObject value = JObject.Parse(payload);
             if (value["type"] is JValue { Type: JTokenType.String } type)
@@ -545,7 +544,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void OnlySystemClassesNamedLikeAComparerRegister()
+        public void OnlyMintedComparerClassesAreRecognized()
         {
             var error = Assert.Throws<JsonSerializationException>(() =>
                 ReadHeldComparer("c:impostor<int>", "{'comparer':0,'family':0,'type':'int'}"));

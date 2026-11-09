@@ -85,6 +85,12 @@ namespace NeoCompose.Runtime.NeoScript
             : base(message) { }
     }
 
+    /// <summary>A host integrity guard that authored catches and sort wrappers must preserve.</summary>
+    internal sealed class NeoSortIntegrityError : NSGetterRuntimeError
+    {
+        internal NeoSortIntegrityError(string message) : base(message) { }
+    }
+
     /// <summary>
     /// The one place that says which runtime errors are ordinary authored
     /// failures and which are control faults. Mirrors the TS
@@ -106,7 +112,8 @@ namespace NeoCompose.Runtime.NeoScript
             exception is NSGetterRuntimeError
             && exception is not NeoScriptPreExecutionValidationError
             && exception is not NativeFunctionDelegateUnavailableError
-            && exception is not NeoScriptControlError;
+            && exception is not NeoScriptControlError
+            && exception is not NeoSortIntegrityError;
 
         /// <summary>
         /// True when a framing helper may replace the error with a renamed

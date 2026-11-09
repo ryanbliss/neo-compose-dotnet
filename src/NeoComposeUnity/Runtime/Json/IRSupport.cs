@@ -29,6 +29,7 @@ namespace NeoCompose.Runtime.Json
         public const string KeyOf = "keyOf";
         public const string ListLiteral = "listLiteral";
         public const string DictLiteral = "dictLiteral";
+        public const string CollectionComparer = "collectionComparer";
         public const string ForceUnwrap = "forceUnwrap";
         public const string IsCheck = "isCheck";
         public const string CallGetter = "callGetter";
@@ -482,6 +483,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class Condition
     {
+        public TypeInfo? operandType;
+        public bool @delegate;
         /// <summary>One of <see cref="OperatorKind"/>.</summary>
         public string type = null!;
         public Pointer operand1 = null!;

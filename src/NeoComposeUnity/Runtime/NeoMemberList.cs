@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
 using Member = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Runtime
@@ -277,6 +278,53 @@ namespace NeoCompose.Runtime
         /// or null when no entry holds it. The value-kind map is built lazily,
         /// then maintained with List membership changes.
         /// </summary>
+        internal IEqualityComparer<T> SetComparer<T>()
+        {
+            ObserveChildren();
+            if (member is not SetMember || entryMember is GenericMember)
+                return EqualityComparer<T>.Default;
+            var context = client.CreateGetterContext(ownership);
+            context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, context));
+            var type = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, entryMember,
+                entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>(StringComparer.Ordinal), NeoNSFunctionRuntime.BindingTypeProjection.Stored);
+            return NSGetterEvaluator.HostComparer<T>(value, NeoTypeBindings.FromTypeInfo(type), ownership, context);
+        }
+
+        internal bool UsesSetEquality()
+        {
+            ObserveChildren();
+            if (member is not SetMember || entryMember is GenericMember)
+                return false;
+            var context = client.CreateGetterContext(ownership);
+            var type = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, entryMember,
+                entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>(StringComparer.Ordinal), NeoNSFunctionRuntime.BindingTypeProjection.Stored);
+            var binding = NeoTypeBindings.FromTypeInfo(type);
+            return value is { } row ? NSGetterEvaluator.UsesStoredEquality(row, binding, context)
+                : !NSGetterEvaluator.SelectEquality(binding, context).KeyEquivalent;
+        }
+
+        internal bool TrySetEquality(object? item, out NSGetterEvaluator.StoredEqualityIndex? index, out object? candidate, out string? found)
+        {
+            ObserveChildren();
+            index = null;
+            candidate = null;
+            found = null;
+            if (member is not SetMember || value is not { } row || entryMember is GenericMember)
+                return false;
+            var context = client.CreateGetterContext(ownership);
+            var type = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, entryMember,
+                entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>(StringComparer.Ordinal), NeoNSFunctionRuntime.BindingTypeProjection.Stored);
+            var binding = NeoTypeBindings.FromTypeInfo(type);
+            if (!NSGetterEvaluator.UsesStoredEquality(row, binding, context))
+                return false;
+            context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, context));
+            candidate = NeoScriptValueMarshaller.Normalize(client, ownership, item, type, context, "set lookup");
+            index = NSGetterEvaluator.GetStoredEqualityIndex(row, binding, ownership, context, row.value ?? Array.Empty<string>(),
+                id => NSGetterEvaluator.ResolveValueIfId(id, context, preferredOwnership: ownership, member: entryMember));
+            found = index.Find(candidate);
+            return true;
+        }
+
         internal string? FindSetEntry(string key)
         {
             if (key is null)
@@ -754,13 +802,22 @@ namespace NeoCompose.Runtime
         /// stable id) before appending; mints + binds an empty array row
         /// first when the list has no bound value yet.
         /// </summary>
-        internal void AddSerialized(NeoValueWritePayload? entryValue)
+        internal void AddSerialized(NeoValueWritePayload? entryValue, NSGetterEvaluator.StoredEqualityIndex? equality = null, object? candidate = null, int candidateHash = 0)
         {
             // Commits a held script batch before the plan takes its base revision.
             ObserveChildren();
             var plan = new NeoWritePlan(client);
-            PrepareAddSerialized(plan, entryValue);
-            plan.Commit();
+            try
+            {
+                PrepareAddSerialized(plan, entryValue, equality, candidate, candidateHash);
+                plan.Commit();
+            }
+            catch
+            {
+                if (equality is not null)
+                    NSGetterEvaluator.DiscardStoredEquality(client);
+                throw;
+            }
         }
 
         // Kept, and a lambda: binding the virtual method group costs Mono a
@@ -776,10 +833,10 @@ namespace NeoCompose.Runtime
             plan.AfterCommit(() => entryValue.RetargetMovedReference(client, entryMember, valueId, entryOwnership));
         }
 
-        internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue)
+        internal string PrepareAddSerialized(NeoWritePlan plan, NeoValueWritePayload? entryValue, NSGetterEvaluator.StoredEqualityIndex? equality = null, object? candidate = null, int candidateHash = 0)
         {
             ObserveChildren();
-            string id = PrepareAddSerializedCore(plan, entryValue);
+            string id = PrepareAddSerializedCore(plan, entryValue, equality, candidate, candidateHash);
             plan.ReportsOwnChange(this);
             plan.AfterCommit(refreshAfterCommit ??= () => RefreshCommittedValue());
             plan.AfterNotifications(new AddedNotification(this, id));
@@ -801,7 +858,7 @@ namespace NeoCompose.Runtime
                 NeoListChangeKind.Add, addedValueIds: new[] { valueId }));
         }
 
-        private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue)
+        private string PrepareAddSerializedCore(NeoWritePlan plan, NeoValueWritePayload? entryValue, NSGetterEvaluator.StoredEqualityIndex? equality = null, object? candidate = null, int candidateHash = 0)
         {
             client.RequireStoredValue(entryMember, entryValue, $"[{Count}]", pathContainerId: valueId, pathContainerMember: member);
             client.RequireSlotAdmits(entryMember, null, member.name, entryValue, entryMember.ownerEnvironment ?? NeoGenericResolution.EmptyEnv);
@@ -848,6 +905,12 @@ namespace NeoCompose.Runtime
             nextArr[currentArr.Length] = newValueId;
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
+            if (equality is { Valid: true })
+            {
+                equality.Add(newValueId, candidate, candidateHash);
+                equality.PendingEntries.Add(newValueId);
+                NSGetterEvaluator.PreserveStoredEquality(equality, parentRow, plan);
+            }
             plan.Set(ownership, parentRow);
             NeoTypeSources.PlaceCreatedUnder(client, plan, parentRow.id, parentRow, member, newValueId);
             return newValueId;
@@ -964,7 +1027,9 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoMember"/> bound to that slot, and cascade-deletes
         /// the orphaned value graph from the writable store.
         /// </summary>
-        public void RemoveAt(int index)
+        public void RemoveAt(int index) => RemoveAt(index, null);
+
+        internal void RemoveAt(int index, NSGetterEvaluator.StoredEqualityIndex? equality)
         {
             ObserveChildren();
             if (IsUnordered)
@@ -996,6 +1061,8 @@ namespace NeoCompose.Runtime
             }
             parentRow.value = nextArr;
             parentRow.updatedAt = nowIso;
+            equality?.Remove(removedValueId);
+            NSGetterEvaluator.PreserveStoredEquality(equality, parentRow, plan);
             plan.Set(ownership, parentRow);
             NeoValueOwnership entryOwnership = client.ChildOwnership(entryMember, ownership);
             client.StageUnlinkedRemovals(plan, entryOwnership, removedValueId, entryMember);
@@ -1122,7 +1189,9 @@ namespace NeoCompose.Runtime
         /// removal tombstone in the entry ownership; an overlay-created
         /// member row is dropped along with its owned descendants.
         /// </summary>
-        public void RemoveById(string entryValueId)
+        public void RemoveById(string entryValueId) => RemoveById(entryValueId, null);
+
+        internal void RemoveById(string entryValueId, NSGetterEvaluator.StoredEqualityIndex? equality)
         {
             ObserveChildren();
             if (!IsUnordered)
@@ -1132,7 +1201,7 @@ namespace NeoCompose.Runtime
                 {
                     if (orderedIds[i] != entryValueId)
                         continue;
-                    RemoveAt(i);
+                    RemoveAt(i, equality);
                     return;
                 }
                 throw new System.ArgumentOutOfRangeException(

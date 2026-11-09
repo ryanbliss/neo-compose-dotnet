@@ -122,8 +122,14 @@ namespace NeoCompose.Runtime
                 rawPayload = wrapped.value;
                 classId = wrapped.classId;
             }
+            if (member is ClassMember && payload is NeoValuePayload { valueType: not null })
+                member = new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object };
             if (member is ObjectMember objectSlot)
-                return CreateObjectSlotRow(objectSlot, payload as NeoValuePayload, rawPayload, id, createdAt, updatedAt);
+            {
+                var boxRow = CreateObjectSlotRow(objectSlot, payload as NeoValuePayload, rawPayload, id, createdAt, updatedAt);
+                boxRow.comparer = (payload as NeoValuePayload)?.comparer;
+                return boxRow;
+            }
 
             MemberValue created = member switch
             {
@@ -267,6 +273,7 @@ namespace NeoCompose.Runtime
                     nameof(member)),
             };
             created.classId = classId;
+            created.comparer = (payload as NeoValuePayload)?.comparer;
             return created;
         }
 

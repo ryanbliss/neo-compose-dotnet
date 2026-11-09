@@ -326,6 +326,8 @@ namespace NeoCompose.Runtime
                     Walk(child);
                 foreach (var child in node.dictionaryChildren.Values)
                     Walk(child);
+                if (node.comparerChild is not null)
+                    Walk(node.comparerChild);
             }
 
             void SaveAll(VirtualExpansionNode node)
@@ -339,6 +341,8 @@ namespace NeoCompose.Runtime
                     SaveAll(child);
                 foreach (var child in node.dictionaryChildren.Values)
                     SaveAll(child);
+                if (node.comparerChild is not null)
+                    SaveAll(node.comparerChild);
             }
 
             void Save(VirtualExpansionNode node)
@@ -363,7 +367,7 @@ namespace NeoCompose.Runtime
             node.member is ListMember or DictionaryMember;
 
         private static bool IsSavedLeaf(VirtualExpansionNode node) =>
-            node.classChildren.Count == 0 && node.listChildren.Count == 0 && node.dictionaryChildren.Count == 0
+            node.classChildren.Count == 0 && node.listChildren.Count == 0 && node.dictionaryChildren.Count == 0 && node.comparerChild is null
             && IsLeafRow(node.row, node.member);
 
         /// <summary>

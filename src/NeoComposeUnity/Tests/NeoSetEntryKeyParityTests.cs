@@ -27,7 +27,7 @@ namespace NeoCompose.Tests
         {
             var failures = new List<string>();
             using NeoClient client = EmptyClient(out _);
-            foreach (JObject testCase in (JArray)JObject.Parse(NeoSetEntryKeyParityFixture.Json)["cases"]!)
+            foreach (JObject testCase in (JArray)JObject.Parse(MintedComparerFixture())["cases"]!)
             {
                 string name = testCase.Value<string>("name")!;
                 var rows = new Dictionary<string, MemberValue>(StringComparer.Ordinal);
@@ -132,7 +132,6 @@ namespace NeoCompose.Tests
                     genericParams = new List<GenericParamDeclaration> { new() { id = id + ".T", name = "T" } },
                 };
             }
-            NeoSystemComparerClasses.Register(JObject.FromObject(data.classes));
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
@@ -155,10 +154,16 @@ namespace NeoCompose.Tests
             return JsonConvert.DeserializeObject<JsonMember>(member.ToString())!;
         }
 
+        // This key-format fixture predates minted comparer IDs. Resolve its
+        // symbolic class IDs in both rows and expected keys; every case still runs.
+        private static string MintedComparerFixture() => NeoSetEntryKeyParityFixture.Json
+            .Replace("system_00000000-0000-4000-8000-0000000000c1", NeoSystemComparerClasses.EqualityComparerId)
+            .Replace("system_00000000-0000-4000-8000-0000000000c2", NeoSystemComparerClasses.ComparerId);
+
         private static readonly (string id, string name)[] FixtureComparerClasses =
         {
-            ("system_00000000-0000-4000-8000-0000000000c1", "EqualityComparer"),
-            ("system_00000000-0000-4000-8000-0000000000c2", "Comparer"),
+            (NeoSystemComparerClasses.EqualityComparerId, "EqualityComparer"),
+            (NeoSystemComparerClasses.ComparerId, "Comparer"),
         };
 
         private static MemberValue Row(string id, JObject testCase)

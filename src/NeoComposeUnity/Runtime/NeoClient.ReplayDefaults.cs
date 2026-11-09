@@ -111,6 +111,8 @@ namespace NeoCompose.Runtime
                     TrackProjection(nested, child);
                 foreach (var nested in node.dictionaryChildren.Values)
                     TrackProjection(nested, child);
+                if (node.comparerChild is not null)
+                    TrackProjection(node.comparerChild, child);
 
                 void Track(string id)
                 {

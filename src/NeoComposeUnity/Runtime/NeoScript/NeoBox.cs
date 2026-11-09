@@ -125,10 +125,7 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly ConcurrentDictionary<TypeBinding, NeoTypeValue> interned = new();
 
-        private NeoTypeValue(TypeBinding binding)
-        {
-            Binding = binding;
-        }
+        private NeoTypeValue(TypeBinding binding) => Binding = binding;
 
         /// <summary>The runtime type: tuple labels and nullable references erased, a nullable value type's <c>?</c> kept.</summary>
         internal TypeBinding Binding

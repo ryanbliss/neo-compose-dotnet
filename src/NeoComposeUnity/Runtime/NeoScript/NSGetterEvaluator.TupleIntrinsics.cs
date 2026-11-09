@@ -10,31 +10,11 @@ namespace NeoCompose.Runtime.NeoScript
 {
     public static partial class NSGetterEvaluator
     {
-        private static bool DefaultTupleElementEquals(TypeBinding type, object? a, object? b, Context ctx)
-        {
-            if (a is null || b is null)
-                return a is null && b is null;
-            if (NeoInterfaceDispatch.Of(ctx.client).ImplementsOwnEquatable(type))
-                throw new NeoRuntimeError(NeoErrorClass.NeoNotSupportedError, $"EqualityComparer<{TypeName(type, ctx)}>.Default isn't supported yet (P127 B6).");
-            TypeInfo staticType = NeoTypeBindings.ToTypeInfo(type);
-            if (type.Head!.Type is MemberKind.List or MemberKind.Set or MemberKind.Lookup or MemberKind.Dictionary
-                || staticType is ReferenceTypeInfo reference && NeoReferenceTypes.Category(reference.targetTypeInfo, ctx.client) == NeoReferenceCategory.Handle)
-                return TupleHandleEqual(a, b, ctx);
-            if (type.Head!.Type is MemberKind.Class or MemberKind.Interface || type.Head.Type == MemberKind.Object && type.Head.ObjectType is null)
-                return ObjectEquals(a, staticType, b, ctx);
-            return PayloadEquals(type, a, b, ctx);
-        }
+        private static bool DefaultTupleElementEquals(TypeBinding type, object? a, object? b, Context ctx) =>
+            SelectEquality(type, ctx).Equals(a, b, ctx);
 
-        private static int DefaultTupleElementCompare(TypeBinding type, object? a, object? b, Context ctx)
-        {
-            if (a is null)
-                return b is null ? 0 : -1;
-            if (b is null)
-                return 1;
-            if (NeoPrimitiveConformance.Kind(type) is null)
-                throw new NeoRuntimeError(NeoErrorClass.NeoNotSupportedError, $"Comparer<{TypeName(type, ctx)}>.Default isn't supported yet (P127 B6).");
-            return PrimitiveCompare(a, b, type, false, ctx);
-        }
+        private static int DefaultTupleElementCompare(TypeBinding type, object? a, object? b, Context ctx) =>
+            SelectComparison(type, ctx).Compare(a, b, ctx);
 
         private static string ClrTypeName(TypeBinding type, Context ctx)
         {
@@ -111,8 +91,6 @@ namespace NeoCompose.Runtime.NeoScript
             public int Compare(object? a, object? b) => (int)Number(Call("IComparer", "Compare", a, b)!);
             public object Rest(IReadOnlyList<object?> elements, int start)
             {
-                if (elements.Count - start < 2)
-                    throw new NeoRuntimeError(NeoErrorClass.NeoNotSupportedError, $"A structural comparison of '{TypeName(type, ctx)}' passes its one-element rest as ValueTuple<T8>, which NeoScript has no value for.");
                 var restType = new TupleTypeInfo
                 {
                     type = MemberKind.Tuple,
@@ -121,7 +99,7 @@ namespace NeoCompose.Runtime.NeoScript
                     .Select(index => new TupleElementTypeInfo { typeInfo = NeoTypeBindings.ToTypeInfo(type.At(index)) }).ToArray()
                 };
                 var values = elements.Skip(start).Select(value => value is NeoBox box ? box.Payload : value).ToArray();
-                return NeoBox.Of(RuntimeTypeOf(restType), new RuntimeTuple(values, restType));
+                return NeoBox.Of(RuntimeTypeOf(restType), new RuntimeTuple(values, restType, structuralRest: true));
             }
         }
     }
