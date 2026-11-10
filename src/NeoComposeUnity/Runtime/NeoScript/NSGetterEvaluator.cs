@@ -9880,6 +9880,14 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return false;
             }
+            // List, Set and Dictionary are invariant: a collection that knows its
+            // element matches only that element, however it was reached.
+            if (CollectionElementOf(checkType) is { } element
+                && ctx.client.SequenceCollectionElements.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo stamped)
+                && !RuntimeTypesEqual(stamped, CloseContextType(element, ctx)))
+            {
+                return false;
+            }
             switch (checkType.type)
             {
                 case MemberKind.Tuple:

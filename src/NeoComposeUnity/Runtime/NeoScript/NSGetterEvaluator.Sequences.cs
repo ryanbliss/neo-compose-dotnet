@@ -549,16 +549,19 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static T TagSequenceCollection<T>(T value, TypeInfo? type, Context ctx) where T : class
         {
-            TypeInfo? element = type switch
-            {
-                CollectionTypeInfo collection => collection.entryTypeInfo,
-                LookupTypeInfo lookup => lookup.entryTypeInfo,
-                FunctionArgumentTypeInfo argument when argument.type is MemberKind.List
-                    or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup => argument.entryTypeInfo,
-                _ => null,
-            };
+            TypeInfo? element = CollectionElementOf(type);
             return element is null ? value : TagSequenceCollectionElement(value, element, ctx);
         }
+
+        /// <summary>A List, Set, Dictionary or Lookup type's element; null for any other type.</summary>
+        private static TypeInfo? CollectionElementOf(TypeInfo? type) => type switch
+        {
+            CollectionTypeInfo collection => collection.entryTypeInfo,
+            LookupTypeInfo lookup => lookup.entryTypeInfo,
+            FunctionArgumentTypeInfo argument when argument.type is MemberKind.List
+                or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup => argument.entryTypeInfo,
+            _ => null,
+        };
 
         internal static object SequenceCollectionIdentity(object value) =>
             value is object?[] array && runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)

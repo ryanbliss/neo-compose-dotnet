@@ -97,6 +97,29 @@ namespace NeoCompose.Tests
             Assert.That(NeoScriptValueMarshaller.Normalize(client, ctx.valueOwnership, element, expected, ctx, "argument"), Is.SameAs(element));
         }
 
+        // List, Set and Dictionary are invariant: a List<CastCat> held as
+        // IEnumerable<CastPet> isn't a List<CastPet>, so `is`, `as` and a
+        // cast all refuse it, and its own element still matches.
+        [TestCase("List", "CastPet", false)]
+        [TestCase("List", "CastCat", true)]
+        [TestCase("Set", "CastPet", false)]
+        [TestCase("Set", "CastCat", true)]
+        [TestCase("Dictionary", "CastPet", false)]
+        [TestCase("Dictionary", "CastCat", true)]
+        public void ACollectionThroughAnEnumerableMatchesOnlyItsOwnElement(string collection, string element, bool matches)
+        {
+            object value = collection == "Dictionary" ? new Dictionary<string, object?>() : new object?[0];
+            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(value), Type("CastCat"));
+            TypeInfo target = Type($"{collection}<{element}>");
+
+            Assert.That(Checks(value, target), Is.EqualTo(matches));
+            Assert.That(Cast(value, target, CastModeKind.As), matches ? Is.SameAs(value) : Is.Null);
+            if (matches)
+                Assert.That(Cast(value, target, CastModeKind.Cast), Is.SameAs(value));
+            else
+                Assert.That(() => Cast(value, target, CastModeKind.Cast), Throws.TypeOf<NeoRuntimeError>().With.Message.StartsWith("Unable to cast"));
+        }
+
         // A reference type argument's `?` isn't part of the runtime type; a value type's is.
         [TestCase(MemberKind.String, false, true, true)]
         [TestCase(MemberKind.String, true, false, true)]
@@ -134,6 +157,19 @@ namespace NeoCompose.Tests
                 pointer = new VariablePointer { type = PointerKind.Variable, variableId = "value" },
                 checkType = checkType,
             }, scope, ctx)!;
+        }
+
+        private object? Cast(object value, TypeInfo target, string mode)
+        {
+            var scope = new NeoScriptScope(new Dictionary<string, object?> { ["value"] = value });
+            return NSGetterEvaluator.EvalPointer(new CastPointer
+            {
+                type = PointerKind.Cast,
+                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "value" },
+                sourceType = Enumerable(Type("CastPet")),
+                targetType = target,
+                mode = mode,
+            }, scope, ctx);
         }
 
         private TypeInfo Type(string name)
