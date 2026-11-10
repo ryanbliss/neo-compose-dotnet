@@ -6021,11 +6021,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return RoundArithmetic(left * right, numeric);
                 case '/':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
+                        throw new NeoRuntimeError(NeoErrorClass.NeoDivideByZeroError, "Division by zero");
                     return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Modulo by zero", NeoErrorContract.NeoArithmeticError);
+                        throw new NeoRuntimeError(NeoErrorClass.NeoDivideByZeroError, "Modulo by zero");
                     return RoundArithmetic(left % right, numeric);
                 default:
                     throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");

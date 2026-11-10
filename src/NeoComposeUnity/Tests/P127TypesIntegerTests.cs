@@ -92,6 +92,18 @@ namespace NeoCompose.Tests
             Assert.That(error.Message, Is.EqualTo(message));
         }
 
+        // P127 §3.5: float division by zero keeps its message and throws NeoDivideByZeroError too.
+        [TestCase("/", "Division by zero")]
+        [TestCase("%", "Modulo by zero")]
+        public void FloatDivisionByZeroThrowsDivideByZero(string op, string message)
+        {
+            var error = Fails(() => EvaluateReturn(
+                Arithmetic(op, ArithmeticNumeric.Float, Number(7d), Number(0d)),
+                MemberKind.Float));
+            Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
+            Assert.That(error.Message, Is.EqualTo(message));
+        }
+
         [TestCase("/")]
         [TestCase("%")]
         public void MinValueOverMinusOneOverflowsUnchecked(string op)
@@ -141,12 +153,13 @@ namespace NeoCompose.Tests
             Assert.That(square, Is.EqualTo(2d));
         }
 
-        [Test]
-        public void IntVectorDivisionByZeroThrowsDivideByZero()
+        [TestCase(MemberKind.Vector2Int)]
+        [TestCase(MemberKind.Vector2)]
+        public void VectorDivisionByZeroThrowsDivideByZero(MemberKind kind)
         {
             var error = Fails(() => EvaluateReturn(
-                VectorOp("divide", Vector2Int(4d, 2d), Number(0d)),
-                MemberKind.Vector2Int));
+                VectorOp(kind, "divide", Vector2(kind, 4d, 2d), Number(0d)),
+                kind));
             Assert.That(error.ErrorClass, Is.EqualTo(NeoErrorClass.NeoDivideByZeroError));
             Assert.That(error.Message, Is.EqualTo("Division by zero"));
         }
@@ -253,12 +266,14 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static Pointer Vector2Int(double x, double y) => new ValuePointer
+        private static Pointer Vector2Int(double x, double y) => Vector2(MemberKind.Vector2Int, x, y);
+
+        private static Pointer Vector2(MemberKind kind, double x, double y) => new ValuePointer
         {
             type = PointerKind.Value,
             value = new Value
             {
-                typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = true },
+                typeInfo = new PrimitiveTypeInfo { type = kind, required = true },
                 value = new JObject { ["x"] = x, ["y"] = y },
             },
         };
@@ -294,7 +309,10 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static Pointer VectorOp(string op, params Pointer[] arguments) => new FunctionPointer
+        private static Pointer VectorOp(string op, params Pointer[] arguments) =>
+            VectorOp(MemberKind.Vector2Int, op, arguments);
+
+        private static Pointer VectorOp(MemberKind kind, string op, params Pointer[] arguments) => new FunctionPointer
         {
             type = PointerKind.Function,
             function = new VectorOpFunction
@@ -302,7 +320,7 @@ namespace NeoCompose.Tests
                 type = FunctionKind.VectorOp,
                 info = new FunctionVectorOpInfo
                 {
-                    kind = "Vector2Int",
+                    kind = kind.ToString(),
                     op = op,
                     argPointers = arguments,
                 },

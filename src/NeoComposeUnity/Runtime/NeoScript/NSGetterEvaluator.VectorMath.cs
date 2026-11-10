@@ -54,7 +54,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // An int vector's divide throws NeoDivideByZeroError from NeoInt32.Divide.
             if (op == "divide" && scalar == 0 && !integer)
-                throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
+                throw new NeoRuntimeError(NeoErrorClass.NeoDivideByZeroError, "Division by zero");
             if (op == "lerp")
                 scalar = scalar < 0 ? 0 : scalar > 1 ? 1 : scalar;
             VectorComponents difference = default;
