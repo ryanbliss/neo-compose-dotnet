@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SorProbe : NeoGeneratedClassValue, IReadOnlySorProbe
     {
         internal SorProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "765e8e36-2832-41fe-8959-149b89a127de", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "51f5148a-6ba4-483e-bfc7-0f598f41091f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetOrder()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3aae18d1-d0b0-40fe-a891-efed5e5684fe");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6962c1ee-4f1f-4c91-b041-72c99d2fcb81");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetOrderDefault()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "92bda9fe-9409-487a-89b2-3a8c75843a70");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9aed55d0-320c-4a36-8b6c-a649c3d1e021");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "765e8e36-2832-41fe-8959-149b89a127de");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "51f5148a-6ba4-483e-bfc7-0f598f41091f");
         }
 
         internal static SorProbe Create(NeoClient client, NeoMemberClass node)

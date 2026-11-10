@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R26B<T> : NeoGeneratedClassValue, IReadOnlyR26B<T>
     {
         internal R26B(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1c683574-3a26-4fe2-bc3e-6b52b7c9cd1d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6c73a7d9-42a4-4a7b-8513-39915c0e99d1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1c683574-3a26-4fe2-bc3e-6b52b7c9cd1d" => new R26B<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "6c73a7d9-42a4-4a7b-8513-39915c0e99d1" => new R26B<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26B' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1c683574-3a26-4fe2-bc3e-6b52b7c9cd1d" => new R26B<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "6c73a7d9-42a4-4a7b-8513-39915c0e99d1" => new R26B<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26B' without a concrete client type id."),
                 };
             });

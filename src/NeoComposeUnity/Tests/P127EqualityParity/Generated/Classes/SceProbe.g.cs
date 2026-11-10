@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SceProbe : NeoGeneratedClassValue, IReadOnlySceProbe
     {
         internal SceProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "109e2ac4-07f2-4fa4-9a0f-a1a7f6f7e069", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "08481075-2e53-4e84-aa6f-93e74a52d4f3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string XX()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a73aa78e-93bd-4e07-8828-d9e6910faf9e");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e97bfef3-0829-4de3-ab96-32f54d3e5dec");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string XY()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "536e0e49-08ee-4e27-8a7e-a1faf83bddf8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "effbc46f-78b3-4856-8ac3-5633c1155003");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "109e2ac4-07f2-4fa4-9a0f-a1a7f6f7e069");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "08481075-2e53-4e84-aa6f-93e74a52d4f3");
         }
 
         internal static SceProbe Create(NeoClient client, NeoMemberClass node)

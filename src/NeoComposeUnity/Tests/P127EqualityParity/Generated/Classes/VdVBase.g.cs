@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class VdVBase : NeoGeneratedClassValue, IReadOnlyVdVBase
     {
         internal VdVBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7420be16-e236-4ca2-a5be-bffae95e57b5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3d44dfc9-61f9-40e5-a818-16a044bd3f4e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7420be16-e236-4ca2-a5be-bffae95e57b5");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3d44dfc9-61f9-40e5-a818-16a044bd3f4e");
         }
 
         internal static VdVBase Create(NeoClient client, NeoMemberClass node)
@@ -60,7 +60,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1a664f47-0740-46ee-a953-94a6c31ca610" => new VdVDer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0e988621-3756-440b-8f23-d8b9d7980be2" => new VdVDer(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new VdVBase(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -73,7 +73,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1a664f47-0740-46ee-a953-94a6c31ca610" => new VdVDer(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0e988621-3756-440b-8f23-d8b9d7980be2" => new VdVDer(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new VdVBase(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -83,8 +83,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "1a664f47-0740-46ee-a953-94a6c31ca610" => new VdVDer(client, value, !saved),
-                "7420be16-e236-4ca2-a5be-bffae95e57b5" => new VdVBase(client, value, !saved),
+                "0e988621-3756-440b-8f23-d8b9d7980be2" => new VdVDer(client, value, !saved),
+                "3d44dfc9-61f9-40e5-a818-16a044bd3f4e" => new VdVBase(client, value, !saved),
                 _ => null,
             };
         }

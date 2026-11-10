@@ -147,6 +147,18 @@ namespace Assets.Scripts.Neo
             throw new NotImplementedException("ContractNullChild has not implemented IContract.MissingLater.");
         }
 
+        string? IContract.Title
+        {
+            get
+            {
+                if (TryReadDetached("Title", out object? detachedValue))
+                {
+                    return (string?)detachedValue;
+                }
+                return node.Get<NeoMemberString>("Title").Text;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}

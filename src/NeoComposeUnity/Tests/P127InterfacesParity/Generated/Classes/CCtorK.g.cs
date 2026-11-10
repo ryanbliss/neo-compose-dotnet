@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CCtorK<T> : NeoGeneratedClassValue, IReadOnlyCCtorK<T>
     {
         internal CCtorK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "54ccf4a7-ebdf-455f-af47-a6c61f29728b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "55c83133-82e6-4c76-a517-267d4d119cb1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "91ae15a2-41db-40f7-9062-a7bfa64270a8", NeoValueOwnership.Session, client.TypeArguments.Of<CCtorK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e9a813aa-ef34-40e1-8507-bf522e8414bd", NeoValueOwnership.Session, client.TypeArguments.Of<CCtorK<T>>());
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127InterfacesParity.HoldK.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "91ae15a2-41db-40f7-9062-a7bfa64270a8", NeoValueOwnership.Session, client.TypeArguments.Of<CCtorK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e9a813aa-ef34-40e1-8507-bf522e8414bd", NeoValueOwnership.Session, client.TypeArguments.Of<CCtorK<T>>());
                 binding.BindValue(value);
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "54ccf4a7-ebdf-455f-af47-a6c61f29728b" => new CCtorK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "55c83133-82e6-4c76-a517-267d4d119cb1" => new CCtorK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CCtorK' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "54ccf4a7-ebdf-455f-af47-a6c61f29728b" => new CCtorK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "55c83133-82e6-4c76-a517-267d4d119cb1" => new CCtorK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CCtorK' without a concrete client type id."),
                 };
             });

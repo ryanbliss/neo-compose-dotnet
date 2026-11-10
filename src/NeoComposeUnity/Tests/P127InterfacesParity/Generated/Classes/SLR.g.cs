@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class SLR<T> : NeoGeneratedClassValue, IReadOnlySLR<T>
     {
         internal SLR(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5d68780f-4e6b-431e-af44-4bea51d5b0d8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c1d5e65e-fdfa-4dac-9400-a2f91be4dd3f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8f8f2240-16f2-4b41-8e5d-e267dd1c02d5", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e4e53421-242f-40e5-ae05-26f5a6d051e8", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'A' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8f8f2240-16f2-4b41-8e5d-e267dd1c02d5", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e4e53421-242f-40e5-ae05-26f5a6d051e8", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int Fill()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "927d3201-1666-492a-984c-9ea5c61d4493", client.TypeArguments.Of<SLR<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b88333c5-8672-4a7d-97cc-987fe9089260", client.TypeArguments.Of<SLR<T>>());
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "3ca4c195-4154-4716-a3b9-acea5544f92e", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c90d6269-7714-4d0f-b4d1-72082aa5be25", NeoValueOwnership.Session, client.TypeArguments.Of<SLR<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5d68780f-4e6b-431e-af44-4bea51d5b0d8" => new SLR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c1d5e65e-fdfa-4dac-9400-a2f91be4dd3f" => new SLR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SLR' without a concrete client type id."),
                 };
             });
@@ -83,7 +83,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5d68780f-4e6b-431e-af44-4bea51d5b0d8" => new SLR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c1d5e65e-fdfa-4dac-9400-a2f91be4dd3f" => new SLR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SLR' without a concrete client type id."),
                 };
             });

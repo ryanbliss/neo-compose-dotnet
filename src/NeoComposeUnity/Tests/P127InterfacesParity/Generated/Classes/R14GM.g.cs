@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a0a936dc-b59c-44e5-8908-b8fa7e778a39" => (R14GM<T>)(object)new R14GD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "04f5657f-b6c8-427b-b0e3-45196766051a" => new R14GM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9db50647-0545-4512-a17a-0b153bcad4dd" => (R14GM<T>)(object)new R14GD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "60aca137-babe-4c6e-8bc1-0609437afb36" => new R14GM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R14GM' without a concrete client type id."),
                 };
             });
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a0a936dc-b59c-44e5-8908-b8fa7e778a39" => (R14GM<T>)(object)new R14GD(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "04f5657f-b6c8-427b-b0e3-45196766051a" => new R14GM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9db50647-0545-4512-a17a-0b153bcad4dd" => (R14GM<T>)(object)new R14GD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "60aca137-babe-4c6e-8bc1-0609437afb36" => new R14GM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R14GM' without a concrete client type id."),
                 };
             });

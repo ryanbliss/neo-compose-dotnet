@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class InitIds : NeoGeneratedClassValue, IReadOnlyInitIds
     {
         internal InitIds(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e05cc9a4-2ade-4928-84b7-2a464fb6e6ce", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "086f0dd6-c3af-4437-be8d-c2f77860e123", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2279e28c-0ee7-4755-982b-7e653284526b", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ca1a2fb1-f8d8-4c3e-a875-1b5dc33ad4de", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Counter' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2279e28c-0ee7-4755-982b-7e653284526b", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ca1a2fb1-f8d8-4c3e-a875-1b5dc33ad4de", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int Next()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "96703cac-a553-46f1-8f37-40ae2271f053");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7e6ee8db-a1bc-4d39-a4df-a408fd795431");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e05cc9a4-2ade-4928-84b7-2a464fb6e6ce");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "086f0dd6-c3af-4437-be8d-c2f77860e123");
         }
 
         internal static InitIds Create(NeoClient client, NeoMemberClass node)

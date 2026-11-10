@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class SFR<T> : NeoGeneratedClassValue, IReadOnlySFR<T>
     {
         internal SFR(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7362f4a2-d95b-40f5-a08b-6a8980c89b52", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "50343f99-49ca-43ef-bc88-d752205fd812", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "518de97f-8124-4a6f-b351-984d0751ed91", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5f8a72ab-e8e8-4ed0-8e6e-4ea33f571218", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'A' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "518de97f-8124-4a6f-b351-984d0751ed91", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5f8a72ab-e8e8-4ed0-8e6e-4ea33f571218", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -49,14 +49,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b2b28233-8400-4c5a-a0ac-fd6fa879a75e", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a7311174-bdff-4ff9-8ce0-716745d826e7", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'B' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b2b28233-8400-4c5a-a0ac-fd6fa879a75e", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a7311174-bdff-4ff9-8ce0-716745d826e7", NeoValueOwnership.Session, client.TypeArguments.Of<SFR<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int Bump()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0af9846d-1f1a-4dc3-b748-01e752b4ad6c", client.TypeArguments.Of<SFR<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c18b41d9-756a-4e2b-b8dd-fdacfe65bbea", client.TypeArguments.Of<SFR<T>>());
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -76,7 +76,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7362f4a2-d95b-40f5-a08b-6a8980c89b52" => new SFR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "50343f99-49ca-43ef-bc88-d752205fd812" => new SFR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SFR' without a concrete client type id."),
                 };
             });
@@ -89,7 +89,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7362f4a2-d95b-40f5-a08b-6a8980c89b52" => new SFR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "50343f99-49ca-43ef-bc88-d752205fd812" => new SFR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SFR' without a concrete client type id."),
                 };
             });

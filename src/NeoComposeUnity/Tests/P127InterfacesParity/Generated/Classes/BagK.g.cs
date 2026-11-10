@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class BagK<T> : NeoGeneratedClassValue, IReadOnlyBagK<T>
     {
         internal BagK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "666304c4-71d5-4053-81c0-79e1d98515d7", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0a5da9f6-ab26-4fca-a679-0344ba2e352b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "666304c4-71d5-4053-81c0-79e1d98515d7" => new BagK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0a5da9f6-ab26-4fca-a679-0344ba2e352b" => new BagK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'BagK' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "666304c4-71d5-4053-81c0-79e1d98515d7" => new BagK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0a5da9f6-ab26-4fca-a679-0344ba2e352b" => new BagK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'BagK' without a concrete client type id."),
                 };
             });

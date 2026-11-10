@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NA2 : NeoGeneratedClassValue, IReadOnlyNA2
     {
         internal NA2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5862b6ea-9347-4924-8353-8905f3697b5e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1bee8ee3-ee91-437b-823f-8c049dc67b47", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(string s)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "582c3c08-eaf9-4d5b-9c6f-fd0ded663ec1");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3caa038f-e005-46d0-a7da-147019a54bd3");
             var result = node.InvokeStatic((object?)(s));
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(object o)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e75737cb-e43d-4937-aad9-5c368c179875");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "be633753-81a1-4867-81f3-a9475b90415f");
             var result = node.InvokeStatic((object?)(o));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5862b6ea-9347-4924-8353-8905f3697b5e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1bee8ee3-ee91-437b-823f-8c049dc67b47");
         }
 
         internal static NA2 Create(NeoClient client, NeoMemberClass node)

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "e44199d2925bf1da30a4d27cef4b268fdc4746fc9b9443e9f732c3410c1334e2",
+  "codegenRevision": "0e9b0af4528c34d9060b8374c2ba38fc38d0a6941f3f139a16a5174f671725eb",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -56,7 +56,7 @@
     {
       "id": "class:class-contract-null-child",
       "path": "Generated/Classes/ContractNullChild.g.cs",
-      "hash": "b4823932c661a293f3f287c925fc46d4f31bde213b0c28d09a5121ac51894dc7"
+      "hash": "0ab5f53fb9191cf3d716281128e83cf1a76b35f93109c3280e904e0896dc8e89"
     },
     {
       "id": "class:class-contract-null-deep-child",

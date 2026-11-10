@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.OverloadParity
     public partial class TallyHandlersBase<T> : NeoGeneratedClassValue, IReadOnlyTallyHandlersBase<T>
     {
         internal TallyHandlersBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "046bfcba-be6b-44ad-b4e4-90fa48476c51", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b5386567-c600-47d9-aa7d-8f8fc6e75670", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,13 +38,13 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0c500cc2-245b-4540-8f28-7b0e93b5b170" => (TallyHandlersBase<T>)(object)new InheritedOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "6421c645-7453-49e3-91e3-a8ccecdd2ba8" => (TallyHandlersBase<T>)(object)new DerivedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "8f041d10-8fcb-412c-9920-199720b59f13" => (TallyHandlersBase<T>)(object)new TupleListenerOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "ca396530-ec13-4ee5-a98d-dc691cddc0a5" => (TallyHandlersBase<T>)(object)new TallyHandlers(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "d41a1c6d-682c-4d8f-a0f6-f26bf5d6518f" => (TallyHandlersBase<T>)(object)new InheritedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e38ce5ad-320d-4b29-b327-a63e9b2fa19a" => (TallyHandlersBase<T>)(object)new DerivedOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "046bfcba-be6b-44ad-b4e4-90fa48476c51" => new TallyHandlersBase<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "02ceed31-b868-439b-8345-60a296b2d369" => (TallyHandlersBase<T>)(object)new InheritedOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5bd8bec0-706a-4f0f-8f1a-2335b9fed8aa" => (TallyHandlersBase<T>)(object)new DerivedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5f451b76-bd18-4bec-b6f2-d8b9cb1e082e" => (TallyHandlersBase<T>)(object)new InheritedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "8a22a86b-deb6-4277-bb8d-f6cd76baf838" => (TallyHandlersBase<T>)(object)new DerivedOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f4ecd317-02c9-4c34-8848-3bb3e30ff5af" => (TallyHandlersBase<T>)(object)new TupleListenerOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f79746cb-5aeb-4416-b62b-8b5ec0089072" => (TallyHandlersBase<T>)(object)new TallyHandlers(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b5386567-c600-47d9-aa7d-8f8fc6e75670" => new TallyHandlersBase<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'TallyHandlersBase' without a concrete client type id."),
                 };
             });
@@ -57,13 +57,13 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0c500cc2-245b-4540-8f28-7b0e93b5b170" => (TallyHandlersBase<T>)(object)new InheritedOwner(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "6421c645-7453-49e3-91e3-a8ccecdd2ba8" => (TallyHandlersBase<T>)(object)new DerivedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "8f041d10-8fcb-412c-9920-199720b59f13" => (TallyHandlersBase<T>)(object)new TupleListenerOwner(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "ca396530-ec13-4ee5-a98d-dc691cddc0a5" => (TallyHandlersBase<T>)(object)new TallyHandlers(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "d41a1c6d-682c-4d8f-a0f6-f26bf5d6518f" => (TallyHandlersBase<T>)(object)new InheritedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e38ce5ad-320d-4b29-b327-a63e9b2fa19a" => (TallyHandlersBase<T>)(object)new DerivedOwner(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "046bfcba-be6b-44ad-b4e4-90fa48476c51" => new TallyHandlersBase<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "02ceed31-b868-439b-8345-60a296b2d369" => (TallyHandlersBase<T>)(object)new InheritedOwner(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5bd8bec0-706a-4f0f-8f1a-2335b9fed8aa" => (TallyHandlersBase<T>)(object)new DerivedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5f451b76-bd18-4bec-b6f2-d8b9cb1e082e" => (TallyHandlersBase<T>)(object)new InheritedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "8a22a86b-deb6-4277-bb8d-f6cd76baf838" => (TallyHandlersBase<T>)(object)new DerivedOwner(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f4ecd317-02c9-4c34-8848-3bb3e30ff5af" => (TallyHandlersBase<T>)(object)new TupleListenerOwner(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f79746cb-5aeb-4416-b62b-8b5ec0089072" => (TallyHandlersBase<T>)(object)new TallyHandlers(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b5386567-c600-47d9-aa7d-8f8fc6e75670" => new TallyHandlersBase<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'TallyHandlersBase' without a concrete client type id."),
                 };
             });
@@ -102,7 +102,7 @@ namespace NeoCompose.Tests.OverloadParity
         }
 
 
-        [NeoMemberMethod("cd28376f-9e40-4e19-937c-a94707e130e3")]
+        [NeoMemberMethod("fdccf961-868e-4e01-bd8e-6aee02143664")]
         public void Handle(T item)
         {
             InvokeFunction("Handle", (object?)(item));

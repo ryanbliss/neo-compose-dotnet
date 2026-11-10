@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "project-id",
-  "codegenRevision": "e44199d2925bf1da30a4d27cef4b268fdc4746fc9b9443e9f732c3410c1334e2",
+  "codegenRevision": "0e9b0af4528c34d9060b8374c2ba38fc38d0a6941f3f139a16a5174f671725eb",
   "files": [
     {
       "id": "class:root-assets-class-id",
@@ -9,14 +9,14 @@
       "hash": "3c4ede6816d77e6aade5250dfc736909ab0d3aae34c34f1d2932f19aa7455c51"
     },
     {
-      "id": "class:6be75acd-aca8-46a1-9d4f-08efd152ac7a",
+      "id": "class:76f7c79d-4d0e-418e-bc05-0ae76fe643b5",
       "path": "Generated/Classes/Counting.g.cs",
-      "hash": "8ad9db28991558b3b45b96400169e88787fece05d7d8f4aede60f4ebd55a465b"
+      "hash": "68ab01169cf274c988d4c74750b402a799aa47128a473010325cb98aa9b349eb"
     },
     {
-      "id": "class:766a8cec-2412-44de-aba5-0927c452af3b",
+      "id": "class:8bf5bdc7-849a-44e6-b90e-145d4368d5bf",
       "path": "Generated/Classes/Holder.g.cs",
-      "hash": "208c5cce12692a77b30498330b15a0fe2455bfc4d3d8cfa6ca20889566606ad0"
+      "hash": "965efcd4138deaccbcc13316e6af0c40b4fb455af82ce5fafc8f80cb5ac0c9eb"
     },
     {
       "id": "class:system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
@@ -169,9 +169,9 @@
       "hash": "94e46620dad3ed6ac118dc109e56c56cf6970ebe4358e90da4c9be43a4931be5"
     },
     {
-      "id": "class:5562c8f0-049f-47ee-9e48-ae1560c4d766",
+      "id": "class:df166a5c-ed62-477d-a4fb-9ea4684fb534",
       "path": "Generated/Classes/Probe.g.cs",
-      "hash": "2126d11d69999d3004897919e9c55bb0f8f487d1bbf331fbf47f77daae1abfd3"
+      "hash": "3175f9387b546fed4c84b235f0dc271fdb5fa47a07e29d06fd0d983f347e8db9"
     },
     {
       "id": "class:root-save-class-id",
@@ -184,9 +184,9 @@
       "hash": "6b3da99a985d10b62b327ed62952345844a06aab143b930106027fa847dc41d2"
     },
     {
-      "id": "class:c1afec47-fa05-4449-9478-7ecf2402a102",
+      "id": "class:0674504f-c5be-4cef-a8ed-f2e24a2cbd8e",
       "path": "Generated/Classes/Silent.g.cs",
-      "hash": "00f1822398f76c3a4afcaf96d03186fa86db4b5592e136d19ff2c634932447c0"
+      "hash": "ec84fb78bf436898e5035298d567eda51a4a773ced29d5bdf1691e07d4b2521d"
     },
     {
       "id": "class:96c616e0-e204-5f56-9f77-90b195896a5a",
@@ -199,9 +199,9 @@
       "hash": "1910b74a9c04caa45c7d3f7c255ea6748253d0e25f8c3c4576c639bd4f422182"
     },
     {
-      "id": "enum:3d32f25d-40d3-406f-9655-43dff735f104",
+      "id": "enum:b83c2497-563f-450b-a9e8-7da773fedd8e",
       "path": "Generated/Enums/Hue.g.cs",
-      "hash": "d3bfb062c3e83243f0054df9fbc1c02835961c4f3fb887cc498f1ca778b87c9e"
+      "hash": "81e4c3ebd6d2584706e6b4349868ab73a6e6d5124ee8519531575bf64b3b76ea"
     },
     {
       "id": "enum:system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
@@ -326,7 +326,7 @@
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "5da62abca7454fd33044cba90ffe0ccb38133377471582c0437d288e3c7ff7a5"
+      "hash": "6cdafa14477f59e18b893810d23ae052fd5a099bd876accd1b045fba65eddca6"
     },
     {
       "id": "project:functions",

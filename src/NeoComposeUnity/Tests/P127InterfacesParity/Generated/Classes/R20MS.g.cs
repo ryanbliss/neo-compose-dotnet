@@ -41,13 +41,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(IR20P<U>) == typeof(IR20P<T>))
                 {
-                    var result = writableNode.Get<NeoMemberNSProperty>("P#43aa7298-855f-4a4d-a1db-be5ffcde4a30").Set(valueId!, value);
+                    var result = writableNode.Get<NeoMemberNSProperty>("P#56a8ad0e-f1ad-4064-b4c7-5659fde38dc6").Set(valueId!, value);
                     if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
                 }
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "037703bc-3061-4c02-bfbd-eab1ba98c290", NeoInterfaceBody.Set, client.TypeArguments.Of<IR20P<U>>(), "037703bc-3061-4c02-bfbd-eab1ba98c290", client.TypeArguments.Of<IR20P<U>>(), new object?[] { value });
+                    NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "bf212cab-4d45-49c6-a68b-9211777602ae", NeoInterfaceBody.Set, client.TypeArguments.Of<IR20P<U>>(), "bf212cab-4d45-49c6-a68b-9211777602ae", client.TypeArguments.Of<IR20P<U>>(), new object?[] { value });
                 }
             }
         }
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "88e12255-8d8d-4255-935f-1c27e6e2aafe" => new R20MS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "82bf0b1d-92f0-42d3-baf6-1fb55c912fd0" => new R20MS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MS' without a concrete client type id."),
                 };
             });
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "88e12255-8d8d-4255-935f-1c27e6e2aafe" => new R20MS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "82bf0b1d-92f0-42d3-baf6-1fb55c912fd0" => new R20MS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MS' without a concrete client type id."),
                 };
             });
@@ -128,14 +128,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = ComputeProperty("P#43aa7298-855f-4a4d-a1db-be5ffcde4a30");
+                    var result = ComputeProperty("P#56a8ad0e-f1ad-4064-b4c7-5659fde38dc6");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#43aa7298-855f-4a4d-a1db-be5ffcde4a30").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#56a8ad0e-f1ad-4064-b4c7-5659fde38dc6").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
