@@ -5402,6 +5402,15 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueNode? declaredNode = null;
                 return ResolveValueIfId(declaredValueId, ctx, receiverOwnership, member, ref declaredNode);
             }
+            // An optional member that declares no value reads null. A generic
+            // slot closed over a nullable type is one: its declaration is the
+            // required `T`, so construction stores no default row for it.
+            if (member.Requirement != NeoMemberRequirementKind.Required
+                && MemberValueFactory.DefaultOf(member) is null
+                && NeoGeneratedTypesSupport.IsStoredConstructorMember(member))
+            {
+                return null;
+            }
             // A row the sparse index does not cover can omit a null class
             // or reference default. Match the generated accessor without hiding
             // missing required fields or evaluating an initializer out of
