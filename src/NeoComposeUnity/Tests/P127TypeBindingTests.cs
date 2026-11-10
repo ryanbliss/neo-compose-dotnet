@@ -35,6 +35,7 @@ namespace NeoCompose.Tests
         [TestCase("{\"kind\":0,\"type\":{\"type\":26,\"required\":true}}")]
         [TestCase("{\"kind\":0,\"type\":{\"type\":\"Opaque\",\"required\":true,\"name\":\"UnityEngine.Object\"}}")]
         [TestCase("{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"t\"}")]
+        [TestCase("{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"t\",\"nullable\":true}")]
         [TestCase("{\"kind\":1,\"owner\":{\"type\":5},\"param\":\"1\"}")]
         [TestCase("{\"kind\":2,\"type\":{\"type\":30,\"arity\":2}}")]
         [TestCase("{\"kind\":2,\"type\":{\"type\":\"Nullable\"}}")]
@@ -60,6 +61,9 @@ namespace NeoCompose.Tests
         [TestCase("{\"kind\":0,\"type\":{\"type\":6,\"required\":true},\"bindings\":{\"0\":{\"kind\":2,\"type\":{\"type\":6}}}}", "nests a definition")]
         [TestCase("{\"kind\":2,\"type\":{\"type\":30,\"arity\":0}}", "arity 0")]
         [TestCase("{\"kind\":1,\"owner\":{\"type\":6},\"param\":\"1\"}", "param 1 of a definition with 1")]
+        [TestCase("{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"t\",\"nullable\":false}", "nullable is stored only as true")]
+        [TestCase("{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"t\",\"nullable\":1}", "nullable must be a boolean")]
+        [TestCase("{\"kind\":1,\"owner\":{\"type\":7,\"classId\":\"box\"},\"param\":\"t\",\"required\":false}", "has 'required', which it doesn't take")]
         [TestCase("{\"kind\":0,\"type\":{\"type\":\"Opaque\",\"required\":true,\"name\":\"System.String\"}}", "unknown opaque type")]
         [TestCase("{\"kind\":4}", "unknown kind 4")]
         [TestCase("{\"kind\":3,\"index\":0}", "only a built-in target's parameterTypes hold one")]
@@ -110,6 +114,23 @@ namespace NeoCompose.Tests
                 Does.Contain("no nullable reference"));
             Assert.That(TypeBindings.PositionViolation(nullableInt, TypeBindingPosition.Identity), Is.Null);
             Assert.That(TypeBindings.PositionViolation(nullableClass, TypeBindingPosition.Stamp), Is.Null);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void ForwardedTypeInfosKeepTheirNullability(bool required)
+        {
+            var typeInfo = new GenericTypeInfo
+            {
+                type = MemberKind.Generic,
+                required = required,
+                ownerClassId = "box",
+                genericParamId = "t",
+            };
+            TypeBinding binding = NeoTypeBindings.ArgumentOf(typeInfo);
+            Assert.That(binding.Nullable, Is.EqualTo(!required));
+            Assert.That(NeoTypeNames.Of(binding).EndsWith("?"), Is.EqualTo(!required));
+            Assert.That(NeoTypeBindings.ArgumentTypeInfo(binding).required, Is.EqualTo(required));
         }
 
         [Test]

@@ -486,6 +486,23 @@ namespace NeoCompose.Tests
             StringAssert.Contains("Save value 'box-item' (Item) holds null in a non-nullable slot.", error!.Message);
         }
 
+        [TestCase(true)]
+        [TestCase(false)]
+        public void AForwardedNullableArgumentAdmitsNullOnlyForAReferenceType(bool reference)
+        {
+            // Holder<U> { Pair<U?> B }: U = Item makes B.Value an Item?, U = int keeps it int.
+            System.Action<ProjectData> configure = data => AddForwardedNullable(data, reference);
+            JObject save = SaveWith(NeoSaveFormat.P127Revision, configure, new NullMemberValue { id = "pair-value" });
+            if (reference)
+            {
+                using NeoClient client = BuildClient(save, configure);
+                Assert.That(Row<MemberValue>(client, "pair-value"), Is.InstanceOf<NullMemberValue>());
+                return;
+            }
+            var error = Assert.Throws<NeoUnsupportedSaveFormatException>(() => BuildClient(save, configure));
+            StringAssert.Contains("Save value 'pair-value' (Value) holds null in a non-nullable slot.", error!.Message);
+        }
+
         [Test]
         public void RevisionThreeSavesRefuseConstructionKeysInStaticBindings()
         {
@@ -706,6 +723,69 @@ namespace NeoCompose.Tests
                 value = new Dictionary<string, string> { ["Item"] = "listed-item" },
             };
             data.values["listed-item"] = new NumberMemberValue { id = "listed-item", value = 0 };
+        }
+
+        /// <summary>
+        /// A Holder&lt;U&gt; on the save root, U an Item or an int, whose B
+        /// is a Pair&lt;U?&gt; with a required Value.
+        /// </summary>
+        private static void AddForwardedNullable(ProjectData data, bool reference)
+        {
+            TypeBinding u = reference ? TestTypeBindings.Class("item-class") : TestTypeBindings.Of(MemberKind.Int);
+            data.members["holder-field"] = new ClassMember
+            {
+                id = "holder-field",
+                projectId = ProjectId,
+                name = "Holder",
+                kind = MemberKind.Class,
+                DeclaredClassId = "holder-class",
+                classArguments = TestTypeBindings.Arguments(("holder-u", u)),
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["holder-b-field"] = new ClassMember
+            {
+                id = "holder-b-field",
+                projectId = ProjectId,
+                name = "B",
+                kind = MemberKind.Class,
+                DeclaredClassId = "pair-class",
+                classArguments = TestTypeBindings.Arguments(("pair-t", TestTypeBindings.Open("holder-class", "holder-u", nullable: true))),
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            data.members["pair-value-field"] = new GenericMember
+            {
+                id = "pair-value-field",
+                projectId = ProjectId,
+                name = "Value",
+                kind = MemberKind.Generic,
+                genericParamId = "pair-t",
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            NeoSchemaClass holder = Class("holder-class", "Holder", new Dictionary<string, string> { ["B"] = "holder-b-field" });
+            holder.genericParams = new List<GenericParamDeclaration> { new() { id = "holder-u", name = "U" } };
+            NeoSchemaClass pair = Class("pair-class", "Pair", new Dictionary<string, string> { ["Value"] = "pair-value-field" });
+            pair.genericParams = new List<GenericParamDeclaration> { new() { id = "pair-t", name = "T" } };
+            data.classes["holder-class"] = holder;
+            data.classes["pair-class"] = pair;
+            data.classes["item-class"] = Class("item-class", "Item", new Dictionary<string, string>());
+            data.classes["save-root-class"].schema["Holder"] = "holder-field";
+            ((ObjectMemberValue)data.values["save"]).value!["Holder"] = "holder";
+            data.values["holder"] = new ObjectMemberValue
+            {
+                id = "holder",
+                classId = "holder-class",
+                value = new Dictionary<string, string> { ["B"] = "pair" },
+                genericBindings = TestTypeBindings.Stamp(("holder-u", u)),
+            };
+            data.values["pair"] = new ObjectMemberValue
+            {
+                id = "pair",
+                classId = "pair-class",
+                value = new Dictionary<string, string> { ["Value"] = "pair-value" },
+            };
+            data.values["pair-value"] = reference
+                ? new ObjectMemberValue { id = "pair-value", classId = "item-class", value = new Dictionary<string, string>() }
+                : new NumberMemberValue { id = "pair-value", value = 1 };
         }
 
         /// <summary>The box constructor with a Vector3Int seed in place of its generic one.</summary>

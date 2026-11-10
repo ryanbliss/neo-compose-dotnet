@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Read a forwarded nullable type argument (`Box<U?>` inside `Holder<U>`). Open type bindings take an optional `nullable: true`, and `TypeBinding.Open` gains a `nullable` parameter. A save holding null in `Holder<Item>`'s `B.Value` now loads; under `Holder<int>`, `U?` is `int` and the save is still refused.
+
 - Match generic interface method parameters by their position during declaration dispatch, including nested collection and return types.
 
 - Explain invalid operator declarations, duplicate interface signatures and interface dispatch failures in NeoScript terms, without C# compiler codes or copied compiler messages.

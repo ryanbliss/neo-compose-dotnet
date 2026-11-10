@@ -650,6 +650,29 @@ namespace NeoCompose.Tests
                 NeoGenericResolution.FirstUnboundParamId(bare));
         }
 
+        [Test]
+        public void ResolveInstanceEnv_ANullableForwardReadsAReferenceTypeNullable()
+        {
+            var client = LoadClient();
+            TypeBinding card = TestTypeBindings.Class("class-card-base");
+            var arguments = new Dictionary<string, TypeBinding>
+            {
+                [NeoGenericTestFixture.ParamT] = TestTypeBindings.Open("class-middle", NeoGenericTestFixture.ParamU, nullable: true),
+            };
+            TypeBinding Bound(TypeBinding owner)
+            {
+                var ownerEnv = new Dictionary<string, NeoGenericEnvEntry>
+                {
+                    [NeoGenericTestFixture.ParamU] = NeoGenericEnvEntry.Bound(NeoTypeBindingViews.Id(owner)),
+                };
+                var env = NeoGenericResolution.ResolveInstanceEnv(client, "class-enchant", arguments, ownerEnv);
+                return NeoTypeBindingViews.BindingOf(env[NeoGenericTestFixture.ParamT].memberId!)!;
+            }
+
+            Assert.AreEqual(card.WithRequired(false), Bound(card));
+            Assert.AreEqual(NeoGenericTestFixture.FloatArgument, Bound(NeoGenericTestFixture.FloatArgument));
+        }
+
         // ------------------------------------------------------------------
         // Substitution (Decision-10 field partition).
         // ------------------------------------------------------------------

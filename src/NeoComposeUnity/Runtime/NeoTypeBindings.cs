@@ -94,9 +94,9 @@ namespace NeoCompose.Runtime
                 case PrimitiveTypeInfo primitive when primitive.type != MemberKind.Null:
                     return TypeBinding.Closed(new TypeHead(primitive.type, required));
                 case GenericTypeInfo { ownerClassId: string ownerClassId } generic when open:
-                    return TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: ownerClassId), generic.genericParamId);
+                    return TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: ownerClassId), generic.genericParamId, !required);
                 case GenericTypeInfo { ownerInterfaceId: string ownerInterfaceId } generic when open:
-                    return TypeBinding.Open(new TypeDefinition(MemberKind.Interface, interfaceId: ownerInterfaceId), generic.genericParamId);
+                    return TypeBinding.Open(new TypeDefinition(MemberKind.Interface, interfaceId: ownerInterfaceId), generic.genericParamId, !required);
                 case GenericTypeInfo generic:
                     throw new InvalidOperationException(
                         $"Type parameter '{generic.genericParamId}' is open, so it has no closed type binding.");
@@ -152,7 +152,7 @@ namespace NeoCompose.Runtime
                 return new GenericTypeInfo
                 {
                     type = MemberKind.Generic,
-                    required = true,
+                    required = !binding.Nullable,
                     ownerClassId = owner.ClassId,
                     ownerInterfaceId = owner.InterfaceId,
                     genericParamId = binding.Param!,

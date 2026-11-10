@@ -50,6 +50,8 @@ namespace NeoCompose.Runtime.Json
             {
                 case TypeBindingKind.Open:
                     builder.Append(ParameterName(binding, data));
+                    if (binding.Nullable)
+                        builder.Append('?');
                     return;
                 case TypeBindingKind.MethodParam:
                     builder.Append("T").Append((binding.Index!.Value + 1).ToString(CultureInfo.InvariantCulture));

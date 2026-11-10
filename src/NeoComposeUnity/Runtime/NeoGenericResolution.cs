@@ -448,8 +448,18 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> ownerEnv)
         {
             if (argument.IsOpen)
-                return OwnerParamEntry(client, argument.Param!, ownerEnv);
+                return ForwardedEntry(client, argument, OwnerParamEntry(client, argument.Param!, ownerEnv));
             return OwnerArgumentEntry(client, NeoTypeBindingViews.Id(argument), ownerEnv);
+        }
+
+        /// <summary>A forward's owner entry, its <c>U?</c> kept: a reference type reads nullable.</summary>
+        private static NeoGenericEnvEntry? ForwardedEntry(NeoClient client, TypeBinding forward, NeoGenericEnvEntry? entry)
+        {
+            if (!forward.Nullable || entry is not { IsBound: true, bindings: null })
+                return entry;
+            TypeBinding argument = NeoTypeBindings.OfMemberId(client, entry.memberId!);
+            TypeBinding nullable = argument.AsNullableArgument();
+            return ReferenceEquals(nullable, argument) ? entry : NeoTypeBindings.Entry(nullable);
         }
 
         /// <summary>
@@ -1298,7 +1308,8 @@ namespace NeoCompose.Runtime
                         substitutedArgs[pair.Key] = arg;
                         continue;
                     }
-                    substitutedArgs[pair.Key] = NeoTypeBindings.ArgumentOfEntry(client, entry, env);
+                    TypeBinding bound = NeoTypeBindings.ArgumentOfEntry(client, entry, env);
+                    substitutedArgs[pair.Key] = arg.Nullable ? bound.AsNullableArgument() : bound;
                     changed = true;
                 }
                 if (!changed)
