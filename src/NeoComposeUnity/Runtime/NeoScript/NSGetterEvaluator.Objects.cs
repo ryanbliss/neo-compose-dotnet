@@ -929,10 +929,6 @@ namespace NeoCompose.Runtime.NeoScript
         private static TypeBinding HeldTypeOf(TypeInfo closed) => RuntimeTypeOf(closed).WithRequired(true);
 
         /// <summary>
-        /// A closed type's runtime type (§2): nullable references and tuple
-        /// labels erased, a nullable value type's <c>?</c> kept.
-        /// </summary>
-        /// <summary>
         /// P127 §5.3. Whether two type arguments are one runtime type: a
         /// reference type's <c>?</c> isn't part of it, a value type's is.
         /// </summary>
@@ -942,6 +938,10 @@ namespace NeoCompose.Runtime.NeoScript
                 && !NeoNSFunctionRuntime.ContainsGeneric(right)
                 && RuntimeTypeOf(left).Equals(RuntimeTypeOf(right));
 
+        /// <summary>
+        /// A closed type's runtime type (§2): nullable references and tuple
+        /// labels erased, a nullable value type's <c>?</c> kept.
+        /// </summary>
         private static TypeBinding RuntimeTypeOf(TypeInfo closed)
         {
             if (NeoNSFunctionRuntime.ContainsGeneric(closed))
