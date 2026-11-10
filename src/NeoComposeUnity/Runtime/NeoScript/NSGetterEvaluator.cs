@@ -9989,7 +9989,7 @@ namespace NeoCompose.Runtime.NeoScript
                             if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry entry) || !entry.IsBound)
                                 return false;
                             TypeInfo actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfEntry(ctx.client, entry, NeoGenericResolution.BindingEnv(env, entry)));
-                            if (!NeoClient.TypeInfoMatches(pair.Value, actual))
+                            if (!RuntimeTypesEqual(pair.Value, actual))
                                 return false;
                         }
                         return true;

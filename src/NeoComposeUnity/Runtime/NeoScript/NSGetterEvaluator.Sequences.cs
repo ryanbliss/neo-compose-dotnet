@@ -620,7 +620,35 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             return element is not null && arguments is { Count: 1 }
                 && arguments.TryGetValue(key, out TypeInfo expected)
-                && NeoClient.TypeInfoMatches(element, CloseContextType(expected, ctx));
+                && SequenceElementConverts(interfaceId, element, CloseContextType(expected, ctx), ctx);
+        }
+
+        /// <summary>
+        /// P127 §4.8. A sequence's element converts to the expected one by
+        /// identity, or through the parameter's variance by a reference
+        /// conversion, so a value element converts by identity only.
+        /// </summary>
+        private static bool SequenceElementConverts(string interfaceId, TypeInfo element, TypeInfo expected, Context ctx)
+        {
+            if (RuntimeTypesEqual(element, expected))
+                return true;
+            if (NeoNSFunctionRuntime.ContainsGeneric(element) || NeoNSFunctionRuntime.ContainsGeneric(expected))
+                return false;
+            if (!ctx.client.ProjectDataForRuntime.interfaces.TryGetValue(interfaceId, out Interface? declaration)
+                || declaration.genericParams is not { Count: 1 } parameters)
+            {
+                return false;
+            }
+            TypeBinding from = RuntimeTypeOf(element);
+            TypeBinding to = RuntimeTypeOf(expected);
+            if (TypeBindings.IsValueType(from.Head!))
+                return false;
+            return parameters[0].variance switch
+            {
+                NeoGenericParamVarianceKind.Out => NeoInterfaceDispatch.Of(ctx.client).Converts(from, to),
+                NeoGenericParamVarianceKind.In => NeoInterfaceDispatch.Of(ctx.client).Converts(to, from),
+                _ => false,
+            };
         }
 
         internal static bool TrySequenceCall(CallFunctionPointer call, object? receiver, Context ctx, out object? value)
