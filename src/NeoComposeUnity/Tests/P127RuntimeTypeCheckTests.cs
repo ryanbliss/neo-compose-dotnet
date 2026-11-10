@@ -50,6 +50,25 @@ namespace NeoCompose.Tests
             Assert.That(Checks(list, Enumerable(Type(expected))), Is.EqualTo(converts));
         }
 
+        // The sequence interfaces are covariant by contract, so a project
+        // without their interface rows converts the same.
+        [TestCase("CastCat", "CastPet")]
+        [TestCase("List<CastCat>", "IEnumerable<CastPet>")]
+        [TestCase("IEnumerable<CastCat>", "IEnumerable<CastPet>")]
+        public void SequenceVarianceNeedsNoInterfaceRows(string element, string expected)
+        {
+            ProjectData data = NeoTestExport.Read(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/p127-types-parity-export.json"));
+            data.interfaces.Remove(NeoSequenceContract.Enumerable);
+            data.interfaces.Remove(NeoSequenceContract.Enumerator);
+            client.Dispose();
+            client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+            ctx = new NSGetterEvaluator.Context(client, null, null);
+            object?[] list = new object?[0];
+            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(list), Type(element));
+
+            Assert.That(Checks(list, Enumerable(Type(expected))), Is.True);
+        }
+
         // An inner collection read through an IEnumerable<IEnumerable<CastCat>>
         // keeps its element type, so passing, returning and `is` all accept it.
         [TestCase("List", false)]

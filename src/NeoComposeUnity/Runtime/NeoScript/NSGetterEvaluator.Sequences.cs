@@ -628,17 +628,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             return element is not null && arguments is { Count: 1 }
                 && arguments.TryGetValue(key, out TypeInfo expected)
-                && SequenceElementConverts(interfaceId, element, CloseContextType(expected, ctx), ctx);
+                && SequenceElementConverts(element, CloseContextType(expected, ctx), ctx);
         }
 
         /// <summary>P127 §4.8. A sequence's element converts to the expected one at the interface's parameter.</summary>
-        private static bool SequenceElementConverts(string interfaceId, TypeInfo element, TypeInfo expected, Context ctx)
+        private static bool SequenceElementConverts(TypeInfo element, TypeInfo expected, Context ctx)
         {
             if (RuntimeTypesEqual(element, expected))
                 return true;
             if (NeoNSFunctionRuntime.ContainsGeneric(element) || NeoNSFunctionRuntime.ContainsGeneric(expected))
                 return false;
-            return NeoInterfaceDispatch.Of(ctx.client).ArgumentConverts(interfaceId, RuntimeTypeOf(element), RuntimeTypeOf(expected));
+            return NeoInterfaceDispatch.Of(ctx.client).SequenceElementConverts(RuntimeTypeOf(element), RuntimeTypeOf(expected));
         }
 
         internal static bool TrySequenceCall(CallFunctionPointer call, object? receiver, Context ctx, out object? value)

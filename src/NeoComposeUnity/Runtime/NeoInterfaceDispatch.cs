@@ -320,12 +320,13 @@ namespace NeoCompose.Runtime
                 return true;
             if (to.Head.Type == MemberKind.Class && from.Head!.Type == MemberKind.Class)
                 return ClassChainIdentity(from).Any(entry => entry.Equals(to));
+            // IEnumerable and IEnumerator are covariant by contract, with or without their rows.
             if (to.Head.Type == MemberKind.Interface
-                && to.Head.InterfaceId == NeoSequenceContract.Enumerable
-                && CollectionElement(from) is { } element)
+                && SequenceElementKey(to.Head.InterfaceId) is { } key
+                && SequenceElement(from, to.Head.InterfaceId!, key) is { } element)
             {
-                return to.Bindings?.TryGetValue(NeoSequenceContract.EnumerableElement, out var expected) == true
-                    && ArgumentConvertsIdentity(SoleParameter(NeoSequenceContract.Enumerable), element, expected);
+                return to.Bindings?.TryGetValue(key, out var expected) == true
+                    && ArgumentConvertsIdentity(NeoGenericParamVarianceKind.Out, element, expected);
             }
             if (to.Head.Type != MemberKind.Interface || from.Head!.Type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
@@ -336,7 +337,7 @@ namespace NeoCompose.Runtime
                 {
                     matches = actual.Bindings?.TryGetValue(parameter.id, out var source) == true
                         && to.Bindings?.TryGetValue(parameter.id, out var target) == true
-                        && ArgumentConvertsIdentity(parameter, source!, target!);
+                        && ArgumentConvertsIdentity(parameter.variance, source!, target!);
                     if (!matches)
                         break;
                 }
@@ -347,20 +348,20 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P127 §4.8. A single-parameter interface's type argument
-        /// <paramref name="source"/> converts to <paramref name="target"/> at
-        /// that parameter.
+        /// P127 §4.8. A sequence element <paramref name="source"/> converts to
+        /// <paramref name="target"/>. IEnumerable and IEnumerator are covariant
+        /// by contract, with or without their interface rows.
         /// </summary>
-        internal bool ArgumentConverts(string interfaceId, TypeBinding source, TypeBinding target) =>
-            ArgumentConvertsIdentity(SoleParameter(interfaceId), DispatchIdentity(source), DispatchIdentity(target));
+        internal bool SequenceElementConverts(TypeBinding source, TypeBinding target) =>
+            ArgumentConvertsIdentity(NeoGenericParamVarianceKind.Out, DispatchIdentity(source), DispatchIdentity(target));
 
         // Identity, or through the parameter's variance a reference
         // conversion, so a value type argument converts by identity only.
-        private bool ArgumentConvertsIdentity(GenericParamDeclaration? parameter, TypeBinding source, TypeBinding target)
+        private bool ArgumentConvertsIdentity(NeoGenericParamVarianceKind? variance, TypeBinding source, TypeBinding target)
         {
             if (source.Equals(target))
                 return true;
-            return parameter?.variance switch
+            return variance switch
             {
                 NeoGenericParamVarianceKind.Out => IsReference(source) && ConvertsIdentity(source, target),
                 NeoGenericParamVarianceKind.In => IsReference(target) && ConvertsIdentity(target, source),
@@ -370,19 +371,28 @@ namespace NeoCompose.Runtime
 
         private static bool IsReference(TypeBinding type) => type.Head is { } head && !TypeBindings.IsValueType(head);
 
-        private GenericParamDeclaration? SoleParameter(string interfaceId) =>
-            client.ProjectDataForRuntime.interfaces.TryGetValue(interfaceId, out var declaration)
-                && declaration.genericParams is { Count: 1 } parameters
-                    ? parameters[0]
-                    : null;
-
-        // The element a List, Set or Dictionary enumerates: a dictionary's value.
-        private static TypeBinding? CollectionElement(TypeBinding collection) => collection.Head!.Type switch
+        private static string? SequenceElementKey(string? interfaceId) => interfaceId switch
         {
-            MemberKind.List or MemberKind.Set => collection.At(0),
-            MemberKind.Dictionary => collection.At(1),
+            NeoSequenceContract.Enumerable => NeoSequenceContract.EnumerableElement,
+            NeoSequenceContract.Enumerator => NeoSequenceContract.EnumeratorElement,
             _ => null,
         };
+
+        // The element a sequence yields: the same interface's argument, or for
+        // IEnumerable a List, Set or Dictionary's entry (a dictionary's value).
+        private static TypeBinding? SequenceElement(TypeBinding from, string interfaceId, string key)
+        {
+            if (from.Head!.Type == MemberKind.Interface && from.Head.InterfaceId == interfaceId)
+                return from.Bindings?.TryGetValue(key, out var argument) == true ? argument : null;
+            if (interfaceId != NeoSequenceContract.Enumerable)
+                return null;
+            return from.Head.Type switch
+            {
+                MemberKind.List or MemberKind.Set => from.At(0),
+                MemberKind.Dictionary => from.At(1),
+                _ => null,
+            };
+        }
 
         internal bool PrimitiveConforms(TypeBinding type, TypeBinding requested)
         {

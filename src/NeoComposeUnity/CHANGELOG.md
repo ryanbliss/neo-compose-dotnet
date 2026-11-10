@@ -6,6 +6,8 @@
 
 - A collection read from an `IEnumerable<IEnumerable<T>>` keeps its element type, so passing it on, returning it or testing it with `is` accepts it as an `IEnumerable<T>`. This holds for `foreach`, a `GetEnumerator()` loop and a dictionary's values. Before, `is` answered false and a call or return wrapped the collection in a new sequence.
 
+- `IEnumerable<T>` and `IEnumerator<T>` variance is built in, so a project whose export omits those two interfaces still converts a `List<Cat>` or `IEnumerable<Cat>` to `IEnumerable<Pet>`. Before, such a project converted by identity only, and a nested `IEnumerable<IEnumerable<Cat>>` check failed with a missing-key error.
+
 - Read a forwarded nullable type argument (`Box<U?>` inside `Holder<U>`). Open type bindings take an optional `nullable: true`, and `TypeBinding.Open` gains a `nullable` parameter. A save holding null in `Holder<Item>`'s `B.Value` now loads; under `Holder<int>`, `U?` is `int` and the save is still refused.
 
 - NeoScript reads an optional field that declares no default as null when its row omits it, as the TypeScript runtime does, such as a `Box<int?>`'s `T Value`. Before, the read failed with `Missing key 'Value' on object`. A required field, or a field of a partial payload, still fails.
