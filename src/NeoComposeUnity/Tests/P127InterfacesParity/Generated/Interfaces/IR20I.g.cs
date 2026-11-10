@@ -18,20 +18,20 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "196ea553-0d41-442c-9e4e-9de8152d323e", NeoInterfaceBody.Get, client.TypeArguments.Of<IR20I<T>>(), "196ea553-0d41-442c-9e4e-9de8152d323e", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "bf3637d8-787f-4959-92c7-3d1289d37ca9", NeoInterfaceBody.Get, client.TypeArguments.Of<IR20I<T>>(), "bf3637d8-787f-4959-92c7-3d1289d37ca9", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
         }
         int F()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "50b023b2-8a4d-4d39-bd03-5fc56cd4f43c", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<T>>(), "50b023b2-8a4d-4d39-bd03-5fc56cd4f43c", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "5fa876fe-e78b-44dc-93d4-2f2ba4dc2977", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<T>>(), "5fa876fe-e78b-44dc-93d4-2f2ba4dc2977", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
         int G<X>()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "3a968876-403d-4307-9901-ade3a75eb9b2", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<T>>(), "3a968876-403d-4307-9901-ade3a75eb9b2", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "470d46a1-0aea-4103-bfe5-ac6a80050333", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<T>>(), "470d46a1-0aea-4103-bfe5-ac6a80050333", client.TypeArguments.Of<IR20I<T>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
             return Convert.ToInt32(result);
         }
     }

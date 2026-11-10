@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f33eb82-e2a3-4ba9-975e-e8b24a2bb921" => new ReflectionDerived<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "55f73460-51ab-4561-bc0d-37b679780101" => new ReflectionDerived<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionDerived' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f33eb82-e2a3-4ba9-975e-e8b24a2bb921" => new ReflectionDerived<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "55f73460-51ab-4561-bc0d-37b679780101" => new ReflectionDerived<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionDerived' without a concrete client type id."),
                 };
             });

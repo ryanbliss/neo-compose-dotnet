@@ -23,15 +23,15 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class LsGh<T> : NeoGeneratedClassValue, IReadOnlyLsGh<T>
     {
         internal LsGh(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5f76e06d-812e-4e78-95f0-708a9b8bd85b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0f1e0ac6-d764-41ba-9132-508982572242", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        [NeoMemberMethod("a3997c78-6ca8-4f1b-bcc0-b1e47a4b8315")]
+        [NeoMemberMethod("a575230c-228b-46e6-b59f-3fddbd24038b")]
         public static void H(int x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a3997c78-6ca8-4f1b-bcc0-b1e47a4b8315", client.TypeArguments.Of<LsGh<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a575230c-228b-46e6-b59f-3fddbd24038b", client.TypeArguments.Of<LsGh<T>>());
             node.InvokeStatic((object?)(x));
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5f76e06d-812e-4e78-95f0-708a9b8bd85b" => new LsGh<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0f1e0ac6-d764-41ba-9132-508982572242" => new LsGh<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'LsGh' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5f76e06d-812e-4e78-95f0-708a9b8bd85b" => new LsGh<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0f1e0ac6-d764-41ba-9132-508982572242" => new LsGh<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'LsGh' without a concrete client type id."),
                 };
             });

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DdThis : NeoGeneratedClassValue, IReadOnlyDdThis
     {
         internal DdThis(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0529fb0a-5d9d-4fdc-ae4b-6b49fcc1eb3e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "82ee67e1-0bc7-4250-968c-eede0adaebe4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         }
 
         public DdThis()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "0529fb0a-5d9d-4fdc-ae4b-6b49fcc1eb3e", "e6e993a8-ddb7-4878-9735-ef29595814e4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "82ee67e1-0bc7-4250-968c-eede0adaebe4", "dc2f439c-b4bd-4a9f-8ff9-a7fd5f563650", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

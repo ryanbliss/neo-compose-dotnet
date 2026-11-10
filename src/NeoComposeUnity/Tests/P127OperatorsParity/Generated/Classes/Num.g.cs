@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Num<T> : NeoGeneratedClassValue, IReadOnlyNum<T>
     {
         internal Num(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "110aa444-8e48-4ce8-b169-fd254da2b586", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "15b88551-4916-44f0-b696-0f0dbd792a6b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Make()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "94a325d8-e1cb-4d04-896d-959d3b76d29d", client.TypeArguments.Of<Num<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b113a0e8-4ed1-4667-8fac-6f6a1c8da913", client.TypeArguments.Of<Num<T>>());
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "110aa444-8e48-4ce8-b169-fd254da2b586" => new Num<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "15b88551-4916-44f0-b696-0f0dbd792a6b" => new Num<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Num' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "110aa444-8e48-4ce8-b169-fd254da2b586" => new Num<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "15b88551-4916-44f0-b696-0f0dbd792a6b" => new Num<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Num' without a concrete client type id."),
                 };
             });

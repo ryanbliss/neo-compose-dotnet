@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Pinboard : NeoGeneratedClassValue, IReadOnlyPinboard
     {
         internal Pinboard(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0d2774cb-6b1a-4e1b-aa69-bcafeaba65d1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9eaaf6c8-5eca-42b1-9479-b11cd34477b4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "0d2774cb-6b1a-4e1b-aa69-bcafeaba65d1",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Note", "de8a98c5-b648-43ab-ab13-7ff8e2f86cae", Note)
+                "9eaaf6c8-5eca-42b1-9479-b11cd34477b4",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Note", "ec24a637-1c3e-4a5d-9f8b-159cedc1c450", Note)
             );
         }
 

@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a8e89df5-e74b-4ad7-a30e-457cc2e24b56");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "24f2eb44-de6e-4124-8378-31307862a4e7");
         }
 
         internal new static R23RTO Create(NeoClient client, NeoMemberClass node)
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2eb00e9c-177b-49b8-bea7-4e58ca1de7ae" => new R23RT8(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a6717a04-3b70-4a7b-803e-abe0d7fcec3a" => new R23RT8(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23RTO(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2eb00e9c-177b-49b8-bea7-4e58ca1de7ae" => new R23RT8(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a6717a04-3b70-4a7b-803e-abe0d7fcec3a" => new R23RT8(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23RTO(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,8 +77,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "2eb00e9c-177b-49b8-bea7-4e58ca1de7ae" => new R23RT8(client, value, !saved),
-                "a8e89df5-e74b-4ad7-a30e-457cc2e24b56" => new R23RTO(client, value, !saved),
+                "a6717a04-3b70-4a7b-803e-abe0d7fcec3a" => new R23RT8(client, value, !saved),
+                "24f2eb44-de6e-4124-8378-31307862a4e7" => new R23RTO(client, value, !saved),
                 _ => null,
             };
         }

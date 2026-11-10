@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Counter : NeoGeneratedClassValue, IReadOnlyCounter
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "685cfaf0-9f2a-4816-89c3-2e26bf78a90d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "699f6dca-7b32-4f00-bb79-8317c89bb5cd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "685cfaf0-9f2a-4816-89c3-2e26bf78a90d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "5bdcfca0-6f60-4c30-82fe-9f37bf3fe364", Count)
+                "699f6dca-7b32-4f00-bb79-8317c89bb5cd",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "3bf02767-8653-4db2-a9ca-7bd7d2d978b8", Count)
             );
         }
 

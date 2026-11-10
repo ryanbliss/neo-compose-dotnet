@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Conv<T> : NeoGeneratedClassValue, IReadOnlyConv<T>
     {
         internal Conv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f346f6ce-eaa7-4f2b-befe-731b8c0dba47", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cb9374f9-303e-4e9a-8e37-4f774ecdb271", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T From(decimal d)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "044d4ef4-63c9-4826-a6bc-09dd55d3b044", client.TypeArguments.Of<Conv<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1da49ca4-77fa-4c53-86ea-930ebc093b3e", client.TypeArguments.Of<Conv<T>>());
             var result = node.InvokeStatic((object?)(d));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f346f6ce-eaa7-4f2b-befe-731b8c0dba47" => new Conv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cb9374f9-303e-4e9a-8e37-4f774ecdb271" => new Conv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Conv' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f346f6ce-eaa7-4f2b-befe-731b8c0dba47" => new Conv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cb9374f9-303e-4e9a-8e37-4f774ecdb271" => new Conv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Conv' without a concrete client type id."),
                 };
             });

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class ExplicitEq : NeoGeneratedClassValue, IReadOnlyExplicitEq
     {
         internal ExplicitEq(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a88abd5f-5eed-4282-92a2-2d5a80c15120", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8e4a314b-581a-42d5-90b1-fe3bfa9f1c9c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         }
 
         public ExplicitEq(int k)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "a88abd5f-5eed-4282-92a2-2d5a80c15120", "07f356e2-73ab-4f04-a9c1-36b505310f38", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("k", k) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "8e4a314b-581a-42d5-90b1-fe3bfa9f1c9c", "5d1dbe40-3bd5-4e7d-a7bb-ff7e2d0c46cb", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("k", k) }), false, NeoValueOwnership.Session)
         {
         }
 
         public ExplicitEq()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "a88abd5f-5eed-4282-92a2-2d5a80c15120", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "8e4a314b-581a-42d5-90b1-fe3bfa9f1c9c", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -114,7 +114,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         bool global::System.IEquatable<ExplicitEq>.Equals(ExplicitEq otherArgument)
         {
             var other = (IReadOnlyExplicitEq?)(object)otherArgument!;
-            var result = InvokeFunction("Equals#1ab409dc-30d7-409b-b6f1-fc4d91cfb34d", (object?)(other));
+            var result = InvokeFunction("Equals#38f6c6c2-1439-43e3-80ec-7eb701a3e3cd", (object?)(other));
             return (bool)result!;
         }
 

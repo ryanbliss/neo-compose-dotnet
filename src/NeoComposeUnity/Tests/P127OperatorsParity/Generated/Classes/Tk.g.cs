@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Tk : NeoGeneratedClassValue, IReadOnlyTk
     {
         internal Tk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "35ef01a5-6478-4d4f-9890-53d1c4d26ece", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "46e37461-4067-4348-b2ff-5a8262459c00", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
             bool InvokeBody()
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1ded81ce-e7e6-4f07-a5c6-356ebfc49259");
+                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8a17de44-6e43-4890-aad1-c8a4901028e7");
                 var result = node.InvokeGenericStatic(new object?[] { v, rOut }, client.TypeArguments.Table<System.ValueTuple<TOther>>());
                 return (bool)result!;
             }
@@ -58,12 +58,12 @@ namespace NeoCompose.Tests.P127OperatorsParity
         }
 
         public Tk(int v)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "35ef01a5-6478-4d4f-9890-53d1c4d26ece", "5326b179-c1ae-4183-918b-596f7e270942", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "46e37461-4067-4348-b2ff-5a8262459c00", "eef211f5-f519-49a6-a544-6e97b60c2b31", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
         {
         }
 
         public Tk()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "35ef01a5-6478-4d4f-9890-53d1c4d26ece", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "46e37461-4067-4348-b2ff-5a8262459c00", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

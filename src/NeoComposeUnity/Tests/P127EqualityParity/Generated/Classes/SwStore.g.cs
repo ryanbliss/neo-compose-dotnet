@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SwStore : NeoGeneratedClassValue, IReadOnlySwStore
     {
         internal SwStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d02a61f0-3e68-4dc2-9c05-c52763846114", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "acb6cccc-be4c-48c3-898d-6586df48d2a5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "07dfc3b8-eef5-449b-82f9-92e909d14006", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9773f261-e6c1-4a9c-8dc8-860f7255a86e", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberDelegate>();
                 return ((NeoMemberDelegate)child).Bind<int, int>(result => Convert.ToInt32(result));
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "07dfc3b8-eef5-449b-82f9-92e909d14006", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9773f261-e6c1-4a9c-8dc8-860f7255a86e", NeoValueOwnership.Session);
                 var delegateValue = NeoGeneratedTypesSupport.DelegateValue(value);
                 binding.GetOrCreateWritableNode<NeoMemberDelegateWritable>(delegateValue).Set(value);
             }
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d990a344-b943-4ef2-a72d-51f17653d03e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4a700aa0-e5df-4609-b93d-80d5f1f9646c", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<SwMoney>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => global::NeoCompose.Tests.P127EqualityParity.SwMoney.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1ca68959-122f-43ab-8ac9-dcec6a74cbfb", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "17173d4a-0650-4be4-91c2-5c92afe75beb", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -79,7 +79,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "04989608-3e8f-484c-aac0-f1254de21596", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "83c70f15-57f8-40b9-a9f5-8aad50787523", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -88,7 +88,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int Inc(int x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e8c5253a-bda8-4572-b4be-b576971e52f7");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "250eab75-d0d8-4252-86a2-3d385e9f09e2");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -98,14 +98,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "197a5012-3ff8-4cd4-95b7-4f3bdccfe671", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2fac0285-2fe3-4b39-8bac-9ad58ca0b34f", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberDelegate>();
                 return ((NeoMemberDelegate)child).Bind<int, int>(result => Convert.ToInt32(result));
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "197a5012-3ff8-4cd4-95b7-4f3bdccfe671", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2fac0285-2fe3-4b39-8bac-9ad58ca0b34f", NeoValueOwnership.Session);
                 var delegateValue = NeoGeneratedTypesSupport.DelegateValue(value);
                 binding.GetOrCreateWritableNode<NeoMemberDelegateWritable>(delegateValue).Set(value);
             }
@@ -116,14 +116,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "fd779b72-6ca8-48e8-9669-373969ffbdd6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ca610f1f-1a0a-4972-bd38-4729cbaa06a9", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberDelegate>();
                 return ((NeoMemberDelegate)child).Bind<int, int>(result => Convert.ToInt32(result));
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "fd779b72-6ca8-48e8-9669-373969ffbdd6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ca610f1f-1a0a-4972-bd38-4729cbaa06a9", NeoValueOwnership.Session);
                 var delegateValue = NeoGeneratedTypesSupport.DelegateValue(value);
                 binding.GetOrCreateWritableNode<NeoMemberDelegateWritable>(delegateValue).Set(value);
             }
@@ -134,7 +134,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "fc105c6b-e155-4c22-b39e-c952b4ce2fae", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "306cd303-1004-428c-a7b9-65056b8567ed", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<NeoDelegate<int, int>>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberDelegate)child).Bind<int, int>(result => Convert.ToInt32(result)), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -145,14 +145,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e3b82528-330b-46b6-9cda-7904d33b6eb2", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4a9bc712-6dd3-4724-b8f6-cc3495bcfcff", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberObject>();
                 return NeoGeneratedTypesSupport.ReadObjectValue((NeoMemberObject)child) ?? throw new InvalidOperationException("Required object 'Ob' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e3b82528-330b-46b6-9cda-7904d33b6eb2", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4a9bc712-6dd3-4724-b8f6-cc3495bcfcff", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.ObjectValue(client, binding.GetNodeOrEmpty<NeoMemberObject>(), value));
             }
         }
@@ -162,7 +162,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ebd21609-e939-4d02-a1c5-e4e5e9d81a89", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e1c317d0-3982-4124-b40c-c7ff140e3bb3", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<string>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -173,7 +173,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c868af33-90ca-40b5-9cee-487acb52a0ac", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "98756196-cf7d-4c1c-adcc-43bad6a95a80", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<string>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -184,7 +184,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "aefa8458-2385-4b21-8d00-6260559978bc", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "338e18ed-f547-402f-a272-4d8643d8b44c", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<object>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadObjectValue((NeoMemberObject)child) ?? throw new InvalidOperationException("Required object 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -195,7 +195,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b146a6d0-8613-4173-b958-b4d6540943d8", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ebedcf72-4b8c-4efe-b84e-71b736dce387", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<object>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadObjectValue((NeoMemberObject)child) ?? throw new InvalidOperationException("Required object 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -206,7 +206,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f0b48ceb-be46-42eb-851f-9e96a078f4f1", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ff8c745f-9f46-4c8d-8661-6f95f2d9ce71", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<string>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -217,7 +217,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "779999e5-3510-4c6a-9c12-355689733e16", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "370f62a5-ec66-4b75-a1b3-4518883a6ace", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -228,7 +228,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d7feec26-959d-4178-bb05-c22b3bf7382e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "6c4bb9a3-4839-4690-ac50-9c9c3a7a8ef6", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -239,7 +239,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2b3528e2-58f3-41e0-afd9-0511dc266084", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "bff0d90e-c7d2-47c0-85bc-d64d6e54e9bb", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<string>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -250,7 +250,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "0f8871c2-fce8-4b14-86e9-6a1cc0f465ca", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f074fea2-c0ee-42b1-86dc-55695f6f1a47", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoSet<SwMoney>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => global::NeoCompose.Tests.P127EqualityParity.SwMoney.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
@@ -264,7 +264,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d02a61f0-3e68-4dc2-9c05-c52763846114");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "acb6cccc-be4c-48c3-898d-6586df48d2a5");
         }
 
         internal static SwStore Create(NeoClient client, NeoMemberClass node)

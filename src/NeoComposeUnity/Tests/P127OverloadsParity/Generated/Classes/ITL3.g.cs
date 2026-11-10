@@ -36,8 +36,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "682eaa97-2717-4726-863d-0b2001780b26" => (ITL3<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "0b780b8b-e411-47dd-a53f-e7fae1842304" => new ITL3<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "494ac706-9014-4f4c-8fa3-8f00ef100f16" => (ITL3<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "30b82f5b-196a-4573-9e1d-5aec4d325fbd" => new ITL3<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL3' without a concrete client type id."),
                 };
             });
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "682eaa97-2717-4726-863d-0b2001780b26" => (ITL3<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "0b780b8b-e411-47dd-a53f-e7fae1842304" => new ITL3<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "494ac706-9014-4f4c-8fa3-8f00ef100f16" => (ITL3<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "30b82f5b-196a-4573-9e1d-5aec4d325fbd" => new ITL3<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL3' without a concrete client type id."),
                 };
             });

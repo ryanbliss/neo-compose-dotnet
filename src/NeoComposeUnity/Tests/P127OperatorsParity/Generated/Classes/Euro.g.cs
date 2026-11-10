@@ -35,12 +35,12 @@ namespace NeoCompose.Tests.P127OperatorsParity
         }
 
         public Euro(int cents)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "5e83cb0a-ad6e-487a-9370-128a0d0717df", "9c13365e-a05a-4f9d-8cc4-25c119996a98", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "80ab1692-a15f-47a1-a1b5-f2ee5eb5d6f6", "761f21f8-b16b-4b96-a97d-b74042980359", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("cents", cents) }), false, NeoValueOwnership.Session)
         {
         }
 
         public Euro()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "5e83cb0a-ad6e-487a-9370-128a0d0717df", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "80ab1692-a15f-47a1-a1b5-f2ee5eb5d6f6", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

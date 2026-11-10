@@ -18,14 +18,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b4998ddc-ba30-4534-8f4d-d8bf264849df", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f91a162b-0400-43a6-ad80-edd0ac593cba", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Z' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b4998ddc-ba30-4534-8f4d-d8bf264849df", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f91a162b-0400-43a6-ad80-edd0ac593cba", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -34,14 +34,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9565afbd-7022-4f6b-a5a1-67b302028ec3", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "912163cb-ab45-4119-9d18-c1b2459a1ca4", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'A' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9565afbd-7022-4f6b-a5a1-67b302028ec3", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "912163cb-ab45-4119-9d18-c1b2459a1ca4", NeoValueOwnership.Session, client.TypeArguments.Of<IOrdB<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }

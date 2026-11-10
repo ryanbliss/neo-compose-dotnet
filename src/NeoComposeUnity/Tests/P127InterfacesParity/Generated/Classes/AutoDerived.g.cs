@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         public AutoDerived()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "457ff1fa-0724-4ad8-8016-5fa9f990651f", "074eb324-6c10-4134-8aea-49245ea61e3d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6e91987a-07ca-489f-adf3-0c214e7f4e90", "12368418-c64a-43b9-98f8-7508cd43015f", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

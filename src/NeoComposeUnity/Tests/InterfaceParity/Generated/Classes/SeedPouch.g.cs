@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class SeedPouch : NeoGeneratedClassValue, IReadOnlySeedPouch
     {
         internal SeedPouch(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2706367b-088a-4035-9c02-162ad6b210c2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6ecb45e7-f3d2-4f9e-9d5b-024c1b637483", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "2706367b-088a-4035-9c02-162ad6b210c2",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "0cc8619e-53bd-4ae5-ad4e-e4dd235bcff3", Contents)
+                "6ecb45e7-f3d2-4f9e-9d5b-024c1b637483",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "c1d7d71e-59b0-4ca6-b9ab-a9e5170c3f4a", Contents)
             );
         }
 

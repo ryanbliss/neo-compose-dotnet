@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Box<T> : NeoGeneratedClassValue, IReadOnlyBox<T>
     {
         internal Box(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "51d60a2b-0a59-4629-977d-b919f124e4a1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "07ea4bd7-50b6-40ef-a799-1ff7152463a6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,14 +34,14 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e407c3a1-4b33-437f-9339-469a27b27ef0", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8aacffcc-32d8-4fc2-8eac-3e29fc3d0708", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberAction>();
                 return ((NeoMemberAction)child).Bind();
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e407c3a1-4b33-437f-9339-469a27b27ef0", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8aacffcc-32d8-4fc2-8eac-3e29fc3d0708", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
                 NeoGeneratedTypesSupport.RequireSameAction(value, binding.GetNodeOrEmpty<NeoMemberAction>().Bind(), "Box.Changed");
                 if (!binding.TryGetNode<NeoMemberActionWritable>(out _))
                 {
@@ -55,14 +55,14 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "58c6c156-1a86-4044-ba3f-db99aa8e0592", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e4fc3216-3439-4316-8262-4b59aa6ca885", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "58c6c156-1a86-4044-ba3f-db99aa8e0592", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e4fc3216-3439-4316-8262-4b59aa6ca885", NeoValueOwnership.Session, client.TypeArguments.Of<Box<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -74,7 +74,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "51d60a2b-0a59-4629-977d-b919f124e4a1" => new Box<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "07ea4bd7-50b6-40ef-a799-1ff7152463a6" => new Box<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Box' without a concrete client type id."),
                 };
             });
@@ -87,7 +87,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "51d60a2b-0a59-4629-977d-b919f124e4a1" => new Box<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "07ea4bd7-50b6-40ef-a799-1ff7152463a6" => new Box<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Box' without a concrete client type id."),
                 };
             });

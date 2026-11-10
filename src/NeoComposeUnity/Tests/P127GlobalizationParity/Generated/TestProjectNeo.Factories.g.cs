@@ -16,11 +16,11 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         internal static readonly IReadOnlyDictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>> NeoDetachedValueFactories =
             new Dictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>>
             {
-                ["5abc877d-ed3c-458c-b51b-a59a7aa0c338"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.CreateDetached(client, value, saved),
-                ["9550234e-ea02-4860-8a66-978797394abd"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.CreateDetached(client, value, saved),
+                ["1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.CreateDetached(client, value, saved),
+                ["472fa933-b567-4146-859c-9b1be741e39d"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.CreateDetached(client, value, saved),
+                ["5fcac145-eb60-429d-8ed9-7462d726d309"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.CreateDetached(client, value, saved),
+                ["8189baeb-bc12-4149-98fb-760285805750"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.CreateDetached(client, value, saved),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.User.CreateDetached(client, value, saved),
-                ["dfd6b899-f7d5-4af2-bb94-1c10d5b713e6"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.CreateDetached(client, value, saved),
-                ["eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.CreateDetached(client, value, saved),
                 ["root-assets-class-id"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Assets.CreateDetached(client, value, saved),
                 ["root-save-class-id"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Save.CreateDetached(client, value, saved),
                 ["root-session-class-id"] = (client, value, saved) => global::NeoCompose.Tests.P127GlobalizationParity.Session.CreateDetached(client, value, saved),
@@ -54,11 +54,11 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                ["5abc877d-ed3c-458c-b51b-a59a7aa0c338"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.Create(client, node),
-                ["9550234e-ea02-4860-8a66-978797394abd"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.Create(client, node),
+                ["1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.Create(client, node),
+                ["472fa933-b567-4146-859c-9b1be741e39d"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.Create(client, node),
+                ["5fcac145-eb60-429d-8ed9-7462d726d309"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.Create(client, node),
+                ["8189baeb-bc12-4149-98fb-760285805750"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.Create(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.User.Create(client, node),
-                ["dfd6b899-f7d5-4af2-bb94-1c10d5b713e6"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.Create(client, node),
-                ["eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.Create(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Assets.Create(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Save.Create(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Session.Create(client, node),
@@ -95,11 +95,11 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
-                ["5abc877d-ed3c-458c-b51b-a59a7aa0c338"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.CreateWritable(client, node),
-                ["9550234e-ea02-4860-8a66-978797394abd"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.CreateWritable(client, node),
+                ["1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Probe.CreateWritable(client, node),
+                ["472fa933-b567-4146-859c-9b1be741e39d"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.CreateWritable(client, node),
+                ["5fcac145-eb60-429d-8ed9-7462d726d309"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.CreateWritable(client, node),
+                ["8189baeb-bc12-4149-98fb-760285805750"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Holder.CreateWritable(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.User.CreateWritable(client, node),
-                ["dfd6b899-f7d5-4af2-bb94-1c10d5b713e6"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Counting.CreateWritable(client, node),
-                ["eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Silent.CreateWritable(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Assets.CreateWritable(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Save.CreateWritable(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.P127GlobalizationParity.Session.CreateWritable(client, node),
@@ -136,11 +136,11 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Probe)] = "5abc877d-ed3c-458c-b51b-a59a7aa0c338",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Holder)] = "9550234e-ea02-4860-8a66-978797394abd",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Probe)] = "1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Silent)] = "472fa933-b567-4146-859c-9b1be741e39d",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Counting)] = "5fcac145-eb60-429d-8ed9-7462d726d309",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Holder)] = "8189baeb-bc12-4149-98fb-760285805750",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Counting)] = "dfd6b899-f7d5-4af2-bb94-1c10d5b713e6",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Silent)] = "eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Save)] = "root-save-class-id",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Session)] = "root-session-class-id",
@@ -174,16 +174,16 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentClassIds =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Probe)] = "5abc877d-ed3c-458c-b51b-a59a7aa0c338",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyProbe)] = "5abc877d-ed3c-458c-b51b-a59a7aa0c338",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Holder)] = "9550234e-ea02-4860-8a66-978797394abd",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyHolder)] = "9550234e-ea02-4860-8a66-978797394abd",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Probe)] = "1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyProbe)] = "1c45e2e5-4d63-4bc3-90d9-e6a5ee4c5589",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Silent)] = "472fa933-b567-4146-859c-9b1be741e39d",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlySilent)] = "472fa933-b567-4146-859c-9b1be741e39d",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Counting)] = "5fcac145-eb60-429d-8ed9-7462d726d309",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyCounting)] = "5fcac145-eb60-429d-8ed9-7462d726d309",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Holder)] = "8189baeb-bc12-4149-98fb-760285805750",
+                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyHolder)] = "8189baeb-bc12-4149-98fb-760285805750",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyUser)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Counting)] = "dfd6b899-f7d5-4af2-bb94-1c10d5b713e6",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyCounting)] = "dfd6b899-f7d5-4af2-bb94-1c10d5b713e6",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Silent)] = "eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61",
-                [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlySilent)] = "eab6eb4e-d2d8-4947-bc6b-1a9a0cd53b61",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.IReadOnlyAssets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.P127GlobalizationParity.Save)] = "root-save-class-id",
@@ -257,7 +257,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             {
                 [typeof(global::System.Globalization.DigitShapes)] = "system_94a8cb10-30fb-482c-8898-f3f4a67b8520",
                 [typeof(global::System.Globalization.NumberStyles)] = "system_727c12c2-6d52-4b54-866e-f16b1fef95f1",
-                [typeof(Hue)] = "38c31bae-fb8e-4eff-a7ad-92a07071beec",
+                [typeof(Hue)] = "bc7a79ee-2ca0-4507-a7ae-2f30e3d93c2c",
                 [typeof(NeoCellPatternExcluding)] = "system_072f749f-62fe-5917-9f7e-f9f29c3a7063",
                 [typeof(NeoPlayDirection)] = "system_705ccc39-e46e-4c9f-af3e-3ec8fd818709",
                 [typeof(NeoSelectorRefreshKind)] = "system_fb8a4243-fa52-4142-8097-765d9e86ff25",

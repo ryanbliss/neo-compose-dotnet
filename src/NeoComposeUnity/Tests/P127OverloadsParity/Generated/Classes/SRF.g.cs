@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class SRF : NeoGeneratedClassValue, IReadOnlySRF
     {
         internal SRF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a2bbd48c-f0aa-432b-b279-d308ce0bd556", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "bfa697b7-8345-4467-8f89-2b3e83d17a88", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "96f35980-3ed5-4235-a9c1-a18341f452c4", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f7cec618-c04a-4c7e-8090-18f590d34206", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'P' has no value.");
             }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "29f951eb-7b60-46ec-b2cf-8571b5cf245a", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8b9cc473-707d-4c49-aafa-0a89c8b22f30", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Q' has no value.");
             }
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a2bbd48c-f0aa-432b-b279-d308ce0bd556");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bfa697b7-8345-4467-8f89-2b3e83d17a88");
         }
 
         internal static SRF Create(NeoClient client, NeoMemberClass node)
