@@ -27,14 +27,14 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class IgBox<T> : NeoGeneratedClassValue, IReadOnlyIgBox<T>
     {
         internal IgBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a093a589-eb90-4dd1-b05e-cd4f527b75f2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ec30599c-60de-4c39-b9ed-df4193b98580", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int Compare(int a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4fef7346-9bad-4c8d-842d-7bd3e9a2a26d", client.TypeArguments.Of<IgBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5e0b20cc-7f7d-4c63-a7d3-b5fd2a835531", client.TypeArguments.Of<IgBox<T>>());
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a093a589-eb90-4dd1-b05e-cd4f527b75f2" => new IgBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ec30599c-60de-4c39-b9ed-df4193b98580" => new IgBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'IgBox' without a concrete client type id."),
                 };
             });
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a093a589-eb90-4dd1-b05e-cd4f527b75f2" => new IgBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ec30599c-60de-4c39-b9ed-df4193b98580" => new IgBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'IgBox' without a concrete client type id."),
                 };
             });

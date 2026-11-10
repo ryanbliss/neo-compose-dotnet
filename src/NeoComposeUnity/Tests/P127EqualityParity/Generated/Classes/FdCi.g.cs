@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class FdCi : NeoGeneratedClassValue, IReadOnlyFdCi
     {
         internal FdCi(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8ef1e590-eb14-4a9c-82db-a9adaa9901ee", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a74251ce-0f42-42b1-8d01-2df9dbfe7800", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8ef1e590-eb14-4a9c-82db-a9adaa9901ee");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a74251ce-0f42-42b1-8d01-2df9dbfe7800");
         }
 
         internal static FdCi Create(NeoClient client, NeoMemberClass node)

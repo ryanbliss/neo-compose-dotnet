@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class IntBox : NeoGeneratedClassValue, IReadOnlyIntBox
     {
         internal IntBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b723bd97-5347-4073-920e-7667fb6a0b67", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c7d00cf0-e0f8-4afc-a47d-48393fa9859e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b723bd97-5347-4073-920e-7667fb6a0b67");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c7d00cf0-e0f8-4afc-a47d-48393fa9859e");
         }
 
         internal static IntBox Create(NeoClient client, NeoMemberClass node)

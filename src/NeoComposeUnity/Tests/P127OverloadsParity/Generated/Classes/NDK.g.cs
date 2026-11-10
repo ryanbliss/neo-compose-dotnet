@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NDK : NeoGeneratedClassValue, IReadOnlyNDK
     {
         internal NDK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0d089d7a-934b-49c5-8acb-825b36fbe971", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cd9690c5-ea26-4d00-9608-f7d3105f5ac6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127OverloadsParity
         }
 
         public NDK(string x = default!)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "0d089d7a-934b-49c5-8acb-825b36fbe971", "d17e8157-c311-42f0-9e69-e8a3d700f6ad", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("x", x) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "cd9690c5-ea26-4d00-9608-f7d3105f5ac6", "fc8ca32d-abbf-45c1-a0d4-918fe2005671", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("x", x) }), false, NeoValueOwnership.Session)
         {
         }
 
         public NDK()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "0d089d7a-934b-49c5-8acb-825b36fbe971", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "cd9690c5-ea26-4d00-9608-f7d3105f5ac6", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c5f7cc34-4cb0-4598-a96a-6048821a295e" => new NDB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7ad18d52-5dc4-4ec7-94cd-fb165b8a8dbc" => new NDB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NDK(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -66,7 +66,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c5f7cc34-4cb0-4598-a96a-6048821a295e" => new NDB(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7ad18d52-5dc4-4ec7-94cd-fb165b8a8dbc" => new NDB(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NDK(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -76,8 +76,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "c5f7cc34-4cb0-4598-a96a-6048821a295e" => new NDB(client, value, !saved),
-                "0d089d7a-934b-49c5-8acb-825b36fbe971" => new NDK(client, value, !saved),
+                "7ad18d52-5dc4-4ec7-94cd-fb165b8a8dbc" => new NDB(client, value, !saved),
+                "cd9690c5-ea26-4d00-9608-f7d3105f5ac6" => new NDK(client, value, !saved),
                 _ => null,
             };
         }

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class LixProbe : NeoGeneratedClassValue, IReadOnlyLixProbe
     {
         internal LixProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "80910c9c-1087-4108-ac85-0487fec17ea3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f9c7181b-be0b-48cc-adc8-0e279a9d87df", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string IndexOfs()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6463f2fc-d646-44fe-a71f-bfffc3347a43");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1b128c1e-2fdf-4e15-8efe-e334239080a6");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string LastLog()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1e326ddf-fde8-42d1-b903-2d982bdabc20");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "28175b14-076f-4b87-b467-41a7000455dc");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string LastThrow()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3dbebc22-d89a-4d83-a527-45fc20f20a00");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4085e60d-e278-4ed1-9c46-c249e539e786");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -66,7 +66,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "80910c9c-1087-4108-ac85-0487fec17ea3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f9c7181b-be0b-48cc-adc8-0e279a9d87df");
         }
 
         internal static LixProbe Create(NeoClient client, NeoMemberClass node)

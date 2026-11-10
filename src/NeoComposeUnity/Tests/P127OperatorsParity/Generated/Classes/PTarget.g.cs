@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class PTarget : NeoGeneratedClassValue, IReadOnlyPTarget
     {
         internal PTarget(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "54a51c15-e340-433d-b3bb-89bbf7896776", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "57311883-df32-4b8f-9a40-6755ede02b38", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int ClampViaT()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "96052652-9a7b-4b3b-9244-ce5ef830a4ae");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3d98fcbf-2267-4cc5-9fd7-5fa8699b467f");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string CounterDecimal()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e177bc97-e32c-4fea-89b4-28e6bf8b8e2f");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "57110cbf-d15f-4c88-9f19-deb61a707f7b");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static float CounterFloat()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7ad5f5c8-45f6-4342-9516-6e866043b6be");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a726cc9e-769c-4552-a06f-395d26a78b05");
             var result = node.InvokeStatic();
             return Convert.ToSingle(result);
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int CounterInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "59c5ab03-72f0-4d0c-ad05-56ef03abc667");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b2865720-d20e-459e-8c84-1dde96df12e8");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int CounterWrap()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f9f20c83-00a0-4463-92ab-807f3f95fbdb");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5bc9a69a-0b33-4dd3-a9e3-b1614f46e321");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int CreateCheckedInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d9c19684-fd65-4636-8295-0abe2079c678");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ba56a8b8-1ccd-452f-9fac-b63657dd8acd");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int CreateCheckedViaT()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "532a4d63-dd03-4d65-be25-0392d8e5e4c9");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cba36017-a80e-411c-b661-6676cbf3fe99");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -93,7 +93,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int MaxNativeInt()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "42cc9b30-b71b-4f6d-b826-117a1fdb7628");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "aef03645-97a6-4052-8e75-a43332d6d310");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -101,7 +101,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int NumMake()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "77a53d95-e81f-44d1-8325-cbc4e3af927f");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "224df920-7ede-4a40-9ac6-ef73ea510067");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -109,7 +109,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string NumMakeDecimal()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "99489aeb-028a-4272-8779-5f524fcee022");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "70e8008d-a4e5-4d0f-af14-1fac68329f46");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -117,7 +117,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int SignViaT()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0f50103d-646e-4bef-8110-67b7307948be");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ec9f92a0-7796-4286-866a-3e4f291cceb0");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -130,7 +130,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "54a51c15-e340-433d-b3bb-89bbf7896776");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "57311883-df32-4b8f-9a40-6755ede02b38");
         }
 
         internal static PTarget Create(NeoClient client, NeoMemberClass node)

@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1baa8fb0-46e2-4dc7-839c-d19f35939bfc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "7a347578-aa4d-4918-b33b-044d528feb2a", V)
+                "f90cc282-4a59-4551-965c-b735b8b3d1a3",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "5a1f26cc-ab4f-4ce6-83fb-e30dd74fe1a6", V)
             );
         }
 
