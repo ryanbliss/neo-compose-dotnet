@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R15StaticOwn : NeoGeneratedClassValue, IReadOnlyR15StaticOwn
     {
         internal R15StaticOwn(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b6285bb9-fbd8-4001-9d33-a05ac3588481", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "18a5ca08-1616-4917-97db-47ec0f271c89", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "0acec676-114e-4602-aa29-692a2bcff3fd");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "c0220908-919e-47d1-a2d6-94eef3506f87");
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b6285bb9-fbd8-4001-9d33-a05ac3588481");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "18a5ca08-1616-4917-97db-47ec0f271c89");
         }
 
         internal static R15StaticOwn Create(NeoClient client, NeoMemberClass node)
@@ -110,7 +110,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#5056d486-d9e1-4703-9a7e-ae11d200bff7");
+                var result = ComputeProperty("V#6bef9b90-2325-4bc3-a01b-1016bb28ebe3");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

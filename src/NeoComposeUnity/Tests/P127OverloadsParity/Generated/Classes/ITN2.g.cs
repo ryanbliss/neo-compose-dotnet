@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITN2<T> : NeoGeneratedClassValue, IReadOnlyITN2<T>
     {
         internal ITN2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e12b1692-c9eb-475b-9002-8795d9754e5d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2696c6da-f2eb-4867-9c39-92007f7e2aed", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,8 +38,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b7fea284-c3c5-4b3b-99c5-156932a089a5" => (ITN2<T>)(object)new ITN2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e12b1692-c9eb-475b-9002-8795d9754e5d" => new ITN2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9bde90b7-6990-4555-8f11-09e813a50e04" => (ITN2<T>)(object)new ITN2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2696c6da-f2eb-4867-9c39-92007f7e2aed" => new ITN2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITN2' without a concrete client type id."),
                 };
             });
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b7fea284-c3c5-4b3b-99c5-156932a089a5" => (ITN2<T>)(object)new ITN2D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e12b1692-c9eb-475b-9002-8795d9754e5d" => new ITN2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9bde90b7-6990-4555-8f11-09e813a50e04" => (ITN2<T>)(object)new ITN2D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2696c6da-f2eb-4867-9c39-92007f7e2aed" => new ITN2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITN2' without a concrete client type id."),
                 };
             });
@@ -83,13 +83,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(int c, T d)
         {
-            var result = InvokeFunction("M#e6b43cf2-2562-4c54-a5ee-cb9cd1ba58c6", c, d);
+            var result = InvokeFunction("M#511b3e06-c5e0-4be6-8875-5737b1fe91f2", c, d);
             return Convert.ToInt32(result);
         }
 
         public int M(T a, int b)
         {
-            var result = InvokeFunction("M#6d672958-05c5-4f9a-a2bc-6d66f3583042", a, b);
+            var result = InvokeFunction("M#bf88cc5c-793d-44ed-8af3-1ec192127964", a, b);
             return Convert.ToInt32(result);
         }
 

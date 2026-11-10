@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class KY : NeoGeneratedClassValue, IReadOnlyKY
     {
         internal KY(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "dcbfa0d6-c1f5-45a5-a366-d819c66b9a89", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a0d404e0-be6d-4c89-bac2-ac57e9566e2c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "dcbfa0d6-c1f5-45a5-a366-d819c66b9a89");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a0d404e0-be6d-4c89-bac2-ac57e9566e2c");
         }
 
         internal static KY Create(NeoClient client, NeoMemberClass node)
@@ -102,13 +102,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(int x)
         {
-            var result = InvokeFunction("M#af1cd007-e726-4389-85be-fd42b8194d15", (object?)(x));
+            var result = InvokeFunction("M#70be02ea-b5e9-4c73-8dbf-97c7cadf078e", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         public int M(string s)
         {
-            var result = InvokeFunction("M#84f6504b-ac8f-46a7-b92b-cacb4798c3d3", (object?)(s));
+            var result = InvokeFunction("M#11deb56c-4aec-4fc8-8ef8-6f068ef92eb1", (object?)(s));
             return Convert.ToInt32(result);
         }
 

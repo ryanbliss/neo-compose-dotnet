@@ -594,7 +594,7 @@
     "  public static bool DlgK() { var c1 = EqualityComparer<int>.Create((a, b) => a == b); return c1.Equals(c1); }",
     "  public static bool DlgL() { NeoDelegate<bool, int, int> e = (a, b) => a == b; return EqualityComparer<int>.Create(e).Equals(EqualityComparer<int>.Create(e)); }",
     "  public static bool DlgM() { return Comparer<int>.Create((a, b) => a - b).Equals(Comparer<int>.Create((a, b) => a - b)); }",
-    "  public static int DlgN() { NeoDelegate<int, int, int> c = (a, b) => a - b; Set<object> s = [Comparer<int>.Create(c), Comparer<int>.Create(c)].ToSet(); return s.Count; }",
+    "  public static int DlgN() { NeoDelegate<int, int, int> c = (a, b) => a - b; List<object> l = [Comparer<int>.Create(c), Comparer<int>.Create(c)]; Set<object> s = l.ToSet(); return s.Count; }",
     "  public static int SetA() { var s = new Set<string>(new Ci()); s.Add(\"a\"); s.Add(\"A\"); return s.Count; }",
     "  public static int SetB() { var s = new Set<int>(10); s.Add(1); s.Add(1); return s.Count; }",
     "  public static int SetC() { var s = new Set<string>(4, new Ci()); s.Add(\"a\"); s.Add(\"A\"); s.Add(\"b\"); return s.Count; }",

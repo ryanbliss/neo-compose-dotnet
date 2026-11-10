@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b14ffe43-afe8-403e-bc30-da34603668c8");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7a0da2a1-6b90-40be-8ded-478b5e065ca3");
         }
 
         internal new static VdAbD Create(NeoClient client, NeoMemberClass node)

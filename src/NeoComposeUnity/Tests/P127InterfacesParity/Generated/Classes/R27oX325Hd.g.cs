@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d55fd9f9-d4c5-45ea-a2a2-e4f31970fd3a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "568090b6-a407-483a-a59c-8cd54ddb6c5d");
         }
 
         internal new static R27oX325Hd Create(NeoClient client, NeoMemberClass node)
@@ -91,7 +91,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         string IR27OJ<R27D1>.M()
         {
-            var result = InvokeFunction("M#89adabcd-f055-4a5d-86d5-548d583f48d9");
+            var result = InvokeFunction("M#856e1941-3fe4-422b-9b66-b78940e2032d");
             return (string)result!;
         }
 
@@ -99,13 +99,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#fa2882ba-8463-4121-80bf-9e0397fdbe45");
+                var result = ComputeProperty("V#b37f9f2e-9a96-4843-9390-10dae5b245d2");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("V#fa2882ba-8463-4121-80bf-9e0397fdbe45").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("V#b37f9f2e-9a96-4843-9390-10dae5b245d2").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

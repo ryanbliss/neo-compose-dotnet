@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace NeoCompose.Tests.InterfaceParity
 {
-    public interface IReadOnlyToolCrate : IReadOnlyCrate<IReadOnlyTool>
+    public interface IReadOnlyToolCrate : IReadOnlyCrate<IReadOnlyTool>, ISortedContainer<Tool>
     {
         new bool IsReadOnly { get; }
 
@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f97aadcb-09eb-40e3-b0b1-4a926e6c280d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "927309cb-a5c4-4cfd-a228-7a22c5af268f", Contents)
+                "ca1e6021-2cd7-4664-976b-43393f788a13",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "a4a12e11-fd83-47d6-988a-bf27b1edabd7", Contents)
             );
         }
 
@@ -116,14 +116,14 @@ namespace NeoCompose.Tests.InterfaceParity
             }
         }
 
-        IReadOnlyTool ISortedContainer<IReadOnlyTool>.First => ((IReadOnlyToolCrate)this).First;
+        IReadOnlyTool ISortedContainer<IReadOnlyTool>.First => ((IReadOnlyCrate<IReadOnlyTool>)this).First;
 
         IReadOnlyTool ISortedContainer<IReadOnlyTool>.Pick(int index)
         {
             return (IReadOnlyTool)(object)((ToolCrate)this).Pick(index)!;
         }
 
-        IReadOnlyList<IReadOnlyTool> IContainer<IReadOnlyTool>.Contents => ((IReadOnlyToolCrate)this).Contents;
+        IReadOnlyList<IReadOnlyTool> IContainer<IReadOnlyTool>.Contents => ((IReadOnlyCrate<IReadOnlyTool>)this).Contents;
 
         public new sealed class Fields
         {

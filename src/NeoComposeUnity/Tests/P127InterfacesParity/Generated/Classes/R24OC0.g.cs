@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R24OC0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "417fec58-4706-4701-af2b-0a0953cf5d9b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c7304543-2f3f-4745-ac25-d582ecc0c469", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "417fec58-4706-4701-af2b-0a0953cf5d9b" => new R24OC0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c7304543-2f3f-4745-ac25-d582ecc0c469" => new R24OC0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24OC0' without a concrete client type id."),
                 };
             });
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "417fec58-4706-4701-af2b-0a0953cf5d9b" => new R24OC0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c7304543-2f3f-4745-ac25-d582ecc0c469" => new R24OC0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24OC0' without a concrete client type id."),
                 };
             });
@@ -82,7 +82,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#f10de889-102d-438f-92fe-28fb7c0fb604");
+                var result = ComputeProperty("V#b989f132-cdbd-4945-90d1-52645502c6d8");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

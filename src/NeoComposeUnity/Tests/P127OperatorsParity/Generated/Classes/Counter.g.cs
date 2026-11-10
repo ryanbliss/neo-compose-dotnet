@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Counter<T> : NeoGeneratedClassValue, IReadOnlyCounter<T>
     {
         internal Counter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8c362f23-586f-4c30-abf7-da2ce5c9d879", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "97e28e85-562a-4b56-8f40-28600439bf63", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8c362f23-586f-4c30-abf7-da2ce5c9d879" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "97e28e85-562a-4b56-8f40-28600439bf63" => new Counter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8c362f23-586f-4c30-abf7-da2ce5c9d879" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "97e28e85-562a-4b56-8f40-28600439bf63" => new Counter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Counter' without a concrete client type id."),
                 };
             });
@@ -96,7 +96,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         }
 
 
-        [NeoMemberMethod("ad651926-cc5a-486e-8f58-ab9f2ccf5171")]
+        [NeoMemberMethod("bd6da22c-2336-4420-8277-2324bb6907c2")]
         public void Increment()
         {
             InvokeFunction("Increment");

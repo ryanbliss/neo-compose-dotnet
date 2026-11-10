@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class AddSC : NeoGeneratedClassValue, IReadOnlyAddSC
     {
         internal AddSC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9095cff2-84db-45c6-836b-48fcdde9e73f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3d824b45-b1f3-479d-8b3e-0b55878520dd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9095cff2-84db-45c6-836b-48fcdde9e73f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3d824b45-b1f3-479d-8b3e-0b55878520dd");
         }
 
         internal static AddSC Create(NeoClient client, NeoMemberClass node)
