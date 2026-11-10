@@ -320,6 +320,13 @@ namespace NeoCompose.Runtime
                 return true;
             if (to.Head.Type == MemberKind.Class && from.Head!.Type == MemberKind.Class)
                 return ClassChainIdentity(from).Any(entry => entry.Equals(to));
+            if (to.Head.Type == MemberKind.Interface
+                && to.Head.InterfaceId == NeoSequenceContract.Enumerable
+                && CollectionElement(from) is { } element)
+            {
+                return to.Bindings?.TryGetValue(NeoSequenceContract.EnumerableElement, out var expected) == true
+                    && ArgumentConvertsIdentity(SoleParameter(NeoSequenceContract.Enumerable), element, expected);
+            }
             if (to.Head.Type != MemberKind.Interface || from.Head!.Type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             foreach (var actual in Constructions(from, to.Head.InterfaceId!))
@@ -327,20 +334,9 @@ namespace NeoCompose.Runtime
                 bool matches = true;
                 foreach (var parameter in client.ProjectDataForRuntime.interfaces[to.Head.InterfaceId!].genericParams ?? new List<GenericParamDeclaration>())
                 {
-                    if (actual.Bindings?.TryGetValue(parameter.id, out var source) != true
-                        || to.Bindings?.TryGetValue(parameter.id, out var target) != true)
-                    {
-                        matches = false;
-                        break;
-                    }
-                    if (source!.Equals(target))
-                        continue;
-                    matches = parameter.variance switch
-                    {
-                        NeoGenericParamVarianceKind.Out => ConvertsIdentity(source, target!),
-                        NeoGenericParamVarianceKind.In => ConvertsIdentity(target!, source),
-                        _ => false,
-                    };
+                    matches = actual.Bindings?.TryGetValue(parameter.id, out var source) == true
+                        && to.Bindings?.TryGetValue(parameter.id, out var target) == true
+                        && ArgumentConvertsIdentity(parameter, source!, target!);
                     if (!matches)
                         break;
                 }
@@ -349,6 +345,44 @@ namespace NeoCompose.Runtime
             }
             return false;
         }
+
+        /// <summary>
+        /// P127 §4.8. A single-parameter interface's type argument
+        /// <paramref name="source"/> converts to <paramref name="target"/> at
+        /// that parameter.
+        /// </summary>
+        internal bool ArgumentConverts(string interfaceId, TypeBinding source, TypeBinding target) =>
+            ArgumentConvertsIdentity(SoleParameter(interfaceId), DispatchIdentity(source), DispatchIdentity(target));
+
+        // Identity, or through the parameter's variance a reference
+        // conversion, so a value type argument converts by identity only.
+        private bool ArgumentConvertsIdentity(GenericParamDeclaration? parameter, TypeBinding source, TypeBinding target)
+        {
+            if (source.Equals(target))
+                return true;
+            return parameter?.variance switch
+            {
+                NeoGenericParamVarianceKind.Out => IsReference(source) && ConvertsIdentity(source, target),
+                NeoGenericParamVarianceKind.In => IsReference(target) && ConvertsIdentity(target, source),
+                _ => false,
+            };
+        }
+
+        private static bool IsReference(TypeBinding type) => type.Head is { } head && !TypeBindings.IsValueType(head);
+
+        private GenericParamDeclaration? SoleParameter(string interfaceId) =>
+            client.ProjectDataForRuntime.interfaces.TryGetValue(interfaceId, out var declaration)
+                && declaration.genericParams is { Count: 1 } parameters
+                    ? parameters[0]
+                    : null;
+
+        // The element a List, Set or Dictionary enumerates: a dictionary's value.
+        private static TypeBinding? CollectionElement(TypeBinding collection) => collection.Head!.Type switch
+        {
+            MemberKind.List or MemberKind.Set => collection.At(0),
+            MemberKind.Dictionary => collection.At(1),
+            _ => null,
+        };
 
         internal bool PrimitiveConforms(TypeBinding type, TypeBinding requested)
         {

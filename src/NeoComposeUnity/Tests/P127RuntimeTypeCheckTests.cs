@@ -33,19 +33,21 @@ namespace NeoCompose.Tests
         [TestCase("CastCat", "object", true)]
         [TestCase("CastPet", "CastCat", false)]
         [TestCase("int", "object", false)]
+        // Nested: a collection element converts through the same rule, and
+        // List, Set and Dictionary stay invariant themselves.
+        [TestCase("List<CastCat>", "IEnumerable<CastPet>", true)]
+        [TestCase("List<CastCat>", "IEnumerable<CastCat>", true)]
+        [TestCase("Set<CastCat>", "IEnumerable<CastPet>", true)]
+        [TestCase("Dictionary<CastCat>", "IEnumerable<CastPet>", true)]
+        [TestCase("IEnumerable<CastCat>", "IEnumerable<CastPet>", true)]
+        [TestCase("List<CastCat>", "List<CastPet>", false)]
+        [TestCase("List<CastPet>", "IEnumerable<CastCat>", false)]
+        [TestCase("List<int>", "IEnumerable<object>", false)]
         public void ACollectionIsAnEnumerableOfAConvertibleElement(string element, string expected, bool converts)
         {
             object?[] list = new object?[0];
             client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(list), Type(element));
-            var enumerable = new InterfaceTypeInfo
-            {
-                type = MemberKind.Interface,
-                required = true,
-                interfaceId = NeoSequenceContract.Enumerable,
-                typeArguments = new Dictionary<string, TypeInfo> { [NeoSequenceContract.EnumerableElement] = Type(expected) },
-            };
-
-            Assert.That(Checks(list, enumerable), Is.EqualTo(converts));
+            Assert.That(Checks(list, Enumerable(Type(expected))), Is.EqualTo(converts));
         }
 
         // A reference type argument's `?` isn't part of the runtime type; a value type's is.
@@ -87,11 +89,35 @@ namespace NeoCompose.Tests
             }, scope, ctx)!;
         }
 
-        private TypeInfo Type(string name) => name switch
+        private TypeInfo Type(string name)
         {
-            "int" => new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
-            "object" => new ObjectTypeInfo { type = MemberKind.Object, required = true },
-            _ => new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId(name) },
+            int open = name.IndexOf('<');
+            if (open < 0)
+            {
+                return name switch
+                {
+                    "int" => new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    "object" => new ObjectTypeInfo { type = MemberKind.Object, required = true },
+                    _ => new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId(name) },
+                };
+            }
+            TypeInfo element = Type(name.Substring(open + 1, name.Length - open - 2));
+            return name.Substring(0, open) switch
+            {
+                "List" => new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = element },
+                "Set" => new LookupTypeInfo { type = MemberKind.Lookup, required = true, entryTypeInfo = element },
+                // A string-keyed dictionary, which enumerates its values.
+                "Dictionary" => new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = element },
+                _ => Enumerable(element),
+            };
+        }
+
+        private static InterfaceTypeInfo Enumerable(TypeInfo element) => new()
+        {
+            type = MemberKind.Interface,
+            required = true,
+            interfaceId = NeoSequenceContract.Enumerable,
+            typeArguments = new Dictionary<string, TypeInfo> { [NeoSequenceContract.EnumerableElement] = element },
         };
 
         private string ClassId(string name) => client.ProjectDataForRuntime.classes.Values.Single(schemaClass => schemaClass.name == name).id;
