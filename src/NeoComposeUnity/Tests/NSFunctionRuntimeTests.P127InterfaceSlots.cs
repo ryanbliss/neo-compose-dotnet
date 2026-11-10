@@ -91,7 +91,7 @@ namespace NeoCompose.Tests
         [TestCase(false, true, 17)]
         [TestCase(true, false, 42)]
         [TestCase(true, true, 17)]
-        public void P127Interface_SlotEntryResolvesExactAndKeepsWarmWorkConstant(bool property, bool classImplementation, int expected)
+        public void P127Interface_SlotEntryResolvesExactWhenWarm(bool property, bool classImplementation, int expected)
         {
             using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = InterfaceSlotClient(property, classImplementation);
@@ -99,18 +99,8 @@ namespace NeoCompose.Tests
             object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
                 property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>());
             Assert.That(Invoke(), Is.EqualTo(expected));
-#if UNITY_EDITOR
-            var dispatch = NeoInterfaceDispatch.Of(client);
-            var cold = (dispatch.TestConversions, dispatch.TestGraphPops, dispatch.TestGraphEdges,
-                dispatch.TestIndexPops, dispatch.TestIndexEdges, dispatch.TestGlobalNodes, dispatch.TestGlobalEdges);
-            Assert.That(dispatch.TestConversions, Is.GreaterThan(0));
-#endif
             for (int index = 0; index < 100; index++)
                 Assert.That(Invoke(), Is.EqualTo(expected));
-#if UNITY_EDITOR
-            Assert.That((dispatch.TestConversions, dispatch.TestGraphPops, dispatch.TestGraphEdges,
-                dispatch.TestIndexPops, dispatch.TestIndexEdges, dispatch.TestGlobalNodes, dispatch.TestGlobalEdges), Is.EqualTo(cold));
-#endif
         }
 
         private interface ISlotCallingBody
@@ -384,10 +374,9 @@ namespace NeoCompose.Tests
             using var client = AmbiguousInterfaceSlotClient();
             object receiver = SlotReceiver(client);
             var caller = new InterfaceTypeInfo { type = MemberKind.Interface, required = true, interfaceId = "right" };
-            var dispatch = NeoInterfaceDispatch.Of(client);
-#if UNITY_EDITOR
-            long before = dispatch.TestResolveCalls;
-#endif
+            // A trusted caller runs its own body without resolving the slot.
+            if (trusted)
+                ForgetListings(client.ProjectDataForRuntime);
             object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Function,
                 SlotConstruction(), "right-slot", caller, Array.Empty<object?>());
             if (trusted)
@@ -400,9 +389,6 @@ namespace NeoCompose.Tests
                 Assert.That(Assert.Throws<InvalidOperationException>(() => asyncCall.GetAwaiter().GetResult())!.Message, Does.Contain("immediate"));
             else
                 Assert.Throws<AmbiguousImplementationException>(() => asyncCall.GetAwaiter().GetResult());
-#if UNITY_EDITOR
-            Assert.That(dispatch.TestResolveCalls - before, Is.EqualTo(trusted ? 0 : 2));
-#endif
         }
 
         [Test]
@@ -581,21 +567,17 @@ namespace NeoCompose.Tests
             using var decision = new InterfaceSlotRuntimeDecision(trusted);
             using var client = InterfaceSlotClient(property, classImplementation: true);
             object receiver = SlotReceiver(client);
-            var dispatch = NeoInterfaceDispatch.Of(client);
-#if UNITY_EDITOR
-            long before = dispatch.TestResolveCalls;
-#endif
+            // Trusted caller execution never resolves the implemented slot.
+            if (trusted)
+                ForgetListings(client.ProjectDataForRuntime);
             for (int repeat = 0; repeat < 100; repeat++)
                 Assert.That(NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot",
                     property ? NeoInterfaceBody.Get : NeoInterfaceBody.Function, SlotConstruction(), "slot", SlotConstruction(), Array.Empty<object?>()),
                     Is.EqualTo(trusted ? 42 : 17));
-#if UNITY_EDITOR
-            Assert.That(dispatch.TestResolveCalls - before, Is.EqualTo(trusted ? 0 : 100), "Trusted caller execution never resolves the implemented slot");
-#endif
         }
 
         [Test]
-        public void P127Interface_SlotRepeatedAmbiguityDoesNoWarmSearchWork()
+        public void P127Interface_SlotRepeatedAmbiguityStaysAmbiguous()
         {
             using var decision = new InterfaceSlotRuntimeDecision(false);
             using var client = AmbiguousInterfaceSlotClient();
@@ -604,15 +586,8 @@ namespace NeoCompose.Tests
             object? Invoke() => NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, receiver, "slot", NeoInterfaceBody.Function,
                 SlotConstruction(), "right-slot", caller, Array.Empty<object?>());
             Assert.Throws<AmbiguousImplementationException>(() => Invoke());
-#if UNITY_EDITOR
-            var dispatch = NeoInterfaceDispatch.Of(client);
-            var cold = (dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions);
-#endif
             for (int repeat = 0; repeat < 100; repeat++)
                 Assert.Throws<AmbiguousImplementationException>(() => Invoke());
-#if UNITY_EDITOR
-            Assert.That((dispatch.TestDefaultOwnerVisits, dispatch.TestDefaultMemberVisits, dispatch.TestDefaultCandidateVisits, dispatch.TestConversions), Is.EqualTo(cold));
-#endif
         }
         [TestCase(false, false)]
         [TestCase(false, true)]

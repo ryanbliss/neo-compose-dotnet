@@ -13,13 +13,6 @@ namespace NeoCompose.Runtime
     /// <summary>Interface graphs and accessor mappings, scoped to the client's schema.</summary>
     internal sealed class NeoInterfaceDispatch
     {
-#if UNITY_EDITOR
-        // Actual-operation counters for cold-query regression tests. No player cost.
-        internal long TestConversions, TestGraphPops, TestGraphEdges;
-        internal long TestDefaultOwnerVisits, TestDefaultMemberVisits, TestDefaultCandidateVisits, TestResolveCalls;
-        internal long TestExplicitSiteVisits, TestInheritedListingVisits, TestClassMemberOwnerVisits;
-        internal long TestIndexPops, TestIndexEdges, TestGlobalNodes, TestGlobalEdges;
-#endif
         private static readonly ConditionalWeakTable<NeoClient, NeoInterfaceDispatch> Caches = new();
         private readonly NeoClient client;
         private readonly object schema;
@@ -300,9 +293,6 @@ namespace NeoCompose.Runtime
         // Normalize only at the boundary, not at every specificity comparison.
         private bool ConvertsIdentity(TypeBinding from, TypeBinding to)
         {
-#if UNITY_EDITOR
-            TestConversions++;
-#endif
             if (from.Equals(to))
                 return true;
             if (from.IsOpen || to.IsOpen)
@@ -391,9 +381,6 @@ namespace NeoCompose.Runtime
 
         internal Implementation Resolve(TypeBinding receiver, TypeBinding requested, string memberId, string accessor, bool direct = false)
         {
-#if UNITY_EDITOR
-            TestResolveCalls++;
-#endif
             receiver = DispatchIdentity(receiver);
             requested = DispatchIdentity(requested);
             var key = (receiver, requested, memberId, accessor, direct);
@@ -457,9 +444,6 @@ namespace NeoCompose.Runtime
                     ? entries.ByConstruction.GetValueOrDefault(requested) ?? Enumerable.Empty<DefaultCandidate>()
                     : MatchingConstructions(entries, requested, entry => entry.Target).OrderBy(entry => entry.Order))
                 {
-#if UNITY_EDITOR
-                    TestDefaultCandidateVisits++;
-#endif
                     if (entry.IsOverride && entry.Member.kind == NeoInterfaceMemberKind.Property
                         && !InterfaceHasAccessor(entry.Member, accessor))
                         continue;
@@ -540,14 +524,8 @@ namespace NeoCompose.Runtime
                 foreach (var level in DefaultLevels(receiver))
                     foreach (var owner in level)
                     {
-#if UNITY_EDITOR
-                        TestDefaultOwnerVisits++;
-#endif
                         foreach (var entry in client.ProjectDataForRuntime.interfaces[owner.Head!.InterfaceId!].members)
                         {
-#if UNITY_EDITOR
-                            TestDefaultMemberVisits++;
-#endif
                             var member = entry.Value;
                             if (member.implementationMemberId is not null)
                                 Add(member.id ?? entry.Key, owner, owner, member, false);
@@ -623,9 +601,6 @@ namespace NeoCompose.Runtime
                 if (ExplicitSites(owner.Head!.ClassId!).TryGetValue(memberId, out var sites))
                     foreach (var member in sites)
                     {
-#if UNITY_EDITOR
-                        TestExplicitSiteVisits++;
-#endif
                         AddListing(constructions, Construct(member.explicitImplementation!, owner), member);
                     }
                 explicitConstructions[key] = constructions;
@@ -633,9 +608,6 @@ namespace NeoCompose.Runtime
             if (constructions.TryGetValue(requested, out var matches))
                 foreach (var member in matches)
                 {
-#if UNITY_EDITOR
-                    TestExplicitSiteVisits++;
-#endif
                     if (HasAccessor(member, accessor))
                         return new Implementation(member.id, staticConstruction: isStatic ? owner : null);
                 }
@@ -785,14 +757,8 @@ namespace NeoCompose.Runtime
             declarationChildren = new();
             void AddParents((MemberKind Kind, string Id) child)
             {
-#if UNITY_EDITOR
-                TestGlobalNodes++;
-#endif
                 foreach (var parent in DeclarationParents(child))
                 {
-#if UNITY_EDITOR
-                    TestGlobalEdges++;
-#endif
                     if (!declarationChildren.TryGetValue(parent, out var children))
                         declarationChildren[parent] = children = new();
                     children.Add(child);
@@ -828,17 +794,11 @@ namespace NeoCompose.Runtime
             while (pending.Count != 0)
             {
                 var current = pending.Pop();
-#if UNITY_EDITOR
-                TestIndexPops++;
-#endif
                 IEnumerable<(MemberKind Kind, string Id)> adjacent = descendants
                     ? DeclarationParents(current)
                     : children!.TryGetValue(current, out var entries) ? entries : Array.Empty<(MemberKind, string)>();
                 foreach (var next in adjacent)
                 {
-#if UNITY_EDITOR
-                    TestIndexEdges++;
-#endif
                     Add(next);
                     graph[next].Add(current);
                 }
@@ -858,17 +818,11 @@ namespace NeoCompose.Runtime
             while (pending.Count != 0)
             {
                 var current = pending.Pop();
-#if UNITY_EDITOR
-                TestGraphPops++;
-#endif
                 if (!seen.Add(current))
                     continue;
                 yield return current;
                 foreach (var next in graph[current])
                 {
-#if UNITY_EDITOR
-                    TestGraphEdges++;
-#endif
                     pending.Push(next);
                 }
             }
@@ -951,9 +905,6 @@ namespace NeoCompose.Runtime
                 {
                     if (!index.Levels.TryAdd(current, index.Chain.Count))
                         throw new NSGetterRuntimeError($"Circular class extension detected at '{current}'.");
-#if UNITY_EDITOR
-                    TestClassMemberOwnerVisits++;
-#endif
                     int level = index.Chain.Count;
                     index.Chain.Add(current);
                     foreach (string slot in ExplicitSites(current).Keys)
@@ -1078,9 +1029,6 @@ namespace NeoCompose.Runtime
                 listed = new();
                 foreach (var construction in Listings(owner.Head!.ClassId!).Listed)
                 {
-#if UNITY_EDITOR
-                    TestInheritedListingVisits++;
-#endif
                     listed.Add(SchemaIdentity(Substitute(construction, owner)));
                 }
                 ownListingConstructions[owner] = listed;
