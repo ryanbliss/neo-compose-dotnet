@@ -49,7 +49,7 @@
 - Refresh stored comparer indexes and localized tuple values when the active locale or loaded translations change. Keep bounded lookup membership on its existing index.
 
 - Evaluate typed default and authored equality/comparison contracts with per-schema selection caches. Equality queries and set/dictionary constructors retain their comparers and hash entries once per insertion.
-- Use the .NET ordering algorithms for list sorting, ordered queries and Min/Max, including nulls, NaN, ranges, stable ties and comparer failures.
+- Sort lists, ordered queries and Min/Max by the P127 ordering rules, including nulls, NaN, ranges, stable ties and comparer failures.
 - Lifted `<`, `<=`, `>` and `>=` return false when either operand is null; previously they threw.
 - Empty `Min`, `Max` and `Average` throw "Sequence contains no elements" for non-nullable value types and return null for reference and nullable results.
 - Enumerate Sets and Dictionaries in insertion order on every path. Removing and then adding an entry appends it, instead of reusing its former enumeration position.

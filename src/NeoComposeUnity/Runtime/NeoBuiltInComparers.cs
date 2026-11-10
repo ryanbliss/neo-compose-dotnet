@@ -165,7 +165,7 @@ namespace NeoCompose.Runtime
 
     /// <summary>
     /// <c>EqualityComparer&lt;T&gt;.Create(equals, getHashCode?)</c>. Two from
-    /// the same delegates are equal, as in .NET 10.
+    /// the same delegates are equal.
     /// </summary>
     internal sealed class NeoScriptEqualityComparer<T> : NeoScriptComparer, IEqualityComparer<T>, IEqualityComparer
     {
@@ -205,7 +205,7 @@ namespace NeoCompose.Runtime
         public override int GetHashCode() => DelegatesHash();
     }
 
-    /// <summary><c>Comparer&lt;T&gt;.Create(comparison)</c>, equal only to itself, as in .NET 10.</summary>
+    /// <summary><c>Comparer&lt;T&gt;.Create(comparison)</c>, equal only to itself.</summary>
     internal sealed class NeoScriptOrderComparer<T> : NeoScriptComparer, IComparer<T>, IComparer
     {
         // Constructed only by reflection; retain it in stripped players.
