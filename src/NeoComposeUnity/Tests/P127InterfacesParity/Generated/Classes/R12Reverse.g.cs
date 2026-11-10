@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R12Reverse : NeoGeneratedClassValue, IReadOnlyR12Reverse
     {
         internal R12Reverse(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c8cad37e-80c4-429f-bda2-dacf2d14b65d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2a1284a1-421a-420e-bcf4-6fe89257de0c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c8cad37e-80c4-429f-bda2-dacf2d14b65d");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2a1284a1-421a-420e-bcf4-6fe89257de0c");
         }
 
         internal static R12Reverse Create(NeoClient client, NeoMemberClass node)
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int IR12Method.V()
         {
-            var result = InvokeFunction("V#7199962f-aa59-4ab0-b3d8-08401c6fe00d");
+            var result = InvokeFunction("V#daa216e6-1eef-4af9-a2ef-61fa10429e07");
             return Convert.ToInt32(result);
         }
 

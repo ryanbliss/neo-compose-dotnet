@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class EqOf<T> : NeoGeneratedClassValue, IReadOnlyEqOf<T>
     {
         internal EqOf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "63f07f37-62ac-4506-9323-f02f7510a56e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c4557e77-50f2-4083-b28c-e4d82142fe5d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static bool E(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "613f8842-abeb-49a3-9fe2-30af2bab2c21", client.TypeArguments.Of<EqOf<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8807b8e2-de67-41ec-9444-1abc2aa3b67d", client.TypeArguments.Of<EqOf<T>>());
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "63f07f37-62ac-4506-9323-f02f7510a56e" => new EqOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c4557e77-50f2-4083-b28c-e4d82142fe5d" => new EqOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'EqOf' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "63f07f37-62ac-4506-9323-f02f7510a56e" => new EqOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c4557e77-50f2-4083-b28c-e4d82142fe5d" => new EqOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'EqOf' without a concrete client type id."),
                 };
             });

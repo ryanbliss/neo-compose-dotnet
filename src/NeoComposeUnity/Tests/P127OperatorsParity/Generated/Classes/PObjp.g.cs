@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class PObjp : NeoGeneratedClassValue, IReadOnlyPObjp
     {
         internal PObjp(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "02322011-d547-46d3-8e31-0266fdb50d1f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ce77729b-9d86-4226-9c06-11f171d0fd72", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool BoxedEquals()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4b4b90a6-9c1d-4966-95cf-0f64e318be98");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b782e3cd-9a0a-446f-8ecb-fa19410209fb");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int BoxedHash()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "509851e3-96ac-4e39-973a-aaa6f8b96eb5");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ef2e5f1a-fbb9-48cd-9816-add3acf6929a");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool BoxedIntEquals()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f511cc24-987b-4b41-80c6-aa668b649722");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b3bcc672-976b-4495-856a-84e57a498bb5");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string? BoxedToString()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c8708723-2c96-4ca7-b674-f61729faf338");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3f27c5fd-7ae8-4dda-9b4e-39849bf355cf");
             var result = node.InvokeStatic();
             if (result is null) return null;
             return (string)result!;
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string? DerivedToString()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0fca011d-30b3-43c8-bf03-edc559d93415");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9b27366c-22b7-444c-96cf-2c2e117c83be");
             var result = node.InvokeStatic();
             if (result is null) return null;
             return (string)result!;
@@ -79,7 +79,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int Hash()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "85c92116-1820-4c64-9895-814060cdf7d8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "620bc570-2734-4dae-83f2-abfdbb2be451");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -87,7 +87,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static string Interpolated()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5aaa884e-a00d-4e05-9b24-5402cf89e0f6");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e8582e2d-7fcc-403d-9ec4-3cb5c6a67aa4");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -95,7 +95,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool PlainEqualsOther()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "36c11bff-563f-4044-be74-70f0de715f88");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "581a0079-95d0-4fbf-974d-a5be476174f5");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -103,7 +103,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool PlainEqualsSelf()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a2e0def2-4d5b-4057-8100-0b0c559d8467");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "570f6f3d-f9f7-4571-b764-c6503ebe78a4");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -111,7 +111,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool RefEqualsSame()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "eeb69e76-0dde-40c3-b1bc-abf21d763b54");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "369f198e-334e-49f6-b56d-3e67bbc7cf10");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -119,7 +119,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool RefEqualsTwo()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "90f9f00f-f3c5-438e-88d3-85dd8a855431");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2a9cf158-fbf4-4793-9524-3f10ef0a7ce5");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -127,7 +127,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool StaticEquals()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6e151ec1-2bd3-4fee-8cd9-280fb01c1b4c");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f1fcb1d7-9048-412f-9dfc-cf5a8cccbf17");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool StaticEqualsNull()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a6fb856d-6c81-46f8-85ba-542d67053b69");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "66054ab1-5840-4578-b462-d9646c86cff9");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -143,7 +143,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool TypedEquals()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0d4c7275-a86b-48e9-854f-213e07889587");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b8ca5fcf-9eaa-4f71-bb79-7fe4f31ab64a");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool TypedEqualsAsObject()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c81ccc85-d7ce-4055-8d58-7136a1b470b9");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ce8e2fae-ac32-414c-83da-52b2a2920b78");
             var result = node.InvokeStatic();
             return (bool)result!;
         }
@@ -164,7 +164,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "02322011-d547-46d3-8e31-0266fdb50d1f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ce77729b-9d86-4226-9c06-11f171d0fd72");
         }
 
         internal static PObjp Create(NeoClient client, NeoMemberClass node)

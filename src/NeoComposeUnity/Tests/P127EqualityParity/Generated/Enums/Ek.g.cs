@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "c7f63df0-f26e-4f69-9f7e-3edb1140d13a" => Ek.A,
-                "68872af6-735c-4c4d-a232-36f8c5222c84" => Ek.B,
+                "63580a98-4413-4fb0-a4d4-4e9390f3db55" => Ek.A,
+                "8525e75a-7385-46b4-a432-b68e540fed86" => Ek.B,
                 _ => NeoUndeclaredEnumOptions<Ek>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                Ek.A => "c7f63df0-f26e-4f69-9f7e-3edb1140d13a",
-                Ek.B => "68872af6-735c-4c4d-a232-36f8c5222c84",
+                Ek.A => "63580a98-4413-4fb0-a4d4-4e9390f3db55",
+                Ek.B => "8525e75a-7385-46b4-a432-b68e540fed86",
                 _ => NeoUndeclaredEnumOptions<Ek>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "c7f63df0-f26e-4f69-9f7e-3edb1140d13a" => true,
-                "68872af6-735c-4c4d-a232-36f8c5222c84" => true,
+                "63580a98-4413-4fb0-a4d4-4e9390f3db55" => true,
+                "8525e75a-7385-46b4-a432-b68e540fed86" => true,
                 _ => false,
             };
         }

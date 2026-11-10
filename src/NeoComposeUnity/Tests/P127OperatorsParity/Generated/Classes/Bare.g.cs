@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Bare : NeoGeneratedClassValue, IReadOnlyBare
     {
         internal Bare(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0072a5ae-b1c6-4809-8caa-d369502a8bbe", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "db195552-8e8e-493c-b8be-aa42a897f52b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0072a5ae-b1c6-4809-8caa-d369502a8bbe");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "db195552-8e8e-493c-b8be-aa42a897f52b");
         }
 
         internal static Bare Create(NeoClient client, NeoMemberClass node)

@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class OVI : NeoGeneratedClassValue, IReadOnlyOVI
     {
         internal OVI(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9cfd5412-f03d-426b-9e2c-3f9ea24cb062", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "14a371a0-4207-462a-b0a6-8ba180152be7", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9cfd5412-f03d-426b-9e2c-3f9ea24cb062");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "14a371a0-4207-462a-b0a6-8ba180152be7");
         }
 
         internal static OVI Create(NeoClient client, NeoMemberClass node)
@@ -58,8 +58,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4b1e1d1e-c8eb-485a-8b64-b2ce0d62905a" => new OVIM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "5afc5ee0-e83f-41c6-a10b-843296b545e1" => new OVIF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3b9afe55-7610-4980-b1e0-f75846fef9cd" => new OVIM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ee2b4e60-e37f-41d1-82e2-951b17c057d4" => new OVIF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new OVI(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -72,8 +72,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4b1e1d1e-c8eb-485a-8b64-b2ce0d62905a" => new OVIM(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "5afc5ee0-e83f-41c6-a10b-843296b545e1" => new OVIF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3b9afe55-7610-4980-b1e0-f75846fef9cd" => new OVIM(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ee2b4e60-e37f-41d1-82e2-951b17c057d4" => new OVIF(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new OVI(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -83,9 +83,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "4b1e1d1e-c8eb-485a-8b64-b2ce0d62905a" => new OVIM(client, value, !saved),
-                "5afc5ee0-e83f-41c6-a10b-843296b545e1" => new OVIF(client, value, !saved),
-                "9cfd5412-f03d-426b-9e2c-3f9ea24cb062" => new OVI(client, value, !saved),
+                "3b9afe55-7610-4980-b1e0-f75846fef9cd" => new OVIM(client, value, !saved),
+                "ee2b4e60-e37f-41d1-82e2-951b17c057d4" => new OVIF(client, value, !saved),
+                "14a371a0-4207-462a-b0a6-8ba180152be7" => new OVI(client, value, !saved),
                 _ => null,
             };
         }
@@ -115,19 +115,19 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int F(int x)
         {
-            var result = InvokeFunction("F#9f93769e-effe-4b1a-a934-fa7e2110891e", (object?)(x));
+            var result = InvokeFunction("F#3580ea2f-3c14-43db-8c89-94a16c78579c", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         public virtual int F(string s)
         {
-            var result = InvokeFunction("F#b34c6ddb-81a9-4179-970d-a5ccff2228cc", (object?)(s));
+            var result = InvokeFunction("F#cab15f60-6eb3-4fa0-a625-f938cee498b0", (object?)(s));
             return Convert.ToInt32(result);
         }
 
         public virtual int F(bool b)
         {
-            var result = InvokeFunction("F#cc7c8f63-d31e-45b6-addd-6319803cdab7", (object?)(b));
+            var result = InvokeFunction("F#2973672d-1375-46c2-a2ac-7d7ec72f6926", (object?)(b));
             return Convert.ToInt32(result);
         }
 
