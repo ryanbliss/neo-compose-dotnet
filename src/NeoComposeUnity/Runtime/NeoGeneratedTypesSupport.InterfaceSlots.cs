@@ -23,6 +23,13 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(callerConstruction));
             if (TrustRuntimeInterfaceDispatch)
                 return InvokeInterfaceMember(client, receiver, callerMemberId, body, callerConstruction, args, typeArguments);
+            return InvokeResolvedInterfaceSlot(client, receiver, slotMemberId, body, slotConstruction, args, typeArguments);
+        }
+
+        /// <summary>Runs the slot's resolved implementation, as an untrusted runtime does.</summary>
+        internal static object? InvokeResolvedInterfaceSlot(NeoClient client, object? receiver, string slotMemberId,
+            NeoInterfaceBody body, TypeInfo slotConstruction, object?[] args, TypeInfo[]? typeArguments = null)
+        {
             var ctx = client.RentDirectFunctionContext(receiver is NeoGeneratedClassValue generated
                 ? generated.StorageOwnership : NeoValueOwnership.Session, function: body == NeoInterfaceBody.Function);
             object? result = null;
@@ -76,8 +83,22 @@ namespace NeoCompose.Runtime
                     throw new ArgumentNullException(nameof(callerConstruction));
                 if (TrustRuntimeInterfaceDispatch)
                     return InvokeInterfaceMemberAsync(client, receiver, callerMemberId, body, callerConstruction, args, typeArguments);
+                return InvokeResolvedInterfaceSlotAsync(client, receiver, slotMemberId, body, slotConstruction, args, typeArguments);
+            }
+            catch (Exception exception)
+            {
+                return Task.FromException<object?>(exception);
+            }
+        }
+
+        /// <summary>The async form of <see cref="InvokeResolvedInterfaceSlot"/>.</summary>
+        internal static Task<object?> InvokeResolvedInterfaceSlotAsync(NeoClient client, object? receiver, string slotMemberId,
+            NeoInterfaceBody body, TypeInfo slotConstruction, object?[] args, TypeInfo[]? typeArguments = null)
+        {
+            try
+            {
                 if (body != NeoInterfaceBody.Function)
-                    return Task.FromResult(InvokeInterfaceSlot(client, receiver, slotMemberId, body, slotConstruction, callerMemberId, callerConstruction, args, typeArguments));
+                    return Task.FromResult(InvokeResolvedInterfaceSlot(client, receiver, slotMemberId, body, slotConstruction, args, typeArguments));
                 var ctx = client.CreateGetterContext(receiver is NeoGeneratedClassValue generated
                     ? generated.StorageOwnership : NeoValueOwnership.Session);
                 ctx.BindRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx));
@@ -159,35 +180,13 @@ namespace NeoCompose.Runtime
 
         private static class RuntimeInterfaceDispatchProbe
         {
-            internal static readonly bool Trusted = ProbeRuntimeInterfaceDispatch();
+            internal static readonly bool Trusted = ProbeRuntimeInterfaceDispatch(
+                () => ((INeoInterfaceDispatchProbeJ<object>)new NeoInterfaceDispatchProbeC<object, object>()).V);
         }
 
         // The diamond classifies the runtime, not each individual request.
         // It does not establish generated-C# parity for every IL2CPP shape.
-        internal static bool TrustRuntimeInterfaceDispatch
-        {
-            get
-            {
-#if UNITY_EDITOR
-                if (TestTrustRuntimeInterfaceDispatch is bool decision)
-                    return decision;
-#endif
-                return RuntimeInterfaceDispatchProbe.Trusted;
-            }
-        }
-#if UNITY_EDITOR
-        [ThreadStatic]
-        internal static bool? TestTrustRuntimeInterfaceDispatch;
-        internal static int TestAmbiguityProbeRuns;
-#endif
-
-        private static bool ProbeRuntimeInterfaceDispatch()
-        {
-#if UNITY_EDITOR
-            TestAmbiguityProbeRuns++;
-#endif
-            return ProbeRuntimeInterfaceDispatch(() => ((INeoInterfaceDispatchProbeJ<object>)new NeoInterfaceDispatchProbeC<object, object>()).V);
-        }
+        internal static bool TrustRuntimeInterfaceDispatch => RuntimeInterfaceDispatchProbe.Trusted;
 
         internal static bool ProbeRuntimeInterfaceDispatch(Func<int> probe)
         {
