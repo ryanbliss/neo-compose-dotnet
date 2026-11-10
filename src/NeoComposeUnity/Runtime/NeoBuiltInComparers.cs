@@ -169,6 +169,8 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal sealed class NeoScriptEqualityComparer<T> : NeoScriptComparer, IEqualityComparer<T>, IEqualityComparer
     {
+        // Constructed only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         internal NeoScriptEqualityComparer(NeoClient client, NeoValueOwnership ownership, JObject payload)
             : base(client, ownership, payload)
         {
@@ -206,6 +208,8 @@ namespace NeoCompose.Runtime
     /// <summary><c>Comparer&lt;T&gt;.Create(comparison)</c>, equal only to itself, as in .NET 10.</summary>
     internal sealed class NeoScriptOrderComparer<T> : NeoScriptComparer, IComparer<T>, IComparer
     {
+        // Constructed only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         internal NeoScriptOrderComparer(NeoClient client, NeoValueOwnership ownership, JObject payload)
             : base(client, ownership, payload)
         {

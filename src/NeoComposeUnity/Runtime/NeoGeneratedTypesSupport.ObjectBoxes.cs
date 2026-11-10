@@ -1081,6 +1081,8 @@ namespace NeoCompose.Runtime
                 .MakeGenericMethod(view)
                 .CreateDelegate(typeof(Func<NeoClient, Member, NeoMember, object?>));
 
+        // Selected only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         private static object? ReadThroughCodec<T>(NeoClient client, Member held, NeoMember node) =>
             NeoGenericBindings.ResolveForMember<T>(client, held, node).Read(node);
 
@@ -1102,6 +1104,8 @@ namespace NeoCompose.Runtime
             return (node, client) => (Delegate)bind!.Invoke(node, new[] { converter.Invoke(null, new object[] { client }) })!;
         }
 
+        // Selected only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         private static Func<object?, TResult> DelegateResultConverter<TResult>(NeoClient client) =>
             result => TryConvertValue<TResult>(client, result, null, null, out TResult converted)
                 ? converted
