@@ -452,12 +452,15 @@ namespace NeoCompose.Runtime
             return OwnerArgumentEntry(client, NeoTypeBindingViews.Id(argument), ownerEnv);
         }
 
-        /// <summary>A forward's owner entry, its <c>U?</c> kept: a reference type reads nullable.</summary>
+        /// <summary>
+        /// A forward's owner entry, its <c>U?</c> kept: a reference type reads
+        /// nullable, including one whose entry carries closed bindings.
+        /// </summary>
         private static NeoGenericEnvEntry? ForwardedEntry(NeoClient client, TypeBinding forward, NeoGenericEnvEntry? entry)
         {
-            if (!forward.Nullable || entry is not { IsBound: true, bindings: null })
+            if (!forward.Nullable || entry is not { IsBound: true })
                 return entry;
-            TypeBinding argument = NeoTypeBindings.OfMemberId(client, entry.memberId!);
+            TypeBinding argument = NeoTypeBindings.ArgumentOfEntry(client, entry, EmptyEnv);
             TypeBinding nullable = argument.AsNullableArgument();
             return ReferenceEquals(nullable, argument) ? entry : NeoTypeBindings.Entry(nullable);
         }
