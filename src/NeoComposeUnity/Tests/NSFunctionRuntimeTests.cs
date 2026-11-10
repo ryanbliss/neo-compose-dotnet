@@ -4500,6 +4500,65 @@ namespace NeoCompose.Tests
             Assert.AreEqual(23d, number!.value);
         }
 
+        // A `T Value` row that omits Value: closed over `int?` it reads null;
+        // closed over `int`, or placed as a partial payload, it has no value.
+        [TestCase(false, false, true)]
+        [TestCase(true, false, false)]
+        [TestCase(false, true, false)]
+        public void Invoke_OmittedGenericFieldReadsNullOnlyWhenClosedOptional(bool requiredArgument, bool partialPayload, bool readsNull)
+        {
+            const string param = "omitted-param";
+            var value = new GenericMember
+            {
+                id = "omitted-value",
+                name = "Value",
+                projectId = ProjectId,
+                kind = MemberKind.Generic,
+                Requirement = NeoMemberRequirementKind.Required,
+                genericParamId = param,
+            };
+            var function = ScriptFunction("omitted-read", "Read", false, IntType(required: false),
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(IntType(required: false), Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Key(Key(Key(Variable("__root__"), "Save"), "Holder"), "Value"))));
+            var placement = new ClassMember
+            {
+                id = "omitted-placement",
+                name = "Holder",
+                projectId = ProjectId,
+                kind = MemberKind.Class,
+                DeclaredClassId = "receiver-class",
+                classArguments = new Dictionary<string, TypeBinding>
+                {
+                    [param] = TestTypeBindings.Of(MemberKind.Int, requiredArgument),
+                },
+            };
+            if (partialPayload)
+                placement.Payload = NeoMemberPayloadKind.Partial;
+            var holderClass = ReceiverClass(("Value", value.id), ("Read", function.id));
+            holderClass.genericParams = new List<GenericParamDeclaration> { new() { id = param, name = "T" } };
+            var rootClass = new NeoSchemaClass
+            {
+                id = "root-class",
+                name = "Root",
+                projectId = ProjectId,
+                schema = new Dictionary<string, string> { ["Holder"] = placement.id },
+            };
+            using NeoClient client = BuildClient(new JsonMember[] { value, function, placement }, holderClass, new[] { rootClass });
+            var root = ObjectValue("root-save-value", "root-class");
+            root.value!["Holder"] = "saved-holder";
+            client.SetWritableValue(NeoValueOwnership.Save, root);
+            client.SetWritableValue(NeoValueOwnership.Save, ObjectValue("saved-holder", holderClass.id));
+            var node = new NeoMemberNSFunction(client, function, null, NeoValueOwnership.Save);
+            if (readsNull)
+            {
+                Assert.IsNull(node.Invoke("saved-holder", Array.Empty<object?>()));
+                return;
+            }
+            var error = Assert.Catch(() => node.Invoke("saved-holder", Array.Empty<object?>()));
+            StringAssert.Contains("Missing key 'Value' on object", error!.Message);
+        }
+
         [Test]
         public void Invoke_MutationBodyReturnsTheUpdatedSaveValue()
         {

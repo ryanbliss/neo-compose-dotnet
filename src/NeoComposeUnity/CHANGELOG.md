@@ -4,6 +4,8 @@
 
 - Read a forwarded nullable type argument (`Box<U?>` inside `Holder<U>`). Open type bindings take an optional `nullable: true`, and `TypeBinding.Open` gains a `nullable` parameter. A save holding null in `Holder<Item>`'s `B.Value` now loads; under `Holder<int>`, `U?` is `int` and the save is still refused.
 
+- NeoScript reads an optional field that declares no default as null when its row omits it, as the TypeScript runtime does, such as a `Box<int?>`'s `T Value`. Before, the read failed with `Missing key 'Value' on object`. A required field, or a field of a partial payload, still fails.
+
 - Match generic interface method parameters by their position during declaration dispatch, including nested collection and return types.
 
 - Explain invalid operator declarations, duplicate interface signatures and interface dispatch failures in NeoScript terms, without C# compiler codes or copied compiler messages.

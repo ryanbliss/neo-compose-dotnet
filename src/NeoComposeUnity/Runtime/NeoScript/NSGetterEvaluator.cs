@@ -5421,7 +5421,7 @@ namespace NeoCompose.Runtime.NeoScript
                     Requirement: NeoMemberRequirementKind.Optional,
                     Selection: NeoMemberSelectionKind.Single,
                     valueId: null,
-                    defaultValue: null or { init: null, value: null or { Length: 0 } },
+                    defaultValue: { init: null, value: null or { Length: 0 } },
                 })
             {
                 return null;
