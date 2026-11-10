@@ -118,7 +118,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// A tuple head's element labels in order, <c>""</c> for an
         /// unlabeled element (P127 §12.1); null when no element has one.
-        /// Compile-time names, as C#'s <c>TupleElementNames</c> are, so only
+        /// Compile-time names, not part of the runtime type, so only
         /// declarations and stamps keep them.
         /// </summary>
         public IReadOnlyList<string>? Names
@@ -228,7 +228,7 @@ namespace NeoCompose.Runtime.Json
     /// stored type position. A <see cref="TypeBindingKind.Closed"/> binding
     /// is a <see cref="Head"/> with one <see cref="Bindings"/> entry per
     /// parameter of a generic head: a declared class's or interface's by
-    /// param id, a built-in's by decimal position in C# arity order (List,
+    /// param id, a built-in's by decimal position in type argument order (List,
     /// Set and Reference <c>"0"</c>; Dictionary <c>"0"</c> key and
     /// <c>"1"</c> value; tuples <c>"0"</c>..; NeoDelegate <c>"0"</c> the
     /// result, then its parameters; NeoAction its parameters from

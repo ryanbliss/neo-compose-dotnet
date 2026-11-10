@@ -22,10 +22,11 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
 
     /// <summary>
     /// NeoScript's <c>NumberFormatInfo</c> (P127 §11.2, §14 "Culture types").
-    /// A NeoScript value is the CLR instance itself; this class holds what
-    /// NeoScript does differently from calling the CLR member: setters check
-    /// in .NET 10's order before assigning, the invariant singletons, provider
-    /// resolution, and the retained <c>NativeDigits</c> list.
+    /// A NeoScript value is a <c>System.Globalization.NumberFormatInfo</c>
+    /// instance; this class holds what NeoScript does beyond calling its
+    /// member: setter checks, transcribed in order from .NET 10's setters,
+    /// the invariant singletons, provider resolution, and the retained
+    /// <c>NativeDigits</c> list.
     /// </summary>
     internal static class NeoNumberFormatInfos
     {
@@ -37,7 +38,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
         /// <summary>
         /// <c>InvariantInfo</c> and <c>CurrentInfo</c>: the invariant culture's
         /// read-only number format, so the two and
-        /// <c>InvariantCulture.NumberFormat</c> are one instance, as in .NET 10.
+        /// <c>InvariantCulture.NumberFormat</c> are one instance.
         /// </summary>
         internal static NumberFormatInfo InvariantInfo => CultureInfo.InvariantCulture.NumberFormat;
 
@@ -121,7 +122,8 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
         /// <c>DigitSubstitution</c> properties, a <see cref="string"/> for
         /// separators and symbols, a list of <see cref="int"/> for group
         /// sizes and a list of <see cref="string"/> for <c>NativeDigits</c>.
-        /// The checks run in .NET 10's order before the CLR setter.
+        /// The checks, transcribed in order from .NET 10's setters, run
+        /// before the instance's own setter.
         /// </summary>
         internal static void Set(NumberFormatInfo info, string property, object? value)
         {

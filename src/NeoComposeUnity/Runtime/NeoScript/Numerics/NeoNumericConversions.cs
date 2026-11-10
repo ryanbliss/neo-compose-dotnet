@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime.NeoScript.Numerics
 
         /// <summary>
         /// <c>decimal.Create*</c> from a float: checked throws; the others clamp
-        /// at ±2^96 and map NaN to <c>0.0</c>, as .NET 10 does.
+        /// at ±2^96 and map NaN to <c>0.0</c>.
         /// </summary>
         internal static string DecimalFromSingle(float value, NeoCreateMode mode)
         {

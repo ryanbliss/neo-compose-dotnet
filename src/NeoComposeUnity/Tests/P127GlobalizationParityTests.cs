@@ -385,7 +385,7 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// §14 "One object": the <c>Parent</c> of every invariant culture is
-        /// the <c>InvariantCulture</c> singleton, as on .NET 10, though Mono
+        /// the <c>InvariantCulture</c> singleton, though Mono
         /// gives <c>new CultureInfo("")</c>, <c>GetCultureInfo("")</c> and
         /// <c>ReadOnly</c> copies a distinct invariant parent.
         /// </summary>
