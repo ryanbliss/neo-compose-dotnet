@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SorAllEk : NeoGeneratedClassValue, IReadOnlySorAllEk
     {
         internal SorAllEk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "546462f8-45a0-4d12-8e3c-e9b2f9d653eb", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "49d949d5-6465-4403-a7ba-5b8d0c49d840", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "546462f8-45a0-4d12-8e3c-e9b2f9d653eb");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "49d949d5-6465-4403-a7ba-5b8d0c49d840");
         }
 
         internal static SorAllEk Create(NeoClient client, NeoMemberClass node)

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Log : NeoGeneratedClassValue, IReadOnlyLog
     {
         internal Log(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5772bd6d-f69e-40f7-9b9c-51a45d41da57", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "05c7defc-0713-4ae9-9063-afd34cd424a1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e8c608a1-995a-4d5d-926f-4173df49e5bb", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7687085d-7e77-4c78-bc87-7821e4fcf0bd", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberString>();
                 return ((NeoMemberString)child).Text ?? throw new InvalidOperationException("Required string 'Text' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e8c608a1-995a-4d5d-926f-4173df49e5bb", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7687085d-7e77-4c78-bc87-7821e4fcf0bd", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5772bd6d-f69e-40f7-9b9c-51a45d41da57");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "05c7defc-0713-4ae9-9063-afd34cd424a1");
         }
 
         internal static Log Create(NeoClient client, NeoMemberClass node)

@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R29E(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3998249d-f7b0-4e3b-a48c-486f2447ba3f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2491c54d-3f76-491b-9336-63d2768b1a05", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "728a15c5-a10a-4bc9-8a06-36894623f892" => (R29E<T>)(object)new R29G(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "3998249d-f7b0-4e3b-a48c-486f2447ba3f" => new R29E<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fd734453-631e-4229-a1a6-2803d1ecbaf0" => (R29E<T>)(object)new R29G(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2491c54d-3f76-491b-9336-63d2768b1a05" => new R29E<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29E' without a concrete client type id."),
                 };
             });
@@ -53,8 +53,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "728a15c5-a10a-4bc9-8a06-36894623f892" => (R29E<T>)(object)new R29G(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "3998249d-f7b0-4e3b-a48c-486f2447ba3f" => new R29E<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fd734453-631e-4229-a1a6-2803d1ecbaf0" => (R29E<T>)(object)new R29G(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2491c54d-3f76-491b-9336-63d2768b1a05" => new R29E<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29E' without a concrete client type id."),
                 };
             });
@@ -82,7 +82,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         string IR29J<T>.M()
         {
-            var result = InvokeFunction("M#3812564d-f8d5-48c5-90fa-2602308ad90a");
+            var result = InvokeFunction("M#d236fdd7-c843-4baa-8dfe-6821194a3c5c");
             return (string)result!;
         }
 
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#8228af3d-8737-4c10-9b0a-d44efd9110b4");
+                var result = ComputeProperty("V#acc63904-d251-4d87-b3ad-fbde671e63d7");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }

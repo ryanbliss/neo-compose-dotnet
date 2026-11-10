@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Gm<T> : NeoGeneratedClassValue, IReadOnlyGm<T>
     {
         internal Gm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9eed28b6-d4da-4bc5-a648-7f5ae9ae7ec2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a704fcef-e36d-4bb1-af12-596d7a4bcc71", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Clamp(T v, T lo, T hi)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5a87c82c-2e85-40f0-8f76-384e37f8314f", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "339a43b9-321d-4f18-ae13-a5328f8b5a67", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic(v, lo, hi);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T FromFloat(float f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5cdf669c-e813-40ef-a971-58aecec1a606", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3d5781b9-ee35-4df5-9708-f89b477e41df", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(f));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T FromInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b9abf402-4942-4541-8433-b14b84bb64be", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "09e43b6a-fafd-4589-a80f-efcf896b8f2d", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Mae(T a, T b, T c)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a73953b5-c783-42b9-934a-ffc09110dcdd", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ee7f4039-4787-4a8a-a9d5-2ae2e4acbd4e", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic(a, b, c);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -62,7 +62,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Max(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6183f06f-a18b-4af4-b0b2-0bc3664ba903", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "71198e54-aa7c-4f65-ad1c-588b1f4f0660", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T MaxNative(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5b514717-7934-41a9-9e1c-188be5d0070a", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3d56ecef-da88-4ca4-a35d-c38fc97cf700", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -78,7 +78,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Min(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7ef6be43-252f-4880-899b-0a1dd7fe2460", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "de7e8586-f9ca-43a5-9191-f7e0054959a1", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -86,7 +86,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Same(T v)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9adad7ae-7120-4106-94a6-16c5b71dc3c7", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "02bc453f-2e40-4ab6-8d98-67d5f9a65f49", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(v));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -94,7 +94,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T SatInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6593ac9d-d976-479f-8974-4891f5d4759b", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "460d1b5e-1cb0-442d-8335-298daca91d6d", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -102,7 +102,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int Sign(T v)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7bb4e357-401e-4c57-a3f6-9b2b2da9553f", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0c4f8fa7-a02b-4961-8db4-4034cdbb87c2", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(v));
             return Convert.ToInt32(result);
         }
@@ -110,7 +110,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T TruncInt(int i)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "dd39fcbc-d66f-49ef-a9b8-e1cf113ee006", client.TypeArguments.Of<Gm<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "aa5151d4-f932-47dc-a9c7-b0591091c17f", client.TypeArguments.Of<Gm<T>>());
             var result = node.InvokeStatic((object?)(i));
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9eed28b6-d4da-4bc5-a648-7f5ae9ae7ec2" => new Gm<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a704fcef-e36d-4bb1-af12-596d7a4bcc71" => new Gm<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gm' without a concrete client type id."),
                 };
             });
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9eed28b6-d4da-4bc5-a648-7f5ae9ae7ec2" => new Gm<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a704fcef-e36d-4bb1-af12-596d7a4bcc71" => new Gm<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gm' without a concrete client type id."),
                 };
             });

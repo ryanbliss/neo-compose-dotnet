@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class NBox<T> : NeoGeneratedClassValue, IReadOnlyNBox<T>
     {
         internal NBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c19cdaa5-a83a-4649-9b76-86a1197dd507", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "06bf8f72-5db2-40bf-8ea0-ad0a159c6fdd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e39d8d5b-4bea-4200-ad86-13d5e5762882", NeoValueOwnership.Session, client.TypeArguments.Of<NBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "cdd21b6e-a6dc-4ffc-b669-e3270daaeef0", NeoValueOwnership.Session, client.TypeArguments.Of<NBox<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e39d8d5b-4bea-4200-ad86-13d5e5762882", NeoValueOwnership.Session, client.TypeArguments.Of<NBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "cdd21b6e-a6dc-4ffc-b669-e3270daaeef0", NeoValueOwnership.Session, client.TypeArguments.Of<NBox<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c19cdaa5-a83a-4649-9b76-86a1197dd507" => new NBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "06bf8f72-5db2-40bf-8ea0-ad0a159c6fdd" => new NBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NBox' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c19cdaa5-a83a-4649-9b76-86a1197dd507" => new NBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "06bf8f72-5db2-40bf-8ea0-ad0a159c6fdd" => new NBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NBox' without a concrete client type id."),
                 };
             });

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class RPI : NeoGeneratedClassValue, IReadOnlyRPI
     {
         internal RPI(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "abfe935f-3464-46d0-834f-0c6b8791ff00", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2b9b8838-d5b4-41af-b872-83078908ef4a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "abfe935f-3464-46d0-834f-0c6b8791ff00",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "eb363529-c7fd-4dd4-9700-a001293f099d", P)
+                "2b9b8838-d5b4-41af-b872-83078908ef4a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "fab4dceb-3f2c-44b0-878f-0aadfa3b533d", P)
             );
         }
 

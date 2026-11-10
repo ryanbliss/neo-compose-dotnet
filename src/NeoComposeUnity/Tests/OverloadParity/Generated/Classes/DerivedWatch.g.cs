@@ -45,10 +45,10 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "5bd8bec0-706a-4f0f-8f1a-2335b9fed8aa",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "17b9a3ae-d0b7-4d51-ab11-cd62fd93a9a2", Watcher),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnTally", "fe950a97-514d-4b11-8ed9-d31b7f44a984", OnTally),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "f1e9bfc2-e3fb-47ca-83a2-1d8314910c0b", Calls)
+                "87315222-bb80-4e02-92fb-d4f7c3da96d5",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "453c2310-e9a7-4bbb-a8f7-0f37c9e260ce", Watcher),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnTally", "69afe02b-4265-42be-8b6f-1f9e7a5342ad", OnTally),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "39810b26-3c6f-4e96-947e-08129aa1dfa2", Calls)
             );
         }
 
@@ -127,7 +127,7 @@ namespace NeoCompose.Tests.OverloadParity
             }
         }
 
-        [NeoMemberMethod("c6f830d0-99b0-4ba1-b436-ab1b8ed51a48")]
+        [NeoMemberMethod("8b7156e5-8980-4a2c-a263-8a955de3cf74")]
         public void Fire()
         {
             InvokeFunction("Fire");

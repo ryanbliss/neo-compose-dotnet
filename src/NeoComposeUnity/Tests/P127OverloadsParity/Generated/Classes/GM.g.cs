@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class GM<T> : NeoGeneratedClassValue, IReadOnlyGM<T>
     {
         internal GM(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "815a5c67-5772-4af9-ab0c-075aa744e525", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7388fd4a-95b0-4cf7-92c1-5b84a076460a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Pick(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "327f6419-3f25-4e1e-a33c-11190f604f06", client.TypeArguments.Of<GM<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "75617d11-9f37-4db7-8f89-471f29ed51cd", client.TypeArguments.Of<GM<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "815a5c67-5772-4af9-ab0c-075aa744e525" => new GM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7388fd4a-95b0-4cf7-92c1-5b84a076460a" => new GM<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GM' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "815a5c67-5772-4af9-ab0c-075aa744e525" => new GM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7388fd4a-95b0-4cf7-92c1-5b84a076460a" => new GM<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GM' without a concrete client type id."),
                 };
             });

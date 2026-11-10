@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class FieldCounter<T> : NeoGeneratedClassValue, IReadOnlyFieldCounter<T>
     {
         internal FieldCounter(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "85e822e3-6655-40fe-b2fd-1be19c156630", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e9bda55e-092e-46de-97bb-e5115cc63452", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85e822e3-6655-40fe-b2fd-1be19c156630" => new FieldCounter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e9bda55e-092e-46de-97bb-e5115cc63452" => new FieldCounter<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FieldCounter' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85e822e3-6655-40fe-b2fd-1be19c156630" => new FieldCounter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e9bda55e-092e-46de-97bb-e5115cc63452" => new FieldCounter<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FieldCounter' without a concrete client type id."),
                 };
             });

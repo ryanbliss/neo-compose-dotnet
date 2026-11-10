@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITS2<T> : NeoGeneratedClassValue, IReadOnlyITS2<T>
     {
         internal ITS2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d8616fb0-0514-4af8-9aad-b18dc0490612", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "308da7e9-030e-4fc5-b782-87c61b56cbac", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int S(int c, T d)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f8faf591-3f83-4953-bcbb-dcf951cc38d2", client.TypeArguments.Of<ITS2<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "54e4a3e4-ff02-4f98-9a60-fb14c3094aec", client.TypeArguments.Of<ITS2<T>>());
             var result = node.InvokeStatic(c, d);
             return Convert.ToInt32(result);
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(T a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9e7985fd-c28c-4f00-91f7-2c8f4e3f3924", client.TypeArguments.Of<ITS2<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7ee614fb-bc49-4158-88d8-b105d4e31bbb", client.TypeArguments.Of<ITS2<T>>());
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "728d3673-e90c-4aa3-b58b-f6aa1bca9fc0" => (ITS2<T>)(object)new ITS2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "d8616fb0-0514-4af8-9aad-b18dc0490612" => new ITS2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "90fece3b-34c7-425e-88b4-44fe9778a406" => (ITS2<T>)(object)new ITS2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "308da7e9-030e-4fc5-b782-87c61b56cbac" => new ITS2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITS2' without a concrete client type id."),
                 };
             });
@@ -64,8 +64,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "728d3673-e90c-4aa3-b58b-f6aa1bca9fc0" => (ITS2<T>)(object)new ITS2D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "d8616fb0-0514-4af8-9aad-b18dc0490612" => new ITS2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "90fece3b-34c7-425e-88b4-44fe9778a406" => (ITS2<T>)(object)new ITS2D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "308da7e9-030e-4fc5-b782-87c61b56cbac" => new ITS2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITS2' without a concrete client type id."),
                 };
             });

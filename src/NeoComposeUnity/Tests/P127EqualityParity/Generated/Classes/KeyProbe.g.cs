@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class KeyProbe : NeoGeneratedClassValue, IReadOnlyKeyProbe
     {
         internal KeyProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4e389338-6f2e-483e-9309-4d1340e48ab0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b5041a9d-2524-4211-8e6f-c38fcc08f7bd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SkAuth()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b0ce9615-87e9-44ea-b95a-4777e98177c4");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "03fbb55c-884f-454f-a779-3da85a5b87c4");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int SkCreate()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b75c3b3d-da01-469c-b95a-2bf0edaf49ac");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f609e020-58ae-4592-969e-314885b91a1f");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int SkM()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b4cc838a-c182-4173-b59a-be8a9679b4a6");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cfbb3e5e-ea23-45b3-9f97-c2f359a1ab2e");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SkMHas()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d3f97ca9-6310-46a0-954b-ee1300052658");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ea54866f-8d78-4737-b038-487e0aafad41");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int SkObj()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6a2a1188-72e6-40d8-955b-2b093de4e4d7");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "93fedfdc-6d5e-4b3b-a384-f298da5a7e7f");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int SkRef()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f9bcf789-d0be-4129-83fd-737905793ecc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bbd24043-4e7a-4fff-8dd8-5425e5e6551a");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4e389338-6f2e-483e-9309-4d1340e48ab0");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b5041a9d-2524-4211-8e6f-c38fcc08f7bd");
         }
 
         internal static KeyProbe Create(NeoClient client, NeoMemberClass node)
