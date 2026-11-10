@@ -575,7 +575,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The arguments an open row takes from a slot typed by one of its
-        /// bases, as C# infers them: <c>DerivedBox&lt;T&gt;</c> from
+        /// bases: <c>DerivedBox&lt;T&gt;</c> from
         /// <c>Box&lt;Seed&gt;</c>, and <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c>
         /// from <c>Box&lt;List&lt;Seed&gt;&gt;</c>. Null when what the row passes
         /// doesn't unify with the slot's arguments, or leaves a row param
@@ -619,7 +619,7 @@ namespace NeoCompose.Runtime
         /// to class <paramref name="target"/>. <paramref name="rowType"/> is
         /// its <see cref="ClassRowTypeInfo"/>, null when its slot leaves an
         /// open row unclosed: the row's own params are then inferred from the
-        /// target, as C# infers them. A type that stays open fits. The class
+        /// target. A type that stays open fits. The class
         /// arm of the server's <c>classRowFits</c>.
         /// </summary>
         internal static bool ClassRowFits(NeoClient client, string rowClassId, ClassTypeInfo? rowType, ClassTypeInfo target) =>

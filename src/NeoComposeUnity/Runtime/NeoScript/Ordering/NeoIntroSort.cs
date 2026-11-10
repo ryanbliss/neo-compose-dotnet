@@ -275,7 +275,7 @@ namespace NeoCompose.Runtime.NeoScript.Ordering
         // ---------- GenericArraySortHelper<T> ----------
         // Null sorts first without a call. LessThan and GreaterThan are
         // CompareTo's sign; for float, NaNs are gone by then, so they agree
-        // with .NET's primitive < and >.
+        // with the primitive < and >.
 
         private static int MoveNansToFront<T>(IList<T> keys, int lo, int hi, Func<T, bool> isNaN)
         {

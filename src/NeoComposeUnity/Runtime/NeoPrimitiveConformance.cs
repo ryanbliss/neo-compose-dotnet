@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime
         Bool,
     }
 
-    /// <summary>The types the table lists, each with its .NET 10 in-scope interfaces.</summary>
+    /// <summary>The types the table lists, each with its in-scope interfaces.</summary>
     internal enum NeoConformingTypeKind
     {
         Int,
@@ -95,7 +95,7 @@ namespace NeoCompose.Runtime
             MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.NumberFormatInfo => NeoConformingTypeKind.NumberFormatInfo,
             _ => null,
         };
-        /// <summary>The 31 system interfaces (§7.1–§7.3), keyed by .NET metadata name, in table order.</summary>
+        /// <summary>The 31 system interfaces (§7.1–§7.3), keyed by metadata name, in table order.</summary>
         internal static readonly IReadOnlyList<KeyValuePair<string, string>> InterfaceIds = new[]
         {
             Interface("IEquatable`1", "system_48afe7ca-fe39-41b3-8fa3-cdcb780434ac"),
@@ -153,7 +153,7 @@ namespace NeoCompose.Runtime
         private const NeoConformanceArgumentKind Int = NeoConformanceArgumentKind.Int;
         private const NeoConformanceArgumentKind Bool = NeoConformanceArgumentKind.Bool;
 
-        /// <summary>The shared int/float prefix in .NET 10 GetInterfaces order.</summary>
+        /// <summary>The shared int/float prefix in GetInterfaces order.</summary>
         private static readonly NeoConformanceConstruction[] BinaryNumberPrefix =
         {
             Construction("IComparable"),
@@ -260,7 +260,7 @@ namespace NeoCompose.Runtime
                 [NeoConformingTypeKind.NumberFormatInfo] = FormatProvider,
             };
 
-        /// <summary>The id of system interface <paramref name="name"/>, by .NET metadata name.</summary>
+        /// <summary>The id of system interface <paramref name="name"/>, by metadata name.</summary>
         internal static string InterfaceId(string name) => IdsByName[name];
 
         /// <summary>

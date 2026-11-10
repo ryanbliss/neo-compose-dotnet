@@ -10,7 +10,7 @@ using System.Text;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
-    /// A type binding spelled as NeoScript and C# spell it, the way P127 §2's
+    /// A type binding spelled as NeoScript spells it, the way P127 §2's
     /// <c>Type.Name</c> prints: <c>int</c>, <c>int?</c>, <c>List&lt;int&gt;</c>,
     /// <c>Box&lt;Money&gt;</c>, <c>(int, string)</c>, <c>object</c>. A
     /// definition prints its parameter names (<c>Box&lt;T&gt;</c>) and a

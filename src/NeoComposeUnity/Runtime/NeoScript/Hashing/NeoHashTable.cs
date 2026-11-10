@@ -428,7 +428,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
         }
     }
 
-    /// <summary>.NET 10's <c>HashHelpers</c> prime sizes.</summary>
+    /// <summary><c>HashHelpers</c> prime sizes.</summary>
     internal static class NeoHashPrimes
     {
         private const int MaxPrimeArrayLength = 0x7FFFFFC3;

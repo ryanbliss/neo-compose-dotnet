@@ -111,7 +111,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             if (info.nullable)
                 return false;
-            // .NET reads a List through its span even as an IEnumerable.
+            // A List reads through its span even as an IEnumerable.
             object? source = collection is EnumerableQuery query ? query.Source : collection;
             return source is object?[] && FindRowReference(source, ctx)?.CollectionMember(ctx.client) is not SetMember;
         }

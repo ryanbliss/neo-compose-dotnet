@@ -565,7 +565,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
 
         private static int CharAt(string s, int index) => index < s.Length ? s[index] : -1;
 
-        /// <summary>.NET's <c>FindSection</c>: the start of <c>;</c>-separated section <paramref name="section"/>, or 0.</summary>
+        /// <summary><c>FindSection</c>: the start of <c>;</c>-separated section <paramref name="section"/>, or 0.</summary>
         private static int FindSection(string format, int section)
         {
             if (section == 0)
@@ -602,7 +602,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             }
         }
 
-        /// <summary>.NET's <c>NumberToStringFormat</c>: custom numeric format strings.</summary>
+        /// <summary><c>NumberToStringFormat</c>: custom numeric format strings.</summary>
         private static string NumberToStringFormat(NeoNumberBuffer n, string format, NumberFormatInfo info)
         {
             int length = format.Length;

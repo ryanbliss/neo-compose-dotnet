@@ -9713,7 +9713,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (a is null || b is null)
                 return a is null && b is null;
-            // P127 §1.2. Boxes and Type values compare by identity, as C#'s object == does.
+            // P127 §1.2. Boxes and Type values compare by identity, as object == does.
             if (a is NeoBox or NeoTypeValue || b is NeoBox or NeoTypeValue)
                 return NeoBox.SameIdentity(a, b);
             if (IsEnumValue(a) || IsEnumValue(b))

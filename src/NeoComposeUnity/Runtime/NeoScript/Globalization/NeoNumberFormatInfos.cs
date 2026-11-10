@@ -29,7 +29,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
     /// </summary>
     internal static class NeoNumberFormatInfos
     {
-        // .NET's lenient minus characters (NumberFormatInfo.InitializeInvariantAndNegativeSignFlags).
+        // Lenient minus characters (NumberFormatInfo.InitializeInvariantAndNegativeSignFlags).
         private const string HyphenAliases = "‒⁻₋−➖﹣－";
 
         private static readonly ConditionalWeakTable<NumberFormatInfo, RetainedDigits> retainedDigits = new();
@@ -322,7 +322,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             CheckWritable(info);
         }
 
-        /// <summary>Keeps the caller's list, as .NET keeps the array.</summary>
+        /// <summary>Keeps the caller's array.</summary>
         private static void SetNativeDigits(NumberFormatInfo info, IList? digits)
         {
             CheckWritable(info);

@@ -3067,8 +3067,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Whether <paramref name="value"/> is a float: any number, since a
-        /// float holds NaN and both infinities as a C# float does (P127
-        /// §12.1).
+        /// float holds NaN and both infinities (P127 §12.1).
         /// </summary>
         private static bool IsNumber(object value) =>
             value is double or float or int or long or short;

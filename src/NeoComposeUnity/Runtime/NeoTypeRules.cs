@@ -587,7 +587,7 @@ namespace NeoCompose.Runtime
         /// class converts along its chain, and to an interface its records
         /// construct with matching arguments; a primitive, enum or tuple
         /// converts to an interface the conformance table lists for it; and
-        /// every value converts up C#'s built-in hierarchy. Keys erase a
+        /// every value converts up the built-in hierarchy. Keys erase a
         /// reference type's <c>?</c> at every depth, so this is the server's
         /// <c>NullabilityComparison.Erased</c>.
         /// </summary>
@@ -825,7 +825,7 @@ namespace NeoCompose.Runtime
             key.Kind == NeoRuntimeTypeKeyKind.Builtin && Array.IndexOf(NeoRuntimeTypeKeys.P127Builtins, key.Name) >= 0;
 
         /// <summary>
-        /// P127 §1.2, §2.1: C#'s <c>Enum : ValueType : object</c>, with
+        /// P127 §1.2, §2.1: <c>Enum : ValueType : object</c>, with
         /// <c>Type</c>, <c>CultureInfo</c>, <c>NumberFormatInfo</c> and the
         /// built-in comparers deriving straight from <c>object</c>. Value
         /// types box to <c>ValueType</c>, enums to <c>Enum</c>, and every
@@ -867,7 +867,7 @@ namespace NeoCompose.Runtime
         };
 
         /// <summary>
-        /// C#'s class conversion: <paramref name="to"/> is an ancestor of
+        /// The class conversion: <paramref name="to"/> is an ancestor of
         /// <paramref name="from"/>, and the arguments <paramref name="from"/>
         /// passes up its extends chain to it are <paramref name="to"/>'s.
         /// Walks the chain once; an open target compares no arguments. The
@@ -924,8 +924,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P127 §1.2. Whether a row of open <paramref name="rowClassId"/>
-        /// converts to <paramref name="target"/>, inferring its params as C#
-        /// does: each binds to the first type in its place among what the row
+        /// converts to <paramref name="target"/>, inferring its params: each binds to the first type in its place among what the row
         /// passes the target's class, and the substituted arguments must then
         /// equal the target's. So <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c>
         /// fits <c>Box&lt;List&lt;Seed&gt;&gt;</c> but not <c>Box&lt;Seed&gt;</c>,

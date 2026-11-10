@@ -428,13 +428,13 @@ namespace NeoCompose.Runtime
             return DefaultImplementation(receiver, requested, memberId, declaration.Name, accessor);
         }
 
-        // CoreCLR's two default passes: exact constructed targets first; only
+        // P127 §1.4's two default passes: exact constructed targets first; only
         // then variance, in the interface-map order added by each class level.
         private Implementation DefaultImplementation(TypeBinding receiver, TypeBinding requested, string memberId,
             string name, string accessor)
         {
             var entries = DefaultCandidates(receiver, memberId);
-            // CoreCLR tries exact defaults, then variance whenever that pass
+            // Exact defaults first, then variance whenever that pass
             // supplies no body. Holding an abstract exact slot is not a stop.
             for (int pass = 0; pass < 2; pass++)
             {
@@ -472,7 +472,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    // The first CoreCLR candidate slot never disappears. Only a
+                    // The first candidate slot never disappears. Only a
                     // more-specific holder of another declaration can replace it;
                     // later unrelated slots cannot affect the first slot's answer.
                     foreach (var candidate in candidates)
@@ -1091,7 +1091,7 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        // Roslyn's possible-implementation rule is per accessor. A public
+        // The possible-implementation rule (P127 §5.4) is per accessor. A public
         // member between listers needs a new mapping; an override whose root
         // belongs to a lister (or precedes all listers) keeps the inherited slot.
         private bool KeepsBaseSlot(TypeBinding owner, TypeBinding requested, Implementation mapped,
