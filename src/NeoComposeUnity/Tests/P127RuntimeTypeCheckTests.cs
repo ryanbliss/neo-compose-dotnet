@@ -50,6 +50,34 @@ namespace NeoCompose.Tests
             Assert.That(Checks(list, Enumerable(Type(expected))), Is.EqualTo(converts));
         }
 
+        // An inner collection read through an IEnumerable<IEnumerable<CastCat>>
+        // keeps its element type, so passing, returning and `is` all accept it.
+        [TestCase("List", false)]
+        [TestCase("Dictionary", false)]
+        [TestCase("List", true)]
+        public void AnInnerCollectionReadThroughAnEnumerableKeepsItsElementType(string source, bool explicitCursor)
+        {
+            object?[] inner = new object?[0];
+            object outer = source == "List"
+                ? new object?[] { inner }
+                : new Dictionary<string, object?> { ["a"] = inner };
+            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(outer), Type("List<CastCat>"));
+            TypeInfo expected = Enumerable(Type("CastCat"));
+            object? cursor = NSGetterEvaluator.AcquireSequenceCursor(outer, expected, ctx);
+            if (explicitCursor)
+            {
+                var call = new CallFunctionPointer { type = PointerKind.CallFunction, memberId = NeoSequenceContract.GetEnumerator };
+                Assert.That(NSGetterEvaluator.TrySequenceCall(call, outer, ctx, out cursor), Is.True);
+            }
+
+            Assert.That(NSGetterEvaluator.AdvanceSequenceCursor(cursor, ctx), Is.True);
+            object? element = NSGetterEvaluator.ReadSequenceCurrent(cursor, ctx);
+
+            Assert.That(Checks(element, expected), Is.True);
+            // Arguments and returns both bind through Normalize; a fitting sequence passes as itself.
+            Assert.That(NeoScriptValueMarshaller.Normalize(client, ctx.valueOwnership, element, expected, ctx, "argument"), Is.SameAs(element));
+        }
+
         // A reference type argument's `?` isn't part of the runtime type; a value type's is.
         [TestCase(MemberKind.String, false, true, true)]
         [TestCase(MemberKind.String, true, false, true)]

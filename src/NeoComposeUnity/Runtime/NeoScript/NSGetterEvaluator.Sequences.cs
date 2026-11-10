@@ -448,6 +448,8 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly CollectionSnapshot snapshot = new();
             private readonly LookupMember? slotLookup;
             private readonly TypeInfo? slotTarget;
+            // The collection's own element type, so an inner collection keeps it.
+            private readonly TypeInfo? entryType;
             private int index;
             internal bool Values => snapshot.Values;
             internal object? Raw => snapshot.Raw(index - 1);
@@ -456,6 +458,7 @@ namespace NeoCompose.Runtime.NeoScript
                 snapshot.Take(collection, ctx);
                 // A query reads a Lookup of slot references as a direct query does.
                 slotTarget = SlotSelection(FindRowReference(collection, ctx), ctx, out slotLookup);
+                entryType = SequenceCollectionElement(collection, ctx);
             }
             protected override bool Advance(Context ctx, out object? value)
             {
@@ -464,9 +467,14 @@ namespace NeoCompose.Runtime.NeoScript
                     value = null;
                     return false;
                 }
-                value = slotTarget is not null && snapshot.Raw(index) is string id
-                    ? SlotReferenceOf(id, slotLookup!, slotTarget)
-                    : snapshot.Resolve(index, ctx);
+                if (slotTarget is not null && snapshot.Raw(index) is string id)
+                    value = SlotReferenceOf(id, slotLookup!, slotTarget);
+                else
+                {
+                    value = snapshot.Resolve(index, ctx);
+                    if (entryType is not null)
+                        value = RetainSequenceCollectionType(value, entryType, ctx);
+                }
                 index++;
                 return true;
             }
