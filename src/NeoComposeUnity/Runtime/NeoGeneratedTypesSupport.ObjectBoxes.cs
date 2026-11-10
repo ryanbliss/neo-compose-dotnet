@@ -29,7 +29,8 @@ namespace NeoCompose.Runtime
         // The C# object a box row reads as for the rest of the run: the box
         // last read from the row, or the one written into it (§1.2). A write
         // replaces the row, so the slot reads its new box; a reload builds
-        // new rows, so each slot reads its own box, as C# deserialization does.
+        // new rows, so each slot reads its own box, and two slots that shared
+        // one box before the reload no longer share it.
         private static readonly ConditionalWeakTable<MemberValue, object> rowBoxes = new();
         private static readonly ConditionalWeakTable<MemberValue, object> readOnlyRowBoxes = new();
 
