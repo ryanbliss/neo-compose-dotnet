@@ -10,8 +10,8 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// P127 §12.1. A delegate bound to a built-in static stores the method
-    /// .NET binds in place of a <c>memberId</c>:
+    /// P127 §12.1. A delegate bound to a built-in static stores the bound
+    /// method in place of a <c>memberId</c>:
     /// <c>{ kind: BuiltIn, declaring, name, arity, parameterTypes, explicitInterface? }</c>,
     /// whose parameter types name the method's own type parameters as
     /// <c>{ kind: MethodParam, index }</c>.

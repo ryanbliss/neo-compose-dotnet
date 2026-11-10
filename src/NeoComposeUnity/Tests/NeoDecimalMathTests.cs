@@ -103,7 +103,7 @@ namespace NeoCompose.Tests
 
         /// <summary>
         /// The operators (and their statics) throw System.Decimal's errors
-        /// with .NET's messages (P127 §3.4, §3.5). The NeoScript-only entry
+        /// with their messages (P127 §3.4, §3.5). The NeoScript-only entry
         /// points keep their own: <c>Divide(divisor, digits)</c> by zero is
         /// the existing NeoDivideByZeroError message, and an explicit
         /// rounding entry point that can't fit its result throws

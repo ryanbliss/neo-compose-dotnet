@@ -12,7 +12,7 @@ namespace NeoCompose.Tests
 {
     public partial class NSFunctionRuntimeTests
     {
-        // Pinned by the .NET 10 programs in r22-cs: gaps, gaps2, nested and branches.
+        // P127 §1.4's default walk: gaps, nested holders and branches.
         // The same table exercises getter, method, generic method, setter and static dispatch.
         private static IEnumerable<TestCaseData> DefaultWalkCases()
         {
@@ -39,8 +39,8 @@ namespace NeoCompose.Tests
                 ("HolderCrossR", "LA-body", "D1"), ("HolderCrossN", "ambiguous", ""),
                 ("HolderThree", "A-body", "D11"), ("HolderInvariant", "ambiguous", ""),
                 ("HolderExactCastD1", "A-body", "D1"),
-                // Internal fallback coverage. C# rejects a concrete class with
-                // this exact abstract slot left unimplemented.
+                // Internal fallback coverage. A concrete class can't leave this
+                // exact abstract slot unimplemented.
                 ("AbstractExactThenVariant", "K-body", "D1"),
                 ("MapOrder", "Q-body", "D1"), ("MapOrderReverse", "K-body", "D2"),
                 ("MapOrderClass", "Q-body", "D1"),

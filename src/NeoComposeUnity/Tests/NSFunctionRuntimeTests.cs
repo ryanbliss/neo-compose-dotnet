@@ -2759,7 +2759,7 @@ namespace NeoCompose.Tests
                 functions.ToArray(),
                 ReceiverClass(members.ToArray()));
 
-            // P127 §12.1: a float holds NaN and both infinities, as a C# float does.
+            // P127 §12.1: a float holds NaN and both infinities.
             foreach (double value in nonFinite)
             {
                 Assert.AreEqual(1, Convert.ToInt32(new NeoMemberNSFunction(
