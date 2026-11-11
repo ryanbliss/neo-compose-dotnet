@@ -7394,6 +7394,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PositionalSourceIdentitySpellsABindingViewAsInline()
+        {
+            // A view's id is process-local, so a stored id must not hash it.
+            var row = new NumberMemberValue { id = "unused" };
+            var view = NeoTypeBindingViews.View(TypeBinding.Closed(new TypeHead(MemberKind.Int, true)));
+            const string path = "$/{\"kind\":\"list\",\"index\":0}";
+
+            StringAssert.StartsWith(NeoTypeBindingViews.Prefix, view.id);
+            Assert.AreEqual(
+                "path:<inline>:" + path,
+                NeoClient.VirtualSourceIdentity(row, view, path));
+        }
+
+        [Test]
         public void OrderedListEntryIdsArePositional()
         {
             const string listPath = "$/{\"kind\":\"class\",\"schemaKey\":\"Items\"}";

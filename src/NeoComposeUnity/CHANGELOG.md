@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- A stored object's row ids no longer depend on which generic types the process read first. A static initialized with `new Take((set, 7))`, a `Set` inside a tuple passed to a constructor, could fail to load from a save with "Replay lost child".
+
 - A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null." A tuple default does the same in each element typed by a type argument, as in `(T, int) P = default`. A static `T V = default` with `T` bound to a tuple holding a class, as in `(Cat, Mood)`, now constructs too, with null for the class and the first option for the enum. It failed with "'V.Item1' is required and cannot store null." Only a type parameter's initializer may leave null: a required slot of any other type still refuses a null in a payload.
 
 - A static `List<T>` of a generic class closed with a nullable class, as in `Box<Cat?>.L.Add(null)`, takes a null entry. It failed with "'Box.L[0]' is required and cannot store null."

@@ -3154,7 +3154,7 @@ namespace NeoCompose.Runtime
         /// omitted value lands at two different ids. A member with no id is
         /// written as <see cref="InlineMemberSentinel"/> rather than as an
         /// empty segment, which is what the web emits for an inline
-        /// declaration.</para>
+        /// declaration. So is a binding view, whose id is process-local.</para>
         /// </summary>
         internal static string VirtualSourceIdentity(
             MemberValue row,
@@ -3163,10 +3163,15 @@ namespace NeoCompose.Runtime
         {
             if (!string.IsNullOrEmpty(row.sourceValueId))
                 return row.sourceValueId!;
-            string memberId = string.IsNullOrEmpty(member.id)
+            return PositionalSourceIdentity(member.id, path);
+        }
+
+        internal static string PositionalSourceIdentity(string? memberId, string path)
+        {
+            string stable = string.IsNullOrEmpty(memberId) || NeoTypeBindingViews.IsViewId(memberId)
                 ? InlineMemberSentinel
-                : member.id;
-            return $"path:{memberId}:{path}";
+                : memberId;
+            return $"path:{stable}:{path}";
         }
 
         /// <summary>

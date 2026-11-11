@@ -273,7 +273,7 @@ namespace NeoCompose.Runtime
                 {
                     if (node.member.id != descriptor.memberId)
                         return null;
-                    identity = $"path:{descriptor.memberId}:{descriptor.pathKey}";
+                    identity = PositionalSourceIdentity(descriptor.memberId, descriptor.pathKey);
                 }
                 else
                 {
