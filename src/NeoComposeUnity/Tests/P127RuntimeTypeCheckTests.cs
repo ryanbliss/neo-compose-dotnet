@@ -27,6 +27,24 @@ namespace NeoCompose.Tests
         [TearDown]
         public void TearDown() => client.Dispose();
 
+        [Test]
+        public void StoredCollectionViewsKeepTheirOwnTypeAsEnumerables()
+        {
+            using NeoClient local = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/sequence-generated-export.json")), assumeCurrentSchema: false);
+            NeoMemberClassWritable kinds = NeoGeneratedTypesSupport.CreateWritableClassValue(local, "12500000-0000-4000-8000-000000000085");
+            var numbers = new NeoReadOnlySet<NeoMember>(local, kinds.Get<NeoMemberListWritable>("Numbers"), (_, item) => item, _ => null);
+            var children = new NeoReadOnlyList<NeoMember>(local, kinds.Get<NeoMemberListWritable>("Children"), (_, item) => item);
+            // The view passes as the parameter's IEnumerable<int> and IEnumerable<SequenceItem>.
+            string Kinds(string functionId, IEnumerable<NeoMember> view, TypeInfo element) =>
+                (string)NeoMemberNSFunction.GetOrCreateStatic(local, functionId)
+                    .InvokeStatic(NeoSequences.WriteEnumerable(local, view, element, item => item))!;
+            Assert.That(Kinds("12500000-0000-4000-8000-000000000082", numbers,
+                new PrimitiveTypeInfo { type = MemberKind.Int, required = true }), Is.EqualTo("Set<int>,True,False"));
+            Assert.That(Kinds("12500000-0000-4000-8000-000000000083", children,
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "12500000-0000-4000-8000-000000000069" }),
+                Is.EqualTo("List<SequenceChild>,True,False"));
+        }
+
         // IEnumerable<T> and IEnumerator<T> are covariant: a class element
         // converts to its base, a value element and a base element don't.
         [TestCase("CastCat", "CastPet", true)]

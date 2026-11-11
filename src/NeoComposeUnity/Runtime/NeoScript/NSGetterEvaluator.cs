@@ -9770,7 +9770,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return JsEqual(ReadThroughReference(a, ctx), ReadThroughReference(b, ctx), ctx);
             if (a is null || b is null)
                 return a is null && b is null;
-            if (ReferenceEquals(a, b))
+            if (NeoBox.SameIdentity(a, b))
                 return true;
             if (a is NeoBox aString && aString.ValueType.Head!.Type == MemberKind.String && b is string rawB)
                 return string.Equals((string?)aString.Payload, rawB, StringComparison.Ordinal);
@@ -9880,13 +9880,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return false;
             }
-            // List, Set and Dictionary are invariant: a widened collection
-            // matches only its own recorded type, however it was reached.
-            if (CollectionElementOf(checkType) is not null
-                && ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
-            {
-                return CollectionRuntimeType(CloseContextType(checkType, ctx)) is { } target && RecordedTypeMatches(recorded, target);
-            }
+            // List, Set and Dictionary are invariant: a collection matches
+            // only its own held type, however it was reached.
+            if (CollectionElementOf(checkType) is not null && HeldCollectionType(value, ctx) is { } held)
+                return CollectionRuntimeType(CloseContextType(checkType, ctx)) is { } target && RecordedTypeMatches(held, target);
             switch (checkType.type)
             {
                 case MemberKind.Tuple:

@@ -626,12 +626,28 @@ namespace NeoCompose.Runtime.NeoScript
                 ? RuntimeTypesEqual(recorded, target)
                 : RuntimeTypeOf(recorded).Equals(RuntimeTypeOf(target));
 
-        /// <summary>The runtime type a widened collection recorded; null for any other value.</summary>
+        /// <summary>A collection's held runtime type; null for any other value.</summary>
         private static TypeBinding? RecordedCollectionType(object value, Context ctx) =>
             value is object?[] or LocalList or RuntimeSet or IDictionary<string, object?>
                 && value is not (NeoObjectRecord or NeoScriptObject)
-                && ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded)
-                ? HeldTypeOf(recorded) : null;
+                && HeldCollectionType(value, ctx) is { } held
+                ? HeldTypeOf(held) : null;
+
+        /// <summary>
+        /// The type a widened collection recorded, else a stored collection's
+        /// own member type. A stored collection reached raw, such as a host
+        /// view passed as <c>IEnumerable</c>, has no record.
+        /// </summary>
+        private static TypeInfo? HeldCollectionType(object value, Context ctx)
+        {
+            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
+                return recorded;
+            if (FindRowReference(value, ctx, observe: false)?.CollectionMember(ctx.client) is not { } member)
+                return null;
+            TypeInfo stored = NeoNSFunctionRuntime.TypeInfoFromBindingMember(ctx.client, member,
+                new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
+            return NeoNSFunctionRuntime.ContainsGeneric(stored) ? null : CollectionRuntimeType(stored);
+        }
 
         internal static bool IsIntrinsicSequence(object? value, TypeInfo type, Context ctx)
         {

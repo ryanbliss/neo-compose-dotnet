@@ -71,7 +71,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("A sequence belongs to a different project client.");
         }
 
-        private static object? KnownSource(NeoClient client, object source, TypeInfo element)
+        private static object? KnownSource(NeoClient client, object source)
         {
             if (source is IScriptSequenceView view)
             {
@@ -88,9 +88,7 @@ namespace NeoCompose.Runtime
                 using var operation = new Operation(client, node.ownership);
                 if (node.value is null)
                     throw new InvalidOperationException("The collection has no value.");
-                object value = NSGetterEvaluator.UnwrapRow(node.value, operation.Context, node.ownership)!;
-                return NSGetterEvaluator.TagSequenceCollection(value,
-                    new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = element }, operation.Context);
+                return NSGetterEvaluator.UnwrapRow(node.value, operation.Context, node.ownership);
             }
             if (source is NeoGeneratedClassValue generated)
             {
@@ -107,14 +105,14 @@ namespace NeoCompose.Runtime
         {
             if (source is null)
                 return null;
-            return KnownSource(client, source, element) ?? new ForeignSequence<T>(client, source, element, write);
+            return KnownSource(client, source) ?? new ForeignSequence<T>(client, source, element, write);
         }
 
         public static object? WriteEnumerator<T>(NeoClient client, IEnumerator<T>? source, TypeInfo element, Func<T, object?> write)
         {
             if (source is null)
                 return null;
-            return KnownSource(client, source, element) ?? new ForeignCursor<T>(client, source, element, write);
+            return KnownSource(client, source) ?? new ForeignCursor<T>(client, source, element, write);
         }
 
         public static IEnumerable<T>? ReadEnumerable<T>(NeoClient client, object? source, TypeInfo element, Func<object?, T> read)
@@ -181,9 +179,9 @@ namespace NeoCompose.Runtime
             if (arguments is null || !arguments.TryGetValue(key, out TypeInfo element))
                 return value;
             if (id == NeoSequenceContract.Enumerable && value is IEnumerable enumerable)
-                return new BoxedEnumerable(client, enumerable, element, KnownSource(client, value, element));
+                return new BoxedEnumerable(client, enumerable, element, KnownSource(client, value));
             if (id == NeoSequenceContract.Enumerator && value is IEnumerator enumerator)
-                return new BoxedCursor(client, enumerator, element, KnownSource(client, value, element));
+                return new BoxedCursor(client, enumerator, element, KnownSource(client, value));
             return value;
         }
 

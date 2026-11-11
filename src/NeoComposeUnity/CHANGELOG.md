@@ -10,6 +10,10 @@
 
 - A `List`, `Set` or `Dictionary` held as an `IEnumerable<T>` keeps its whole type, so it is only its own kind and key: a `List<int>` held as `IEnumerable<int>` is not a `Set<int>`, and a `Dictionary<string, Cat>` is not a `Dictionary<Weather, Cat>`. A multi-select Lookup counts as the `Set` it reads as. That type is also what `GetType()`, `ToString()`, interpolation and a refused cast report (`Unable to cast object of type 'List<Cat>' to type 'List<Pet>'.`), and `Equals` and `GetHashCode` treat the collection as itself, as they do when it is held by its own type. Before, the List tested and cast as a `Set`, `GetType()` and `ToString()` threw, `Equals` answered false against the same list held as its own type, and a refused cast named `System.Object`.
 
+- A stored collection passed from C# to an `IEnumerable<T>` parameter, such as a `NeoReadOnlySet<int>` or a `NeoReadOnlyList<Cat>` view, keeps its own type inside the script: the set is a `Set<int>` and not a `List<int>`, and a `List<Cat>` passed as `IEnumerable<Pet>` is a `List<Cat>`, not a `List<Pet>`. Before, `GetType()` threw and `is` matched any `List` or `Set`.
+
+- A collection held as an `IEnumerable<T>` is the same object as that collection converted to `object`: `object.ReferenceEquals` and `==` on `object` answer true. Before, both answered false.
+
 - `IEnumerable<T>` and `IEnumerator<T>` variance is built in, so a project whose export omits those two interfaces still converts a `List<Cat>` or `IEnumerable<Cat>` to `IEnumerable<Pet>`. Before, such a project converted by identity only, and a nested `IEnumerable<IEnumerable<Cat>>` check failed with a missing-key error.
 
 - Read a forwarded nullable type argument (`Box<U?>` inside `Holder<U>`). Open type bindings take an optional `nullable: true`, and `TypeBinding.Open` gains a `nullable` parameter. A save holding null in `Holder<Item>`'s `B.Value` now loads; under `Holder<int>`, `U?` is `int` and the save is still refused.
