@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OrderingParity
     public partial class SrdLC : NeoGeneratedClassValue, IReadOnlySrdLC
     {
         internal SrdLC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f930b308-41a6-4e59-8f82-6841eade7702", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e9336c0a-5446-4d3f-912f-7e10880567ae", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OrderingParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f930b308-41a6-4e59-8f82-6841eade7702");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e9336c0a-5446-4d3f-912f-7e10880567ae");
         }
 
         internal static SrdLC Create(NeoClient client, NeoMemberClass node)

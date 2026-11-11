@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6b00c4c5-283f-4349-89d1-46172b504579");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1bec5ea5-769c-4c1b-87ef-3641752b20f6");
         }
 
         internal new static R27oX325 Create(NeoClient client, NeoMemberClass node)
@@ -47,8 +47,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9a58777d-5eef-48e3-954e-ecbadf8569c3" => new R27oX325Hd(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f01f768a-d102-48b9-bf02-174f367c8096" => new R27oX325Pd(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "599eb44a-7eea-41c1-91f7-c058305f5990" => new R27oX325Pd(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "bfb03c5b-9f25-4ef9-ad4e-89e7c9edbc5d" => new R27oX325Hd(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R27oX325(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -61,8 +61,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9a58777d-5eef-48e3-954e-ecbadf8569c3" => new R27oX325Hd(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f01f768a-d102-48b9-bf02-174f367c8096" => new R27oX325Pd(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "599eb44a-7eea-41c1-91f7-c058305f5990" => new R27oX325Pd(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "bfb03c5b-9f25-4ef9-ad4e-89e7c9edbc5d" => new R27oX325Hd(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R27oX325(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });

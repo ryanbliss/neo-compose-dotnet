@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R15NA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5c666006-123a-4393-b9b5-8ac0d6fe7839", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "978357d5-b823-4dac-aded-36c63f23798c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "41ee5061-6d36-431f-82d9-25f85d84eaa6" => (R15NA<U>)(object)new R15NC(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "5c666006-123a-4393-b9b5-8ac0d6fe7839" => new R15NA<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0f28ea35-8bf6-409e-bcdf-570009d7870b" => (R15NA<U>)(object)new R15NC(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "978357d5-b823-4dac-aded-36c63f23798c" => new R15NA<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R15NA' without a concrete client type id."),
                 };
             });
@@ -53,8 +53,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "41ee5061-6d36-431f-82d9-25f85d84eaa6" => (R15NA<U>)(object)new R15NC(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "5c666006-123a-4393-b9b5-8ac0d6fe7839" => new R15NA<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0f28ea35-8bf6-409e-bcdf-570009d7870b" => (R15NA<U>)(object)new R15NC(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "978357d5-b823-4dac-aded-36c63f23798c" => new R15NA<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R15NA' without a concrete client type id."),
                 };
             });
@@ -84,7 +84,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#3de70100-7bfa-456a-b3f6-cf3f733db61b");
+                var result = ComputeProperty("V#54b654e2-d53a-48e8-8a66-b2b01a02dd26");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

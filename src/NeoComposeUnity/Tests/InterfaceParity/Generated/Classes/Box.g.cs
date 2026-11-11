@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class Box<T> : NeoGeneratedClassValue, IReadOnlyBox<T>
     {
         internal Box(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "eb3011a5-af42-40e4-ab08-f6957780380c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "de7a5076-bad8-4fb5-9ed6-506f621ded27", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eb3011a5-af42-40e4-ab08-f6957780380c" => new Box<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "de7a5076-bad8-4fb5-9ed6-506f621ded27" => new Box<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Box' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eb3011a5-af42-40e4-ab08-f6957780380c" => new Box<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "de7a5076-bad8-4fb5-9ed6-506f621ded27" => new Box<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Box' without a concrete client type id."),
                 };
             });

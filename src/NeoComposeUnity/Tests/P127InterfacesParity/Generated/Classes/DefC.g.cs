@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class DefC : NeoGeneratedClassValue, IReadOnlyDefC
     {
         internal DefC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bcb587ba-ef14-4704-856a-1d0330766107", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8beabf47-7f55-4607-ab41-eff8d59db854", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bcb587ba-ef14-4704-856a-1d0330766107");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8beabf47-7f55-4607-ab41-eff8d59db854");
         }
 
         internal static DefC Create(NeoClient client, NeoMemberClass node)
@@ -115,7 +115,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "f550c128-77a1-4691-863c-8fab8a7aecf5", NeoInterfaceBody.Set, client.TypeArguments.Of<IDef>(), "f550c128-77a1-4691-863c-8fab8a7aecf5", client.TypeArguments.Of<IDef>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "59d8c962-c568-43d6-b41a-f23579c008e1", NeoInterfaceBody.Set, client.TypeArguments.Of<IDef>(), "59d8c962-c568-43d6-b41a-f23579c008e1", client.TypeArguments.Of<IDef>(), new object?[] { value });
             }
         }
 

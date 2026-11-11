@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4a704825-6c2f-4c0b-a8e0-2c28a1001a20" => new R24VX<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c7c0b032-b750-4712-8737-0a86e831b607" => new R24VX<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VX' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4a704825-6c2f-4c0b-a8e0-2c28a1001a20" => new R24VX<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c7c0b032-b750-4712-8737-0a86e831b607" => new R24VX<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24VX' without a concrete client type id."),
                 };
             });
@@ -77,13 +77,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("P#370abe2e-e9e4-4f4d-a32a-504182835b2e");
+                var result = ComputeProperty("P#50e37921-baa0-4a5a-92aa-d67c87af8393");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#370abe2e-e9e4-4f4d-a32a-504182835b2e").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#50e37921-baa0-4a5a-92aa-d67c87af8393").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
@@ -94,7 +94,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R24VIPV<R24VIQ<R24VBa>>).IsAssignableFrom(typeof(R24VIPV<R24VG<T>>)))
                 {
-                    var result = ComputeProperty("P#370abe2e-e9e4-4f4d-a32a-504182835b2e");
+                    var result = ComputeProperty("P#50e37921-baa0-4a5a-92aa-d67c87af8393");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

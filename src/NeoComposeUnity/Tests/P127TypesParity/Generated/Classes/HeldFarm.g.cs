@@ -27,13 +27,15 @@ namespace NeoCompose.Tests.P127TypesParity
 
         NeoReadOnlyList<NeoReadOnlyList<IReadOnlyCastCat>> Grid { get; }
 
+        NeoReadOnlyDictionary<NeoReadOnlyList<IReadOnlyCastCat>> ListByName { get; }
+
         NeoReadOnlySet<int> Nums { get; }
     }
 
     public partial class HeldFarm : NeoGeneratedClassValue, IReadOnlyHeldFarm
     {
         internal HeldFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6153abd0-a89f-45b5-8652-620101382dd0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7236b8a8-896c-4a00-a87b-b21d2421395d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,21 +44,22 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public HeldFarm(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Cats, Nums, ByName, Grid), false, NeoValueOwnership.Session)
+        public HeldFarm(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Cats, Nums, ByName, Grid, ListByName), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "6153abd0-a89f-45b5-8652-620101382dd0",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "2d64bf6e-71a6-407e-8f77-5af6500eab19", Cats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "b976b74d-2fb6-4373-87e0-3462427b401a", Nums),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "5dd49164-8ed7-4708-97a9-bf028419ef96", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "6c8fef3b-80d5-4182-841b-209e1d641fc4", Grid)
+                "7236b8a8-896c-4a00-a87b-b21d2421395d",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "3149982d-805e-4a7f-8e16-bf801697f636", Cats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "c286ee30-72a5-4756-ba0f-250ff1b30a03", Nums),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "5024790b-7c9a-4e3e-8e3a-5f2e1df24f1c", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "049e5d60-b0f2-4222-ac09-c528704b7ed4", Grid),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ListByName", "259d0316-58a5-4981-9b66-b0995c4682ff", ListByName)
             );
         }
 
@@ -179,6 +182,26 @@ namespace NeoCompose.Tests.P127TypesParity
             }
         }
 
+        public NeoDictionary<NeoList<CastCat>> ListByName
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ListByName");
+                if (TryGetStoredView<NeoDictionary<NeoList<CastCat>>>("ListByName", memberNode, out var cached)) return cached;
+                return CacheStoredView("ListByName", memberNode, new NeoDictionary<NeoList<CastCat>>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ListByName"), (client, child) => throw new NotSupportedException(), item => NeoGeneratedTypesSupport.Value(item), () => ThrowIfReadOnly("HeldFarm.ListByName"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyDictionary<NeoReadOnlyList<IReadOnlyCastCat>> IReadOnlyHeldFarm.ListByName
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberDictionary>("ListByName");
+                if (TryGetStoredView<NeoReadOnlyDictionary<NeoReadOnlyList<IReadOnlyCastCat>>>("ListByName", memberNode, out var cached)) return cached;
+                return CacheStoredView("ListByName", memberNode, new NeoReadOnlyDictionary<NeoReadOnlyList<IReadOnlyCastCat>>(client, memberNode, (client, child) => throw new NotSupportedException()));
+            }
+        }
+
         public NeoSet<int> Nums
         {
             get
@@ -210,6 +233,8 @@ namespace NeoCompose.Tests.P127TypesParity
             public static readonly NeoField<NeoDictionary<CastCat>> ByName = new("ByName");
 
             public static readonly NeoField<NeoList<NeoList<CastCat>>> Grid = new("Grid");
+
+            public static readonly NeoField<NeoDictionary<NeoList<CastCat>>> ListByName = new("ListByName");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -220,6 +245,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 [Fields.Nums] = () => null,
                 [Fields.ByName] = () => null,
                 [Fields.Grid] = () => null,
+                [Fields.ListByName] = () => null,
             };
         }
 
@@ -241,6 +267,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 [Fields.Nums] = () => Nums,
                 [Fields.ByName] = () => ByName,
                 [Fields.Grid] = () => Grid,
+                [Fields.ListByName] = () => ListByName,
             };
         }
 

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Zv : NeoGeneratedClassValue, IReadOnlyZv
     {
         internal Zv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0e9ad2b9-6233-4ab4-b52f-4488a24bae58", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f5a8a74d-fde1-40b4-9092-9dde50a062b2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "a538be27-3326-48b1-9ece-8fe0ba3c693d");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "e172ca91-8ce9-4910-97c4-f8669fa8c172");
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => Zv.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Zv.CreateDetached(factoryClient, factoryValue, factorySaved));
@@ -56,7 +56,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0e9ad2b9-6233-4ab4-b52f-4488a24bae58");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f5a8a74d-fde1-40b4-9092-9dde50a062b2");
         }
 
         internal static Zv Create(NeoClient client, NeoMemberClass node)

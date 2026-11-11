@@ -42,10 +42,10 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "95cfaa0f-4e18-408b-8767-84b28d3e91a9" => (R27O8T<T, U>)(object)new R27O8N4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "aecb74c7-5bcb-4234-b473-dd4bc1dfed59" => (R27O8T<T, U>)(object)new R27O8N3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e45fc81b-9bac-4bda-9388-57556403365c" => (R27O8T<T, U>)(object)new R27O8N6(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "27ac980f-8958-401b-aa60-fa2818b4294b" => new R27O8T<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0e920a38-383e-49b9-beb6-8ababc77ae2a" => (R27O8T<T, U>)(object)new R27O8N4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7c18f3cf-fec4-4ff3-b014-356df45868dc" => (R27O8T<T, U>)(object)new R27O8N6(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e560a709-539f-4d9c-a149-40db10dcc5b1" => (R27O8T<T, U>)(object)new R27O8N3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a6ea6a2f-0c70-4c56-a2ce-a8e5755a1d5c" => new R27O8T<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8T' without a concrete client type id."),
                 };
             });
@@ -58,10 +58,10 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "95cfaa0f-4e18-408b-8767-84b28d3e91a9" => (R27O8T<T, U>)(object)new R27O8N4(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "aecb74c7-5bcb-4234-b473-dd4bc1dfed59" => (R27O8T<T, U>)(object)new R27O8N3(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e45fc81b-9bac-4bda-9388-57556403365c" => (R27O8T<T, U>)(object)new R27O8N6(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "27ac980f-8958-401b-aa60-fa2818b4294b" => new R27O8T<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0e920a38-383e-49b9-beb6-8ababc77ae2a" => (R27O8T<T, U>)(object)new R27O8N4(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7c18f3cf-fec4-4ff3-b014-356df45868dc" => (R27O8T<T, U>)(object)new R27O8N6(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e560a709-539f-4d9c-a149-40db10dcc5b1" => (R27O8T<T, U>)(object)new R27O8N3(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a6ea6a2f-0c70-4c56-a2ce-a8e5755a1d5c" => new R27O8T<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8T' without a concrete client type id."),
                 };
             });

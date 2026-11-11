@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Pairs<T> : NeoGeneratedClassValue, IReadOnlyPairs<T>
     {
         internal Pairs(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e1c350a6-cf7b-45f9-afdf-6336357b286b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1a2060f0-d69b-4809-9293-4c460411a9c5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e1c350a6-cf7b-45f9-afdf-6336357b286b" => new Pairs<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "1a2060f0-d69b-4809-9293-4c460411a9c5" => new Pairs<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Pairs' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e1c350a6-cf7b-45f9-afdf-6336357b286b" => new Pairs<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "1a2060f0-d69b-4809-9293-4c460411a9c5" => new Pairs<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Pairs' without a concrete client type id."),
                 };
             });

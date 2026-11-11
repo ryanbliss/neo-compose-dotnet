@@ -95,7 +95,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Gauge : NeoGeneratedClassValue, IReadOnlyGauge
     {
         internal Gauge(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "16fe36db-9d5f-4ccd-82f8-3cb12bfa4e89", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cc9f4c95-721a-45c1-8d2b-457bed8bc380", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -105,7 +105,7 @@ namespace NeoCompose.Tests.ReferenceParity
         }
 
         public Gauge()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "16fe36db-9d5f-4ccd-82f8-3cb12bfa4e89", "33dcddbd-abde-4905-8228-4221ed27c423", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "cc9f4c95-721a-45c1-8d2b-457bed8bc380", "8b7741a1-2921-4f65-8a6d-629c3013fc0a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -640,7 +640,7 @@ namespace NeoCompose.Tests.ReferenceParity
             }
         }
 
-        [NeoMemberMethod("ee08a0ec-8c1e-4724-b0b4-9b3cad2f72cf")]
+        [NeoMemberMethod("010dab33-dae1-4a9d-ad38-1489def0bbb6")]
         public void Hear(int v)
         {
             InvokeFunction("Hear", (object?)(v));
