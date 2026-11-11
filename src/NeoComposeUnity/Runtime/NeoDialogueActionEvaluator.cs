@@ -5450,25 +5450,15 @@ namespace NeoCompose.Runtime
                 PrepareWrite(client, plan =>
                 {
                     if (parentOwnership != NeoValueOwnership.Asset)
-                    {
-                        // The first write under an authored Save/Session root
-                        // shadows the root at its stable id so the save file
-                        // links the child it is about to hold. A parent the
-                        // store already holds is left alone.
                         EnsureWritableRow(client, parentRowId, parentOwnership);
-                        if (!client.HasWritableValue(parentOwnership, parentRowId))
-                            PrepareWritableRow(plan, client, parentRowId, parentOwnership);
-                    }
                     if (!client.TryGetValue(parentOwnership, parentRowId, out ObjectMemberValue? parent))
                     {
                         throw new NSGetterRuntimeError($"Missing parent row '{parentRowId}'.");
                     }
-                    // Beyond that, the parent is rewritten only when its value
-                    // map changes. A child replaced at its stable id leaves
-                    // the parent untouched, exactly as the generated setters
-                    // do; cloning and re-committing it on every scalar write
-                    // cost a row clone, a second changed row and its
-                    // notifications.
+                    // The parent is shadowed and rewritten only when its value
+                    // map changes. A child replaced at its stable id leaves an
+                    // authored parent unmaterialized, exactly as the generated
+                    // setters do, so project defaults stay out of the save.
                     ObjectMemberValue? writableParent = null;
                     ObjectMemberValue WritableParent()
                     {
@@ -5476,6 +5466,8 @@ namespace NeoCompose.Runtime
                             return writableParent;
                         if (parentOwnership == NeoValueOwnership.Asset)
                             throw new NSGetterRuntimeError($"Cannot rebind '{key}' on an immutable parent.");
+                        if (!client.HasWritableValue(parentOwnership, parentRowId))
+                            PrepareWritableRow(plan, client, parentRowId, parentOwnership);
                         writableParent = (ObjectMemberValue)client.CloneRowForWrite(parent!);
                         writableParent.value ??= new Dictionary<string, string>();
                         return writableParent;
