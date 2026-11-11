@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Money : NeoGeneratedClassValue, IReadOnlyMoney
     {
         internal Money(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6170c21c-b862-4162-b2a7-caa32ba04d9f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "49e2707e-18f6-4d07-8c1b-0d6c92de7832", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6170c21c-b862-4162-b2a7-caa32ba04d9f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "49e2707e-18f6-4d07-8c1b-0d6c92de7832");
         }
 
         internal static Money Create(NeoClient client, NeoMemberClass node)
@@ -96,7 +96,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         string IDescribed<string>.Describe()
         {
-            var result = InvokeFunction("Describe#46b6276e-c617-43a2-9200-73e2248b57bd");
+            var result = InvokeFunction("Describe#93e028c0-7840-4b31-9dba-ebea1a7165c5");
             return (string)result!;
         }
 

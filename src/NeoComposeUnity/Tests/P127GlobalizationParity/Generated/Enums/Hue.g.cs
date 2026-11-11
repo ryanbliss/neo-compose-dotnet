@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "0c815d9e-9161-4329-8fb5-50392e40692a" => Hue.Red,
-                "30563f7a-dfad-4e05-b885-1a2a7496343b" => Hue.Green,
-                "e614e627-5bbb-4e55-aca9-7575f5bd96a9" => Hue.Blue,
+                "0ce4dfca-13fe-464f-b4dd-307e816d0f3d" => Hue.Red,
+                "17c07081-417d-448c-9be2-fe15cda4287f" => Hue.Green,
+                "84016a77-3c06-4d8f-8bce-51c2c434971a" => Hue.Blue,
                 _ => NeoUndeclaredEnumOptions<Hue>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return value switch
             {
-                Hue.Red => "0c815d9e-9161-4329-8fb5-50392e40692a",
-                Hue.Green => "30563f7a-dfad-4e05-b885-1a2a7496343b",
-                Hue.Blue => "e614e627-5bbb-4e55-aca9-7575f5bd96a9",
+                Hue.Red => "0ce4dfca-13fe-464f-b4dd-307e816d0f3d",
+                Hue.Green => "17c07081-417d-448c-9be2-fe15cda4287f",
+                Hue.Blue => "84016a77-3c06-4d8f-8bce-51c2c434971a",
                 _ => NeoUndeclaredEnumOptions<Hue>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
         {
             return optionId switch
             {
-                "0c815d9e-9161-4329-8fb5-50392e40692a" => true,
-                "30563f7a-dfad-4e05-b885-1a2a7496343b" => true,
-                "e614e627-5bbb-4e55-aca9-7575f5bd96a9" => true,
+                "0ce4dfca-13fe-464f-b4dd-307e816d0f3d" => true,
+                "17c07081-417d-448c-9be2-fe15cda4287f" => true,
+                "84016a77-3c06-4d8f-8bce-51c2c434971a" => true,
                 _ => false,
             };
         }

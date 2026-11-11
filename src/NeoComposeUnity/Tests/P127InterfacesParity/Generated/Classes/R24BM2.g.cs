@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c1e02d4d-34cc-49bf-ace8-5fc1a58393a2");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6d687933-e1f5-4509-b6c8-13b36e35c7e0");
         }
 
         internal new static R24BM2 Create(NeoClient client, NeoMemberClass node)
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5605ded9-2bc4-4ffa-a5bd-439f78f145ff" => new R24BM2c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cbbca499-5c67-4ac8-840f-bf84c20c6cd6" => new R24BM2c(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R24BM2(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5605ded9-2bc4-4ffa-a5bd-439f78f145ff" => new R24BM2c(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cbbca499-5c67-4ac8-840f-bf84c20c6cd6" => new R24BM2c(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R24BM2(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -95,7 +95,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#5446484a-6db9-4ee3-953c-9138a6f0c6e3");
+                var result = ComputeProperty("V#6f7c8de7-dddb-40de-acb6-69fe47e8b282");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

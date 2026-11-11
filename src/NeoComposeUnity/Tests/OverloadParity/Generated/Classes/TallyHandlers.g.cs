@@ -45,9 +45,9 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c4506aff-adc7-402a-b5b7-e89f44662981",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "49e9eb1e-4183-42a8-852a-ae23182a6a2d", Watcher),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "97144a03-dfa6-498b-8ef0-efc6dbfdcf9d", Calls)
+                "8a148b82-3431-45fe-9183-e99e3582d07d",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "4912ea08-6b97-4618-a85c-c6c0bdae6119", Watcher),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "f5c91f82-67af-4ae4-831f-d69a37660a9f", Calls)
             );
         }
 
@@ -109,13 +109,13 @@ namespace NeoCompose.Tests.OverloadParity
             }
         }
 
-        [NeoMemberMethod("b59e1d33-a991-47e0-bd49-555952e32b64")]
+        [NeoMemberMethod("bde5b2a0-d949-47d5-9e3d-59d7be89c8d6")]
         public void AttachTo(IReadOnlyTallyWatch watcher)
         {
             InvokeFunction("AttachTo", (object?)(watcher));
         }
 
-        [NeoMemberMethod("99862571-9caa-42dc-b1c7-d5ece006de80")]
+        [NeoMemberMethod("b0e304a5-a154-4be3-92ed-6cc241426d03")]
         public void Fire()
         {
             InvokeFunction("Fire");

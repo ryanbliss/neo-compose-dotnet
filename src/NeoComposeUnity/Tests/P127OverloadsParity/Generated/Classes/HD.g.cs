@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int Base()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3bc8a500-e11c-4567-b014-015a22f243f1");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5c68e400-b800-446d-9a63-232497870c63");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int Own()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8f4aca6a-ec70-418d-9fb7-634e4e0eb5b5");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d80481ac-9f4e-4a41-90ea-c3897ac121de");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a8f82ca3-b2d1-472f-a0ca-ab962eca5459");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0b78bfce-3f6d-477d-be89-ad7ad5f2b2e6");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -66,7 +66,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "051c3b1f-493c-4f4f-8373-0e4316df4746");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d9fd5342-dd80-49e7-8677-8b63ac228c10");
         }
 
         internal new static HD Create(NeoClient client, NeoMemberClass node)

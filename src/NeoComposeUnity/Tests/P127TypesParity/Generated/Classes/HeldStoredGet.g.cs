@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldStoredGet : NeoGeneratedClassValue, IReadOnlyHeldStoredGet
     {
         internal HeldStoredGet(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8280cfa8-7c02-4625-9d0f-2fb871023979", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "625374a2-7733-4191-a857-6b0e79b4d9f6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8280cfa8-7c02-4625-9d0f-2fb871023979",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "9b984783-0787-47b6-932f-8b4de02cd56c", Items)
+                "625374a2-7733-4191-a857-6b0e79b4d9f6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "b84f6dc6-7215-4073-9aef-dce1be2da39f", Items)
             );
         }
 

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NCT<T> : NeoGeneratedClassValue, IReadOnlyNCT<T>
     {
         internal NCT(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e9193417-4176-409f-9bf4-1af67118d97c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "af9a1bd4-f90a-423e-8821-9d1cd531d766", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e9193417-4176-409f-9bf4-1af67118d97c" => new NCT<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "af9a1bd4-f90a-423e-8821-9d1cd531d766" => new NCT<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NCT' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e9193417-4176-409f-9bf4-1af67118d97c" => new NCT<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "af9a1bd4-f90a-423e-8821-9d1cd531d766" => new NCT<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NCT' without a concrete client type id."),
                 };
             });

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class CtvOC : NeoGeneratedClassValue, IReadOnlyCtvOC
     {
         internal CtvOC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2b839724-5fc2-4c3f-9e7a-7692d83eac9b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2a26a368-4d33-4781-a7dd-a842fc8e0d75", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2b839724-5fc2-4c3f-9e7a-7692d83eac9b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2a26a368-4d33-4781-a7dd-a842fc8e0d75");
         }
 
         internal static CtvOC Create(NeoClient client, NeoMemberClass node)

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CABW : NeoGeneratedClassValue, IReadOnlyCABW
     {
         internal CABW(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f229a7bf-6365-4e92-89b2-d2a23ccc52ac", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b5d1ae57-0ee2-49be-9470-39a5dc44dd07", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f229a7bf-6365-4e92-89b2-d2a23ccc52ac");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b5d1ae57-0ee2-49be-9470-39a5dc44dd07");
         }
 
         internal static CABW Create(NeoClient client, NeoMemberClass node)

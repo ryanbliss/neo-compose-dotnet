@@ -44,8 +44,8 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f3754cfd-a0b6-4a67-9d79-e39194739b91",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("K", "3d2f05de-03c3-4027-9ce3-474f1c92c52b", K)
+                "7e5b4f5b-995d-43fb-8041-9150f70cca56",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("K", "91aaa644-4f46-4722-9aab-8467d06d2a13", K)
             );
         }
 
@@ -101,7 +101,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         int global::System.IComparable<DerC>.CompareTo(DerC otherArgument)
         {
             var other = (IReadOnlyDerC?)(object)otherArgument!;
-            var result = InvokeFunction("CompareTo#f76b05bf-5334-4639-a3c5-80f0672bb995", (object?)(other));
+            var result = InvokeFunction("CompareTo#1641c4fe-2d9d-47d0-a049-8148c1effa7b", (object?)(other));
             return Convert.ToInt32(result);
         }
 
