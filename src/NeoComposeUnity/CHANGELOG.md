@@ -12,6 +12,8 @@
 
 - A stored collection keeps its own type inside the script, whether C# passes it to an `IEnumerable<T>` parameter or the script reaches it through a generic `T` or `object`. This covers list, set, dictionary, multi-select Lookup and enum set views, such as a `NeoReadOnlySet<int>` or a `NeoReadOnlyEnumSet<Mood>`, and a generic class's `List<T>` field, which takes its owner's type arguments: the set is a `Set<int>` and not a `List<int>`, a `List<Cat>` passed as `IEnumerable<Pet>` is a `List<Cat>`, not a `List<Pet>`, and a `Box<Cat>`'s `List<T>` is a `List<Cat>`, not a `List<int>`. Before, `GetType()` threw and `is` matched any `List` or `Set`.
 
+- A collection the script creates keeps its type, whether from a literal, `ToList`, `ToSet`, `ToDictionary` or `GroupBy`. A `List<Cat>` returned through a covariant interface or delegate, such as an `IGet<IEnumerable<Pet>>`, still tests and names itself as a `List<Cat>`. A set of references nested in a stored collection, such as a `List<Set<Reference<Cat>>>`, passes as an `IEnumerable<Set<Reference<Cat>>>`. Before, `GetType()` threw, `is List<Pet>` answered true and the nested set was refused.
+
 - A collection held as an `IEnumerable<T>` is the same object as that collection converted to `object`: `object.ReferenceEquals` and `==` on `object` answer true, also after the list grows. Before, both answered false.
 
 - `IEnumerable<T>` and `IEnumerator<T>` variance is built in, so a project whose export omits those two interfaces still converts a `List<Cat>` or `IEnumerable<Cat>` to `IEnumerable<Pet>`. Before, such a project converted by identity only, and a nested `IEnumerable<IEnumerable<Cat>>` check failed with a missing-key error.

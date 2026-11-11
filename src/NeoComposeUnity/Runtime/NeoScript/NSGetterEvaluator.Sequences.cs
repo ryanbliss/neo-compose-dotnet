@@ -550,6 +550,23 @@ namespace NeoCompose.Runtime.NeoScript
         internal static T TagSequenceCollection<T>(T value, TypeInfo? type, Context ctx) where T : class =>
             CollectionElementOf(type) is null ? value : TagSequenceCollectionType(value, type!, ctx);
 
+        /// <summary>
+        /// A collection the runtime builds keeps its type from birth, as a
+        /// literal does, so a later variance conversion has a record to keep.
+        /// </summary>
+        private static T CreatedCollection<T>(T value, MemberKind kind, TypeInfo? entry, Context ctx, string? keyEnumId = null) where T : class =>
+            entry is null or UnknownTypeInfo
+                ? value
+                : TagSequenceCollectionType(value, new CollectionTypeInfo { type = kind, required = true, keyEnumId = keyEnumId, entryTypeInfo = entry }, ctx);
+
+        /// <summary>A query source's element type; null when it has none.</summary>
+        private static TypeInfo? QueryElementType(object? source, Context ctx) => source switch
+        {
+            EnumerableQuery query => query.ElementType,
+            ScriptSequence sequence => sequence.ElementType,
+            _ => SequenceCollectionElement(source, ctx),
+        };
+
         /// <summary>A List, Set, Dictionary or Lookup type's element; null for any other type.</summary>
         private static TypeInfo? CollectionElementOf(TypeInfo? type) => type switch
         {
@@ -721,7 +738,22 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             return element is not null && arguments is { Count: 1 }
                 && arguments.TryGetValue(key, out TypeInfo expected)
-                && SequenceElementConverts(element, CloseContextType(expected, ctx), ctx);
+                && SequenceElementConverts(HeldEntryType(element), HeldEntryType(CloseContextType(expected, ctx)), ctx);
+        }
+
+        /// <summary>
+        /// An entry type as its value holds it: a reference as its target and
+        /// a Lookup as the Set it reads as, at every level.
+        /// </summary>
+        private static TypeInfo HeldEntryType(TypeInfo type)
+        {
+            if (type is ReferenceTypeInfo reference)
+                return HeldEntryType(reference.targetTypeInfo);
+            if (CollectionRuntimeType(type) is not { } held)
+                return type;
+            held.required = type.required;
+            held.entryTypeInfo = HeldEntryType(held.entryTypeInfo);
+            return held;
         }
 
         /// <summary>P127 §4.8. A sequence's element converts to the expected one at the interface's parameter.</summary>
@@ -842,7 +874,8 @@ namespace NeoCompose.Runtime.NeoScript
                 else if (cursor is ScriptCursor runtime)
                     runtime.Abandon();
             }
-            return KeepDerived(values.Count == 0 ? new object?[0] : values.ToArray(), null, true);
+            return CreatedCollection(KeepDerived(values.Count == 0 ? new object?[0] : values.ToArray(), null, true),
+                MemberKind.List, conversion.elementType, ctx);
         }
 
         private static string SequenceTypeLabel(TypeInfo type, Context ctx)

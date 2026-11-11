@@ -2731,8 +2731,9 @@ namespace NeoCompose.Runtime.NeoScript
                 strings |= arr[i] is string;
             }
             if (llp.typeInfo is { type: MemberKind.Set, entryTypeInfo: { } entryType })
-                return EqualitySetQuery(new FunctionCollectionQueryInfo { op = "ToSet", equality = new EqualitySite { type = entryType } }, arr, scope, ctx);
-            return KeepDerived(arr, null, strings);
+                return CreatedCollection(EqualitySetQuery(new FunctionCollectionQueryInfo { op = "ToSet", equality = new EqualitySite { type = entryType } }, arr, scope, ctx),
+                    MemberKind.Set, entryType, ctx);
+            return CreatedCollection(KeepDerived(arr, null, strings), MemberKind.List, llp.typeInfo?.entryTypeInfo, ctx);
         }
 
         /// <summary>A dictionary literal's entries.</summary>
@@ -2752,9 +2753,9 @@ namespace NeoCompose.Runtime.NeoScript
                 && equality.Default.Type.Equals(original.Equality.Default.Type)
                 && SameObject(equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx),
                     original.Equality.Comparer ?? DefaultComparer(original.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx), ctx))
-                return KeepDerived(new RuntimeDictionary(equality,
+                return CreatedCollection(KeepDerived(new RuntimeDictionary(equality,
                     NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true), original),
-                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo));
+                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo)), MemberKind.Dictionary, dlp.typeInfo?.entryTypeInfo, ctx, dlp.typeInfo?.keyEnumId);
             IDictionary<string, object?> dict = new RuntimeDictionary(equality, capacity);
             if (source is not null)
             {
@@ -2776,7 +2777,7 @@ namespace NeoCompose.Runtime.NeoScript
                 dict[key] = value;
                 strings |= value is string;
             }
-            return KeepDerived(dict, null, strings);
+            return CreatedCollection(KeepDerived(dict, null, strings), MemberKind.Dictionary, dlp.typeInfo?.entryTypeInfo, ctx, dlp.typeInfo?.keyEnumId);
         }
 
         /// <summary>A force-unwrapped value, which must not be null.</summary>

@@ -252,6 +252,8 @@ namespace NeoCompose.Runtime.NeoScript
             BoundEquality? equality = info.equality is null ? null : BindEquality(info.equality, scope, ctx);
             IDictionary<string, object?> result = new RuntimeDictionary(equality ?? BindEquality(
                 new EqualitySite { type = new PrimitiveTypeInfo { type = MemberKind.String, required = true } }, scope, ctx));
+            TypeInfo? entryType = info.valueFunction?.typeInfo ?? QueryElementType(collection, ctx);
+            var groupType = entryType is null ? null : new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = entryType };
             var groups = new Dictionary<string, List<object?>>();
             var groupedKeys = equality is null ? null : new NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, List<object?>>(equality, NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Set);
             PreparedCollectionCallback valueSelector = default;
@@ -297,14 +299,15 @@ namespace NeoCompose.Runtime.NeoScript
                         if (groupedKeys is not null)
                         {
                             result = new RuntimeDictionary(equality!, groupedKeys.MapValues<object?>(
-                                group => KeepDerived(group.ToArray(), CollectionEntryMember(collection, ctx), true),
+                                group => CreatedCollection(KeepDerived(group.ToArray(), CollectionEntryMember(collection, ctx), true), MemberKind.List, entryType, ctx),
                                 NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Dictionary));
                         }
                         else
                             foreach (var group in groups)
-                                result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
+                                result.Add(group.Key, CreatedCollection(KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true), MemberKind.List, entryType, ctx));
                     }
-                    return KeepDerived(result, CollectionEntryMember(collection, ctx), true);
+                    return CreatedCollection(KeepDerived(result, CollectionEntryMember(collection, ctx), true), MemberKind.Dictionary,
+                        info.op == "GroupBy" ? groupType : entryType, ctx, (info.function?.typeInfo as EnumTypeInfo)?.enumId);
                 }
                 catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
                 finally
