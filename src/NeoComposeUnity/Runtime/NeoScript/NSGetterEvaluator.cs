@@ -5425,11 +5425,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return null;
             }
-            // A row the sparse index does not cover can omit a null class
-            // or reference default. Match the generated accessor without hiding
-            // missing required fields or evaluating an initializer out of
+            // A row the sparse index does not cover can omit a null class,
+            // object or reference default. Match the generated accessor without
+            // hiding missing required fields or evaluating an initializer out of
             // context.
             if (MemberValueFactory.IsLiteralNullClassDefault(member)
+                || member is ObjectMember { Requirement: NeoMemberRequirementKind.Optional, defaultValue: { value: null, init: null } }
                 || member is LookupMember
                 {
                     Requirement: NeoMemberRequirementKind.Optional,
@@ -10974,6 +10975,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (member is ListMember or DictionaryMember)
                     ctx.client.RegisterRetainedRootContract(rootId, member);
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
+                ctx.client.MarkReleasedRoot(rootId);
                 var aliases = new List<object>();
                 NeoScriptObject? escapedAlias = null;
                 foreach (var pair in remapped)

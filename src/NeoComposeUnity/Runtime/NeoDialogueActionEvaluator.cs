@@ -5177,6 +5177,19 @@ namespace NeoCompose.Runtime
             return NeoGenericResolution.RowEnv(client, row, collection);
         }
 
+        /// <summary>
+        /// A null entry the call site types as nullable. One static serves
+        /// <c>Box&lt;Cat&gt;</c> and <c>Box&lt;Cat?&gt;</c>, so its stamp may read required.
+        /// </summary>
+        private static JsonMember NullableEntry(JsonMember entry, object? value, TypeInfo entryTypeInfo)
+        {
+            if (value is not null || entryTypeInfo.required || entry.Requirement != NeoMemberRequirementKind.Required)
+                return entry;
+            JsonMember optional = entry.ShallowClone();
+            optional.DeclaredRequirement = NeoMemberRequirementKind.Optional;
+            return optional;
+        }
+
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             NamesEntryMember(entryTypeInfo)
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
@@ -6699,7 +6712,7 @@ namespace NeoCompose.Runtime
                                     batch.Plan.Set(ownership, CreateValueRow(
                                         batch.Plan, client,
                                         ownership,
-                                        entryMember ?? EntryMember(batch, list, entryTypeInfo),
+                                        NullableEntry(entryMember ?? EntryMember(batch, list, entryTypeInfo), insertedValue, entryTypeInfo),
                                         insertedValue,
                                         childId,
                                         now,

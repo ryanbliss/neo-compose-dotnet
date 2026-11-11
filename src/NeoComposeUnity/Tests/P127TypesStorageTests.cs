@@ -86,6 +86,35 @@ namespace NeoCompose.Tests
                 Assert.That(client.save.Get<NeoMemberString>("Name").Text, Is.EqualTo("before"));
         }
 
+        /// <summary>P127 §4.2: only a type parameter's initializer may leave null in a required slot.</summary>
+        [Test]
+        public void PayloadNullStaysRefusedInAnInitializedConcreteSlot()
+        {
+            using NeoClient client = BuildClient();
+            ProjectData data = client.ProjectDataForRuntime;
+            data.members["initialized-text"] = new StringMember
+            {
+                id = "initialized-text",
+                name = "Label",
+                kind = MemberKind.String,
+                Requirement = NeoMemberRequirementKind.Required,
+                defaultValue = new StringMemberValueBase { init = new InitializerBody { code = "\"x\"" } },
+            };
+            data.classes["labeled-class"] = new NeoSchemaClass
+            {
+                id = "labeled-class",
+                projectId = ProjectId,
+                name = "Labeled",
+                schema = new Dictionary<string, string> { ["Label"] = "initialized-text" },
+            };
+            var error = Assert.Catch(() => NeoGeneratedTypesSupport.CreateWritableClassValue(
+                client,
+                "labeled-class",
+                new Dictionary<string, string> { ["Label"] = "label-null" },
+                new MemberValue[] { new StringMemberValue { id = "label-null", value = null } }))!;
+            Assert.That(error.Message, Does.Contain("has a null value"));
+        }
+
         [TestCase(false, false)]
         [TestCase(true, false)]
         [TestCase(true, true)]

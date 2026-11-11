@@ -32,6 +32,8 @@ namespace NeoCompose.Runtime
         // Only a successfully retained, parentless Session aggregate needs this
         // contract. Ordinary placement inference always takes precedence.
         internal RetainedRootContract? retainedRoot;
+        /// <summary>P127: a Session root a write released. It owns nothing until it is placed again.</summary>
+        internal bool releasedRoot;
 
         internal sealed class RetainedRootContract
         {

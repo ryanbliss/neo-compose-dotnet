@@ -3800,9 +3800,11 @@ namespace NeoCompose.Runtime
                 {
                     return sourceValueId;
                 }
-                if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId))
+                if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId, out NeoValueOwnership parentOwnership))
                 {
-                    if (sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
+                    // A value under a released root is copied, as a shared getter result is.
+                    if ((sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
+                        || HeldByReleasedRoot(parentValueId, parentOwnership))
                     {
                         TryInferMemberForValueId(sourceValueId, out Member? sharedChildMember);
                         return PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sharedChildMember, listenerCopyIntent, clonedValueIds);

@@ -4216,7 +4216,7 @@ namespace NeoCompose.Runtime
             {
                 ValidateConstructedRowShape(client, member, row, path, requireNonNull, env);
             }
-            else if (requireNonNull && RefusesNullRow(member, row))
+            else if (requireNonNull && RefusesNullRow(client, member, row))
             {
                 throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
@@ -4282,10 +4282,12 @@ namespace NeoCompose.Runtime
                         try
                         {
                             var elementEnv = NeoGenericResolution.RowEnvOr(client, tupleRow, tupleMember, env);
+                            bool initialized = InitializerOf(tupleMember) is not null;
                             for (int index = 0; index < tupleRow.value.Length; index++)
                             {
                                 if (!client.TryGetMember(tupleMember.elementMemberIds[index], out Member? element))
                                     throw new InvalidOperationException($"Constructed Tuple field '{path}' is missing element {index + 1}.");
+                                bool holdsDefault = initialized && HoldsTypeArgumentDefault(client, tupleMember, element);
                                 element = NeoGenericResolution.SubstituteMember(client, element, elementEnv);
                                 string childId = tupleRow.value[index];
                                 bool childIsTrustedStaged = trustedMaterialization && stagedById.ContainsKey(childId);
@@ -4308,7 +4310,8 @@ namespace NeoCompose.Runtime
                                     traversal,
                                     elementEnv,
                                     referenceOwnershipByPath,
-                                    trustedMaterialization);
+                                    trustedMaterialization,
+                                    requireNonNull: !holdsDefault);
                             }
                         }
                         finally
@@ -4510,7 +4513,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema member '{member.id}' ({member.kind}).");
             }
-            if (requireNonNull && RefusesNullRow(member, row))
+            if (requireNonNull && RefusesNullRow(client, member, row))
             {
                 throw new InvalidOperationException(
                     $"Constructed required field '{path}' has a null value.");
@@ -6383,11 +6386,23 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>Whether a required slot refuses a null row. A null its initializer stored, such as `default` under a reference binding, stays (P127 §4.2).</summary>
-        private static bool RefusesNullRow(Member member, MemberValue row) =>
+        /// <summary>Whether a required slot refuses a null row. A type parameter's initializer, such as `default` under a reference binding, may leave null (P127 §4.2).</summary>
+        private static bool RefusesNullRow(NeoClient client, Member member, MemberValue row) =>
             member.Requirement == NeoMemberRequirementKind.Required
             && IsNullStoredValue(row)
-            && InitializerOf(member) is null;
+            && (InitializerOf(member) is null || !DeclaresTypeParameter(client, member));
+
+        /// <summary>
+        /// P127 §4.1. Whether an initializer's tuple element holds `default(T)`: the element
+        /// is typed by a type parameter, or the whole tuple is a type argument.
+        /// </summary>
+        private static bool HoldsTypeArgumentDefault(NeoClient client, Member tuple, Member declaredElement) =>
+            declaredElement is GenericMember || DeclaresTypeParameter(client, tuple);
+
+        /// <summary>Whether <paramref name="member"/> is declared as a type parameter, before or after its binding is substituted.</summary>
+        private static bool DeclaresTypeParameter(NeoClient client, Member member) =>
+            member is GenericMember
+            || (client.TryGetMember(member.id, out Member? declared) && declared is GenericMember);
 
         /// <summary>
         /// Completeness is asserted on the FINISHED instance because a declared
@@ -6435,7 +6450,7 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' pointing at missing value '{fieldId}'.");
                     }
-                    if (RefusesNullRow(member, field!))
+                    if (RefusesNullRow(client, member, field!))
                     {
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' null.");
@@ -8320,7 +8335,8 @@ namespace NeoCompose.Runtime
             if (runtimeValue is null)
             {
                 // P127 §4.2. A type parameter's `default` stores null under a reference binding.
-                if (member.Requirement == NeoMemberRequirementKind.Required && !initializerDefault)
+                if (member.Requirement == NeoMemberRequirementKind.Required
+                    && !(initializerDefault && DeclaresTypeParameter(client, member)))
                 {
                     client.RequireStoredValue(member, null, path);
                 }
@@ -8464,7 +8480,8 @@ namespace NeoCompose.Runtime
                     ? provider.ToNeoValuePayload()
                     : null;
             object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
-            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required && !initializerDefault)
+            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required
+                && !(initializerDefault && DeclaresTypeParameter(client, member)))
             {
                 client.RequireStoredValue(member, null, path);
             }
@@ -8498,11 +8515,16 @@ namespace NeoCompose.Runtime
                 for (int index = 0; index < count; index++)
                 {
                     string memberId = tupleMember.elementMemberIds[index];
-                    if (!client.TryGetMember(memberId, out Member? element))
+                    if (!client.TryGetMember(memberId, out Member? declaredElement))
                         throw new InvalidOperationException($"Tuple field '{path}' references missing element '{memberId}'.");
-                    element = NeoGenericResolution.SubstituteMember(client, element, genericEnv);
+                    Member element = NeoGenericResolution.SubstituteMember(client, declaredElement, genericEnv);
                     object? item = suppliedValue is NeoScript.RuntimeTuple runtimeTuple
                         ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
+                    if (item is null && initializerDefault && HoldsTypeArgumentDefault(client, member, declaredElement))
+                    {
+                        element = element.ShallowClone();
+                        element.DeclaredRequirement = NeoMemberRequirementKind.Optional;
+                    }
                     ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
                         $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections,
                         tupleAssignment?.Element(index),

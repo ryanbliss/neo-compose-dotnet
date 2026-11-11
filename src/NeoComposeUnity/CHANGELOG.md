@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
-- A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, as in C#, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null."
+- A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null." A tuple default does the same in each element typed by a type argument, as in `(T, int) P = default`. Only a type parameter's initializer may leave null: a required slot of any other type still refuses a null in a payload.
+
+- A static `List<T>` of a generic class closed with a nullable class, as in `Box<Cat?>.L.Add(null)`, takes a null entry. It failed with "'Box.L[0]' is required and cannot store null."
+
+- A field declared `object? O = null` reads null. It failed with "Missing key 'O' on object".
+
+- An entry or list taken from an object a write let go, as in `var c = w.Farm!.Cats[0]; w.Farm = null; h.Cats.Add(c)`, is copied into its new owner instead of refused with "already owned". Once that object is placed again, as in `w.Other = f`, it owns its entries again, and storing one elsewhere is refused.
 
 - A constructor body that stores a `List` argument holding class rows in a field, such as `Val = v` with a `List<Cat>` parameter, constructs again, and the caller's list and the field stay one list. It used to fail with "Constructed field 'v[0]' … is already owned".
 

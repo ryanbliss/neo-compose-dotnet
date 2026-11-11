@@ -145,6 +145,42 @@ namespace NeoCompose.Runtime
                 node.retainedRoot = new NeoValueNode.RetainedRootContract(member, SchemaResolution, row, ReadRow);
         }
 
+        internal void MarkReleasedRoot(string id)
+        {
+            if (ValueNode(id) is { live: true, session: { IsRemoved: false } } node)
+                node.releasedRoot = true;
+        }
+
+        /// <summary>
+        /// P127: true when the collections above <paramref name="parentValueId"/>
+        /// end at a released root that was not placed again. A class row
+        /// still owns its own fields. Only a refusal reads it.
+        /// </summary>
+        private bool HeldByReleasedRoot(string parentValueId, NeoValueOwnership parentOwnership)
+        {
+            string? id = parentValueId;
+            NeoValueOwnership ownership = parentOwnership;
+            bool throughCollection = false;
+            var seen = new HashSet<string>();
+            while (id is not null && seen.Add(id))
+            {
+                bool classRow = IsClassRow(ownership, id);
+                if (ownership == NeoValueOwnership.Session
+                    && (!classRow || throughCollection)
+                    && ExistingValueNode(id)?.releasedRoot == true)
+                    return !TryFindOwnedParent(ownership, id, out _);
+                if (classRow || !TryFindOwnedParent(ownership, id, out id, out ownership))
+                    return false;
+                throughCollection = true;
+            }
+            return false;
+        }
+
+        private bool IsClassRow(NeoValueOwnership ownership, string id) =>
+            TryGetValue(ownership, id, out MemberValue? row)
+            && row is ObjectMemberValue objectRow
+            && (objectRow.classId is not null || (TryInferMemberForValueId(id, out Member? member) && member is ClassMember));
+
         private MemberValueBase? ReadRow(string id) => TryGetValue(id, out MemberValue? found) ? found : null;
 
         private bool TryRetainedRootMember(string id, NeoValueOwnership? ownership, out Member? member)
