@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- A constructor body that stores a `List` argument holding class rows in a field, such as `Val = v` with a `List<Cat>` parameter, constructs again, and the caller's list and the field stay one list. It used to fail with "Constructed field 'v[0]' … is already owned".
+
 - NeoScript `is`, `as`, casts and function argument and return checks follow `IEnumerable<T>` and `IEnumerator<T>` variance, including nested sequences: a `List<List<Cat>>` is an `IEnumerable<IEnumerable<Pet>>`, while a value element such as `int` converts by identity only and `List<Cat>` is still not a `List<Pet>`. A reference type argument's `?` is ignored, so `Box<string?>` is `Box<string>`; `Box<int?>` and `Box<int>` stay distinct.
 
 - A collection read from an `IEnumerable<IEnumerable<T>>` keeps its element type, so passing it on, returning it or testing it with `is` accepts it as an `IEnumerable<T>`. This holds for `foreach`, a `GetEnumerator()` loop and a dictionary's values. Before, `is` answered false and a call or return wrapped the collection in a new sequence.

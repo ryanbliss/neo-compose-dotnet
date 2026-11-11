@@ -5633,7 +5633,8 @@ namespace NeoCompose.Runtime
             object?[] argumentValues,
             NeoScript.NSGetterEvaluator.Context ctx,
             bool deferLiterals,
-            NeoConstructionScope? construction = null)
+            NeoConstructionScope? construction = null,
+            NeoScript.NeoScriptObject? detached = null)
         {
             ConstructorRecord? record = resolved.link.record;
             if (record is null || record.argumentTypes.Length == 0)
@@ -5673,9 +5674,11 @@ namespace NeoCompose.Runtime
                     : argument;
                 argumentType = NeoTypeRules.Declared(argumentType);
                 MemberKind declaredKind = argumentType.type;
-                // A collection an initializer stored is recorded as that row: the argument and the field are one object.
+                // A collection an initializer or the body stored is recorded as that row: the argument and the field are one object.
                 string? rowId = NeoTypeSources.ConstructorArgumentStoresRow(declaredKind)
-                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId ?? construction?.InitializedRow(value)
+                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
+                        ?? construction?.InitializedRow(value)
+                        ?? StoredListRow(detached, value)
                     : null;
                 // P127 §1.3. A box or Type value records as the box row it mints.
                 bool boxes = declaredKind == MemberKind.Object && value is NeoScript.NeoBox or NeoScript.NeoTypeValue;
