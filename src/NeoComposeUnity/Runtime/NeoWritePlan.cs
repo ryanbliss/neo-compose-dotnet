@@ -804,12 +804,41 @@ namespace NeoCompose.Runtime
             return new CandidateReadScope(this, previous);
         }
 
-        /// <summary>Reads committed rows while a candidate scope is open.</summary>
-        internal CandidateReadScope ReadCommitted()
+        /// <summary>
+        /// Reads committed rows while a candidate scope is open: suspends the
+        /// candidate plan, its constructor replay and in-flight construction
+        /// defaults, each of which would otherwise answer reads.
+        /// </summary>
+        private CommittedReadScope ReadCommitted()
         {
-            NeoWritePlan? previous = candidateReadPlan;
+            var scope = new CommittedReadScope(this, candidateReadPlan, candidateReplay, replayDefaultGraph);
             candidateReadPlan = null;
-            return new CandidateReadScope(this, previous);
+            candidateReplay = null;
+            replayDefaultGraph = null;
+            return scope;
+        }
+
+        private readonly struct CommittedReadScope : IDisposable
+        {
+            private readonly NeoClient client;
+            private readonly NeoWritePlan? plan;
+            private readonly CandidateReplay? replay;
+            private readonly ReplayDefaultGraph? defaults;
+
+            internal CommittedReadScope(NeoClient client, NeoWritePlan? plan, CandidateReplay? replay, ReplayDefaultGraph? defaults)
+            {
+                this.client = client;
+                this.plan = plan;
+                this.replay = replay;
+                this.defaults = defaults;
+            }
+
+            public void Dispose()
+            {
+                client.candidateReadPlan = plan;
+                client.candidateReplay = replay;
+                client.replayDefaultGraph = defaults;
+            }
         }
 
         /// <summary>Restores the previous candidate plan; a struct, so a scope allocates nothing.</summary>

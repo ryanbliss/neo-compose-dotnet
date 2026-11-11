@@ -208,6 +208,88 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void IntroducedOverlapRejectsWhenTheMoveComesFromConstructorReplay()
+        {
+            var data = BuildStackedDoorData("rock", 3);
+            // The door's Position is a constructor-derived default, so the
+            // move below exists only in the candidate replay.
+            var door = (ObjectMemberValue)data.values["door"];
+            var position = (Vector3Member)data.members["object-position-member"].ShallowClone();
+            position.id = "door-ctor-position-member";
+            data.members[position.id] = position;
+            data.classes[door.classId!].schema["Position"] = position.id;
+            var argument = new FunctionArgumentTypeInfo { name = "Position", type = MemberKind.Vector3, required = true };
+            var parameters = new[]
+            {
+                new Variable { id = "__this__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = door.classId } },
+                new Variable { id = "__root__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "__root__" } },
+                new Variable { id = "__arg_0__", typeInfo = argument },
+            };
+            var constructor = new ConstructorRecord
+            {
+                id = "door-ctor",
+                projectId = "project-a",
+                classId = door.classId,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = parameters,
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            position.defaultValue = new Vector3MemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "Position",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = parameters,
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector3, required = true },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" },
+                            },
+                        },
+                    },
+                },
+            };
+            data.constructors[constructor.id] = constructor;
+            data.classes[door.classId!].constructorIds = new[] { constructor.id };
+            string parameterId = NeoClient.ConstructorParameterId(constructor, 0);
+            door.value!.Remove("Position");
+            door.instanceConstructorId = constructor.id;
+            door.constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+            {
+                [parameterId] = new Newtonsoft.Json.Linq.JObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = door.id,
+                classId = door.classId,
+                value = new Dictionary<string, string>(door.value),
+                instanceConstructorId = constructor.id,
+                constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+                {
+                    [parameterId] = new Newtonsoft.Json.Linq.JObject { ["x"] = 2, ["y"] = 0, ["z"] = 0 },
+                },
+            });
+            Assert.Throws<NeoPlacementValidationException>(() => plan.Commit());
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+        }
+
+        [Test]
         public void RootSpawnBesideNestedMembersPatchesTheLayerIndex()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedObjectPlacementData());
