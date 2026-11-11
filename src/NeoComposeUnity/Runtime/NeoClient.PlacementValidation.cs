@@ -660,21 +660,56 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Rejects the write for an occupied cell it introduced. A conflict
-        /// between two objects that both still place exactly as the committed
-        /// index records them, such as stacked objects a save loaded, belongs
-        /// to no write, so it must not fail every later one. Without a warmed
-        /// committed index there is no baseline, and every conflict rejects.
+        /// between two objects that both place exactly as they did before the
+        /// write, under the same parent and link, such as stacked objects a
+        /// save loaded, belongs to no write, so it must not fail every later
+        /// one. The baseline is rebuilt from committed rows, never from a
+        /// cache a candidate read could have seeded, and only when a conflict
+        /// exists.
         /// </summary>
         private void RejectIntroducedObjectConflicts(List<ObjectCellConflict> conflicts)
         {
+            if (conflicts.Count == 0)
+                return;
+            var committedLayers = new Dictionary<(string gridId, string layerId), Dictionary<string, NeoObjectPlacementRecord>>();
             foreach (ObjectCellConflict conflict in conflicts)
             {
-                if (gridLookupCaches.TryGetValue(conflict.GridId, out var cache)
-                    && cache.PlacesAsCommitted(conflict.LayerId, conflict.First)
-                    && cache.PlacesAsCommitted(conflict.LayerId, conflict.Second))
+                var key = (conflict.GridId, conflict.LayerId);
+                if (!committedLayers.TryGetValue(key, out var committed))
+                {
+                    committed = new Dictionary<string, NeoObjectPlacementRecord>(StringComparer.Ordinal);
+                    using (ReadCommitted())
+                    {
+                        if (ResolveValueRow(conflict.GridId) is ObjectMemberValue { IsRemoved: false })
+                            foreach (var record in NeoReadOnlyTileGridPrimitive.Resolve(this, conflict.GridId).BuildObjectLayerRecords(conflict.LayerId, null))
+                                committed[record.InstanceId] = record;
+                    }
+                    committedLayers[key] = committed;
+                }
+                if (PlacesAsCommitted(committed, conflict.First) && PlacesAsCommitted(committed, conflict.Second))
                     continue;
                 throw PlacementError("tile-grid-object-cell-occupied", $"Object layer '{conflict.LayerId}' has objects '{conflict.First.InstanceId}' and '{conflict.Second.InstanceId}' at {conflict.Cell}.");
             }
+        }
+
+        private static bool PlacesAsCommitted(Dictionary<string, NeoObjectPlacementRecord> committed, NeoObjectPlacementRecord candidate)
+        {
+            if (!committed.TryGetValue(candidate.InstanceId, out var before))
+                return false;
+            if (before.Cell != candidate.Cell)
+                return false;
+            if (before.ParentObjectId != candidate.ParentObjectId)
+                return false;
+            if (before.SourceLayerLinkId != candidate.SourceLayerLinkId)
+                return false;
+            if (before.Footprint.Count != candidate.Footprint.Count)
+                return false;
+            for (int i = 0; i < before.Footprint.Count; i++)
+            {
+                if (before.Footprint[i] != candidate.Footprint[i])
+                    return false;
+            }
+            return true;
         }
 
         // The parent index also contains lookup selections and constructor

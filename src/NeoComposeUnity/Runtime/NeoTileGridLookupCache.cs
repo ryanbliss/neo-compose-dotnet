@@ -617,24 +617,6 @@ namespace NeoCompose.Runtime
             return string.CompareOrdinal(right.InstanceId, left.InstanceId);
         }
 
-        /// <summary>
-        /// Whether a candidate record places as this layer's committed index
-        /// records it. Reads only an index already built: building one during
-        /// validation would seed it from speculative rows.
-        /// </summary>
-        internal bool PlacesAsCommitted(string layerId, NeoObjectPlacementRecord candidate)
-        {
-            if (!objectLayers.TryGetValue(layerId, out var index)
-                || !index.ById.TryGetValue(candidate.InstanceId, out var committed))
-                return false;
-            if (committed.Cell != candidate.Cell || committed.Footprint.Count != candidate.Footprint.Count)
-                return false;
-            for (int i = 0; i < committed.Footprint.Count; i++)
-                if (committed.Footprint[i] != candidate.Footprint[i])
-                    return false;
-            return true;
-        }
-
         private ObjectLayerIndex GetObjectLayerIndex(string layerId)
         {
             // Every indexed layer is already known; only a build registers one.

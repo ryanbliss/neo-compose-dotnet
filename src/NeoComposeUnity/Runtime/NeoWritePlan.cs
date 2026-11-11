@@ -804,6 +804,14 @@ namespace NeoCompose.Runtime
             return new CandidateReadScope(this, previous);
         }
 
+        /// <summary>Reads committed rows while a candidate scope is open.</summary>
+        internal CandidateReadScope ReadCommitted()
+        {
+            NeoWritePlan? previous = candidateReadPlan;
+            candidateReadPlan = null;
+            return new CandidateReadScope(this, previous);
+        }
+
         /// <summary>Restores the previous candidate plan; a struct, so a scope allocates nothing.</summary>
         internal readonly struct CandidateReadScope : IDisposable
         {
