@@ -36,8 +36,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "494ac706-9014-4f4c-8fa3-8f00ef100f16" => (ITL2<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "0b7f7963-3fe5-4310-b1b3-63660f95070e" => new ITL2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ec89a840-20b5-499d-b341-d29c3a2f9dcf" => (ITL2<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "6e65ee87-b96b-495f-a624-00d4be0b0330" => new ITL2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL2' without a concrete client type id."),
                 };
             });
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "494ac706-9014-4f4c-8fa3-8f00ef100f16" => (ITL2<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "0b7f7963-3fe5-4310-b1b3-63660f95070e" => new ITL2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ec89a840-20b5-499d-b341-d29c3a2f9dcf" => (ITL2<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "6e65ee87-b96b-495f-a624-00d4be0b0330" => new ITL2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL2' without a concrete client type id."),
                 };
             });
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int M(int c, T d)
         {
-            var result = InvokeFunction("M#202e2194-3924-4b0b-a487-7757d47a1bca", c, d);
+            var result = InvokeFunction("M#cb1e5e7f-795f-4226-8f5e-2c3d28c6a14f", c, d);
             return Convert.ToInt32(result);
         }
 

@@ -30,7 +30,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R16GB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c0971011-48e2-4f66-9cc2-f8a453477bd9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d7c066c2-6a6a-455b-98db-a2e895e24aaa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,8 +41,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c422fe20-2d7e-4d9d-a352-ab5824faea98" => (R16GB<T>)(object)new R16GGetOnly(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "c0971011-48e2-4f66-9cc2-f8a453477bd9" => new R16GB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3a1155d8-4ac6-4714-a963-c83330568be4" => (R16GB<T>)(object)new R16GGetOnly(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d7c066c2-6a6a-455b-98db-a2e895e24aaa" => new R16GB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R16GB' without a concrete client type id."),
                 };
             });
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c422fe20-2d7e-4d9d-a352-ab5824faea98" => (R16GB<T>)(object)new R16GGetOnly(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "c0971011-48e2-4f66-9cc2-f8a453477bd9" => new R16GB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3a1155d8-4ac6-4714-a963-c83330568be4" => (R16GB<T>)(object)new R16GGetOnly(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d7c066c2-6a6a-455b-98db-a2e895e24aaa" => new R16GB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R16GB' without a concrete client type id."),
                 };
             });
@@ -99,13 +99,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#f66381ef-b97e-4398-aab1-7d5ca9d790fa");
+                var result = ComputeProperty("V#f37730cd-85e6-4c59-a3b0-ee6d0c4cc124");
                 result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result.value, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("V#f66381ef-b97e-4398-aab1-7d5ca9d790fa").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("V#f37730cd-85e6-4c59-a3b0-ee6d0c4cc124").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

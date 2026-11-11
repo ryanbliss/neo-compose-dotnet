@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "26397448-d732-49fc-86ff-acbb7ee16c7b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "83499b87-3313-490a-a3e1-151cf79b23c7");
         }
 
         internal new static DerM Create(NeoClient client, NeoMemberClass node)
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         int IMeasure<DerM>.Measure(DerM otherArgument)
         {
             var other = (IReadOnlyDerM)(object)otherArgument!;
-            var result = InvokeFunction("Measure#3ddc4225-966c-477a-a711-6a6d1e560f1f", (object?)(other));
+            var result = InvokeFunction("Measure#c397f9f2-1988-4a99-af3d-20b3756cffbc", (object?)(other));
             return Convert.ToInt32(result);
         }
 

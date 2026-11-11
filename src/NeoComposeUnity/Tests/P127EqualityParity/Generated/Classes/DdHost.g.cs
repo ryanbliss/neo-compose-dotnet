@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DdHost : NeoGeneratedClassValue, IReadOnlyDdHost
     {
         internal DdHost(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2b92ab93-04bc-4faf-aa9b-5d20d949cabe", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "929ebc4d-179d-4a93-8cef-33958259436d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static NeoDelegateValue S<T>()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "46a6f108-0a81-4869-8319-c989d533af41");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0c087177-57ed-47de-a8f4-b35cc0354881");
             var result = node.InvokeGenericStatic(new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (NeoDelegateValue)result!;
         }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2b92ab93-04bc-4faf-aa9b-5d20d949cabe");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "929ebc4d-179d-4a93-8cef-33958259436d");
         }
 
         internal static DdHost Create(NeoClient client, NeoMemberClass node)
