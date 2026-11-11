@@ -798,6 +798,8 @@ namespace NeoCompose.Runtime
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
             internal ObjectMemberValue? initializerReceiver;
+            // The row an initializer stored a collection in, by the collection object.
+            private Dictionary<object, string>? initializedRows;
 
             internal NeoConstructionScope(
                 NeoClient client,
@@ -820,7 +822,15 @@ namespace NeoCompose.Runtime
                 innerClasses?.Clear();
                 referenceOwnership?.Clear();
                 listenerInitializers?.Clear();
+                initializedRows?.Clear();
             }
+
+            internal void RecordInitializedRow(object value, string id) =>
+                (initializedRows ??= new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance))[value] = id;
+
+            /// <summary>The row an initializer stored <paramref name="value"/> in, or null.</summary>
+            internal string? InitializedRow(object? value) =>
+                value is not null && initializedRows?.TryGetValue(value, out string? id) == true ? id : null;
 
             /// <summary>
             /// Per-class recursion guard for literal defaults: false when
@@ -5545,7 +5555,8 @@ namespace NeoCompose.Runtime
                         resolved,
                         argumentValues,
                         root.id,
-                        ctx);
+                        ctx,
+                        scope);
                     ReplayImmutableMembers(client, root, ctx);
                 }
                 catch
@@ -5580,7 +5591,8 @@ namespace NeoCompose.Runtime
             NeoResolvedDeclaredConstructor resolved,
             object?[] argumentValues,
             string rootValueId,
-            NeoScript.NSGetterEvaluator.Context ctx)
+            NeoScript.NSGetterEvaluator.Context ctx,
+            NeoConstructionScope scope)
         {
             if (!client.TryGetValue(
                     NeoValueOwnership.Session,
@@ -5596,7 +5608,7 @@ namespace NeoCompose.Runtime
                 SerializeConstructionProvenanceArgs(
                     client,
                     resolved.link.record,
-                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false)));
+                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false, scope)));
         }
 
         /// <summary>
@@ -5620,7 +5632,8 @@ namespace NeoCompose.Runtime
             NeoResolvedDeclaredConstructor resolved,
             object?[] argumentValues,
             NeoScript.NSGetterEvaluator.Context ctx,
-            bool deferLiterals)
+            bool deferLiterals,
+            NeoConstructionScope? construction = null)
         {
             ConstructorRecord? record = resolved.link.record;
             if (record is null || record.argumentTypes.Length == 0)
@@ -5660,8 +5673,9 @@ namespace NeoCompose.Runtime
                     : argument;
                 argumentType = NeoTypeRules.Declared(argumentType);
                 MemberKind declaredKind = argumentType.type;
+                // A collection an initializer stored is recorded as that row: the argument and the field are one object.
                 string? rowId = NeoTypeSources.ConstructorArgumentStoresRow(declaredKind)
-                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
+                    ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId ?? construction?.InitializedRow(value)
                     : null;
                 // P127 §1.3. A box or Type value records as the box row it mints.
                 bool boxes = declaredKind == MemberKind.Object && value is NeoScript.NeoBox or NeoScript.NeoTypeValue;
@@ -8220,6 +8234,8 @@ namespace NeoCompose.Runtime
             string? Capture(string? id)
             {
                 client.ExitReadFrame(initializerFrame, id);
+                if (produced is object?[] or IDictionary<string, object?> or NeoScript.RuntimeSet or NeoScript.RuntimeTuple && id is not null)
+                    scope.RecordInitializedRow(produced, id);
                 if (produced is not null && id is not null && authored.changeListeners is { Count: > 0 })
                     (scope.listenerInitializers ??= new())[path] = new InitializedListenerOccurrence
                     {

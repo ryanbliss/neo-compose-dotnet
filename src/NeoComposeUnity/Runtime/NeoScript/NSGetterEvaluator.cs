@@ -12643,6 +12643,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (entries.Length == 0 || entries.Length > MaxPooledLength)
                     return;
                 DerivedCollections.Remove(entries);
+                // A reused array is a new list, so its type record goes with its identity.
+                runtimeLists.Remove(entries);
                 Array.Clear(entries, 0, entries.Length);
                 (free ??= new object?[MaxPooledLength + 1][])[entries.Length] = entries;
             }

@@ -19,7 +19,8 @@ namespace NeoCompose.Runtime
         // Open T and T? share their parameter identity for an unconstrained T.
         internal static TypeBinding TypeIdentity(TypeInfo type) => type is VoidTypeInfo
             ? TypeBinding.Closed(new TypeHead(MemberKind.Void, true))
-            : Erase(NeoTypeBindings.SignatureOf(type));
+            // A plain Set is spelled as a Lookup; it binds as the Set it declares.
+            : Erase(NeoTypeBindings.SignatureOf(NeoTypeRules.Declared(type)));
 
         private static TypeBinding Erase(TypeBinding binding)
         {

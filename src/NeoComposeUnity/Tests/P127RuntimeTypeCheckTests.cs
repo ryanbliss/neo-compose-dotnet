@@ -114,6 +114,8 @@ namespace NeoCompose.Tests
         public void AnInnerCollectionReadThroughAnEnumerableKeepsItsElementType(string source, bool explicitCursor)
         {
             object?[] inner = new object?[0];
+            // The inner list has its own type from birth, as a literal gives it.
+            Record(inner, "List<CastCat>");
             object outer = source == "List"
                 ? new object?[] { inner }
                 : new Dictionary<string, object?> { ["a"] = inner };

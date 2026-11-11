@@ -2141,7 +2141,7 @@ namespace NeoCompose.Runtime
                 && !NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx)
                 && !NSGetterEvaluator.IsRowRecord(value, ctx))
             {
-                if (value is not null && client.SequenceCollectionTypes.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out _))
+                if (value is not null && client.SequenceCollectionTypes.TryGetValue(NSGetterEvaluator.CollectionTypeKey(value), out _))
                     throw new InvalidOperationException($"{subject} has a collection element type incompatible with its declared interface.");
                 value = NeoSequences.WriteBoxed(client, value, typeInfo);
             }

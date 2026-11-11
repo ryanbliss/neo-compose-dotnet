@@ -448,8 +448,6 @@ namespace NeoCompose.Runtime.NeoScript
             private readonly CollectionSnapshot snapshot = new();
             private readonly LookupMember? slotLookup;
             private readonly TypeInfo? slotTarget;
-            // The collection's own element type, so an inner collection keeps it.
-            private readonly TypeInfo? entryType;
             private int index;
             internal bool Values => snapshot.Values;
             internal object? Raw => snapshot.Raw(index - 1);
@@ -458,7 +456,6 @@ namespace NeoCompose.Runtime.NeoScript
                 snapshot.Take(collection, ctx);
                 // A query reads a Lookup of slot references as a direct query does.
                 slotTarget = SlotSelection(FindRowReference(collection, ctx), ctx, out slotLookup);
-                entryType = SequenceCollectionElement(collection, ctx);
             }
             protected override bool Advance(Context ctx, out object? value)
             {
@@ -470,11 +467,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (slotTarget is not null && snapshot.Raw(index) is string id)
                     value = SlotReferenceOf(id, slotLookup!, slotTarget);
                 else
-                {
                     value = snapshot.Resolve(index, ctx);
-                    if (entryType is not null)
-                        value = RetainSequenceCollectionType(value, entryType, ctx);
-                }
                 index++;
                 return true;
             }
@@ -599,9 +592,17 @@ namespace NeoCompose.Runtime.NeoScript
             value is object?[] array && runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)
                 ? identity.origin : value;
 
+        /// <summary>
+        /// The key a collection's type record lives under: a list's identity,
+        /// which a pooled array gives up when it returns.
+        /// </summary>
+        internal static object CollectionTypeKey(object value) =>
+            value is object?[] array && runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)
+                ? identity : value;
+
         private static T TagSequenceCollectionType<T>(T value, TypeInfo type, Context ctx) where T : class
         {
-            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out _))
+            if (ctx.client.SequenceCollectionTypes.TryGetValue(CollectionTypeKey(value), out _))
                 return value;
             if (value is object?[] { Length: 0 } empty && ReferenceEquals(empty, Array.Empty<object?>()))
                 value = (T)(object)new object?[0];
@@ -614,7 +615,7 @@ namespace NeoCompose.Runtime.NeoScript
                 && (ctx.thisValue is null || NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, ctx.thisValue, ctx, "Collection element").Count == 0))
                 return value;
             if (CollectionRuntimeType(CloseContextType(type, ctx)) is { } closed)
-                ctx.client.SequenceCollectionTypes.Add(SequenceCollectionIdentity(value), closed);
+                ctx.client.SequenceCollectionTypes.Add(CollectionTypeKey(value), closed);
             return value;
         }
 
@@ -654,7 +655,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         private static TypeInfo? HeldCollectionType(object value, Context ctx)
         {
-            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
+            if (ctx.client.SequenceCollectionTypes.TryGetValue(CollectionTypeKey(value), out TypeInfo recorded))
                 return recorded;
             // A stored dictionary and a class row are both records; the row's member tells them apart.
             if (value is not (object?[] or LocalList or RuntimeSet or IDictionary<string, object?>) || value is NeoScriptObject)
@@ -874,8 +875,7 @@ namespace NeoCompose.Runtime.NeoScript
                 else if (cursor is ScriptCursor runtime)
                     runtime.Abandon();
             }
-            return CreatedCollection(KeepDerived(values.Count == 0 ? new object?[0] : values.ToArray(), null, true),
-                MemberKind.List, conversion.elementType, ctx);
+            return KeepDerived(values.Count == 0 ? new object?[0] : values.ToArray(), null, true);
         }
 
         private static string SequenceTypeLabel(TypeInfo type, Context ctx)

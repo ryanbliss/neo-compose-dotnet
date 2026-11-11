@@ -532,7 +532,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (info.equality is not null && info.op is "Distinct")
                 return EqualitySetQuery(info, collection, scope, ctx);
             if (info.equality is not null && info.op is "ToSet")
-                return CreatedCollection(EqualitySetQuery(info, collection, scope, ctx), MemberKind.Set, QueryElementType(collection, ctx), ctx);
+                return EqualitySetQuery(info, collection, scope, ctx);
             if (info.op == "ToSet" && info.capacity is not null && Number(EvalPointer(info.capacity, scope, ctx)!) < 0)
                 throw NeoHashingErrors.CapacityRange();
             if (info.op is "Aggregate" or "Zip")
@@ -725,8 +725,7 @@ namespace NeoCompose.Runtime.NeoScript
                             break;
                     }
                     if (info.op == "ToSet" && result is object?[] setEntries)
-                        return CreatedCollection(MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries),
-                            MemberKind.Set, QueryElementType(collection, ctx), ctx);
+                        return MakeRuntimeSet(setEntries.Length == 0 ? new object?[0] : setEntries, info.reference, info.enumEntries == true, ctx, decimalEntries: info.decimalEntries);
                     return result;
                 }
                 catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }

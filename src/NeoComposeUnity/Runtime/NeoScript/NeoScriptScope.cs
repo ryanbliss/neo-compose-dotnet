@@ -86,7 +86,9 @@ namespace NeoCompose.Runtime.NeoScript
             HashSet<string>? candidates = null;
             foreach (KeyValuePair<string, Pointer?> declaration in declared ?? new Dictionary<string, Pointer?>())
             {
-                if (declaration.Value is FunctionPointer { function: WhereFunction })
+                // A Where's list keeps its type record, which a returned array drops.
+                if (declaration.Value is FunctionPointer { function: WhereFunction }
+                    or SequenceConversionPointer { operation: "retainCollectionType", pointer: FunctionPointer { function: WhereFunction } })
                     (candidates ??= new HashSet<string>(StringComparer.Ordinal)).Add(declaration.Key);
             }
             if (candidates is null)
