@@ -64,6 +64,17 @@
     "ownerOrganization": null
   },
   "members": {
+    "1079ad9a-83f5-5127-a3d8-a20f252d8950": {
+      "id": "1079ad9a-83f5-5127-a3d8-a20f252d8950",
+      "name": "Item",
+      "kind": 6,
+      "requirement": 1,
+      "modifier": 1,
+      "entryMemberId": "1bfdafcc-9d77-533c-a530-363280aa1863",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
     "11b1d505-dad7-5bc2-97ba-c44164fb143c": {
       "id": "11b1d505-dad7-5bc2-97ba-c44164fb143c",
       "name": "Item",
@@ -685,7 +696,7 @@
               }
             },
             "source": {
-              "line": 72,
+              "line": 73,
               "column": 94
             }
           },
@@ -703,7 +714,7 @@
               }
             },
             "source": {
-              "line": 72,
+              "line": 73,
               "column": 94
             }
           },
@@ -790,7 +801,7 @@
                   }
                 },
                 "source": {
-                  "line": 72,
+                  "line": 73,
                   "column": 94
                 }
               },
@@ -802,14 +813,14 @@
                 },
                 "yields": true,
                 "source": {
-                  "line": 72,
+                  "line": 73,
                   "column": 120
                 }
               }
             ],
             "yields": true,
             "source": {
-              "line": 72,
+              "line": 73,
               "column": 94
             }
           }
@@ -951,7 +962,7 @@
               }
             },
             "source": {
-              "line": 73,
+              "line": 74,
               "column": 95
             }
           },
@@ -1017,13 +1028,13 @@
                   }
                 },
                 "source": {
-                  "line": 73,
+                  "line": 74,
                   "column": 138
                 }
               }
             ],
             "source": {
-              "line": 73,
+              "line": 74,
               "column": 108
             }
           },
@@ -1034,7 +1045,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 73,
+              "line": 74,
               "column": 152
             }
           }
@@ -1171,7 +1182,7 @@
               }
             },
             "source": {
-              "line": 74,
+              "line": 75,
               "column": 112
             }
           }
@@ -1312,7 +1323,7 @@
               }
             },
             "source": {
-              "line": 75,
+              "line": 76,
               "column": 108
             }
           }
@@ -1447,7 +1458,7 @@
             },
             "yields": true,
             "source": {
-              "line": 76,
+              "line": 77,
               "column": 93
             }
           }
@@ -1607,7 +1618,7 @@
             },
             "yields": true,
             "source": {
-              "line": 78,
+              "line": 79,
               "column": 131
             }
           }
@@ -1933,7 +1944,7 @@
               }
             },
             "source": {
-              "line": 77,
+              "line": 78,
               "column": 132
             }
           },
@@ -2034,7 +2045,7 @@
                     }
                   },
                   "source": {
-                    "line": 77,
+                    "line": 78,
                     "column": 202
                   }
                 },
@@ -2085,19 +2096,19 @@
                       }
                     },
                     "source": {
-                      "line": 77,
+                      "line": 78,
                       "column": 211
                     }
                   }
                 ],
                 "source": {
-                  "line": 77,
+                  "line": 78,
                   "column": 175
                 }
               }
             ],
             "source": {
-              "line": 77,
+              "line": 78,
               "column": 145
             }
           },
@@ -2108,7 +2119,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 77,
+              "line": 78,
               "column": 225
             }
           }
@@ -2177,7 +2188,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 },
                 "pointer": {
                   "type": "value",
@@ -2186,7 +2197,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                     },
                     "value": null
                   }
@@ -2210,12 +2221,12 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             }
           }
         }
       },
-      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d",
+      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -2234,7 +2245,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
           }
         }
       },
@@ -2251,7 +2262,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
           }
         },
         "source": {
@@ -2324,7 +2335,7 @@
             },
             "yields": true,
             "source": {
-              "line": 31,
+              "line": 32,
               "column": 86
             }
           }
@@ -2338,7 +2349,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             }
           }
         }
@@ -2354,7 +2365,7 @@
         "required": true,
         "classId": "12500000-0000-4000-8000-000000000020",
         "typeArguments": {
-          "dee8a750-b132-4885-bd48-e68b00d9827d": {
+          "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
             "type": 2,
             "required": true
           }
@@ -2423,7 +2434,7 @@
                     "required": true,
                     "classId": "12500000-0000-4000-8000-000000000020",
                     "typeArguments": {
-                      "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                      "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                         "type": 2,
                         "required": true
                       }
@@ -2449,12 +2460,12 @@
                 }
               },
               "source": {
-                "line": 71,
+                "line": 72,
                 "column": 82
               }
             },
             "source": {
-              "line": 71,
+              "line": 72,
               "column": 82
             }
           }
@@ -2464,7 +2475,7 @@
           "required": true,
           "classId": "12500000-0000-4000-8000-000000000020",
           "typeArguments": {
-            "dee8a750-b132-4885-bd48-e68b00d9827d": {
+            "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
               "type": 2,
               "required": true
             }
@@ -2686,7 +2697,7 @@
               ]
             },
             "source": {
-              "line": 39,
+              "line": 40,
               "column": 94
             }
           }
@@ -2894,7 +2905,7 @@
               ]
             },
             "source": {
-              "line": 40,
+              "line": 41,
               "column": 100
             }
           }
@@ -2985,7 +2996,7 @@
               }
             },
             "source": {
-              "line": 68,
+              "line": 69,
               "column": 80
             }
           },
@@ -3012,13 +3023,13 @@
                   }
                 },
                 "source": {
-                  "line": 68,
+                  "line": 69,
                   "column": 106
                 }
               }
             },
             "source": {
-              "line": 68,
+              "line": 69,
               "column": 93
             }
           },
@@ -3078,13 +3089,13 @@
                   }
                 },
                 "source": {
-                  "line": 68,
+                  "line": 69,
                   "column": 156
                 }
               }
             ],
             "source": {
-              "line": 68,
+              "line": 69,
               "column": 126
             }
           },
@@ -3095,7 +3106,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 68,
+              "line": 69,
               "column": 170
             }
           }
@@ -3186,7 +3197,7 @@
               }
             },
             "source": {
-              "line": 69,
+              "line": 70,
               "column": 81
             }
           },
@@ -3215,13 +3226,13 @@
                   }
                 },
                 "source": {
-                  "line": 69,
+                  "line": 70,
                   "column": 107
                 }
               }
             },
             "source": {
-              "line": 69,
+              "line": 70,
               "column": 94
             }
           },
@@ -3281,13 +3292,13 @@
                   }
                 },
                 "source": {
-                  "line": 69,
+                  "line": 70,
                   "column": 151
                 }
               }
             ],
             "source": {
-              "line": 69,
+              "line": 70,
               "column": 121
             }
           },
@@ -3298,7 +3309,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 69,
+              "line": 70,
               "column": 165
             }
           }
@@ -3408,13 +3419,13 @@
                   }
                 },
                 "source": {
-                  "line": 70,
+                  "line": 71,
                   "column": 109
                 }
               }
             },
             "source": {
-              "line": 70,
+              "line": 71,
               "column": 96
             }
           },
@@ -3447,14 +3458,14 @@
                 },
                 "yields": true,
                 "source": {
-                  "line": 70,
+                  "line": 71,
                   "column": 153
                 }
               }
             ],
             "yields": true,
             "source": {
-              "line": 70,
+              "line": 71,
               "column": 123
             }
           }
@@ -3487,7 +3498,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+          "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
         }
       ],
       "code": "return candidate is IEnumerable<int>;",
@@ -3546,7 +3557,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             },
             "pointer": {
               "type": "value",
@@ -3555,7 +3566,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 },
                 "value": null
               }
@@ -3578,7 +3589,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               },
               "checkType": {
@@ -3594,7 +3605,7 @@
               }
             },
             "source": {
-              "line": 29,
+              "line": 30,
               "column": 85
             }
           }
@@ -3674,7 +3685,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                  "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                     "type": 6,
                     "required": true,
                     "entryTypeInfo": {
@@ -3694,7 +3705,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                        "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                           "type": 6,
                           "required": true,
                           "entryTypeInfo": {
@@ -3726,13 +3737,13 @@
                   }
                 },
                 "source": {
-                  "line": 67,
+                  "line": 68,
                   "column": 96
                 }
               }
             },
             "source": {
-              "line": 67,
+              "line": 68,
               "column": 86
             }
           },
@@ -3792,7 +3803,7 @@
                                               ],
                                               "callSiteId": "1:56:0",
                                               "source": {
-                                                "line": 67,
+                                                "line": 68,
                                                 "column": 141
                                               }
                                             },
@@ -3825,7 +3836,7 @@
                                                   "args": [],
                                                   "callSiteId": "1:83:1",
                                                   "source": {
-                                                    "line": 67,
+                                                    "line": 68,
                                                     "column": 168
                                                   }
                                                 },
@@ -3882,7 +3893,7 @@
                                                 }
                                               },
                                               "source": {
-                                                "line": 67,
+                                                "line": 68,
                                                 "column": 175
                                               }
                                             }
@@ -3890,7 +3901,7 @@
                                           "args": [],
                                           "callSiteId": "1:118:2",
                                           "source": {
-                                            "line": 67,
+                                            "line": 68,
                                             "column": 203
                                           }
                                         },
@@ -3976,7 +3987,7 @@
                                   ],
                                   "callSiteId": "1:149:3",
                                   "source": {
-                                    "line": 67,
+                                    "line": 68,
                                     "column": 234
                                   }
                                 },
@@ -4052,7 +4063,7 @@
                           ],
                           "callSiteId": "1:196:4",
                           "source": {
-                            "line": 67,
+                            "line": 68,
                             "column": 281
                           }
                         },
@@ -4073,7 +4084,7 @@
               }
             },
             "source": {
-              "line": 67,
+              "line": 68,
               "column": 120
             }
           }
@@ -4177,7 +4188,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               },
               "checkType": {
@@ -4193,7 +4204,7 @@
               }
             },
             "source": {
-              "line": 28,
+              "line": 29,
               "column": 79
             }
           }
@@ -4356,7 +4367,7 @@
               }
             },
             "source": {
-              "line": 66,
+              "line": 67,
               "column": 101
             }
           }
@@ -4494,7 +4505,7 @@
               }
             },
             "source": {
-              "line": 60,
+              "line": 61,
               "column": 119
             }
           },
@@ -4560,13 +4571,13 @@
                   }
                 },
                 "source": {
-                  "line": 60,
+                  "line": 61,
                   "column": 161
                 }
               }
             ],
             "source": {
-              "line": 60,
+              "line": 61,
               "column": 132
             }
           },
@@ -4577,7 +4588,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 60,
+              "line": 61,
               "column": 174
             }
           }
@@ -4739,7 +4750,7 @@
                                                       ],
                                                       "callSiteId": "1:34:0",
                                                       "source": {
-                                                        "line": 62,
+                                                        "line": 63,
                                                         "column": 37
                                                       }
                                                     },
@@ -4795,7 +4806,7 @@
                                                         }
                                                       },
                                                       "source": {
-                                                        "line": 62,
+                                                        "line": 63,
                                                         "column": 81
                                                       }
                                                     }
@@ -4809,7 +4820,7 @@
                                                   ],
                                                   "callSiteId": "1:77:1",
                                                   "source": {
-                                                    "line": 62,
+                                                    "line": 63,
                                                     "column": 80
                                                   }
                                                 },
@@ -4867,7 +4878,7 @@
                                                 }
                                               },
                                               "source": {
-                                                "line": 63,
+                                                "line": 64,
                                                 "column": 32
                                               }
                                             }
@@ -4881,7 +4892,7 @@
                                           ],
                                           "callSiteId": "2:26:2",
                                           "source": {
-                                            "line": 63,
+                                            "line": 64,
                                             "column": 31
                                           }
                                         },
@@ -4932,7 +4943,7 @@
                                             "required": true,
                                             "classId": "12500000-0000-4000-8000-000000000050",
                                             "typeArguments": {
-                                              "94915256-c64f-49f3-b0c9-689bb7e232db": {
+                                              "e595bcbf-864b-4f13-8f26-f6a3bc4fc801": {
                                                 "type": 6,
                                                 "required": true,
                                                 "entryTypeInfo": {
@@ -4946,7 +4957,7 @@
                                         }
                                       },
                                       "source": {
-                                        "line": 63,
+                                        "line": 64,
                                         "column": 60
                                       }
                                     }
@@ -4988,7 +4999,7 @@
                                   ],
                                   "callSiteId": "2:95:3",
                                   "source": {
-                                    "line": 63,
+                                    "line": 64,
                                     "column": 100
                                   }
                                 },
@@ -5039,7 +5050,7 @@
                                     "required": true,
                                     "classId": "12500000-0000-4000-8000-000000000050",
                                     "typeArguments": {
-                                      "94915256-c64f-49f3-b0c9-689bb7e232db": {
+                                      "e595bcbf-864b-4f13-8f26-f6a3bc4fc801": {
                                         "type": 7,
                                         "required": true,
                                         "classId": "12500000-0000-4000-8000-000000000006"
@@ -5050,7 +5061,7 @@
                                 }
                               },
                               "source": {
-                                "line": 63,
+                                "line": 64,
                                 "column": 117
                               }
                             }
@@ -5070,14 +5081,14 @@
                                 }
                               },
                               "source": {
-                                "line": 63,
+                                "line": 64,
                                 "column": 161
                               }
                             }
                           ],
                           "callSiteId": "2:155:4",
                           "source": {
-                            "line": 63,
+                            "line": 64,
                             "column": 160
                           }
                         },
@@ -5098,7 +5109,7 @@
               }
             },
             "source": {
-              "line": 62,
+              "line": 63,
               "column": 4
             }
           }
@@ -5124,7 +5135,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000050",
-          "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
+          "genericParamId": "e595bcbf-864b-4f13-8f26-f6a3bc4fc801"
         }
       ],
       "code": "int sum = 0; foreach (var item in values) sum += item; return sum;",
@@ -5183,7 +5194,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000050",
-              "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
+              "genericParamId": "e595bcbf-864b-4f13-8f26-f6a3bc4fc801"
             },
             "pointer": {
               "type": "value",
@@ -5192,7 +5203,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000050",
-                  "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
+                  "genericParamId": "e595bcbf-864b-4f13-8f26-f6a3bc4fc801"
                 },
                 "value": null
               }
@@ -5220,7 +5231,7 @@
               }
             },
             "source": {
-              "line": 44,
+              "line": 45,
               "column": 73
             }
           },
@@ -5286,13 +5297,13 @@
                   }
                 },
                 "source": {
-                  "line": 44,
+                  "line": 45,
                   "column": 115
                 }
               }
             ],
             "source": {
-              "line": 44,
+              "line": 45,
               "column": 86
             }
           },
@@ -5303,7 +5314,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 44,
+              "line": 45,
               "column": 128
             }
           }
@@ -5435,7 +5446,7 @@
               }
             },
             "source": {
-              "line": 59,
+              "line": 60,
               "column": 104
             }
           },
@@ -5501,13 +5512,13 @@
                   }
                 },
                 "source": {
-                  "line": 59,
+                  "line": 60,
                   "column": 146
                 }
               }
             ],
             "source": {
-              "line": 59,
+              "line": 60,
               "column": 117
             }
           },
@@ -5518,7 +5529,7 @@
               "variableId": "sum"
             },
             "source": {
-              "line": 59,
+              "line": 60,
               "column": 159
             }
           }
@@ -5645,7 +5656,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                     },
                     "listMemberId": "12500000-0000-4000-8000-000000000054"
                   }
@@ -5656,17 +5667,17 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               ],
               "callSiteId": "1:32:0",
               "source": {
-                "line": 20,
+                "line": 21,
                 "column": 97
               }
             },
             "source": {
-              "line": 20,
+              "line": 21,
               "column": 73
             }
           }
@@ -5695,7 +5706,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
           }
         }
       ],
@@ -5758,7 +5769,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
               }
             },
             "pointer": {
@@ -5771,7 +5782,7 @@
                     "type": 21,
                     "required": true,
                     "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                    "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                    "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                   }
                 },
                 "value": null
@@ -5804,7 +5815,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                     }
                   }
                 }
@@ -5814,17 +5825,17 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               ],
               "callSiteId": "1:32:0",
               "source": {
-                "line": 21,
+                "line": 22,
                 "column": 113
               }
             },
             "source": {
-              "line": 21,
+              "line": 22,
               "column": 89
             }
           }
@@ -5920,7 +5931,7 @@
                   "args": [],
                   "callSiteId": "1:46:0",
                   "source": {
-                    "line": 22,
+                    "line": 23,
                     "column": 115
                   }
                 }
@@ -5930,17 +5941,17 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               ],
               "callSiteId": "1:32:1",
               "source": {
-                "line": 22,
+                "line": 23,
                 "column": 101
               }
             },
             "source": {
-              "line": 22,
+              "line": 23,
               "column": 77
             }
           }
@@ -5965,7 +5976,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
           }
         }
       },
@@ -5982,7 +5993,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
           }
         },
         "source": {
@@ -6039,7 +6050,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
               },
               "readonly": true,
               "writability": "runtime"
@@ -6071,7 +6082,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
               },
               "listMemberId": "12500000-0000-4000-8000-000000000054"
             },
@@ -6084,14 +6095,14 @@
                 },
                 "yields": true,
                 "source": {
-                  "line": 23,
+                  "line": 24,
                   "column": 114
                 }
               }
             ],
             "yields": true,
             "source": {
-              "line": 23,
+              "line": 24,
               "column": 81
             }
           }
@@ -6105,7 +6116,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             }
           }
         }
@@ -6132,7 +6143,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             }
           }
         }
@@ -6199,7 +6210,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               }
             },
@@ -6216,7 +6227,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                     }
                   }
                 },
@@ -6246,7 +6257,7 @@
               }
             },
             "source": {
-              "line": 25,
+              "line": 26,
               "column": 4
             }
           },
@@ -6261,7 +6272,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               },
               "readonly": true,
@@ -6281,7 +6292,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 }
               }
             },
@@ -6299,7 +6310,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                        "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                       }
                     }
                   },
@@ -6317,7 +6328,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                        "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                       }
                     }
                   }
@@ -6366,12 +6377,12 @@
                               "type": 21,
                               "required": true,
                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                             }
                           ],
                           "callSiteId": "1:88:0",
                           "source": {
-                            "line": 25,
+                            "line": 26,
                             "column": 91
                           }
                         }
@@ -6381,13 +6392,13 @@
                   }
                 },
                 "source": {
-                  "line": 25,
+                  "line": 26,
                   "column": 58
                 }
               }
             ],
             "source": {
-              "line": 25,
+              "line": 26,
               "column": 19
             }
           },
@@ -6431,7 +6442,7 @@
                                         "type": 21,
                                         "required": true,
                                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                        "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                       }
                                     }
                                   },
@@ -6452,7 +6463,7 @@
                                             "type": 21,
                                             "required": true,
                                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                           }
                                         },
                                         "pointer": {
@@ -6465,7 +6476,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                               }
                                             },
                                             "value": null
@@ -6487,7 +6498,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                               }
                                             }
                                           },
@@ -6505,7 +6516,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                               }
                                             }
                                           }
@@ -6531,17 +6542,17 @@
                                               "type": 21,
                                               "required": true,
                                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                                             }
                                           ],
                                           "callSiteId": "2:78:1",
                                           "source": {
-                                            "line": 26,
+                                            "line": 27,
                                             "column": 81
                                           }
                                         },
                                         "source": {
-                                          "line": 26,
+                                          "line": 27,
                                           "column": 57
                                         }
                                       }
@@ -6554,7 +6565,7 @@
                                 }
                               },
                               "source": {
-                                "line": 26,
+                                "line": 27,
                                 "column": 31
                               }
                             },
@@ -6566,7 +6577,7 @@
                         }
                       },
                       "source": {
-                        "line": 26,
+                        "line": 27,
                         "column": 94
                       }
                     }
@@ -6576,7 +6587,7 @@
               }
             },
             "source": {
-              "line": 26,
+              "line": 27,
               "column": 4
             }
           }
@@ -6722,7 +6733,7 @@
               }
             },
             "source": {
-              "line": 53,
+              "line": 54,
               "column": 104
             }
           },
@@ -6798,13 +6809,13 @@
                   }
                 },
                 "source": {
-                  "line": 53,
+                  "line": 54,
                   "column": 147
                 }
               }
             ],
             "source": {
-              "line": 53,
+              "line": 54,
               "column": 119
             }
           },
@@ -6815,7 +6826,7 @@
               "variableId": "count"
             },
             "source": {
-              "line": 53,
+              "line": 54,
               "column": 156
             }
           }
@@ -6895,7 +6906,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                  "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                     "type": 2,
                     "required": true
                   }
@@ -6911,7 +6922,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                        "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                           "type": 2,
                           "required": true
                         }
@@ -6937,13 +6948,13 @@
                   }
                 },
                 "source": {
-                  "line": 55,
+                  "line": 56,
                   "column": 14
                 }
               }
             },
             "source": {
-              "line": 55,
+              "line": 56,
               "column": 4
             }
           },
@@ -6995,7 +7006,7 @@
               }
             ],
             "source": {
-              "line": 55,
+              "line": 56,
               "column": 31
             }
           },
@@ -7024,13 +7035,13 @@
                   }
                 },
                 "source": {
-                  "line": 55,
+                  "line": 56,
                   "column": 63
                 }
               }
             },
             "source": {
-              "line": 55,
+              "line": 56,
               "column": 49
             }
           },
@@ -7082,7 +7093,7 @@
               }
             ],
             "source": {
-              "line": 55,
+              "line": 56,
               "column": 77
             }
           },
@@ -7277,7 +7288,7 @@
                                                                                           "args": [],
                                                                                           "callSiteId": "2:82:0",
                                                                                           "source": {
-                                                                                            "line": 56,
+                                                                                            "line": 57,
                                                                                             "column": 85
                                                                                           }
                                                                                         },
@@ -7326,7 +7337,7 @@
                                                                                   "args": [],
                                                                                   "callSiteId": "2:102:1",
                                                                                   "source": {
-                                                                                    "line": 56,
+                                                                                    "line": 57,
                                                                                     "column": 105
                                                                                   }
                                                                                 },
@@ -7399,7 +7410,7 @@
                                                                           ],
                                                                           "callSiteId": "2:130:2",
                                                                           "source": {
-                                                                            "line": 56,
+                                                                            "line": 57,
                                                                             "column": 133
                                                                           }
                                                                         },
@@ -7448,7 +7459,7 @@
                                                                   "args": [],
                                                                   "callSiteId": "2:162:3",
                                                                   "source": {
-                                                                    "line": 56,
+                                                                    "line": 57,
                                                                     "column": 165
                                                                   }
                                                                 },
@@ -7538,7 +7549,7 @@
                                                           ],
                                                           "callSiteId": "2:190:4",
                                                           "source": {
-                                                            "line": 56,
+                                                            "line": 57,
                                                             "column": 193
                                                           }
                                                         },
@@ -7587,7 +7598,7 @@
                                                   "args": [],
                                                   "callSiteId": "3:24:5",
                                                   "source": {
-                                                    "line": 57,
+                                                    "line": 58,
                                                     "column": 27
                                                   }
                                                 },
@@ -7660,7 +7671,7 @@
                                           ],
                                           "callSiteId": "3:56:6",
                                           "source": {
-                                            "line": 57,
+                                            "line": 58,
                                             "column": 59
                                           }
                                         },
@@ -7709,7 +7720,7 @@
                                   "args": [],
                                   "callSiteId": "3:92:7",
                                   "source": {
-                                    "line": 57,
+                                    "line": 58,
                                     "column": 95
                                   }
                                 },
@@ -7799,7 +7810,7 @@
                           ],
                           "callSiteId": "3:124:8",
                           "source": {
-                            "line": 57,
+                            "line": 58,
                             "column": 127
                           }
                         },
@@ -7820,7 +7831,7 @@
               }
             },
             "source": {
-              "line": 56,
+              "line": 57,
               "column": 4
             }
           }
@@ -7938,7 +7949,7 @@
                                           ],
                                           "callSiteId": "1:50:0",
                                           "source": {
-                                            "line": 51,
+                                            "line": 52,
                                             "column": 125
                                           }
                                         }
@@ -7951,7 +7962,7 @@
                                       ],
                                       "callSiteId": "1:32:1",
                                       "source": {
-                                        "line": 51,
+                                        "line": 52,
                                         "column": 107
                                       }
                                     },
@@ -8026,7 +8037,7 @@
                                   ],
                                   "callSiteId": "1:91:2",
                                   "source": {
-                                    "line": 51,
+                                    "line": 52,
                                     "column": 166
                                   }
                                 },
@@ -8118,7 +8129,7 @@
                           ],
                           "callSiteId": "1:134:3",
                           "source": {
-                            "line": 51,
+                            "line": 52,
                             "column": 209
                           }
                         },
@@ -8139,7 +8150,7 @@
               }
             },
             "source": {
-              "line": 51,
+              "line": 52,
               "column": 83
             }
           }
@@ -8208,7 +8219,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 },
                 "pointer": {
                   "type": "value",
@@ -8217,7 +8228,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                     },
                     "value": null
                   }
@@ -8249,7 +8260,7 @@
                                 "type": 21,
                                 "required": true,
                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                                "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                               }
                             },
                             "entries": []
@@ -8260,7 +8271,7 @@
                             "type": 21,
                             "required": true,
                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                            "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                           }
                         ],
                         "callSiteId": "2:17:0",
@@ -8435,7 +8446,7 @@
               }
             },
             "source": {
-              "line": 48,
+              "line": 49,
               "column": 93
             }
           },
@@ -8494,13 +8505,13 @@
                   }
                 ],
                 "source": {
-                  "line": 48,
+                  "line": 49,
                   "column": 140
                 }
               }
             ],
             "source": {
-              "line": 48,
+              "line": 49,
               "column": 112
             }
           },
@@ -8511,7 +8522,7 @@
               "variableId": "copy"
             },
             "source": {
-              "line": 48,
+              "line": 49,
               "column": 156
             }
           }
@@ -8633,7 +8644,7 @@
               }
             },
             "source": {
-              "line": 49,
+              "line": 50,
               "column": 89
             }
           }
@@ -8777,7 +8788,7 @@
               }
             },
             "source": {
-              "line": 50,
+              "line": 51,
               "column": 105
             }
           },
@@ -8849,13 +8860,13 @@
                   }
                 },
                 "source": {
-                  "line": 50,
+                  "line": 51,
                   "column": 148
                 }
               }
             ],
             "source": {
-              "line": 50,
+              "line": 51,
               "column": 120
             }
           },
@@ -8866,7 +8877,7 @@
               "variableId": "count"
             },
             "source": {
-              "line": 50,
+              "line": 51,
               "column": 157
             }
           }
@@ -8993,7 +9004,7 @@
               "variableId": "__arg_0__"
             },
             "source": {
-              "line": 79,
+              "line": 80,
               "column": 118
             }
           }
@@ -9122,7 +9133,7 @@
               "variableId": "__arg_0__"
             },
             "source": {
-              "line": 80,
+              "line": 81,
               "column": 117
             }
           }
@@ -9265,7 +9276,7 @@
             },
             "yields": true,
             "source": {
-              "line": 120,
+              "line": 122,
               "column": 97
             }
           }
@@ -9290,7 +9301,7 @@
       "kind": 21,
       "requirement": 1,
       "modifier": 1,
-      "genericParamId": "9bae196a-a972-4b58-8568-05730b979d8f",
+      "genericParamId": "7824f5b7-acdc-40a6-a907-8a504ce1208f",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9397,7 +9408,7 @@
             },
             "yields": true,
             "source": {
-              "line": 128,
+              "line": 130,
               "column": 97
             }
           }
@@ -9536,7 +9547,7 @@
             },
             "yields": true,
             "source": {
-              "line": 81,
+              "line": 82,
               "column": 96
             }
           }
@@ -9779,7 +9790,7 @@
               }
             },
             "source": {
-              "line": 82,
+              "line": 83,
               "column": 107
             }
           }
@@ -10019,7 +10030,7 @@
               }
             },
             "source": {
-              "line": 83,
+              "line": 84,
               "column": 114
             }
           }
@@ -10038,8 +10049,8 @@
       "modifier": 1,
       "defaultValue": {
         "value": [
-          "d98b3211-d1ed-410b-89de-832e728fb24a",
-          "39067ad7-a2eb-4de5-b38e-9dc699cdce6f"
+          "a212507c-7b14-437f-94c0-62067f2c2943",
+          "56217a8c-e6e6-4dc7-ab29-07dce963c688"
         ]
       },
       "entryMemberId": "47481248-b164-55dd-bebc-25d6116e2afa",
@@ -10055,7 +10066,7 @@
       "modifier": 1,
       "defaultValue": {
         "value": [
-          "6716da3b-ee02-4fea-9265-59610e2d840a"
+          "853e6979-cf2e-434d-bd6e-4e3f542d2ca2"
         ]
       },
       "entryMemberId": "f697124d-9bdc-5836-85c2-9e350b3b6ab9",
@@ -10342,7 +10353,7 @@
               }
             },
             "source": {
-              "line": 84,
+              "line": 85,
               "column": 114
             }
           }
@@ -10616,7 +10627,7 @@
               }
             },
             "source": {
-              "line": 85,
+              "line": 86,
               "column": 116
             }
           }
@@ -10693,7 +10704,7 @@
                         "required": true,
                         "classId": "12500000-0000-4000-8000-000000000020",
                         "typeArguments": {
-                          "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                          "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                             "type": 2,
                             "required": true
                           }
@@ -10734,7 +10745,7 @@
               "required": true,
               "classId": "12500000-0000-4000-8000-000000000020",
               "typeArguments": {
-                "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                   "type": 2,
                   "required": true
                 }
@@ -10745,7 +10756,7 @@
       },
       "classId": "12500000-0000-4000-8000-000000000020",
       "classArguments": {
-        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+        "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
           "kind": 0,
           "type": {
             "type": 2,
@@ -10823,7 +10834,7 @@
                         "required": true,
                         "classId": "12500000-0000-4000-8000-000000000020",
                         "typeArguments": {
-                          "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                          "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                             "type": 7,
                             "required": true,
                             "classId": "12500000-0000-4000-8000-000000000084"
@@ -10873,7 +10884,7 @@
               "required": true,
               "classId": "12500000-0000-4000-8000-000000000020",
               "typeArguments": {
-                "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
                   "type": 7,
                   "required": true,
                   "classId": "12500000-0000-4000-8000-000000000084"
@@ -10885,7 +10896,7 @@
       },
       "classId": "12500000-0000-4000-8000-000000000020",
       "classArguments": {
-        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+        "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
           "kind": 0,
           "type": {
             "type": 7,
@@ -11073,7 +11084,7 @@
               }
             },
             "source": {
-              "line": 86,
+              "line": 87,
               "column": 87
             }
           }
@@ -11234,7 +11245,7 @@
               }
             ],
             "source": {
-              "line": 87,
+              "line": 88,
               "column": 99
             }
           },
@@ -11314,7 +11325,7 @@
                       ],
                       "callSiteId": "1:52:0",
                       "source": {
-                        "line": 87,
+                        "line": 88,
                         "column": 150
                       }
                     },
@@ -11386,7 +11397,7 @@
                       ],
                       "callSiteId": "1:89:1",
                       "source": {
-                        "line": 87,
+                        "line": 88,
                         "column": 187
                       }
                     },
@@ -11454,7 +11465,7 @@
                       ],
                       "callSiteId": "1:127:2",
                       "source": {
-                        "line": 87,
+                        "line": 88,
                         "column": 225
                       }
                     }
@@ -11463,7 +11474,7 @@
               }
             },
             "source": {
-              "line": 87,
+              "line": 88,
               "column": 124
             }
           }
@@ -11473,6 +11484,252 @@
           "required": true
         }
       }
+    },
+    "12500000-0000-4000-8000-0000000000a0": {
+      "id": "12500000-0000-4000-8000-0000000000a0",
+      "name": "Grid",
+      "kind": 6,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "entryMemberId": "1079ad9a-83f5-5127-a3d8-a20f252d8950",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-0000000000a1": {
+      "id": "12500000-0000-4000-8000-0000000000a1",
+      "name": "GridKinds",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "values",
+          "type": 22,
+          "required": true,
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "typeArguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "type": 6,
+              "required": true,
+              "entryTypeInfo": {
+                "type": 2,
+                "required": true
+              }
+            }
+          }
+        }
+      ],
+      "code": "return $\"{values.GetType()},{values is List<List<int>>}\";",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 20,
+        "source": {
+          "name": "SequenceApi.GridKinds",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 6,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 2,
+                    "required": true
+                  }
+                }
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 22,
+                  "required": true,
+                  "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                  "typeArguments": {
+                    "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                      "type": 6,
+                      "required": true,
+                      "entryTypeInfo": {
+                        "type": 2,
+                        "required": true
+                      }
+                    }
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "objectMember",
+                        "member": "GetType",
+                        "receiver": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "receiverType": {
+                          "type": 22,
+                          "required": true,
+                          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                          "typeArguments": {
+                            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                              "type": 6,
+                              "required": true,
+                              "entryTypeInfo": {
+                                "type": 2,
+                                "required": true
+                              }
+                            }
+                          }
+                        },
+                        "args": []
+                      },
+                      "sourceType": {
+                        "type": 31,
+                        "required": true,
+                        "objectType": 2
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 6,
+                            "required": true,
+                            "entryTypeInfo": {
+                              "type": 2,
+                              "required": true
+                            }
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    }
+                  ]
+                }
+              }
+            },
+            "source": {
+              "line": 89,
+              "column": 111
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
+    },
+    "1bfdafcc-9d77-533c-a530-363280aa1863": {
+      "id": "1bfdafcc-9d77-533c-a530-363280aa1863",
+      "name": "Item",
+      "kind": 21,
+      "requirement": 1,
+      "modifier": 1,
+      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
     },
     "47481248-b164-55dd-bebc-25d6116e2afa": {
       "id": "47481248-b164-55dd-bebc-25d6116e2afa",
@@ -11525,7 +11782,7 @@
       "kind": 21,
       "requirement": 1,
       "modifier": 1,
-      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d",
+      "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -11660,7 +11917,7 @@
       "members": {},
       "genericParams": [
         {
-          "id": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e",
+          "id": "01a30438-859a-473f-a603-544cfe33ab5e",
           "name": "T"
         }
       ],
@@ -11668,13 +11925,13 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000080",
           "arguments": {
-            "d400337e-2efa-4e70-9f0b-7c7d329933c6": {
+            "52082cd4-1827-4ad5-84fa-30342a661bbf": {
               "kind": 1,
               "owner": {
                 "type": 22,
                 "interfaceId": "12500000-0000-4000-8000-000000000071"
               },
-              "param": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e"
+              "param": "01a30438-859a-473f-a603-544cfe33ab5e"
             }
           }
         },
@@ -11687,7 +11944,7 @@
                 "type": 22,
                 "interfaceId": "12500000-0000-4000-8000-000000000071"
               },
-              "param": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e"
+              "param": "01a30438-859a-473f-a603-544cfe33ab5e"
             }
           }
         }
@@ -11706,14 +11963,14 @@
             "type": 21,
             "required": true,
             "ownerInterfaceId": "12500000-0000-4000-8000-000000000080",
-            "genericParamId": "d400337e-2efa-4e70-9f0b-7c7d329933c6"
+            "genericParamId": "52082cd4-1827-4ad5-84fa-30342a661bbf"
           },
           "accessors": 1
         }
       },
       "genericParams": [
         {
-          "id": "d400337e-2efa-4e70-9f0b-7c7d329933c6",
+          "id": "52082cd4-1827-4ad5-84fa-30342a661bbf",
           "name": "T"
         }
       ],
@@ -11880,6 +12137,7 @@
         "Empty": "12500000-0000-4000-8000-000000000065",
         "GenericListCheck": "12500000-0000-4000-8000-000000000045",
         "GenericNested": "12500000-0000-4000-8000-000000000047",
+        "GridKinds": "12500000-0000-4000-8000-0000000000a1",
         "Held": "12500000-0000-4000-8000-000000000098",
         "ItemKinds": "12500000-0000-4000-8000-000000000083",
         "LiteralCheck": "12500000-0000-4000-8000-000000000062",
@@ -11930,7 +12188,8 @@
         "MoodKinds",
         "ChildKinds",
         "Held",
-        "BoxKinds"
+        "BoxKinds",
+        "GridKinds"
       ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
@@ -11947,6 +12206,7 @@
         "EmptyCount": "12500000-0000-4000-8000-000000000063",
         "Generate": "12500000-0000-4000-8000-000000000058",
         "GetEnumerator": "12500000-0000-4000-8000-000000000022",
+        "Grid": "12500000-0000-4000-8000-0000000000a0",
         "IsSequence": "12500000-0000-4000-8000-000000000044",
         "IsSequenceField": "12500000-0000-4000-8000-000000000046",
         "Items": "12500000-0000-4000-8000-000000000054",
@@ -11955,6 +12215,7 @@
       "schemaKeyOrder": [
         "EmptyCount",
         "Items",
+        "Grid",
         "CountField",
         "CountExplicit",
         "CountGenerator",
@@ -11975,14 +12236,14 @@
                 "type": 7,
                 "classId": "12500000-0000-4000-8000-000000000020"
               },
-              "param": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "param": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             }
           }
         }
       ],
       "genericParams": [
         {
-          "id": "dee8a750-b132-4885-bd48-e68b00d9827d",
+          "id": "e003b1a5-3da2-4800-a2fb-b58d2574ab80",
           "name": "T"
         }
       ],
@@ -12016,7 +12277,7 @@
       "schema": {},
       "extendsClassId": "12500000-0000-4000-8000-000000000020",
       "extendsGenericBindings": {
-        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+        "e003b1a5-3da2-4800-a2fb-b58d2574ab80": {
           "kind": 0,
           "type": {
             "type": 2,
@@ -12037,7 +12298,7 @@
       },
       "genericParams": [
         {
-          "id": "94915256-c64f-49f3-b0c9-689bb7e232db",
+          "id": "e595bcbf-864b-4f13-8f26-f6a3bc4fc801",
           "name": "T",
           "constraints": [
             {
@@ -12085,7 +12346,7 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000071",
           "arguments": {
-            "2892994c-3dae-4fe7-b7b9-d2cae6ca213e": {
+            "01a30438-859a-473f-a603-544cfe33ab5e": {
               "kind": 0,
               "type": {
                 "type": 7,
@@ -12108,7 +12369,7 @@
       },
       "genericParams": [
         {
-          "id": "9bae196a-a972-4b58-8568-05730b979d8f",
+          "id": "7824f5b7-acdc-40a6-a907-8a504ce1208f",
           "name": "T"
         }
       ],
@@ -12127,7 +12388,7 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000071",
           "arguments": {
-            "2892994c-3dae-4fe7-b7b9-d2cae6ca213e": {
+            "01a30438-859a-473f-a603-544cfe33ab5e": {
               "kind": 0,
               "type": {
                 "type": 7,
@@ -12139,7 +12400,7 @@
         }
       ],
       "extendsGenericBindings": {
-        "9bae196a-a972-4b58-8568-05730b979d8f": {
+        "7824f5b7-acdc-40a6-a907-8a504ce1208f": {
           "kind": 0,
           "type": {
             "type": 7,
@@ -12371,7 +12632,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+          "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
         }
       ],
       "code": null,
@@ -12429,7 +12690,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+              "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
             },
             "pointer": {
               "type": "value",
@@ -12438,7 +12699,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
+                  "genericParamId": "e003b1a5-3da2-4800-a2fb-b58d2574ab80"
                 },
                 "value": null
               }
@@ -12465,15 +12726,15 @@
       "value": {},
       "classId": "96c616e0-e204-5f56-9f77-90b195896a5a"
     },
-    "39067ad7-a2eb-4de5-b38e-9dc699cdce6f": {
-      "id": "39067ad7-a2eb-4de5-b38e-9dc699cdce6f",
+    "56217a8c-e6e6-4dc7-ab29-07dce963c688": {
+      "id": "56217a8c-e6e6-4dc7-ab29-07dce963c688",
       "projectId": "project-id",
       "value": 2,
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
     },
-    "6716da3b-ee02-4fea-9265-59610e2d840a": {
-      "id": "6716da3b-ee02-4fea-9265-59610e2d840a",
+    "853e6979-cf2e-434d-bd6e-4e3f542d2ca2": {
+      "id": "853e6979-cf2e-434d-bd6e-4e3f542d2ca2",
       "projectId": "project-id",
       "value": {},
       "classId": "12500000-0000-4000-8000-000000000084",
@@ -12482,8 +12743,8 @@
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
     },
-    "d98b3211-d1ed-410b-89de-832e728fb24a": {
-      "id": "d98b3211-d1ed-410b-89de-832e728fb24a",
+    "a212507c-7b14-437f-94c0-62067f2c2943": {
+      "id": "a212507c-7b14-437f-94c0-62067f2c2943",
       "projectId": "project-id",
       "value": 1,
       "createdAt": 1700000000000,

@@ -663,12 +663,12 @@ namespace NeoCompose.Runtime.NeoScript
                     if (lookup.declaredTypeInfo is { } declared && NeoNSFunctionRuntime.ContainsGeneric(declared))
                         return null;
                     return CollectionRuntimeType(NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, lookup,
-                        new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>())) is { } set
+                        NeoGenericResolution.EmptyEnv, new HashSet<string>())) is { } set
                         ? SetOf(set.entryTypeInfo is ReferenceTypeInfo reference ? reference.targetTypeInfo : set.entryTypeInfo)
                         : null;
                 case ListMember or DictionaryMember when row.EntryMember(client) is { } entry and not GenericMember:
                     TypeInfo entryType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, entry,
-                        new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
+                        entry.ownerEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>());
                     if (NeoNSFunctionRuntime.ContainsGeneric(entryType))
                         return null;
                     return new CollectionTypeInfo

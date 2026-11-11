@@ -57,6 +57,11 @@ namespace NeoCompose.Tests
             // A generic class's stored List<T> takes its owner's type argument.
             Assert.That(NeoMemberNSFunction.GetOrCreateStatic(local, "12500000-0000-4000-8000-000000000099").InvokeStatic(new SequenceGenerated.SequenceKinds(local, kinds, false)),
                 Is.EqualTo("True:List<int>,False:List<SequenceChild>,False:SequenceChild"));
+            // So does an inner List<T> of its List<List<T>>.
+            var grid = new NeoReadOnlyList<NeoMember>(local, kinds.Get<NeoMemberClassWritable>("Ints").GetOrCreateCollection<NeoMemberListWritable>("Grid"), (_, item) => item);
+            Assert.That(Kinds("12500000-0000-4000-8000-0000000000a1", grid,
+                new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = new PrimitiveTypeInfo { type = MemberKind.Int, required = true } }, item => item),
+                Is.EqualTo("List<List<int>>,True"));
         }
 
         // IEnumerable<T> and IEnumerator<T> are covariant: a class element

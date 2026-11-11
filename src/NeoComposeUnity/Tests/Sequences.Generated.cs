@@ -164,6 +164,8 @@ namespace NeoCompose.Tests.SequenceGenerated
 
         new global::System.Collections.Generic.IEnumerator<T> GetEnumerator();
 
+        NeoReadOnlyList<NeoReadOnlyList<T>> Grid { get; }
+
         bool IsSequence(T candidate);
 
         bool IsSequenceField();
@@ -251,6 +253,26 @@ namespace NeoCompose.Tests.SequenceGenerated
         }
 
 
+
+        public NeoList<NeoList<T>> Grid
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberListWritable>("Grid");
+                if (TryGetStoredView<NeoList<NeoList<T>>>("Grid", memberNode, out var cached)) return cached;
+                return CacheStoredView("Grid", memberNode, new NeoList<NeoList<T>>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Grid"), (client, child) => throw new NotSupportedException(), item => NeoGeneratedTypesSupport.Value(item), () => ThrowIfReadOnly("Box.Grid"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyList<NeoReadOnlyList<T>> IReadOnlyBox<T>.Grid
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Grid");
+                if (TryGetStoredView<NeoReadOnlyList<NeoReadOnlyList<T>>>("Grid", memberNode, out var cached)) return cached;
+                return CacheStoredView("Grid", memberNode, new NeoReadOnlyList<NeoReadOnlyList<T>>(client, memberNode, (client, child) => throw new NotSupportedException()));
+            }
+        }
 
 
 
@@ -352,6 +374,8 @@ namespace NeoCompose.Tests.SequenceGenerated
 
             public static readonly NeoField<NeoList<T>> Items = new("Items");
 
+            public static readonly NeoField<NeoList<NeoList<T>>> Grid = new("Grid");
+
             public static readonly NeoField<T> Value = new("Value");
         }
 
@@ -361,6 +385,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.EmptyCount] = () => null,
                 [Fields.Items] = () => null,
+                [Fields.Grid] = () => null,
                 [Fields.Value] = () => null,
             };
         }
@@ -381,6 +406,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.EmptyCount] = () => EmptyCount,
                 [Fields.Items] = () => Items,
+                [Fields.Grid] = () => Grid,
                 [Fields.Value] = () => Value,
             };
         }
@@ -737,8 +763,8 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
         }
 
-        public IntBox(int? EmptyCount = null, IEnumerable<int>? Items = null, int? Value = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "12500000-0000-4000-8000-000000000040", "15afee1c-39f1-5c9d-b5cf-fa5766f9873f", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("EmptyCount", "12500000-0000-4000-8000-000000000063", EmptyCount), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "12500000-0000-4000-8000-000000000054", Items), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "12500000-0000-4000-8000-000000000021", Value) }), false, NeoValueOwnership.Session)
+        public IntBox(int? EmptyCount = null, IEnumerable<int>? Items = null, IEnumerable<IEnumerable<int>>? Grid = null, int? Value = null)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "12500000-0000-4000-8000-000000000040", "15afee1c-39f1-5c9d-b5cf-fa5766f9873f", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("EmptyCount", "12500000-0000-4000-8000-000000000063", EmptyCount), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "12500000-0000-4000-8000-000000000054", Items), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "12500000-0000-4000-8000-0000000000a0", Grid), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "12500000-0000-4000-8000-000000000021", Value) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -786,6 +812,16 @@ namespace NeoCompose.Tests.SequenceGenerated
             return TryWritable<IntBox>(out writable);
         }
 
+        NeoReadOnlyList<NeoReadOnlyList<int>> IReadOnlyBox<int>.Grid
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberList>("Grid");
+                if (TryGetStoredView<NeoReadOnlyList<NeoReadOnlyList<int>>>("Grid", memberNode, out var cached)) return cached;
+                return CacheStoredView("Grid", memberNode, new NeoReadOnlyList<NeoReadOnlyList<int>>(client, memberNode, (client, child) => throw new NotSupportedException()));
+            }
+        }
+
         NeoReadOnlyList<int> IReadOnlyBox<int>.Items
         {
             get
@@ -804,6 +840,8 @@ namespace NeoCompose.Tests.SequenceGenerated
 
             public static readonly NeoField<NeoList<int>> Items = new("Items");
 
+            public static readonly NeoField<NeoList<NeoList<int>>> Grid = new("Grid");
+
             public static readonly NeoField<int> Value = new("Value");
         }
 
@@ -813,6 +851,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.EmptyCount] = () => null,
                 [Fields.Items] = () => null,
+                [Fields.Grid] = () => null,
                 [Fields.Value] = () => null,
             };
         }
@@ -833,6 +872,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.EmptyCount] = () => EmptyCount,
                 [Fields.Items] = () => Items,
+                [Fields.Grid] = () => Grid,
                 [Fields.Value] = () => Value,
             };
         }
@@ -1571,6 +1611,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<IReadOnlySequenceChild>>.Register(TestProjectNeo.NeoResolveIEnumerable<IReadOnlySequenceChild>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<int?>>.Register(TestProjectNeo.NeoResolveIEnumerable<int?>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<int>>.Register(TestProjectNeo.NeoResolveIEnumerable<int>);
+            NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<IReadOnlyList<int>>>.Register(TestProjectNeo.NeoResolveIEnumerable<IReadOnlyList<int>>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>>.Register(TestProjectNeo.NeoResolveIEnumerable<IReadOnlySequenceItem>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<SequenceMood>>.Register(TestProjectNeo.NeoResolveIEnumerable<SequenceMood>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<string?>>.Register(TestProjectNeo.NeoResolveIEnumerable<string?>);
@@ -1690,6 +1731,14 @@ namespace NeoCompose.Tests.SequenceGenerated
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000047");
             var result = node.InvokeGenericStatic(new object?[] { values }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
+        }
+
+        public static string GridKinds(global::System.Collections.Generic.IEnumerable<IReadOnlyList<int>> values)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-0000000000a1");
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<IReadOnlyList<int>>(client, values, NeoSequences.ElementType<IReadOnlyList<int>>(client, false, NeoSequences.ElementType<int>(client, false)), valuesSequenceElement => valuesSequenceElement)));
+            return (string)result!;
         }
 
         public static string Held<T>(T value)
