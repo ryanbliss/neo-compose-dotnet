@@ -16,7 +16,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         int Count(IReadOnlyList<U> xs)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "230acfe5-aeb9-407e-8a3a-bd1af1beb29b", NeoInterfaceBody.Function, client.TypeArguments.Of<ILY<U>>(), "230acfe5-aeb9-407e-8a3a-bd1af1beb29b", client.TypeArguments.Of<ILY<U>>(), new object?[] { xs });
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "00b5d617-cee8-46aa-8fc3-7531705ac7c9", NeoInterfaceBody.Function, client.TypeArguments.Of<ILY<U>>(), "00b5d617-cee8-46aa-8fc3-7531705ac7c9", client.TypeArguments.Of<ILY<U>>(), new object?[] { xs });
             return Convert.ToInt32(result);
         }
     }

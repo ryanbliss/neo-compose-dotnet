@@ -34,12 +34,14 @@ namespace NeoCompose.Tests.P127TypesParity
         IReadOnlyHeldFarm? Next { get; }
 
         NeoReadOnlySet<int> Nums { get; }
+
+        IReadOnlyCastCat? Pet { get; }
     }
 
     public partial class HeldFarm : NeoGeneratedClassValue, IReadOnlyHeldFarm
     {
         internal HeldFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "12dde214-5f19-43b5-b741-3abc0a3dc0fe", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6f95d25d-8deb-42d0-90ff-6824e95cd4cf", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,24 +50,25 @@ namespace NeoCompose.Tests.P127TypesParity
         {
         }
 
-        public HeldFarm(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null, IEnumerable<CastCat>? Herd = null, HeldFarm? Next = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Cats, Nums, ByName, Grid, ListByName, Herd, Next), false, NeoValueOwnership.Session)
+        public HeldFarm(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null, IEnumerable<CastCat>? Herd = null, HeldFarm? Next = null, CastCat? Pet = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Cats, Nums, ByName, Grid, ListByName, Herd, Next, Pet), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null, IEnumerable<CastCat>? Herd = null, HeldFarm? Next = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<CastCat>? Cats = null, IEnumerable<int>? Nums = null, IDictionary<string, CastCat>? ByName = null, IEnumerable<IEnumerable<CastCat>>? Grid = null, IDictionary<string, IEnumerable<CastCat>>? ListByName = null, IEnumerable<CastCat>? Herd = null, HeldFarm? Next = null, CastCat? Pet = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "12dde214-5f19-43b5-b741-3abc0a3dc0fe",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "4af384d2-f07e-4d9d-b1df-7e587188a1cd", Cats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "e24d3f32-e623-48ad-b589-b08792943ac5", Nums),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "fed3c721-2081-4977-b834-29f0333da72b", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "0ae7085e-9986-442f-85a4-68ed9433e6bc", Grid),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ListByName", "fea15d9d-6fa1-4670-a4a0-3da525fb515a", ListByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Herd", "3d06f33d-3b20-48c0-9c80-b2e67440baf3", Herd),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Next", "db5e8646-01b8-41e6-a70e-e09c9bf45529", Next)
+                "6f95d25d-8deb-42d0-90ff-6824e95cd4cf",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "8c07c8c5-3a4b-48ef-9613-1a0835f7ba97", Cats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "22f9d9a4-18bd-4f1a-9922-118804f1f9b3", Nums),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "70973237-adb2-4d0b-90f0-a0ea95044817", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "246146dd-e976-49ee-9b0e-c6b756b7c130", Grid),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ListByName", "e8ab9f2a-a026-4f6d-9cd7-aee661939a3e", ListByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Herd", "817d14b2-b8e9-4ed9-a8a4-d6c92d7efce7", Herd),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Next", "0ce15e21-db9e-4bfd-8847-aee7693f27a9", Next),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pet", "6aa15fb0-da35-4a4a-8ff8-cc3e3df337a3", Pet)
             );
         }
 
@@ -292,6 +295,50 @@ namespace NeoCompose.Tests.P127TypesParity
             }
         }
 
+        public CastCat? Pet
+        {
+            get
+            {
+                if (TryReadDetached("Pet", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Pet");
+                    return child.value?.value is null ? null : global::NeoCompose.Tests.P127TypesParity.CastCat.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Pet");
+                    return child.value?.value is null ? null : global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("HeldFarm.Pet");
+                if (value is null)
+                {
+                    writableNode.Unset("Pet");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Pet", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyCastCat? IReadOnlyHeldFarm.Pet
+        {
+            get
+            {
+                if (TryReadDetached("Pet", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, false, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateDetached(factoryClient, factoryValue, factorySaved));
+                }
+                var child = node.Get<NeoMemberClass>("Pet");
+                return child.value?.value is null ? null : global::NeoCompose.Tests.P127TypesParity.CastCat.Create(client, child);
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -309,6 +356,8 @@ namespace NeoCompose.Tests.P127TypesParity
             public static readonly NeoField<NeoSet<CastCat>> Herd = new("Herd");
 
             public static readonly NeoField<HeldFarm?> Next = new("Next");
+
+            public static readonly NeoField<CastCat?> Pet = new("Pet");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -322,6 +371,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 [Fields.ListByName] = () => null,
                 [Fields.Herd] = () => null,
                 [Fields.Next] = () => null,
+                [Fields.Pet] = () => null,
             };
         }
 
@@ -346,6 +396,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 [Fields.ListByName] = () => ListByName,
                 [Fields.Herd] = () => Herd,
                 [Fields.Next] = () => Next,
+                [Fields.Pet] = () => Pet,
             };
         }
 

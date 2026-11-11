@@ -41,7 +41,7 @@
     "class CastPen<T> { public bool IsList(IEnumerable<CastPet> e) { return e is List<T>; } }",
     "class HeldBox<T> { public List<T> Items = []; public T? One = default; }",
     "class HeldStatic<T> { public static List<T> Items = []; }",
-    "class HeldFarm { public List<CastCat> Cats = [new CastCat()]; public Set<int> Nums = [1]; public Dictionary<string, CastCat> ByName = {}; public List<List<CastCat>> Grid = [[new CastCat()]]; public Dictionary<string, List<CastCat>> ListByName = {}; public Set<CastCat> Herd = []; public HeldFarm? Next = null; }",
+    "class HeldFarm { public List<CastCat> Cats = [new CastCat()]; public Set<int> Nums = [1]; public Dictionary<string, CastCat> ByName = {}; public List<List<CastCat>> Grid = [[new CastCat()]]; public Dictionary<string, List<CastCat>> ListByName = {}; public Set<CastCat> Herd = []; public HeldFarm? Next = null; public CastCat? Pet = null; }",
     "class HeldTest { public static bool IsIntList<T>(T x) { return x is List<int>; } public static bool IsPetList<T>(T x) { return x is List<CastPet>; } public static bool IsCatList<T>(T x) { return x is List<CastCat>; } public static bool IsPetDictionary<T>(T x) { return x is Dictionary<string, CastPet>; } public static int AddPet<T>(T x) { var l = (List<CastPet>)x; l.Add(new CastPet()); return l.Count; } public static string Name<T>(T x) { return x.GetType().ToString(); } }",
     "class HeldVia { public static bool Make<T>(NeoDelegate<T> make) { return make() is List<CastPet>; } public static bool MakeIntList<T>(NeoDelegate<T> make) { return make() is List<int>; } public static int MakeAdd<T>(NeoDelegate<T> make) { var l = (List<CastPet>)make(); l.Add(new CastPet()); return l.Count; } public static bool Elem<T>(List<T> l) { return l[0] is List<CastPet>; } public static bool Tup<T>((T, int) t) { return t.Item1 is List<CastPet>; } public static bool AsPet<T>(List<T> l) { return (l[0] as List<CastPet>) != null; } }",
     "class HeldSeq { public static int Count(IEnumerable<CastPet> x) { int n = 0; foreach (var a in x) { n += 1; } return n; } public static int CountCats(IEnumerable<CastCat> x) { int n = 0; foreach (var a in x) { n += 1; } return n; } public static int SetCount(IEnumerable<Set<int>> x) { int n = 0; foreach (var s in x) { n += s.Count; } return n; } public static int ReferenceSetCount(IEnumerable<Set<Reference<CastCat>>> x) { int n = 0; foreach (var s in x) { n += s.Count; } return n; } public static int GenericCount<T>(IEnumerable<T> x) { int n = 0; foreach (var s in x) { n += 1; } return n; } public static IEnumerable<Set<int>> Sets(HeldSetFarm f) { return f.Sets; } }",
@@ -113,7 +113,7 @@
     "class TupleCopyHolder { public List<(int, int)> Val = []; }",
     "class TupleCopyBody { public List<(int, int)> Val = []; public TupleCopyBody(TupleCopyHolder h) { Val = h.Val; } }",
     "class TupleCopyStatic { public static List<(int, int)> Items = [(5, 6)]; }",
-    "class HeldWorld { public HeldFarm? One = null; public HeldFarm Main = new HeldFarm(); public HeldFarm? Two = null; public List<HeldFarm> Farms = []; }",
+    "class HeldWorld { public HeldFarm? One = null; public HeldFarm Main = new HeldFarm(); public HeldFarm? Two = null; public List<HeldFarm> Farms = []; public Dictionary<string, HeldFarm> ByName = {}; }",
     "class CtorHeldDefaultEmpty<T> { public T Val = default; }",
     "class CtorHeldDefaultStatics<T> { public static T V = default; }",
     "class CtorOtherHolder { public List<int> Val = []; }",
@@ -722,6 +722,21 @@
     "  public static int NullableEntryStaticAdd() { NullableEntryBox<CastCat?>.L.Add(null); return NullableEntryBox<CastCat?>.L.Count; }",
     "  public static int NullableEntryInstanceAdd() { var b = new NullableEntryBox<CastCat?>(); b.I.Add(null); return b.I.Count; }",
     "  public static bool ObjectNullDefaultReads() => new ObjectNullDefault().O == null;",
+    "  public static int HeldReleasedInnerListShared() { var w = new HeldWorld(); w.One = new HeldFarm(); var g = w.One!.Grid; w.One = null; var h = new HeldFarm(); h.Grid.Add(g[0]); var k = new HeldFarm(); k.Cats.Add(h.Grid[1][0]); return k.Cats.Count; }",
+    "  public static string HeldLeftListAdopted() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; var c = f.Cats; w.One = null; f.Cats = []; w.Two = f; var h = new HeldFarm(); h.Cats.Add(c[0]); return $\"{h.Cats.Count},{w.Two!.Cats.Count}\"; }",
+    "  public static string HeldPlacedReleasedAgain() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.Two = f; w.Two = null; var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutRemoveAt() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.Farms.Add(f); w.Farms.RemoveAt(0); var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutRemove() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.Farms.Add(f); w.Farms.Remove(f); var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutKeyRemove() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.ByName[\"a\"] = f; w.ByName.Remove(\"a\"); var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutClear() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.Farms.Add(f); w.Farms.Clear(); var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutKeyClear() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.ByName[\"a\"] = f; w.ByName.Clear(); var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldTakenOutReplaced() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; w.One = null; w.Farms.Add(f); w.Farms = []; var h = new HeldFarm(); h.Cats.Add(f.Cats[0]); return $\"{h.Cats.Count},{f.Cats.Count}\"; }",
+    "  public static string HeldReleasedPetStored() { var w = new HeldWorld(); w.One = new HeldFarm(); var f = w.One!; f.Pet = new CastCat(); var p = f.Pet!; w.One = null; var h = new HeldFarm(); h.Pet = p; return $\"{h.Pet != null},{f.Pet != null}\"; }",
+    "  public static string DefaultStaticEnumElement() { return $\"{CtorHeldDefaultStatics<(CastCat, CastWeather)>.V.Item2}\"; }",
+    "  public static string DefaultStaticNestedEnumElement() { return $\"{CtorHeldDefaultStatics<(int, (CastWeather, int))>.V.Item2.Item1}\"; }",
+    "  public static string DefaultPairNestedEnumElement() { var n = new DefaultPair<(int, CastWeather)>(); return $\"{n.P.Item1.Item2},{n.P.Item2}\"; }",
+    "  public static string TupleEnumElementName() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); return $\"{h.Val.Item2}\"; }",
+    "  public static string TupleEnumElementText() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); CastWeather m = h.Val.Item2; return m.ToString(); }",
     "}"
   ],
   "returns": {
@@ -1211,7 +1226,21 @@
     "DefaultPairReferenceNull": "True,True",
     "NullableEntryStaticAdd": 1,
     "NullableEntryInstanceAdd": 1,
-    "ObjectNullDefaultReads": true
+    "ObjectNullDefaultReads": true,
+    "HeldLeftListAdopted": "2,0",
+    "HeldPlacedReleasedAgain": "2,1",
+    "HeldTakenOutRemoveAt": "2,1",
+    "HeldTakenOutRemove": "2,1",
+    "HeldTakenOutKeyRemove": "2,1",
+    "HeldTakenOutClear": "2,1",
+    "HeldTakenOutKeyClear": "2,1",
+    "HeldTakenOutReplaced": "2,1",
+    "HeldReleasedPetStored": "True,True",
+    "DefaultStaticEnumElement": "Sun",
+    "DefaultStaticNestedEnumElement": "Sun",
+    "DefaultPairNestedEnumElement": "Sun,0",
+    "TupleEnumElementName": "Rain",
+    "TupleEnumElementText": "Rain"
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",
@@ -1273,7 +1302,8 @@
     "HeldDelegateVarianceRefusal": "Unable to cast object of type 'NeoDelegate<int, IEnumerable<CastPet>>' to type 'NeoDelegate<int, List<int>>'.",
     "HeldReplacedOwnerAdopted": "is already owned by parent value",
     "HeldRemovedEntryOwner": "is already owned by parent value",
-    "HeldNestedOwnerKept": "is already owned by parent value"
+    "HeldNestedOwnerKept": "is already owned by parent value",
+    "HeldReleasedInnerListShared": "is already owned by parent value"
   },
   "diagnostics": [
     {

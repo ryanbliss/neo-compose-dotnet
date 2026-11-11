@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NDF : NeoGeneratedClassValue, IReadOnlyNDF
     {
         internal NDF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "97fc0d08-b455-42eb-b207-4004b1c943fb", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "47be00f5-dc63-43aa-bf2b-f61a8eefd1dc", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int O(object o = default!)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4656f3be-9ac5-4407-9450-3a59bd1d83be");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2cc72f29-38f8-4530-8ba4-68b0ebba33c7");
             var result = node.InvokeStatic((object?)(o));
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(string x = default!)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f6fa81c0-5c64-4110-8e0c-e60c0885f4bc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "81391cf0-5889-4abc-b357-2b4582754452");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "97fc0d08-b455-42eb-b207-4004b1c943fb");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "47be00f5-dc63-43aa-bf2b-f61a8eefd1dc");
         }
 
         internal static NDF Create(NeoClient client, NeoMemberClass node)

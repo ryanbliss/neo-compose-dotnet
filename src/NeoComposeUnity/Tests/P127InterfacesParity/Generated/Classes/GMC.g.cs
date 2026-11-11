@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GMC<T> : NeoGeneratedClassValue, IReadOnlyGMC<T>
     {
         internal GMC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2596b091-4b35-4808-b8b0-7e96c0757d0e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0c9ed2f9-162b-4a0c-8514-f65f063c655d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8d417a29-babe-448c-a5bc-3999134fc1d6" => (GMC<T>)(object)new GMDC(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "2596b091-4b35-4808-b8b0-7e96c0757d0e" => new GMC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "86cce052-a7e5-490b-a3fb-a09144583504" => (GMC<T>)(object)new GMDC(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0c9ed2f9-162b-4a0c-8514-f65f063c655d" => new GMC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GMC' without a concrete client type id."),
                 };
             });
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8d417a29-babe-448c-a5bc-3999134fc1d6" => (GMC<T>)(object)new GMDC(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "2596b091-4b35-4808-b8b0-7e96c0757d0e" => new GMC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "86cce052-a7e5-490b-a3fb-a09144583504" => (GMC<T>)(object)new GMDC(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0c9ed2f9-162b-4a0c-8514-f65f063c655d" => new GMC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GMC' without a concrete client type id."),
                 };
             });
@@ -78,7 +78,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         int IMC<NeoList<T>>.M(NeoList<T> xArgument)
         {
             var x = (IReadOnlyList<T>)(object)xArgument!;
-            var result = InvokeFunction("M#281851d5-afc2-4c1b-b051-199b20375fce", (object?)(x));
+            var result = InvokeFunction("M#0a8c006a-f694-49c4-8bd5-3d17edb68644", (object?)(x));
             return Convert.ToInt32(result);
         }
 

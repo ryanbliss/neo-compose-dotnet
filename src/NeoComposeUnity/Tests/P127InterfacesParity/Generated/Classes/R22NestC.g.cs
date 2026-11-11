@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R22NestC : NeoGeneratedClassValue, IReadOnlyR22NestC
     {
         internal R22NestC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a0fb6a7e-fd82-430a-adc8-30de89e1e8d9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "aa4bd107-a25d-497b-81ba-9445e4a670c5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a0fb6a7e-fd82-430a-adc8-30de89e1e8d9");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "aa4bd107-a25d-497b-81ba-9445e4a670c5");
         }
 
         internal static R22NestC Create(NeoClient client, NeoMemberClass node)

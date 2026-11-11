@@ -4,9 +4,9 @@
   "codegenRevision": "0e9b0af4528c34d9060b8374c2ba38fc38d0a6941f3f139a16a5174f671725eb",
   "files": [
     {
-      "id": "class:0db18846-bdd2-4a18-a8bc-4026973bc6d4",
+      "id": "class:b0fa6c1f-dd14-4987-bbe2-176a2843a4c0",
       "path": "Generated/Classes/AddOf.g.cs",
-      "hash": "cd2373cf8c6004fc4dcc8531a006b9bb3ab874bcacf4452596a3764b20e6a291"
+      "hash": "561e4016b9a84f9fa3cae393db7c018c829f74e58bd24c74f858692f42383a6c"
     },
     {
       "id": "class:root-assets-class-id",
@@ -14,149 +14,149 @@
       "hash": "fa9bec11ef5c75dcd42c69a43bdb6846f65e4a204e41746dc1123528b8d7b104"
     },
     {
-      "id": "class:38e8e0c9-a047-41bb-9c63-436599ef063d",
+      "id": "class:fb660409-59b6-4cf6-ab99-c8d02087e3f2",
       "path": "Generated/Classes/B0.g.cs",
-      "hash": "03ab1cc8b6028087ff8079bb4a8538f5cca6d744ca7d074b11a3f4e3174b1136"
+      "hash": "e3b6fcd74bccf1ffabc5211bc18f41f300df30c86664f54f781e2d3e250b4c57"
     },
     {
-      "id": "class:9c687095-d61c-4967-8643-d71210c39c9b",
+      "id": "class:b03ee5d4-a7b4-4e93-94f9-a6da2c2d2cc3",
       "path": "Generated/Classes/BadInit.g.cs",
-      "hash": "ba6407b73cfa8f36997be7f983822f8453c5a38045ecdefa4521346a8d29f718"
+      "hash": "64857aa636e4272c280ff9826c3cda14e06743a4fb9aedf43ebccece4be55694"
     },
     {
-      "id": "class:dca773a6-1c74-4be1-affa-162b1e4c544a",
+      "id": "class:30804702-862c-4084-ac96-f6e0dca444f6",
       "path": "Generated/Classes/Bare.g.cs",
-      "hash": "aa97112afc97b41fa3e1a7983a611fe91e8de947dc88dde3b8ddf528b96de392"
+      "hash": "f1dbcedcd2ab798c7ced27be9ea812f81d7c078ba14671a9474e18d368027097"
     },
     {
-      "id": "class:80f1521b-d646-4ff2-a909-bcb31a2fd938",
+      "id": "class:71ef5c8a-5b36-414e-bab5-015461f4c903",
       "path": "Generated/Classes/CB.g.cs",
-      "hash": "5645d725ccb827d91f440c373b305f0e826b75400d6b8a064714abe8e9847456"
+      "hash": "ec6a432b3e5a4605f0fa220f00465f864e28d4ae93b80ae55040b07c3539746b"
     },
     {
-      "id": "class:42c48564-ac84-43ec-b720-b212c50bea54",
+      "id": "class:99aa58f2-a1ae-4649-aa97-dafe0c141304",
       "path": "Generated/Classes/Cash.g.cs",
-      "hash": "b35edfd52c3b6d8217faec54199068257624880dee10b707b4f138f460e2ad77"
+      "hash": "e83caa5a7b42b36ef3b90f66b63a8ac9c7c9304e011f834a924bbe11c9939ea1"
     },
     {
-      "id": "class:29f46396-2a37-472a-8182-9de8edaba594",
+      "id": "class:5b9dc376-f8d7-4d7e-85de-f7bfa9956479",
       "path": "Generated/Classes/CashD.g.cs",
-      "hash": "31c81accd08be690fb5a51b7f033953a6c761970e25ec691a8e9ca4d9841a166"
+      "hash": "f6f2b92ae37c0baba99a4d819d509f7c0631c9ebc425b690e2b07aee7c0ad752"
     },
     {
-      "id": "class:1928f72a-bf5c-4c1f-b6ef-9777e99dd482",
+      "id": "class:673ae6db-0241-4831-892e-a7eb9e68945b",
       "path": "Generated/Classes/CmpOf.g.cs",
-      "hash": "65e025f6223127c1445cd7e37a732d2db1473f1dccc07b024b1eef773e438fdd"
+      "hash": "edca5f86c79753e820352dce44fcff1c96ff81caf6e3e864efc290564485cfdd"
     },
     {
-      "id": "class:21926878-97f1-46cc-80f5-d20c70cf8851",
+      "id": "class:e42ccdcf-5ab6-403d-919e-00e724525fcb",
       "path": "Generated/Classes/Coin.g.cs",
-      "hash": "602fda156383d42526629356f7955fc344de60fe09c17cb69d2d92bc7b728c70"
+      "hash": "e843d54709582003e2e1f9e0162161ad4426d4aa8fa6691e864152b2deef6990"
     },
     {
-      "id": "class:074a1550-5ed0-4235-8d86-bc9d1c1cb7fa",
+      "id": "class:74930359-6997-4d1e-9605-1624952674b7",
       "path": "Generated/Classes/CoinSub.g.cs",
-      "hash": "a943d566b9a2ccbab9b07ac027a9509825887d59fd7022ef9d1a53c101857d96"
+      "hash": "d713858632f50f875a6ed18777005505e2e803716527e2d94225d9fd0b1d823f"
     },
     {
-      "id": "class:da690435-6cf7-41db-9e68-fce773956644",
+      "id": "class:72dbbee7-c70c-4376-912f-e9be5258af03",
       "path": "Generated/Classes/Conv.g.cs",
-      "hash": "7b94afee9675cb8ece943bc7701be4d105205d2f1f4514e988c86a21f7d76cc9"
+      "hash": "0f05a99aaeee244345101efab684e31cece4c8a55d026c6bc045e9ddacaf8edc"
     },
     {
-      "id": "class:33e18749-c8b3-4b04-bda7-9c1968754e28",
+      "id": "class:17ff38a1-dc23-4317-9764-d13d8c16a0a9",
       "path": "Generated/Classes/Counter.g.cs",
-      "hash": "9c1f17dfc2fa5d64186b6ce41bb1e5520484e9cf88ad9694df2d5cb0711096bf"
+      "hash": "9d5ee51467c0a2738c53c5aa15cfdc767a4708699bbba0c5dc5cee90fb84e713"
     },
     {
-      "id": "class:648b5cdb-191c-47a6-b86b-7b1c6fd79b7a",
+      "id": "class:79292d3a-b8f7-4856-96ea-470d0d85845e",
       "path": "Generated/Classes/D0.g.cs",
-      "hash": "b60d160089358a49102a826bd1262341abd6dacbc842941701b5427862f338dc"
+      "hash": "a09658dc742591a00b48fe494a7c0818e1153c29041c0c644cca75529c6fca16"
     },
     {
-      "id": "class:315f1642-0d04-46ad-95b8-71aa3a169a35",
+      "id": "class:39bef5bb-efff-47a9-a484-771ee18e5de8",
       "path": "Generated/Classes/DefBox.g.cs",
-      "hash": "ebedd79695ba51b241e879f38c7f127c74a74380db688d53a2fdb930dd2ae359"
+      "hash": "495158436795532fecd7f41b612a75362f588ff2c3979d3261fecbb418e9e5a8"
     },
     {
-      "id": "class:b3bd564a-c18f-40bc-87a2-1e6e9e320467",
+      "id": "class:3a75f351-a5a7-4387-b321-78866b056d0b",
       "path": "Generated/Classes/E0.g.cs",
-      "hash": "65cd4867c3ff1c3929efa5a93eb63f508171e5167cb0d9acfc64bbfea0b6a898"
+      "hash": "286e39ad92b373003cba8cf368e61db5ef6da2beaa6c256a9b01734e5394afdb"
     },
     {
-      "id": "class:86534849-c2a8-48fa-8587-c56249f38436",
+      "id": "class:84df3eeb-7aea-49ca-8982-d167223aef08",
       "path": "Generated/Classes/EqOf.g.cs",
-      "hash": "e26981947d0a0386735e591572f42bf75d88fe0c2e8e161a470f88e8b4bae5cf"
+      "hash": "6274c02628b05155992a0484981b8d26b62911477111045863e5a2e2ba3e66f9"
     },
     {
-      "id": "class:157bf4be-30d7-47da-94fd-aeb8f618f176",
+      "id": "class:cd8fa7ca-4279-482b-8c48-fa7f74658867",
       "path": "Generated/Classes/Eqb.g.cs",
-      "hash": "d52f750382268dfe2244267013040a615df67e87119c94742c90ed1f3821b823"
+      "hash": "2a0739878c61090cb61f6e8cabedcafd33ec402b9ae3f68a56b0ee712ab69654"
     },
     {
-      "id": "class:efd8ed6d-13c5-4486-9469-becc159db940",
+      "id": "class:9f5d44e2-235a-4a1f-a772-536ed6d8e17a",
       "path": "Generated/Classes/Euro.g.cs",
-      "hash": "aafe392da6e59b59af8030ec7f3c9f35e1a44af9f7c154b6796ebee0337e1508"
+      "hash": "9b964d5dbdc64fa1f1e8c6ee0f0bc3e3fcb7415862d6d59b43934fcfbd2a428b"
     },
     {
-      "id": "class:dcc61f93-405b-4882-be6f-0f2c4b04e7e1",
+      "id": "class:024d9cda-98ff-47d2-b5bc-8a0239dd9e94",
       "path": "Generated/Classes/FieldCounter.g.cs",
-      "hash": "e3f97f88e74b23f5f1369e070c45b671157a052c78d24d253b3d8af890fa4d52"
+      "hash": "8d8a662b9a4c40a8a1e1367fd76157bcd0b3ccf1a884d51e50bdd4b7e5d4996a"
     },
     {
-      "id": "class:ecb1beab-b48a-43ee-9793-6978a447125c",
+      "id": "class:0d1e5857-6ea4-4505-b066-8eed98440978",
       "path": "Generated/Classes/FieldStore.g.cs",
-      "hash": "c6a0beabac24ffd91db2e2c404ebd2210f2dddbcf7b82f2ccc92229efea07364"
+      "hash": "d7a6933bb39827c796c2488871105c8b5a7630c357ea5f51d9503ecef7571fe5"
     },
     {
-      "id": "class:d92b2076-e4ba-4d65-8028-bae4cdedd858",
+      "id": "class:d6f502b8-84cc-40d9-8ae3-d98f8ae0393e",
       "path": "Generated/Classes/Fix.g.cs",
-      "hash": "47b709e7597fc93ffeba71cd0ae4a04f645b73a1cd4e028871bb3cd790e0ed3f"
+      "hash": "f00a985d8d58739962b269eb6c4f66058b83a9e7cecfb9265426b0b665891417"
     },
     {
-      "id": "class:42676a03-b4c0-4f64-b267-577b6072542b",
+      "id": "class:984e4638-421d-402a-a4bd-da500400bace",
       "path": "Generated/Classes/FmtOf.g.cs",
-      "hash": "89d270ca459e9ddde64e9eacbec9d077b1d4f52b6fd29fb1522a480b12e5768b"
+      "hash": "2fae90f0ba351ed2b5f95c116cb158eda9712911402f3852b58e9bde993fc915"
     },
     {
-      "id": "class:108e4475-81dc-4300-bc11-88c72f6bb4ed",
+      "id": "class:b73b4abe-d3b7-459f-94e6-0a15dbd8f7a4",
       "path": "Generated/Classes/Gen.g.cs",
-      "hash": "01cbd8bb5508b542748622d15d2929089798f61a11e9449fbe6951d623a3dc3c"
+      "hash": "02f8e142971a7a4d947ef22cac4a8213cc36061e74dd57972d37c80490f23e5f"
     },
     {
-      "id": "class:25565917-50b6-4431-b05a-4536910f082a",
+      "id": "class:df952107-865e-44a5-be51-c95c24b682aa",
       "path": "Generated/Classes/Gm.g.cs",
-      "hash": "b1c00c0a7c5796ae283b40712ec95c2fdfd196a64655831235e3b62f11d1c996"
+      "hash": "27d144f3b65cd35f16463a9f4ca76cc90c2ab8a177ff988ffaeec6f18fe78850"
     },
     {
-      "id": "class:7a95da6d-1d32-409a-8703-935e9b96750b",
+      "id": "class:09a73f93-e173-41e0-a8d7-444ea1efa197",
       "path": "Generated/Classes/Hider.g.cs",
-      "hash": "bae4d4d89ff9629aed9abcef6e7d9245d988348c797d2024b60f34b7ee93cbde"
+      "hash": "228bc45af7d25c568a6e17d6d04c63c32d09b9f79beafc38c0859caf13824352"
     },
     {
-      "id": "class:e3495b8c-b915-4de6-89f7-ee56b4cc8064",
+      "id": "class:1333e346-325a-4b21-a870-9fd72b1b46f4",
       "path": "Generated/Classes/Holder.g.cs",
-      "hash": "91b9c73ff0a072e18b01f5a24c4ee91e90165dea47525f1e1d395329d72bdb25"
+      "hash": "40143e610876f1ac2de3fc3f74caf0f892450d838b49502f39d5d0660d647be1"
     },
     {
-      "id": "class:60f88d28-e378-490e-bdfe-bb7d4349d770",
+      "id": "class:a50804fa-6739-43bb-9bf1-a8be47f10b80",
       "path": "Generated/Classes/Leaf.g.cs",
-      "hash": "e338931e6b6c59551534073a2f028caea2b247f13aca5f958eeb46454f3eac19"
+      "hash": "4b20d7ea88cec24dfb1cbfd044aa640c1218d20af9f47d3e8e1411c9f6152dcb"
     },
     {
-      "id": "class:9110176e-349d-436f-91b4-52ed771ee0c2",
+      "id": "class:d03c2a79-d23e-4eb0-8c9d-83b511137903",
       "path": "Generated/Classes/Log.g.cs",
-      "hash": "946415ff213b86d0782084426f3c72e06fbd2657dce3e9621d3b297a553bc7c8"
+      "hash": "9f7bbabe2ce10e0249b9382b9d7ab9a8c3ffe452356ec263604388e2ca11e135"
     },
     {
-      "id": "class:e5488984-b7e3-43a5-9701-992661c51088",
+      "id": "class:9ce999d0-f358-42e2-af70-4076c0a6da3c",
       "path": "Generated/Classes/Max.g.cs",
-      "hash": "b8711e7c9c08f6b196832af6f51823dd2b2d9294ad9688aa49530c9e4f445208"
+      "hash": "17f46cc1e25b1fdb5dd00343e6ba4eb76cf03ebb36747ced7baace84ac2cc8a4"
     },
     {
-      "id": "class:ad3b2d83-7b06-4b89-88b6-585888397a87",
+      "id": "class:42318cf7-399f-4499-a727-95e8345e4cb7",
       "path": "Generated/Classes/Mid.g.cs",
-      "hash": "7c26f255490f0c4c145b6d87965fb1d9166af45d7a7b133ffc244a9e0e338e56"
+      "hash": "801f6c96c42020537c90770a1a6454e1c82ac98c230aa5bdf849ae9c315a644f"
     },
     {
       "id": "class:system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
@@ -309,174 +309,174 @@
       "hash": "96e40fa89627c402f9c51944440e8211e856c2dfc63a989855fd27d54c0c77e5"
     },
     {
-      "id": "class:ba30c5ff-3f9c-47bb-8d80-2417cf850d75",
+      "id": "class:b2cef6b8-ded1-4432-810a-6d5567f8b0c5",
       "path": "Generated/Classes/Num.g.cs",
-      "hash": "024f8da8335ff12c9c3a89bbed044da8107e3740e5efd4c5b3090b6c5595cf8b"
+      "hash": "690a833c22eeb5e53eeda43e257cd144388de9daaed0ab6e03914979746c0bc5"
     },
     {
-      "id": "class:c2c761f7-a521-4e0f-a12a-9afb13a602ab",
+      "id": "class:f2018957-fb59-4836-be19-4b57970bf243",
       "path": "Generated/Classes/Only.g.cs",
-      "hash": "c61a1a2b7087fce16a2be3c15ea777cbd931a08c10464be42b046a83d9239434"
+      "hash": "4fe0ecbb27308400c4bdf6123e45dcdc9153904ae1606ade31eab3d08f724846"
     },
     {
-      "id": "class:465a9f05-5e0e-40b0-8773-cca341e950d1",
+      "id": "class:10268d39-57f3-4f2b-ab81-e7c9687fa355",
       "path": "Generated/Classes/PBox.g.cs",
-      "hash": "4ae52b7c3e4cc55ed17ca42361c30e2e803650ddcd5b16ef318a3bc1826b4c31"
+      "hash": "c837443839dbd83966b8848cd8b38c65ed6d13edfbc1ffa853cd20c2824165dd"
     },
     {
-      "id": "class:bf356dcc-63f4-4ee2-bcfe-952bc60a367e",
+      "id": "class:1badd7e4-57c2-4e47-928c-23fb64886cc1",
       "path": "Generated/Classes/PClr.g.cs",
-      "hash": "4b07844c38eed63fff621093d227704c490db0448687723845c007a54ca61064"
+      "hash": "73eb67736551be77f5b49f511aa135451c8961617cbba9a57c506026954cd8de"
     },
     {
-      "id": "class:f160fba5-3c62-4233-8c6e-36995d7fb4e9",
+      "id": "class:f8c29a05-636c-41db-b99f-1737b4b38483",
       "path": "Generated/Classes/PDec.g.cs",
-      "hash": "827a9fc4e225bb60fcf082a91088f6ee26ed7bb706893c030136ed1914b304ec"
+      "hash": "97008ff30b23c6e1cf5b6a96c751c819d905b12ed04c0ea742d2151b56548507"
     },
     {
-      "id": "class:db41115a-d657-4237-9f71-2a638df01fb2",
+      "id": "class:e7416e2a-5d40-4f61-94d5-62b100dd1eae",
       "path": "Generated/Classes/PFix.g.cs",
-      "hash": "2e0380232769ad16502f88c86dec035a9c28edecaf4cdcc4622c551a28286c2a"
+      "hash": "2187a76f7539fa8d6fc7db1de1c040e6a7aa84ab1cd9b75ff19077b699490bc4"
     },
     {
-      "id": "class:1e1df631-db73-4dc9-a16f-571b0fb1c9c4",
+      "id": "class:1f2e4c60-76ca-4741-aae0-44825a028650",
       "path": "Generated/Classes/PFld.g.cs",
-      "hash": "5b9fd81b7aa22218f0116cf1109c123795724532a8880345ffe56454e2b072fc"
+      "hash": "d50f99a5801abfdcdbe5df43b797c5e27503cb71c5dd679d8d79c50e19678b9a"
     },
     {
-      "id": "class:06668e60-452e-42a1-840a-21c38ebf8508",
+      "id": "class:26e02c5c-257e-4db7-9c0a-66a0e04b1ee2",
       "path": "Generated/Classes/PFld2.g.cs",
-      "hash": "ebc60e1eedd23cf3d9cbbdc274f29d436bc097e4d2c4c55fbe13526f3a25cf30"
+      "hash": "b971fcf03f9c3bae6d66f804ce2e326b1e5f43065aa87e573e4261cdae273d6d"
     },
     {
-      "id": "class:cc048396-873a-452a-99fc-6ea2e3687379",
+      "id": "class:f9137fe7-eb0a-4cf8-81cc-43cafcc04ae9",
       "path": "Generated/Classes/PGap.g.cs",
-      "hash": "cf8f4e545880074880f0ad11d68ca08a32b55084aa7e1de6075dc6f0e53c6f06"
+      "hash": "4fc7f2c1a22c4ea544e14a34a7976ef079e43dd36dd2b4b7a2ae234739b9f225"
     },
     {
-      "id": "class:b7b461d3-3b5a-4376-9671-93ddefac24cc",
+      "id": "class:8d48544b-5aea-4e59-8a45-55b42c349489",
       "path": "Generated/Classes/PIfaceOrder.g.cs",
-      "hash": "72519126acf3ac9822049c4deca4aeb8d15e42c83e4bc0f82cfdacb9b0bdf595"
+      "hash": "3b7c59ed1a4ab8355df53980d27d4120eeff05c1813a44db5fc64ffd1809a1f1"
     },
     {
-      "id": "class:553051bc-70b8-464c-8a82-a84751ba1eef",
+      "id": "class:0139d7a3-3879-448d-a9f4-cfd3ed77d6fe",
       "path": "Generated/Classes/PInner.g.cs",
-      "hash": "ed5f73d7c6ac239a22d1a9eb9a24388c79dbad1a38e10ee0e917f796ebd01303"
+      "hash": "57986fc5b10c761f22cc9037f85c17062a027224ebff6bb29ebc9c6ed452dd0e"
     },
     {
-      "id": "class:fe668333-b823-4ce8-b7a9-20ec441aedc9",
+      "id": "class:4d23dba4-de32-4cec-95b6-f514d9fbda72",
       "path": "Generated/Classes/PInner2.g.cs",
-      "hash": "73a9668fc2e9d9c3ab72f766a8a7ee394de01420114bedf3d2c304f4d1230b66"
+      "hash": "0c13f8f8cc74409f551df58fc6b44c05b1ec431d0e4bb76171a2255162b375b7"
     },
     {
-      "id": "class:f16f95e6-b8b6-46f1-b09a-27634d4c086e",
+      "id": "class:c19d4680-04d3-4c0b-9ddc-d0059621f7ad",
       "path": "Generated/Classes/PInst.g.cs",
-      "hash": "7f670da9cd30be62d4e6ff99a57922ff18e7b19a809820fe4d11f09ffc229867"
+      "hash": "3da40b9e4a60f43b2a4e4ced6af1965b72fe86d8c9cff672c15db743f11e675c"
     },
     {
-      "id": "class:2bf2987a-4bfb-488c-bc69-087b5c75607b",
+      "id": "class:66c0df3a-27e0-48d1-9f44-b473cc3c6bb9",
       "path": "Generated/Classes/PInstKind.g.cs",
-      "hash": "76fb26be6f85c84d83b323b2db773eed8057d464ce68178dbb9bb0cb363f0df5"
+      "hash": "c5324aa30c9c0871f1506d23ef0ac75a5501d54f4cd514913c7749ada85bba08"
     },
     {
-      "id": "class:71d5a6ce-7f16-4455-b44c-5eb0237ca011",
+      "id": "class:014e3966-2cfe-4b3f-b3a8-eaa9325c448e",
       "path": "Generated/Classes/PMg.g.cs",
-      "hash": "3eead61044052043991dd652a5b1eec3a5573ac3839c9b9f95271ea7f7c9c572"
+      "hash": "a119da8509565c147bc16551e69e066c111ce709fe5b84696fe64a94668be2dc"
     },
     {
-      "id": "class:c6b75d2d-f1ae-4aa9-8a7f-08f14ad37dde",
+      "id": "class:c3f10ce9-215c-4d47-b93e-2d26a1443b2d",
       "path": "Generated/Classes/PNs.g.cs",
-      "hash": "10751db2012005df7f59516e17eaf69945a38171253864a56a7e8fa0c4646c73"
+      "hash": "1eaef2f8976b2d5996ba8b5426f35d6876525810d9f97c647400f38e99a290b6"
     },
     {
-      "id": "class:8e6225b9-e26c-4cb3-98d8-b932ea41bb80",
+      "id": "class:233cf357-dcc9-4a4f-abf8-106f903ec103",
       "path": "Generated/Classes/PNsdef.g.cs",
-      "hash": "9ef95a95cbccc377fc04a56081f89a5ceaeed4a6b5b86a3bd6d38f0eda7598ee"
+      "hash": "b5c1b31b3cded5f3bd89c99481030da3b05455774824b8ecf90a69c1698ea65c"
     },
     {
-      "id": "class:f1c576c2-a6f2-4fbd-8f5e-054f64a6f865",
+      "id": "class:6e73f7eb-d008-4d3e-ae36-dab45268ecbf",
       "path": "Generated/Classes/PNsdef2.g.cs",
-      "hash": "791bb13ad2cf9a3ce5afd62980569fa4a1e4473b1d0c4a0cdde43c101f470b0c"
+      "hash": "e6a65ad6a809f36afc39c26a8677ee7934de14034a972973fef8b73cfbc8a2ac"
     },
     {
-      "id": "class:609008cb-3570-43db-93d9-8cb37b9166d0",
+      "id": "class:ff370d6e-fe2d-4655-82ac-3d53861335ad",
       "path": "Generated/Classes/PNsloc.g.cs",
-      "hash": "ec3e8bca28e010ad9393b798ed3f061474dff63e0b2c88ab73805412c619d138"
+      "hash": "eb74bf68c2b8a79e5d4cf0bff4d698af6ef6976abc3b396ef05b694eacc8d22e"
     },
     {
-      "id": "class:b86aa205-345c-4279-9406-cc35497fb514",
+      "id": "class:786eab57-0937-4519-bcdd-0732398905e0",
       "path": "Generated/Classes/PObj.g.cs",
-      "hash": "7445e816e29b26ecfa4829cb69f25bf61957926ad504b6d94c7bcca163479113"
+      "hash": "a8bc3c55421468d76e1dacfd887a281e5eacebe44edaa47e00e8e80d60f0d511"
     },
     {
-      "id": "class:02f68c5c-f416-4e1a-b73a-cdb65bafd6b8",
+      "id": "class:01180d50-b52f-4747-b920-5243f14888cf",
       "path": "Generated/Classes/PObj2b.g.cs",
-      "hash": "567df95cd3ddcb55b4cf20e2f8ba53ae6da2195ed20dbd4a7e7f7f695f1fdfd5"
+      "hash": "fbf1e33fead3c329a952b078a6220e62b318062196e8ae9deec1fed33007a0bc"
     },
     {
-      "id": "class:f155370d-a66c-41ef-9ec9-d0b6687bb52c",
+      "id": "class:ea5972c1-75d1-4e32-aec3-b4401677fc4e",
       "path": "Generated/Classes/PObjp.g.cs",
-      "hash": "6ef68d1103232a75f7e58cce8fcee19b591f9893bcbc9ce5137b9f494c2c7e43"
+      "hash": "712712920d0d4753d12c357208ef3bd9ccd96099834083e9f984543cde69dd14"
     },
     {
-      "id": "class:3513d34f-6930-4f32-bc0b-e94946845236",
+      "id": "class:295e9b57-032a-4245-947a-577c83832585",
       "path": "Generated/Classes/POps.g.cs",
-      "hash": "1f0bfd8131158348955b823e2466891f26630312923692a282dfe1509014fd7e"
+      "hash": "2154bec91b3a0256eea049764d059ccea4957e04a46724b200871e3fcaff6db5"
     },
     {
-      "id": "class:a87a1d16-192d-44a7-b874-6604c757e252",
+      "id": "class:9f21659b-3d6c-416e-b809-ab7c5d82bdea",
       "path": "Generated/Classes/POutgen.g.cs",
-      "hash": "a5c6344697c311bd4bd8189997e2f2943383255b6f29c6e0c1ef43c8f5b98ba2"
+      "hash": "7f045dc336c1132feef4b085a7213b6a386654cee09e69885aee07397376dcbb"
     },
     {
-      "id": "class:b4705b83-4c0b-466c-af01-512c048175d8",
+      "id": "class:37d025ad-cf8c-431e-a8f4-fd11633c5966",
       "path": "Generated/Classes/PSelf.g.cs",
-      "hash": "160cb2f22c1fd9110f9b3c5e76cb486e3ff7fda2d39f90f2b8a858371bf07b0c"
+      "hash": "25d224d5f0dfd4b14c01f1fbc07d76734d308b02ad0d501776c0f748274c49f2"
     },
     {
-      "id": "class:c52bb74d-5611-4eb1-b7c9-df12d9c83e2d",
+      "id": "class:dc383286-515e-4f79-8a3f-a23037a96309",
       "path": "Generated/Classes/PStmt.g.cs",
-      "hash": "44c0a0e6ab4a8d16886e27f6c280959f7500e587daf8f9d3d95eeca187807b1b"
+      "hash": "5168df741c3422cd96f671595e35f97a205f411d8e46d785bf3f3a40f1d01829"
     },
     {
-      "id": "class:a708b9ab-f67f-4b07-9928-c3a627c73ec5",
+      "id": "class:76a49bf6-da42-4b4d-9b14-3aa3f5c7aa86",
       "path": "Generated/Classes/PSurf.g.cs",
-      "hash": "4f83b1fcefcf0a4d7f06224c063cf1d8eb7297ad175ba9a6e93f2ad4b1971249"
+      "hash": "abdf1510d13216fa4ea496ca72d320d9fc62ee8e4a52bab0005154889fb79345"
     },
     {
-      "id": "class:a2bd8d46-e0b5-4eab-846f-998aeadb9ae0",
+      "id": "class:cd136c3d-33fb-4ea5-bf53-999be3d46dc7",
       "path": "Generated/Classes/PTarget.g.cs",
-      "hash": "1deb6a828d291fd330e8985bb9896cfa0229b38f7118d35bd15e24c8f566c5bc"
+      "hash": "9210fe3ffe103170747453386365d9f656cd1aeb80ecaa162129a59d2fa3421a"
     },
     {
-      "id": "class:c0316a43-a754-4b0b-811e-c67c8bc99722",
+      "id": "class:34d44812-df2b-4843-8919-4d4c66dc6f9c",
       "path": "Generated/Classes/PTself.g.cs",
-      "hash": "c59a41671c4a39c8e2db1e682b8603ff623677b825ac8f86e74c5a4413045199"
+      "hash": "3abfca74589b1e448e8b267e3077f19131c7ea5d0f4e6a5a94d47369a07192fb"
     },
     {
-      "id": "class:2befdf37-dada-4c8c-bc6e-af5e27e21821",
+      "id": "class:951b4c45-9e05-47f1-9641-62b2a28f3190",
       "path": "Generated/Classes/PTup.g.cs",
-      "hash": "2cf5cee987c771ed1b01403cd6666cb25c8e8c0ba2a3feb50b25e35695479acc"
+      "hash": "b562b9cedb57f40831a2c67eba4b2195ff575a661e026900c884e611e3ce9352"
     },
     {
-      "id": "class:adee34b5-89ee-49ba-9df1-9a949fe009e4",
+      "id": "class:438fa20c-74b5-48be-b5d5-e3aef17c41e3",
       "path": "Generated/Classes/Plain.g.cs",
-      "hash": "393eb98ce14eadfeb0d2cbc101b3d0af1151a0439ba9f4f67350f41e3fffac40"
+      "hash": "7027e3bc29497ccbf581a4c0d7e17b63f44867bc383ff031211810a662c39f9e"
     },
     {
-      "id": "class:c0f2dcc6-7c31-4bfd-adb2-63df5c10a444",
+      "id": "class:0da92b9d-a9e7-4601-9cdd-2efdd0001cb9",
       "path": "Generated/Classes/Probe.g.cs",
-      "hash": "6bb11131d6ba27e938ec2307f52197f77109424e3c834cdb9e7a84f87f0c1ca2"
+      "hash": "c16c2957367d2db73b7bb7237cfd4ced879f1d710b4be7f1e3a549c091b31b2c"
     },
     {
-      "id": "class:cdf0dfca-cfef-4768-8221-13c62f179639",
+      "id": "class:dabbb8e3-3660-47f3-b8ce-1a0a6bbbcf31",
       "path": "Generated/Classes/Pt.g.cs",
-      "hash": "1b71bdb1171831023a233b2af780721bc54517844614770394478728d0de05bb"
+      "hash": "cdfccc995e00ed4c1a81b41d554f26cb263a022aa2620d76eb3453a99bd24dd2"
     },
     {
-      "id": "class:b8051fa5-aecf-4417-90a5-b04650043ad5",
+      "id": "class:4a24ba5e-2600-45e4-a45b-b3d52bf0343c",
       "path": "Generated/Classes/PtC.g.cs",
-      "hash": "530041a1d891e220903f503cb02c01f78378ce97dd6471f3c125168c08a33f57"
+      "hash": "b47ea337417db144d717befb2eae5fe73a7764dc87db07fada0429ffdbc2c85c"
     },
     {
       "id": "class:root-save-class-id",
@@ -484,19 +484,19 @@
       "hash": "9bdabedf6d3b57c09f3e5b01044d893cc4cd5c2ca38f8a28f55508c89d57ba9e"
     },
     {
-      "id": "class:39773f11-8cc5-48a5-9ffe-fcc6737319e0",
+      "id": "class:a211a573-cfaf-466b-9a4e-8fa50efa6b11",
       "path": "Generated/Classes/SelfA.g.cs",
-      "hash": "bafe569304e1418d1d6a1accda3ff5d443324e5373ca8795a469b9317cde9367"
+      "hash": "652e7c1d173f8423d648694ebe9b85e6c3762d1182809e6539c76e9d1681df8d"
     },
     {
-      "id": "class:325dd1c7-643b-4fd5-b89a-0bab7be9f71a",
+      "id": "class:5ddd91d3-983f-4e49-a775-1ac5360e03a6",
       "path": "Generated/Classes/SelfB.g.cs",
-      "hash": "fe2cca6b5afe69db751c728a56588ef05658b50b58c9ee72704461fa2319c424"
+      "hash": "5970479f2abb014b8dc584035ae04699ebb4a705c87529d8d401d61650de4302"
     },
     {
-      "id": "class:f2f77456-2be1-4a69-bd77-92e2208401af",
+      "id": "class:33c715e7-466e-4e32-90fd-3c77bc2f7ea0",
       "path": "Generated/Classes/SelfC.g.cs",
-      "hash": "be6d982451de3fcb21ab8bd574fa9aeede96b6448f445fd3f192e694e42fa93c"
+      "hash": "6bfeb49ca59068dc513913626cb2d293f405224e76d2b23d1a66226b74248dfc"
     },
     {
       "id": "class:root-session-class-id",
@@ -504,24 +504,24 @@
       "hash": "3c7105a95a722b9e3d0c9642c9ca0fdb4a779459dc32886cebef113f145a5a2b"
     },
     {
-      "id": "class:1c787b0c-cc64-48da-bab1-0b50837a0ec3",
+      "id": "class:8af60b81-b6e1-4a9d-9908-b2241aaca1f9",
       "path": "Generated/Classes/Store.g.cs",
-      "hash": "89df21fab02894c59eb2d09f28f6d7995fc3010e058d831c6fa4b09fcbc83a2e"
+      "hash": "6b7a9e7104b22e8cf7a4f1bdd8da284e5e902a8ea379599c8f3fcede9273f0f3"
     },
     {
-      "id": "class:530cc7a4-5da0-4b9e-8e71-05f0c4d82e7d",
+      "id": "class:186abb9b-9769-4625-8d48-d02bc4c61e48",
       "path": "Generated/Classes/TEq.g.cs",
-      "hash": "0ebe8570c0503e65f4baebf66828631e580a71bebf4650d58ff1ba2efb6219af"
+      "hash": "72bde61702342219a53f63c6e6f106310d5618fb8d8e8f4e2a7d14094b7ef322"
     },
     {
-      "id": "class:c4aa5f43-53ed-4070-a726-df04109c6967",
+      "id": "class:e7ef3265-e9c6-4aa0-b171-d15625d11dd0",
       "path": "Generated/Classes/TMoney.g.cs",
-      "hash": "e535356bfa0f18a39ed141672382a70076063a5d7b8d02a982e0fa2b48df3b1c"
+      "hash": "7166af17936387fdbbabff880b29f139b6495ada135fbbc3760ab587a75a8e49"
     },
     {
-      "id": "class:802b7b39-1744-4d3b-bdc1-4e9ead929cae",
+      "id": "class:7244a6ea-8388-42bd-baaf-87ae2c940498",
       "path": "Generated/Classes/Tk.g.cs",
-      "hash": "32504b03825595e428837ebc9edfde59e67da4ab3da2d47d25da45b34a28f0dd"
+      "hash": "aef407cd429cc5095b200f0b62d6bdf2cf148269440fbf760bff34beb1b0cbd4"
     },
     {
       "id": "class:96c616e0-e204-5f56-9f77-90b195896a5a",
@@ -529,14 +529,14 @@
       "hash": "55473c2b02e1c646f3c451eb00729233d65618c2ee6377cbba00c0c8cf1a8384"
     },
     {
-      "id": "class:3f31e0d0-fd12-4748-b51b-19a029b12b1b",
+      "id": "class:507f4a4e-31d8-4713-b0b2-769884c12e6b",
       "path": "Generated/Classes/Wallet.g.cs",
-      "hash": "4cf3e17feb274cf0ac4f1fc6c4f3541a7c06088b11c51bd508aa1d024d7f8ba9"
+      "hash": "d85a0c57162687460bcd22174e3e4c3b63f607b4e7c238e0213b1847be2a3856"
     },
     {
-      "id": "class:edd4220f-b993-44f6-b246-ccc7ae18ca99",
+      "id": "class:f12cc73a-29dd-411d-bcf0-0642306f021a",
       "path": "Generated/Classes/Zv.g.cs",
-      "hash": "80b32e238a3947e44950ee00521ea0c907acb2d8975bebcb6067a0b11af44f7c"
+      "hash": "67c3203a9a5c2e749acbf8e0110b005b61f4ad0f2757baa052ea72760ed2cbb6"
     },
     {
       "id": "dialogues:root",
@@ -574,22 +574,22 @@
       "hash": "1039b74331f80f3f21a86f7f50a6e1896ac7fa48b79713c6f37221b82bea3d6e"
     },
     {
-      "id": "enum:210aef30-7233-44d0-8e26-582e630db2d9",
+      "id": "enum:c86a5fa3-0a23-40f6-ab4b-fdf93e2d1899",
       "path": "Generated/Enums/Planet.g.cs",
-      "hash": "3da84291a3169dbb744dee04e7a8d14eaae5468255aa13b6bd78341130f86cbb"
+      "hash": "2b19870c81eca535224b1bf58370b3f94d49b818905c32464b121a9f33bb589b"
     },
     {
-      "id": "interface:7034fec9-454b-4f31-b59d-fd084ebcb347",
+      "id": "interface:efe89f8b-754e-40b4-8828-09e34f323e4c",
       "path": "Generated/Interfaces/IA.g.cs",
       "hash": "af74e92f89996288f6231c74ab5027adb4c0facd51af7f365fe5b146a9bc4d7b"
     },
     {
-      "id": "interface:f91f4640-84d9-4f8a-8ef4-60eb68edb521",
+      "id": "interface:bad315fb-32d0-4604-a679-5bc846250600",
       "path": "Generated/Interfaces/IAdd.g.cs",
       "hash": "bc6b4624d96db42811f6b2b592958afcdbb3f4f05cbba5c7accf866d285916c3"
     },
     {
-      "id": "interface:d99474c6-2bd5-4aaa-a439-7d1c01685dce",
+      "id": "interface:d39d8121-4560-416d-a6e1-98ed43bcefdf",
       "path": "Generated/Interfaces/IB.g.cs",
       "hash": "83833f2efc9705db3a64bf0082388a23b68439d2dfa4a67383322b2414116105"
     },
@@ -684,19 +684,19 @@
       "hash": "2b1a31fd22674748b277a065fbe1773b69d426e81c1341cad050dc61609ad7ab"
     },
     {
-      "id": "interface:f71a0e0d-6771-49b4-9607-7d9fb8e67d8b",
+      "id": "interface:203b3e92-91b4-473e-a47a-a791afdd319f",
       "path": "Generated/Interfaces/ITake.g.cs",
       "hash": "499e742eb1b684dca2986d832d6fc60fb8a8eae5c4abfe72c402970041a71279"
     },
     {
-      "id": "interface:0823ee36-d598-41a6-a2e5-a6d7835478a8",
+      "id": "interface:e5f6176a-b305-4ac4-bde8-96bdf0c3f288",
       "path": "Generated/Interfaces/IZv.g.cs",
       "hash": "4ac56a8e4658f6055f96f6216714ee465918fa416a33ca9fb147caf63af607bf"
     },
     {
       "id": "project:factories",
       "path": "Generated/TestProjectNeo.Factories.g.cs",
-      "hash": "8784216f1c3aaccf9dd879dc2ee7877fe94ba3c40c30a8b501cf555e420911ff"
+      "hash": "c7551e215b1779a6f1e64696d9207c4bc0161d1a26fd2eb4015a53bf8c5ee7e8"
     },
     {
       "id": "project:functions",

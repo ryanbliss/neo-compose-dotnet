@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DdG<T> : NeoGeneratedClassValue, IReadOnlyDdG<T>
     {
         internal DdG(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b2b0a970-00e2-408f-a592-1d3cec408e84", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9c767dc3-9182-4f21-bbd4-193221928091", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b2b0a970-00e2-408f-a592-1d3cec408e84" => new DdG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9c767dc3-9182-4f21-bbd4-193221928091" => new DdG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DdG' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b2b0a970-00e2-408f-a592-1d3cec408e84" => new DdG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9c767dc3-9182-4f21-bbd4-193221928091" => new DdG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DdG' without a concrete client type id."),
                 };
             });

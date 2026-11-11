@@ -16,16 +16,16 @@ namespace NeoCompose.Tests.InterfaceParity
         internal static readonly IReadOnlyDictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>> NeoDetachedValueFactories =
             new Dictionary<string, Func<NeoClient, NeoDetachedValue, bool, NeoGeneratedClassValue?>>
             {
-                ["5c924383-2984-4e61-aa09-15692fcc09d9"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Red.CreateDetached(client, value, saved),
-                ["675e661d-1c49-48a9-804b-9beeb7f0d5c6"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.CreateDetached(client, value, saved),
-                ["691ce514-4b76-4a70-a2bb-ad62dedfd839"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateDetached(client, value, saved),
-                ["89d464b7-ff77-4759-aa0c-99fbfc98a4bc"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Inventory.CreateDetached(client, value, saved),
+                ["1ab21339-d8c4-4df0-af44-026a45de8306"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.CreateDetached(client, value, saved),
+                ["3d38abeb-440d-4ee1-bf61-6b82bb93dc75"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Item.CreateDetached(client, value, saved),
+                ["4537964c-9474-46dd-a45e-8ff5fbb80538"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Probe.CreateDetached(client, value, saved),
+                ["58cc8741-1061-466b-87e6-c6d21441da8e"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Red.CreateDetached(client, value, saved),
+                ["5faa1b87-3a66-4a8b-ad2f-6f730fc75f24"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Inventory.CreateDetached(client, value, saved),
+                ["6fffa558-3ede-4510-b63f-ff0c8d24dcd7"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Tool.CreateDetached(client, value, saved),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.User.CreateDetached(client, value, saved),
-                ["987a42fa-82b4-484c-8391-f48878e27dbb"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Player.CreateDetached(client, value, saved),
-                ["988ec4d3-58c2-4cb9-96f1-cda018507466"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Tool.CreateDetached(client, value, saved),
-                ["9ed8dfa7-b712-4465-9ce4-4cf3b9989034"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Probe.CreateDetached(client, value, saved),
-                ["ac76d158-7c99-4c19-a565-63c3d307c477"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.CreateDetached(client, value, saved),
-                ["e91c75d3-2e2e-47f7-821f-b1d904913737"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Item.CreateDetached(client, value, saved),
+                ["9bc51662-630f-4fa3-ae6a-52abdea076cb"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateDetached(client, value, saved),
+                ["a322218f-9dbb-40b6-8ba5-d8f205f920a5"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Player.CreateDetached(client, value, saved),
+                ["e72ab6f5-d8cb-4ece-9fcf-062e8b360af4"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.CreateDetached(client, value, saved),
                 ["root-assets-class-id"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Assets.CreateDetached(client, value, saved),
                 ["root-save-class-id"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Save.CreateDetached(client, value, saved),
                 ["root-session-class-id"] = (client, value, saved) => global::NeoCompose.Tests.InterfaceParity.Session.CreateDetached(client, value, saved),
@@ -59,19 +59,19 @@ namespace NeoCompose.Tests.InterfaceParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                ["28d33e3a-e90e-4487-9b00-5610573b29f6"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.Create(client, node),
-                ["2c1e2492-77d7-42c5-86d4-c92f587de0f4"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.Create(client, node),
-                ["5c924383-2984-4e61-aa09-15692fcc09d9"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Red.Create(client, node),
-                ["675e661d-1c49-48a9-804b-9beeb7f0d5c6"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.Create(client, node),
-                ["691ce514-4b76-4a70-a2bb-ad62dedfd839"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, node),
-                ["89d464b7-ff77-4759-aa0c-99fbfc98a4bc"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Inventory.Create(client, node),
+                ["1ab21339-d8c4-4df0-af44-026a45de8306"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.Create(client, node),
+                ["3d38abeb-440d-4ee1-bf61-6b82bb93dc75"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Item.Create(client, node),
+                ["4537964c-9474-46dd-a45e-8ff5fbb80538"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Probe.Create(client, node),
+                ["58cc8741-1061-466b-87e6-c6d21441da8e"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Red.Create(client, node),
+                ["5faa1b87-3a66-4a8b-ad2f-6f730fc75f24"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Inventory.Create(client, node),
+                ["6fffa558-3ede-4510-b63f-ff0c8d24dcd7"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Tool.Create(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.User.Create(client, node),
-                ["987a42fa-82b4-484c-8391-f48878e27dbb"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Player.Create(client, node),
-                ["988ec4d3-58c2-4cb9-96f1-cda018507466"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Tool.Create(client, node),
-                ["9ed8dfa7-b712-4465-9ce4-4cf3b9989034"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Probe.Create(client, node),
-                ["ac76d158-7c99-4c19-a565-63c3d307c477"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.Create(client, node),
-                ["aecb7021-bf56-4338-b0bd-08d45d4e03c2"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.Create(client, node),
-                ["e91c75d3-2e2e-47f7-821f-b1d904913737"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Item.Create(client, node),
+                ["9bc51662-630f-4fa3-ae6a-52abdea076cb"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, node),
+                ["9e03b278-736f-4a12-8306-f3ba18ee289c"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.Create(client, node),
+                ["a07deed4-8168-42a7-a40e-5dc204311037"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.Create(client, node),
+                ["a322218f-9dbb-40b6-8ba5-d8f205f920a5"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Player.Create(client, node),
+                ["e72ab6f5-d8cb-4ece-9fcf-062e8b360af4"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.Create(client, node),
+                ["fac33ab9-4b33-4353-9fe9-d13a1e5ed5b2"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.Create(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Assets.Create(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Save.Create(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Session.Create(client, node),
@@ -108,19 +108,19 @@ namespace NeoCompose.Tests.InterfaceParity
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
-                ["28d33e3a-e90e-4487-9b00-5610573b29f6"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(client, node),
-                ["2c1e2492-77d7-42c5-86d4-c92f587de0f4"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.CreateWritable(client, node),
-                ["5c924383-2984-4e61-aa09-15692fcc09d9"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Red.CreateWritable(client, node),
-                ["675e661d-1c49-48a9-804b-9beeb7f0d5c6"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.CreateWritable(client, node),
-                ["691ce514-4b76-4a70-a2bb-ad62dedfd839"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, node),
-                ["89d464b7-ff77-4759-aa0c-99fbfc98a4bc"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Inventory.CreateWritable(client, node),
+                ["1ab21339-d8c4-4df0-af44-026a45de8306"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.SeedPouch.CreateWritable(client, node),
+                ["3d38abeb-440d-4ee1-bf61-6b82bb93dc75"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Item.CreateWritable(client, node),
+                ["4537964c-9474-46dd-a45e-8ff5fbb80538"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Probe.CreateWritable(client, node),
+                ["58cc8741-1061-466b-87e6-c6d21441da8e"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Red.CreateWritable(client, node),
+                ["5faa1b87-3a66-4a8b-ad2f-6f730fc75f24"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Inventory.CreateWritable(client, node),
+                ["6fffa558-3ede-4510-b63f-ff0c8d24dcd7"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Tool.CreateWritable(client, node),
                 ["96c616e0-e204-5f56-9f77-90b195896a5a"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.User.CreateWritable(client, node),
-                ["987a42fa-82b4-484c-8391-f48878e27dbb"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Player.CreateWritable(client, node),
-                ["988ec4d3-58c2-4cb9-96f1-cda018507466"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Tool.CreateWritable(client, node),
-                ["9ed8dfa7-b712-4465-9ce4-4cf3b9989034"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Probe.CreateWritable(client, node),
-                ["ac76d158-7c99-4c19-a565-63c3d307c477"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.CreateWritable(client, node),
-                ["aecb7021-bf56-4338-b0bd-08d45d4e03c2"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(client, node),
-                ["e91c75d3-2e2e-47f7-821f-b1d904913737"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Item.CreateWritable(client, node),
+                ["9bc51662-630f-4fa3-ae6a-52abdea076cb"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, node),
+                ["9e03b278-736f-4a12-8306-f3ba18ee289c"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(client, node),
+                ["a07deed4-8168-42a7-a40e-5dc204311037"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(client, node),
+                ["a322218f-9dbb-40b6-8ba5-d8f205f920a5"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Player.CreateWritable(client, node),
+                ["e72ab6f5-d8cb-4ece-9fcf-062e8b360af4"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.HarvestInventory.CreateWritable(client, node),
+                ["fac33ab9-4b33-4353-9fe9-d13a1e5ed5b2"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.CreateWritable(client, node),
                 ["root-assets-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Assets.CreateWritable(client, node),
                 ["root-save-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Save.CreateWritable(client, node),
                 ["root-session-class-id"] = (client, node) => global::NeoCompose.Tests.InterfaceParity.Session.CreateWritable(client, node),
@@ -157,19 +157,19 @@ namespace NeoCompose.Tests.InterfaceParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoClassIdsByType =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolFrames)] = "28d33e3a-e90e-4487-9b00-5610573b29f6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolCrate)] = "2c1e2492-77d7-42c5-86d4-c92f587de0f4",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Red)] = "5c924383-2984-4e61-aa09-15692fcc09d9",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.SeedPouch)] = "675e661d-1c49-48a9-804b-9beeb7f0d5c6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Seed)] = "691ce514-4b76-4a70-a2bb-ad62dedfd839",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Inventory)] = "89d464b7-ff77-4759-aa0c-99fbfc98a4bc",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.SeedPouch)] = "1ab21339-d8c4-4df0-af44-026a45de8306",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Item)] = "3d38abeb-440d-4ee1-bf61-6b82bb93dc75",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Probe)] = "4537964c-9474-46dd-a45e-8ff5fbb80538",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Red)] = "58cc8741-1061-466b-87e6-c6d21441da8e",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Inventory)] = "5faa1b87-3a66-4a8b-ad2f-6f730fc75f24",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Tool)] = "6fffa558-3ede-4510-b63f-ff0c8d24dcd7",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Player)] = "987a42fa-82b4-484c-8391-f48878e27dbb",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Tool)] = "988ec4d3-58c2-4cb9-96f1-cda018507466",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Probe)] = "9ed8dfa7-b712-4465-9ce4-4cf3b9989034",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.HarvestInventory)] = "ac76d158-7c99-4c19-a565-63c3d307c477",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.VectorFrames)] = "aecb7021-bf56-4338-b0bd-08d45d4e03c2",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Item)] = "e91c75d3-2e2e-47f7-821f-b1d904913737",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Seed)] = "9bc51662-630f-4fa3-ae6a-52abdea076cb",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolFrames)] = "9e03b278-736f-4a12-8306-f3ba18ee289c",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.VectorFrames)] = "a07deed4-8168-42a7-a40e-5dc204311037",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Player)] = "a322218f-9dbb-40b6-8ba5-d8f205f920a5",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.HarvestInventory)] = "e72ab6f5-d8cb-4ece-9fcf-062e8b360af4",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolCrate)] = "fac33ab9-4b33-4353-9fe9-d13a1e5ed5b2",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.Save)] = "root-save-class-id",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.Session)] = "root-session-class-id",
@@ -203,44 +203,44 @@ namespace NeoCompose.Tests.InterfaceParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentClassIds =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Frame<>)] = "0be86ff3-17c1-44da-8ba2-273bc9856c4d",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyFrame<>)] = "0be86ff3-17c1-44da-8ba2-273bc9856c4d",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Shelf<>)] = "1b21d03f-d159-4817-ac9e-18583060b5c4",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyShelf<>)] = "1b21d03f-d159-4817-ac9e-18583060b5c4",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolFrames)] = "28d33e3a-e90e-4487-9b00-5610573b29f6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyToolFrames)] = "28d33e3a-e90e-4487-9b00-5610573b29f6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolCrate)] = "2c1e2492-77d7-42c5-86d4-c92f587de0f4",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyToolCrate)] = "2c1e2492-77d7-42c5-86d4-c92f587de0f4",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Bag<,>)] = "4adf9f80-fa0f-4984-8a83-0a4a0d9b1931",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyBag<,>)] = "4adf9f80-fa0f-4984-8a83-0a4a0d9b1931",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Crate<>)] = "597b77a6-b0a2-4bf4-8d4f-a00b95f227a8",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyCrate<>)] = "597b77a6-b0a2-4bf4-8d4f-a00b95f227a8",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Red)] = "5c924383-2984-4e61-aa09-15692fcc09d9",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyRed)] = "5c924383-2984-4e61-aa09-15692fcc09d9",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.SeedPouch)] = "675e661d-1c49-48a9-804b-9beeb7f0d5c6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlySeedPouch)] = "675e661d-1c49-48a9-804b-9beeb7f0d5c6",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Seed)] = "691ce514-4b76-4a70-a2bb-ad62dedfd839",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlySeed)] = "691ce514-4b76-4a70-a2bb-ad62dedfd839",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Inventory)] = "89d464b7-ff77-4759-aa0c-99fbfc98a4bc",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyInventory)] = "89d464b7-ff77-4759-aa0c-99fbfc98a4bc",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.SeedPouch)] = "1ab21339-d8c4-4df0-af44-026a45de8306",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlySeedPouch)] = "1ab21339-d8c4-4df0-af44-026a45de8306",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Crate<>)] = "3c36ed18-0cab-48de-8c88-a96a27a6f6e2",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyCrate<>)] = "3c36ed18-0cab-48de-8c88-a96a27a6f6e2",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Item)] = "3d38abeb-440d-4ee1-bf61-6b82bb93dc75",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyItem)] = "3d38abeb-440d-4ee1-bf61-6b82bb93dc75",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Probe)] = "4537964c-9474-46dd-a45e-8ff5fbb80538",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyProbe)] = "4537964c-9474-46dd-a45e-8ff5fbb80538",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Shelf<>)] = "4e3c88e7-29ab-492f-b771-866289b9eec0",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyShelf<>)] = "4e3c88e7-29ab-492f-b771-866289b9eec0",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Red)] = "58cc8741-1061-466b-87e6-c6d21441da8e",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyRed)] = "58cc8741-1061-466b-87e6-c6d21441da8e",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Inventory)] = "5faa1b87-3a66-4a8b-ad2f-6f730fc75f24",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyInventory)] = "5faa1b87-3a66-4a8b-ad2f-6f730fc75f24",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.FrameCrate<>)] = "6674f3da-74d0-4166-ab1d-3022abea7250",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyFrameCrate<>)] = "6674f3da-74d0-4166-ab1d-3022abea7250",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Tool)] = "6fffa558-3ede-4510-b63f-ff0c8d24dcd7",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyTool)] = "6fffa558-3ede-4510-b63f-ff0c8d24dcd7",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Frame<>)] = "7b46ee0f-998d-4be9-8228-e7f415f1bafc",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyFrame<>)] = "7b46ee0f-998d-4be9-8228-e7f415f1bafc",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.User)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyUser)] = "96c616e0-e204-5f56-9f77-90b195896a5a",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Player)] = "987a42fa-82b4-484c-8391-f48878e27dbb",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyPlayer)] = "987a42fa-82b4-484c-8391-f48878e27dbb",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Tool)] = "988ec4d3-58c2-4cb9-96f1-cda018507466",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyTool)] = "988ec4d3-58c2-4cb9-96f1-cda018507466",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Probe)] = "9ed8dfa7-b712-4465-9ce4-4cf3b9989034",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyProbe)] = "9ed8dfa7-b712-4465-9ce4-4cf3b9989034",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.HarvestInventory)] = "ac76d158-7c99-4c19-a565-63c3d307c477",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyHarvestInventory)] = "ac76d158-7c99-4c19-a565-63c3d307c477",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.VectorFrames)] = "aecb7021-bf56-4338-b0bd-08d45d4e03c2",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyVectorFrames)] = "aecb7021-bf56-4338-b0bd-08d45d4e03c2",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Box<>)] = "ba6f6b14-6879-4982-9459-319543c7934e",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyBox<>)] = "ba6f6b14-6879-4982-9459-319543c7934e",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.FrameCrate<>)] = "c985d459-5eca-4d27-b694-9238cd58bd19",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyFrameCrate<>)] = "c985d459-5eca-4d27-b694-9238cd58bd19",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.Item)] = "e91c75d3-2e2e-47f7-821f-b1d904913737",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyItem)] = "e91c75d3-2e2e-47f7-821f-b1d904913737",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Seed)] = "9bc51662-630f-4fa3-ae6a-52abdea076cb",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlySeed)] = "9bc51662-630f-4fa3-ae6a-52abdea076cb",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolFrames)] = "9e03b278-736f-4a12-8306-f3ba18ee289c",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyToolFrames)] = "9e03b278-736f-4a12-8306-f3ba18ee289c",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.VectorFrames)] = "a07deed4-8168-42a7-a40e-5dc204311037",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyVectorFrames)] = "a07deed4-8168-42a7-a40e-5dc204311037",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Bag<,>)] = "a0916ac3-c8d8-4019-b783-c172d0228e44",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyBag<,>)] = "a0916ac3-c8d8-4019-b783-c172d0228e44",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Player)] = "a322218f-9dbb-40b6-8ba5-d8f205f920a5",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyPlayer)] = "a322218f-9dbb-40b6-8ba5-d8f205f920a5",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.Box<>)] = "a340411b-3580-40ae-9494-d28c0ecee3d0",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyBox<>)] = "a340411b-3580-40ae-9494-d28c0ecee3d0",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.HarvestInventory)] = "e72ab6f5-d8cb-4ece-9fcf-062e8b360af4",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyHarvestInventory)] = "e72ab6f5-d8cb-4ece-9fcf-062e8b360af4",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ToolCrate)] = "fac33ab9-4b33-4353-9fe9-d13a1e5ed5b2",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyToolCrate)] = "fac33ab9-4b33-4353-9fe9-d13a1e5ed5b2",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.IReadOnlyAssets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.InterfaceParity.Save)] = "root-save-class-id",
@@ -327,9 +327,9 @@ namespace NeoCompose.Tests.InterfaceParity
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentInterfaceIds =
             new Dictionary<Type, string>
             {
-                [typeof(global::NeoCompose.Tests.InterfaceParity.IContainer<>)] = "1ec15d5a-06b9-4695-9f57-07dbd6fe6d55",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ITagged<,>)] = "9a7c295b-5188-4e4a-8cd6-affc277eb8bb",
-                [typeof(global::NeoCompose.Tests.InterfaceParity.ISortedContainer<>)] = "a2c9d6a1-2080-419d-97e6-b5d420908144",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.IContainer<>)] = "51a01551-1750-43c7-8c3c-744ca13859f8",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ISortedContainer<>)] = "6518bdf2-9764-4b9d-8f98-8030b58bab80",
+                [typeof(global::NeoCompose.Tests.InterfaceParity.ITagged<,>)] = "954ab8f2-9f6d-449c-a875-a4b9ade94899",
                 [typeof(global::System.Collections.Generic.IEnumerator<>)] = "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
                 [typeof(global::System.IFormattable)] = "system_1c1e3b22-76cb-4a5b-9c14-70b4504927fc",
                 [typeof(global::System.Collections.Generic.IComparer<>)] = "system_1f354afd-4ed0-419c-8391-d64b935bdd2f",
@@ -367,16 +367,7 @@ namespace NeoCompose.Tests.InterfaceParity
         {
             return node.ClassId switch
             {
-                "597b77a6-b0a2-4bf4-8d4f-a00b95f227a8" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Crate<T>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Crate<T>.Create(client, node),
-                _ => null,
-            };
-        }
-
-        internal static object? NeoResolveITagged<T, TTag>(NeoClient client, NeoMemberClass node, bool readOnly) where T : global::NeoCompose.Tests.InterfaceParity.Item
-        {
-            return node.ClassId switch
-            {
-                "4adf9f80-fa0f-4984-8a83-0a4a0d9b1931" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Bag<T, TTag>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Bag<T, TTag>.Create(client, node),
+                "3c36ed18-0cab-48de-8c88-a96a27a6f6e2" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Crate<T>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Crate<T>.Create(client, node),
                 _ => null,
             };
         }
@@ -385,7 +376,16 @@ namespace NeoCompose.Tests.InterfaceParity
         {
             return node.ClassId switch
             {
-                "597b77a6-b0a2-4bf4-8d4f-a00b95f227a8" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Crate<T>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Crate<T>.Create(client, node),
+                "3c36ed18-0cab-48de-8c88-a96a27a6f6e2" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Crate<T>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Crate<T>.Create(client, node),
+                _ => null,
+            };
+        }
+
+        internal static object? NeoResolveITagged<T, TTag>(NeoClient client, NeoMemberClass node, bool readOnly) where T : global::NeoCompose.Tests.InterfaceParity.Item
+        {
+            return node.ClassId switch
+            {
+                "a0916ac3-c8d8-4019-b783-c172d0228e44" => !readOnly && node is NeoMemberClassWritable writable ? global::NeoCompose.Tests.InterfaceParity.Bag<T, TTag>.CreateWritable(client, writable) : global::NeoCompose.Tests.InterfaceParity.Bag<T, TTag>.Create(client, node),
                 _ => null,
             };
         }
