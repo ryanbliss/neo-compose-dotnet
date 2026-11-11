@@ -112,6 +112,66 @@ namespace NeoCompose.Tests
             Assert.That(position.y, Is.EqualTo(29));
         }
         [Test]
+        public void PreexistingNestedOverlapDoesNotRejectUnrelatedSpawns()
+        {
+            var data = BuildNestedObjectPlacementData();
+            // A save can load two doors stacked on one cell, as when an authored
+            // door was re-identified while a stale copy stayed in the save.
+            ((ArrayMemberValue)data.values["nested-objects"]).value = new[] { "door", "door-copy" };
+            data.values["door-copy"] = new ObjectMemberValue
+            {
+                id = "door-copy",
+                classId = ObjectClassId,
+                value = new Dictionary<string, string> { ["Position"] = "door-copy-position" }
+            };
+            data.values["door-copy-position"] = new Vector3MemberValue
+            {
+                id = "door-copy-position",
+                value = new NeoVector3Value { x = 1, y = 0, z = 0 }
+            };
+            SetPlacementTiles(data, "door-copy", Vector2Int.zero, Vector2Int.right);
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            Assert.That(grid.LookupCache.ObjectCandidatesAt(ObjectsLayerClassId, new Vector2Int(16, 21)).Count, Is.EqualTo(2));
+            // The root link takes the insertion fast path; the nested link
+            // validates the whole grid. Neither may fail on the stacked doors.
+            foreach (string linkId in new[] { "objects-link", "nested-objects-link" })
+            {
+                var link = WritableObjectLink(client, linkId);
+                var spawned = link.TrySpawn(linkId == "objects-link" ? new Vector2Int(40, 50) : new Vector2Int(42, 50),
+                    ClonePlacementObject(client));
+                Assert.That(spawned.Ok, Is.True, $"{linkId}: {spawned.Message}");
+
+                var overlapping = link.TrySpawn(new Vector2Int(16, 21), ClonePlacementObject(client));
+                Assert.That(overlapping.Ok, Is.False, linkId);
+                Assert.That(overlapping.ErrorCode, Is.EqualTo("tile-grid-object-cell-occupied"), linkId);
+            }
+        }
+
+        [Test]
+        public void RootSpawnBesideNestedMembersPatchesTheLayerIndex()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedObjectPlacementData());
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var records = grid.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            Assert.That(records.Any(record => record.InstanceId == "door"), Is.True, "The nested door shares the root layer.");
+            foreach (int x in new[] { 40, 44 })
+            {
+                var entry = ClonePlacementObject(client);
+                var result = WritableObjectLink(client, "objects-link").TrySpawn(new Vector2Int(x, 50), entry);
+                Assert.That(result.Ok, Is.True, result.Message);
+                Assert.That(grid.LookupCache.ObjectRecords(ObjectsLayerClassId), Is.SameAs(records),
+                    "A root spawn beside nested members is validated as an insertion, not by rebuilding the grid.");
+                Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, entry.valueId!)!.Cell, Is.EqualTo(new Vector2Int(x, 50)));
+            }
+            var rebuilt = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid").BuildObjectLayerRecords(ObjectsLayerClassId, null);
+            CollectionAssert.AreEqual(rebuilt.Select(record => (record.InstanceId, record.Order)),
+                records.Select(record => (record.InstanceId, record.Order)), "The patched index keeps the rebuilt layer order.");
+        }
+
+        [Test]
         public void NestedSubcellMoveUpdatesTheNextAncestorCollisionCheck()
         {
             var data = BuildNestedObjectPlacementData();

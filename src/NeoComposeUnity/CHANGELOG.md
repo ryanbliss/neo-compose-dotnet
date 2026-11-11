@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.11] - 2026-11-11
+
+- Reject a placement write only for an occupied object cell it introduced. Two objects that already overlap in the committed grid, such as stacked doors loaded from a save, no longer fail every unrelated `TrySpawn` in that grid. Root-link spawns into a layer that also has nested members are validated as an insertion again, instead of by rebuilding the whole grid.
+
 ## [0.81.10] - 2026-11-11
 
 - Keep authored parents out of the save when NeoScript assigns a member that already has a row. Assigning a Session or Save field on an authored object, such as a door's queued sound flag, no longer copies the object into the save, so later project-default edits still reach existing saves.

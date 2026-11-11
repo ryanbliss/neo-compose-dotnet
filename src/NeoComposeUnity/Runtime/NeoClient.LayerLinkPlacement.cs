@@ -98,6 +98,9 @@ namespace NeoCompose.Runtime
                     NeoPlacementOutcome? conflict = grid.ObjectPlacementConflict(layerId, cell, entry.classId!, entry.valueId);
                     if (conflict is not null)
                         return conflict;
+                    // The validated insertion ranks the new object in the
+                    // committed graph, which a candidate read must not build.
+                    _ = grid.LookupCache.Primitive.PlacementGraph;
                 }
                 var plan = preparedPlan ?? new NeoWritePlan(this);
                 plan.PlacementGridId = gridId;

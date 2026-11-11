@@ -36,13 +36,7 @@ namespace NeoCompose.Runtime
             var graph = placementGraph;
             if (graph is null)
                 return;
-            PlacementNode? parent = null;
-            foreach (var node in graph.Ordered)
-                if (node.Link is { IsTileLink: false } link && link.ListValueId == listId)
-                {
-                    parent = node;
-                    break;
-                }
+            var parent = ObjectLinkNode(graph, listId);
             if (parent?.Link is not { } parentLink || graph.Nodes.ContainsKey(instanceId))
             {
                 ForgetPlacementGraph();
@@ -55,12 +49,7 @@ namespace NeoCompose.Runtime
                     break;
                 slot++;
             }
-            int at = graph.Ordered.IndexOf(parent) + 1;
-            if (slot < parent.Children.Count)
-                at = graph.Ordered.IndexOf(parent.Children[slot]);
-            else
-                while (at < graph.Ordered.Count && DescendsFrom(graph.Ordered[at], parent))
-                    at++;
+            int at = InsertionIndex(graph, parent, slot);
             int previousCount = graph.Ordered.Count;
             try
             {
@@ -81,6 +70,64 @@ namespace NeoCompose.Runtime
                 ForgetPlacementGraph();
                 throw;
             }
+        }
+
+        /// <summary>
+        /// The rank a new entry of an object link's list takes among a layer's
+        /// records, which follow this graph's order and include members of
+        /// nested links. Exact only while the graph holds every other entry, in
+        /// order, and the records match the graph.
+        /// </summary>
+        internal bool TryRankObjectInsertion(string listId, string instanceId, IReadOnlyList<string> entries,
+            IReadOnlyList<NeoObjectPlacementRecord> records, out int rank)
+        {
+            rank = -1;
+            if (placementGraph is not { } graph || graph.Nodes.ContainsKey(instanceId)
+                || ObjectLinkNode(graph, listId) is not { } parent
+                || parent.Children.Count != entries.Count - 1)
+                return false;
+            int slot = -1;
+            int child = 0;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                if (entries[i] == instanceId)
+                    slot = i;
+                else if (child >= parent.Children.Count || parent.Children[child++].Row.id != entries[i])
+                    return false;
+            }
+            if (slot < 0)
+                return false;
+            int at = InsertionIndex(graph, parent, slot);
+            int matched = 0;
+            for (int i = 0; i < graph.Ordered.Count; i++)
+            {
+                if (i == at)
+                    rank = matched;
+                if (matched < records.Count && records[matched].InstanceId == graph.Ordered[i].Row.id)
+                    matched++;
+            }
+            if (at == graph.Ordered.Count)
+                rank = matched;
+            return matched == records.Count && rank >= 0;
+        }
+
+        private static PlacementNode? ObjectLinkNode(GridPlacementGraph graph, string listId)
+        {
+            foreach (var node in graph.Ordered)
+                if (node.Link is { IsTileLink: false } link && link.ListValueId == listId)
+                    return node;
+            return null;
+        }
+
+        // Before the sibling that follows the slot, else after the link's subtree.
+        private static int InsertionIndex(GridPlacementGraph graph, PlacementNode parent, int slot)
+        {
+            if (slot < parent.Children.Count)
+                return graph.Ordered.IndexOf(parent.Children[slot]);
+            int at = graph.Ordered.IndexOf(parent) + 1;
+            while (at < graph.Ordered.Count && DescendsFrom(graph.Ordered[at], parent))
+                at++;
+            return at;
         }
 
         // Validation proved this root has no carried placements and keeps its

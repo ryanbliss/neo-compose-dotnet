@@ -73,9 +73,7 @@ namespace NeoCompose.Runtime
             var links = primitive.ResolveGridLinks(null).Where(link => !link.IsTileLink && link.LayerId == insertion.layerId).ToArray();
             if (!links.Any(link => link.ListValueId == insertion.listId))
                 return false;
-            var members = new List<string>();
-            foreach (var link in links)
-                members.AddRange(primitive.ResolveListEntryIds(link.ListValueId, null));
+            var entries = primitive.ResolveListEntryIds(insertion.listId, null);
             var tileDependencies = new HashSet<string>();
             if (primitive.HasObjectCarriedPlacements(root, tileDependencies))
                 return false;
@@ -96,7 +94,7 @@ namespace NeoCompose.Runtime
             ValidateObjectVariant(root, root.classId!);
             if (!plan.TryGetOwnership(root.id, out var ownership))
                 return false;
-            return cache.PrepareObjectInsertion(plan, insertion.layerId, members,
+            return cache.PrepareObjectInsertion(plan, insertion.layerId, insertion.listId, entries,
                 new NeoObjectPlacementRecord(root.id, origin, footprint, 0, root.classId,
                     root.value?.GetValueOrDefault("assetValueId"), ownership, links.First(link => link.ListValueId == insertion.listId).LinkValueId), dependencies, tileDependencies);
         }
@@ -104,27 +102,14 @@ namespace NeoCompose.Runtime
 
     internal sealed partial class NeoTileGridLookupCache
     {
-        internal bool PrepareObjectInsertion(NeoWritePlan plan, string layerId, IReadOnlyList<string> members,
+        internal bool PrepareObjectInsertion(NeoWritePlan plan, string layerId, string listId, IReadOnlyList<string> entries,
             NeoObjectPlacementRecord added, HashSet<string> dependencies, HashSet<string> tileDependencies)
         {
-            // Never seed an index from speculative rows. TrySpawn's collision
-            // query normally warmed this committed index before preparing its plan.
+            // Never seed an index or graph from speculative rows. TrySpawn
+            // warmed both from committed rows before preparing its plan.
             if (!objectLayers.TryGetValue(layerId, out var index) || index.ById.ContainsKey(added.InstanceId))
                 return false;
-            if (members.Count != index.Records.Count + 1)
-                return false;
-            int insertedAt = -1, previousIndex = 0;
-            for (int i = 0; i < members.Count; i++)
-            {
-                if (members[i] == added.InstanceId)
-                {
-                    insertedAt = i;
-                    continue;
-                }
-                if (previousIndex >= index.Records.Count || index.Records[previousIndex++].InstanceId != members[i])
-                    return false;
-            }
-            if (insertedAt < 0)
+            if (!primitive.TryRankObjectInsertion(listId, added.InstanceId, entries, index.Records, out int insertedAt))
                 return false;
             foreach (var cell in added.Footprint)
                 if (index.CandidatesByCell.TryGetValue(cell, out var occupants) && occupants.Count != 0)
