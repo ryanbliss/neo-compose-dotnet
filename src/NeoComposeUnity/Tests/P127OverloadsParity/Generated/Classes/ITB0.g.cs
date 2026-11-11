@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITB0<T> : NeoGeneratedClassValue, IReadOnlyITB0<T>
     {
         internal ITB0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "041f6134-4ee2-4251-87a4-e8234b9ab1ee", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fa6fc316-90c2-4694-91b2-c26575ca1843", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,8 +36,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c25b7775-d486-4118-a6b7-964d4105797b" => (ITB0<T>)(object)new ITOPD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "041f6134-4ee2-4251-87a4-e8234b9ab1ee" => new ITB0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "86e0361b-14b1-41f8-9621-478af14a926a" => (ITB0<T>)(object)new ITOPD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fa6fc316-90c2-4694-91b2-c26575ca1843" => new ITB0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITB0' without a concrete client type id."),
                 };
             });
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c25b7775-d486-4118-a6b7-964d4105797b" => (ITB0<T>)(object)new ITOPD(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "041f6134-4ee2-4251-87a4-e8234b9ab1ee" => new ITB0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "86e0361b-14b1-41f8-9621-478af14a926a" => (ITB0<T>)(object)new ITOPD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fa6fc316-90c2-4694-91b2-c26575ca1843" => new ITB0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITB0' without a concrete client type id."),
                 };
             });

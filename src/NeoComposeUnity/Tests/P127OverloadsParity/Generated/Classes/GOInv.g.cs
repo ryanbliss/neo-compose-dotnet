@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class GOInv<T> : NeoGeneratedClassValue, IReadOnlyGOInv<T>
     {
         internal GOInv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "54543cd5-16ad-41d3-852b-4ad4a47a20ff", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f957d239-d042-4fa5-8b90-6def49cc991f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,8 +38,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "67d66bf2-3f22-4e1f-9d41-34f1722e7d57" => (GOInv<T>)(object)new GOBag(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "54543cd5-16ad-41d3-852b-4ad4a47a20ff" => new GOInv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e8ea117f-f1de-4fd3-b09e-0fe8ccffb32b" => (GOInv<T>)(object)new GOBag(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f957d239-d042-4fa5-8b90-6def49cc991f" => new GOInv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOInv' without a concrete client type id."),
                 };
             });
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "67d66bf2-3f22-4e1f-9d41-34f1722e7d57" => (GOInv<T>)(object)new GOBag(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "54543cd5-16ad-41d3-852b-4ad4a47a20ff" => new GOInv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e8ea117f-f1de-4fd3-b09e-0fe8ccffb32b" => (GOInv<T>)(object)new GOBag(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f957d239-d042-4fa5-8b90-6def49cc991f" => new GOInv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOInv' without a concrete client type id."),
                 };
             });
@@ -83,13 +83,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int Add(T value)
         {
-            var result = InvokeFunction("Add#10178c96-0bd3-4a54-b15d-2efbb3e2261b", (object?)(value));
+            var result = InvokeFunction("Add#aa88a811-9848-4f68-acd2-7baf4e947db3", (object?)(value));
             return Convert.ToInt32(result);
         }
 
         public int Add(IReadOnlyGOItem item)
         {
-            var result = InvokeFunction("Add#c70a322d-1387-4e00-9862-b3b00190ac32", (object?)(item));
+            var result = InvokeFunction("Add#f13f2e2c-f423-4810-a0a5-cb52e4ccc0a1", (object?)(item));
             return Convert.ToInt32(result);
         }
 

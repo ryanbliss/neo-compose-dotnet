@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "2a84c954-719e-4ce8-af68-b794a5115904",
+                "f12f4570-ed0f-4224-8341-a044a766c879",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Age", "b50999b5-3dfa-41c5-b652-dcdc0a48d25f", Age)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Age", "d7455c07-d7a2-44b1-9908-f3f9cf3a8217", Age)
             );
         }
 
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests.ReferenceParity
             return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
-        public static NeoClassRef<Critter> Definition { get; } = new NeoClassRef<Critter>("2a84c954-719e-4ce8-af68-b794a5115904");
+        public static NeoClassRef<Critter> Definition { get; } = new NeoClassRef<Critter>("f12f4570-ed0f-4224-8341-a044a766c879");
 
         public int Age
         {

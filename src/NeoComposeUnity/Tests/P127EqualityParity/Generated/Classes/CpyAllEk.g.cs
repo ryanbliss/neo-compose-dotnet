@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class CpyAllEk : NeoGeneratedClassValue, IReadOnlyCpyAllEk
     {
         internal CpyAllEk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c0684563-5dd4-473c-bd42-51d9e3fb0f45", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "879d415c-707e-4fff-aea5-8b2a97637522", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c0684563-5dd4-473c-bd42-51d9e3fb0f45");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "879d415c-707e-4fff-aea5-8b2a97637522");
         }
 
         internal static CpyAllEk Create(NeoClient client, NeoMemberClass node)

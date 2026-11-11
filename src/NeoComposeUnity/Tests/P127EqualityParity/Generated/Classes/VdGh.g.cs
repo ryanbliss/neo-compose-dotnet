@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class VdGh<T> : NeoGeneratedClassValue, IReadOnlyVdGh<T>
     {
         internal VdGh(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f3e16ae3-df8b-4b11-b12a-1e2a8a916948", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "abc07b39-25d3-4cb8-ad4c-c065b65f3a5f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int S(int x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "eb4a3312-5792-4704-9a4b-6c1d3f8a77a9", client.TypeArguments.Of<VdGh<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "48c1634b-941b-45c9-afbb-0d000f0f19e0", client.TypeArguments.Of<VdGh<T>>());
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f3e16ae3-df8b-4b11-b12a-1e2a8a916948" => new VdGh<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "abc07b39-25d3-4cb8-ad4c-c065b65f3a5f" => new VdGh<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'VdGh' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f3e16ae3-df8b-4b11-b12a-1e2a8a916948" => new VdGh<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "abc07b39-25d3-4cb8-ad4c-c065b65f3a5f" => new VdGh<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'VdGh' without a concrete client type id."),
                 };
             });

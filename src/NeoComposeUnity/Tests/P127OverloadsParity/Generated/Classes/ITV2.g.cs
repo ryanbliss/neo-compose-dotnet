@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITV2<T> : NeoGeneratedClassValue, IReadOnlyITV2<T>
     {
         internal ITV2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b9dfdf34-87d5-453f-9f41-8e41710e5784", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9e0563c8-d3bd-4f2a-ab3a-11b594c1e043", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,8 +38,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "741f3831-95f7-4331-bfb4-1de0192842a9" => (ITV2<T>)(object)new ITV2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "b9dfdf34-87d5-453f-9f41-8e41710e5784" => new ITV2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7e11214b-78a2-4c39-9bdc-e936b422e183" => (ITV2<T>)(object)new ITV2D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9e0563c8-d3bd-4f2a-ab3a-11b594c1e043" => new ITV2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITV2' without a concrete client type id."),
                 };
             });
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "741f3831-95f7-4331-bfb4-1de0192842a9" => (ITV2<T>)(object)new ITV2D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "b9dfdf34-87d5-453f-9f41-8e41710e5784" => new ITV2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7e11214b-78a2-4c39-9bdc-e936b422e183" => (ITV2<T>)(object)new ITV2D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9e0563c8-d3bd-4f2a-ab3a-11b594c1e043" => new ITV2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITV2' without a concrete client type id."),
                 };
             });
@@ -83,13 +83,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int M(int c, T d)
         {
-            var result = InvokeFunction("M#36fe4d0d-b74e-4082-bf7e-250dcc449df2", c, d);
+            var result = InvokeFunction("M#8428aeaf-2bb8-4c69-8e77-9f74f3a4fe67", c, d);
             return Convert.ToInt32(result);
         }
 
         public virtual int M(T a, int b)
         {
-            var result = InvokeFunction("M#e2df0ee5-00e7-4645-a55a-686dc44de26b", a, b);
+            var result = InvokeFunction("M#62b3b606-efab-4f41-a779-2e7574072ce5", a, b);
             return Convert.ToInt32(result);
         }
 

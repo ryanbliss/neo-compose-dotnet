@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class EoEO : NeoGeneratedClassValue, IReadOnlyEoEO
     {
         internal EoEO(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "38d4fe9b-e4f2-4cfd-a329-855ab404bc44", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6cfbf212-2bb0-499c-bd2a-c486ffe4672f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "38d4fe9b-e4f2-4cfd-a329-855ab404bc44");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6cfbf212-2bb0-499c-bd2a-c486ffe4672f");
         }
 
         internal static EoEO Create(NeoClient client, NeoMemberClass node)
