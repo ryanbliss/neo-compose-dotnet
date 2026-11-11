@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class NestedPetGroups<T> : NeoGeneratedClassValue, IReadOnlyNestedPetGroups<T>
     {
         internal NestedPetGroups(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9989ccf4-44e3-4fec-9344-b0ab61f45394", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4d7fdb96-099f-49e2-946d-1a4078fda6d6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9989ccf4-44e3-4fec-9344-b0ab61f45394" => new NestedPetGroups<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4d7fdb96-099f-49e2-946d-1a4078fda6d6" => new NestedPetGroups<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NestedPetGroups' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9989ccf4-44e3-4fec-9344-b0ab61f45394" => new NestedPetGroups<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4d7fdb96-099f-49e2-946d-1a4078fda6d6" => new NestedPetGroups<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NestedPetGroups' without a concrete client type id."),
                 };
             });

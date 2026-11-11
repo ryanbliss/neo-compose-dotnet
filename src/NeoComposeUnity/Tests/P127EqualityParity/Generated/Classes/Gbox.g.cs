@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class Gbox<T> : NeoGeneratedClassValue, IReadOnlyGbox<T>
     {
         internal Gbox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f2cf8dad-e3d5-4438-8c30-9cbe0bc4e044", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a71ad3ef-e127-434d-9a25-3e81b7002a27", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static bool Make(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "453b813e-773e-469e-b117-e24da9d81c59", client.TypeArguments.Of<Gbox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8148b4b4-f97b-400c-9fd3-39720842c25d", client.TypeArguments.Of<Gbox<T>>());
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static int Ord(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "26d7e3ce-a2aa-47e6-aecc-3e9a722e35db", client.TypeArguments.Of<Gbox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f32b8793-e886-4fd0-bbd4-55efa9bede4f", client.TypeArguments.Of<Gbox<T>>());
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f2cf8dad-e3d5-4438-8c30-9cbe0bc4e044" => new Gbox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a71ad3ef-e127-434d-9a25-3e81b7002a27" => new Gbox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gbox' without a concrete client type id."),
                 };
             });
@@ -63,7 +63,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f2cf8dad-e3d5-4438-8c30-9cbe0bc4e044" => new Gbox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a71ad3ef-e127-434d-9a25-3e81b7002a27" => new Gbox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gbox' without a concrete client type id."),
                 };
             });

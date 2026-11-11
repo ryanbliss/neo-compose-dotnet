@@ -64,6 +64,17 @@
     "ownerOrganization": null
   },
   "members": {
+    "11b1d505-dad7-5bc2-97ba-c44164fb143c": {
+      "id": "11b1d505-dad7-5bc2-97ba-c44164fb143c",
+      "name": "Item",
+      "kind": 7,
+      "requirement": 1,
+      "modifier": 1,
+      "classId": "12500000-0000-4000-8000-000000000084",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
     "12500000-0000-4000-8000-000000000002": {
       "id": "12500000-0000-4000-8000-000000000002",
       "name": "_next",
@@ -2166,7 +2177,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 },
                 "pointer": {
                   "type": "value",
@@ -2175,7 +2186,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                     },
                     "value": null
                   }
@@ -2199,12 +2210,12 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             }
           }
         }
       },
-      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2",
+      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -2223,7 +2234,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
           }
         }
       },
@@ -2240,7 +2251,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
           }
         },
         "source": {
@@ -2327,7 +2338,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             }
           }
         }
@@ -2343,7 +2354,7 @@
         "required": true,
         "classId": "12500000-0000-4000-8000-000000000020",
         "typeArguments": {
-          "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+          "dee8a750-b132-4885-bd48-e68b00d9827d": {
             "type": 2,
             "required": true
           }
@@ -2412,7 +2423,7 @@
                     "required": true,
                     "classId": "12500000-0000-4000-8000-000000000020",
                     "typeArguments": {
-                      "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+                      "dee8a750-b132-4885-bd48-e68b00d9827d": {
                         "type": 2,
                         "required": true
                       }
@@ -2453,7 +2464,7 @@
           "required": true,
           "classId": "12500000-0000-4000-8000-000000000020",
           "typeArguments": {
-            "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+            "dee8a750-b132-4885-bd48-e68b00d9827d": {
               "type": 2,
               "required": true
             }
@@ -3476,7 +3487,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+          "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
         }
       ],
       "code": "return candidate is IEnumerable<int>;",
@@ -3535,7 +3546,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             },
             "pointer": {
               "type": "value",
@@ -3544,7 +3555,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 },
                 "value": null
               }
@@ -3567,7 +3578,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               },
               "checkType": {
@@ -3663,7 +3674,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+                  "dee8a750-b132-4885-bd48-e68b00d9827d": {
                     "type": 6,
                     "required": true,
                     "entryTypeInfo": {
@@ -3683,7 +3694,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+                        "dee8a750-b132-4885-bd48-e68b00d9827d": {
                           "type": 6,
                           "required": true,
                           "entryTypeInfo": {
@@ -4166,7 +4177,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               },
               "checkType": {
@@ -4921,7 +4932,7 @@
                                             "required": true,
                                             "classId": "12500000-0000-4000-8000-000000000050",
                                             "typeArguments": {
-                                              "90bc2265-f7bd-451e-a407-d399dfabdb80": {
+                                              "94915256-c64f-49f3-b0c9-689bb7e232db": {
                                                 "type": 6,
                                                 "required": true,
                                                 "entryTypeInfo": {
@@ -5028,7 +5039,7 @@
                                     "required": true,
                                     "classId": "12500000-0000-4000-8000-000000000050",
                                     "typeArguments": {
-                                      "90bc2265-f7bd-451e-a407-d399dfabdb80": {
+                                      "94915256-c64f-49f3-b0c9-689bb7e232db": {
                                         "type": 7,
                                         "required": true,
                                         "classId": "12500000-0000-4000-8000-000000000006"
@@ -5113,7 +5124,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000050",
-          "genericParamId": "90bc2265-f7bd-451e-a407-d399dfabdb80"
+          "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
         }
       ],
       "code": "int sum = 0; foreach (var item in values) sum += item; return sum;",
@@ -5172,7 +5183,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000050",
-              "genericParamId": "90bc2265-f7bd-451e-a407-d399dfabdb80"
+              "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
             },
             "pointer": {
               "type": "value",
@@ -5181,7 +5192,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000050",
-                  "genericParamId": "90bc2265-f7bd-451e-a407-d399dfabdb80"
+                  "genericParamId": "94915256-c64f-49f3-b0c9-689bb7e232db"
                 },
                 "value": null
               }
@@ -5634,7 +5645,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                     },
                     "listMemberId": "12500000-0000-4000-8000-000000000054"
                   }
@@ -5645,7 +5656,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               ],
               "callSiteId": "1:32:0",
@@ -5684,7 +5695,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
           }
         }
       ],
@@ -5747,7 +5758,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
               }
             },
             "pointer": {
@@ -5760,7 +5771,7 @@
                     "type": 21,
                     "required": true,
                     "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                    "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                    "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                   }
                 },
                 "value": null
@@ -5793,7 +5804,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                     }
                   }
                 }
@@ -5803,7 +5814,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               ],
               "callSiteId": "1:32:0",
@@ -5919,7 +5930,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               ],
               "callSiteId": "1:32:1",
@@ -5954,7 +5965,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
           }
         }
       },
@@ -5971,7 +5982,7 @@
             "type": 21,
             "required": true,
             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
           }
         },
         "source": {
@@ -6028,7 +6039,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
               },
               "readonly": true,
               "writability": "runtime"
@@ -6060,7 +6071,7 @@
                 "type": 21,
                 "required": true,
                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
               },
               "listMemberId": "12500000-0000-4000-8000-000000000054"
             },
@@ -6094,7 +6105,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             }
           }
         }
@@ -6121,7 +6132,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             }
           }
         }
@@ -6188,7 +6199,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               }
             },
@@ -6205,7 +6216,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                     }
                   }
                 },
@@ -6250,7 +6261,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               },
               "readonly": true,
@@ -6270,7 +6281,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 }
               }
             },
@@ -6288,7 +6299,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                       }
                     }
                   },
@@ -6306,7 +6317,7 @@
                         "type": 21,
                         "required": true,
                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                        "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                       }
                     }
                   }
@@ -6355,7 +6366,7 @@
                               "type": 21,
                               "required": true,
                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                             }
                           ],
                           "callSiteId": "1:88:0",
@@ -6420,7 +6431,7 @@
                                         "type": 21,
                                         "required": true,
                                         "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                        "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                        "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                       }
                                     }
                                   },
@@ -6441,7 +6452,7 @@
                                             "type": 21,
                                             "required": true,
                                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                           }
                                         },
                                         "pointer": {
@@ -6454,7 +6465,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                               }
                                             },
                                             "value": null
@@ -6476,7 +6487,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                               }
                                             }
                                           },
@@ -6494,7 +6505,7 @@
                                                 "type": 21,
                                                 "required": true,
                                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                               }
                                             }
                                           }
@@ -6520,7 +6531,7 @@
                                               "type": 21,
                                               "required": true,
                                               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                                             }
                                           ],
                                           "callSiteId": "2:78:1",
@@ -6884,7 +6895,7 @@
                 "required": true,
                 "classId": "12500000-0000-4000-8000-000000000020",
                 "typeArguments": {
-                  "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+                  "dee8a750-b132-4885-bd48-e68b00d9827d": {
                     "type": 2,
                     "required": true
                   }
@@ -6900,7 +6911,7 @@
                       "required": true,
                       "classId": "12500000-0000-4000-8000-000000000020",
                       "typeArguments": {
-                        "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+                        "dee8a750-b132-4885-bd48-e68b00d9827d": {
                           "type": 2,
                           "required": true
                         }
@@ -8197,7 +8208,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 },
                 "pointer": {
                   "type": "value",
@@ -8206,7 +8217,7 @@
                       "type": 21,
                       "required": true,
                       "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                     },
                     "value": null
                   }
@@ -8238,7 +8249,7 @@
                                 "type": 21,
                                 "required": true,
                                 "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                                "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                                "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                               }
                             },
                             "entries": []
@@ -8249,7 +8260,7 @@
                             "type": 21,
                             "required": true,
                             "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                            "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                            "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                           }
                         ],
                         "callSiteId": "2:17:0",
@@ -9254,7 +9265,7 @@
             },
             "yields": true,
             "source": {
-              "line": 106,
+              "line": 120,
               "column": 97
             }
           }
@@ -9279,7 +9290,7 @@
       "kind": 21,
       "requirement": 1,
       "modifier": 1,
-      "genericParamId": "1720501b-058e-4b6f-a651-e82f607396dc",
+      "genericParamId": "9bae196a-a972-4b58-8568-05730b979d8f",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9386,7 +9397,7 @@
             },
             "yields": true,
             "source": {
-              "line": 114,
+              "line": 128,
               "column": 97
             }
           }
@@ -10027,8 +10038,8 @@
       "modifier": 1,
       "defaultValue": {
         "value": [
-          "1fdbd197-56a6-4b8f-be2d-8684c58f7739",
-          "04979284-0e92-4f34-ab2b-5e7225202732"
+          "d98b3211-d1ed-410b-89de-832e728fb24a",
+          "39067ad7-a2eb-4de5-b38e-9dc699cdce6f"
         ]
       },
       "entryMemberId": "47481248-b164-55dd-bebc-25d6116e2afa",
@@ -10044,13 +10055,1424 @@
       "modifier": 1,
       "defaultValue": {
         "value": [
-          "5b28332f-e351-47f8-ba81-f689ccc75c04"
+          "6716da3b-ee02-4fea-9265-59610e2d840a"
         ]
       },
       "entryMemberId": "f697124d-9bdc-5836-85c2-9e350b3b6ab9",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000090": {
+      "id": "12500000-0000-4000-8000-000000000090",
+      "name": "Moods",
+      "kind": 8,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "value": [
+          "12500000-0000-4000-8000-000000000089"
+        ]
+      },
+      "enumId": "12500000-0000-4000-8000-000000000088",
+      "selection": 1,
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000091": {
+      "id": "12500000-0000-4000-8000-000000000091",
+      "name": "Picks",
+      "kind": 9,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "value": []
+      },
+      "selection": 1,
+      "declaredTypeInfo": {
+        "type": 7,
+        "required": true,
+        "classId": "12500000-0000-4000-8000-000000000084"
+      },
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000092": {
+      "id": "12500000-0000-4000-8000-000000000092",
+      "name": "ByName",
+      "kind": 5,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "value": {}
+      },
+      "entryMemberId": "11b1d505-dad7-5bc2-97ba-c44164fb143c",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000093": {
+      "id": "12500000-0000-4000-8000-000000000093",
+      "name": "MoodKinds",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "values",
+          "type": 22,
+          "required": true,
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "typeArguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "type": 8,
+              "required": true,
+              "enumId": "12500000-0000-4000-8000-000000000088"
+            }
+          }
+        }
+      ],
+      "code": "return $\"{values.GetType()},{values is Set<SequenceMood>},{values is List<SequenceMood>}\";",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 20,
+        "source": {
+          "name": "SequenceApi.MoodKinds",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 8,
+                  "required": true,
+                  "enumId": "12500000-0000-4000-8000-000000000088"
+                }
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 22,
+                  "required": true,
+                  "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                  "typeArguments": {
+                    "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                      "type": 8,
+                      "required": true,
+                      "enumId": "12500000-0000-4000-8000-000000000088"
+                    }
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "objectMember",
+                        "member": "GetType",
+                        "receiver": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "receiverType": {
+                          "type": 22,
+                          "required": true,
+                          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                          "typeArguments": {
+                            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                              "type": 8,
+                              "required": true,
+                              "enumId": "12500000-0000-4000-8000-000000000088"
+                            }
+                          }
+                        },
+                        "args": []
+                      },
+                      "sourceType": {
+                        "type": 31,
+                        "required": true,
+                        "objectType": 2
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 9,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 8,
+                            "required": true,
+                            "enumId": "12500000-0000-4000-8000-000000000088"
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 8,
+                            "required": true,
+                            "enumId": "12500000-0000-4000-8000-000000000088"
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    }
+                  ]
+                }
+              }
+            },
+            "source": {
+              "line": 84,
+              "column": 114
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
+    },
+    "12500000-0000-4000-8000-000000000094": {
+      "id": "12500000-0000-4000-8000-000000000094",
+      "name": "ChildKinds",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "values",
+          "type": 22,
+          "required": true,
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "typeArguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000084"
+            }
+          }
+        }
+      ],
+      "code": "return $\"{values.GetType()},{values is Set<SequenceChild>},{values is List<SequenceChild>},{values is Dictionary<string, SequenceChild>}\";",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 20,
+        "source": {
+          "name": "SequenceApi.ChildKinds",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "12500000-0000-4000-8000-000000000084"
+                }
+              }
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 22,
+                  "required": true,
+                  "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                  "typeArguments": {
+                    "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "12500000-0000-4000-8000-000000000084"
+                    }
+                  }
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "objectMember",
+                        "member": "GetType",
+                        "receiver": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "receiverType": {
+                          "type": 22,
+                          "required": true,
+                          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+                          "typeArguments": {
+                            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                              "type": 7,
+                              "required": true,
+                              "classId": "12500000-0000-4000-8000-000000000084"
+                            }
+                          }
+                        },
+                        "args": []
+                      },
+                      "sourceType": {
+                        "type": 31,
+                        "required": true,
+                        "objectType": 2
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 9,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "12500000-0000-4000-8000-000000000084"
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "12500000-0000-4000-8000-000000000084"
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 5,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "12500000-0000-4000-8000-000000000084"
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    }
+                  ]
+                }
+              }
+            },
+            "source": {
+              "line": 85,
+              "column": 116
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
+    },
+    "12500000-0000-4000-8000-000000000096": {
+      "id": "12500000-0000-4000-8000-000000000096",
+      "name": "Ints",
+      "kind": 7,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "init": {
+          "code": "new Box<int>(0)",
+          "compiled": {
+            "compilerRevision": 20,
+            "source": {
+              "name": "Ints",
+              "coordinateSpace": "body"
+            },
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "12500000-0000-4000-8000-000000000020",
+                        "typeArguments": {
+                          "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                            "type": 2,
+                            "required": true
+                          }
+                        }
+                      },
+                      "constructorId": "a469842a-b808-5918-939c-c5214287d0ff",
+                      "args": [
+                        {
+                          "name": "value",
+                          "valuePointer": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "type": 2,
+                                "required": true
+                              },
+                              "value": 0
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 2,
+                    "column": 1
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000020",
+              "typeArguments": {
+                "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                  "type": 2,
+                  "required": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "classId": "12500000-0000-4000-8000-000000000020",
+      "classArguments": {
+        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+          "kind": 0,
+          "type": {
+            "type": 2,
+            "required": true
+          }
+        }
+      },
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000097": {
+      "id": "12500000-0000-4000-8000-000000000097",
+      "name": "Child",
+      "kind": 7,
+      "requirement": 1,
+      "modifier": 1,
+      "defaultValue": {
+        "init": {
+          "code": "new Box<SequenceChild>(new SequenceChild())",
+          "compiled": {
+            "compilerRevision": 20,
+            "source": {
+              "name": "Child",
+              "coordinateSpace": "body"
+            },
+            "parameters": [
+              {
+                "id": "__this__",
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": "Unknown",
+                      "required": true
+                    },
+                    "value": null
+                  }
+                }
+              },
+              {
+                "id": "__root__",
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 7,
+                      "required": true,
+                      "classId": "__root__"
+                    },
+                    "value": null
+                  }
+                }
+              }
+            ],
+            "instructions": [
+              {
+                "type": "return",
+                "pointer": {
+                  "type": "function",
+                  "function": {
+                    "type": "declaredConstructor",
+                    "info": {
+                      "schemaClassInfo": {
+                        "type": 7,
+                        "required": true,
+                        "classId": "12500000-0000-4000-8000-000000000020",
+                        "typeArguments": {
+                          "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "12500000-0000-4000-8000-000000000084"
+                          }
+                        }
+                      },
+                      "constructorId": "a469842a-b808-5918-939c-c5214287d0ff",
+                      "args": [
+                        {
+                          "name": "value",
+                          "valuePointer": {
+                            "type": "function",
+                            "function": {
+                              "type": "classConstructor",
+                              "info": {
+                                "schemaClassInfo": {
+                                  "type": 7,
+                                  "required": true,
+                                  "classId": "12500000-0000-4000-8000-000000000084"
+                                },
+                                "fields": []
+                              }
+                            },
+                            "source": {
+                              "line": 2,
+                              "column": 24
+                            }
+                          }
+                        }
+                      ],
+                      "fields": []
+                    }
+                  },
+                  "source": {
+                    "line": 2,
+                    "column": 1
+                  }
+                },
+                "source": {
+                  "line": 1,
+                  "column": 1
+                }
+              }
+            ],
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000020",
+              "typeArguments": {
+                "dee8a750-b132-4885-bd48-e68b00d9827d": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "12500000-0000-4000-8000-000000000084"
+                }
+              }
+            }
+          }
+        }
+      },
+      "classId": "12500000-0000-4000-8000-000000000020",
+      "classArguments": {
+        "dee8a750-b132-4885-bd48-e68b00d9827d": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "12500000-0000-4000-8000-000000000084"
+          }
+        }
+      },
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "12500000-0000-4000-8000-000000000098": {
+      "id": "12500000-0000-4000-8000-000000000098",
+      "name": "Held",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerMemberId": "12500000-0000-4000-8000-000000000098",
+          "index": 0
+        }
+      ],
+      "genericParams": [
+        {
+          "name": "T"
+        }
+      ],
+      "code": "return $\"{value is List<int>}:{value.GetType()}\";",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 20,
+        "source": {
+          "name": "SequenceApi.Held",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 21,
+              "required": true,
+              "ownerMemberId": "12500000-0000-4000-8000-000000000098",
+              "index": 0
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 21,
+                  "required": true,
+                  "ownerMemberId": "12500000-0000-4000-8000-000000000098",
+                  "index": 0
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "isCheck",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "checkType": {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 2,
+                            "required": true
+                          }
+                        }
+                      },
+                      "sourceType": {
+                        "type": 1,
+                        "required": true
+                      },
+                      "mode": "interpolation"
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ":"
+                      }
+                    },
+                    {
+                      "type": "format",
+                      "pointer": {
+                        "type": "objectMember",
+                        "member": "GetType",
+                        "receiver": {
+                          "type": "variable",
+                          "variableId": "__arg_0__"
+                        },
+                        "receiverType": {
+                          "type": 21,
+                          "required": true,
+                          "ownerMemberId": "12500000-0000-4000-8000-000000000098",
+                          "index": 0
+                        },
+                        "args": []
+                      },
+                      "sourceType": {
+                        "type": 31,
+                        "required": true,
+                        "objectType": 2
+                      },
+                      "mode": "interpolation"
+                    }
+                  ]
+                }
+              }
+            },
+            "source": {
+              "line": 86,
+              "column": 87
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
+    },
+    "12500000-0000-4000-8000-000000000099": {
+      "id": "12500000-0000-4000-8000-000000000099",
+      "name": "BoxKinds",
+      "kind": 23,
+      "modifier": 3,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "kinds",
+          "type": 7,
+          "required": true,
+          "classId": "12500000-0000-4000-8000-000000000085"
+        }
+      ],
+      "code": "kinds.Ints.Items.Add(1); return $\"{SequenceApi.Held(kinds.Ints.Items)},{SequenceApi.Held(kinds.Child.Items)},{SequenceApi.Held(kinds.Child.Value)}\";",
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000,
+      "action": {
+        "compilerRevision": 20,
+        "source": {
+          "name": "SequenceApi.BoxKinds",
+          "uri": "Sequences.neo",
+          "coordinateSpace": "file"
+        },
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": "Unknown",
+              "required": true
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": "Unknown",
+                  "required": true
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "__root__"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__arg_0__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "classId": "12500000-0000-4000-8000-000000000085"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "classId": "12500000-0000-4000-8000-000000000085"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "collectionCall",
+            "target": {
+              "pointer": {
+                "type": "keyOf",
+                "memberId": "12500000-0000-4000-8000-000000000054",
+                "keyOf": {
+                  "pointer": {
+                    "type": "keyOf",
+                    "memberId": "12500000-0000-4000-8000-000000000096",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "__arg_0__"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "Ints"
+                        }
+                      }
+                    }
+                  },
+                  "key": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "Items"
+                    }
+                  }
+                }
+              },
+              "typeInfo": {
+                "type": 6,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                },
+                "listMemberId": "12500000-0000-4000-8000-000000000054"
+              },
+              "writability": "runtime"
+            },
+            "mutation": "Add",
+            "args": [
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 1
+                }
+              }
+            ],
+            "source": {
+              "line": 87,
+              "column": 99
+            }
+          },
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ""
+                      }
+                    },
+                    {
+                      "type": "callFunction",
+                      "memberId": "12500000-0000-4000-8000-000000000098",
+                      "receiver": {
+                        "kind": "static",
+                        "memberId": "12500000-0000-4000-8000-000000000098"
+                      },
+                      "args": [
+                        {
+                          "type": "keyOf",
+                          "memberId": "12500000-0000-4000-8000-000000000054",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "memberId": "12500000-0000-4000-8000-000000000096",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__arg_0__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Ints"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Items"
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "typeArguments": [
+                        {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 2,
+                            "required": true
+                          }
+                        }
+                      ],
+                      "callSiteId": "1:52:0",
+                      "source": {
+                        "line": 87,
+                        "column": 150
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "callFunction",
+                      "memberId": "12500000-0000-4000-8000-000000000098",
+                      "receiver": {
+                        "kind": "static",
+                        "memberId": "12500000-0000-4000-8000-000000000098"
+                      },
+                      "args": [
+                        {
+                          "type": "keyOf",
+                          "memberId": "12500000-0000-4000-8000-000000000054",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "memberId": "12500000-0000-4000-8000-000000000097",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__arg_0__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Child"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Items"
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "typeArguments": [
+                        {
+                          "type": 6,
+                          "required": true,
+                          "entryTypeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "classId": "12500000-0000-4000-8000-000000000084"
+                          }
+                        }
+                      ],
+                      "callSiteId": "1:89:1",
+                      "source": {
+                        "line": 87,
+                        "column": 187
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": ","
+                      }
+                    },
+                    {
+                      "type": "callFunction",
+                      "memberId": "12500000-0000-4000-8000-000000000098",
+                      "receiver": {
+                        "kind": "static",
+                        "memberId": "12500000-0000-4000-8000-000000000098"
+                      },
+                      "args": [
+                        {
+                          "type": "keyOf",
+                          "memberId": "12500000-0000-4000-8000-000000000021",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "memberId": "12500000-0000-4000-8000-000000000097",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__arg_0__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Child"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Value"
+                              }
+                            }
+                          }
+                        }
+                      ],
+                      "typeArguments": [
+                        {
+                          "type": 7,
+                          "required": true,
+                          "classId": "12500000-0000-4000-8000-000000000084"
+                        }
+                      ],
+                      "callSiteId": "1:127:2",
+                      "source": {
+                        "line": 87,
+                        "column": 225
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "source": {
+              "line": 87,
+              "column": 124
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        }
+      }
     },
     "47481248-b164-55dd-bebc-25d6116e2afa": {
       "id": "47481248-b164-55dd-bebc-25d6116e2afa",
@@ -10103,7 +11525,7 @@
       "kind": 21,
       "requirement": 1,
       "modifier": 1,
-      "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2",
+      "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d",
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -10188,7 +11610,27 @@
       "requirement": 1
     }
   },
-  "enums": {},
+  "enums": {
+    "12500000-0000-4000-8000-000000000088": {
+      "id": "12500000-0000-4000-8000-000000000088",
+      "name": "SequenceMood",
+      "options": {
+        "12500000-0000-4000-8000-000000000089": {
+          "id": "12500000-0000-4000-8000-000000000089",
+          "name": "Calm",
+          "text": "Calm"
+        },
+        "12500000-0000-4000-8000-000000000095": {
+          "id": "12500000-0000-4000-8000-000000000095",
+          "name": "Bold",
+          "text": "Bold"
+        }
+      },
+      "projectId": "project-id",
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    }
+  },
   "interfaces": {
     "12500000-0000-4000-8000-000000000052": {
       "id": "12500000-0000-4000-8000-000000000052",
@@ -10218,7 +11660,7 @@
       "members": {},
       "genericParams": [
         {
-          "id": "44c692fa-a797-41aa-8d29-d7e8716f1794",
+          "id": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e",
           "name": "T"
         }
       ],
@@ -10226,13 +11668,13 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000080",
           "arguments": {
-            "0806c1b3-2be3-4def-a170-7d59f91622e5": {
+            "d400337e-2efa-4e70-9f0b-7c7d329933c6": {
               "kind": 1,
               "owner": {
                 "type": 22,
                 "interfaceId": "12500000-0000-4000-8000-000000000071"
               },
-              "param": "44c692fa-a797-41aa-8d29-d7e8716f1794"
+              "param": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e"
             }
           }
         },
@@ -10245,7 +11687,7 @@
                 "type": 22,
                 "interfaceId": "12500000-0000-4000-8000-000000000071"
               },
-              "param": "44c692fa-a797-41aa-8d29-d7e8716f1794"
+              "param": "2892994c-3dae-4fe7-b7b9-d2cae6ca213e"
             }
           }
         }
@@ -10264,14 +11706,14 @@
             "type": 21,
             "required": true,
             "ownerInterfaceId": "12500000-0000-4000-8000-000000000080",
-            "genericParamId": "0806c1b3-2be3-4def-a170-7d59f91622e5"
+            "genericParamId": "d400337e-2efa-4e70-9f0b-7c7d329933c6"
           },
           "accessors": 1
         }
       },
       "genericParams": [
         {
-          "id": "0806c1b3-2be3-4def-a170-7d59f91622e5",
+          "id": "d400337e-2efa-4e70-9f0b-7c7d329933c6",
           "name": "T"
         }
       ],
@@ -10425,6 +11867,8 @@
       "id": "12500000-0000-4000-8000-000000000008",
       "name": "SequenceApi",
       "schema": {
+        "BoxKinds": "12500000-0000-4000-8000-000000000099",
+        "ChildKinds": "12500000-0000-4000-8000-000000000094",
         "ClassGenericCheck": "12500000-0000-4000-8000-000000000061",
         "ConstrainedCheck": "12500000-0000-4000-8000-000000000049",
         "Copy": "12500000-0000-4000-8000-000000000064",
@@ -10436,10 +11880,12 @@
         "Empty": "12500000-0000-4000-8000-000000000065",
         "GenericListCheck": "12500000-0000-4000-8000-000000000045",
         "GenericNested": "12500000-0000-4000-8000-000000000047",
+        "Held": "12500000-0000-4000-8000-000000000098",
         "ItemKinds": "12500000-0000-4000-8000-000000000083",
         "LiteralCheck": "12500000-0000-4000-8000-000000000062",
         "MakeBox": "12500000-0000-4000-8000-000000000023",
         "Maybe": "12500000-0000-4000-8000-000000000081",
+        "MoodKinds": "12500000-0000-4000-8000-000000000093",
         "Nested": "12500000-0000-4000-8000-000000000014",
         "NumberKinds": "12500000-0000-4000-8000-000000000082",
         "One": "12500000-0000-4000-8000-000000000013",
@@ -10480,7 +11926,11 @@
         "EchoNullable",
         "Maybe",
         "NumberKinds",
-        "ItemKinds"
+        "ItemKinds",
+        "MoodKinds",
+        "ChildKinds",
+        "Held",
+        "BoxKinds"
       ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
@@ -10525,14 +11975,14 @@
                 "type": 7,
                 "classId": "12500000-0000-4000-8000-000000000020"
               },
-              "param": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "param": "dee8a750-b132-4885-bd48-e68b00d9827d"
             }
           }
         }
       ],
       "genericParams": [
         {
-          "id": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2",
+          "id": "dee8a750-b132-4885-bd48-e68b00d9827d",
           "name": "T"
         }
       ],
@@ -10566,7 +12016,7 @@
       "schema": {},
       "extendsClassId": "12500000-0000-4000-8000-000000000020",
       "extendsGenericBindings": {
-        "e813b864-c609-4ff2-b05c-1d38e0f4d9c2": {
+        "dee8a750-b132-4885-bd48-e68b00d9827d": {
           "kind": 0,
           "type": {
             "type": 2,
@@ -10587,7 +12037,7 @@
       },
       "genericParams": [
         {
-          "id": "90bc2265-f7bd-451e-a407-d399dfabdb80",
+          "id": "94915256-c64f-49f3-b0c9-689bb7e232db",
           "name": "T",
           "constraints": [
             {
@@ -10635,7 +12085,7 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000071",
           "arguments": {
-            "44c692fa-a797-41aa-8d29-d7e8716f1794": {
+            "2892994c-3dae-4fe7-b7b9-d2cae6ca213e": {
               "kind": 0,
               "type": {
                 "type": 7,
@@ -10658,7 +12108,7 @@
       },
       "genericParams": [
         {
-          "id": "1720501b-058e-4b6f-a651-e82f607396dc",
+          "id": "9bae196a-a972-4b58-8568-05730b979d8f",
           "name": "T"
         }
       ],
@@ -10677,7 +12127,7 @@
         {
           "interfaceId": "12500000-0000-4000-8000-000000000071",
           "arguments": {
-            "44c692fa-a797-41aa-8d29-d7e8716f1794": {
+            "2892994c-3dae-4fe7-b7b9-d2cae6ca213e": {
               "kind": 0,
               "type": {
                 "type": 7,
@@ -10689,7 +12139,7 @@
         }
       ],
       "extendsGenericBindings": {
-        "1720501b-058e-4b6f-a651-e82f607396dc": {
+        "9bae196a-a972-4b58-8568-05730b979d8f": {
           "kind": 0,
           "type": {
             "type": 7,
@@ -10715,12 +12165,22 @@
       "id": "12500000-0000-4000-8000-000000000085",
       "name": "SequenceKinds",
       "schema": {
+        "ByName": "12500000-0000-4000-8000-000000000092",
+        "Child": "12500000-0000-4000-8000-000000000097",
         "Children": "12500000-0000-4000-8000-000000000087",
-        "Numbers": "12500000-0000-4000-8000-000000000086"
+        "Ints": "12500000-0000-4000-8000-000000000096",
+        "Moods": "12500000-0000-4000-8000-000000000090",
+        "Numbers": "12500000-0000-4000-8000-000000000086",
+        "Picks": "12500000-0000-4000-8000-000000000091"
       },
       "schemaKeyOrder": [
         "Numbers",
-        "Children"
+        "Children",
+        "Moods",
+        "Picks",
+        "ByName",
+        "Ints",
+        "Child"
       ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
@@ -10911,7 +12371,7 @@
           "type": 21,
           "required": true,
           "ownerClassId": "12500000-0000-4000-8000-000000000020",
-          "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+          "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
         }
       ],
       "code": null,
@@ -10969,7 +12429,7 @@
               "type": 21,
               "required": true,
               "ownerClassId": "12500000-0000-4000-8000-000000000020",
-              "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+              "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
             },
             "pointer": {
               "type": "value",
@@ -10978,7 +12438,7 @@
                   "type": 21,
                   "required": true,
                   "ownerClassId": "12500000-0000-4000-8000-000000000020",
-                  "genericParamId": "e813b864-c609-4ff2-b05c-1d38e0f4d9c2"
+                  "genericParamId": "dee8a750-b132-4885-bd48-e68b00d9827d"
                 },
                 "value": null
               }
@@ -10997,13 +12457,6 @@
   "variantFolders": {},
   "internalRecordRelations": {},
   "values": {
-    "04979284-0e92-4f34-ab2b-5e7225202732": {
-      "id": "04979284-0e92-4f34-ab2b-5e7225202732",
-      "projectId": "project-id",
-      "value": 2,
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
     "1454090d-35f9-594e-b134-05cb3f6c1d60": {
       "createdAt": 0,
       "updatedAt": 0,
@@ -11012,20 +12465,27 @@
       "value": {},
       "classId": "96c616e0-e204-5f56-9f77-90b195896a5a"
     },
-    "1fdbd197-56a6-4b8f-be2d-8684c58f7739": {
-      "id": "1fdbd197-56a6-4b8f-be2d-8684c58f7739",
+    "39067ad7-a2eb-4de5-b38e-9dc699cdce6f": {
+      "id": "39067ad7-a2eb-4de5-b38e-9dc699cdce6f",
       "projectId": "project-id",
-      "value": 1,
+      "value": 2,
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
     },
-    "5b28332f-e351-47f8-ba81-f689ccc75c04": {
-      "id": "5b28332f-e351-47f8-ba81-f689ccc75c04",
+    "6716da3b-ee02-4fea-9265-59610e2d840a": {
+      "id": "6716da3b-ee02-4fea-9265-59610e2d840a",
       "projectId": "project-id",
       "value": {},
       "classId": "12500000-0000-4000-8000-000000000084",
       "constructorArgs": {},
       "instanceConstructorId": null,
+      "createdAt": 1700000000000,
+      "updatedAt": 1700000000000
+    },
+    "d98b3211-d1ed-410b-89de-832e728fb24a": {
+      "id": "d98b3211-d1ed-410b-89de-832e728fb24a",
+      "projectId": "project-id",
+      "value": 1,
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
     },

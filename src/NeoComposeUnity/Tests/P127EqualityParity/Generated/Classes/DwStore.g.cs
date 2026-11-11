@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DwStore : NeoGeneratedClassValue, IReadOnlyDwStore
     {
         internal DwStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e116ae13-b870-4271-b2cf-0328e018595c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8a3e2429-7def-4b9f-8da9-b02066955eaa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "972fcf24-f649-4586-9e24-22d2cf56df50", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e4adaa66-f370-47d3-ab94-8027cc05c03c", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<DwMoney>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => global::NeoCompose.Tests.P127EqualityParity.DwMoney.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static IReadOnlyDictionary<string, IReadOnlyDwMoney> MkDm()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "16b57f98-3c78-4d76-9eb7-fd428885ad49");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0986b6eb-4b45-4125-8bef-8c5989f781a5");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptDictionary<IReadOnlyDwMoney>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => DwMoney.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => DwMoney.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => DwMoney.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e116ae13-b870-4271-b2cf-0328e018595c");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8a3e2429-7def-4b9f-8da9-b02066955eaa");
         }
 
         internal static DwStore Create(NeoClient client, NeoMemberClass node)

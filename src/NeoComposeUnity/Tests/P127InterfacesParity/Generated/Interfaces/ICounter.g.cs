@@ -18,26 +18,26 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2dfe610f-2d28-4351-a96a-a28a9638b4f7", NeoValueOwnership.Session, client.TypeArguments.Of<ICounter<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "45368ebf-8246-435a-8549-c1bfe8b3bb58", NeoValueOwnership.Session, client.TypeArguments.Of<ICounter<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "2dfe610f-2d28-4351-a96a-a28a9638b4f7", NeoValueOwnership.Session, client.TypeArguments.Of<ICounter<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "45368ebf-8246-435a-8549-c1bfe8b3bb58", NeoValueOwnership.Session, client.TypeArguments.Of<ICounter<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
         static void Bump()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "3003dc6e-f9c7-4989-a7c2-b9be5410517c", NeoInterfaceBody.Function, client.TypeArguments.Of<ICounter<T>>(), Array.Empty<object?>());
+            NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "d335bf02-5ab1-4ac6-a1bf-505b325e488b", NeoInterfaceBody.Function, client.TypeArguments.Of<ICounter<T>>(), Array.Empty<object?>());
         }
         static string Name()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "a3a4e8d1-d465-491d-b1f5-3457dafdd3ed", NeoInterfaceBody.Function, client.TypeArguments.Of<ICounter<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "287096ea-ffcf-4093-aa29-527c8f2242c4", NeoInterfaceBody.Function, client.TypeArguments.Of<ICounter<T>>(), Array.Empty<object?>());
             return (string)result!;
         }
     }

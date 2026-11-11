@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.OverloadParity
     public partial class Inventory : NeoGeneratedClassValue, IReadOnlyInventory
     {
         internal Inventory(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5dde64e0-ee3f-4e6d-a9b3-d1030e728194", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "98a39e13-c343-4fab-b8e6-10d8089f0690", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.OverloadParity
         public static int Make(int value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "228867ce-cc89-4409-889b-3e6703c77122");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c116f1f5-5174-4819-a9e0-3d02ee016777");
             var result = node.InvokeStatic((object?)(value));
             return Convert.ToInt32(result);
         }
@@ -75,7 +75,7 @@ namespace NeoCompose.Tests.OverloadParity
         public static int Make(string text)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "da31c5c7-b446-4fb0-aace-6ee73d989b30");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e52f5c92-2013-4755-9288-1861089bef14");
             var result = node.InvokeStatic((object?)(text));
             return Convert.ToInt32(result);
         }
@@ -90,10 +90,10 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "5dde64e0-ee3f-4e6d-a9b3-d1030e728194",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Added", "58524a5d-51e3-403d-8666-ac2433fffb62", Added),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnAdded", "e36b9527-40c5-46a2-829c-d333107b0705", OnAdded),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnNamed", "93d431f6-c842-423f-bada-00afb2eb4467", OnNamed)
+                "98a39e13-c343-4fab-b8e6-10d8089f0690",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Added", "1768cce5-5e84-479a-b2f8-60aa1a29d9a2", Added),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnAdded", "e265fd8e-f185-4db8-9672-a1f48a85f291", OnAdded),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnNamed", "2477e968-a3e5-4a9c-bb90-7d263776d0e0", OnNamed)
             );
         }
 
@@ -104,7 +104,7 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f7da2303-1f48-4e49-8fcb-9f49b65fe14f" => new Chest(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d1c27404-f70f-40b4-a15f-ed983b99675e" => new Chest(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new Inventory(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -117,7 +117,7 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "f7da2303-1f48-4e49-8fcb-9f49b65fe14f" => new Chest(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d1c27404-f70f-40b4-a15f-ed983b99675e" => new Chest(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new Inventory(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -127,8 +127,8 @@ namespace NeoCompose.Tests.OverloadParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "f7da2303-1f48-4e49-8fcb-9f49b65fe14f" => new Chest(client, value, !saved),
-                "5dde64e0-ee3f-4e6d-a9b3-d1030e728194" => new Inventory(client, value, !saved),
+                "d1c27404-f70f-40b4-a15f-ed983b99675e" => new Chest(client, value, !saved),
+                "98a39e13-c343-4fab-b8e6-10d8089f0690" => new Inventory(client, value, !saved),
                 _ => null,
             };
         }
@@ -207,19 +207,19 @@ namespace NeoCompose.Tests.OverloadParity
 
         public int Add(IReadOnlyItem item)
         {
-            var result = InvokeFunction("Add#36b96bad-09e2-40c4-8f42-20f6d2446b93", (object?)(item));
+            var result = InvokeFunction("Add#c6a7c556-d25d-4efd-85a7-ce5e1985cc29", (object?)(item));
             return Convert.ToInt32(result);
         }
 
         public int Add(IReadOnlyItem item, int count)
         {
-            var result = InvokeFunction("Add#65489e88-7c66-4563-96ba-f33052559fe7", item, count);
+            var result = InvokeFunction("Add#bdd1b08b-185d-4d7b-bd95-c1eed0240161", item, count);
             return Convert.ToInt32(result);
         }
 
         public int Add(IReadOnlyList<IReadOnlyItem> items)
         {
-            var result = InvokeFunction("Add#67941f53-c0df-463e-85f4-bc8821734755", (object?)(items));
+            var result = InvokeFunction("Add#5143f9c8-fec2-498d-85b2-823428667c0f", (object?)(items));
             return Convert.ToInt32(result);
         }
 
@@ -231,7 +231,7 @@ namespace NeoCompose.Tests.OverloadParity
 
         public int Count(string name)
         {
-            var result = InvokeFunction("Count#501dcf89-c1bb-4e48-9246-b9f84a180bbb", (object?)(name));
+            var result = InvokeFunction("Count#6e202025-5baa-4fd8-90a7-dc556a12fd03", (object?)(name));
             return Convert.ToInt32(result);
         }
 
@@ -243,7 +243,7 @@ namespace NeoCompose.Tests.OverloadParity
 
         public string Describe(int depth)
         {
-            var result = InvokeFunction("Describe#aa232054-bc83-48c6-b101-8956e993ce6a", (object?)(depth));
+            var result = InvokeFunction("Describe#21dfa393-3a8d-4f9c-9be8-463fe566f4de", (object?)(depth));
             return (string)result!;
         }
 
@@ -265,16 +265,16 @@ namespace NeoCompose.Tests.OverloadParity
             return Convert.ToInt32(result);
         }
 
-        [NeoMemberMethod("add17df8-72e9-4192-9756-7a79d215f4d7")]
+        [NeoMemberMethod("976727f6-da28-4027-a451-beedb2e95e35")]
         public void Track(IReadOnlyItem item)
         {
-            InvokeFunction("Track#add17df8-72e9-4192-9756-7a79d215f4d7", (object?)(item));
+            InvokeFunction("Track#976727f6-da28-4027-a451-beedb2e95e35", (object?)(item));
         }
 
-        [NeoMemberMethod("45460cde-daaa-4e2b-a78b-2ef6c76a5ea5")]
+        [NeoMemberMethod("251426ec-aabc-45bc-b9b1-7d3286bed1b4")]
         public void Track(string name)
         {
-            InvokeFunction("Track#45460cde-daaa-4e2b-a78b-2ef6c76a5ea5", (object?)(name));
+            InvokeFunction("Track#251426ec-aabc-45bc-b9b1-7d3286bed1b4", (object?)(name));
         }
 
         public sealed class Fields

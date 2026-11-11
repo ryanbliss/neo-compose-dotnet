@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DwCk : NeoGeneratedClassValue, IReadOnlyDwCk
     {
         internal DwCk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2c272b77-f267-42bf-9fb4-2cf84a9bd702", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b7d7fc44-5025-46d5-ac9c-a8dbe514c98a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,14 +38,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "bdc526bf-415d-4e70-9c54-85fc7699c5e6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f3fd9678-f638-43de-94b5-b73799f01d88", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Calls' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "bdc526bf-415d-4e70-9c54-85fc7699c5e6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f3fd9678-f638-43de-94b5-b73799f01d88", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -55,14 +55,14 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "be7d1346-dbc6-4201-b458-c79b3678bfb2", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "000eda28-2e51-473b-95b6-4633268b696f", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberBool>();
                 return ((NeoMemberBool)child).value?.value ?? throw new InvalidOperationException("Required bool 'On' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "be7d1346-dbc6-4201-b458-c79b3678bfb2", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "000eda28-2e51-473b-95b6-4633268b696f", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -75,7 +75,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2c272b77-f267-42bf-9fb4-2cf84a9bd702");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b7d7fc44-5025-46d5-ac9c-a8dbe514c98a");
         }
 
         internal static DwCk Create(NeoClient client, NeoMemberClass node)

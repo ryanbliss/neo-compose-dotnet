@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class COiK<T> : NeoGeneratedClassValue, IReadOnlyCOiK<T>
     {
         internal COiK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e75e2b9d-0315-4536-ba3c-b313fce3fbd7", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cd42703a-c24a-4959-8b2a-4c8c9f9eebe0", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "3fd0055b-50e1-4d6b-993a-1c02987d4d74", NeoValueOwnership.Session, client.TypeArguments.Of<COiK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1f1c61a2-f745-40dd-bcde-6280b16865dd", NeoValueOwnership.Session, client.TypeArguments.Of<COiK<T>>());
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127InterfacesParity.HoldOK.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "3fd0055b-50e1-4d6b-993a-1c02987d4d74", NeoValueOwnership.Session, client.TypeArguments.Of<COiK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1f1c61a2-f745-40dd-bcde-6280b16865dd", NeoValueOwnership.Session, client.TypeArguments.Of<COiK<T>>());
                 binding.BindValue(value);
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e75e2b9d-0315-4536-ba3c-b313fce3fbd7" => new COiK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cd42703a-c24a-4959-8b2a-4c8c9f9eebe0" => new COiK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'COiK' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e75e2b9d-0315-4536-ba3c-b313fce3fbd7" => new COiK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cd42703a-c24a-4959-8b2a-4c8c9f9eebe0" => new COiK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'COiK' without a concrete client type id."),
                 };
             });

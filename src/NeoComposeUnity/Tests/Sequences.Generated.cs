@@ -1568,9 +1568,11 @@ namespace NeoCompose.Tests.SequenceGenerated
     {
         static SequenceApi()
         {
+            NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<IReadOnlySequenceChild>>.Register(TestProjectNeo.NeoResolveIEnumerable<IReadOnlySequenceChild>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<int?>>.Register(TestProjectNeo.NeoResolveIEnumerable<int?>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<int>>.Register(TestProjectNeo.NeoResolveIEnumerable<int>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem>>.Register(TestProjectNeo.NeoResolveIEnumerable<IReadOnlySequenceItem>);
+            NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<SequenceMood>>.Register(TestProjectNeo.NeoResolveIEnumerable<SequenceMood>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<string?>>.Register(TestProjectNeo.NeoResolveIEnumerable<string?>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.IEnumerable<string?>>>.Register(TestProjectNeo.NeoResolveIEnumerable<global::System.Collections.Generic.IEnumerable<string?>>);
             NeoInterfaceResolvers<global::System.Collections.Generic.IEnumerable<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>>.Register(TestProjectNeo.NeoResolveIEnumerable<(global::System.Collections.Generic.IEnumerable<int> @Values, int @Tag)>);
@@ -1584,6 +1586,22 @@ namespace NeoCompose.Tests.SequenceGenerated
         internal SequenceApi(NeoClient client, NeoDetachedValue value, bool isReadOnly)
             : base(client, value, isReadOnly)
         {
+        }
+
+        public static string BoxKinds(IReadOnlySequenceKinds kinds)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000099");
+            var result = node.InvokeStatic((object?)(kinds));
+            return (string)result!;
+        }
+
+        public static string ChildKinds(global::System.Collections.Generic.IEnumerable<IReadOnlySequenceChild> values)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000094");
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<IReadOnlySequenceChild>(client, values, NeoSequences.ElementType<IReadOnlySequenceChild>(client, false), valuesSequenceElement => valuesSequenceElement)));
+            return (string)result!;
         }
 
         public static bool ClassGenericCheck()
@@ -1674,6 +1692,14 @@ namespace NeoCompose.Tests.SequenceGenerated
             return (bool)result!;
         }
 
+        public static string Held<T>(T value)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000098");
+            var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return (string)result!;
+        }
+
         public static string ItemKinds(global::System.Collections.Generic.IEnumerable<IReadOnlySequenceItem> values)
         {
             var client = TestProjectNeo.RequireInstance().Client;
@@ -1704,6 +1730,14 @@ namespace NeoCompose.Tests.SequenceGenerated
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000081");
             var result = node.InvokeGenericStatic(new object?[] { value }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoSequences.ReadEnumerable<T>(client, result, NeoSequences.ElementType<T>(client, true), resultSequenceElement => { return resultSequenceElement is null ? default! : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, resultSequenceElement, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); }) ?? throw new InvalidOperationException("Required sequence returned null.");
+        }
+
+        public static string MoodKinds(global::System.Collections.Generic.IEnumerable<SequenceMood> values)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000093");
+            var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<SequenceMood>(client, values, NeoSequences.ElementType<SequenceMood>(client, false), valuesSequenceElement => valuesSequenceElement.OptionId())));
+            return (string)result!;
         }
 
         public static global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.IEnumerable<string?>> Nested(global::System.Collections.Generic.IEnumerable<string?> value)
@@ -2351,9 +2385,19 @@ namespace NeoCompose.Tests.SequenceGenerated
 
         IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedClassValue;
 
+        NeoReadOnlyDictionary<IReadOnlySequenceChild> ByName { get; }
+
+        IReadOnlyBox<SequenceChild> Child { get; }
+
         NeoReadOnlyList<IReadOnlySequenceChild> Children { get; }
 
+        IReadOnlyBox<int> Ints { get; }
+
+        NeoReadOnlyEnumSet<SequenceMood> Moods { get; }
+
         NeoReadOnlySet<int> Numbers { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlySequenceChild> Picks { get; }
     }
 
     public partial class SequenceKinds : NeoGeneratedClassValue, IReadOnlySequenceKinds
@@ -2368,19 +2412,24 @@ namespace NeoCompose.Tests.SequenceGenerated
         {
         }
 
-        public SequenceKinds(IEnumerable<int>? Numbers = null, IEnumerable<SequenceChild>? Children = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Numbers, Children), false, NeoValueOwnership.Session)
+        public SequenceKinds(IEnumerable<int>? Numbers = null, IEnumerable<SequenceChild>? Children = null, IEnumerable<SequenceMood>? Moods = null, IEnumerable<NeoLookupSelection>? Picks = null, IDictionary<string, SequenceChild>? ByName = null, Box<int>? Ints = null, Box<SequenceChild>? Child = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Numbers, Children, Moods, Picks, ByName, Ints, Child), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<int>? Numbers = null, IEnumerable<SequenceChild>? Children = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<int>? Numbers = null, IEnumerable<SequenceChild>? Children = null, IEnumerable<SequenceMood>? Moods = null, IEnumerable<NeoLookupSelection>? Picks = null, IDictionary<string, SequenceChild>? ByName = null, Box<int>? Ints = null, Box<SequenceChild>? Child = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "12500000-0000-4000-8000-000000000085",
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Numbers", "12500000-0000-4000-8000-000000000086", Numbers),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "12500000-0000-4000-8000-000000000087", Children)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "12500000-0000-4000-8000-000000000087", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Moods", "12500000-0000-4000-8000-000000000090", Moods),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Picks", "12500000-0000-4000-8000-000000000091", Picks),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "12500000-0000-4000-8000-000000000092", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ints", "12500000-0000-4000-8000-000000000096", Ints),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Child", "12500000-0000-4000-8000-000000000097", Child)
             );
         }
 
@@ -2453,6 +2502,56 @@ namespace NeoCompose.Tests.SequenceGenerated
             return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlySequenceKinds)this).Children);
         }
 
+        public NeoDictionary<SequenceChild> ByName
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberDictionaryWritable>("ByName");
+                if (TryGetStoredView<NeoDictionary<SequenceChild>>("ByName", memberNode, out var cached)) return cached;
+                return CacheStoredView("ByName", memberNode, new NeoDictionary<SequenceChild>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ByName"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.SequenceGenerated.SequenceChild.CreateWritable(client, writableChild) : global::NeoCompose.Tests.SequenceGenerated.SequenceChild.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SequenceKinds.ByName"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyDictionary<IReadOnlySequenceChild> IReadOnlySequenceKinds.ByName
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberDictionary>("ByName");
+                if (TryGetStoredView<NeoReadOnlyDictionary<IReadOnlySequenceChild>>("ByName", memberNode, out var cached)) return cached;
+                return CacheStoredView("ByName", memberNode, new NeoReadOnlyDictionary<IReadOnlySequenceChild>(client, memberNode, (client, child) => global::NeoCompose.Tests.SequenceGenerated.SequenceChild.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
+        public Box<SequenceChild> Child
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Child");
+                    return global::NeoCompose.Tests.SequenceGenerated.Box<SequenceChild>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Child");
+                    return global::NeoCompose.Tests.SequenceGenerated.Box<SequenceChild>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("SequenceKinds.Child");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Child", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyBox<SequenceChild> IReadOnlySequenceKinds.Child
+        {
+            get
+            {
+                return global::NeoCompose.Tests.SequenceGenerated.Box<SequenceChild>.Create(client, node.Get<NeoMemberClass>("Child"));
+            }
+        }
+
         public NeoList<SequenceChild> Children
         {
             get
@@ -2483,6 +2582,60 @@ namespace NeoCompose.Tests.SequenceGenerated
             }
         }
 
+        public Box<int> Ints
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoMemberClass>("Ints");
+                    return global::NeoCompose.Tests.SequenceGenerated.Box<int>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoMemberClassWritable>("Ints");
+                    return global::NeoCompose.Tests.SequenceGenerated.Box<int>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("SequenceKinds.Ints");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Ints", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyBox<int> IReadOnlySequenceKinds.Ints
+        {
+            get
+            {
+                return global::NeoCompose.Tests.SequenceGenerated.Box<int>.Create(client, node.Get<NeoMemberClass>("Ints"));
+            }
+        }
+
+        public NeoEnumSet<SequenceMood> Moods
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberEnum>("Moods");
+                if (TryGetStoredView<NeoEnumSet<SequenceMood>>("Moods", memberNode, out var cached)) return cached;
+                return CacheStoredView("Moods", memberNode, new NeoEnumSet<SequenceMood>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberEnumWritable>("Moods"), static (factoryOptionId) => SequenceMoodOptions.FromOptionId(factoryOptionId), key => key.OptionId(), () => ThrowIfReadOnly("SequenceKinds.Moods"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyEnumSet<SequenceMood> IReadOnlySequenceKinds.Moods
+        {
+            get
+            {
+                if (TryReadDetached("Moods", out object? detachedValue))
+                {
+                    return NeoGeneratedTypesSupport.ReadEnumSet(detachedValue, static (factoryOptionId) => SequenceMoodOptions.FromOptionId(factoryOptionId), key => key.OptionId());
+                }
+                var memberNode = node.Get<NeoMemberEnum>("Moods");
+                if (TryGetStoredView<NeoReadOnlyEnumSet<SequenceMood>>("Moods", memberNode, out var cached)) return cached;
+                return CacheStoredView("Moods", memberNode, new NeoReadOnlyEnumSet<SequenceMood>(client, memberNode, static (factoryOptionId) => SequenceMoodOptions.FromOptionId(factoryOptionId), key => key.OptionId()));
+            }
+        }
+
         public NeoSet<int> Numbers
         {
             get
@@ -2503,6 +2656,36 @@ namespace NeoCompose.Tests.SequenceGenerated
             }
         }
 
+        public NeoLookupSet<IReadOnlySequenceChild> Picks
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberLookupWritable>("Picks");
+                if (TryGetStoredView<NeoLookupSet<IReadOnlySequenceChild>>("Picks", memberNode, out var cached)) return cached;
+                return CacheStoredView("Picks", memberNode, new NeoLookupSet<IReadOnlySequenceChild>(client, memberNode, () => writableNode.GetOrCreateLookup("Picks"), child => child is NeoMemberClassWritable writableChild ? global::NeoCompose.Tests.SequenceGenerated.SequenceChild.CreateWritable(client, writableChild) : global::NeoCompose.Tests.SequenceGenerated.SequenceChild.Create(client, (NeoMemberClass)child), () => ThrowIfReadOnly("SequenceKinds.Picks"), () => IsReadOnly));
+            }
+            set
+            {
+                ThrowIfReadOnly("SequenceKinds.Picks");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Picks", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlySequenceChild> IReadOnlySequenceKinds.Picks
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberLookup>("Picks");
+                if (TryGetStoredView<NeoReadOnlyLookupSet<IReadOnlySequenceChild>>("Picks", memberNode, out var cached)) return cached;
+                return CacheStoredView("Picks", memberNode, new NeoReadOnlyLookupSet<IReadOnlySequenceChild>(client, memberNode, child => child is NeoMemberClassWritable writableChild ? global::NeoCompose.Tests.SequenceGenerated.SequenceChild.CreateWritable(client, writableChild) : global::NeoCompose.Tests.SequenceGenerated.SequenceChild.Create(client, (NeoMemberClass)child)));
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -2510,6 +2693,16 @@ namespace NeoCompose.Tests.SequenceGenerated
             public static readonly NeoField<NeoSet<int>> Numbers = new("Numbers");
 
             public static readonly NeoField<NeoList<SequenceChild>> Children = new("Children");
+
+            public static readonly NeoField<NeoEnumSet<SequenceMood>> Moods = new("Moods");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlySequenceChild>> Picks = new("Picks");
+
+            public static readonly NeoField<NeoDictionary<SequenceChild>> ByName = new("ByName");
+
+            public static readonly NeoField<Box<int>> Ints = new("Ints");
+
+            public static readonly NeoField<Box<SequenceChild>> Child = new("Child");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2518,6 +2711,11 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.Numbers] = () => null,
                 [Fields.Children] = () => null,
+                [Fields.Moods] = () => null,
+                [Fields.Picks] = () => null,
+                [Fields.ByName] = () => null,
+                [Fields.Ints] = () => null,
+                [Fields.Child] = () => null,
             };
         }
 
@@ -2537,6 +2735,11 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 [Fields.Numbers] = () => Numbers,
                 [Fields.Children] = () => Children,
+                [Fields.Moods] = () => Moods,
+                [Fields.Picks] = () => Picks,
+                [Fields.ByName] = () => ByName,
+                [Fields.Ints] = () => Ints,
+                [Fields.Child] = () => Child,
             };
         }
 
@@ -3043,6 +3246,75 @@ namespace NeoCompose.Tests.SequenceGenerated
 
 namespace NeoCompose.Tests.SequenceGenerated
 {
+    [NeoEnum(typeof(SequenceMoodOptions))]
+    public enum SequenceMood
+    {
+        Calm = 0,
+        Bold = 1,
+    }
+
+    /// <summary>
+    /// Converts <see cref="SequenceMood"/> to and from the option ids Neo stores.
+    /// </summary>
+    public static class SequenceMoodOptions
+    {
+        public static SequenceMood FromOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "12500000-0000-4000-8000-000000000089" => SequenceMood.Calm,
+                "12500000-0000-4000-8000-000000000095" => SequenceMood.Bold,
+                _ => NeoUndeclaredEnumOptions<SequenceMood>.FromOptionId(optionId),
+            };
+        }
+
+        public static string OptionId(this SequenceMood value)
+        {
+            return value switch
+            {
+                SequenceMood.Calm => "12500000-0000-4000-8000-000000000089",
+                SequenceMood.Bold => "12500000-0000-4000-8000-000000000095",
+                _ => NeoUndeclaredEnumOptions<SequenceMood>.OptionId(value),
+            };
+        }
+
+        public static string[] ToOptionIds(IEnumerable<SequenceMood>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.OptionId());
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string optionId)
+        {
+            return optionId switch
+            {
+                "12500000-0000-4000-8000-000000000089" => true,
+                "12500000-0000-4000-8000-000000000095" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextId(this SequenceMood value)
+        {
+            return value switch
+            {
+                SequenceMood.Calm => "Calm",
+                SequenceMood.Bold => "Bold",
+                _ => value.OptionId(),
+            };
+        }
+
+        public static string Text(this SequenceMood value, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(value.TextId());
+        }
+    }
+}
+
+namespace NeoCompose.Tests.SequenceGenerated
+{
     public interface IInts : global::System.Collections.Generic.IEnumerable<int>
     {
     }
@@ -3189,6 +3461,7 @@ namespace NeoCompose.Tests.SequenceGenerated
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentEnumIds =
             new Dictionary<Type, string>
             {
+                [typeof(SequenceMood)] = "12500000-0000-4000-8000-000000000088",
             };
 
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentInterfaceIds =

@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GC2A<T> : NeoGeneratedClassValue, IReadOnlyGC2A<T>
     {
         internal GC2A(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f240c680-ba25-4cda-8f90-a79ee4127d99", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4f3bbc71-b2cb-44d9-b9e7-0ade872421d5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c2e8c066-af57-4a59-b69f-1e07bf79d770", NeoValueOwnership.Session, client.TypeArguments.Of<GC2A<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "df038fb0-8472-4fdc-8d1b-e32b791c457c", NeoValueOwnership.Session, client.TypeArguments.Of<GC2A<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c2e8c066-af57-4a59-b69f-1e07bf79d770", NeoValueOwnership.Session, client.TypeArguments.Of<GC2A<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "df038fb0-8472-4fdc-8d1b-e32b791c457c", NeoValueOwnership.Session, client.TypeArguments.Of<GC2A<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -51,8 +51,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a9c6ee05-e313-4764-8418-f0ce94ecde43" => (GC2A<T>)(object)new GC2DA(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f240c680-ba25-4cda-8f90-a79ee4127d99" => new GC2A<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d31a66b9-bf4e-4eb6-b631-937c8d6f77eb" => (GC2A<T>)(object)new GC2DA(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4f3bbc71-b2cb-44d9-b9e7-0ade872421d5" => new GC2A<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GC2A' without a concrete client type id."),
                 };
             });
@@ -65,8 +65,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a9c6ee05-e313-4764-8418-f0ce94ecde43" => (GC2A<T>)(object)new GC2DA(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f240c680-ba25-4cda-8f90-a79ee4127d99" => new GC2A<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d31a66b9-bf4e-4eb6-b631-937c8d6f77eb" => (GC2A<T>)(object)new GC2DA(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4f3bbc71-b2cb-44d9-b9e7-0ade872421d5" => new GC2A<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GC2A' without a concrete client type id."),
                 };
             });

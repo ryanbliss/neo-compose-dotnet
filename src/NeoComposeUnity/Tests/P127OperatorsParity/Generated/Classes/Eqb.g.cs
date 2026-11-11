@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Eqb<T> : NeoGeneratedClassValue, IReadOnlyEqb<T>
     {
         internal Eqb(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0c221f79-618b-444b-a8a7-c3f7ff54f133", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a656e7c5-1d8f-49a0-8ba3-7fda7529dfed", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0c221f79-618b-444b-a8a7-c3f7ff54f133" => new Eqb<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a656e7c5-1d8f-49a0-8ba3-7fda7529dfed" => new Eqb<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Eqb' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0c221f79-618b-444b-a8a7-c3f7ff54f133" => new Eqb<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a656e7c5-1d8f-49a0-8ba3-7fda7529dfed" => new Eqb<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Eqb' without a concrete client type id."),
                 };
             });

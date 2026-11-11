@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class ClImpl : NeoGeneratedClassValue, IReadOnlyClImpl
     {
         internal ClImpl(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b5d976b6-b04b-40e2-91c0-10e69750bbd1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "92da05cb-5afd-4162-9fad-fdf3cb5caf80", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b5d976b6-b04b-40e2-91c0-10e69750bbd1");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "92da05cb-5afd-4162-9fad-fdf3cb5caf80");
         }
 
         internal static ClImpl Create(NeoClient client, NeoMemberClass node)

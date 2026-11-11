@@ -67,8 +67,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "55dce36d-1509-4956-8bf1-f99985a0b630" => (R27O7DU<T>)(object)new R27O7DUc(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "056a96a9-a820-4003-b58c-17fda299a995" => new R27O7DU<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "8046dd08-a402-4dd6-b8fe-9c7c58f66904" => (R27O7DU<T>)(object)new R27O7DUc(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "90a16acc-ce11-4596-a22c-dc2aaa4589cd" => new R27O7DU<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O7DU' without a concrete client type id."),
                 };
             });
@@ -81,8 +81,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "55dce36d-1509-4956-8bf1-f99985a0b630" => (R27O7DU<T>)(object)new R27O7DUc(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "056a96a9-a820-4003-b58c-17fda299a995" => new R27O7DU<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "8046dd08-a402-4dd6-b8fe-9c7c58f66904" => (R27O7DU<T>)(object)new R27O7DUc(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "90a16acc-ce11-4596-a22c-dc2aaa4589cd" => new R27O7DU<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O7DU' without a concrete client type id."),
                 };
             });
@@ -149,7 +149,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             else
             {
-                var result = InvokeFunction("M#901f4d25-9c17-46be-9f69-39ebfa414057");
+                var result = InvokeFunction("M#46c86cd5-1553-4c06-9390-3894b27ac562");
                 return (string)result!;
             }
         }
@@ -172,7 +172,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = ComputeProperty("V#ea0206d1-666a-40ee-a29c-e6e5d4bd453d");
+                    var result = ComputeProperty("V#f37ed044-cc7c-48f1-bd86-2c0e6868285a");
                     result.ThrowIfFailed();
                     return (string)result.value!;
                 }
@@ -191,7 +191,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 }
                 else
                 {
-                    var result = writableNode.Get<NeoMemberNSProperty>("V#ea0206d1-666a-40ee-a29c-e6e5d4bd453d").Set(valueId!, value);
+                    var result = writableNode.Get<NeoMemberNSProperty>("V#f37ed044-cc7c-48f1-bd86-2c0e6868285a").Set(valueId!, value);
                     if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
                 }
             }

@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DdNpc : NeoGeneratedClassValue, IReadOnlyDdNpc
     {
         internal DdNpc(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "87ff5ba5-cab4-4e14-b2c2-02958d0831b9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "52f3ec58-04fa-49ca-a3cd-143b7a415e21", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         }
 
         public DdNpc()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "87ff5ba5-cab4-4e14-b2c2-02958d0831b9", "f763f9f2-1d97-4ea5-a0bd-dc3977393b74", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "52f3ec58-04fa-49ca-a3cd-143b7a415e21", "e59f2159-c26a-4eb6-884f-b70ba7826fbd", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

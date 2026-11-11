@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R15Pair : NeoGeneratedClassValue, IReadOnlyR15Pair
     {
         internal R15Pair(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "fbc8cc3e-b3e8-4a3a-91b4-cb18c4c21027", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "087250dd-dbcc-4dcc-a872-270bc27c2c7b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "fbc8cc3e-b3e8-4a3a-91b4-cb18c4c21027");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "087250dd-dbcc-4dcc-a872-270bc27c2c7b");
         }
 
         internal static R15Pair Create(NeoClient client, NeoMemberClass node)
@@ -102,13 +102,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         public int Set(int v)
         {
-            var result = InvokeFunction("Set#bbaac8e4-7877-4b7a-bd7d-00acc89563b9", (object?)(v));
+            var result = InvokeFunction("Set#18b38ca0-d59a-4f86-a689-a60b35f55a58", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(string v)
         {
-            var result = InvokeFunction("Set#f5000044-9c17-4d64-bbcb-c07fa3893f69", (object?)(v));
+            var result = InvokeFunction("Set#e4958219-bb02-47a2-b027-1f95615626e4", (object?)(v));
             return Convert.ToInt32(result);
         }
 

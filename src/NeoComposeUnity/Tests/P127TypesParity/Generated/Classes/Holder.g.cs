@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Holder<T> : NeoGeneratedClassValue, IReadOnlyHolder<T>
     {
         internal Holder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "60022ee2-e22b-4734-b526-762de3c1a1c3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "57af7e0e-f096-49cb-9c95-b029d7baf9f3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "60022ee2-e22b-4734-b526-762de3c1a1c3" => new Holder<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "57af7e0e-f096-49cb-9c95-b029d7baf9f3" => new Holder<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Holder' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "60022ee2-e22b-4734-b526-762de3c1a1c3" => new Holder<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "57af7e0e-f096-49cb-9c95-b029d7baf9f3" => new Holder<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Holder' without a concrete client type id."),
                 };
             });

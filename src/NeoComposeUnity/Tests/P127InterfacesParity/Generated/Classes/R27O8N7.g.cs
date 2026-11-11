@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5adcb15b-2d8f-4ac2-aeb9-e2c8d6739de4" => new R27O8N7<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "6aae12a3-9376-4070-b2a7-0cff6d3a8213" => new R27O8N7<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8N7' without a concrete client type id."),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5adcb15b-2d8f-4ac2-aeb9-e2c8d6739de4" => new R27O8N7<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "6aae12a3-9376-4070-b2a7-0cff6d3a8213" => new R27O8N7<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8N7' without a concrete client type id."),
                 };
             });
@@ -127,7 +127,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "1de68837-d16d-45f9-8f9f-6d7432c4e34e", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8J<T>>(), "1de68837-d16d-45f9-8f9f-6d7432c4e34e", client.TypeArguments.Of<IR27O8J<T>>(), Array.Empty<object?>());
+                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "69a54d2b-a910-48d9-af3d-5633aff91399", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8J<T>>(), "69a54d2b-a910-48d9-af3d-5633aff91399", client.TypeArguments.Of<IR27O8J<T>>(), Array.Empty<object?>());
                     return (string)result!;
                 }
             }

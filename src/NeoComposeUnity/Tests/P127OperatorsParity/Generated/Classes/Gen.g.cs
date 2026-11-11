@@ -25,14 +25,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Gen<T> : NeoGeneratedClassValue, IReadOnlyGen<T>
     {
         internal Gen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "22369559-78ae-4d75-862b-c400623b4eb0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6059ecf1-44e6-44d2-bd53-67c9a0694b7e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static Gen<T> operator +(Gen<T> a, Gen<T> b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9993b16c-46eb-4bbb-889d-04821c5a23d0", client.TypeArguments.Of<Gen<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "910c7b7d-95b2-4542-8753-20e7521d4cb0", client.TypeArguments.Of<Gen<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Gen<T>.CreateWritable(factoryClient, factoryNode));
         }
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "22369559-78ae-4d75-862b-c400623b4eb0" => new Gen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "6059ecf1-44e6-44d2-bd53-67c9a0694b7e" => new Gen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gen' without a concrete client type id."),
                 };
             });
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "22369559-78ae-4d75-862b-c400623b4eb0" => new Gen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "6059ecf1-44e6-44d2-bd53-67c9a0694b7e" => new Gen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gen' without a concrete client type id."),
                 };
             });

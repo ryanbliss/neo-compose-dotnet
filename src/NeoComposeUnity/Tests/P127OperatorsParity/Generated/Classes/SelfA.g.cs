@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class SelfA<T> : NeoGeneratedClassValue, IReadOnlySelfA<T>
     {
         internal SelfA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b9870030-075f-49dd-a99b-f507fe7cc968", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "53f99402-1c20-45b7-8350-d81ba0193129", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T One()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6e343594-1fc7-4f04-8876-50b93114579f", client.TypeArguments.Of<SelfA<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d32f8ad1-47b2-46b4-8af7-0bcebc3b3717", client.TypeArguments.Of<SelfA<T>>());
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b9870030-075f-49dd-a99b-f507fe7cc968" => new SelfA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "53f99402-1c20-45b7-8350-d81ba0193129" => new SelfA<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SelfA' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b9870030-075f-49dd-a99b-f507fe7cc968" => new SelfA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "53f99402-1c20-45b7-8350-d81ba0193129" => new SelfA<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SelfA' without a concrete client type id."),
                 };
             });
