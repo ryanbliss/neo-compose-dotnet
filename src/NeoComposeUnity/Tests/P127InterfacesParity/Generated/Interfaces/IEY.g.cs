@@ -16,7 +16,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         U Echo(U x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "6506ae26-025b-4836-a067-5e1d24aeda61", NeoInterfaceBody.Function, client.TypeArguments.Of<IEY<U>>(), "6506ae26-025b-4836-a067-5e1d24aeda61", client.TypeArguments.Of<IEY<U>>(), new object?[] { x });
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "e286bc40-9a53-411a-a1eb-57ea105f2193", NeoInterfaceBody.Function, client.TypeArguments.Of<IEY<U>>(), "e286bc40-9a53-411a-a1eb-57ea105f2193", client.TypeArguments.Of<IEY<U>>(), new object?[] { x });
             return NeoGeneratedTypesSupport.ReadTypeArgument<U>(client, result, "U", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
     }

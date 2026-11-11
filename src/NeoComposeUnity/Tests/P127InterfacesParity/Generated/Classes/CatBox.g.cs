@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CatBox : NeoGeneratedClassValue, IReadOnlyCatBox
     {
         internal CatBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7e9636ab-2239-4f20-ac3c-02121e94d88e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "bfbf082a-703c-462f-a3f5-1f4d4505bc2a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7e9636ab-2239-4f20-ac3c-02121e94d88e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bfbf082a-703c-462f-a3f5-1f4d4505bc2a");
         }
 
         internal static CatBox Create(NeoClient client, NeoMemberClass node)

@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R24HC0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4c0f4149-e8a4-478c-a7f5-0c02d4c08860", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a05961b0-b56d-4139-ab58-07c9d0335181", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4c0f4149-e8a4-478c-a7f5-0c02d4c08860" => new R24HC0<TP0>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a05961b0-b56d-4139-ab58-07c9d0335181" => new R24HC0<TP0>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24HC0' without a concrete client type id."),
                 };
             });
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4c0f4149-e8a4-478c-a7f5-0c02d4c08860" => new R24HC0<TP0>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a05961b0-b56d-4139-ab58-07c9d0335181" => new R24HC0<TP0>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24HC0' without a concrete client type id."),
                 };
             });
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int R24HIF<TP0>.G(TP0 t)
         {
-            var result = InvokeFunction("G#e7d24b41-cdaf-413f-b992-95837d721d48", (object?)(t));
+            var result = InvokeFunction("G#15128a6a-44be-4e90-a250-79ab2bf9a086", (object?)(t));
             return Convert.ToInt32(result);
         }
 

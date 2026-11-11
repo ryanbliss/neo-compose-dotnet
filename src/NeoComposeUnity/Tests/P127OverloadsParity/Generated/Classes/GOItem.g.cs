@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class GOItem : NeoGeneratedClassValue, IReadOnlyGOItem
     {
         internal GOItem(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "99a82060-3eb0-425b-9073-5b5904689e9a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b1930883-6382-49cd-b9a0-41de1a44f0d9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "99a82060-3eb0-425b-9073-5b5904689e9a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b1930883-6382-49cd-b9a0-41de1a44f0d9");
         }
 
         internal static GOItem Create(NeoClient client, NeoMemberClass node)

@@ -16,7 +16,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         int M(string s)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "95b4f928-3c13-4ad8-b8fe-03b0a6500a03", NeoInterfaceBody.Function, client.TypeArguments.Of<IZB<T>>(), "95b4f928-3c13-4ad8-b8fe-03b0a6500a03", client.TypeArguments.Of<IZB<T>>(), new object?[] { s });
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d10c3aad-fa45-48f1-9d9a-d19ed67b78a6", NeoInterfaceBody.Function, client.TypeArguments.Of<IZB<T>>(), "d10c3aad-fa45-48f1-9d9a-d19ed67b78a6", client.TypeArguments.Of<IZB<T>>(), new object?[] { s });
             return Convert.ToInt32(result);
         }
     }

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Tally : NeoGeneratedClassValue, IReadOnlyTally
     {
         internal Tally(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "02ed2159-b261-4141-8ddc-b3235bbb1a08", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "289cbf98-4e3b-4dad-afd2-8d846f25d4ee", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "02ed2159-b261-4141-8ddc-b3235bbb1a08",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "612cafe4-b84a-42e1-b541-221f45d68b8a", N)
+                "289cbf98-4e3b-4dad-afd2-8d846f25d4ee",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "525f4753-8420-482d-be38-9c2f2f3960b1", N)
             );
         }
 

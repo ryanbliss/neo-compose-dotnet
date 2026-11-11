@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public abstract partial class VdAb : NeoGeneratedClassValue, IReadOnlyVdAb
     {
         internal VdAb(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d2fc8576-5ed8-4f4a-be57-a7e38024f146", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3836efef-fc7b-445f-a309-9a5211118547", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "050e21cd-ac7d-4e2e-82b5-6357cfc63308" => new VdAbD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "aa68c1ec-6aac-439a-8729-dcb7cfedc275" => new VdAbD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'VdAb' without a concrete client type id."),
                 };
             });
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "050e21cd-ac7d-4e2e-82b5-6357cfc63308" => new VdAbD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "aa68c1ec-6aac-439a-8729-dcb7cfedc275" => new VdAbD(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'VdAb' without a concrete client type id."),
                 };
             });
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "050e21cd-ac7d-4e2e-82b5-6357cfc63308" => new VdAbD(client, value, !saved),
+                "aa68c1ec-6aac-439a-8729-dcb7cfedc275" => new VdAbD(client, value, !saved),
                 _ => null,
             };
         }

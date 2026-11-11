@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public abstract partial class Keyed : NeoGeneratedClassValue, IReadOnlyKeyed
     {
         internal Keyed(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "33a455d9-072d-4eb3-a3b5-2701ddc81d5c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "665bed39-552c-42d0-9940-a295eb688b58", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6a054fd0-283e-485a-b977-c6d01227c028" => new KeyedN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "993231ba-b7cf-487d-8630-3527305974c1" => new KeyedN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'Keyed' without a concrete client type id."),
                 };
             });
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6a054fd0-283e-485a-b977-c6d01227c028" => new KeyedN(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "993231ba-b7cf-487d-8630-3527305974c1" => new KeyedN(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'Keyed' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "6a054fd0-283e-485a-b977-c6d01227c028" => new KeyedN(client, value, !saved),
+                "993231ba-b7cf-487d-8630-3527305974c1" => new KeyedN(client, value, !saved),
                 _ => null,
             };
         }

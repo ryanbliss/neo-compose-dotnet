@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "829aae7a-e638-4c32-b411-ddf9a795a8b2" => new R22YX5<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5109a107-671f-4084-8af6-025aba2f06e4" => new R22YX5<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YX5' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "829aae7a-e638-4c32-b411-ddf9a795a8b2" => new R22YX5<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5109a107-671f-4084-8af6-025aba2f06e4" => new R22YX5<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YX5' without a concrete client type id."),
                 };
             });

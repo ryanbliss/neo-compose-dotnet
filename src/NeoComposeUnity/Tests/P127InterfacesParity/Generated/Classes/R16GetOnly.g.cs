@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "4d9c2229-36c2-4810-a920-c68a047f8e5e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("S", "1b2221bf-5a42-4a04-a5bc-cc572ca4e0e5", S)
+                "78bed0b7-bb8d-40a8-a613-02a09f64185a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("S", "022ebff7-328d-4410-b1e1-8df94c7dfbe4", S)
             );
         }
 
@@ -118,7 +118,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("V#a15865ac-3d26-4376-afd6-bf17fe405564").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("V#5f39d409-c505-4588-a2fa-4750634f6d48").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

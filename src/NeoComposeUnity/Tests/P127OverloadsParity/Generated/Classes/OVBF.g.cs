@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class OVBF : NeoGeneratedClassValue, IReadOnlyOVBF
     {
         internal OVBF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "911d16d9-ab6f-442a-9bc3-49c664f251b9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "637e1e78-6217-467c-bab8-67539b631207", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "911d16d9-ab6f-442a-9bc3-49c664f251b9");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "637e1e78-6217-467c-bab8-67539b631207");
         }
 
         internal static OVBF Create(NeoClient client, NeoMemberClass node)
@@ -56,9 +56,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f050d74-2653-4888-a5ad-28a80dca5fd7" => new OVDF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "74ee7b59-972d-4770-8f0f-67555988ef6d" => new OVMF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "af28d35c-8861-4760-93c2-2b2618a4cc43" => new OVEF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "18aed716-335a-47e7-9e0c-f7bf72d82ed4" => new OVMF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5b908f88-d29a-442e-b9ef-92a5e23299da" => new OVEF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "75917bcb-828b-4f85-961a-2d192440ba22" => new OVDF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new OVBF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -71,9 +71,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f050d74-2653-4888-a5ad-28a80dca5fd7" => new OVDF(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "74ee7b59-972d-4770-8f0f-67555988ef6d" => new OVMF(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "af28d35c-8861-4760-93c2-2b2618a4cc43" => new OVEF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "18aed716-335a-47e7-9e0c-f7bf72d82ed4" => new OVMF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5b908f88-d29a-442e-b9ef-92a5e23299da" => new OVEF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "75917bcb-828b-4f85-961a-2d192440ba22" => new OVDF(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new OVBF(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -83,10 +83,10 @@ namespace NeoCompose.Tests.P127OverloadsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "4f050d74-2653-4888-a5ad-28a80dca5fd7" => new OVDF(client, value, !saved),
-                "74ee7b59-972d-4770-8f0f-67555988ef6d" => new OVMF(client, value, !saved),
-                "af28d35c-8861-4760-93c2-2b2618a4cc43" => new OVEF(client, value, !saved),
-                "911d16d9-ab6f-442a-9bc3-49c664f251b9" => new OVBF(client, value, !saved),
+                "18aed716-335a-47e7-9e0c-f7bf72d82ed4" => new OVMF(client, value, !saved),
+                "5b908f88-d29a-442e-b9ef-92a5e23299da" => new OVEF(client, value, !saved),
+                "75917bcb-828b-4f85-961a-2d192440ba22" => new OVDF(client, value, !saved),
+                "637e1e78-6217-467c-bab8-67539b631207" => new OVBF(client, value, !saved),
                 _ => null,
             };
         }
@@ -115,13 +115,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int F(int x)
         {
-            var result = InvokeFunction("F#fe0e6c3f-8fb9-4369-9f75-439f75482db8", (object?)(x));
+            var result = InvokeFunction("F#cf5c300b-9bd8-47e5-bf05-6ede53e87ea9", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         public virtual int F(float x)
         {
-            var result = InvokeFunction("F#6b50c266-0caf-4730-b184-e19364378891", (object?)(x));
+            var result = InvokeFunction("F#1a40306a-a232-43c2-b886-c395ef8f10d8", (object?)(x));
             return Convert.ToInt32(result);
         }
 
