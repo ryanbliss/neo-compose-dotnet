@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "f31227cf-7196-48b4-beef-d2dfd5cbcf68", NeoInterfaceBody.Get, client.TypeArguments.Of<IR26I<R26D1>>(), "f31227cf-7196-48b4-beef-d2dfd5cbcf68", client.TypeArguments.Of<IR26I<R26D1>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2f396338-014d-4b80-8603-e0b13f923565", NeoInterfaceBody.Get, client.TypeArguments.Of<IR26I<R26D1>>(), "2f396338-014d-4b80-8603-e0b13f923565", client.TypeArguments.Of<IR26I<R26D1>>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "35b9508c-5f50-4910-b4f3-156ba985f791" => new R26IW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "782862d7-ff2f-4d40-8cb2-5abc3c41d62a" => new R26IW<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IW' without a concrete client type id."),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "35b9508c-5f50-4910-b4f3-156ba985f791" => new R26IW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "782862d7-ff2f-4d40-8cb2-5abc3c41d62a" => new R26IW<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IW' without a concrete client type id."),
                 };
             });

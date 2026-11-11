@@ -16,7 +16,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         static int Seed()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "ac1e43a7-2fa5-46dd-b16d-8dcde6e97ec9", NeoInterfaceBody.Function, client.TypeArguments.Of<IFnS<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "6f49f469-dbb0-4b92-bd07-0c379ca9b13f", NeoInterfaceBody.Function, client.TypeArguments.Of<IFnS<T>>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
         static int V
@@ -24,14 +24,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1f5e3c79-9245-4540-9469-f94509a23eed", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7325f7dc-d76a-4724-95d3-4b7520e5dddb", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'V' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1f5e3c79-9245-4540-9469-f94509a23eed", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7325f7dc-d76a-4724-95d3-4b7520e5dddb", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -40,21 +40,21 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8955d0f5-d3dc-428b-9b42-6ac266210f6f", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "261a6993-b689-4c68-9421-41991ef3cdf6", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
                 var child = binding.GetRequiredNode<NeoMemberString>();
                 return ((NeoMemberString)child).Text ?? throw new InvalidOperationException("Required string 'W' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8955d0f5-d3dc-428b-9b42-6ac266210f6f", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "261a6993-b689-4c68-9421-41991ef3cdf6", NeoValueOwnership.Session, client.TypeArguments.Of<IFnS<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
         static string Tag()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "8c979ca6-2644-4e84-b2ce-bf271581d1ad", NeoInterfaceBody.Function, client.TypeArguments.Of<IFnS<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "8f8384f4-fb78-419b-934a-2910c4e1c4b3", NeoInterfaceBody.Function, client.TypeArguments.Of<IFnS<T>>(), Array.Empty<object?>());
             return (string)result!;
         }
     }

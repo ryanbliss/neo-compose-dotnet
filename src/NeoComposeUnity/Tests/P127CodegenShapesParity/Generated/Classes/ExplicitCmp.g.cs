@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class ExplicitCmp : NeoGeneratedClassValue, IReadOnlyExplicitCmp
     {
         internal ExplicitCmp(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "354e54e8-a3db-4fdf-9e07-8cd4b9ddcb8d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "53d163fb-efe8-4547-b230-c0142c1fb447", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         }
 
         public ExplicitCmp(int k)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "354e54e8-a3db-4fdf-9e07-8cd4b9ddcb8d", "190a47f1-38de-4bd9-a48a-dfd771e83da0", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("k", k) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "53d163fb-efe8-4547-b230-c0142c1fb447", "5a45c356-cfa3-455b-a9ae-e5add222dccc", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("k", k) }), false, NeoValueOwnership.Session)
         {
         }
 
         public ExplicitCmp()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "354e54e8-a3db-4fdf-9e07-8cd4b9ddcb8d", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "53d163fb-efe8-4547-b230-c0142c1fb447", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -114,7 +114,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         int global::System.IComparable<ExplicitCmp>.CompareTo(ExplicitCmp otherArgument)
         {
             var other = (IReadOnlyExplicitCmp?)(object)otherArgument!;
-            var result = InvokeFunction("CompareTo#d17c6bba-ecb0-45ca-90d4-347e0843ff21", (object?)(other));
+            var result = InvokeFunction("CompareTo#a1d9fa50-6ade-4a57-9237-ac0688310f48", (object?)(other));
             return Convert.ToInt32(result);
         }
 

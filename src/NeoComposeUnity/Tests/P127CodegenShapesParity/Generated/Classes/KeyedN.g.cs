@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "993231ba-b7cf-487d-8630-3527305974c1");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "95bbb573-edef-49a7-9505-1ae838be8fde");
         }
 
         internal new static KeyedN Create(NeoClient client, NeoMemberClass node)

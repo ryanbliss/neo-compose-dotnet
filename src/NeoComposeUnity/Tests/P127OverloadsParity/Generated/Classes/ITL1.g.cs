@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class ITL1<T> : NeoGeneratedClassValue, IReadOnlyITL1<T>
     {
         internal ITL1(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f2ed26fb-506d-4c3e-abe4-46b949e132e1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cf58b211-d343-4950-82ec-8ac4a130eee9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,8 +36,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6b78e868-8389-4b9d-b732-b66ba1dbbde5" => (ITL1<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f2ed26fb-506d-4c3e-abe4-46b949e132e1" => new ITL1<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c9afc2b2-f428-44a1-a943-e7d27ec3f7ad" => (ITL1<T>)(object)new ITL3D(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cf58b211-d343-4950-82ec-8ac4a130eee9" => new ITL1<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL1' without a concrete client type id."),
                 };
             });
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6b78e868-8389-4b9d-b732-b66ba1dbbde5" => (ITL1<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f2ed26fb-506d-4c3e-abe4-46b949e132e1" => new ITL1<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c9afc2b2-f428-44a1-a943-e7d27ec3f7ad" => (ITL1<T>)(object)new ITL3D(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cf58b211-d343-4950-82ec-8ac4a130eee9" => new ITL1<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ITL1' without a concrete client type id."),
                 };
             });

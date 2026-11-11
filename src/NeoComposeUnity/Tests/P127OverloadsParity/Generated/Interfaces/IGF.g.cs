@@ -18,7 +18,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "312d20cd-ecae-4690-8ac2-e48f50b9607a", NeoValueOwnership.Session, client.TypeArguments.Of<IGF<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c0f4a92b-b412-4f6d-9a17-bb1dd028f9b0", NeoValueOwnership.Session, client.TypeArguments.Of<IGF<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'P' has no value.");
             }
@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c900e143-ff34-4e3c-a2d0-984dc4f0a61e", NeoValueOwnership.Session, client.TypeArguments.Of<IGF<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "0982a2ec-37e4-4c93-90c4-21da4ed8dff0", NeoValueOwnership.Session, client.TypeArguments.Of<IGF<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Q' has no value.");
             }

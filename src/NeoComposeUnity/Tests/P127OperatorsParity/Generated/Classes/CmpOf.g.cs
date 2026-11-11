@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class CmpOf<T> : NeoGeneratedClassValue, IReadOnlyCmpOf<T>
     {
         internal CmpOf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5135e8cf-aac5-4d4a-92b5-a50bf051c2b9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4c82ab70-f29a-436f-9ee0-45e0085f86e1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int C(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d86ba7d6-c3a9-4f08-8d33-96c8e9345a16", client.TypeArguments.Of<CmpOf<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cdec02c7-b80e-4c97-b69d-65436202cce8", client.TypeArguments.Of<CmpOf<T>>());
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5135e8cf-aac5-4d4a-92b5-a50bf051c2b9" => new CmpOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4c82ab70-f29a-436f-9ee0-45e0085f86e1" => new CmpOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CmpOf' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5135e8cf-aac5-4d4a-92b5-a50bf051c2b9" => new CmpOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4c82ab70-f29a-436f-9ee0-45e0085f86e1" => new CmpOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CmpOf' without a concrete client type id."),
                 };
             });

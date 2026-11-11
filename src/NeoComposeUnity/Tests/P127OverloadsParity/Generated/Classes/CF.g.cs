@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class CF : NeoGeneratedClassValue, IReadOnlyCF
     {
         internal CF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c4733bfe-d12e-4458-9b38-57b6f24a3ca2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7f3bee0c-3054-4e16-9fa5-0565746ca6e4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int M<T>(T t) where T : class, INum<T>
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6112438a-b597-4ada-bbcd-0dfb53cb67ba");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "320f0cf2-3ca4-4bee-a1c6-d5d19214400b");
             var result = node.InvokeGenericStatic(new object?[] { t }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int M(object o)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "83b37139-4479-4215-8ac5-333450f9a0fd");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fc74ca0b-a480-443b-9bca-897d88cb9212");
             var result = node.InvokeStatic((object?)(o));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c4733bfe-d12e-4458-9b38-57b6f24a3ca2");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7f3bee0c-3054-4e16-9fa5-0565746ca6e4");
         }
 
         internal static CF Create(NeoClient client, NeoMemberClass node)

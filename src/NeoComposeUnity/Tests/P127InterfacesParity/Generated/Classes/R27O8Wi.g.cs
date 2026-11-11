@@ -33,14 +33,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(IR27O8I<R27O8D1>) == typeof(IR27O8I<T>))
                 {
-                    var result = ComputeProperty("V#00625987-4f09-403e-ace1-bf2a9874b49d");
+                    var result = ComputeProperty("V#1452b13b-d363-424f-b504-0ee50c0716ef");
                     result.ThrowIfFailed();
                     return (string)result.value!;
                 }
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8555a2c0-db19-432e-9c56-f09314d69752", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8I<R27O8D1>>(), "8555a2c0-db19-432e-9c56-f09314d69752", client.TypeArguments.Of<IR27O8I<R27O8D1>>(), Array.Empty<object?>());
+                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "ad4bae73-8bfb-4364-8157-a5afa0c708a4", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8I<R27O8D1>>(), "ad4bae73-8bfb-4364-8157-a5afa0c708a4", client.TypeArguments.Of<IR27O8I<R27O8D1>>(), Array.Empty<object?>());
                     return (string)result!;
                 }
             }
@@ -66,7 +66,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "abc4eb3a-fca3-41c3-8dd2-9740b7c4f58f" => new R27O8Wi<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "73f345b5-0278-4e30-b95c-eb304722521f" => new R27O8Wi<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8Wi' without a concrete client type id."),
                 };
             });
@@ -79,7 +79,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "abc4eb3a-fca3-41c3-8dd2-9740b7c4f58f" => new R27O8Wi<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "73f345b5-0278-4e30-b95c-eb304722521f" => new R27O8Wi<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8Wi' without a concrete client type id."),
                 };
             });
@@ -109,7 +109,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#00625987-4f09-403e-ace1-bf2a9874b49d");
+                var result = ComputeProperty("V#1452b13b-d363-424f-b504-0ee50c0716ef");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }

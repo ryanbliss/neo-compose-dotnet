@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "294bb45a-d5a3-4ac1-a544-d63073e4f759" => new ClDerived<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "672f4efc-a302-4e4e-9afb-54a61be52f95" => new ClDerived<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ClDerived' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "294bb45a-d5a3-4ac1-a544-d63073e4f759" => new ClDerived<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "672f4efc-a302-4e4e-9afb-54a61be52f95" => new ClDerived<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ClDerived' without a concrete client type id."),
                 };
             });

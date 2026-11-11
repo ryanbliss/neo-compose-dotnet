@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R5BoxedListSetStore : NeoGeneratedClassValue, IReadOnlyR5BoxedListSetStore
     {
         internal R5BoxedListSetStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4b5837e9-a81e-400f-a061-dad9643b583d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ba28898c-3ab1-4605-8be6-7f79ba6cb844", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c894c11a-ebfa-44b8-92ba-0bfd0e077854", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5df565dc-fa2a-41d7-a71a-9d1294a461e7", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.R5BoxedSetTake.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c894c11a-ebfa-44b8-92ba-0bfd0e077854", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5df565dc-fa2a-41d7-a71a-9d1294a461e7", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4b5837e9-a81e-400f-a061-dad9643b583d");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ba28898c-3ab1-4605-8be6-7f79ba6cb844");
         }
 
         internal static R5BoxedListSetStore Create(NeoClient client, NeoMemberClass node)

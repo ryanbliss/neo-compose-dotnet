@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class KittenVDA : NeoGeneratedClassValue, IReadOnlyKittenVDA
     {
         internal KittenVDA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5395327c-eb16-4bb5-b399-b0d2b31b0ab3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c3568507-87fd-4a05-870f-b53e700ade83", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5395327c-eb16-4bb5-b399-b0d2b31b0ab3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c3568507-87fd-4a05-870f-b53e700ade83");
         }
 
         internal static KittenVDA Create(NeoClient client, NeoMemberClass node)

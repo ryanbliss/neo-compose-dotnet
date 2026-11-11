@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class Money : NeoGeneratedClassValue, IReadOnlyMoney
     {
         internal Money(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e1969d3c-004d-40bd-a85b-bd3b368ece1b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f8f0b909-258a-4af4-b79f-efc92ec19893", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,14 +41,14 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "164845a0-2e63-404f-b2bc-28c5687fe25e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "52633a45-5398-42b8-9451-403b24174a15", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "164845a0-2e63-404f-b2bc-28c5687fe25e", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "52633a45-5398-42b8-9451-403b24174a15", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -56,7 +56,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int K(int x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "523b124f-dc32-4b18-a523-10f48c011510");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c869ba7a-260a-4a31-a0d3-9563339f89d4");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e1969d3c-004d-40bd-a85b-bd3b368ece1b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f8f0b909-258a-4af4-b79f-efc92ec19893");
         }
 
         internal static Money Create(NeoClient client, NeoMemberClass node)
@@ -124,7 +124,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int K(float x)
         {
-            var result = InvokeFunction("K#ef905e6b-66ef-45c6-8a5e-23419218ba56", (object?)(x));
+            var result = InvokeFunction("K#e9d675a6-1055-4244-813d-6202cd594d65", (object?)(x));
             return Convert.ToInt32(result);
         }
 

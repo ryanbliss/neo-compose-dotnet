@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldLocalGet : NeoGeneratedClassValue, IReadOnlyHeldLocalGet
     {
         internal HeldLocalGet(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "67118da4-830e-42d5-b94d-a1227bc2cf72", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3b5c4a89-f698-4334-887e-10429c2c5a67", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "67118da4-830e-42d5-b94d-a1227bc2cf72");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3b5c4a89-f698-4334-887e-10429c2c5a67");
         }
 
         internal static HeldLocalGet Create(NeoClient client, NeoMemberClass node)

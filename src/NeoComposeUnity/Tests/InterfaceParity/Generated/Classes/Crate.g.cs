@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class Crate<T> : NeoGeneratedClassValue, IReadOnlyCrate<T> where T : Item
     {
         internal Crate(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9667452e-3d49-40a7-a3e0-d1bcc95685c1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "de1d29ef-ff3f-49d5-8de9-39dbdffc35be", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -40,8 +40,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4e363094-2c84-418a-aebe-af994b816051" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "9667452e-3d49-40a7-a3e0-d1bcc95685c1" => new Crate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "252b2e55-beae-486b-8351-efd48dd06463" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "de1d29ef-ff3f-49d5-8de9-39dbdffc35be" => new Crate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Crate' without a concrete client type id."),
                 };
             });
@@ -54,8 +54,8 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4e363094-2c84-418a-aebe-af994b816051" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "9667452e-3d49-40a7-a3e0-d1bcc95685c1" => new Crate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "252b2e55-beae-486b-8351-efd48dd06463" => (Crate<T>)(object)new ToolCrate(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "de1d29ef-ff3f-49d5-8de9-39dbdffc35be" => new Crate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Crate' without a concrete client type id."),
                 };
             });

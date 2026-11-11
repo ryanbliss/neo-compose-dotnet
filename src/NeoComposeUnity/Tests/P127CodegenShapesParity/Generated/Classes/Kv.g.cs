@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Kv : NeoGeneratedClassValue, IReadOnlyKv
     {
         internal Kv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ee646951-142f-4255-a266-952638072f17", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "31d9a7f3-5df7-46e8-b06a-49e27346c16d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ee646951-142f-4255-a266-952638072f17");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "31d9a7f3-5df7-46e8-b06a-49e27346c16d");
         }
 
         internal static Kv Create(NeoClient client, NeoMemberClass node)

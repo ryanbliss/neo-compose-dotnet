@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5806a0ff-97ad-4db4-b12d-88faf1aac793" => new R29N6g<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "6a6e25ea-2ca6-4e5d-8acb-a90d6c9b066a" => new R29N6g<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29N6g' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5806a0ff-97ad-4db4-b12d-88faf1aac793" => new R29N6g<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "6a6e25ea-2ca6-4e5d-8acb-a90d6c9b066a" => new R29N6g<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29N6g' without a concrete client type id."),
                 };
             });
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         string IR29J<T>.M()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2f3c5f8d-a548-4a66-8f2c-fde485ae9842", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29J<T>>(), "2f3c5f8d-a548-4a66-8f2c-fde485ae9842", client.TypeArguments.Of<IR29J<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2e7e65ff-8594-47bb-88ab-65bf53672d9c", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29J<T>>(), "2e7e65ff-8594-47bb-88ab-65bf53672d9c", client.TypeArguments.Of<IR29J<T>>(), Array.Empty<object?>());
             return (string)result!;
         }
 
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "1dbd4919-32d9-4a3f-aa5f-caf97f1fc827", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29J<T>>(), "1dbd4919-32d9-4a3f-aa5f-caf97f1fc827", client.TypeArguments.Of<IR29J<T>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d0a63dfe-c9c9-40ae-9e4e-6ec772869daf", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29J<T>>(), "d0a63dfe-c9c9-40ae-9e4e-6ec772869daf", client.TypeArguments.Of<IR29J<T>>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }

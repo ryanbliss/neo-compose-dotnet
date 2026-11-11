@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c88b4fe1-ec24-45ba-b814-38ed4bb2b439" => new R22YT2<T, U, W>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0fbb4fa4-78f1-481c-8d33-94a9b1a8e941" => new R22YT2<T, U, W>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YT2' without a concrete client type id."),
                 };
             });
@@ -63,7 +63,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c88b4fe1-ec24-45ba-b814-38ed4bb2b439" => new R22YT2<T, U, W>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0fbb4fa4-78f1-481c-8d33-94a9b1a8e941" => new R22YT2<T, U, W>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R22YT2' without a concrete client type id."),
                 };
             });

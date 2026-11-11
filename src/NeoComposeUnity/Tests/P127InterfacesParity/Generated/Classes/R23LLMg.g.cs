@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#ca38ff2f-1ccc-4296-9da0-1cfaefa336b5");
+                var result = ComputeProperty("V#7e953436-4500-4851-b740-d720f3d2b448");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a0059594-16ea-4c2d-bd18-9fcf3600fe57" => new R23LLMg<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3a5dc408-fd97-442e-a32f-a4b9c90b42c8" => new R23LLMg<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LLMg' without a concrete client type id."),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a0059594-16ea-4c2d-bd18-9fcf3600fe57" => new R23LLMg<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3a5dc408-fd97-442e-a32f-a4b9c90b42c8" => new R23LLMg<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23LLMg' without a concrete client type id."),
                 };
             });
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R23LJ<R23LTag, T>) == typeof(R23LJ<R23LTag, U>))
                 {
-                    var result = ComputeProperty("V#ca38ff2f-1ccc-4296-9da0-1cfaefa336b5");
+                    var result = ComputeProperty("V#7e953436-4500-4851-b740-d720f3d2b448");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

@@ -16,31 +16,31 @@ namespace NeoCompose.Tests.P127InterfacesParity
         protected static int S()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "02db0c13-e18d-4c50-b056-5e2f5551d90a", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "ab6c261a-badc-4222-939a-73bd45678b1f", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
         int Plain()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "13e6bdcf-ddfb-4bc6-a160-1e1839eb58ae", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), "13e6bdcf-ddfb-4bc6-a160-1e1839eb58ae", client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "fae8a726-4c62-4eec-997f-b26cbe370989", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), "fae8a726-4c62-4eec-997f-b26cbe370989", client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
         int Self()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "675f2175-fc22-494d-92c9-47dc2312610a", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), "675f2175-fc22-494d-92c9-47dc2312610a", client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "498c4773-0800-44a9-9dcc-4dd9ecc5e6df", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), "498c4773-0800-44a9-9dcc-4dd9ecc5e6df", client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
         static int ViaT<T>() where T : class, IProtSelf
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "892a41ec-417c-495c-b86e-de14433b294c", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<T>>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "8bd4278a-7126-4841-9edf-58629eab0a4d", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<T>>());
             return Convert.ToInt32(result);
         }
         static int SumSA()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "98e2fa54-b1f0-49ff-9087-9bdc1f4109d3", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceMember(client, null, "4bfbbe12-dc8c-4cb6-a705-a222c0ec1f6f", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelf>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
     }
