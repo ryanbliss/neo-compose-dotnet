@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Coin : NeoGeneratedClassValue, IReadOnlyCoin
     {
         internal Coin(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1ee19d00-01c7-444e-a7de-a05a9b052e3a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b2a6ceb6-3db4-4ed8-9dc0-6a714a0e1345", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "dfc1e5ad-10ad-404a-b7d1-b72f58b3859c");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "a03a1da5-aaeb-49fe-86a0-b34c998e305f");
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "dfc1e5ad-10ad-404a-b7d1-b72f58b3859c");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "a03a1da5-aaeb-49fe-86a0-b34c998e305f");
                 var result = node.Set(value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "Static NSProperty setter failed.");
             }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static IReadOnlyCoin Make(int seed)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "18c0530e-a5d6-4967-aafc-8d2707e16c75");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6955f78d-b25f-49ab-8277-b459e525598e");
             var result = node.InvokeStatic((object?)(seed));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Coin.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Coin.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -68,14 +68,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f7bc34ac-1517-4c67-9854-507d766e4ce6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "91a739d2-3e70-45db-ad5e-c716005cd9b2", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'tally' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f7bc34ac-1517-4c67-9854-507d766e4ce6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "91a739d2-3e70-45db-ad5e-c716005cd9b2", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -90,8 +90,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1ee19d00-01c7-444e-a7de-a05a9b052e3a",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "666ca457-ad21-45ae-b134-a435438aa3d3", Value)
+                "b2a6ceb6-3db4-4ed8-9dc0-6a714a0e1345",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "e30bc075-4820-49ef-b33e-e22fa20113db", Value)
             );
         }
 

@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class NullGuardHolder : NeoGeneratedClassValue, IReadOnlyNullGuardHolder
     {
         internal NullGuardHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "051524da-8bf0-4fb1-a716-46b3ea20f008", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ce7bb91d-9809-4423-86f2-19047190c2ac", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "051524da-8bf0-4fb1-a716-46b3ea20f008",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Names", "cc50c5fa-b2f7-4823-a88e-81af86f8c6c1", Names),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "1d480b6d-e5d1-47f4-a9e3-31210731e052", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "4fbb39f4-5c59-4920-8bbd-697b9c2f3ad4", Name),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "f9284509-5364-4a4c-84f8-de51ab60b20b", Map)
+                "ce7bb91d-9809-4423-86f2-19047190c2ac",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Names", "0a74a0ee-cfc2-46c7-ae9a-5976d9e437a5", Names),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "b653cc43-17c1-4439-bded-62457a2184ff", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "f3010d37-d714-4995-bcbf-1240208cb491", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Map", "52b6ec71-d546-49b1-87f1-fe14106f9fdc", Map)
             );
         }
 

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class VdVImpl : NeoGeneratedClassValue, IReadOnlyVdVImpl
     {
         internal VdVImpl(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "97dd7564-073d-455f-8838-20e26ea63628", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "17906ef7-1b36-4572-a2e4-5f02a07dccc5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "97dd7564-073d-455f-8838-20e26ea63628");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "17906ef7-1b36-4572-a2e4-5f02a07dccc5");
         }
 
         internal static VdVImpl Create(NeoClient client, NeoMemberClass node)

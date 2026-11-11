@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class GE<T> : NeoGeneratedClassValue, IReadOnlyGE<T>
     {
         internal GE(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a43eac51-5054-40ed-9c7e-cfe7404e89a6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "136df474-f3ce-491a-9880-873d46d478f1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a43eac51-5054-40ed-9c7e-cfe7404e89a6" => new GE<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "136df474-f3ce-491a-9880-873d46d478f1" => new GE<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GE' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a43eac51-5054-40ed-9c7e-cfe7404e89a6" => new GE<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "136df474-f3ce-491a-9880-873d46d478f1" => new GE<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GE' without a concrete client type id."),
                 };
             });

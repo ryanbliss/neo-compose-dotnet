@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class Frame<T> : NeoGeneratedClassValue, IReadOnlyFrame<T>
     {
         internal Frame(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "09a8e9c1-c79b-4c66-9bc1-0d3bc242cdf5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0be86ff3-17c1-44da-8ba2-273bc9856c4d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "09a8e9c1-c79b-4c66-9bc1-0d3bc242cdf5" => new Frame<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0be86ff3-17c1-44da-8ba2-273bc9856c4d" => new Frame<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Frame' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "09a8e9c1-c79b-4c66-9bc1-0d3bc242cdf5" => new Frame<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0be86ff3-17c1-44da-8ba2-273bc9856c4d" => new Frame<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Frame' without a concrete client type id."),
                 };
             });
