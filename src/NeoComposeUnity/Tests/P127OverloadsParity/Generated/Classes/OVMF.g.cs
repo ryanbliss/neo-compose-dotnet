@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f838d433-c068-48fd-9b37-21f65e94ff2c");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1107d00b-fbb0-4c93-b79f-17b14fa6fdd7");
         }
 
         internal new static OVMF Create(NeoClient client, NeoMemberClass node)
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4b40e7e8-15c6-493f-8e0c-7cc206ba18dc" => new OVDF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fef8d20a-2d24-457e-a137-f8b00a346d7d" => new OVDF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new OVMF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4b40e7e8-15c6-493f-8e0c-7cc206ba18dc" => new OVDF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fef8d20a-2d24-457e-a137-f8b00a346d7d" => new OVDF(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new OVMF(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,8 +77,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "4b40e7e8-15c6-493f-8e0c-7cc206ba18dc" => new OVDF(client, value, !saved),
-                "f838d433-c068-48fd-9b37-21f65e94ff2c" => new OVMF(client, value, !saved),
+                "fef8d20a-2d24-457e-a137-f8b00a346d7d" => new OVDF(client, value, !saved),
+                "1107d00b-fbb0-4c93-b79f-17b14fa6fdd7" => new OVMF(client, value, !saved),
                 _ => null,
             };
         }
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public override int F(float x)
         {
-            var result = InvokeFunction("F#1e22390c-0cfc-40f0-a021-68455de729aa", (object?)(x));
+            var result = InvokeFunction("F#7c71296c-b2ff-4c83-9d1d-30313f1cf149", (object?)(x));
             return Convert.ToInt32(result);
         }
 

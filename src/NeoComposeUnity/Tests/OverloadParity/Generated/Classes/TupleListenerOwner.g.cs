@@ -41,9 +41,9 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "507efe5b-42fe-4e9e-9ab1-308dd6b12645",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "f5c91f82-67af-4ae4-831f-d69a37660a9f", Calls),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "0579c7f0-eefd-40a8-9ff9-da68c2431b3b", Pair)
+                "93ad5351-1272-4c20-b4fe-cb42d336c95e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "6830c22e-924e-43bb-9619-4894f6094c96", Calls),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "14306c77-6e65-42d3-b3b2-cd9dcd7de85f", Pair)
             );
         }
 

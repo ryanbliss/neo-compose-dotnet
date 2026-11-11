@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "823705bc-a085-44ad-b183-a29ce89cb30f" => IfqEk2.A,
-                "f8de0838-ea80-4577-b47f-6d8f8ebe3375" => IfqEk2.B,
+                "defe404f-c735-46a0-be8b-630af1b59c8c" => IfqEk2.A,
+                "fc3ce1c7-5b4e-46e2-9c82-72a9b99befeb" => IfqEk2.B,
                 _ => NeoUndeclaredEnumOptions<IfqEk2>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                IfqEk2.A => "823705bc-a085-44ad-b183-a29ce89cb30f",
-                IfqEk2.B => "f8de0838-ea80-4577-b47f-6d8f8ebe3375",
+                IfqEk2.A => "defe404f-c735-46a0-be8b-630af1b59c8c",
+                IfqEk2.B => "fc3ce1c7-5b4e-46e2-9c82-72a9b99befeb",
                 _ => NeoUndeclaredEnumOptions<IfqEk2>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "823705bc-a085-44ad-b183-a29ce89cb30f" => true,
-                "f8de0838-ea80-4577-b47f-6d8f8ebe3375" => true,
+                "defe404f-c735-46a0-be8b-630af1b59c8c" => true,
+                "fc3ce1c7-5b4e-46e2-9c82-72a9b99befeb" => true,
                 _ => false,
             };
         }

@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#a155a091-4c66-4227-bc0a-12ac202757ca");
+                var result = ComputeProperty("V#a005923d-d405-4cc0-b32e-4a73e8f921ac");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b14fb0da-37c7-4f9d-bda8-80d1f4dbf7fa" => new R19VM<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0a5d4f92-7153-4a69-b8d6-46e388d6fde8" => new R19VM<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VM' without a concrete client type id."),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b14fb0da-37c7-4f9d-bda8-80d1f4dbf7fa" => new R19VM<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0a5d4f92-7153-4a69-b8d6-46e388d6fde8" => new R19VM<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R19VM' without a concrete client type id."),
                 };
             });
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(IR19J<R19Tag, T>) == typeof(IR19J<R19Tag, U>))
                 {
-                    var result = ComputeProperty("V#a155a091-4c66-4227-bc0a-12ac202757ca");
+                    var result = ComputeProperty("V#a005923d-d405-4cc0-b32e-4a73e8f921ac");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b146ca65-ba8e-4afe-9700-5f347573480e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2aecfaad-9d91-499f-a23d-e9fd41c30a53");
         }
 
         internal new static PD Create(NeoClient client, NeoMemberClass node)
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "dc52de47-87f7-4ceb-9645-04c1d216d42b" => new PE(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "afd4d817-dd88-4b91-b8bf-b4ed2991f145" => new PE(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new PD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "dc52de47-87f7-4ceb-9645-04c1d216d42b" => new PE(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "afd4d817-dd88-4b91-b8bf-b4ed2991f145" => new PE(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new PD(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,8 +77,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "dc52de47-87f7-4ceb-9645-04c1d216d42b" => new PE(client, value, !saved),
-                "b146ca65-ba8e-4afe-9700-5f347573480e" => new PD(client, value, !saved),
+                "afd4d817-dd88-4b91-b8bf-b4ed2991f145" => new PE(client, value, !saved),
+                "2aecfaad-9d91-499f-a23d-e9fd41c30a53" => new PD(client, value, !saved),
                 _ => null,
             };
         }
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int N(string s)
         {
-            var result = InvokeFunction("N#0cc1127f-4af3-4fe6-aa1a-cbe68aac561a", (object?)(s));
+            var result = InvokeFunction("N#80f7df97-7ba4-4f2e-9a64-c8394b5cf1b0", (object?)(s));
             return Convert.ToInt32(result);
         }
 

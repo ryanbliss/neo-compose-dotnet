@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#77b77c43-a85a-4eb7-a2e8-9ad454f43712");
+                var result = ComputeProperty("V#b84d3e98-e462-411c-a8be-2df342c5e0e9");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2c73ca08-afb3-47a9-b686-418b14291790" => new R26IH<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "cc3828cb-5907-43fa-96a6-bc66e0b9c62c" => new R26IH<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IH' without a concrete client type id."),
                 };
             });
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "2c73ca08-afb3-47a9-b686-418b14291790" => new R26IH<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "cc3828cb-5907-43fa-96a6-bc66e0b9c62c" => new R26IH<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26IH' without a concrete client type id."),
                 };
             });
@@ -102,14 +102,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(IR26I<T>) == typeof(IR26I<U>))
                 {
-                    var result = ComputeProperty("V#77b77c43-a85a-4eb7-a2e8-9ad454f43712");
+                    var result = ComputeProperty("V#b84d3e98-e462-411c-a8be-2df342c5e0e9");
                     result.ThrowIfFailed();
                     return (string)result.value!;
                 }
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8208323e-b2a9-4209-8d17-aa83a50dcd7a", NeoInterfaceBody.Get, client.TypeArguments.Of<IR26I<T>>(), "8208323e-b2a9-4209-8d17-aa83a50dcd7a", client.TypeArguments.Of<IR26I<T>>(), Array.Empty<object?>());
+                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8baba644-6f0c-4808-a131-269b5f2e59d7", NeoInterfaceBody.Get, client.TypeArguments.Of<IR26I<T>>(), "8baba644-6f0c-4808-a131-269b5f2e59d7", client.TypeArguments.Of<IR26I<T>>(), Array.Empty<object?>());
                     return (string)result!;
                 }
             }

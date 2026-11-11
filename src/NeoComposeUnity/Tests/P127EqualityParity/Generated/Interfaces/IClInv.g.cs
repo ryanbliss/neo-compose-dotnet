@@ -17,7 +17,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         NeoDelegateValue Get()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2bbbe000-3c85-4800-b5db-b1bf19cefa31", NeoInterfaceBody.Function, client.TypeArguments.Of<IClInv>(), "2bbbe000-3c85-4800-b5db-b1bf19cefa31", client.TypeArguments.Of<IClInv>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "3809b951-af89-4fd3-9d30-1a6d01aaa171", NeoInterfaceBody.Function, client.TypeArguments.Of<IClInv>(), "3809b951-af89-4fd3-9d30-1a6d01aaa171", client.TypeArguments.Of<IClInv>(), Array.Empty<object?>());
             return (NeoDelegateValue)result!;
         }
     }

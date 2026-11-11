@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class ById : NeoGeneratedClassValue, IReadOnlyById
     {
         internal ById(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "cb2112a1-74c2-421c-ae0b-c9ea6fec0f03", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3f88bf4c-c493-490f-969c-e88ed545f829", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "cb2112a1-74c2-421c-ae0b-c9ea6fec0f03");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3f88bf4c-c493-490f-969c-e88ed545f829");
         }
 
         internal static ById Create(NeoClient client, NeoMemberClass node)

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class IgHolder : NeoGeneratedClassValue, IReadOnlyIgHolder
     {
         internal IgHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "259e31a7-b753-43db-9055-3ef3584a2aaa", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1dd6ef4b-c72d-4c76-a0e5-9cb47bac0139", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static T Id<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "119f58b1-c699-4f93-9d62-05fd3516d5fc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0c6b9993-8821-4aec-b0d2-354ddfa656be");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -56,9 +56,9 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "259e31a7-b753-43db-9055-3ef3584a2aaa",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("G", "edcc34e0-c04d-427d-8bac-403fd07773b3", G),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("A", "aec22885-8105-48f9-bc4d-f36f552219e7", A)
+                "1dd6ef4b-c72d-4c76-a0e5-9cb47bac0139",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("G", "bb0d594a-1af6-4b61-a8a8-1fac78d28f66", G),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("A", "ca880796-7068-465d-b448-c96b3381e246", A)
             );
         }
 
