@@ -3181,6 +3181,13 @@ namespace NeoCompose.Runtime
         internal const string InlineMemberSentinel = "<inline>";
 
         /// <summary>
+        /// Starts the member id a listener descriptor stores for a binding
+        /// view's position: the type the view stands for, spelled as the web
+        /// spells it. Byte-identical to the web's.
+        /// </summary>
+        internal const string StableViewPrefix = "view:";
+
+        /// <summary>
         /// uuidv5 (RFC 4122, SHA-1, big-endian) of
         /// <c>{bareRootId}:{sourceIdentity}</c> under the P75 namespace. A
         /// <c>system_</c> root keeps its prefix on the derived id and is

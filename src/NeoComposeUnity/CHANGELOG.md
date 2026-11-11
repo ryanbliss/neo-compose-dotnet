@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- A change listener on a virtual entry of a list or dictionary that fills a type parameter, as in a `Pen<List<Child>>`, fires when the entry changes. The listener names the entry's member by the type it stands for, and the runtime matches it by that type. Before, it named a member only the process that wrote it knew, and it matched no row.
+
 - A stored object's row ids no longer depend on which generic types the process read first. A static initialized with `new Take((set, 7))`, a `Set` inside a tuple passed to a constructor, could fail to load from a save with "Replay lost child".
 
 - A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null." A tuple default does the same in each element typed by a type argument, as in `(T, int) P = default`. A static `T V = default` with `T` bound to a tuple holding a class, as in `(Cat, Mood)`, now constructs too, with null for the class and the first option for the enum. It failed with "'V.Item1' is required and cannot store null." Only a type parameter's initializer may leave null: a required slot of any other type still refuses a null in a payload.
