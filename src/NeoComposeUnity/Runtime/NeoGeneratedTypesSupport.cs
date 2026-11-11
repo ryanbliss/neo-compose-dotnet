@@ -6921,7 +6921,7 @@ namespace NeoCompose.Runtime
         {
             // An initializer's default is checked per element, where a type argument may hold null.
             if (!initializerDefault)
-                client.RequireStoredValue(member, value, client.StoredMemberPath(member), script: true);
+                client.RequireStoredValue(member, value, script: true);
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))

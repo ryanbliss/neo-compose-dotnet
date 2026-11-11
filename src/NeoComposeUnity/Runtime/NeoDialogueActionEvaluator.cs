@@ -2418,9 +2418,8 @@ namespace NeoCompose.Runtime
             string? unboundChildId = null)
         {
             if (keyOfPointer.memberId is string memberId
-                && client.ProjectDataForRuntime.members.ContainsKey(memberId)
                 && NSGetterEvaluator.FindRowClassIdByReference(receiver, ctx) is string receiverClassId
-                && NeoInterfaceDispatch.Of(client).ClassAccessor(receiverClassId, memberId, "set") is NSPropertyMember property
+                && NSGetterEvaluator.SetterAt(keyOfPointer.keyOf, receiverClassId, memberId, ctx) is NSPropertyMember property
                 && !NSGetterEvaluator.ContainsFrame(ctx.setterCallStack, property.id))
             {
                 NSGetterEvaluator.WriteClassProperty(property, receiver!, assigned, ctx);

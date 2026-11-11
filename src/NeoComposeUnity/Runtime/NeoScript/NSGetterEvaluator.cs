@@ -5542,6 +5542,52 @@ namespace NeoCompose.Runtime.NeoScript
             return entry;
         }
 
+        /// <summary>One receiver Class's property setter (or none) for a write site.</summary>
+        internal sealed class SetterSiteTarget
+        {
+            internal readonly object schemaResolution;
+            internal readonly string classId;
+            internal readonly NSPropertyMember? property;
+            internal readonly SetterSiteTarget? next;
+            internal readonly int count;
+
+            internal SetterSiteTarget(object schemaResolution, string classId, NSPropertyMember? property, SetterSiteTarget? next)
+            {
+                this.schemaResolution = schemaResolution;
+                this.classId = classId;
+                this.property = property;
+                this.next = next;
+                count = (next?.count ?? 0) + 1;
+            }
+        }
+
+        /// <summary>
+        /// The property setter a write of <paramref name="memberId"/> on a
+        /// <paramref name="classId"/> receiver dispatches to, or null for a
+        /// stored field. Cached on the site while the schema resolution holds.
+        /// </summary>
+        internal static NSPropertyMember? SetterAt(KeyOf site, string classId, string memberId, Context ctx)
+        {
+            SetterSiteTarget? targets = site.setters;
+            if (targets is not null && !ReferenceEquals(targets.schemaResolution, ctx.client.SchemaResolution))
+                targets = null;
+            for (SetterSiteTarget? target = targets; target is not null; target = target.next)
+            {
+                if (SameId(target.classId, classId))
+                    return target.property;
+            }
+            NSPropertyMember? property = ctx.client.ProjectDataForRuntime.members.ContainsKey(memberId)
+                ? NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(classId, memberId, "set") as NSPropertyMember
+                : null;
+            if ((targets?.count ?? 0) < CallSiteTarget.MaxTargets)
+            {
+                site.setters = new SetterSiteTarget(ctx.client.SchemaResolution, classId, property, targets);
+                if (targets is null)
+                    ctx.client.RememberSchemaResolutionSite(site);
+            }
+            return property;
+        }
+
         /// <summary>
         /// The member <paramref name="key"/> names on a row of
         /// <paramref name="classId"/>, for an access through
