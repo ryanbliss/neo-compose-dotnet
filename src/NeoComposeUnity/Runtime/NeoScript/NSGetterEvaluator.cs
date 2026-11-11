@@ -10877,6 +10877,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (member is not (ClassMember or ListMember or DictionaryMember))
                 return;
             bool alreadyRetained = retained.TryGetValue((ownership, id), out string? rootId);
+            // A released row placed again is let go again when it is taken out.
+            bool released = ctx.client.IsReleasedRoot(id);
             var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
             if (alreadyRetained)
                 remapped[(ownership, id)] = rootId!;
@@ -10918,6 +10920,8 @@ namespace NeoCompose.Runtime.NeoScript
                     if (member is ListMember or DictionaryMember)
                         ctx.client.RegisterRetainedRootContract(retainedRoot, member);
                     batch.RegisterRetainedRoot(retainedRoot, member, ctx.allocationTracker);
+                    if (released)
+                        ctx.client.MarkReleasedRoot(retainedRoot);
                 }
                 foreach (var inserted in insertedAliases)
                     if (ctx.client.HasWritableValue(NeoValueOwnership.Session, inserted.target))

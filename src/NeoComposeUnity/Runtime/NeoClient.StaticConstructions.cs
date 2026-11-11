@@ -165,7 +165,8 @@ namespace NeoCompose.Runtime
                                     {
                                         object? payload = binding.Member is ObjectMember objectMember && value is NeoBox or NeoTypeValue
                                             ? NeoGeneratedTypesSupport.EvaluatorObjectPayload(this, objectMember, binding.Ownership, value!, context, Guid.NewGuid().ToString(), plan)
-                                            : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment);
+                                            : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment,
+                                                initializerDefault: true);
                                         binding.PrepareInitialValue(plan, payload);
                                     }
                                 }

@@ -2,13 +2,17 @@
 
 ## [Unreleased]
 
-- A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null." A tuple default does the same in each element typed by a type argument, as in `(T, int) P = default`. Only a type parameter's initializer may leave null: a required slot of any other type still refuses a null in a payload.
+- A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null." A tuple default does the same in each element typed by a type argument, as in `(T, int) P = default`. A static `T V = default` with `T` bound to a tuple holding a class, as in `(Cat, Mood)`, now constructs too, with null for the class and the first option for the enum. It failed with "'V.Item1' is required and cannot store null." Only a type parameter's initializer may leave null: a required slot of any other type still refuses a null in a payload.
 
 - A static `List<T>` of a generic class closed with a nullable class, as in `Box<Cat?>.L.Add(null)`, takes a null entry. It failed with "'Box.L[0]' is required and cannot store null."
 
 - A field declared `object? O = null` reads null. It failed with "Missing key 'O' on object".
 
 - An entry or list taken from an object a write let go, as in `var c = w.Farm!.Cats[0]; w.Farm = null; h.Cats.Add(c)`, is copied into its new owner instead of refused with "already owned". Once that object is placed again, as in `w.Other = f`, it owns its entries again, and storing one elsewhere is refused.
+  - The object's own fields are copied the same way: `var p = f.Pet!; w.Farm = null; h.Pet = p` stores a copy and `f.Pet` keeps its cat. It was refused with "already owned".
+  - A collection replaced on that object, as in `var c = f.Cats; w.Farm = null; f.Cats = []`, keeps its old contents in `c` and is not placed with the object, so `w.Other = f; h.Cats.Add(c[0])` stores a copy. Before, `c` read the new empty list.
+  - Taking a placed-again object out once more, with `RemoveAt`, `Remove`, `Clear` or by replacing its list or dictionary, lets it go again, so its entries are copied instead of refused. An object that was never let go still owns its entries after it is taken out.
+  - A list taken from a let-go object and added to a live list belongs to that list, so storing its entry in another owner is refused. Before, it was stored.
 
 - A constructor body that stores a `List` argument holding class rows in a field, such as `Val = v` with a `List<Cat>` parameter, constructs again, and the caller's list and the field stay one list. It used to fail with "Constructed field 'v[0]' … is already owned".
 

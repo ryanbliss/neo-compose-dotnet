@@ -151,27 +151,24 @@ namespace NeoCompose.Runtime
                 node.releasedRoot = true;
         }
 
+        internal bool IsReleasedRoot(string id) => ExistingValueNode(id)?.releasedRoot == true;
+
         /// <summary>
         /// P127: true when the collections above <paramref name="parentValueId"/>
         /// end at a released root that was not placed again. A class row
-        /// still owns its own fields. Only a refusal reads it.
+        /// below the root still owns its own fields. Only a refusal reads it.
         /// </summary>
-        private bool HeldByReleasedRoot(string parentValueId, NeoValueOwnership parentOwnership)
+        internal bool HeldByReleasedRoot(string parentValueId, NeoValueOwnership parentOwnership)
         {
             string? id = parentValueId;
             NeoValueOwnership ownership = parentOwnership;
-            bool throughCollection = false;
             var seen = new HashSet<string>();
             while (id is not null && seen.Add(id))
             {
-                bool classRow = IsClassRow(ownership, id);
-                if (ownership == NeoValueOwnership.Session
-                    && (!classRow || throughCollection)
-                    && ExistingValueNode(id)?.releasedRoot == true)
+                if (ownership == NeoValueOwnership.Session && IsReleasedRoot(id))
                     return !TryFindOwnedParent(ownership, id, out _);
-                if (classRow || !TryFindOwnedParent(ownership, id, out id, out ownership))
+                if (IsClassRow(ownership, id) || !TryFindOwnedParent(ownership, id, out id, out ownership))
                     return false;
-                throughCollection = true;
             }
             return false;
         }

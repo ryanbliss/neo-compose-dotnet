@@ -5982,6 +5982,15 @@ namespace NeoCompose.Runtime
                     member = containedMember;
                     return true;
                 }
+                // An entry a held batch added is placed by its pending collection.
+                if (scriptWriteBatch?.TryGetEntryParent(valueId, out string? pendingParent) == true
+                    && pendingParent is not null
+                    && TryInferMemberForValueId(pendingParent, visitingValueIds, out Member? pendingMember, ownership)
+                    && TryResolveCollectionEntryMember(pendingMember, ResolveValueRow(pendingParent)) is Member pendingEntry)
+                {
+                    member = pendingEntry;
+                    return true;
+                }
 
                 foreach (var parent in InferMemberParents(valueId))
                 {

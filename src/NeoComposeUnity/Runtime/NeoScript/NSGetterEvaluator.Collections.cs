@@ -127,6 +127,10 @@ namespace NeoCompose.Runtime.NeoScript
             string valueId, Member member, object? assigned,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
+            // A released owner lets go of the collection it replaces, so its
+            // aliases keep the old contents as a released row of their own.
+            if (member is ListMember or DictionaryMember && ctx.client.HeldByReleasedRoot(valueId, ownership))
+                RetainOwnedAliases(plan, ctx, ownership, valueId, member, null);
             if (member is ListMember list)
                 PrepareAssignedListAlias(plan, ctx, ownership, valueId, list, assigned, targetEnv);
             if (member is not (SetMember or DictionaryMember))

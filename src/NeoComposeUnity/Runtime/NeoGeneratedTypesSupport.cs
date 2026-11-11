@@ -6916,9 +6916,12 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
             CollectionInsertion? insertion = null,
-            string? currentDestinationValueId = null)
+            string? currentDestinationValueId = null,
+            bool initializerDefault = false)
         {
-            client.RequireStoredValue(member, value, client.StoredMemberPath(member), script: true);
+            // An initializer's default is checked per element, where a type argument may hold null.
+            if (!initializerDefault)
+                client.RequireStoredValue(member, value, client.StoredMemberPath(member), script: true);
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
@@ -6951,7 +6954,8 @@ namespace NeoCompose.Runtime
                 }, env, member.name, scope: null, insertion,
                 selections: plan is null ? null : new NeoScript.LocalCollectionSelections.Materialization(plan, ctx, ownership),
                 tupleAssignment: member is TupleMember && plan is not null && currentDestinationValueId is not null
-                    ? new TupleAssignment(plan, ctx, ownership, currentDestinationValueId) : null);
+                    ? new TupleAssignment(plan, ctx, ownership, currentDestinationValueId) : null,
+                initializerDefault: initializerDefault);
             return CallSiteWritePayload(payload, rows);
         }
 
