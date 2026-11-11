@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class Box : NeoGeneratedClassValue, IReadOnlyBox
     {
         internal Box(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "773fd6fc-ff86-47c0-b228-e88c3206b924", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6dcc510d-1c23-4ce5-98cc-b9e6b52c2d9a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "773fd6fc-ff86-47c0-b228-e88c3206b924",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "c941f96e-2d9c-468f-9f55-24df12e3ae0d", V)
+                "6dcc510d-1c23-4ce5-98cc-b9e6b52c2d9a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "2df5e560-f0e4-461d-89fc-86cccb99203f", V)
             );
         }
 

@@ -18,7 +18,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4bde222e-a116-45c4-861c-f8adc7de193f", NeoValueOwnership.Session, client.TypeArguments.Of<ISF>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "20ce5b5a-d323-4945-aabd-9763550427b5", NeoValueOwnership.Session, client.TypeArguments.Of<ISF>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Y' has no value.");
             }
@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "596f5774-088e-466c-876e-956f80c11e51", NeoValueOwnership.Session, client.TypeArguments.Of<ISF>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "10ad6364-6b3e-44a9-829f-96219c69d74b", NeoValueOwnership.Session, client.TypeArguments.Of<ISF>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Z' has no value.");
             }
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         int Twice()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "23b6b394-f406-4c9a-b843-e09ae62df2ae", NeoInterfaceBody.Function, client.TypeArguments.Of<ISF>(), "23b6b394-f406-4c9a-b843-e09ae62df2ae", client.TypeArguments.Of<ISF>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "30b1e8f7-9412-4836-82b0-aed95da0f83f", NeoInterfaceBody.Function, client.TypeArguments.Of<ISF>(), "30b1e8f7-9412-4836-82b0-aed95da0f83f", client.TypeArguments.Of<ISF>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
     }

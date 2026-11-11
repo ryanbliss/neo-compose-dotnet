@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9e17ece1-5033-4907-beb8-ebc94dac5de0" => new R27iX30HT<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a97b3b15-e675-4bd5-b7ad-62fd58d11760" => new R27iX30HT<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27iX30HT' without a concrete client type id."),
                 };
             });
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9e17ece1-5033-4907-beb8-ebc94dac5de0" => new R27iX30HT<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a97b3b15-e675-4bd5-b7ad-62fd58d11760" => new R27iX30HT<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27iX30HT' without a concrete client type id."),
                 };
             });
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         string IR27IJ<T>.M()
         {
-            var result = InvokeFunction("M#abd8f2de-31eb-4de2-a737-4db1c1317f31");
+            var result = InvokeFunction("M#f4a731b2-1e81-489a-bd30-e852ce7119eb");
             return (string)result!;
         }
 
@@ -88,13 +88,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#95c1c0dd-0835-4c49-beda-96b6c3e5c08b");
+                var result = ComputeProperty("V#1bc0ddfa-2235-4c77-a2a4-4c762a58ee99");
                 result.ThrowIfFailed();
                 return (string)result.value!;
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("V#95c1c0dd-0835-4c49-beda-96b6c3e5c08b").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("V#1bc0ddfa-2235-4c77-a2a4-4c762a58ee99").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

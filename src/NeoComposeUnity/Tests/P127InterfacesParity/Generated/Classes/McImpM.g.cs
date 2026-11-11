@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McImpM : NeoGeneratedClassValue, IReadOnlyMcImpM
     {
         internal McImpM(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "779ada70-696b-4570-ad73-84f434b6b7bf", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "991432f4-da78-4f74-87eb-b71f6e612576", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "779ada70-696b-4570-ad73-84f434b6b7bf");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "991432f4-da78-4f74-87eb-b71f6e612576");
         }
 
         internal static McImpM Create(NeoClient client, NeoMemberClass node)
@@ -105,7 +105,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int IMcSet<string>.Set(string v)
         {
-            var result = InvokeFunction("Set#88521eca-ceef-4b9c-82aa-739bc9553855", (object?)(v));
+            var result = InvokeFunction("Set#d9177616-4fe3-4e81-b0fc-6349f6fca4e9", (object?)(v));
             return Convert.ToInt32(result);
         }
 

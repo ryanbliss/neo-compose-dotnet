@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R23TBS<T, U> : NeoGeneratedClassValue, IReadOnlyR23TBS<T, U>
     {
         internal R23TBS(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1b3ad2d5-b424-48cc-9362-cc3595a62773", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fdf2d08b-7a0b-4456-aeff-8cbcea89da47", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int S()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "790d615f-190c-4765-bbca-f9db303282d9", client.TypeArguments.Of<R23TBS<T, U>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "78c1fe5c-b9bd-43fa-9fe3-a2be2e431469", client.TypeArguments.Of<R23TBS<T, U>>());
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1b3ad2d5-b424-48cc-9362-cc3595a62773" => new R23TBS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fdf2d08b-7a0b-4456-aeff-8cbcea89da47" => new R23TBS<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TBS' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1b3ad2d5-b424-48cc-9362-cc3595a62773" => new R23TBS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fdf2d08b-7a0b-4456-aeff-8cbcea89da47" => new R23TBS<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23TBS' without a concrete client type id."),
                 };
             });

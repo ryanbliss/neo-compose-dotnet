@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DwMoney : NeoGeneratedClassValue, IReadOnlyDwMoney
     {
         internal DwMoney(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6c25a3bc-f752-482a-a15a-4a322cf23eaa", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d719cc53-d723-48b4-a077-dd3750e7abc8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127EqualityParity
         }
 
         public DwMoney(int amount)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6c25a3bc-f752-482a-a15a-4a322cf23eaa", "d1ef6cca-f262-49d1-a45a-c117952d7cbd", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("amount", amount) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "d719cc53-d723-48b4-a077-dd3750e7abc8", "d64de6df-6c32-4b75-aebf-b63878eae2d7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("amount", amount) }), false, NeoValueOwnership.Session)
         {
         }
 
         public DwMoney()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6c25a3bc-f752-482a-a15a-4a322cf23eaa", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "d719cc53-d723-48b4-a077-dd3750e7abc8", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

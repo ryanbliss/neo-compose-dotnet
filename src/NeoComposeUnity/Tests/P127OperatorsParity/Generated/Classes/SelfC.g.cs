@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class SelfC<T> : NeoGeneratedClassValue, IReadOnlySelfC<T>
     {
         internal SelfC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e132b39f-5c93-4abf-a948-6b97d979ce04", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "70ced5d8-8eee-4424-9fe6-d3387ef431e3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T One()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "17a7d8ad-b59c-4095-a440-490fcdf74fc4", client.TypeArguments.Of<SelfC<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "981e917e-79f7-44ee-ac53-be26fb0fa067", client.TypeArguments.Of<SelfC<T>>());
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e132b39f-5c93-4abf-a948-6b97d979ce04" => new SelfC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "70ced5d8-8eee-4424-9fe6-d3387ef431e3" => new SelfC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SelfC' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e132b39f-5c93-4abf-a948-6b97d979ce04" => new SelfC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "70ced5d8-8eee-4424-9fe6-d3387ef431e3" => new SelfC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'SelfC' without a concrete client type id."),
                 };
             });

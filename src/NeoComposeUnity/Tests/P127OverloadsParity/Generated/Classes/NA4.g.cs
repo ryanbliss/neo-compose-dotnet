@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         }
 
         public NA4()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "4ae369fa-cb99-4f9d-af2f-722acf28373b", "056c7988-b1aa-4861-9080-adfa49ef4c51", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "1e686c1b-68ae-49d7-9116-7b1fc44faec3", "60ed69f7-9c7e-4eae-8301-932ee364d898", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

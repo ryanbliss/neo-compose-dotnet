@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class GmEcho : NeoGeneratedClassValue, IReadOnlyGmEcho
     {
         internal GmEcho(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a1d75cb8-c00b-4dfd-a7b6-86323fa1140f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5d4989ac-c78c-496a-b90f-b6b504f9b7d1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a1d75cb8-c00b-4dfd-a7b6-86323fa1140f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5d4989ac-c78c-496a-b90f-b6b504f9b7d1");
         }
 
         internal static GmEcho Create(NeoClient client, NeoMemberClass node)

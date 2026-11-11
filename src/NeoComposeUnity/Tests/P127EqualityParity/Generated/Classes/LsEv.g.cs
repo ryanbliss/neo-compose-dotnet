@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class LsEv : NeoGeneratedClassValue, IReadOnlyLsEv
     {
         internal LsEv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b15c4463-0f40-4f92-8106-b673c4c85263", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "dc91edda-b1af-40b3-b1f0-0888aa93aae1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b15c4463-0f40-4f92-8106-b673c4c85263",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("On", "63d1e7c4-c59a-41a0-a2da-b86d593b340c", On)
+                "dc91edda-b1af-40b3-b1f0-0888aa93aae1",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("On", "e9ad4608-0a3d-4e4d-a7d1-d30f7ff97067", On)
             );
         }
 
@@ -115,7 +115,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             }
         }
 
-        [NeoMemberMethod("810aab7b-c68f-48fb-a8c8-7cf5276f67e0")]
+        [NeoMemberMethod("c02d61bd-9330-4d8a-9f8e-ebdeeb8e22d0")]
         public void Fire(int v)
         {
             InvokeFunction("Fire", (object?)(v));

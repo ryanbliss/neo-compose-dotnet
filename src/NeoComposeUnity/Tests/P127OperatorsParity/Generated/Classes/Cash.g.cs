@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Cash : NeoGeneratedClassValue, IReadOnlyCash
     {
         internal Cash(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7b9305e7-dad8-46ac-b83b-c6c861f0c632", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "474b5902-5368-4428-b87d-9c6812375718", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator +(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "07f0d4cb-1159-46c7-aa1c-2504d79d2f3d");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "201b40a8-6d63-4881-b280-77890699a1fc");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator +(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3a3c954f-7f74-416e-8d7e-9a7d601514ae");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9ac8ca31-56bb-4a79-bade-5773912dc2fb");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator &(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "02b75d00-514f-4ff2-b8b9-de1417db230b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "74ccaa1a-37d5-4c1e-9d25-bd1059e4f940");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -63,7 +63,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator |(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "73dd489f-f0c1-40be-b7fb-072871e5f304");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fe2e9e8f-cb51-4d3b-8a5c-5ed10b64449f");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -73,7 +73,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator --(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6b513802-318d-453d-8e76-82a5b5087d55");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f4361e4a-25a7-4376-9d65-9790781df44b");
             var result = node.InvokeStatic((object?)(a));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -81,7 +81,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator /(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cf34a1c3-f9f0-4cc3-b5ce-d357a8b51b2c");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "88a89e92-8c13-41e3-bc25-8a7341293976");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -89,7 +89,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator ==(Cash? a, Cash? b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cce8b65f-b3f3-40b8-964a-298b86399986");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "79743650-e9ca-4c69-a52e-55c52b2729cc");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator ^(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "00297d22-bc00-4a04-9a72-54cf6338a480");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e8a94e85-65b7-4350-a59a-d789afcac3d5");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -105,7 +105,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator false(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4787e0b6-e498-4a63-aa20-e0cd80b65613");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "00cacba1-c3ac-4e32-afe0-b350d1249198");
             var result = node.InvokeStatic((object?)(a));
             return (bool)result!;
         }
@@ -113,7 +113,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator >(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f0753fc8-da4a-4b00-a874-68609b22a8fa");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5570a8e3-6757-4f27-ade5-2399cb2c86ed");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -121,7 +121,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator >=(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9370f8ee-7b8c-432b-89c2-2c41a589e0b2");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7806d880-274c-4e57-9428-0bb2179915df");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -129,7 +129,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator ++(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0cb80761-cea0-4533-8ab1-b5b24da3a544");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "49b43368-159e-4d19-a05a-c8194b54be5b");
             var result = node.InvokeStatic((object?)(a));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -137,7 +137,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator !=(Cash? a, Cash? b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "efa54ee0-20d4-43aa-9974-a2aa0466e43b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5a053616-aa23-4566-8505-dfccda90333c");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -145,7 +145,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator <<(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3618882c-2c30-4edb-ab69-c8ea09bc3dc0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2aa71852-aa55-4843-bc46-ea430bb09ac8");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -153,7 +153,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator <(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3521a626-f0de-4c1f-9941-87ee6012f370");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2c04c63e-837e-432e-8148-b93536cb099f");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -161,7 +161,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator <=(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "30c95ffe-fbc8-43c0-9288-8bca00503cc8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9eb98240-8eb1-4bb2-a970-a85b351de57a");
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -169,7 +169,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator !(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a68e4c54-5d63-4abd-bf94-e72a5da14fd4");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d07f770d-ecd2-4f78-a90a-78962264bd07");
             var result = node.InvokeStatic((object?)(a));
             return (bool)result!;
         }
@@ -177,7 +177,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator %(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c1b711c0-d7dd-4fbb-89f6-eb94acc196da");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "74dc1611-c20a-4ef7-b878-915aaa760722");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -185,7 +185,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator *(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d7240d5f-e7c3-44bb-b79c-a3a3a345db1f");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fb8738ba-e2df-44d6-a9b1-64de347e4982");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -193,7 +193,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator ~(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d50e15e0-771b-439b-80cb-40c3852e3a14");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "92662e1d-6ab9-4ab1-aedd-a964fe244ecf");
             var result = node.InvokeStatic((object?)(a));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -201,7 +201,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator >>(Cash a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3e57afc2-ea4a-46cf-af2f-b23f7f85d09b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "23f98d24-2490-4b16-9002-223850233928");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -209,7 +209,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator -(Cash a, Cash b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1cf4c8c5-e170-44a3-90ef-d37a6a5070c0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "134ab162-26e9-4f10-b3bc-96470b5b8475");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -217,7 +217,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool operator true(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fa082481-10a9-4bd1-8bfe-cb452c533b4b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6d419326-b301-4150-b8a4-97b3edf38526");
             var result = node.InvokeStatic((object?)(a));
             return (bool)result!;
         }
@@ -225,7 +225,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator -(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ecc67034-9f7d-4d31-8b3b-7787b87a3754");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "90c55da1-ce30-412a-9e54-47d3862a686e");
             var result = node.InvokeStatic((object?)(a));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -233,19 +233,19 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static Cash operator +(Cash a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9bbc65c9-ce70-47bf-ab29-57a7d5bb8420");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "45142301-5177-44cf-99b8-82d620363051");
             var result = node.InvokeStatic((object?)(a));
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Cash.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Cash.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
 
         public Cash(int v)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7b9305e7-dad8-46ac-b83b-c6c861f0c632", "bdd48b13-b64a-4215-adbc-5c7dedfecc83", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "474b5902-5368-4428-b87d-9c6812375718", "291eb738-b757-4f89-8a84-0bbc0553a114", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
         {
         }
 
         public Cash()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7b9305e7-dad8-46ac-b83b-c6c861f0c632", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "474b5902-5368-4428-b87d-9c6812375718", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -256,7 +256,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "543a8494-30db-4d08-ab24-a89a911196f9" => new CashD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "906ce739-0a73-42f3-a886-60c995f6649b" => new CashD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new Cash(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -269,7 +269,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "543a8494-30db-4d08-ab24-a89a911196f9" => new CashD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "906ce739-0a73-42f3-a886-60c995f6649b" => new CashD(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new Cash(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -279,8 +279,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "543a8494-30db-4d08-ab24-a89a911196f9" => new CashD(client, value, !saved),
-                "7b9305e7-dad8-46ac-b83b-c6c861f0c632" => new Cash(client, value, !saved),
+                "906ce739-0a73-42f3-a886-60c995f6649b" => new CashD(client, value, !saved),
+                "474b5902-5368-4428-b87d-9c6812375718" => new Cash(client, value, !saved),
                 _ => null,
             };
         }
