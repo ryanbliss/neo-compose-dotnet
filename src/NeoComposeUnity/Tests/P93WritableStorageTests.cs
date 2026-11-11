@@ -238,6 +238,27 @@ namespace NeoCompose.Tests
             Assert.AreEqual(6d, reopened.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberInt>("Size").value!.value);
         }
 
+        [TestCase("Mood", "s-mood", NeoValueOwnership.Session)]
+        [TestCase("Plain", "s-plain", NeoValueOwnership.Save)]
+        public void RuntimeWrite_ToABoundChildLeavesTheAuthoredParentUnmaterialized(
+            string key, string childId, NeoValueOwnership childOwnership)
+        {
+            ProjectData data = Build();
+            string saved;
+            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(data))
+            {
+                ExecuteRuntimeWrite(client, "Save", "Thing", key, 8);
+                Assert.IsTrue(client.HasWritableValue(childOwnership, childId));
+                Assert.IsFalse(client.HasWritableValue(NeoValueOwnership.Save, "s-thing"));
+                CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+                saved = client.SerializeSaveData();
+            }
+            StringAssert.DoesNotContain("\"s-thing\"", saved);
+            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: saved);
+            double expected = childOwnership == NeoValueOwnership.Save ? 8d : 1d;
+            Assert.AreEqual(expected, reopened.save.Get<NeoMemberClassWritable>("Thing").Get<NeoMemberInt>(key).value!.value);
+        }
+
         [Test]
         public void RuntimeWrite_ToAnInheritMemberOfAnAssetRowStillThrows()
         {

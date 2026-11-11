@@ -855,7 +855,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ActionsNode_Assign_MaterializesDefaultSaveRootBeforeMutating()
+        public void ActionsNode_Assign_ShadowsOnlyTheDefaultSaveLeafItMutates()
         {
             var client = CreateClient();
             var root = new TestDialogues(client);
@@ -863,12 +863,10 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            // Stable-id overlay: a save shadows the authored values at their SAME
-            // ids (no override-map hop, no eager root clone). The dialogue write
-            // shadows the root record + the Score leaf it touched.
-            Assert.IsTrue(client.saveValues.TryGetValue("root-save-default-value", out MemberValue? saveRootUntyped));
-            var saveRoot = (ObjectMemberValue)saveRootUntyped;
-            Assert.AreEqual("score-default-value", saveRoot.value!["Score"]);
+            // Stable-id overlay: a save shadows only the Score leaf the write
+            // touched, at its authored id. The authored root stays a project
+            // default, so a later default change still reaches this save.
+            Assert.IsFalse(client.saveValues.ContainsKey("root-save-default-value"));
             Assert.IsTrue(client.saveValues.TryGetValue("score-default-value", out MemberValue? scoreUntyped));
             var score = (NumberMemberValue)scoreUntyped;
             Assert.AreEqual(22, score!.value);

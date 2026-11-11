@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.10] - 2026-11-11
+
+- Keep authored parents out of the save when NeoScript assigns a member that already has a row. Assigning a Session or Save field on an authored object, such as a door's queued sound flag, no longer copies the object into the save, so later project-default edits still reach existing saves.
+
 ## [0.81.9] - 2026-11-05
 
 - Exclude detached objects retained only for temporary Session constructors from saved snapshots, while keeping them available to the live session. Prevents selling a used furnace from leaving detached furnace data that blocks the next load. Include omitted rows and listener changes in incremental cloud patches.
