@@ -14,7 +14,8 @@ namespace NeoCompose.Runtime
     public partial class NeoClient
     {
         internal NeoScript.NSGetterEvaluator.Context? ActiveScriptContext;
-        internal readonly ConditionalWeakTable<object, TypeInfo> SequenceCollectionElements = new();
+        // P127 §4.8. A collection widened to a sequence: its own closed type, set once.
+        internal readonly ConditionalWeakTable<object, TypeInfo> SequenceCollectionTypes = new();
         private void ValidateStoredSequenceMembers()
         {
             var children = new Dictionary<string, List<string>>(StringComparer.Ordinal);

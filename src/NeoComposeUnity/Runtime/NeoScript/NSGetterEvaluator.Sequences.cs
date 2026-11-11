@@ -547,11 +547,8 @@ namespace NeoCompose.Runtime.NeoScript
                 InvokeSequenceMember(value, DisposeCall, ctx);
         }
 
-        internal static T TagSequenceCollection<T>(T value, TypeInfo? type, Context ctx) where T : class
-        {
-            TypeInfo? element = CollectionElementOf(type);
-            return element is null ? value : TagSequenceCollectionElement(value, element, ctx);
-        }
+        internal static T TagSequenceCollection<T>(T value, TypeInfo? type, Context ctx) where T : class =>
+            CollectionElementOf(type) is null ? value : TagSequenceCollectionType(value, type!, ctx);
 
         /// <summary>A List, Set, Dictionary or Lookup type's element; null for any other type.</summary>
         private static TypeInfo? CollectionElementOf(TypeInfo? type) => type switch
@@ -563,13 +560,31 @@ namespace NeoCompose.Runtime.NeoScript
             _ => null,
         };
 
+        /// <summary>
+        /// A collection type as its value holds it: List, Set or Dictionary
+        /// with its key and element, a Lookup as the Set it reads as. Null
+        /// for any other type.
+        /// </summary>
+        private static CollectionTypeInfo? CollectionRuntimeType(TypeInfo type) => NeoTypeRules.Plain(type) switch
+        {
+            CollectionTypeInfo { type: MemberKind.List or MemberKind.Set or MemberKind.Dictionary } collection => new CollectionTypeInfo
+            {
+                type = collection.type,
+                required = true,
+                keyEnumId = collection.keyEnumId,
+                entryTypeInfo = collection.entryTypeInfo,
+            },
+            LookupTypeInfo lookup => new CollectionTypeInfo { type = MemberKind.Set, required = true, entryTypeInfo = lookup.entryTypeInfo },
+            _ => null,
+        };
+
         internal static object SequenceCollectionIdentity(object value) =>
             value is object?[] array && runtimeLists.TryGetValue(array, out RuntimeListIdentity identity)
                 ? identity.origin : value;
 
-        private static T TagSequenceCollectionElement<T>(T value, TypeInfo element, Context ctx) where T : class
+        private static T TagSequenceCollectionType<T>(T value, TypeInfo type, Context ctx) where T : class
         {
-            if (ctx.client.SequenceCollectionElements.TryGetValue(SequenceCollectionIdentity(value), out _))
+            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out _))
                 return value;
             if (value is object?[] { Length: 0 } empty && ReferenceEquals(empty, Array.Empty<object?>()))
                 value = (T)(object)new object?[0];
@@ -577,29 +592,46 @@ namespace NeoCompose.Runtime.NeoScript
             // Only bindings/captures mark it shared with another holder.
             if (value is object?[] list)
                 runtimeLists.GetValue(list, array => new RuntimeListIdentity(array));
-            if (NeoNSFunctionRuntime.ContainsGeneric(element)
+            if (NeoNSFunctionRuntime.ContainsGeneric(type)
                 && ctx.functionTypeArguments is null
                 && (ctx.thisValue is null || NeoNSFunctionRuntime.ResolveReceiverGenericEnv(ctx.client, ctx.thisValue, ctx, "Collection element").Count == 0))
                 return value;
-            ctx.client.SequenceCollectionElements.Add(SequenceCollectionIdentity(value), CloseContextType(element, ctx));
+            if (CollectionRuntimeType(CloseContextType(type, ctx)) is { } closed)
+                ctx.client.SequenceCollectionTypes.Add(SequenceCollectionIdentity(value), closed);
             return value;
         }
 
+        /// <summary>
+        /// A widened collection's recorded element, else a stored or derived
+        /// collection's entry member type. Only widening records a type.
+        /// </summary>
         private static TypeInfo? SequenceCollectionElement(object? value, Context ctx)
         {
             if (value is null)
                 return null;
-            if (ctx.client.SequenceCollectionElements.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo known))
-                return known;
+            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
+                return CollectionElementOf(recorded);
             if (CollectionEntryMember(value, ctx) is { } member)
-            {
-                TypeInfo element = NeoNSFunctionRuntime.TypeInfoFromBindingMember(ctx.client, member,
+                return NeoNSFunctionRuntime.TypeInfoFromBindingMember(ctx.client, member,
                     new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
-                ctx.client.SequenceCollectionElements.Add(SequenceCollectionIdentity(value), element);
-                return element;
-            }
             return null;
         }
+
+        /// <summary>
+        /// Whether a recorded collection type is the target's runtime type.
+        /// Closed types compare as bindings, which also hold a dictionary's key.
+        /// </summary>
+        private static bool RecordedTypeMatches(TypeInfo recorded, CollectionTypeInfo target) =>
+            NeoNSFunctionRuntime.ContainsGeneric(recorded) || NeoNSFunctionRuntime.ContainsGeneric(target)
+                ? RuntimeTypesEqual(recorded, target)
+                : RuntimeTypeOf(recorded).Equals(RuntimeTypeOf(target));
+
+        /// <summary>The runtime type a widened collection recorded; null for any other value.</summary>
+        private static TypeBinding? RecordedCollectionType(object value, Context ctx) =>
+            value is object?[] or LocalList or RuntimeSet or IDictionary<string, object?>
+                && value is not (NeoObjectRecord or NeoScriptObject)
+                && ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded)
+                ? HeldTypeOf(recorded) : null;
 
         internal static bool IsIntrinsicSequence(object? value, TypeInfo type, Context ctx)
         {

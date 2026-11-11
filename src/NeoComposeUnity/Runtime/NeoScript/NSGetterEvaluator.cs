@@ -9880,13 +9880,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return false;
             }
-            // List, Set and Dictionary are invariant: a collection that knows its
-            // element matches only that element, however it was reached.
-            if (CollectionElementOf(checkType) is { } element
-                && ctx.client.SequenceCollectionElements.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo stamped)
-                && !RuntimeTypesEqual(stamped, CloseContextType(element, ctx)))
+            // List, Set and Dictionary are invariant: a widened collection
+            // matches only its own recorded type, however it was reached.
+            if (CollectionElementOf(checkType) is not null
+                && ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
             {
-                return false;
+                return CollectionRuntimeType(CloseContextType(checkType, ctx)) is { } target && RecordedTypeMatches(recorded, target);
             }
             switch (checkType.type)
             {

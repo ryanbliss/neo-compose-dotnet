@@ -46,7 +46,7 @@ namespace NeoCompose.Tests
         public void ACollectionIsAnEnumerableOfAConvertibleElement(string element, string expected, bool converts)
         {
             object?[] list = new object?[0];
-            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(list), Type(element));
+            Record(list, $"List<{element}>");
             Assert.That(Checks(list, Enumerable(Type(expected))), Is.EqualTo(converts));
         }
 
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests
             client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
             ctx = new NSGetterEvaluator.Context(client, null, null);
             object?[] list = new object?[0];
-            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(list), Type(element));
+            Record(list, $"List<{element}>");
 
             Assert.That(Checks(list, Enumerable(Type(expected))), Is.True);
         }
@@ -80,7 +80,7 @@ namespace NeoCompose.Tests
             object outer = source == "List"
                 ? new object?[] { inner }
                 : new Dictionary<string, object?> { ["a"] = inner };
-            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(outer), Type("List<CastCat>"));
+            Record(outer, $"{source}<List<CastCat>>");
             TypeInfo expected = Enumerable(Type("CastCat"));
             object? cursor = NSGetterEvaluator.AcquireSequenceCursor(outer, expected, ctx);
             if (explicitCursor)
@@ -109,15 +109,39 @@ namespace NeoCompose.Tests
         public void ACollectionThroughAnEnumerableMatchesOnlyItsOwnElement(string collection, string element, bool matches)
         {
             object value = collection == "Dictionary" ? new Dictionary<string, object?>() : new object?[0];
-            client.SequenceCollectionElements.Add(NSGetterEvaluator.SequenceCollectionIdentity(value), Type("CastCat"));
-            TypeInfo target = Type($"{collection}<{element}>");
+            Record(value, $"{collection}<CastCat>");
 
-            Assert.That(Checks(value, target), Is.EqualTo(matches));
-            Assert.That(Cast(value, target, CastModeKind.As), matches ? Is.SameAs(value) : Is.Null);
-            if (matches)
-                Assert.That(Cast(value, target, CastModeKind.Cast), Is.SameAs(value));
-            else
-                Assert.That(() => Cast(value, target, CastModeKind.Cast), Throws.TypeOf<NeoRuntimeError>().With.Message.StartsWith("Unable to cast"));
+            AssertConverts(value, Type($"{collection}<{element}>"), matches);
+        }
+
+        // The recorded type is the whole collection type, so a widened List
+        // isn't a Set, a Set isn't a List, and a Dictionary's key counts.
+        [TestCase("List<int>", "Set<int>", false)]
+        [TestCase("Set<int>", "List<int>", false)]
+        [TestCase("Dictionary<CastCat>", "Dictionary<CastWeather, CastCat>", false)]
+        [TestCase("Dictionary<CastWeather, CastCat>", "Dictionary<CastCat>", false)]
+        [TestCase("List<int>", "List<int>", true)]
+        [TestCase("Set<int>", "Set<int>", true)]
+        [TestCase("Dictionary<CastWeather, CastCat>", "Dictionary<CastWeather, CastCat>", true)]
+        public void AWidenedCollectionMatchesOnlyItsOwnKindAndKey(string held, string target, bool matches)
+        {
+            object value = held.StartsWith("Dictionary") ? new Dictionary<string, object?>() : new object?[0];
+            Record(value, held);
+
+            AssertConverts(value, Type(target), matches);
+        }
+
+        // A refused cast names the type the collection holds, not the static one.
+        [TestCase("List<CastCat>", "List<CastPet>", "List<CastCat>")]
+        [TestCase("Set<CastCat>", "Set<CastPet>", "Set<CastCat>")]
+        [TestCase("Dictionary<CastCat>", "Dictionary<CastPet>", "Dictionary<string, CastCat>")]
+        public void ARefusedCastNamesTheWidenedCollectionsOwnType(string held, string target, string heldName)
+        {
+            object value = held.StartsWith("Dictionary") ? new Dictionary<string, object?>() : new object?[0];
+            Record(value, held);
+
+            Assert.That(() => Cast(value, Type(target), CastModeKind.Cast), Throws.TypeOf<NeoRuntimeError>()
+                .With.Message.EqualTo($"Unable to cast object of type '{heldName}' to type '{target.Replace("Dictionary<", "Dictionary<string, ")}'."));
         }
 
         // A reference type argument's `?` isn't part of the runtime type; a value type's is.
@@ -146,6 +170,18 @@ namespace NeoCompose.Tests
             };
 
             Assert.That(Checks(row, check), Is.EqualTo(matches));
+        }
+
+        private void Record(object value, string type) => NSGetterEvaluator.TagSequenceCollection(value, Type(type), ctx);
+
+        private void AssertConverts(object value, TypeInfo target, bool matches)
+        {
+            Assert.That(Checks(value, target), Is.EqualTo(matches));
+            Assert.That(Cast(value, target, CastModeKind.As), matches ? Is.SameAs(value) : Is.Null);
+            if (matches)
+                Assert.That(Cast(value, target, CastModeKind.Cast), Is.SameAs(value));
+            else
+                Assert.That(() => Cast(value, target, CastModeKind.Cast), Throws.TypeOf<NeoRuntimeError>().With.Message.StartsWith("Unable to cast"));
         }
 
         private bool Checks(object? value, TypeInfo checkType)
@@ -184,13 +220,17 @@ namespace NeoCompose.Tests
                     _ => new ClassTypeInfo { type = MemberKind.Class, required = true, classId = ClassId(name) },
                 };
             }
-            TypeInfo element = Type(name.Substring(open + 1, name.Length - open - 2));
+            string arguments = name.Substring(open + 1, name.Length - open - 2);
+            // Dictionary<Key, Value> names an enum key; Dictionary<Value> is string-keyed.
+            int comma = arguments.IndexOf(", ");
+            string? keyEnumId = comma < 0 ? null : client.ProjectDataForRuntime.enums.Values.Single(enumType => enumType.name == arguments.Substring(0, comma)).id;
+            TypeInfo element = Type(keyEnumId is null ? arguments : arguments.Substring(comma + 2));
             return name.Substring(0, open) switch
             {
                 "List" => new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = element },
                 "Set" => new LookupTypeInfo { type = MemberKind.Lookup, required = true, entryTypeInfo = element },
-                // A string-keyed dictionary, which enumerates its values.
-                "Dictionary" => new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, entryTypeInfo = element },
+                // A dictionary enumerates its values.
+                "Dictionary" => new CollectionTypeInfo { type = MemberKind.Dictionary, required = true, keyEnumId = keyEnumId, entryTypeInfo = element },
                 _ => Enumerable(element),
             };
         }

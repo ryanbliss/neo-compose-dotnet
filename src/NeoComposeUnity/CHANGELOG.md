@@ -8,6 +8,8 @@
 
 - A `List`, `Set` or `Dictionary` held as an `IEnumerable<T>` matches only its own element type. A `List<Cat>` held as `IEnumerable<Pet>` is a `List<Cat>` but not a `List<Pet>`: `is` answers false, `as` gives null and a cast throws. Before, `is` answered true and the cast let a `Pet` be added to the `List<Cat>`.
 
+- A `List`, `Set` or `Dictionary` held as an `IEnumerable<T>` keeps its whole type, so it is only its own kind and key: a `List<int>` held as `IEnumerable<int>` is not a `Set<int>`, and a `Dictionary<string, Cat>` is not a `Dictionary<Weather, Cat>`. A multi-select Lookup counts as the `Set` it reads as. That type is also what `GetType()`, `ToString()`, interpolation and a refused cast report (`Unable to cast object of type 'List<Cat>' to type 'List<Pet>'.`), and `Equals` and `GetHashCode` treat the collection as itself, as they do when it is held by its own type. Before, the List tested and cast as a `Set`, `GetType()` and `ToString()` threw, `Equals` answered false against the same list held as its own type, and a refused cast named `System.Object`.
+
 - `IEnumerable<T>` and `IEnumerator<T>` variance is built in, so a project whose export omits those two interfaces still converts a `List<Cat>` or `IEnumerable<Cat>` to `IEnumerable<Pet>`. Before, such a project converted by identity only, and a nested `IEnumerable<IEnumerable<Cat>>` check failed with a missing-key error.
 
 - Read a forwarded nullable type argument (`Box<U?>` inside `Holder<U>`). Open type bindings take an optional `nullable: true`, and `TypeBinding.Open` gains a `nullable` parameter. A save holding null in `Holder<Item>`'s `B.Value` now loads; under `Holder<int>`, `U?` is `int` and the save is still refused.
