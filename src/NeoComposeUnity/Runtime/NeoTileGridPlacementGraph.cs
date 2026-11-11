@@ -23,9 +23,19 @@ namespace NeoCompose.Runtime
             graph.Ordered.Remove(node);
         }
 
-        internal bool RetainPlacementGraph;
-        internal GridPlacementGraph PlacementGraph => RetainPlacementGraph
-            ? placementGraph ??= BuildPlacementGraph() : BuildPlacementGraph();
+        internal NeoPlacementGraphRetention PlacementGraphRetention;
+        internal GridPlacementGraph PlacementGraph => PlacementGraphRetention switch
+        {
+            NeoPlacementGraphRetention.Scoped => placementGraph ??= BuildPlacementGraph(),
+            NeoPlacementGraphRetention.Committed => placementGraph ??= BuildCommittedPlacementGraph(),
+            _ => BuildPlacementGraph(),
+        };
+
+        private GridPlacementGraph BuildCommittedPlacementGraph()
+        {
+            using (client.ReadCommitted())
+                return BuildPlacementGraph();
+        }
 
         internal void ForgetPlacementGraph() => placementGraph = null;
 
@@ -361,5 +371,16 @@ namespace NeoCompose.Runtime
             }
             return node;
         }
+    }
+
+    /// <summary>Whether a primitive keeps the placement graph it builds, and from which rows.</summary>
+    internal enum NeoPlacementGraphRetention
+    {
+        /// <summary>Rebuilt on every read.</summary>
+        None,
+        /// <summary>Kept as first read, in whatever candidate scope is open: one validation's graph.</summary>
+        Scoped,
+        /// <summary>Kept and always built from committed rows: a lookup cache's graph, which commits patch.</summary>
+        Committed,
     }
 }

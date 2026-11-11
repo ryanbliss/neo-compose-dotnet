@@ -632,7 +632,7 @@ namespace NeoCompose.Runtime
             foreach (string gridId in grids)
             {
                 var candidate = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
-                candidate.RetainPlacementGraph = true;
+                candidate.PlacementGraphRetention = NeoPlacementGraphRetention.Scoped;
                 primitives[gridId] = candidate;
             }
             using (ReadCandidate(plan))

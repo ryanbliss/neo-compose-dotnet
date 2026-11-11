@@ -194,17 +194,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void IntroducedOverlapRejectsWhenACandidateReadSeededTheIndex()
+        public void CandidateReadsNeverSeedTheLookupCache()
         {
             using var client = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData("rock", 3));
             var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
                 BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
-            var plan = new NeoWritePlan(client);
-            plan.Set(NeoValueOwnership.Save, new Vector3MemberValue { id = "door-position", value = new NeoVector3Value { x = 2, y = 0, z = 0 } });
-            // A cold index first built inside a candidate scope holds the speculative move.
-            using (client.ReadCandidate(plan))
-                Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(17, 21)));
-            Assert.Throws<NeoPlacementValidationException>(() => plan.Commit());
+            var onRock = new NeoWritePlan(client);
+            onRock.Set(NeoValueOwnership.Save, new Vector3MemberValue { id = "door-position", value = new NeoVector3Value { x = 2, y = 0, z = 0 } });
+            // A cold cache first read inside a candidate scope still indexes committed rows.
+            using (client.ReadCandidate(onRock))
+                Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+            Assert.Throws<NeoPlacementValidationException>(() => onRock.Commit());
+
+            // An abandoned candidate that moved the door away must not free its cell.
+            using var fresh = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData("rock", 3));
+            var freshGrid = NeoTileGridPrimitive.ResolveForSave(fresh, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var away = new NeoWritePlan(fresh);
+            away.Set(NeoValueOwnership.Save, new Vector3MemberValue { id = "door-position", value = new NeoVector3Value { x = 5, y = 0, z = 0 } });
+            using (fresh.ReadCandidate(away))
+                _ = freshGrid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door");
+            var spawned = WritableObjectLink(fresh, "objects-link").TrySpawn(new Vector2Int(16, 21), ClonePlacementObject(fresh));
+            Assert.That(spawned.Ok, Is.False);
+            Assert.That(spawned.ErrorCode, Is.EqualTo("tile-grid-object-cell-occupied"));
         }
 
         [Test]

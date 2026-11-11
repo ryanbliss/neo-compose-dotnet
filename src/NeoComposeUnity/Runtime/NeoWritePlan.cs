@@ -809,28 +809,28 @@ namespace NeoCompose.Runtime
         /// candidate plan, its constructor replay and in-flight construction
         /// defaults, each of which would otherwise answer reads.
         /// </summary>
-        private CommittedReadScope ReadCommitted()
+        internal CommittedReadScope ReadCommitted()
         {
-            var scope = new CommittedReadScope(this, candidateReadPlan, candidateReplay, replayDefaultGraph);
+            var scope = new CommittedReadScope(this);
             candidateReadPlan = null;
             candidateReplay = null;
             replayDefaultGraph = null;
             return scope;
         }
 
-        private readonly struct CommittedReadScope : IDisposable
+        internal readonly struct CommittedReadScope : IDisposable
         {
             private readonly NeoClient client;
             private readonly NeoWritePlan? plan;
             private readonly CandidateReplay? replay;
             private readonly ReplayDefaultGraph? defaults;
 
-            internal CommittedReadScope(NeoClient client, NeoWritePlan? plan, CandidateReplay? replay, ReplayDefaultGraph? defaults)
+            internal CommittedReadScope(NeoClient client)
             {
                 this.client = client;
-                this.plan = plan;
-                this.replay = replay;
-                this.defaults = defaults;
+                plan = client.candidateReadPlan;
+                replay = client.candidateReplay;
+                defaults = client.replayDefaultGraph;
             }
 
             public void Dispose()
