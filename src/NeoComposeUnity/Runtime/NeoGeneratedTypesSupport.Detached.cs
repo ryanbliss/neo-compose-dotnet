@@ -364,6 +364,7 @@ namespace NeoCompose.Runtime
                 finally
                 {
                     created.constructing = false;
+                    created.storedLists = null;
                 }
                 return created;
             }
@@ -489,7 +490,8 @@ namespace NeoCompose.Runtime
                     return false;
                 ReleaseDetachedSlot(target, index);
                 SetDetachedArray(target, index, copy);
-                (target.storedLists ??= new object?[target.SlotCount])[index] = entries;
+                if (target.constructing)
+                    (target.storedLists ??= new object?[target.SlotCount])[index] = entries;
                 target.MarkWritten(index);
                 return true;
             }

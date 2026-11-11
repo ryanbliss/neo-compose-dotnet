@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- A field or static declared `T Val = default` (or `default(T)`) holds null when `T` is bound to a class or collection type, as in C#, and a constructor body can then store its argument there: `new P<List<Cat>>(l).Val.Count` is 1. Before, constructing it failed with "'P.Val' is required and cannot store null."
+
 - A constructor body that stores a `List` argument holding class rows in a field, such as `Val = v` with a `List<Cat>` parameter, constructs again, and the caller's list and the field stay one list. It used to fail with "Constructed field 'v[0]' … is already owned".
 
 - NeoScript `is`, `as`, casts and function argument and return checks follow `IEnumerable<T>` and `IEnumerator<T>` variance, including nested sequences: a `List<List<Cat>>` is an `IEnumerable<IEnumerable<Pet>>`, while a value element such as `int` converts by identity only and `List<Cat>` is still not a `List<Pet>`. A reference type argument's `?` is ignored, so `Box<string?>` is `Box<string>`; `Box<int?>` and `Box<int>` stay distinct.

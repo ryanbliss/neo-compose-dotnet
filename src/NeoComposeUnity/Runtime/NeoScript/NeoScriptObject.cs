@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime.NeoScript
         internal ConstructorRecord? constructor;
         /// <summary>A declared constructor is still running, so a materialization may leave required members unset.</summary>
         internal bool constructing;
-        /// <summary>The local list each List slot was last stored from, so a constructor argument the body stored records as that field's row.</summary>
+        /// <summary>The local list each List slot was stored from during construction, so a constructor argument the body stored records as that field's row.</summary>
         internal object?[]? storedLists;
         internal readonly NeoScriptAllocationTracker tracker;
         internal readonly int trackerGeneration;

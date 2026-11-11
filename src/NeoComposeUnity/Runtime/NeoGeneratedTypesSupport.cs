@@ -4216,7 +4216,7 @@ namespace NeoCompose.Runtime
             {
                 ValidateConstructedRowShape(client, member, row, path, requireNonNull, env);
             }
-            else if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            else if (requireNonNull && RefusesNullRow(member, row))
             {
                 throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
@@ -4510,7 +4510,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema member '{member.id}' ({member.kind}).");
             }
-            if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            if (requireNonNull && RefusesNullRow(member, row))
             {
                 throw new InvalidOperationException(
                     $"Constructed required field '{path}' has a null value.");
@@ -6383,6 +6383,12 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>Whether a required slot refuses a null row. A null its initializer stored, such as `default` under a reference binding, stays (P127 §4.2).</summary>
+        private static bool RefusesNullRow(Member member, MemberValue row) =>
+            member.Requirement == NeoMemberRequirementKind.Required
+            && IsNullStoredValue(row)
+            && InitializerOf(member) is null;
+
         /// <summary>
         /// Completeness is asserted on the FINISHED instance because a declared
         /// constructor's body and its call site both write after the graph is
@@ -6429,7 +6435,7 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' pointing at missing value '{fieldId}'.");
                     }
-                    if (IsNullStoredValue(field))
+                    if (RefusesNullRow(member, field!))
                     {
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' null.");
@@ -8232,7 +8238,8 @@ namespace NeoCompose.Runtime
                 env,
                 path,
                 scope,
-                preserveOptionalNull: true));
+                preserveOptionalNull: true,
+                initializerDefault: true));
 
             string? Capture(string? id)
             {
@@ -8304,14 +8311,16 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
             TupleAssignment? tupleAssignment = null,
-            string? destinationId = null)
+            string? destinationId = null,
+            bool initializerDefault = false)
         {
             destinationId ??= tupleAssignment?.DestinationId;
             if (insertion?.Existing(member, runtimeValue, destinationId) is { } existing)
                 return existing;
             if (runtimeValue is null)
             {
-                if (member.Requirement == NeoMemberRequirementKind.Required)
+                // P127 §4.2. A type parameter's `default` stores null under a reference binding.
+                if (member.Requirement == NeoMemberRequirementKind.Required && !initializerDefault)
                 {
                     client.RequireStoredValue(member, null, path);
                 }
@@ -8400,7 +8409,8 @@ namespace NeoCompose.Runtime
                 path,
                 scope,
                 insertion, selections, member is TupleMember ? tupleAssignment : null,
-                member is TupleMember ? destinationId : null);
+                member is TupleMember ? destinationId : null,
+                initializerDefault);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -8445,7 +8455,8 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
             TupleAssignment? tupleAssignment = null,
-            string? destinationId = null)
+            string? destinationId = null,
+            bool initializerDefault = false)
         {
             destinationId ??= tupleAssignment?.DestinationId;
             NeoValuePayload? wrappedPayload = runtimeValue
@@ -8453,7 +8464,7 @@ namespace NeoCompose.Runtime
                     ? provider.ToNeoValuePayload()
                     : null;
             object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
-            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required)
+            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required && !initializerDefault)
             {
                 client.RequireStoredValue(member, null, path);
             }
