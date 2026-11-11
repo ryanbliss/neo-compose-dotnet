@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class MgcGen<T> : NeoGeneratedClassValue, IReadOnlyMgcGen<T>
     {
         internal MgcGen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3210a8d5-9c7f-4a74-b9bb-a13d57ae7ab2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c7161cca-3ffc-4270-8823-cfd1c93f26c6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static NeoDelegateValue Get()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c595f8ca-6d13-4320-8efb-b837a6ad466b", client.TypeArguments.Of<MgcGen<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1ff245ca-ce9c-42f2-bbfd-17823cdd08d1", client.TypeArguments.Of<MgcGen<T>>());
             var result = node.InvokeStatic();
             return (NeoDelegateValue)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3210a8d5-9c7f-4a74-b9bb-a13d57ae7ab2" => new MgcGen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "c7161cca-3ffc-4270-8823-cfd1c93f26c6" => new MgcGen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MgcGen' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "3210a8d5-9c7f-4a74-b9bb-a13d57ae7ab2" => new MgcGen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "c7161cca-3ffc-4270-8823-cfd1c93f26c6" => new MgcGen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MgcGen' without a concrete client type id."),
                 };
             });

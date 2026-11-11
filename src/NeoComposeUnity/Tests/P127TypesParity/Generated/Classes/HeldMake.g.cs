@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldMake : NeoGeneratedClassValue, IReadOnlyHeldMake
     {
         internal HeldMake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "cc9ed408-0250-47fd-9246-8355a2e17893", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4d72a9d7-9d15-43eb-9141-7bfa2ba5b06b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static INeoReadOnlySet<IReadOnlyCastCat> CatSet()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "58850e8d-ea33-4849-83f0-2ea96fc15661");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "15325ea9-1c6f-4b9e-8d4b-b2e13443529d");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptSet<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyList<IReadOnlyCastCat> Cats()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e184a8cf-a0da-41e6-9cf6-94da0a95af8b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "28c92169-5c86-4333-8236-1ba7f4650585");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyList<IReadOnlyCastCat> Group()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0fea1890-0ea4-44f3-8d97-36fd176d85c0");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8e548f31-6b32-4c85-8c3a-b61ee88ad003");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyDictionary<string, IReadOnlyCastCat> ToDictionary()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "07956e78-efaf-483b-ae60-d3fbdbcd7823");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d9fc0c86-5c12-4bc0-9288-82da525e9426");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptDictionary<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyList<IReadOnlyCastCat> ToList()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0863e40f-1c04-4486-bb81-9aadd15d7194");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "63914896-782a-4edf-aea8-4bb8f936b2c5");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptList<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static INeoReadOnlySet<IReadOnlyCastCat> ToSet()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1a8fb0c5-3040-481e-8eed-0554123bc4d8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8c716bcc-baff-4300-89e5-df622cb367fc");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptSet<IReadOnlyCastCat>(result, resultEntry => { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, resultEntry, false, static (factoryClient, factoryNode) => CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)); });
         }
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "cc9ed408-0250-47fd-9246-8355a2e17893");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4d72a9d7-9d15-43eb-9141-7bfa2ba5b06b");
         }
 
         internal static HeldMake Create(NeoClient client, NeoMemberClass node)

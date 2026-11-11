@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class GS<T> : NeoGeneratedClassValue, IReadOnlyGS<T> where T : IParse<T>
     {
         internal GS(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c7c82508-8f8d-44df-8352-f1a52c31e271", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e61646fc-6df1-4e91-821b-6ca5f99aaaa8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b2d957e4-628b-4104-a55f-0d1430654817", NeoValueOwnership.Session, client.TypeArguments.Of<GS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9130b8e9-ecb6-4557-909d-21a0a81f4fcc", NeoValueOwnership.Session, client.TypeArguments.Of<GS<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'P' has no value.");
             }
@@ -43,7 +43,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d2fe6d86-87bc-4639-adcc-947c75285346", NeoValueOwnership.Session, client.TypeArguments.Of<GS<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "278bfea6-384e-456d-9c83-c27cf39c5112", NeoValueOwnership.Session, client.TypeArguments.Of<GS<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Q' has no value.");
             }
@@ -56,7 +56,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c7c82508-8f8d-44df-8352-f1a52c31e271" => new GS<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e61646fc-6df1-4e91-821b-6ca5f99aaaa8" => new GS<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GS' without a concrete client type id."),
                 };
             });
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c7c82508-8f8d-44df-8352-f1a52c31e271" => new GS<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e61646fc-6df1-4e91-821b-6ca5f99aaaa8" => new GS<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GS' without a concrete client type id."),
                 };
             });

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class DorDSt : NeoGeneratedClassValue, IReadOnlyDorDSt
     {
         internal DorDSt(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "782a6bd2-2cc7-4606-bbfc-e7cdc191c9a2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4c30f839-c337-41ca-b6f5-c7e1f1f81cad", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b809f0c7-c98e-4c74-a38b-083babefa1ea", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d3216bee-5fbe-47c4-b598-bf62b60e6792", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a746a865-8bb3-4850-9c8f-66b212688fc0", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "37c627f1-cd06-4c21-a3b5-f173a5fb9b44", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<int>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "782a6bd2-2cc7-4606-bbfc-e7cdc191c9a2");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4c30f839-c337-41ca-b6f5-c7e1f1f81cad");
         }
 
         internal static DorDSt Create(NeoClient client, NeoMemberClass node)

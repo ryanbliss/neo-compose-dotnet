@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R3SetTake : NeoGeneratedClassValue, IReadOnlyR3SetTake
     {
         internal R3SetTake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "38c269ae-3362-4405-a822-0947d1b7cc01", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f37096ad-c3a7-482e-85aa-84c9a124774c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public R3SetTake(INeoReadOnlySet<object> item)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "38c269ae-3362-4405-a822-0947d1b7cc01", "3eb9c56c-567b-45a8-b29a-aa13a2e0e8e9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "f37096ad-c3a7-482e-85aa-84c9a124774c", "4921ddc6-918e-4651-90b3-d2af51166763", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
         {
         }
 
         public R3SetTake()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "38c269ae-3362-4405-a822-0947d1b7cc01", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "f37096ad-c3a7-482e-85aa-84c9a124774c", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

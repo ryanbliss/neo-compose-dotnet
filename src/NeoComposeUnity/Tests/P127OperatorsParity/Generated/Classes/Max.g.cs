@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Max<T> : NeoGeneratedClassValue, IReadOnlyMax<T>
     {
         internal Max(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6f72ba14-360a-438e-9887-a3b006390fbc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b81d4f4c-5c1b-4602-800c-e4be73bc5ed7", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static T Clamp(T v, T lo, T hi)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f2b471c3-e5a4-4577-9bd8-69ea2d7fb876", client.TypeArguments.Of<Max<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f34bcd01-326a-4e6e-82f1-8200373bb30c", client.TypeArguments.Of<Max<T>>());
             var result = node.InvokeStatic(v, lo, hi);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T Of(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "158471d3-a482-4bb2-8096-e0620e05851b", client.TypeArguments.Of<Max<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "dfdc653a-5503-4ff3-9fd5-b8520d0e6976", client.TypeArguments.Of<Max<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int Sign(T v)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5a30e4bd-537d-4623-99f5-deb4e54c2a8d", client.TypeArguments.Of<Max<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d349c20f-0a25-465c-bc49-681d5b348c8f", client.TypeArguments.Of<Max<T>>());
             var result = node.InvokeStatic((object?)(v));
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6f72ba14-360a-438e-9887-a3b006390fbc" => new Max<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b81d4f4c-5c1b-4602-800c-e4be73bc5ed7" => new Max<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Max' without a concrete client type id."),
                 };
             });
@@ -71,7 +71,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6f72ba14-360a-438e-9887-a3b006390fbc" => new Max<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b81d4f4c-5c1b-4602-800c-e4be73bc5ed7" => new Max<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Max' without a concrete client type id."),
                 };
             });

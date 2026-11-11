@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OrderingParity
     public partial class N : NeoGeneratedClassValue, IReadOnlyN
     {
         internal N(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d34be26b-033a-488d-92e8-abedd435c823", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "452b6a52-bff9-4d21-b831-839905cdc0a5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127OrderingParity
         }
 
         public N(int v)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "d34be26b-033a-488d-92e8-abedd435c823", "c3cf846f-4a6e-406e-9b4e-ab73a86506ff", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "452b6a52-bff9-4d21-b831-839905cdc0a5", "8b328a27-f980-4256-88d1-9caf5c5bb4ea", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }), false, NeoValueOwnership.Session)
         {
         }
 
         public N()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "d34be26b-033a-488d-92e8-abedd435c823", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "452b6a52-bff9-4d21-b831-839905cdc0a5", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

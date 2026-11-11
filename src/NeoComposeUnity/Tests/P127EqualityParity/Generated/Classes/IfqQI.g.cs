@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class IfqQI : NeoGeneratedClassValue, IReadOnlyIfqQI
     {
         internal IfqQI(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6f1352f7-8b20-4f4b-ba2c-b0812553e1a6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "65b73966-54b0-4a60-86c2-2ce4c7d4de33", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,12 +41,12 @@ namespace NeoCompose.Tests.P127EqualityParity
         }
 
         public IfqQI(int v, int i)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6f1352f7-8b20-4f4b-ba2c-b0812553e1a6", "91f6c81e-5fa1-4a64-ac94-ba97c105f198", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("i", i) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "65b73966-54b0-4a60-86c2-2ce4c7d4de33", "8311961b-7ca0-457e-aae6-089b29407df0", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("i", i) }), false, NeoValueOwnership.Session)
         {
         }
 
         public IfqQI()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6f1352f7-8b20-4f4b-ba2c-b0812553e1a6", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "65b73966-54b0-4a60-86c2-2ce4c7d4de33", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

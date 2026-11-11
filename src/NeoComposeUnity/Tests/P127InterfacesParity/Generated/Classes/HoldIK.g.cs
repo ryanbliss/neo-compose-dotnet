@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class HoldIK : NeoGeneratedClassValue, IReadOnlyHoldIK
     {
         internal HoldIK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "766d747a-6d60-4b99-9b37-65a93ea88023", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "94145dce-cd89-49e9-a9f6-6c79e06b15a2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         public HoldIK(string n)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "766d747a-6d60-4b99-9b37-65a93ea88023", "70a6689c-769c-44b3-bec9-21bd108ac02b", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "94145dce-cd89-49e9-a9f6-6c79e06b15a2", "cb5a9b8b-beec-4341-8535-1c9a8e59354f", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("n", n) }), false, NeoValueOwnership.Session)
         {
         }
 
         public HoldIK()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "766d747a-6d60-4b99-9b37-65a93ea88023", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "94145dce-cd89-49e9-a9f6-6c79e06b15a2", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ReflectionBase<U> : NeoGeneratedClassValue, IReadOnlyReflectionBase<U>
     {
         internal ReflectionBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "92a05264-1449-4316-aac0-0355f425e8d8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "db66b5d0-4e85-4af4-b230-39a2a852434a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "92a05264-1449-4316-aac0-0355f425e8d8" => new ReflectionBase<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "db66b5d0-4e85-4af4-b230-39a2a852434a" => new ReflectionBase<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionBase' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "92a05264-1449-4316-aac0-0355f425e8d8" => new ReflectionBase<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "db66b5d0-4e85-4af4-b230-39a2a852434a" => new ReflectionBase<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ReflectionBase' without a concrete client type id."),
                 };
             });

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R4TupleListBoxesTake : NeoGeneratedClassValue, IReadOnlyR4TupleListBoxesTake
     {
         internal R4TupleListBoxesTake(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "21d4af1c-5fab-4f5b-b1b8-638944dfa9fd", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3b94b7cb-b7a0-4ae6-bc5a-4b2270bcc6c4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public R4TupleListBoxesTake((IReadOnlyList<object>, int) item)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "21d4af1c-5fab-4f5b-b1b8-638944dfa9fd", "0bc75ad4-fd32-43ff-a02a-716db38c679d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "3b94b7cb-b7a0-4ae6-bc5a-4b2270bcc6c4", "b50b6bbf-e90e-4919-8980-2870114ed601", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("item", item) }), false, NeoValueOwnership.Session)
         {
         }
 
         public R4TupleListBoxesTake()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "21d4af1c-5fab-4f5b-b1b8-638944dfa9fd", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "3b94b7cb-b7a0-4ae6-bc5a-4b2270bcc6c4", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 

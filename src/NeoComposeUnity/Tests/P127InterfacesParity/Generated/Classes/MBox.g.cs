@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class MBox<T> : NeoGeneratedClassValue, IReadOnlyMBox<T>
     {
         internal MBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8d84e244-8b36-4fc3-bd54-35a6ad7ca44a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b680d8b0-8bfe-4502-87e0-1d313b56adfa", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "adec8b76-3dc6-44c1-a8fb-a585d067b974", NeoValueOwnership.Session, client.TypeArguments.Of<MBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "452c1da6-7c1b-40b7-9448-e3bb8d9e0ca8", NeoValueOwnership.Session, client.TypeArguments.Of<MBox<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Count' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "adec8b76-3dc6-44c1-a8fb-a585d067b974", NeoValueOwnership.Session, client.TypeArguments.Of<MBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "452c1da6-7c1b-40b7-9448-e3bb8d9e0ca8", NeoValueOwnership.Session, client.TypeArguments.Of<MBox<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static NeoDelegateValue Group()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cbb13adc-63b8-4c87-8ff6-d336c064fc6e", client.TypeArguments.Of<MBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d9d0534a-10f8-4769-bbdd-05e909e8d430", client.TypeArguments.Of<MBox<T>>());
             var result = node.InvokeStatic();
             return (NeoDelegateValue)result!;
         }
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static int Make()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5b1a2d32-dabb-47b1-a546-97311a3a2f3e", client.TypeArguments.Of<MBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b658dc85-a351-4944-95bb-68b50fd86b38", client.TypeArguments.Of<MBox<T>>());
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -63,7 +63,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static string Name()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c10affb1-f932-48f5-8377-7c1a2aba0947", client.TypeArguments.Of<MBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2976c869-779a-4034-81ee-6562300dea35", client.TypeArguments.Of<MBox<T>>());
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -71,7 +71,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static NeoDelegateValue Namer()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f24c21e7-8b9c-4ba9-bf46-c350e3e8a017", client.TypeArguments.Of<MBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b5cd172c-782a-40e0-bfb5-5b63874590d0", client.TypeArguments.Of<MBox<T>>());
             var result = node.InvokeStatic();
             return (NeoDelegateValue)result!;
         }
@@ -83,8 +83,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4381d4d3-4ed7-4f95-84e5-de4686042af5" => (MBox<T>)(object)new MD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "8d84e244-8b36-4fc3-bd54-35a6ad7ca44a" => new MBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fbc5f077-405b-48c1-9b1a-6f726d1bd57a" => (MBox<T>)(object)new MD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b680d8b0-8bfe-4502-87e0-1d313b56adfa" => new MBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MBox' without a concrete client type id."),
                 };
             });
@@ -97,8 +97,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4381d4d3-4ed7-4f95-84e5-de4686042af5" => (MBox<T>)(object)new MD(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "8d84e244-8b36-4fc3-bd54-35a6ad7ca44a" => new MBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fbc5f077-405b-48c1-9b1a-6f726d1bd57a" => (MBox<T>)(object)new MD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b680d8b0-8bfe-4502-87e0-1d313b56adfa" => new MBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MBox' without a concrete client type id."),
                 };
             });

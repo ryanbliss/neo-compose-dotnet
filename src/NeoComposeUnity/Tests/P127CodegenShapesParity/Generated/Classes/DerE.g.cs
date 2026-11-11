@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1cd51c9d-721e-4d18-88c4-bb3e62c3898a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1cde0693-4e14-4750-bfac-24ec958d4af2");
         }
 
         internal new static DerE Create(NeoClient client, NeoMemberClass node)
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         bool global::System.IEquatable<DerE>.Equals(DerE otherArgument)
         {
             var other = (IReadOnlyDerE?)(object)otherArgument!;
-            var result = InvokeFunction("Equals#8ee4738f-bcab-4e79-b2cc-8f9cd95899d3", (object?)(other));
+            var result = InvokeFunction("Equals#5a4a8f8c-5495-4407-ac90-5fd09c1eec51", (object?)(other));
             return (bool)result!;
         }
 

@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "ad4bae73-8bfb-4364-8157-a5afa0c708a4", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8I<R27O8D1>>(), "ad4bae73-8bfb-4364-8157-a5afa0c708a4", client.TypeArguments.Of<IR27O8I<R27O8D1>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "9410f6b9-fe2c-4cfb-b06b-50de59c09cdb", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O8I<R27O8D1>>(), "9410f6b9-fe2c-4cfb-b06b-50de59c09cdb", client.TypeArguments.Of<IR27O8I<R27O8D1>>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b88717c0-5d37-461f-86cf-a7b862275760" => new R27O8Wi2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4ad786a7-cb78-4c0e-b5f2-b6e6d9f68231" => new R27O8Wi2<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8Wi2' without a concrete client type id."),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b88717c0-5d37-461f-86cf-a7b862275760" => new R27O8Wi2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4ad786a7-cb78-4c0e-b5f2-b6e6d9f68231" => new R27O8Wi2<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R27O8Wi2' without a concrete client type id."),
                 };
             });

@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class AddOf<T> : NeoGeneratedClassValue, IReadOnlyAddOf<T>
     {
         internal AddOf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "532a0e02-cbbf-406b-adaa-52488fe66caa", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a6f376f9-934e-40d5-95fd-6ac62135d7cd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static bool L(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a73d61ac-5787-4d83-8822-a844135f5f7d", client.TypeArguments.Of<AddOf<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2619715a-7642-44c5-b24b-d88caf4c8d89", client.TypeArguments.Of<AddOf<T>>());
             var result = node.InvokeStatic(a, b);
             return (bool)result!;
         }
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static T S(T a, T b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f0dd7935-96af-4ba4-86b2-57c094650da1", client.TypeArguments.Of<AddOf<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b89413fc-83cb-469e-a360-0c7948ab66df", client.TypeArguments.Of<AddOf<T>>());
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "532a0e02-cbbf-406b-adaa-52488fe66caa" => new AddOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a6f376f9-934e-40d5-95fd-6ac62135d7cd" => new AddOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'AddOf' without a concrete client type id."),
                 };
             });
@@ -63,7 +63,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "532a0e02-cbbf-406b-adaa-52488fe66caa" => new AddOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a6f376f9-934e-40d5-95fd-6ac62135d7cd" => new AddOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'AddOf' without a concrete client type id."),
                 };
             });
