@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     public partial class Counting : NeoGeneratedClassValue, IReadOnlyCounting
     {
         internal Counting(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9d276ecc-7d1e-489b-887c-d2f8b05553f6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fdf73dc6-6e8f-44bf-b26d-397f2b325b1f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,9 +50,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "9d276ecc-7d1e-489b-887c-d2f8b05553f6",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "1f6b2b8b-c6d7-4d87-814d-bb6d93307862", Calls),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Answer", "534f4070-0a20-42cb-921c-98cb90231161", Answer)
+                "fdf73dc6-6e8f-44bf-b26d-397f2b325b1f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "f93fdf8d-00f2-4d17-bc93-c7117225f09e", Calls),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Answer", "ba439558-dfcf-402c-9e4f-1b91e5993378", Answer)
             );
         }
 
@@ -113,6 +113,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             }
             set
             {
+                ThrowIfReadOnly("Counting.Answer");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Answer", NeoGeneratedTypesSupport.ObjectValue(client, writableNode.Get<NeoMemberObject>("Answer"), value));
             }
         }
@@ -129,6 +130,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             }
             set
             {
+                ThrowIfReadOnly("Counting.Calls");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Calls", NeoGeneratedTypesSupport.Value(value));
             }
         }

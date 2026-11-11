@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d19702e5-4908-4f7d-8f91-46ef9ab4e66a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3e64e12a-4b3c-4c77-9863-d3d08cf57cc2");
         }
 
         internal new static CastDog Create(NeoClient client, NeoMemberClass node)

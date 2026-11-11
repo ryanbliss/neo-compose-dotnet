@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R26YK : NeoGeneratedClassValue, IReadOnlyR26YK
     {
         internal R26YK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "55acca30-8447-455a-8a76-32c113739922", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e85ce356-9e1b-4da8-9895-98cd240589a8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "55acca30-8447-455a-8a76-32c113739922");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e85ce356-9e1b-4da8-9895-98cd240589a8");
         }
 
         internal static R26YK Create(NeoClient client, NeoMemberClass node)

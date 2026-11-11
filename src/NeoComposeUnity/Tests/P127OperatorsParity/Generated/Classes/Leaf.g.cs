@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a0c7b26c-8568-4454-9781-645116be3730");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5c1a7fab-68a3-445d-9177-d96c2d95b0ac");
         }
 
         internal new static Leaf Create(NeoClient client, NeoMemberClass node)

@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f81ac71d-9a71-46a8-aa17-b6e0aabe101b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0854e849-4291-450a-801f-ecce90e3e540");
         }
 
         internal new static R22Q1n Create(NeoClient client, NeoMemberClass node)
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#c1238f18-3b05-4bc5-90d5-f351fc53cd78");
+                var result = ComputeProperty("V#f2ce2958-556b-490c-b375-cca866fde85a");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#c1238f18-3b05-4bc5-90d5-f351fc53cd78");
+                var result = ComputeProperty("V#f2ce2958-556b-490c-b375-cca866fde85a");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0d9fa22e-0fdd-4213-8fd9-ef09e4a04112" => new GDE<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d4588601-48f9-4830-9f86-7901b7fb205b" => new GDE<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GDE' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0d9fa22e-0fdd-4213-8fd9-ef09e4a04112" => new GDE<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d4588601-48f9-4830-9f86-7901b7fb205b" => new GDE<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GDE' without a concrete client type id."),
                 };
             });
@@ -76,14 +76,14 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         int global::System.IComparable<GDE<T>>.CompareTo(GDE<T> otherArgument)
         {
             var o = (IReadOnlyGDE<T>?)(object)otherArgument!;
-            var result = InvokeFunction("CompareTo#36175710-4dd9-4cf4-ad8c-afd3cb404194", (object?)(o));
+            var result = InvokeFunction("CompareTo#b5b18e1d-e587-4d90-b9c1-53788833f7dd", (object?)(o));
             return Convert.ToInt32(result);
         }
 
         int IX<GDE<T>>.X(GDE<T> oArgument)
         {
             var o = (IReadOnlyGDE<T>)(object)oArgument!;
-            var result = InvokeFunction("X#f42f38c9-d7b7-4125-9b23-69d5fd667611", (object?)(o));
+            var result = InvokeFunction("X#3691f528-0563-464c-bc10-30e4a6984051", (object?)(o));
             return Convert.ToInt32(result);
         }
 

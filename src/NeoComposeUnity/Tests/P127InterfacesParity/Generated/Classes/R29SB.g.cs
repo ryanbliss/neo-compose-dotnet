@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R29SB<T> : NeoGeneratedClassValue, IReadOnlyR29SB<T>
     {
         internal R29SB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6255a58f-8714-42ac-b71c-45a458566ca5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4dff5340-2c9b-4130-8c39-64db202ff25a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bcad83e9-fde6-4b04-ad82-5ceca257dbda" => (R29SB<T>)(object)new R29PB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "6255a58f-8714-42ac-b71c-45a458566ca5" => new R29SB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5fe3a0fc-573f-4757-9645-6d4b83923b83" => (R29SB<T>)(object)new R29PB(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4dff5340-2c9b-4130-8c39-64db202ff25a" => new R29SB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29SB' without a concrete client type id."),
                 };
             });
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bcad83e9-fde6-4b04-ad82-5ceca257dbda" => (R29SB<T>)(object)new R29PB(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "6255a58f-8714-42ac-b71c-45a458566ca5" => new R29SB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5fe3a0fc-573f-4757-9645-6d4b83923b83" => (R29SB<T>)(object)new R29PB(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4dff5340-2c9b-4130-8c39-64db202ff25a" => new R29SB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29SB' without a concrete client type id."),
                 };
             });

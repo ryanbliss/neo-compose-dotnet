@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class C3 : NeoGeneratedClassValue, IReadOnlyC3
     {
         internal C3(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b28f2bc1-faa3-4f79-bff5-b30ccfff7b30", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cd6d59c0-f7cc-4b4f-9afd-7601d8a7c059", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b28f2bc1-faa3-4f79-bff5-b30ccfff7b30");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "cd6d59c0-f7cc-4b4f-9afd-7601d8a7c059");
         }
 
         internal static C3 Create(NeoClient client, NeoMemberClass node)

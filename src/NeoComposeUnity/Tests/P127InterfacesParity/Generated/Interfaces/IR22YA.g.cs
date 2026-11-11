@@ -18,20 +18,20 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "947eefd3-f7cf-4917-9165-2f74b0a5a341", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22YI<T>>(), "848ffc31-8a62-4785-a4a4-bc0288df72c1", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "3c699d71-b05e-48c6-8bcc-4f0472d1fcfa", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22YI<T>>(), "8c1ac7e1-afb8-4b4d-a66d-c4bfe606d1a9", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }
         string IR22YI<T>.M()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d7e6180a-4358-40df-aac0-a4d58f5d1992", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22YI<T>>(), "b8260911-e5fc-4c2f-b312-7fb01a90f9da", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "df032e52-b82b-4b28-b6ab-620e51c3cfb8", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22YI<T>>(), "3bfb0bb6-b3d6-406a-9250-9eec8690f232", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
             return (string)result!;
         }
         string IR22YI<T>.G<X>()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "356d3919-af0e-4b35-adf0-0e2cc9a7fba7", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22YI<T>>(), "bce4e9cd-455d-41c4-a4c8-f8c1746c2a09", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "bb416d65-5d34-467f-9495-477723cbd970", NeoInterfaceBody.Function, client.TypeArguments.Of<IR22YI<T>>(), "a926e725-ac30-4b08-a5d9-15837c272c28", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
             return (string)result!;
         }
         string IR22YI<T>.P
@@ -39,13 +39,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2ebd9096-828d-4461-98b1-e3b8e82ba12f", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22YI<T>>(), "10bc3b01-1ac3-4045-93bb-27f2c27353da", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "5b146419-75e1-4069-ab8e-7761c5f03d13", NeoInterfaceBody.Get, client.TypeArguments.Of<IR22YI<T>>(), "896166c4-7f63-49bc-8af1-cd31268e6e8b", client.TypeArguments.Of<IR22YA<T, U>>(), Array.Empty<object?>());
                 return (string)result!;
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2ebd9096-828d-4461-98b1-e3b8e82ba12f", NeoInterfaceBody.Set, client.TypeArguments.Of<IR22YI<T>>(), "10bc3b01-1ac3-4045-93bb-27f2c27353da", client.TypeArguments.Of<IR22YA<T, U>>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "5b146419-75e1-4069-ab8e-7761c5f03d13", NeoInterfaceBody.Set, client.TypeArguments.Of<IR22YI<T>>(), "896166c4-7f63-49bc-8af1-cd31268e6e8b", client.TypeArguments.Of<IR22YA<T, U>>(), new object?[] { value });
             }
         }
     }

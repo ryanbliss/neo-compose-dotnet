@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class McGb : NeoGeneratedClassValue, IReadOnlyMcGb
     {
         internal McGb(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1e32530f-5f03-4303-9ce0-1601697e1e22", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "19100761-abbd-46bf-8607-f5f6a29d4915", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1e32530f-5f03-4303-9ce0-1601697e1e22");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "19100761-abbd-46bf-8607-f5f6a29d4915");
         }
 
         internal static McGb Create(NeoClient client, NeoMemberClass node)
@@ -96,25 +96,25 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         int IMcGet<int>.Get()
         {
-            var result = InvokeFunction("Get#a139cf5a-f5dc-464c-9c05-2c3383e4ac9e");
+            var result = InvokeFunction("Get#3614893a-4296-40f7-8d21-1d45681363d0");
             return Convert.ToInt32(result);
         }
 
         string IMcGet<string>.Get()
         {
-            var result = InvokeFunction("Get#49c4bd3b-acdb-496a-9806-db48f783d278");
+            var result = InvokeFunction("Get#7c67438b-3145-4d04-9ae3-f777ef843edb");
             return (string)result!;
         }
 
         int IMcSet<int>.Set(int v)
         {
-            var result = InvokeFunction("Set#faa59ac8-4805-47bd-976d-0c36c63836b5", (object?)(v));
+            var result = InvokeFunction("Set#8a8ade7c-9195-4bfd-974a-34b8fe1bbce0", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         int IMcSet<string>.Set(string v)
         {
-            var result = InvokeFunction("Set#ed8e78e7-1f6c-44d6-b14e-c8b3a93eab18", (object?)(v));
+            var result = InvokeFunction("Set#28337501-570b-4938-b38f-39ce35e54c7b", (object?)(v));
             return Convert.ToInt32(result);
         }
 
