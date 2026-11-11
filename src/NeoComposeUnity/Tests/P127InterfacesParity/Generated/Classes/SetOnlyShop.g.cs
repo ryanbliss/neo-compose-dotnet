@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class SetOnlyShop : NeoGeneratedClassValue, IReadOnlySetOnlyShop
     {
         internal SetOnlyShop(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c5d15d88-0b2b-498d-9a67-f2e4bfea32c1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "59024d15-d609-4956-89d6-0615b793f057", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,11 +48,11 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c5d15d88-0b2b-498d-9a67-f2e4bfea32c1",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "5925dae2-73a2-4995-969c-2138bde69175", W),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Trigger", "ab6d112c-83dd-4aa2-9c12-298866bd1991", Trigger),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seen", "edc32b2a-2a56-4c8a-8b63-e175d514963d", Seen),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "79c8b47d-df45-4ef4-8cfe-9c5e52e19d2d", Values)
+                "59024d15-d609-4956-89d6-0615b793f057",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "5bf4cc7e-a0ca-41f6-aed9-20e401c708f6", W),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Trigger", "5cf1b3ff-c0bd-45bc-9d2d-58c1b0f4a24b", Trigger),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seen", "d0bcbad7-e017-4f12-b617-1f71b74b8e94", Seen),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "982d1804-0abf-4c44-9381-1dc4e881edea", Values)
             );
         }
 

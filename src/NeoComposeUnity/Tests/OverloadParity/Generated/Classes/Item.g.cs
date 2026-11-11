@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.OverloadParity
     public partial class Item : NeoGeneratedClassValue, IReadOnlyItem
     {
         internal Item(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d6140112-0283-45be-8dfb-d36c9c273925", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f8c4946c-dc33-4caf-a050-5d716e891175", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "d6140112-0283-45be-8dfb-d36c9c273925",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "52963e6a-814c-4b69-99d0-4825f3b65e97", Name)
+                "f8c4946c-dc33-4caf-a050-5d716e891175",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "5f4bb58d-2877-4106-bb43-43a6d0ea82d3", Name)
             );
         }
 

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class CpzProbe : NeoGeneratedClassValue, IReadOnlyCpzProbe
     {
         internal CpzProbe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "387fb78b-6dc7-48dd-ac9b-1518875c9e61", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e6ce581d-94ef-4b4d-bf74-4319a9f30fc6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetCopyComparerProp()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5e83c515-cec9-4d58-8bf0-5a7d8ff12cd5");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "389e320e-dff6-4b20-8cbf-c27d3847a6e1");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetCopyCreate()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a5532d98-221f-42f7-97c5-17043bee2afe");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9a02cc24-f3b7-40ec-8a92-20729e9683f2");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "387fb78b-6dc7-48dd-ac9b-1518875c9e61");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e6ce581d-94ef-4b4d-bf74-4319a9f30fc6");
         }
 
         internal static CpzProbe Create(NeoClient client, NeoMemberClass node)

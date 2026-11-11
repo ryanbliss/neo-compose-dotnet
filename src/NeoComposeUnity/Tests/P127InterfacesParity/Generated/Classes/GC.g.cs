@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GC : NeoGeneratedClassValue, IReadOnlyGC
     {
         internal GC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ff9cdb33-f20d-48a4-88d1-b77646d0f8fd", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3a163a1c-3bad-4a40-8285-ac9b9f0ff371", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ff9cdb33-f20d-48a4-88d1-b77646d0f8fd");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "3a163a1c-3bad-4a40-8285-ac9b9f0ff371");
         }
 
         internal static GC Create(NeoClient client, NeoMemberClass node)

@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R24OC0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "20f6732d-1928-4041-9419-8ae4649ccb81", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d3445b8a-c179-420a-923a-8c0d96af43ad", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "20f6732d-1928-4041-9419-8ae4649ccb81" => new R24OC0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d3445b8a-c179-420a-923a-8c0d96af43ad" => new R24OC0<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24OC0' without a concrete client type id."),
                 };
             });
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "20f6732d-1928-4041-9419-8ae4649ccb81" => new R24OC0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d3445b8a-c179-420a-923a-8c0d96af43ad" => new R24OC0<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24OC0' without a concrete client type id."),
                 };
             });
@@ -82,7 +82,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#50683f0d-788b-4865-90ca-bd2827f25d77");
+                var result = ComputeProperty("V#3c8f00b7-0fad-4056-babe-3901d3a85ee3");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class HoldPK : NeoGeneratedClassValue, IReadOnlyHoldPK
     {
         internal HoldPK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "5fece827-de63-4ee1-9f12-15a78dc0b48a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b8554132-3515-4af1-952a-308fec660806", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "5fece827-de63-4ee1-9f12-15a78dc0b48a",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "f561a074-b25c-462f-912e-da26c01a5aa6", V)
+                "b8554132-3515-4af1-952a-308fec660806",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "3bcbeaf3-a67f-4840-bef5-05e16a1701fb", V)
             );
         }
 

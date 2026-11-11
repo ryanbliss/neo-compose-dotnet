@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
         internal Player(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a322218f-9dbb-40b6-8ba5-d8f205f920a5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4f18a255-bdaf-4d69-bb64-595c0c07063e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -71,17 +71,17 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "a322218f-9dbb-40b6-8ba5-d8f205f920a5",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "2cd1173a-5a67-44ca-a980-7d00b9308b28", Pouch),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "0b3772a9-91b8-48ce-b941-a57987e161d5", Racks),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "3c272381-5773-41ec-968c-fcc7c2c2e7be", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "faccdda6-56fa-4951-86b3-ccdd3e5e90d2", Boxed),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "af032da4-7fcb-4b1b-b256-652f950f88ea", Favorite),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "19639958-e169-414c-9c4b-3231fe373863", SeedShelf),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "e02c9ee4-366e-41bc-9353-024c7855537f", Tools),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ToolFrames", "349f9e77-64de-4ea1-bbc2-321f6aeab741", ToolFrames),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorFrames", "d5bf2a30-2675-4603-aebf-9fd8277ab747", VectorFrames),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "8243d05a-6676-41c0-b5c0-c9ce364681dc", Sack)
+                "4f18a255-bdaf-4d69-bb64-595c0c07063e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pouch", "ebb559e3-ad6a-4449-a579-ab6802fd3a27", Pouch),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Racks", "2aba777c-69d3-4117-a334-2129e4752753", Racks),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "afd0f96f-f07f-4385-a298-ebf2b200d566", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Boxed", "d2f9202c-63e1-42fa-9300-40dd1eb9e1f0", Boxed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Favorite", "718b402a-d3f9-4b6b-8d1f-906ca3289f97", Favorite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SeedShelf", "f839520b-45e4-4508-b591-843697c1481f", SeedShelf),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tools", "7517d226-957e-4d50-b5e0-7d65e146e73e", Tools),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ToolFrames", "3add2e6c-5f4e-43d8-b26f-b16c08c51a6c", ToolFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VectorFrames", "359e60f9-fd6c-43e3-906c-5a88cd75a9f1", VectorFrames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sack", "2e6bb20a-5bd3-4cd1-a924-8504e8897169", Sack)
             );
         }
 

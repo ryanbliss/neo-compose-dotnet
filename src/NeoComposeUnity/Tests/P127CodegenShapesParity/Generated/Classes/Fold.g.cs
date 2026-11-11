@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Fold : NeoGeneratedClassValue, IReadOnlyFold
     {
         internal Fold(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0fe58515-418d-4fc6-80e3-a4f838882471", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "26e7deef-670c-44c8-b190-2379de75e54f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0fe58515-418d-4fc6-80e3-a4f838882471");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "26e7deef-670c-44c8-b190-2379de75e54f");
         }
 
         internal static Fold Create(NeoClient client, NeoMemberClass node)
