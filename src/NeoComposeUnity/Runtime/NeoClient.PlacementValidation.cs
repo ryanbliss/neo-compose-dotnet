@@ -440,6 +440,7 @@ namespace NeoCompose.Runtime
             // Each array parent's member, which every child's edge asks for.
             internal readonly Dictionary<string, Member?> arrayMembers = new(StringComparer.Ordinal);
             internal readonly List<NeoValidatedObjectRefresh> refreshes = new();
+            internal readonly List<ObjectCellConflict> objectConflicts = new();
             internal bool inUse;
 
             internal void Clear()
@@ -456,6 +457,25 @@ namespace NeoCompose.Runtime
                 children.Clear();
                 arrayMembers.Clear();
                 refreshes.Clear();
+                objectConflicts.Clear();
+            }
+        }
+
+        private readonly struct ObjectCellConflict
+        {
+            internal readonly string GridId;
+            internal readonly string LayerId;
+            internal readonly Vector2Int Cell;
+            internal readonly NeoObjectPlacementRecord First;
+            internal readonly NeoObjectPlacementRecord Second;
+
+            internal ObjectCellConflict(string gridId, string layerId, Vector2Int cell, NeoObjectPlacementRecord first, NeoObjectPlacementRecord second)
+            {
+                GridId = gridId;
+                LayerId = layerId;
+                Cell = cell;
+                First = first;
+                Second = second;
             }
         }
 
@@ -612,7 +632,7 @@ namespace NeoCompose.Runtime
             foreach (string gridId in grids)
             {
                 var candidate = NeoReadOnlyTileGridPrimitive.Resolve(this, gridId);
-                candidate.RetainPlacementGraph = true;
+                candidate.PlacementGraphRetention = NeoPlacementGraphRetention.Scoped;
                 primitives[gridId] = candidate;
             }
             using (ReadCandidate(plan))
@@ -633,8 +653,63 @@ namespace NeoCompose.Runtime
                 using var gridSample = ValidateGridMarker.Auto();
 #endif
                 foreach (string gridId in grids)
-                    ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers);
+                    ValidateGridPlacements(plan, gridId, primitives[gridId], compatibleLayers, scratch.objectConflicts);
             }
+            RejectIntroducedObjectConflicts(scratch.objectConflicts);
+        }
+
+        /// <summary>
+        /// Rejects the write for an occupied cell it introduced. A conflict
+        /// between two objects that both place exactly as they did before the
+        /// write, under the same parent and link, such as stacked objects a
+        /// save loaded, belongs to no write, so it must not fail every later
+        /// one. The baseline is rebuilt from committed rows, never from a
+        /// cache a candidate read could have seeded, and only when a conflict
+        /// exists.
+        /// </summary>
+        private void RejectIntroducedObjectConflicts(List<ObjectCellConflict> conflicts)
+        {
+            if (conflicts.Count == 0)
+                return;
+            var committedLayers = new Dictionary<(string gridId, string layerId), Dictionary<string, NeoObjectPlacementRecord>>();
+            foreach (ObjectCellConflict conflict in conflicts)
+            {
+                var key = (conflict.GridId, conflict.LayerId);
+                if (!committedLayers.TryGetValue(key, out var committed))
+                {
+                    committed = new Dictionary<string, NeoObjectPlacementRecord>(StringComparer.Ordinal);
+                    using (ReadCommitted())
+                    {
+                        if (ResolveValueRow(conflict.GridId) is ObjectMemberValue { IsRemoved: false })
+                            foreach (var record in NeoReadOnlyTileGridPrimitive.Resolve(this, conflict.GridId).BuildObjectLayerRecords(conflict.LayerId, null))
+                                committed[record.InstanceId] = record;
+                    }
+                    committedLayers[key] = committed;
+                }
+                if (PlacesAsCommitted(committed, conflict.First) && PlacesAsCommitted(committed, conflict.Second))
+                    continue;
+                throw PlacementError("tile-grid-object-cell-occupied", $"Object layer '{conflict.LayerId}' has objects '{conflict.First.InstanceId}' and '{conflict.Second.InstanceId}' at {conflict.Cell}.");
+            }
+        }
+
+        private static bool PlacesAsCommitted(Dictionary<string, NeoObjectPlacementRecord> committed, NeoObjectPlacementRecord candidate)
+        {
+            if (!committed.TryGetValue(candidate.InstanceId, out var before))
+                return false;
+            if (before.Cell != candidate.Cell)
+                return false;
+            if (before.ParentObjectId != candidate.ParentObjectId)
+                return false;
+            if (before.SourceLayerLinkId != candidate.SourceLayerLinkId)
+                return false;
+            if (before.Footprint.Count != candidate.Footprint.Count)
+                return false;
+            for (int i = 0; i < before.Footprint.Count; i++)
+            {
+                if (before.Footprint[i] != candidate.Footprint[i])
+                    return false;
+            }
+            return true;
         }
 
         // The parent index also contains lookup selections and constructor
@@ -727,7 +802,8 @@ namespace NeoCompose.Runtime
 
         private void ValidateGridPlacements(
             NeoWritePlan plan, string gridId, NeoReadOnlyTileGridPrimitive primitive,
-            Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers)
+            Dictionary<(bool tile, string classId), HashSet<string>> compatibleLayers,
+            List<ObjectCellConflict> objectConflicts)
         {
             if (ResolveValueRow(gridId) is not ObjectMemberValue grid || grid.IsRemoved)
                 return;
@@ -773,7 +849,7 @@ namespace NeoCompose.Runtime
             }
             foreach (string layerId in primitive.ResolveObjectLayerIds())
             {
-                var occupied = new Dictionary<Vector2Int, string>();
+                var occupied = new Dictionary<Vector2Int, NeoObjectPlacementRecord>();
                 var dependencies = new HashSet<string>();
                 var records = primitive.BuildObjectLayerRecords(layerId, dependencies);
                 (plan.PreparedObjectLayers ??= new())[(gridId, layerId)] = new NeoPreparedLayerRecords<NeoObjectPlacementRecord>(records, dependencies);
@@ -789,9 +865,9 @@ namespace NeoCompose.Runtime
                     }
                     foreach (Vector2Int cell in obj.Footprint)
                     {
-                        if (occupied.TryGetValue(cell, out string other) && other != obj.InstanceId)
-                            throw PlacementError("tile-grid-object-cell-occupied", $"Object layer '{layerId}' has objects '{other}' and '{obj.InstanceId}' at {cell}.");
-                        occupied[cell] = obj.InstanceId;
+                        if (occupied.TryGetValue(cell, out var other) && other.InstanceId != obj.InstanceId)
+                            objectConflicts.Add(new ObjectCellConflict(gridId, layerId, cell, other, obj));
+                        occupied[cell] = obj;
                     }
                 }
             }

@@ -79,7 +79,7 @@ namespace NeoCompose.Runtime
         public NeoTileGridLookupCache(NeoClient client, string gridValueId)
         {
             primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, gridValueId);
-            primitive.RetainPlacementGraph = true;
+            primitive.PlacementGraphRetention = NeoPlacementGraphRetention.Committed;
             client.OnWritableValuesPublished += InvalidatePublishedValues;
             client.OnWritableValuesChanged += NotifyPublishedValues;
             client.OnValuePartitionChanged += HandleValuePartitionChanged;
@@ -567,7 +567,8 @@ namespace NeoCompose.Runtime
                 using var sample = BuildTileLayerMarker.Auto();
 #endif
                 knownTileLayers.Add(layerId);
-                index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
+                using (primitive.Client.ReadCommitted())
+                    index = BuildTileLayerIndex(primitive.BuildTileLayerRecords(layerId));
                 tileLayers[layerId] = index;
             }
             recentTileLayerIds[nextRecentTileLayer] = layerId;
@@ -627,7 +628,11 @@ namespace NeoCompose.Runtime
 #endif
             knownObjectLayers.Add(layerId);
             var dependencyIds = new HashSet<string>();
-            var records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
+            // Commits patch this index, so it holds committed rows even when a
+            // candidate scope is open at its first read.
+            List<NeoObjectPlacementRecord> records;
+            using (primitive.Client.ReadCommitted())
+                records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
             index = BuildObjectLayerIndex(records, dependencyIds);
             objectLayers[layerId] = index;
             return index;

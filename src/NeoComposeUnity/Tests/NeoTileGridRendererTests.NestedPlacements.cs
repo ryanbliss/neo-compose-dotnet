@@ -111,6 +111,218 @@ namespace NeoCompose.Tests
             Assert.That(position.x, Is.EqualTo(25));
             Assert.That(position.y, Is.EqualTo(29));
         }
+        // A save can load two doors stacked on one cell, as when an authored
+        // door was re-identified while a stale copy stayed in the save.
+        private static ProjectData BuildStackedDoorData(string copyId = "door-copy", double copyX = 1)
+        {
+            var data = BuildNestedObjectPlacementData();
+            ((ArrayMemberValue)data.values["nested-objects"]).value = new[] { "door", copyId };
+            data.values[copyId] = new ObjectMemberValue
+            {
+                id = copyId,
+                classId = ObjectClassId,
+                value = new Dictionary<string, string> { ["Position"] = $"{copyId}-position" }
+            };
+            data.values[$"{copyId}-position"] = new Vector3MemberValue
+            {
+                id = $"{copyId}-position",
+                value = new NeoVector3Value { x = copyX, y = 0, z = 0 }
+            };
+            SetPlacementTiles(data, copyId, Vector2Int.zero, Vector2Int.right);
+            return data;
+        }
+
+        [Test]
+        public void PreexistingNestedOverlapDoesNotRejectUnrelatedSpawns()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData());
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            Assert.That(grid.LookupCache.ObjectCandidatesAt(ObjectsLayerClassId, new Vector2Int(16, 21)).Count, Is.EqualTo(2));
+            // The root link takes the insertion fast path; the nested link
+            // validates the whole grid. Neither may fail on the stacked doors.
+            foreach (string linkId in new[] { "objects-link", "nested-objects-link" })
+            {
+                var link = WritableObjectLink(client, linkId);
+                var spawned = link.TrySpawn(linkId == "objects-link" ? new Vector2Int(40, 50) : new Vector2Int(42, 50),
+                    ClonePlacementObject(client));
+                Assert.That(spawned.Ok, Is.True, $"{linkId}: {spawned.Message}");
+
+                var overlapping = link.TrySpawn(new Vector2Int(16, 21), ClonePlacementObject(client));
+                Assert.That(overlapping.Ok, Is.False, linkId);
+                Assert.That(overlapping.ErrorCode, Is.EqualTo("tile-grid-object-cell-occupied"), linkId);
+            }
+        }
+
+        [Test]
+        public void MovingAStackedObjectRejectsUnlessItLeavesTheOverlap()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData());
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            // A rendered grid holds a warm index, which routes Position writes through placement.
+            _ = grid.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            Assert.Throws<NeoPlacementValidationException>(() => NeoGeneratedTypesSupport.SetPlacementVector3(
+                WritableObject(client, "door-copy"), "Position", new NeoReadOnlyVector3(2, 0, 0)));
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door-copy")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+            NeoGeneratedTypesSupport.SetPlacementVector3(WritableObject(client, "door-copy"), "Position", new NeoReadOnlyVector3(5, 0, 0));
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door-copy")!.Cell, Is.EqualTo(new Vector2Int(20, 21)));
+        }
+
+        [Test]
+        public void ReparentingAStackedObjectInPlaceRejects()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData());
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            // The root link's grid offset, read from a probe spawned into it.
+            var probe = ClonePlacementObject(client);
+            Assert.That(WritableObjectLink(client, "objects-link").TrySpawn(new Vector2Int(40, 50), probe).Ok, Is.True);
+            var local = ((Vector3MemberValue)client.ResolveClassChildRow((ObjectMemberValue)client.ResolveValueRow(probe.valueId!)!, "Position")!).value!;
+            var rootEntries = client.ResolveValueRow("objects-link-objects") is ArrayMemberValue { value: { } entries } ? entries : Array.Empty<string>();
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = "nested-objects", value = new[] { "door" } });
+            plan.Set(NeoValueOwnership.Save, new ArrayMemberValue { id = "objects-link-objects", value = rootEntries.Append("door-copy").ToArray() });
+            plan.Set(NeoValueOwnership.Save, new Vector3MemberValue
+            {
+                id = "door-copy-position",
+                value = new NeoVector3Value { x = 16 - (40 - local.x), y = 21 - (50 - local.y), z = 0 }
+            });
+            var error = Assert.Throws<NeoPlacementValidationException>(() => plan.Commit());
+            StringAssert.Contains("door-copy", error!.Message);
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door-copy")!.SourceLayerLinkId, Is.EqualTo("nested-objects-link"));
+        }
+
+        [Test]
+        public void CandidateReadsNeverSeedTheLookupCache()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData("rock", 3));
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var onRock = new NeoWritePlan(client);
+            onRock.Set(NeoValueOwnership.Save, new Vector3MemberValue { id = "door-position", value = new NeoVector3Value { x = 2, y = 0, z = 0 } });
+            // A cold cache first read inside a candidate scope still indexes committed rows.
+            using (client.ReadCandidate(onRock))
+                Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+            Assert.Throws<NeoPlacementValidationException>(() => onRock.Commit());
+
+            // An abandoned candidate that moved the door away must not free its cell.
+            using var fresh = NeoTestSaveStack.ClientFromSchema(BuildStackedDoorData("rock", 3));
+            var freshGrid = NeoTileGridPrimitive.ResolveForSave(fresh, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var away = new NeoWritePlan(fresh);
+            away.Set(NeoValueOwnership.Save, new Vector3MemberValue { id = "door-position", value = new NeoVector3Value { x = 5, y = 0, z = 0 } });
+            using (fresh.ReadCandidate(away))
+                _ = freshGrid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door");
+            var spawned = WritableObjectLink(fresh, "objects-link").TrySpawn(new Vector2Int(16, 21), ClonePlacementObject(fresh));
+            Assert.That(spawned.Ok, Is.False);
+            Assert.That(spawned.ErrorCode, Is.EqualTo("tile-grid-object-cell-occupied"));
+        }
+
+        [Test]
+        public void IntroducedOverlapRejectsWhenTheMoveComesFromConstructorReplay()
+        {
+            var data = BuildStackedDoorData("rock", 3);
+            // The door's Position is a constructor-derived default, so the
+            // move below exists only in the candidate replay.
+            var door = (ObjectMemberValue)data.values["door"];
+            var position = (Vector3Member)data.members["object-position-member"].ShallowClone();
+            position.id = "door-ctor-position-member";
+            data.members[position.id] = position;
+            data.classes[door.classId!].schema["Position"] = position.id;
+            var argument = new FunctionArgumentTypeInfo { name = "Position", type = MemberKind.Vector3, required = true };
+            var parameters = new[]
+            {
+                new Variable { id = "__this__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = door.classId } },
+                new Variable { id = "__root__", typeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = "__root__" } },
+                new Variable { id = "__arg_0__", typeInfo = argument },
+            };
+            var constructor = new ConstructorRecord
+            {
+                id = "door-ctor",
+                projectId = "project-a",
+                classId = door.classId,
+                argumentTypes = new[] { argument },
+                action = new FunctionWithReturnType
+                {
+                    compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                    parameters = parameters,
+                    typeInfo = new PrimitiveTypeInfo { type = MemberKind.Null, required = true },
+                    instructions = Array.Empty<Instruction>(),
+                },
+            };
+            position.defaultValue = new Vector3MemberValueBase
+            {
+                init = new InitializerBody
+                {
+                    code = "Position",
+                    compiled = new FunctionWithReturnType
+                    {
+                        compilerRevision = FunctionWithReturnType.CurrentCompilerRevision,
+                        parameters = parameters,
+                        typeInfo = new PrimitiveTypeInfo { type = MemberKind.Vector3, required = true },
+                        instructions = new Instruction[]
+                        {
+                            new ReturnInstruction
+                            {
+                                type = InstructionKind.Return,
+                                pointer = new VariablePointer { type = PointerKind.Variable, variableId = "__arg_0__" },
+                            },
+                        },
+                    },
+                },
+            };
+            data.constructors[constructor.id] = constructor;
+            data.classes[door.classId!].constructorIds = new[] { constructor.id };
+            string parameterId = NeoClient.ConstructorParameterId(constructor, 0);
+            door.value!.Remove("Position");
+            door.instanceConstructorId = constructor.id;
+            door.constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+            {
+                [parameterId] = new Newtonsoft.Json.Linq.JObject { ["x"] = 1, ["y"] = 0, ["z"] = 0 },
+            };
+            using var client = NeoTestSaveStack.ClientFromSchema(data);
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+            var plan = new NeoWritePlan(client);
+            plan.Set(NeoValueOwnership.Save, new ObjectMemberValue
+            {
+                id = door.id,
+                classId = door.classId,
+                value = new Dictionary<string, string>(door.value),
+                instanceConstructorId = constructor.id,
+                constructorArgs = new Dictionary<string, Newtonsoft.Json.Linq.JToken?>
+                {
+                    [parameterId] = new Newtonsoft.Json.Linq.JObject { ["x"] = 2, ["y"] = 0, ["z"] = 0 },
+                },
+            });
+            Assert.Throws<NeoPlacementValidationException>(() => plan.Commit());
+            Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, "door")!.Cell, Is.EqualTo(new Vector2Int(16, 21)));
+        }
+
+        [Test]
+        public void RootSpawnBesideNestedMembersPatchesTheLayerIndex()
+        {
+            using var client = NeoTestSaveStack.ClientFromSchema(BuildNestedObjectPlacementData());
+            var grid = NeoTileGridPrimitive.ResolveForSave(client, "town-grid",
+                BuildClassBackedReadOnlyFactories(), BuildClassBackedWritableFactories());
+            var records = grid.LookupCache.ObjectRecords(ObjectsLayerClassId);
+            Assert.That(records.Any(record => record.InstanceId == "door"), Is.True, "The nested door shares the root layer.");
+            foreach (int x in new[] { 40, 44 })
+            {
+                var entry = ClonePlacementObject(client);
+                var result = WritableObjectLink(client, "objects-link").TrySpawn(new Vector2Int(x, 50), entry);
+                Assert.That(result.Ok, Is.True, result.Message);
+                Assert.That(grid.LookupCache.ObjectRecords(ObjectsLayerClassId), Is.SameAs(records),
+                    "A root spawn beside nested members is validated as an insertion, not by rebuilding the grid.");
+                Assert.That(grid.LookupCache.ObjectRecord(ObjectsLayerClassId, entry.valueId!)!.Cell, Is.EqualTo(new Vector2Int(x, 50)));
+            }
+            var rebuilt = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid").BuildObjectLayerRecords(ObjectsLayerClassId, null);
+            CollectionAssert.AreEqual(rebuilt.Select(record => (record.InstanceId, record.Order)),
+                records.Select(record => (record.InstanceId, record.Order)), "The patched index keeps the rebuilt layer order.");
+        }
+
         [Test]
         public void NestedSubcellMoveUpdatesTheNextAncestorCollisionCheck()
         {
