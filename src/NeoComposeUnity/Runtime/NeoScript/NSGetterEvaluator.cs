@@ -1911,6 +1911,8 @@ namespace NeoCompose.Runtime.NeoScript
             private bool collectionMembersResolved;
             private JsonMember? collectionMember;
             private JsonMember? entryMember;
+            private bool heldTypeResolved;
+            private CollectionTypeInfo? heldType;
             /// <summary>The row's value node, kept so repeated reads skip the id lookup.</summary>
             internal NeoValueNode? node;
             // The getter capture that last recorded a read of this row.
@@ -2044,6 +2046,17 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ResolveCollectionMembers(client);
                 return entryMember;
+            }
+
+            /// <summary>The row's own collection type, built once: its member and bindings don't change.</summary>
+            internal CollectionTypeInfo? HeldType(NeoClient client)
+            {
+                if (!heldTypeResolved)
+                {
+                    heldType = StoredCollectionType(this, client);
+                    heldTypeResolved = true;
+                }
+                return heldType;
             }
 
             private void ResolveCollectionMembers(NeoClient client)

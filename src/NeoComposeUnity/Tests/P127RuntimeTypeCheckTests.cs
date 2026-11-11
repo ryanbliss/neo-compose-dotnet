@@ -34,15 +34,29 @@ namespace NeoCompose.Tests
             NeoMemberClassWritable kinds = NeoGeneratedTypesSupport.CreateWritableClassValue(local, "12500000-0000-4000-8000-000000000085");
             var numbers = new NeoReadOnlySet<NeoMember>(local, kinds.Get<NeoMemberListWritable>("Numbers"), (_, item) => item, _ => null);
             var children = new NeoReadOnlyList<NeoMember>(local, kinds.Get<NeoMemberListWritable>("Children"), (_, item) => item);
-            // The view passes as the parameter's IEnumerable<int> and IEnumerable<SequenceItem>.
-            string Kinds(string functionId, IEnumerable<NeoMember> view, TypeInfo element) =>
+            var moods = new NeoReadOnlyEnumSet<SequenceGenerated.SequenceMood>(local, kinds.Get<NeoMemberEnum>("Moods"),
+                SequenceGenerated.SequenceMoodOptions.FromOptionId, SequenceGenerated.SequenceMoodOptions.OptionId);
+            var picks = new NeoReadOnlyLookupSet<NeoMember>(local, kinds.Get<NeoMemberLookup>("Picks"), (NeoMember item) => item);
+            var byName = new NeoReadOnlyDictionary<NeoMember>(local, kinds.Get<NeoMemberDictionaryWritable>("ByName"), (_, item) => item);
+            var child = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "12500000-0000-4000-8000-000000000084" };
+            // Each view passes as the parameter's IEnumerable of its element.
+            string Kinds<T>(string functionId, IEnumerable<T> view, TypeInfo element, System.Func<T, object?> write) =>
                 (string)NeoMemberNSFunction.GetOrCreateStatic(local, functionId)
-                    .InvokeStatic(NeoSequences.WriteEnumerable(local, view, element, item => item))!;
+                    .InvokeStatic(NeoSequences.WriteEnumerable(local, view, element, write))!;
             Assert.That(Kinds("12500000-0000-4000-8000-000000000082", numbers,
-                new PrimitiveTypeInfo { type = MemberKind.Int, required = true }), Is.EqualTo("Set<int>,True,False"));
+                new PrimitiveTypeInfo { type = MemberKind.Int, required = true }, item => item), Is.EqualTo("Set<int>,True,False"));
             Assert.That(Kinds("12500000-0000-4000-8000-000000000083", children,
-                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "12500000-0000-4000-8000-000000000069" }),
+                new ClassTypeInfo { type = MemberKind.Class, required = true, classId = "12500000-0000-4000-8000-000000000069" }, item => item),
                 Is.EqualTo("List<SequenceChild>,True,False"));
+            Assert.That(Kinds("12500000-0000-4000-8000-000000000093", moods,
+                new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "12500000-0000-4000-8000-000000000088" }, SequenceGenerated.SequenceMoodOptions.OptionId),
+                Is.EqualTo("Set<SequenceMood>,True,False"));
+            Assert.That(Kinds("12500000-0000-4000-8000-000000000094", picks, child, item => item), Is.EqualTo("Set<SequenceChild>,True,False,False"));
+            Assert.That(Kinds("12500000-0000-4000-8000-000000000094", byName, child, item => item),
+                Is.EqualTo("Dictionary<string, SequenceChild>,False,False,True"));
+            // A generic class's stored List<T> takes its owner's type argument.
+            Assert.That(NeoMemberNSFunction.GetOrCreateStatic(local, "12500000-0000-4000-8000-000000000099").InvokeStatic(new SequenceGenerated.SequenceKinds(local, kinds, false)),
+                Is.EqualTo("True:List<int>,False:List<SequenceChild>,False:SequenceChild"));
         }
 
         // IEnumerable<T> and IEnumerator<T> are covariant: a class element

@@ -78,7 +78,8 @@ namespace NeoCompose.Runtime.NeoScript
                 case MemberKind.String:
                     return new NeoBox(valueType, payload);
                 default:
-                    return referenceBoxes.GetValue(payload, held => new NeoBox(valueType, held));
+                    // A list that grew is a new array of the same list.
+                    return referenceBoxes.GetValue(NSGetterEvaluator.SequenceCollectionIdentity(payload), _ => new NeoBox(valueType, payload));
             }
         }
 
@@ -111,7 +112,9 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>Whether <paramref name="box"/> is the one box <see cref="Of"/> keeps for the raw <paramref name="value"/>.</summary>
         private static bool IsBoxOf(object? box, object? value) =>
-            box is NeoBox && value is not null && referenceBoxes.TryGetValue(value, out NeoBox? kept) && ReferenceEquals(kept, box);
+            box is NeoBox && value is not null
+            && referenceBoxes.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out NeoBox? kept)
+            && ReferenceEquals(kept, box);
 
         private static object? AssetKey(MemberKind kind, object? payload)
         {

@@ -602,15 +602,15 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// A widened collection's recorded element, else a stored or derived
-        /// collection's entry member type. Only widening records a type.
+        /// A collection's held element, else a derived collection's entry
+        /// member type.
         /// </summary>
         private static TypeInfo? SequenceCollectionElement(object? value, Context ctx)
         {
             if (value is null)
                 return null;
-            if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
-                return CollectionElementOf(recorded);
+            if (HeldCollectionType(value, ctx) is { } held)
+                return CollectionElementOf(held);
             if (CollectionEntryMember(value, ctx) is { } member)
                 return NeoNSFunctionRuntime.TypeInfoFromBindingMember(ctx.client, member,
                     new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
@@ -628,10 +628,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>A collection's held runtime type; null for any other value.</summary>
         private static TypeBinding? RecordedCollectionType(object value, Context ctx) =>
-            value is object?[] or LocalList or RuntimeSet or IDictionary<string, object?>
-                && value is not (NeoObjectRecord or NeoScriptObject)
-                && HeldCollectionType(value, ctx) is { } held
-                ? HeldTypeOf(held) : null;
+            HeldCollectionType(value, ctx) is { } held ? HeldTypeOf(held) : null;
 
         /// <summary>
         /// The type a widened collection recorded, else a stored collection's
@@ -642,12 +639,57 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (ctx.client.SequenceCollectionTypes.TryGetValue(SequenceCollectionIdentity(value), out TypeInfo recorded))
                 return recorded;
-            if (FindRowReference(value, ctx, observe: false)?.CollectionMember(ctx.client) is not { } member)
+            // A stored dictionary and a class row are both records; the row's member tells them apart.
+            if (value is not (object?[] or LocalList or RuntimeSet or IDictionary<string, object?>) || value is NeoScriptObject)
                 return null;
-            TypeInfo stored = NeoNSFunctionRuntime.TypeInfoFromBindingMember(ctx.client, member,
-                new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
-            return NeoNSFunctionRuntime.ContainsGeneric(stored) ? null : CollectionRuntimeType(stored);
+            return FindRowReference(value, ctx, observe: false)?.HeldType(ctx.client);
         }
+
+        /// <summary>
+        /// A stored collection's own type: its member's kind and key, and its
+        /// entry under the owner's bindings. Null for any other row, and for
+        /// one whose entry stays open.
+        /// </summary>
+        private static CollectionTypeInfo? StoredCollectionType(RowReference row, NeoClient client)
+        {
+            Json.Member? member = row.CollectionMember(client);
+            switch (member)
+            {
+                case EnumMember { Selection: NeoMemberSelectionKind.Multi } enumSet:
+                    return SetOf(new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = enumSet.enumId });
+                case DialogueLookupMember { Selection: NeoMemberSelectionKind.Multi }:
+                    return SetOf(new PrimitiveTypeInfo { type = MemberKind.DialogueLookup, required = true });
+                case LookupMember { Selection: NeoMemberSelectionKind.Multi } lookup:
+                    if (lookup.declaredTypeInfo is { } declared && NeoNSFunctionRuntime.ContainsGeneric(declared))
+                        return null;
+                    return CollectionRuntimeType(NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, lookup,
+                        new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>())) is { } set
+                        ? SetOf(set.entryTypeInfo is ReferenceTypeInfo reference ? reference.targetTypeInfo : set.entryTypeInfo)
+                        : null;
+                case ListMember or DictionaryMember when row.EntryMember(client) is { } entry and not GenericMember:
+                    TypeInfo entryType = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, entry,
+                        new Dictionary<string, NeoGenericEnvEntry>(), new HashSet<string>());
+                    if (NeoNSFunctionRuntime.ContainsGeneric(entryType))
+                        return null;
+                    return new CollectionTypeInfo
+                    {
+                        type = member.kind,
+                        required = true,
+                        keyEnumId = (member as DictionaryMember)?.keyEnumId,
+                        entryTypeInfo = entryType,
+                    };
+                default:
+                    return null;
+            }
+        }
+
+        private static CollectionTypeInfo SetOf(TypeInfo entry) =>
+            new()
+            {
+                type = MemberKind.Set,
+                required = true,
+                entryTypeInfo = entry
+            };
 
         internal static bool IsIntrinsicSequence(object? value, TypeInfo type, Context ctx)
         {
