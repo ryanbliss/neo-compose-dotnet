@@ -25,14 +25,14 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class ClBox<T> : NeoGeneratedClassValue, IReadOnlyClBox<T>
     {
         internal ClBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "23a923af-7cfb-4806-ba20-1b069416b1d6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "902c86f5-8ef1-4122-a554-b930bcf0ebe7", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static NeoDelegateValue S()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4d3aa5b0-8c7e-4c5a-a95e-5d36a6274c6e", client.TypeArguments.Of<ClBox<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9431cdf4-5e8d-400f-8893-343e4b1a064a", client.TypeArguments.Of<ClBox<T>>());
             var result = node.InvokeStatic();
             return (NeoDelegateValue)result!;
         }
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "23a923af-7cfb-4806-ba20-1b069416b1d6" => new ClBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "902c86f5-8ef1-4122-a554-b930bcf0ebe7" => new ClBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ClBox' without a concrete client type id."),
                 };
             });
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "23a923af-7cfb-4806-ba20-1b069416b1d6" => new ClBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "902c86f5-8ef1-4122-a554-b930bcf0ebe7" => new ClBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ClBox' without a concrete client type id."),
                 };
             });

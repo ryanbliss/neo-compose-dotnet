@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class DefaultStaticPair<T> : NeoGeneratedClassValue, IReadOnlyDefaultStaticPair<T>
     {
         internal DefaultStaticPair(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "87c5e0aa-18af-4d21-8194-8cf9a70896dd", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5adf708b-a0b5-4af5-b5cf-0a21e80f1f16", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "83d036aa-519c-401c-8d14-a406c00d21eb", NeoValueOwnership.Session, client.TypeArguments.Of<DefaultStaticPair<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "dc49120d-f723-40ba-b654-4fe91f8c2917", NeoValueOwnership.Session, client.TypeArguments.Of<DefaultStaticPair<T>>());
                 var child = binding.GetRequiredNode<NeoMemberTuple>();
                 return NeoGeneratedTypesSupport.ReadTuple<(T, int)>(NeoGeneratedTypesSupport.ReadTupleValue((NeoMemberTuple)child), 2, NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple => { T Element0() { return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 0), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories); } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 1)); } return (Element0(), Element1()); });
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "83d036aa-519c-401c-8d14-a406c00d21eb", NeoValueOwnership.Session, client.TypeArguments.Of<DefaultStaticPair<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "dc49120d-f723-40ba-b654-4fe91f8c2917", NeoValueOwnership.Session, client.TypeArguments.Of<DefaultStaticPair<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.TupleValue(client, binding.GetNodeOrEmpty<NeoMemberTuple>(), value));
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "87c5e0aa-18af-4d21-8194-8cf9a70896dd" => new DefaultStaticPair<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "5adf708b-a0b5-4af5-b5cf-0a21e80f1f16" => new DefaultStaticPair<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DefaultStaticPair' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "87c5e0aa-18af-4d21-8194-8cf9a70896dd" => new DefaultStaticPair<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "5adf708b-a0b5-4af5-b5cf-0a21e80f1f16" => new DefaultStaticPair<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'DefaultStaticPair' without a concrete client type id."),
                 };
             });

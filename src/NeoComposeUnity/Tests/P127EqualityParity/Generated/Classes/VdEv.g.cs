@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class VdEv : NeoGeneratedClassValue, IReadOnlyVdEv
     {
         internal VdEv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "21400925-55ad-4b0b-88d0-d0edd95e2e30", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3b82faed-eb76-4b2e-9a19-44ccbf6a483e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,9 +50,9 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "21400925-55ad-4b0b-88d0-d0edd95e2e30",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("On", "ee5b5277-601f-4ec7-b2de-d16b4df17b04", On),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "db91a8a0-96bd-42ba-9514-01a13deca85a", Hits)
+                "3b82faed-eb76-4b2e-9a19-44ccbf6a483e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("On", "7a3ca040-c2e3-4f8d-ae33-93888908fa51", On),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Hits", "1f1dc4ca-04ec-43b3-bc48-952df37d4a26", Hits)
             );
         }
 
@@ -135,7 +135,7 @@ namespace NeoCompose.Tests.P127EqualityParity
             }
         }
 
-        [NeoMemberMethod("56c59df6-0fe9-4eeb-93e0-658aab5d02dd")]
+        [NeoMemberMethod("4c65dcc8-eb47-4ca1-8807-e5210545ddef")]
         public void Fire(int v)
         {
             InvokeFunction("Fire", (object?)(v));

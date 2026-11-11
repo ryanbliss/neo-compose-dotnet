@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4ecbf5ef-6302-4b03-962f-37074b5d72ab" => new GOE<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e7cc1454-5cfe-46ac-97fb-55de5ec26f9a" => new GOE<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOE' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4ecbf5ef-6302-4b03-962f-37074b5d72ab" => new GOE<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e7cc1454-5cfe-46ac-97fb-55de5ec26f9a" => new GOE<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOE' without a concrete client type id."),
                 };
             });
@@ -78,7 +78,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public override int V(U a, int b)
         {
-            var result = InvokeFunction("V#16c751b4-54d2-4744-9fc9-dd048e177f74", a, b);
+            var result = InvokeFunction("V#dd510007-16f4-4c33-a780-831a26b6c37e", a, b);
             return Convert.ToInt32(result);
         }
 

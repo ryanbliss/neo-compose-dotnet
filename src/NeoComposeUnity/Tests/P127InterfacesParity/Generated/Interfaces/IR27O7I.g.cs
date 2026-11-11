@@ -18,19 +18,19 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8f48f969-b2ed-4911-8fb6-75ba834e08dd", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O7I<T>>(), "8f48f969-b2ed-4911-8fb6-75ba834e08dd", client.TypeArguments.Of<IR27O7I<T>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "ce6493f4-a064-4565-9f18-430d7b421af1", NeoInterfaceBody.Get, client.TypeArguments.Of<IR27O7I<T>>(), "ce6493f4-a064-4565-9f18-430d7b421af1", client.TypeArguments.Of<IR27O7I<T>>(), Array.Empty<object?>());
                 return (string)result!;
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "8f48f969-b2ed-4911-8fb6-75ba834e08dd", NeoInterfaceBody.Set, client.TypeArguments.Of<IR27O7I<T>>(), "8f48f969-b2ed-4911-8fb6-75ba834e08dd", client.TypeArguments.Of<IR27O7I<T>>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "ce6493f4-a064-4565-9f18-430d7b421af1", NeoInterfaceBody.Set, client.TypeArguments.Of<IR27O7I<T>>(), "ce6493f4-a064-4565-9f18-430d7b421af1", client.TypeArguments.Of<IR27O7I<T>>(), new object?[] { value });
             }
         }
         string M()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "882017e9-db75-419d-8172-a8c93f2487d2", NeoInterfaceBody.Function, client.TypeArguments.Of<IR27O7I<T>>(), "882017e9-db75-419d-8172-a8c93f2487d2", client.TypeArguments.Of<IR27O7I<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "369706cb-a44d-4158-9ff2-827db3bd87cd", NeoInterfaceBody.Function, client.TypeArguments.Of<IR27O7I<T>>(), "369706cb-a44d-4158-9ff2-827db3bd87cd", client.TypeArguments.Of<IR27O7I<T>>(), Array.Empty<object?>());
             return (string)result!;
         }
     }

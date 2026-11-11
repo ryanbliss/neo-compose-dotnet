@@ -28,9 +28,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "8ec683a0-b6d7-4130-aa1a-9ba181c9521c" => CastWeather.Sun,
-                "470e5bd8-58f4-41ba-b130-7cbbf5941502" => CastWeather.Rain,
-                "5e713632-4ed9-4198-b7f2-2abd213ef7f6" => CastWeather.Snow,
+                "13d93998-6537-4d96-a700-6ae7dfb6d69c" => CastWeather.Sun,
+                "c32f7fa5-f6ab-45f4-8521-c7346846b675" => CastWeather.Rain,
+                "0f125594-bea5-45cb-a11d-b75243eff292" => CastWeather.Snow,
                 _ => NeoUndeclaredEnumOptions<CastWeather>.FromOptionId(optionId),
             };
         }
@@ -39,9 +39,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return value switch
             {
-                CastWeather.Sun => "8ec683a0-b6d7-4130-aa1a-9ba181c9521c",
-                CastWeather.Rain => "470e5bd8-58f4-41ba-b130-7cbbf5941502",
-                CastWeather.Snow => "5e713632-4ed9-4198-b7f2-2abd213ef7f6",
+                CastWeather.Sun => "13d93998-6537-4d96-a700-6ae7dfb6d69c",
+                CastWeather.Rain => "c32f7fa5-f6ab-45f4-8521-c7346846b675",
+                CastWeather.Snow => "0f125594-bea5-45cb-a11d-b75243eff292",
                 _ => NeoUndeclaredEnumOptions<CastWeather>.OptionId(value),
             };
         }
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return optionId switch
             {
-                "8ec683a0-b6d7-4130-aa1a-9ba181c9521c" => true,
-                "470e5bd8-58f4-41ba-b130-7cbbf5941502" => true,
-                "5e713632-4ed9-4198-b7f2-2abd213ef7f6" => true,
+                "13d93998-6537-4d96-a700-6ae7dfb6d69c" => true,
+                "c32f7fa5-f6ab-45f4-8521-c7346846b675" => true,
+                "0f125594-bea5-45cb-a11d-b75243eff292" => true,
                 _ => false,
             };
         }

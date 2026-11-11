@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return optionId switch
             {
-                "76c24030-5090-4b43-af2d-f00290a65489" => Planet.Earth,
-                "814ee0a6-7012-4a76-8117-05373e0f58e1" => Planet.Mars,
+                "4136b950-db59-4fdf-837d-aeb2e2226eb5" => Planet.Earth,
+                "2c1d2973-c3ec-492b-bdf5-c46eeb24e9cc" => Planet.Mars,
                 _ => NeoUndeclaredEnumOptions<Planet>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return value switch
             {
-                Planet.Earth => "76c24030-5090-4b43-af2d-f00290a65489",
-                Planet.Mars => "814ee0a6-7012-4a76-8117-05373e0f58e1",
+                Planet.Earth => "4136b950-db59-4fdf-837d-aeb2e2226eb5",
+                Planet.Mars => "2c1d2973-c3ec-492b-bdf5-c46eeb24e9cc",
                 _ => NeoUndeclaredEnumOptions<Planet>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127OperatorsParity
         {
             return optionId switch
             {
-                "76c24030-5090-4b43-af2d-f00290a65489" => true,
-                "814ee0a6-7012-4a76-8117-05373e0f58e1" => true,
+                "4136b950-db59-4fdf-837d-aeb2e2226eb5" => true,
+                "2c1d2973-c3ec-492b-bdf5-c46eeb24e9cc" => true,
                 _ => false,
             };
         }

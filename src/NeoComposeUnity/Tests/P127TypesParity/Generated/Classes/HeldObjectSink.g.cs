@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldObjectSink : NeoGeneratedClassValue, IReadOnlyHeldObjectSink
     {
         internal HeldObjectSink(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "74660ae0-779b-4d28-9ccf-49c71585978a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "446f0aa6-f714-4cf8-ba1e-3c24b3e44ffd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "74660ae0-779b-4d28-9ccf-49c71585978a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "446f0aa6-f714-4cf8-ba1e-3c24b3e44ffd");
         }
 
         internal static HeldObjectSink Create(NeoClient client, NeoMemberClass node)

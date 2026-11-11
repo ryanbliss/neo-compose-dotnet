@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(int e, int f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "eb11b42f-35c7-4272-8f6b-eb35dea5855b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a566faf0-9c55-47ff-985e-47c77cef34aa");
             var result = node.InvokeStatic(e, f);
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "5719432c-00db-4646-8639-93d964c703aa");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f2e8e8d3-a798-4302-9739-98bd89d65ced");
         }
 
         internal new static GOD Create(NeoClient client, NeoMemberClass node)

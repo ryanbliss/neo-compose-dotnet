@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7d2c39df-5b70-4382-82de-2f5b9314ee14" => new GDP<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ff39d60f-1e45-49ac-85e1-27d9e959f168" => new GDP<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GDP' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7d2c39df-5b70-4382-82de-2f5b9314ee14" => new GDP<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ff39d60f-1e45-49ac-85e1-27d9e959f168" => new GDP<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GDP' without a concrete client type id."),
                 };
             });

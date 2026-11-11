@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SorP0 : NeoGeneratedClassValue, IReadOnlySorP0
     {
         internal SorP0(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ad2a372c-fa13-4468-9119-18c463f4bdcb", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fe3a06cf-ba4e-46d2-9c2b-0be3aea5f146", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static int Cap()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2bb1a9d4-2276-4af8-a09c-bca62a580555");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2c596874-9644-41c4-a7ae-3c8473bc3eb8");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static IReadOnlySorCi Cmp()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "585384d6-b29a-474b-b63a-3cc81f55673f");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e4dcb99b-9e9d-4973-9664-1b86e7650337");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => SorCi.CreateWritable(factoryClient, factoryNode));
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static string Keys(IReadOnlyDictionary<string, int> d)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ea22b226-8240-40d5-8c88-fcdf71b049ab");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fc11f820-f764-4291-8dad-b70c44fcfe2e");
             var result = node.InvokeStatic((object?)(d));
             return (string)result!;
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetOrder()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2e4a8d5a-1586-43c1-88e9-d231c5c64423");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fc5d4688-b273-46a1-8d3e-27e0f9b3f5fa");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -69,16 +69,16 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static string SetOrderDefault()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3d66dc23-3668-4fb6-a591-17301276d175");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "933457c1-9ab3-48a2-8574-ebf293b9c815");
             var result = node.InvokeStatic();
             return (string)result!;
         }
 
-        [NeoMemberMethod("4f5a7bb4-e518-4edc-b6a8-4d0929472f42")]
+        [NeoMemberMethod("cf42cc0e-7e87-4f3f-90ac-582f2d297482")]
         private static void Z()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4f5a7bb4-e518-4edc-b6a8-4d0929472f42");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cf42cc0e-7e87-4f3f-90ac-582f2d297482");
             node.InvokeStatic();
         }
 
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ad2a372c-fa13-4468-9119-18c463f4bdcb");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "fe3a06cf-ba4e-46d2-9c2b-0be3aea5f146");
         }
 
         internal static SorP0 Create(NeoClient client, NeoMemberClass node)

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class NestedTK<T> : NeoGeneratedClassValue, IReadOnlyNestedTK<T>
     {
         internal NestedTK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "eb5ff8c4-0d14-462e-94cb-1dc8e0e45846", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "29d4cc3c-83c1-4fe6-a370-ba5172f89fc8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eb5ff8c4-0d14-462e-94cb-1dc8e0e45846" => new NestedTK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "29d4cc3c-83c1-4fe6-a370-ba5172f89fc8" => new NestedTK<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NestedTK' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "eb5ff8c4-0d14-462e-94cb-1dc8e0e45846" => new NestedTK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "29d4cc3c-83c1-4fe6-a370-ba5172f89fc8" => new NestedTK<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NestedTK' without a concrete client type id."),
                 };
             });
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
 
-        [NeoMemberMethod("53134436-7f3a-458d-afd6-05a5045e3b72")]
+        [NeoMemberMethod("6f33d4cd-3d64-493d-b990-f7ac898a3f28")]
         public void Write()
         {
             InvokeFunction("Write");

@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int M(float x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c60cb7de-dfda-485c-9caa-7c6b222a4fcc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5c568191-d6e4-460a-aca6-96eb6475c167");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -49,13 +49,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int StaticCall()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5e3229ba-9219-4a13-b0c3-df8270de04c1");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9e178286-5880-4f2a-b7bb-300e6f6dbd87");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
 
         public K()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "ce162e2f-fa5f-429b-8d34-1a2cef6d23d2", "dcf7088b-e1f3-45b2-bd4d-7f16a0cc9b5b", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "f5624a61-a507-4c77-a9dd-4ce2b5dfa0a1", "7a9257df-2670-4b6e-9852-48288161fcb7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -128,7 +128,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(int x)
         {
-            var result = InvokeFunction("M#386ed5fa-4448-488a-9e08-28e0161b1f92", (object?)(x));
+            var result = InvokeFunction("M#8253d3ba-3cf7-4c6c-befd-dd05c2e7408e", (object?)(x));
             return Convert.ToInt32(result);
         }
 

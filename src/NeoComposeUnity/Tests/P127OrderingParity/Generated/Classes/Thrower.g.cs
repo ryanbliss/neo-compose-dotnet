@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OrderingParity
     public partial class Thrower : NeoGeneratedClassValue, IReadOnlyThrower
     {
         internal Thrower(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b921a2f4-6754-4d04-9a37-a5e723944869", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e02c5438-e304-4bb6-8007-7d2899a84ef2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OrderingParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b921a2f4-6754-4d04-9a37-a5e723944869");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e02c5438-e304-4bb6-8007-7d2899a84ef2");
         }
 
         internal static Thrower Create(NeoClient client, NeoMemberClass node)
