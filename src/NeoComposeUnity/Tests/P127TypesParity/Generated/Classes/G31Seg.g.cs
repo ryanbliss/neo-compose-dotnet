@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Seg : NeoGeneratedClassValue, IReadOnlyG31Seg
     {
         internal G31Seg(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3146b4eb-e9ee-4afa-9835-01e79270d022", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "24c80c00-38ab-4ffc-bb8b-28870e3eaeb7", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public G31Seg(IReadOnlyG31Bag frames, G31Copy? Inner = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "3146b4eb-e9ee-4afa-9835-01e79270d022", "60a492b6-f4ad-524d-9aed-c6c8bd0197c5", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("frames", frames) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Inner", "4ec480da-9170-48ec-9f40-1a10a36c4948", Inner) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "24c80c00-38ab-4ffc-bb8b-28870e3eaeb7", "e4fa2b7d-668a-59df-ad42-7fc6991cf8dd", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("frames", frames) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Inner", "22df8983-b0bc-454e-981e-1c055d217bbe", Inner) }), false, NeoValueOwnership.Session)
         {
         }
 

@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ImplicitObject : NeoGeneratedClassValue, IReadOnlyImplicitObject
     {
         internal ImplicitObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bdfbf194-6d1e-463c-86c2-7df0dac8e8ec", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "277d4d3a-0e06-4cab-8738-49f28657d52a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static bool StaticSame(object o, object p)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "51137214-33d1-422e-8f66-6fcc50020b50");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e71a1e17-1cef-4b10-84e6-024166d1d498");
             var result = node.InvokeStatic(o, p);
             return (bool)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bdfbf194-6d1e-463c-86c2-7df0dac8e8ec");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "277d4d3a-0e06-4cab-8738-49f28657d52a");
         }
 
         internal static ImplicitObject Create(NeoClient client, NeoMemberClass node)

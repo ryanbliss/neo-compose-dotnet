@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class AnyTaker : NeoGeneratedClassValue, IReadOnlyAnyTaker
     {
         internal AnyTaker(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "86c68854-1c9d-43a2-87bf-88475d1e6635", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7f2682bc-9ff6-4e07-882b-34172724f2b3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "86c68854-1c9d-43a2-87bf-88475d1e6635");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7f2682bc-9ff6-4e07-882b-34172724f2b3");
         }
 
         internal static AnyTaker Create(NeoClient client, NeoMemberClass node)

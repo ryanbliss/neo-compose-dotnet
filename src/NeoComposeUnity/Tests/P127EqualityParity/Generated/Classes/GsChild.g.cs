@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class GsChild : NeoGeneratedClassValue, IReadOnlyGsChild
     {
         internal GsChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "498eb35a-2398-41d6-a1c6-afd193e06531", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5d240df5-332e-49a9-95da-9b0d5576a452", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "498eb35a-2398-41d6-a1c6-afd193e06531",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "c3cdcd52-2934-4cd3-bfd1-d40ca08b64e0", Count)
+                "5d240df5-332e-49a9-95da-9b0d5576a452",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Count", "2d556236-2a80-473b-93ec-63e2cc892699", Count)
             );
         }
 

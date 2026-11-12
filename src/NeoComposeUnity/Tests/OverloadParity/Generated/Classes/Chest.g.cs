@@ -48,10 +48,10 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "bb6f5589-486d-4a98-8617-70f4a846b9a4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Added", "dd57e013-7b55-41e5-9586-903c0a4addb9", Added),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnAdded", "36eb283c-6bb8-4756-97b6-516cb71b43ab", OnAdded),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnNamed", "9ebbc858-8c62-4f15-b47f-2b8fa54659aa", OnNamed)
+                "e5e94b20-c7cf-4350-8ff4-0c3caa544559",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Added", "1b410116-b21d-47d3-9e71-ca7a60fc9920", Added),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnAdded", "b068e467-1c1b-4c25-8f16-cdfa2a94c77e", OnAdded),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OnNamed", "08e68123-a263-44a8-ac00-bd6d45d00fa0", OnNamed)
             );
         }
 
@@ -114,7 +114,7 @@ namespace NeoCompose.Tests.OverloadParity
 
         public string Describe(string label)
         {
-            var result = InvokeFunction("Describe#9cd1cd59-8fce-4821-8625-313d6c2a3cfd", (object?)(label));
+            var result = InvokeFunction("Describe#958b759b-404a-41a8-b0be-18d4face9f9d", (object?)(label));
             return (string)result!;
         }
 

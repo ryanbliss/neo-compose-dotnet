@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class Shop : NeoGeneratedClassValue, IReadOnlyShop
     {
         internal Shop(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9abd7847-cd6c-4a88-9ce4-34404bdfb66a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "14f7dc6a-ddf6-4f33-b809-e1a58bdcb2df", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -54,8 +54,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "9abd7847-cd6c-4a88-9ce4-34404bdfb66a",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "5ca80681-259b-4627-b809-16e5530fa1e1", Money)
+                "14f7dc6a-ddf6-4f33-b809-e1a58bdcb2df",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "aeb83c65-c2f6-4e61-9d86-7826153adbcc", Money)
             );
         }
 

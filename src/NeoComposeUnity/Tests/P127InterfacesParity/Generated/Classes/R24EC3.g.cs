@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5da9e7ed-2a01-4864-a725-80c2c4a3e38a" => new R24EC3<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2120220a-0159-42ac-9524-9f5cd73cd46d" => new R24EC3<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC3' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5da9e7ed-2a01-4864-a725-80c2c4a3e38a" => new R24EC3<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2120220a-0159-42ac-9524-9f5cd73cd46d" => new R24EC3<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC3' without a concrete client type id."),
                 };
             });
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#2d0bdc18-9c42-47f4-9882-3dda013aa0f8");
+                var result = ComputeProperty("V#06b6db33-f1eb-41e6-9fe5-5e1c80108216");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -89,13 +89,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R24EIV<R24EIQ<R24EK0>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
                 {
-                    var result = ComputeProperty("V#2d0bdc18-9c42-47f4-9882-3dda013aa0f8");
+                    var result = ComputeProperty("V#06b6db33-f1eb-41e6-9fe5-5e1c80108216");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
                 else
                 {
-                    var result = ComputeProperty("V#82e69ac7-0201-4c5e-b5f9-0e4697ebb70a");
+                    var result = ComputeProperty("V#4219045b-5646-4a92-a0d8-f8e37143a16a");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
@@ -108,14 +108,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R24EIV<R24EIQ<R24EK2>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
                 {
-                    var result = ComputeProperty("V#2d0bdc18-9c42-47f4-9882-3dda013aa0f8");
+                    var result = ComputeProperty("V#06b6db33-f1eb-41e6-9fe5-5e1c80108216");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
                 else
                 {
                     var client = TestProjectNeo.RequireInstance().Client;
-                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "ba75c50c-10b4-4c25-b9fa-fc57bc63c969", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK2>>>(), "ba75c50c-10b4-4c25-b9fa-fc57bc63c969", client.TypeArguments.Of<R24EIV<R24EIQ<R24EK2>>>(), Array.Empty<object?>());
+                    var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "0b836bb5-e74d-4870-b8fc-52c560f8bcdb", NeoInterfaceBody.Get, client.TypeArguments.Of<R24EIV<R24EIQ<R24EK2>>>(), "0b836bb5-e74d-4870-b8fc-52c560f8bcdb", client.TypeArguments.Of<R24EIV<R24EIQ<R24EK2>>>(), Array.Empty<object?>());
                     return Convert.ToInt32(result);
                 }
             }

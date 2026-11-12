@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.InterfaceParity
     public partial class FrameCrate<T> : NeoGeneratedClassValue, IReadOnlyFrameCrate<T>
     {
         internal FrameCrate(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ebcb1b6d-66b4-41ad-bda2-5e3edd0f0e34", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ffa9da15-9295-4220-8f7a-3d3e29aff31c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,9 +36,9 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f070bbb-b230-46cf-bc68-14999cfeaff5" => (FrameCrate<T>)(object)new VectorFrames(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "7d0e833b-8a69-4ef2-beee-d29dba9682e6" => (FrameCrate<T>)(object)new ToolFrames(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "ebcb1b6d-66b4-41ad-bda2-5e3edd0f0e34" => new FrameCrate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ad48f671-854b-43a3-aaf0-6331cc629779" => (FrameCrate<T>)(object)new ToolFrames(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e666fa96-23f8-4b2b-b20d-21d497437bf8" => (FrameCrate<T>)(object)new VectorFrames(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ffa9da15-9295-4220-8f7a-3d3e29aff31c" => new FrameCrate<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FrameCrate' without a concrete client type id."),
                 };
             });
@@ -51,9 +51,9 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "4f070bbb-b230-46cf-bc68-14999cfeaff5" => (FrameCrate<T>)(object)new VectorFrames(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "7d0e833b-8a69-4ef2-beee-d29dba9682e6" => (FrameCrate<T>)(object)new ToolFrames(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "ebcb1b6d-66b4-41ad-bda2-5e3edd0f0e34" => new FrameCrate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ad48f671-854b-43a3-aaf0-6331cc629779" => (FrameCrate<T>)(object)new ToolFrames(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e666fa96-23f8-4b2b-b20d-21d497437bf8" => (FrameCrate<T>)(object)new VectorFrames(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ffa9da15-9295-4220-8f7a-3d3e29aff31c" => new FrameCrate<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FrameCrate' without a concrete client type id."),
                 };
             });

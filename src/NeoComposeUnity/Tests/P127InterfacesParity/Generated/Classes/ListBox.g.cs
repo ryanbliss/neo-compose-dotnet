@@ -30,7 +30,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static string Inner()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8ea03a92-6cc8-4714-9352-a9672f996fa2", client.TypeArguments.Of<ListBox<U>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b3d9e208-740c-40f4-bc51-7c04c930c150", client.TypeArguments.Of<ListBox<U>>());
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5feb8323-ac93-412d-8bf0-a170d3837b1e" => new ListBox<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fcc8c137-0e43-42ae-8e9f-2845032d2bb8" => new ListBox<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ListBox' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "5feb8323-ac93-412d-8bf0-a170d3837b1e" => new ListBox<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fcc8c137-0e43-42ae-8e9f-2845032d2bb8" => new ListBox<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ListBox' without a concrete client type id."),
                 };
             });

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class Gem : NeoGeneratedClassValue, IReadOnlyGem
     {
         internal Gem(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c8655612-574e-4f06-ac93-c05ea36aab7f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3bd80e87-bb64-4c66-802b-491d586f1d62", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "b05122bf-6367-4487-a861-6c910ab3f8ba");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "536fef95-2dca-44d9-94e3-483a5e010a81");
                 var result = node.Compute();
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "b05122bf-6367-4487-a861-6c910ab3f8ba");
+                var node = NeoMemberNSProperty.GetOrCreateStatic(client, "536fef95-2dca-44d9-94e3-483a5e010a81");
                 var result = node.Set(value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "Static NSProperty setter failed.");
             }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         public static string Tag()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7c73406f-d234-4a47-a58a-acacf4d13957");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "e26bc9a0-4152-4e5c-8406-f474e7f20514");
             var result = node.InvokeStatic();
             return (string)result!;
         }
@@ -68,14 +68,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "39bea662-7ce2-432b-a1ab-e31cee8f9846", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "72c88ec5-9157-4422-afd2-7c82b24bee3d", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'tally' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "39bea662-7ce2-432b-a1ab-e31cee8f9846", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "72c88ec5-9157-4422-afd2-7c82b24bee3d", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -90,8 +90,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c8655612-574e-4f06-ac93-c05ea36aab7f",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "96385c10-3d65-4ed6-b632-27b0084ec3dd", Value)
+                "3bd80e87-bb64-4c66-802b-491d586f1d62",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "71f1fa87-a41b-4df2-9601-a78372093d97", Value)
             );
         }
 

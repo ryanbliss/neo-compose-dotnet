@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R26NB<T, U> : NeoGeneratedClassValue, IReadOnlyR26NB<T, U>
     {
         internal R26NB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "243556d5-85fb-4082-9abf-58488745856a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "58e36965-57ef-459b-aef1-20a5b87c0132", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "243556d5-85fb-4082-9abf-58488745856a" => new R26NB<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "58e36965-57ef-459b-aef1-20a5b87c0132" => new R26NB<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26NB' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "243556d5-85fb-4082-9abf-58488745856a" => new R26NB<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "58e36965-57ef-459b-aef1-20a5b87c0132" => new R26NB<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R26NB' without a concrete client type id."),
                 };
             });
@@ -89,7 +89,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#407d48dd-e8d7-469e-8d75-bfdfbc1da91f");
+                var result = ComputeProperty("V#ba84a93d-c463-41d4-b3fd-e0d60bb8b746");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldSeq : NeoGeneratedClassValue, IReadOnlyHeldSeq
     {
         internal HeldSeq(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c8ac2a4b-f01f-4e05-992f-a7b39f365cc0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ee9ef85c-44e7-4245-ab0e-4d6343762b87", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int Count(global::System.Collections.Generic.IEnumerable<IReadOnlyCastPet> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cb08184c-1491-4ce1-b363-ac5111fc90fa");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "0fcae99d-4b1c-4bcf-bcd4-f785c250a175");
             var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<IReadOnlyCastPet>(client, x, NeoSequences.ElementType<IReadOnlyCastPet>(client, false), xSequenceElement => xSequenceElement)));
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int CountCats(global::System.Collections.Generic.IEnumerable<IReadOnlyCastCat> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6cc9ee5a-dbde-4b6f-abd8-2ec00cee7d80");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f1ef8265-ba44-431b-9eac-475e28488d43");
             var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<IReadOnlyCastCat>(client, x, NeoSequences.ElementType<IReadOnlyCastCat>(client, false), xSequenceElement => xSequenceElement)));
             return Convert.ToInt32(result);
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int GenericCount<T>(global::System.Collections.Generic.IEnumerable<T> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a56d4457-3ca7-4f2e-b0d1-6bc30b4e0252");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "88171f76-77da-4833-9e52-f23ebad8b51a");
             var result = node.InvokeGenericStatic(new object?[] { NeoSequences.WriteEnumerable<T>(client, x, NeoSequences.ElementType<T>(client, false), xSequenceElement => xSequenceElement) }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return Convert.ToInt32(result);
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int ReferenceSetCount(global::System.Collections.Generic.IEnumerable<INeoReadOnlySet<IReadOnlyCastCat>> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3cc9e3d3-ee5a-4903-bd70-e5229f1b7ca7");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4c419f0a-2751-4099-9142-a78a9dbdaa98");
             var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<INeoReadOnlySet<IReadOnlyCastCat>>(client, x, NeoSequences.ElementType<INeoReadOnlySet<IReadOnlyCastCat>>(client, false, NeoSequences.ElementType<IReadOnlyCastCat>(client, false)), xSequenceElement => xSequenceElement)));
             return Convert.ToInt32(result);
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int SetCount(global::System.Collections.Generic.IEnumerable<INeoReadOnlySet<int>> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "632d52ff-eb38-4b06-b369-ae57d13deda8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bbe761cb-2e70-4d75-980d-5499354d152e");
             var result = node.InvokeStatic((object?)(NeoSequences.WriteEnumerable<INeoReadOnlySet<int>>(client, x, NeoSequences.ElementType<INeoReadOnlySet<int>>(client, false, NeoSequences.ElementType<int>(client, false)), xSequenceElement => xSequenceElement)));
             return Convert.ToInt32(result);
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static global::System.Collections.Generic.IEnumerable<INeoReadOnlySet<int>> Sets(IReadOnlyHeldSetFarm f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "680e8c89-b031-4d26-8d7f-9d4de38ee652");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2dc10871-e71d-4da9-9e7d-3522e2b9ecd4");
             var result = node.InvokeStatic((object?)(f));
             return NeoSequences.ReadEnumerable<INeoReadOnlySet<int>>(client, result, NeoSequences.ElementType<INeoReadOnlySet<int>>(client, false, NeoSequences.ElementType<int>(client, false)), resultSequenceElement => { return NeoGeneratedTypesSupport.ReadScriptSet<int>(resultSequenceElement, resultSequenceElementEntry => { return Convert.ToInt32(resultSequenceElementEntry); }); }) ?? throw new InvalidOperationException("Required sequence returned null.");
         }
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c8ac2a4b-f01f-4e05-992f-a7b39f365cc0");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ee9ef85c-44e7-4245-ab0e-4d6343762b87");
         }
 
         internal static HeldSeq Create(NeoClient client, NeoMemberClass node)

@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public G31DirAll(IReadOnlyG31Bag all, G31Seg? Seg = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "94e8159c-e140-4663-9781-df89f249d9d1", "09fa4c73-ad7a-58a3-99da-cf6d1ae84c49", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("all", all) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seg", "6c0c888e-9c53-4fe0-82e8-d8278f390d85", Seg) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "237b0a4f-e522-4b84-975c-faa1ed04c949", "a9ef9b81-7e1a-5521-85c1-fb6be1ae5dd6", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("all", all) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seg", "b1ed1e53-5272-4009-af67-217b927d8104", Seg) }), false, NeoValueOwnership.Session)
         {
         }
 

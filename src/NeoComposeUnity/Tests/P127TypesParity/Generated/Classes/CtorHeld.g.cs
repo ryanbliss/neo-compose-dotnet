@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CtorHeld<T> : NeoGeneratedClassValue, IReadOnlyCtorHeld<T>
     {
         internal CtorHeld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a9f35ee9-3127-49e9-a32b-13af869a473d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f2fd8405-b2b3-4b30-afd1-fa8b60411a38", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a9f35ee9-3127-49e9-a32b-13af869a473d" => new CtorHeld<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f2fd8405-b2b3-4b30-afd1-fa8b60411a38" => new CtorHeld<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorHeld' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a9f35ee9-3127-49e9-a32b-13af869a473d" => new CtorHeld<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f2fd8405-b2b3-4b30-afd1-fa8b60411a38" => new CtorHeld<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorHeld' without a concrete client type id."),
                 };
             });

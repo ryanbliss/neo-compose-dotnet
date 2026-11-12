@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Store : NeoGeneratedClassValue, IReadOnlyG31Store
     {
         internal G31Store(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bd77a66c-d36a-430d-b808-14c578d7a239", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fffba46b-5a3f-4fcd-8db8-9530bc33308d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "23865130-214f-4402-84b1-45789b69417c", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7409bed2-7aed-4c90-bef0-9c683fb988b8", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.G31DirBase.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "23865130-214f-4402-84b1-45789b69417c", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7409bed2-7aed-4c90-bef0-9c683fb988b8", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bd77a66c-d36a-430d-b808-14c578d7a239");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "fffba46b-5a3f-4fcd-8db8-9530bc33308d");
         }
 
         internal static G31Store Create(NeoClient client, NeoMemberClass node)

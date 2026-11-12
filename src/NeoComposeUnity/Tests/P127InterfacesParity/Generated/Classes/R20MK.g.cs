@@ -31,13 +31,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             if (typeof(IR20I<U>) == typeof(IR20I<T>))
             {
-                var result = InvokeGenericFunction("G#64e3510c-f7a8-49a9-8026-c4334aadf821", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
+                var result = InvokeGenericFunction("G#16a8cffe-850a-45e2-9996-6bf826acba00", client.TypeArguments.Table<System.ValueTuple<X>>(), new object?[] { });
                 return Convert.ToInt32(result);
             }
             else
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "81e72114-d1cd-415b-8adb-b135fe0df4f0", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<U>>(), "81e72114-d1cd-415b-8adb-b135fe0df4f0", client.TypeArguments.Of<IR20I<U>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "b171d50a-d51d-49e8-a32b-d356bea22f0d", NeoInterfaceBody.Function, client.TypeArguments.Of<IR20I<U>>(), "b171d50a-d51d-49e8-a32b-d356bea22f0d", client.TypeArguments.Of<IR20I<U>>(), Array.Empty<object?>(), client.TypeArguments.Table<System.ValueTuple<X>>());
                 return Convert.ToInt32(result);
             }
         }
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0846ee04-0cfb-4efe-8774-3af8cc97e27c" => new R20MK<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "09d97389-90a7-43de-92d5-afe1bafd8644" => new R20MK<T, U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MK' without a concrete client type id."),
                 };
             });
@@ -70,7 +70,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0846ee04-0cfb-4efe-8774-3af8cc97e27c" => new R20MK<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "09d97389-90a7-43de-92d5-afe1bafd8644" => new R20MK<T, U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R20MK' without a concrete client type id."),
                 };
             });
