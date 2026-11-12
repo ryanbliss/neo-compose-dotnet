@@ -7526,10 +7526,22 @@ namespace NeoCompose.Runtime.NeoScript
                 ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx, collectionRow)
                 : NeoSetEntryKey.OfPayload(member, value, ctx.client);
 
+        /// <summary>
+        /// Whether entries of <paramref name="entryMember"/> may compare by
+        /// authored Equals. False for keyed kinds and identity-only classes,
+        /// so their Contains skips resolving the entry type.
+        /// </summary>
+        private static bool MayHaveAuthoredEquality(JsonMember entryMember, Context ctx) =>
+            !RuntimeEquality.KeyEquivalentKind(entryMember.kind)
+            && !(entryMember is ClassMember member
+                && member.TryGetDeclaredClassId(out string classId)
+                && HasOnlyIdentityClasses(classId, ctx));
+
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (FindRowReference(set, ctx) is { } reference
-                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row)
+                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row
+                && (row.comparer is not null || MayHaveAuthoredEquality(entryMember, ctx)))
             {
                 TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
