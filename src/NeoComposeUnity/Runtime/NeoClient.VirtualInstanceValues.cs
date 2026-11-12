@@ -1986,10 +1986,7 @@ namespace NeoCompose.Runtime
                 virtualId = VirtualValueId(instanceRoot.id, sourceIdentity, replayIdHash);
             }
             claimedVirtualIds[virtualId] = path;
-            // The slot controls ownership; a box's held type controls its child graph.
-            Member payloadMember = row.valueType is { } heldType
-                ? TypeRules.Box(heldType).Member ?? member
-                : member;
+            Member payloadMember = ExpansionPayloadMember(row, member);
             var node = new VirtualExpansionNode
             {
                 row = row,
@@ -2090,6 +2087,19 @@ namespace NeoCompose.Runtime
                 return child;
             }
             return node;
+        }
+
+        /// <summary>
+        /// The slot controls ownership; a box's held type, or the class of an
+        /// <c>object</c> slot's class row, controls its child graph (P127 §1.3).
+        /// </summary>
+        private Member ExpansionPayloadMember(MemberValue row, Member member)
+        {
+            if (row.valueType is { } heldType)
+                return TypeRules.Box(heldType).Member ?? member;
+            if (member is ObjectMember && row is ObjectMemberValue { classId: { Length: > 0 } heldClassId })
+                return NeoGeneratedTypesSupport.UnplacedClassMember(this, heldClassId, null, row);
+            return member;
         }
 
         private static bool CanHoldOverlayClassValue(Member member)
@@ -2225,7 +2235,7 @@ namespace NeoCompose.Runtime
             switch (clone)
             {
                 case ObjectMemberValue obj when obj.value is not null:
-                    if (node.member is ClassMember)
+                    if (node.payloadMember is ClassMember)
                     {
                         obj.value = node.classChildren.ToDictionary(
                             pair => pair.Key,
@@ -2463,7 +2473,7 @@ namespace NeoCompose.Runtime
                     OwnedComparerValueId(materialized ?? node.row) == comparerChild.virtualId ? comparerChild.virtualId : null,
                     ownership, instanceRoot);
 
-            if (node.member is ClassMember)
+            if (node.payloadMember is ClassMember)
             {
                 Dictionary<string, string>? stored =
                     (materialized as ObjectMemberValue)?.value;

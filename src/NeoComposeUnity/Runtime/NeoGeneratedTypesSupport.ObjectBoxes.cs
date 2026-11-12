@@ -360,6 +360,30 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException($"Cannot write object field '{name}': {refusal}");
         }
 
+        /// <summary>
+        /// The class an object slot's value is an instance of, or null for a
+        /// value it boxes. An evaluator class value, such as an initializer's
+        /// <c>new Pen&lt;int&gt;()</c>, is held by reference as a C# one is (§1.2).
+        /// </summary>
+        private static string? HeldClassId(NeoClient client, object value, Func<object?, NeoConstructorValueReference?> valueReference)
+        {
+            switch (value)
+            {
+                case NeoGeneratedClassValue generated:
+                    return generated.classId;
+                case NeoScriptObject { attachedId: null } detached:
+                    return detached.plan.classId;
+                case IDictionary<string, object?>:
+                    if (valueReference(value) is not { valueId: { Length: > 0 } valueId } source)
+                        return null;
+                    if (!client.TryGetValue(source.ownership ?? NeoValueOwnership.Session, valueId, out MemberValue? row))
+                        return null;
+                    return string.IsNullOrEmpty(row.classId) ? null : row.classId;
+                default:
+                    return null;
+            }
+        }
+
         private static bool IsCollectionMember(Member member) => member switch
         {
             ListMember or DictionaryMember => true,

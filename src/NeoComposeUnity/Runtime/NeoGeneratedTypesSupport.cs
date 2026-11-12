@@ -8352,9 +8352,9 @@ namespace NeoCompose.Runtime
             // reference as a class field does (P127 §1.2).
             if (member is ObjectMember objectSlot && runtimeValue is not null)
             {
-                if (runtimeValue is not NeoGeneratedClassValue held)
+                if (HeldClassId(client, runtimeValue, valueReference) is not string heldClassId)
                     return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path, insertion, destinationId);
-                RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = held.classId }, new NeoSlotContext(client));
+                RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = heldClassId }, new NeoSlotContext(client));
             }
             if (member is ClassMember { DeclaredInterfaceId: not null }
                 && runtimeValue is NeoScript.NeoBox or string or NeoScript.NeoTypeValue)
