@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     public partial class Holder : NeoGeneratedClassValue, IReadOnlyHolder
     {
         internal Holder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b31504d6-4cf8-4392-b733-8de2223afec8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9e450d5b-4601-4c02-b216-55273e9e8eba", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b31504d6-4cf8-4392-b733-8de2223afec8",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Culture", "e0a1187e-f8bc-4acd-9ee9-302479f55700", Culture),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Format", "1708ca7e-96a1-4244-b031-419ddaf0cb13", Format),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Any", "ec00cf5e-a5aa-424f-9a00-ea1c2123a336", Any),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Provider", "8a2c9de3-df94-4c90-a816-21867e71f71b", Provider)
+                "9e450d5b-4601-4c02-b216-55273e9e8eba",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Culture", "9bbce755-4994-4025-9220-486afb9acf5d", Culture),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Format", "0228ffd7-81a8-4a07-a915-b2cbf9b1afa5", Format),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Any", "8521ac79-766b-45b7-b530-a7dd6757b131", Any),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Provider", "32b3bd27-e6a4-49d7-8c43-feaddcd02dc4", Provider)
             );
         }
 

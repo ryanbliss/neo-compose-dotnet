@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "bc7af50c-7701-443d-9f7c-9b8697ddc273");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9a184f4f-3efb-45bc-bd97-86720490096a");
         }
 
         internal new static R29N4 Create(NeoClient client, NeoMemberClass node)
@@ -142,7 +142,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         string IR29J<R29D1>.M()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "164342f8-1924-4c10-b798-836c2f647bd0", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29J<R29D1>>(), "164342f8-1924-4c10-b798-836c2f647bd0", client.TypeArguments.Of<IR29J<R29D1>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "10836b45-6204-4a30-98e9-243ab04a04b7", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29J<R29D1>>(), "10836b45-6204-4a30-98e9-243ab04a04b7", client.TypeArguments.Of<IR29J<R29D1>>(), Array.Empty<object?>());
             return (string)result!;
         }
 
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "94247c5f-4571-4aea-959e-b20f66397459", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29J<R29D1>>(), "94247c5f-4571-4aea-959e-b20f66397459", client.TypeArguments.Of<IR29J<R29D1>>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "bcc08447-ba9e-4c82-a82f-eccd70876a1e", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29J<R29D1>>(), "bcc08447-ba9e-4c82-a82f-eccd70876a1e", client.TypeArguments.Of<IR29J<R29D1>>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }

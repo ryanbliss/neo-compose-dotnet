@@ -29,10 +29,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "ccb0c727-b22a-4f9e-8704-5489a21a8d0b" => LixFl.None,
-                "ae6e5311-67ea-4b27-89ea-d74492972210" => LixFl.A,
-                "a960bc30-1c2f-4698-874c-b779964d9bd1" => LixFl.B,
-                "2fd10d3f-ab82-441c-a5ee-2a587a767ac7" => LixFl.C,
+                "4a2a18b5-6122-4732-834e-5c8070d83da6" => LixFl.None,
+                "38ff935b-e1b9-4cd4-8706-95632d560076" => LixFl.A,
+                "f6bc84ba-9e69-4915-ba81-763354ddc973" => LixFl.B,
+                "78f74b7d-07fd-467e-bce8-03845efe228b" => LixFl.C,
                 _ => NeoUndeclaredEnumOptions<LixFl>.FromOptionId(optionId),
             };
         }
@@ -41,10 +41,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                LixFl.None => "ccb0c727-b22a-4f9e-8704-5489a21a8d0b",
-                LixFl.A => "ae6e5311-67ea-4b27-89ea-d74492972210",
-                LixFl.B => "a960bc30-1c2f-4698-874c-b779964d9bd1",
-                LixFl.C => "2fd10d3f-ab82-441c-a5ee-2a587a767ac7",
+                LixFl.None => "4a2a18b5-6122-4732-834e-5c8070d83da6",
+                LixFl.A => "38ff935b-e1b9-4cd4-8706-95632d560076",
+                LixFl.B => "f6bc84ba-9e69-4915-ba81-763354ddc973",
+                LixFl.C => "78f74b7d-07fd-467e-bce8-03845efe228b",
                 _ => NeoUndeclaredEnumOptions<LixFl>.OptionId(value),
             };
         }
@@ -61,10 +61,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "ccb0c727-b22a-4f9e-8704-5489a21a8d0b" => true,
-                "ae6e5311-67ea-4b27-89ea-d74492972210" => true,
-                "a960bc30-1c2f-4698-874c-b779964d9bd1" => true,
-                "2fd10d3f-ab82-441c-a5ee-2a587a767ac7" => true,
+                "4a2a18b5-6122-4732-834e-5c8070d83da6" => true,
+                "38ff935b-e1b9-4cd4-8706-95632d560076" => true,
+                "f6bc84ba-9e69-4915-ba81-763354ddc973" => true,
+                "78f74b7d-07fd-467e-bce8-03845efe228b" => true,
                 _ => false,
             };
         }

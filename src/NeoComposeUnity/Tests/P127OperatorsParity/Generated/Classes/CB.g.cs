@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class CB : NeoGeneratedClassValue, IReadOnlyCB
     {
         internal CB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ee8d4f98-d1ec-474f-9d3e-f00178731a59", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0877311b-8935-4690-a4c9-5c141e88aeed", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int operator +(CB a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7b996a7c-5113-4d88-9ca6-133f09610a54");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d18d9058-0f57-4f3d-aa50-c2663dfa24a4");
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int operator +(CB a, float b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4ff8e637-6f1c-4222-80b7-dcaca827c7f6");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "55a21969-2302-4135-8adc-01da1ee678c8");
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ee8d4f98-d1ec-474f-9d3e-f00178731a59");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0877311b-8935-4690-a4c9-5c141e88aeed");
         }
 
         internal static CB Create(NeoClient client, NeoMemberClass node)

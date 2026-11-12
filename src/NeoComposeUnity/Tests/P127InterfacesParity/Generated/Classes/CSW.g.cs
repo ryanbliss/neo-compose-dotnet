@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CSW : NeoGeneratedClassValue, IReadOnlyCSW
     {
         internal CSW(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ee429ba2-3ee1-412f-bd3e-4ba64f009f9f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "aa63e8a5-3514-4447-a04e-e281de8894f5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ee429ba2-3ee1-412f-bd3e-4ba64f009f9f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "aa63e8a5-3514-4447-a04e-e281de8894f5");
         }
 
         internal static CSW Create(NeoClient client, NeoMemberClass node)

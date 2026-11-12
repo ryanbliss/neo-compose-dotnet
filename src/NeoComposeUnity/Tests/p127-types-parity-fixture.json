@@ -133,6 +133,11 @@
     "class G31Seg(G31Bag frames) { public G31Copy Inner = new G31Copy(source: frames); }",
     "class G31DirAll(G31Bag all) : G31DirBase { public G31Seg Seg = new G31Seg(frames: all); public override G31Copy Down => this.Seg.Inner; }",
     "class G31Store { public static G31DirBase Held = new G31DirAll(all: new G31Bag { Items = [new G31Item { N = 4 }, new G31Item { N = 5 }] }); }",
+    "class G31Pen<T> { public List<T> Items = []; public int N = 0; }",
+    "class G31ObjCat { public int Lives = 9; public List<int> Toys = [1]; }",
+    "class G31PenHolder { public object Value = new G31Pen<int>(); }",
+    "class G31CatHolder { public object Value = new G31ObjCat(); }",
+    "class G31ObjStore { public static G31PenHolder PO = new G31PenHolder(); public static G31CatHolder CO = new G31CatHolder(); }",
     "class Probe {",
     "  public static int CountPets(IEnumerable<CastPet> pets) { int n = 0; foreach (CastPet p in pets) { n += 1; } return n; }",
     "  public static int CountPetCursor(IEnumerator<CastPet> pets) { int n = 0; while (pets.MoveNext()) { n += 1; } return n; }",
@@ -753,6 +758,12 @@
     "  public static string TupleEnumElementName() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); return $\"{h.Val.Item2}\"; }",
     "  public static string TupleEnumElementText() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); CastWeather m = h.Val.Item2; return m.ToString(); }",
     "  public static string ConstructedArgumentListRead() { G31DirBase d = new G31DirAssets(vertical: new G31Bag { Items = [new G31Item { N = 1 }, new G31Item { N = 2 }] }); G31DirBase a = new G31DirAll(all: new G31Bag { Items = [new G31Item { N = 3 }] }); return $\"{d.Down.First},{d.Down.Ns.Count},{a.Down.Ns[0]},{G31Store.Held.Down.First},{G31Store.Held.Down.Ns[1]}\"; }",
+    "  public static int ObjectDefaultRead() => ((G31Pen<int>)G31ObjStore.PO.Value).Items.Count + ((G31Pen<int>)G31ObjStore.PO.Value).N;",
+    "  public static int ObjectDefaultAdd() { G31Pen<int> p = (G31Pen<int>)G31ObjStore.PO.Value; p.Items.Add(5); p.Items.Add(6); return ((G31Pen<int>)G31ObjStore.PO.Value).Items.Count; }",
+    "  public static int ObjectDefaultWrite() { G31Pen<int> p = (G31Pen<int>)G31ObjStore.PO.Value; p.N = 4; return ((G31Pen<int>)G31ObjStore.PO.Value).N; }",
+    "  public static int ObjectDefaultClassRead() { G31ObjCat c = (G31ObjCat)G31ObjStore.CO.Value; return c.Lives + c.Toys[0]; }",
+    "  public static int ObjectDefaultClassMutate() { G31ObjCat c = (G31ObjCat)G31ObjStore.CO.Value; c.Lives = 3; c.Toys.Add(2); return ((G31ObjCat)G31ObjStore.CO.Value).Lives + ((G31ObjCat)G31ObjStore.CO.Value).Toys.Count; }",
+    "  public static int ObjectDefaultInstance() { G31PenHolder h = new G31PenHolder(); G31Pen<int> p = (G31Pen<int>)h.Value; p.Items.Add(7); p.N = 2; return ((G31Pen<int>)h.Value).Items[0] + ((G31Pen<int>)h.Value).N; }",
     "}"
   ],
   "returns": {
@@ -1264,7 +1275,13 @@
     "DefaultPairNestedEnumElement": "Sun,0",
     "TupleEnumElementName": "Rain",
     "TupleEnumElementText": "Rain",
-    "ConstructedArgumentListRead": "1,2,3,4,5"
+    "ConstructedArgumentListRead": "1,2,3,4,5",
+    "ObjectDefaultRead": 0,
+    "ObjectDefaultAdd": 2,
+    "ObjectDefaultWrite": 4,
+    "ObjectDefaultClassRead": 10,
+    "ObjectDefaultClassMutate": 5,
+    "ObjectDefaultInstance": 9
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",

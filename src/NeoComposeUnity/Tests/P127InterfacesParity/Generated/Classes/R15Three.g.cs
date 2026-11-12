@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R15Three : NeoGeneratedClassValue, IReadOnlyR15Three
     {
         internal R15Three(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "085be342-a5b4-4e06-839f-acae89d45822", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "19816ed1-67e0-4805-bff5-9200467d2ab2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "085be342-a5b4-4e06-839f-acae89d45822");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "19816ed1-67e0-4805-bff5-9200467d2ab2");
         }
 
         internal static R15Three Create(NeoClient client, NeoMemberClass node)
@@ -105,19 +105,19 @@ namespace NeoCompose.Tests.P127InterfacesParity
 
         public int Set(bool v)
         {
-            var result = InvokeFunction("Set#d870dbeb-8d1f-43c0-8006-3c918ec15645", (object?)(v));
+            var result = InvokeFunction("Set#e0cada23-982f-4723-a3c2-f296122c0339", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(int v)
         {
-            var result = InvokeFunction("Set#e0ac27ab-d0b2-4437-810b-d01a1240b643", (object?)(v));
+            var result = InvokeFunction("Set#52edd795-4ac6-44e4-a59b-8480e49a5296", (object?)(v));
             return Convert.ToInt32(result);
         }
 
         public int Set(string v)
         {
-            var result = InvokeFunction("Set#11242709-1e29-4a73-a19b-0061a4501de7", (object?)(v));
+            var result = InvokeFunction("Set#c0733a56-1529-4af7-a839-905a2dabc2e1", (object?)(v));
             return Convert.ToInt32(result);
         }
 

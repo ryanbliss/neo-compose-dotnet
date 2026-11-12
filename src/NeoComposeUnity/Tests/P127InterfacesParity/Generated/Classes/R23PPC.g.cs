@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "74715aee-af70-41bc-80d3-fafffeadf97b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "82fc67c4-445e-4da0-8dac-d68fb402d823");
         }
 
         internal new static R23PPC Create(NeoClient client, NeoMemberClass node)
@@ -104,7 +104,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#34868e32-0890-4b83-b50a-7dfe4386552f").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#8c35edae-b9d3-4dd3-acb4-3c8bfe675fcb").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "564192a5-53a0-4811-9067-28f7eacd83c4");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1e3b9ae4-4de5-4481-bb51-0edcba76fa45");
         }
 
         internal new static OVEF Create(NeoClient client, NeoMemberClass node)
@@ -99,7 +99,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public override int F(int x)
         {
-            var result = InvokeFunction("F#741a08b2-0c17-4a78-9486-5fca9d246d7e", (object?)(x));
+            var result = InvokeFunction("F#6efd96ab-f95e-40c5-9c9f-c4df8d3c6578", (object?)(x));
             return Convert.ToInt32(result);
         }
 

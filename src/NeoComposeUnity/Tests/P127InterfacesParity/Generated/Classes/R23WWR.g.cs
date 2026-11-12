@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "21bb76b1-9ee6-4bd9-b3a8-1264f03a684e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6b202cda-5661-4800-814b-9e667a054093");
         }
 
         internal new static R23WWR Create(NeoClient client, NeoMemberClass node)
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d43e1eb0-b9e1-45b4-9520-bc26d793e4fb" => new R23WW4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7ed204a4-0e0b-4e31-a76e-84446cd51f96" => new R23WW4(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R23WWR(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d43e1eb0-b9e1-45b4-9520-bc26d793e4fb" => new R23WW4(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7ed204a4-0e0b-4e31-a76e-84446cd51f96" => new R23WW4(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R23WWR(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -75,8 +75,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "d43e1eb0-b9e1-45b4-9520-bc26d793e4fb" => new R23WW4(client, value, !saved),
-                "21bb76b1-9ee6-4bd9-b3a8-1264f03a684e" => new R23WWR(client, value, !saved),
+                "7ed204a4-0e0b-4e31-a76e-84446cd51f96" => new R23WW4(client, value, !saved),
+                "6b202cda-5661-4800-814b-9e667a054093" => new R23WWR(client, value, !saved),
                 _ => null,
             };
         }

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Pt : NeoGeneratedClassValue, IReadOnlyPt
     {
         internal Pt(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "35cb1bab-7428-4f4f-a169-ee2a33bf32e9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "de508b8b-38d8-44d5-899e-4f11bca40ad8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         public static Pt operator +(Pt a, Pt b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "971cf4d0-2d66-42e1-8ae9-ed74128b3e6d");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "ebad7b6f-f4a8-489b-a94c-e1c98343a52d");
             var result = node.InvokeStatic(a, b);
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Pt.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Pt.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "35cb1bab-7428-4f4f-a169-ee2a33bf32e9",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "4b171731-4327-4ad6-b67d-e1f14710cfec", X)
+                "de508b8b-38d8-44d5-899e-4f11bca40ad8",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "14662f5c-d702-43dc-b69d-70991fad730e", X)
             );
         }
 
