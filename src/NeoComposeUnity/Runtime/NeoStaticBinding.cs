@@ -420,11 +420,12 @@ namespace NeoCompose.Runtime
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
             HashSet<string>? movedValueIds = null;
+            // A static takes a same-store row as a slot does: a row another
+            // parent owns needs Clone() (P109 §4).
             if (client.TryGetValueOwnership(
                     sourceValueId,
                     out NeoValueOwnership sourceOwnership)
-                && sourceOwnership != NeoValueOwnership.Asset
-                && sourceOwnership != Ownership)
+                && sourceOwnership != NeoValueOwnership.Asset)
             {
                 importedValueId = client.ImportValueReference(
                     plan, Ownership,

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmFNStr : NeoGeneratedClassValue, IReadOnlyOmFNStr
     {
         internal OmFNStr(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "29e25445-a800-4484-be63-5062dd7e834c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0db3a656-a4d4-411a-a659-5a194b7ff63f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "29e25445-a800-4484-be63-5062dd7e834c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "bf6aa116-d019-45fc-b5c5-724bb484abdf", O)
+                "0db3a656-a4d4-411a-a659-5a194b7ff63f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "a2e64937-1ff3-49e3-8aea-619f8c76bf73", O)
             );
         }
 

@@ -21,13 +21,13 @@ namespace NeoCompose.Tests.P127TypesParity
 
         bool TryWritable(out OmW2 writable);
 
-        IReadOnlyOmNg P { get; }
+        OmNg P { get; }
     }
 
     public partial class OmW2 : NeoGeneratedClassValue, IReadOnlyOmW2
     {
         internal OmW2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d16ecfb6-0482-4b12-aac1-0f98b4a378bc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "1c128ef3-bd39-4908-89fe-9903daf136bf", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public OmW2(int v, OmNg? P = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "d16ecfb6-0482-4b12-aac1-0f98b4a378bc", "91845d48-26f6-5752-b70f-3573de52a23a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "bc8f8812-4bc8-48b6-a037-fe7e3bb2c72e", P) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "1c128ef3-bd39-4908-89fe-9903daf136bf", "2946e3e6-8e27-5629-babf-d2cbd14d5491", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "00971c97-9482-4593-af1c-2bf01f7c46e6", P) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -98,33 +98,11 @@ namespace NeoCompose.Tests.P127TypesParity
                 {
                     return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.OmNg.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
-                if (IsReadOnly)
-                {
-                    var child = node.Get<NeoMemberClass>("P");
-                    return global::NeoCompose.Tests.P127TypesParity.OmNg.Create(client, child);
-                }
-                else
-                {
-                    var child = writableNode.Get<NeoMemberClassWritable>("P");
-                    return global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(client, child);
-                }
+                return global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("P"));
             }
             set
             {
-                ThrowIfReadOnly("OmW2.P");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "P", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        IReadOnlyOmNg IReadOnlyOmW2.P
-        {
-            get
-            {
-                if (TryReadDetached("P", out object? detachedValue))
-                {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, false, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmNg.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.OmNg.CreateDetached(factoryClient, factoryValue, factorySaved));
-                }
-                return global::NeoCompose.Tests.P127TypesParity.OmNg.Create(client, node.Get<NeoMemberClass>("P"));
             }
         }
 

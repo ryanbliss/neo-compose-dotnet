@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31ObjCat : NeoGeneratedClassValue, IReadOnlyG31ObjCat
     {
         internal G31ObjCat(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c6e339bd-dccc-4c20-8099-2a6c860f9cf3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ad8e5e4f-0ed3-4eb4-bd0e-5be747d7b425", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c6e339bd-dccc-4c20-8099-2a6c860f9cf3",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lives", "837b852f-ef1e-4f12-b07c-cc639e8de786", Lives),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Toys", "2c3af1d5-4450-4d82-bde0-73a2e44db085", Toys)
+                "ad8e5e4f-0ed3-4eb4-bd0e-5be747d7b425",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lives", "abc9c0a4-d984-4d49-ac59-48f01b1ab688", Lives),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Toys", "22c1ea68-53eb-4e80-b86e-c1ab43c76f06", Toys)
             );
         }
 

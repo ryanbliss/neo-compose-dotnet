@@ -602,6 +602,23 @@ namespace NeoCompose.Tests
             StringAssert.Contains(Fixture()["refuses"]![probe]!.Value<string>(), Assert.Catch(() => InvokeProbe(client, probe))!.Message);
         }
 
+        /// <summary>
+        /// P109 §4. A generic static's initializer that takes another static's
+        /// constructed child throws because the child is already owned.
+        /// </summary>
+        [TestCase("Om_SC_GS")]
+        [TestCase("Om_SC_GL")]
+        [TestCase("Om_SC_GD")]
+        public void GenericStaticRefusesAnotherStaticsChild(string probe)
+        {
+            using NeoClient client = Client();
+            Exception error = Assert.Catch(() => InvokeProbe(client, probe))!;
+            Exception cause = error;
+            while (cause.InnerException is not null)
+                cause = cause.InnerException;
+            StringAssert.Contains("is already owned by parent value", cause.Message, error.ToString());
+        }
+
         [Test]
         public void CSharpBoxesAnIntArgumentToAnObjectParameter()
         {
