@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class OVG<T> : NeoGeneratedClassValue, IReadOnlyOVG<T>
     {
         internal OVG(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "93bba676-c19a-4851-8be2-8d25262181ed", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8b30967d-50e8-45cc-98e0-0cfd2bb30724", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -40,9 +40,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9697ec27-479f-4b90-a6c4-e10c970aabe1" => (OVG<T>)(object)new OVGF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "a325a7a1-d44a-41e4-9dca-c49390503128" => (OVG<T>)(object)new OVGM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "93bba676-c19a-4851-8be2-8d25262181ed" => new OVG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0467dc59-57da-471c-a4ed-2294bf6e0b46" => (OVG<T>)(object)new OVGF(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ad2023db-ac09-4821-9ac7-9ea61b48edaa" => (OVG<T>)(object)new OVGM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "8b30967d-50e8-45cc-98e0-0cfd2bb30724" => new OVG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OVG' without a concrete client type id."),
                 };
             });
@@ -55,9 +55,9 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "9697ec27-479f-4b90-a6c4-e10c970aabe1" => (OVG<T>)(object)new OVGF(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "a325a7a1-d44a-41e4-9dca-c49390503128" => (OVG<T>)(object)new OVGM(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "93bba676-c19a-4851-8be2-8d25262181ed" => new OVG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0467dc59-57da-471c-a4ed-2294bf6e0b46" => (OVG<T>)(object)new OVGF(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ad2023db-ac09-4821-9ac7-9ea61b48edaa" => (OVG<T>)(object)new OVGM(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "8b30967d-50e8-45cc-98e0-0cfd2bb30724" => new OVG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OVG' without a concrete client type id."),
                 };
             });
@@ -88,19 +88,19 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public virtual int F(T x)
         {
-            var result = InvokeFunction("F#6253393c-dbc4-48f5-9bb1-47cec17ffded", (object?)(x));
+            var result = InvokeFunction("F#f67356ac-0a56-4745-9929-5c5c8fe3e250", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         public virtual int F(string s)
         {
-            var result = InvokeFunction("F#c9329a48-2a04-487c-bce4-5ce8efa77540", (object?)(s));
+            var result = InvokeFunction("F#a9f49041-8257-4df7-8497-da7e32bdbe9a", (object?)(s));
             return Convert.ToInt32(result);
         }
 
         public virtual int F(bool b)
         {
-            var result = InvokeFunction("F#2e65c449-9f6b-4877-8a8a-c7e4ddfc46a2", (object?)(b));
+            var result = InvokeFunction("F#f8cb5de4-df3d-47c4-bebc-262e536ead2b", (object?)(b));
             return Convert.ToInt32(result);
         }
 

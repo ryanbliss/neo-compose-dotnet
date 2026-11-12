@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R23EE : NeoGeneratedClassValue, IReadOnlyR23EE
     {
         internal R23EE(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4528a2b7-f0e4-4db5-86a3-f218825b8f64", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "dacfd592-cb6b-4085-a9ec-a3263d73259c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4528a2b7-f0e4-4db5-86a3-f218825b8f64");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "dacfd592-cb6b-4085-a9ec-a3263d73259c");
         }
 
         internal static R23EE Create(NeoClient client, NeoMemberClass node)
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#c2b3d817-ba96-428c-9a8b-d32969361443");
+                var result = ComputeProperty("V#d7d7fd5d-577b-4734-91bf-9285fc442e9c");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -108,7 +108,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#07cd35e2-e018-4426-861b-b5efebf4d853");
+                var result = ComputeProperty("V#9080464a-a1ec-4f72-9aea-1e36e47aa1c9");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }

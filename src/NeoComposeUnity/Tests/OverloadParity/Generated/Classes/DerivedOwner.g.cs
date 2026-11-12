@@ -41,9 +41,9 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "7466f352-60cf-4ffd-a808-15059acbcbdc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "a510cc61-59f5-47fd-b9a1-6846b473008b", Calls),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "b2766cdc-d1d4-4712-a1f3-fd8ef65792b5", Watcher)
+                "db68336f-d099-4949-a2b0-eaf8b4a9d028",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "74028a18-ff0c-4af2-a225-55e615222d22", Calls),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Watcher", "bd3c49ae-5190-4c1e-a657-fa986b8464bf", Watcher)
             );
         }
 
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7323bfeb-afba-4487-9793-3a7c0185038e" => new DerivedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0968bcbd-7c19-4969-9a31-c8f6a56a5594" => new DerivedWatch(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new DerivedOwner(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.OverloadParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "7323bfeb-afba-4487-9793-3a7c0185038e" => new DerivedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0968bcbd-7c19-4969-9a31-c8f6a56a5594" => new DerivedWatch(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new DerivedOwner(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });

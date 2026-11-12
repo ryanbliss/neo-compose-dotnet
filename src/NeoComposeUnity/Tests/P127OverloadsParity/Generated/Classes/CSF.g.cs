@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class CSF : NeoGeneratedClassValue, IReadOnlyCSF
     {
         internal CSF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7f2c90b8-2d52-4932-a3b4-19946df7471c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c3e5a6a5-0818-47f4-a0a4-7c0059adce3c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7f2c90b8-2d52-4932-a3b4-19946df7471c");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c3e5a6a5-0818-47f4-a0a4-7c0059adce3c");
         }
 
         internal static CSF Create(NeoClient client, NeoMemberClass node)

@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f137a33f-616d-476a-a17f-8c0fc92b32f6");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0e7b9dfb-63da-4a1c-a194-2c2c0584a773");
         }
 
         internal new static NvDerived Create(NeoClient client, NeoMemberClass node)

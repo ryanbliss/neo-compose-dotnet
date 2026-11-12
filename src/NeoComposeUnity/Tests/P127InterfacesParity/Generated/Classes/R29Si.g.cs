@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R29Si<T> : NeoGeneratedClassValue, IReadOnlyR29Si<T>
     {
         internal R29Si(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "eb5798af-3a31-407c-a654-76fabf53fb8a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "15560ada-eec8-4dcc-b45a-8f674708dd19", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,8 +34,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8839ff42-1c4a-4929-b461-2b0fa72c9af1" => (R29Si<T>)(object)new R29N6i(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "eb5798af-3a31-407c-a654-76fabf53fb8a" => new R29Si<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b89280b8-b3e8-4517-a924-465789c7b4c0" => (R29Si<T>)(object)new R29N6i(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "15560ada-eec8-4dcc-b45a-8f674708dd19" => new R29Si<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29Si' without a concrete client type id."),
                 };
             });
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "8839ff42-1c4a-4929-b461-2b0fa72c9af1" => (R29Si<T>)(object)new R29N6i(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "eb5798af-3a31-407c-a654-76fabf53fb8a" => new R29Si<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b89280b8-b3e8-4517-a924-465789c7b4c0" => (R29Si<T>)(object)new R29N6i(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "15560ada-eec8-4dcc-b45a-8f674708dd19" => new R29Si<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R29Si' without a concrete client type id."),
                 };
             });

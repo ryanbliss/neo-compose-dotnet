@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static int operator +(D0 a, float b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "54462a59-b208-4161-b882-5827fb42d2de");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b9fc3afa-0ef4-48c1-bc8c-a90565578f6d");
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ccfdff0d-6f30-4d9b-a0e6-a3518b8bcbd3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7c78458b-11a4-40fd-a710-0a49fbbbc40a");
         }
 
         internal new static D0 Create(NeoClient client, NeoMemberClass node)

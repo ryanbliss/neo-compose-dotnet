@@ -29,10 +29,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "a3cb7bd7-cb3d-45ed-9e9c-9d81c3ec2b01" => CpzFl.None,
-                "d2a04925-9da3-43d1-b737-1f0ef96eaa11" => CpzFl.A,
-                "49ff3dbe-0a03-4236-ac07-c451bc87c266" => CpzFl.B,
-                "eb621f89-9dad-48c9-a356-8f955b16726a" => CpzFl.C,
+                "fd37aa60-024f-4154-a529-18968e8c2371" => CpzFl.None,
+                "0523c7fc-f7d5-44a3-909e-7a612213f4a0" => CpzFl.A,
+                "f35386a5-a0ed-420c-8b04-228765bbffbf" => CpzFl.B,
+                "0b0139a5-f89f-4a59-864a-66c4f1cd5263" => CpzFl.C,
                 _ => NeoUndeclaredEnumOptions<CpzFl>.FromOptionId(optionId),
             };
         }
@@ -41,10 +41,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return value switch
             {
-                CpzFl.None => "a3cb7bd7-cb3d-45ed-9e9c-9d81c3ec2b01",
-                CpzFl.A => "d2a04925-9da3-43d1-b737-1f0ef96eaa11",
-                CpzFl.B => "49ff3dbe-0a03-4236-ac07-c451bc87c266",
-                CpzFl.C => "eb621f89-9dad-48c9-a356-8f955b16726a",
+                CpzFl.None => "fd37aa60-024f-4154-a529-18968e8c2371",
+                CpzFl.A => "0523c7fc-f7d5-44a3-909e-7a612213f4a0",
+                CpzFl.B => "f35386a5-a0ed-420c-8b04-228765bbffbf",
+                CpzFl.C => "0b0139a5-f89f-4a59-864a-66c4f1cd5263",
                 _ => NeoUndeclaredEnumOptions<CpzFl>.OptionId(value),
             };
         }
@@ -61,10 +61,10 @@ namespace NeoCompose.Tests.P127EqualityParity
         {
             return optionId switch
             {
-                "a3cb7bd7-cb3d-45ed-9e9c-9d81c3ec2b01" => true,
-                "d2a04925-9da3-43d1-b737-1f0ef96eaa11" => true,
-                "49ff3dbe-0a03-4236-ac07-c451bc87c266" => true,
-                "eb621f89-9dad-48c9-a356-8f955b16726a" => true,
+                "fd37aa60-024f-4154-a529-18968e8c2371" => true,
+                "0523c7fc-f7d5-44a3-909e-7a612213f4a0" => true,
+                "f35386a5-a0ed-420c-8b04-228765bbffbf" => true,
+                "0b0139a5-f89f-4a59-864a-66c4f1cd5263" => true,
                 _ => false,
             };
         }
