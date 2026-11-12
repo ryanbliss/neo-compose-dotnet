@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CtorHeldDefaultStatics<T> : NeoGeneratedClassValue, IReadOnlyCtorHeldDefaultStatics<T>
     {
         internal CtorHeldDefaultStatics(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1c0c9406-e942-4f0a-a91b-6cfcec82dd53", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3040bf43-06b6-4144-9265-bdcb3929e095", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "421e8a98-bec2-4390-a206-e0ba621d2b9d", NeoValueOwnership.Session, client.TypeArguments.Of<CtorHeldDefaultStatics<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e3809060-7fb2-4ee8-8693-c014efc61551", NeoValueOwnership.Session, client.TypeArguments.Of<CtorHeldDefaultStatics<T>>());
                 var node = binding.GetNodeOrEmpty<NeoMember>();
                 return NeoGenericBindings.Resolve<T>(client, node).Read(node);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "421e8a98-bec2-4390-a206-e0ba621d2b9d", NeoValueOwnership.Session, client.TypeArguments.Of<CtorHeldDefaultStatics<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "e3809060-7fb2-4ee8-8693-c014efc61551", NeoValueOwnership.Session, client.TypeArguments.Of<CtorHeldDefaultStatics<T>>());
                 var node = binding.GetNodeOrEmpty<NeoMember>();
                 binding.SetValue(NeoGenericBindings.Resolve<T>(client, node).Serialize(value));
             }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1c0c9406-e942-4f0a-a91b-6cfcec82dd53" => new CtorHeldDefaultStatics<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3040bf43-06b6-4144-9265-bdcb3929e095" => new CtorHeldDefaultStatics<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorHeldDefaultStatics' without a concrete client type id."),
                 };
             });
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1c0c9406-e942-4f0a-a91b-6cfcec82dd53" => new CtorHeldDefaultStatics<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3040bf43-06b6-4144-9265-bdcb3929e095" => new CtorHeldDefaultStatics<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorHeldDefaultStatics' without a concrete client type id."),
                 };
             });

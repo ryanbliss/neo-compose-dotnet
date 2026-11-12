@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class GetDefC : NeoGeneratedClassValue, IReadOnlyGetDefC
     {
         internal GetDefC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "803be4d9-a5f3-4b2d-a9a2-789e9aba0efc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7ab47fac-b9dc-4815-81eb-4ca35b713915", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,9 +46,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "803be4d9-a5f3-4b2d-a9a2-789e9aba0efc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "e5a3ac41-90ec-409d-93e4-74bb98aa615a", Q),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "b8ecd474-1cde-4188-af38-a3aaf89c1bbd", Stored)
+                "7ab47fac-b9dc-4815-81eb-4ca35b713915",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Q", "467242b3-93b3-47d3-899c-eab6b6ca3e2e", Q),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stored", "77b4201d-0063-4999-b870-882a8447d0da", Stored)
             );
         }
 
@@ -132,7 +132,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "11d8eefb-4ae0-460a-bf40-3de645b95ac0", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), "11d8eefb-4ae0-460a-bf40-3de645b95ac0", client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "abc8a602-068a-44bb-b3ae-a72cb4e82f12", NeoInterfaceBody.Get, client.TypeArguments.Of<IGetDef>(), "abc8a602-068a-44bb-b3ae-a72cb4e82f12", client.TypeArguments.Of<IGetDef>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
             set

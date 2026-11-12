@@ -18,19 +18,19 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c5382085-2d31-4bfc-acea-6b7139c1bcef", NeoInterfaceBody.Get, client.TypeArguments.Of<IPsO>(), "c5382085-2d31-4bfc-acea-6b7139c1bcef", client.TypeArguments.Of<IPsO>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c08a10d0-db88-4a6a-9051-255f60c9d62e", NeoInterfaceBody.Get, client.TypeArguments.Of<IPsO>(), "c08a10d0-db88-4a6a-9051-255f60c9d62e", client.TypeArguments.Of<IPsO>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
             private set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c5382085-2d31-4bfc-acea-6b7139c1bcef", NeoInterfaceBody.Set, client.TypeArguments.Of<IPsO>(), "c5382085-2d31-4bfc-acea-6b7139c1bcef", client.TypeArguments.Of<IPsO>(), new object?[] { value });
+                NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c08a10d0-db88-4a6a-9051-255f60c9d62e", NeoInterfaceBody.Set, client.TypeArguments.Of<IPsO>(), "c08a10d0-db88-4a6a-9051-255f60c9d62e", client.TypeArguments.Of<IPsO>(), new object?[] { value });
             }
         }
         int Read()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2f558a1d-fbd4-4110-b6e0-4af4e51320f5", NeoInterfaceBody.Function, client.TypeArguments.Of<IPsO>(), "2f558a1d-fbd4-4110-b6e0-4af4e51320f5", client.TypeArguments.Of<IPsO>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "779a9655-4133-4c1f-a8c6-2693895b8e8a", NeoInterfaceBody.Function, client.TypeArguments.Of<IPsO>(), "779a9655-4133-4c1f-a8c6-2693895b8e8a", client.TypeArguments.Of<IPsO>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
     }

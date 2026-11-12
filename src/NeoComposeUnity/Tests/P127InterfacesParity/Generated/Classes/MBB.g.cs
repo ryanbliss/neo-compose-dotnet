@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class MBB<T> : NeoGeneratedClassValue, IReadOnlyMBB<T>
     {
         internal MBB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "59a6e12a-fc52-472f-b5fe-7aadaa305a2c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "04d3784f-7609-44f3-9bb2-e72b12e51aa3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static NeoDelegateValue Namer()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a01f585d-963d-408e-8a08-670eee83ca1d", client.TypeArguments.Of<MBB<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c57c0c32-b2e2-4068-8095-e2bf2787bf39", client.TypeArguments.Of<MBB<T>>());
             var result = node.InvokeStatic();
             return (NeoDelegateValue)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "59a6e12a-fc52-472f-b5fe-7aadaa305a2c" => new MBB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "04d3784f-7609-44f3-9bb2-e72b12e51aa3" => new MBB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MBB' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "59a6e12a-fc52-472f-b5fe-7aadaa305a2c" => new MBB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "04d3784f-7609-44f3-9bb2-e72b12e51aa3" => new MBB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'MBB' without a concrete client type id."),
                 };
             });

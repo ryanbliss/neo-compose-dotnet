@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class BadInit<T> : NeoGeneratedClassValue, IReadOnlyBadInit<T>
     {
         internal BadInit(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "98bc1983-be60-4d81-bd38-fc03746b2e55", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "14041e59-c4bc-4a1f-9f21-f6962426f02c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ec6048d3-361b-486c-882d-44f783e9b114", NeoValueOwnership.Session, client.TypeArguments.Of<BadInit<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "415c4450-1a0f-4fa5-a71a-a28b3a18909e", NeoValueOwnership.Session, client.TypeArguments.Of<BadInit<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'X' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ec6048d3-361b-486c-882d-44f783e9b114", NeoValueOwnership.Session, client.TypeArguments.Of<BadInit<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "415c4450-1a0f-4fa5-a71a-a28b3a18909e", NeoValueOwnership.Session, client.TypeArguments.Of<BadInit<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "98bc1983-be60-4d81-bd38-fc03746b2e55" => new BadInit<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "14041e59-c4bc-4a1f-9f21-f6962426f02c" => new BadInit<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'BadInit' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "98bc1983-be60-4d81-bd38-fc03746b2e55" => new BadInit<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "14041e59-c4bc-4a1f-9f21-f6962426f02c" => new BadInit<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'BadInit' without a concrete client type id."),
                 };
             });

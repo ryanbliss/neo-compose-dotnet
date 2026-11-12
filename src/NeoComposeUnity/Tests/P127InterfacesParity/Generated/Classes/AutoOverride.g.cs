@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f9054dae-70a8-4548-90a5-a89e69897cc6",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "5acd9e96-3e4b-4259-a792-e37c914cc6dd", V)
+                "ddd94026-d91f-4e55-b6a5-4501603eec51",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "7004a173-e5fd-4e6e-b2d6-f6f94f227e09", V)
             );
         }
 
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "536710e9-ada1-4780-b6da-92e862b45816" => new AutoOverrideGetter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b94bd5af-3c45-47c9-bbb1-194b747234e2" => new AutoOverrideGetter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new AutoOverride(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -71,7 +71,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "536710e9-ada1-4780-b6da-92e862b45816" => new AutoOverrideGetter(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b94bd5af-3c45-47c9-bbb1-194b747234e2" => new AutoOverrideGetter(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new AutoOverride(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -81,8 +81,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "536710e9-ada1-4780-b6da-92e862b45816" => new AutoOverrideGetter(client, value, !saved),
-                "f9054dae-70a8-4548-90a5-a89e69897cc6" => new AutoOverride(client, value, !saved),
+                "b94bd5af-3c45-47c9-bbb1-194b747234e2" => new AutoOverrideGetter(client, value, !saved),
+                "ddd94026-d91f-4e55-b6a5-4501603eec51" => new AutoOverride(client, value, !saved),
                 _ => null,
             };
         }

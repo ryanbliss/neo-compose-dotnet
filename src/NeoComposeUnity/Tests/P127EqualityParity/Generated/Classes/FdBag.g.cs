@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class FdBag : NeoGeneratedClassValue, IReadOnlyFdBag
     {
         internal FdBag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1167dd4c-fdf3-46c4-84ab-c59f3c42bbd4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "40212a52-7284-4fc0-9421-2659c1b0e306", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1167dd4c-fdf3-46c4-84ab-c59f3c42bbd4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("T", "fb84a9b6-db59-4add-af19-e78a804fd869", T),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("D", "60593f8d-8e47-4ec6-bde9-408dde985f59", D),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("R", "b8a01dfb-3e8a-41a6-834c-8d5b67fac0d5", R)
+                "40212a52-7284-4fc0-9421-2659c1b0e306",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("T", "54b13d7d-5fc6-443c-8c6a-2595dedaff03", T),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("D", "e63cc3c6-40d6-4ab9-ba98-a1a4f0d41c6d", D),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("R", "3432ddad-3a45-45c2-b61b-7b8c32cd196b", R)
             );
         }
 

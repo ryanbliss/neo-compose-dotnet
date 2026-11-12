@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class NestedNullableK : NeoGeneratedClassValue, IReadOnlyNestedNullableK
     {
         internal NestedNullableK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9aa58dd1-31de-46ab-ae97-ce86a86925c6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e74bf34b-fe92-46a7-998e-a4779564bac4", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         public NestedNullableK()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "9aa58dd1-31de-46ab-ae97-ce86a86925c6", "a8b802d9-a595-4204-a8bc-182341d6e8fc", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "e74bf34b-fe92-46a7-998e-a4779564bac4", "1c5e114b-3696-41a0-8bbf-85af022204ed", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -113,7 +113,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
 
-        [NeoMemberMethod("138bac51-c257-485d-aeb5-6ed6538e1629")]
+        [NeoMemberMethod("878eb0a1-90d9-416d-a95a-082e5b7e1e1d")]
         public void Write()
         {
             InvokeFunction("Write");

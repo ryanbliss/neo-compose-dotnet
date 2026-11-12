@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class SRD : NeoGeneratedClassValue, IReadOnlySRD
     {
         internal SRD(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e785e1a7-2a15-4e14-b8ec-48cc905edc50", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7412ced0-3606-41a7-aef5-d7c676c7ed59", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "81eab2ca-714d-4eec-8ab7-db78d8e15435", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a57042ab-37bd-4739-a3ba-cfd96f4afd72", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'P' has no value.");
             }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "e785e1a7-2a15-4e14-b8ec-48cc905edc50");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "7412ced0-3606-41a7-aef5-d7c676c7ed59");
         }
 
         internal static SRD Create(NeoClient client, NeoMemberClass node)

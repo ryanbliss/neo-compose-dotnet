@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class PutC : NeoGeneratedClassValue, IReadOnlyPutC
     {
         internal PutC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9276cb40-82f7-467c-aa1c-bdfce82b0ada", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "90e2edb5-c5e9-4c3f-9bb3-ef7d1fd7c03d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9276cb40-82f7-467c-aa1c-bdfce82b0ada");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "90e2edb5-c5e9-4c3f-9bb3-ef7d1fd7c03d");
         }
 
         internal static PutC Create(NeoClient client, NeoMemberClass node)

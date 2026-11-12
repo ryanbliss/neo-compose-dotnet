@@ -121,7 +121,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c1c2a087-31e9-4902-83fd-1f797855c886" => new Critter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4633694f-7fc6-4737-8870-6c5f2128f5ce" => new Critter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
@@ -134,7 +134,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c1c2a087-31e9-4902-83fd-1f797855c886" => new Critter(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4633694f-7fc6-4737-8870-6c5f2128f5ce" => new Critter(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });

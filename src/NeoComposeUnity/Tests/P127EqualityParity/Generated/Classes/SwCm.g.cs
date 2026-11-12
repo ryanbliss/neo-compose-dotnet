@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SwCm : NeoGeneratedClassValue, IReadOnlySwCm
     {
         internal SwCm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "65519c28-1ad2-4f35-b589-f8036e3f60e2", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8b90aaa4-78c2-4add-ab3f-a4e4d9592d36", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -45,8 +45,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "65519c28-1ad2-4f35-b589-f8036e3f60e2",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fold", "c890090e-5740-4712-ae8b-b147dce0be51", Fold)
+                "8b90aaa4-78c2-4add-ab3f-a4e4d9592d36",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fold", "a236970d-8ff1-4856-a7ed-d7dfbccbb41e", Fold)
             );
         }
 

@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "62b7116a-ece8-4dcf-8fb0-7c6a91ccd838");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ccab7c41-6445-4689-b2be-7289d2641288");
         }
 
         internal new static R24NL101 Create(NeoClient client, NeoMemberClass node)
@@ -54,9 +54,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "34f8e18f-9df1-40e0-ad2e-ee73eeef43ae" => new R24NN101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e3a47353-863b-4d5f-b001-5da4177feb3b" => new R24NY101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f9d27beb-9b7e-43d3-9405-7cd094c0c502" => new R24NX101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "523ed4f4-54f5-4eb7-a538-a525615704f1" => new R24NY101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "59b6e097-e36b-409f-a267-4f77e23d5213" => new R24NN101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "9c6430a4-5d03-432f-9d16-b009cdf69ae0" => new R24NX101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new R24NL101(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -69,9 +69,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "34f8e18f-9df1-40e0-ad2e-ee73eeef43ae" => new R24NN101(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e3a47353-863b-4d5f-b001-5da4177feb3b" => new R24NY101(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f9d27beb-9b7e-43d3-9405-7cd094c0c502" => new R24NX101(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "523ed4f4-54f5-4eb7-a538-a525615704f1" => new R24NY101(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "59b6e097-e36b-409f-a267-4f77e23d5213" => new R24NN101(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "9c6430a4-5d03-432f-9d16-b009cdf69ae0" => new R24NX101(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new R24NL101(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -81,10 +81,10 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "34f8e18f-9df1-40e0-ad2e-ee73eeef43ae" => new R24NN101(client, value, !saved),
-                "e3a47353-863b-4d5f-b001-5da4177feb3b" => new R24NY101(client, value, !saved),
-                "f9d27beb-9b7e-43d3-9405-7cd094c0c502" => new R24NX101(client, value, !saved),
-                "62b7116a-ece8-4dcf-8fb0-7c6a91ccd838" => new R24NL101(client, value, !saved),
+                "523ed4f4-54f5-4eb7-a538-a525615704f1" => new R24NY101(client, value, !saved),
+                "59b6e097-e36b-409f-a267-4f77e23d5213" => new R24NN101(client, value, !saved),
+                "9c6430a4-5d03-432f-9d16-b009cdf69ae0" => new R24NX101(client, value, !saved),
+                "ccab7c41-6445-4689-b2be-7289d2641288" => new R24NL101(client, value, !saved),
                 _ => null,
             };
         }

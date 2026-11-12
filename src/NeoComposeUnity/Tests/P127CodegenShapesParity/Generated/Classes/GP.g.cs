@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class GP<T> : NeoGeneratedClassValue, IReadOnlyGP<T>
     {
         internal GP(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "30267390-27af-4c97-8e5a-bf10f2efcef0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "aa1dacfb-e46c-48e2-aba0-4d8b5f5d5b25", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "30267390-27af-4c97-8e5a-bf10f2efcef0" => new GP<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "aa1dacfb-e46c-48e2-aba0-4d8b5f5d5b25" => new GP<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GP' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "30267390-27af-4c97-8e5a-bf10f2efcef0" => new GP<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "aa1dacfb-e46c-48e2-aba0-4d8b5f5d5b25" => new GP<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GP' without a concrete client type id."),
                 };
             });
@@ -76,14 +76,14 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         int global::System.IComparable<GP<T>>.CompareTo(GP<T> otherArgument)
         {
             var o = (IReadOnlyGP<T>?)(object)otherArgument!;
-            var result = InvokeFunction("CompareTo#060ef76d-9db3-455b-8b62-f7c7d8565ef0", (object?)(o));
+            var result = InvokeFunction("CompareTo#cdf47eb7-8f44-4e6b-8206-b5e20cee7f71", (object?)(o));
             return Convert.ToInt32(result);
         }
 
         int IX<GP<T>>.X(GP<T> oArgument)
         {
             var o = (IReadOnlyGP<T>)(object)oArgument!;
-            var result = InvokeFunction("X#f581ad7e-2629-4e10-b143-766156e92466", (object?)(o));
+            var result = InvokeFunction("X#9a5e5434-2b83-40ca-b911-56fec4857d4f", (object?)(o));
             return Convert.ToInt32(result);
         }
 

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Hider : NeoGeneratedClassValue, IReadOnlyHider
     {
         internal Hider(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c845d440-9fc7-4450-9a56-468291beb112", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d7f6dc4b-9c50-42a7-a314-b440e716fb39", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         public static bool ReferenceEquals(int a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "f97f705e-ea18-4ea8-a72a-496834b7073d");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b8c2c252-4b11-49fc-9bf3-e8381674a7d4");
             var result = node.InvokeStatic((object?)(a));
             return (bool)result!;
         }
@@ -52,7 +52,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c845d440-9fc7-4450-9a56-468291beb112");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "d7f6dc4b-9c50-42a7-a314-b440e716fb39");
         }
 
         internal static Hider Create(NeoClient client, NeoMemberClass node)
