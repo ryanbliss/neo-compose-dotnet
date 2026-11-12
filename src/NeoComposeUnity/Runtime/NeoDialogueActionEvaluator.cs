@@ -3838,8 +3838,9 @@ namespace NeoCompose.Runtime
             JsonMember? member = null;
             if (target.pointer is StaticMemberPointer staticMember)
             {
-                client.TryGetMember(staticMember.memberId, out member);
                 var binding = NSGetterEvaluator.ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx);
+                // A generic type's static holds what its construction binds.
+                member = binding.Member;
                 rowId = binding.ValueId;
             }
             else if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
