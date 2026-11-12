@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class KeyMk : NeoGeneratedClassValue, IReadOnlyKeyMk
     {
         internal KeyMk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c9b848fc-fcfe-422e-9815-5aae744a2b19", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "afa845d2-c5f9-4ada-9ca1-df8739d911a2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c9b848fc-fcfe-422e-9815-5aae744a2b19");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "afa845d2-c5f9-4ada-9ca1-df8739d911a2");
         }
 
         internal static KeyMk Create(NeoClient client, NeoMemberClass node)

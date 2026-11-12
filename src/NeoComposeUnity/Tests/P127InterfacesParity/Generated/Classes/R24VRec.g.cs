@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R24VRec : NeoGeneratedClassValue, IReadOnlyR24VRec
     {
         internal R24VRec(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2e6c4ddc-c59d-4d7d-bf6d-303ae092cd5e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "236da500-ceab-4c6a-8adc-11160ffe1678", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "debb9712-16a7-4213-9b99-95e490cfaa49", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9100efae-83cb-4596-b0b9-0ffa8c2c2ebb", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'S' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "debb9712-16a7-4213-9b99-95e490cfaa49", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "9100efae-83cb-4596-b0b9-0ffa8c2c2ebb", NeoValueOwnership.Session);
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2e6c4ddc-c59d-4d7d-bf6d-303ae092cd5e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "236da500-ceab-4c6a-8adc-11160ffe1678");
         }
 
         internal static R24VRec Create(NeoClient client, NeoMemberClass node)

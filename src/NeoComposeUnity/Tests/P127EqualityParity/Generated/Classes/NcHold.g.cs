@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class NcHold : NeoGeneratedClassValue, IReadOnlyNcHold
     {
         internal NcHold(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e1fef9eb-573a-41f7-8596-7af55f2d1203", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "342637d0-e8c1-44cb-b63a-e54e316922f8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         public static INeoReadOnlySet<int>? Maybe(bool has)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6633fa24-f0c9-471e-bec2-50b55fdaddac");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "95d4f264-fa2f-483b-81de-e041e88799d4");
             var result = node.InvokeStatic((object?)(has));
             if (result is null) return null;
             return result is null ? null : NeoGeneratedTypesSupport.ReadScriptSet<int>(result, resultEntry => { return Convert.ToInt32(resultEntry); });
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e1fef9eb-573a-41f7-8596-7af55f2d1203",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Inner", "6192efdb-b4a5-4ce7-a0c1-70bae169f534", Inner)
+                "342637d0-e8c1-44cb-b63a-e54e316922f8",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Inner", "8ffd8e6f-18a6-4843-8d44-c1bb06794621", Inner)
             );
         }
 

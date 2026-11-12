@@ -125,6 +125,14 @@
     "class DefaultStaticPair<T> { public static (T, int) P = default; }",
     "class NullableEntryBox<T> { public static List<T> L = []; public List<T> I = []; }",
     "class ObjectNullDefault { public object? O = null; }",
+    "class G31Item { public int N = 0; }",
+    "class G31Bag { public List<G31Item> Items = []; }",
+    "class G31Copy(G31Bag source) { public int First = source.Items[0].N; public List<int> Ns = source.Items.Select((G31Item item) => item.N).ToList(); }",
+    "abstract class G31DirBase { public abstract G31Copy Down { get; } }",
+    "class G31DirAssets(G31Bag vertical) : G31DirBase { public override G31Copy Down = new G31Copy(source: vertical); }",
+    "class G31Seg(G31Bag frames) { public G31Copy Inner = new G31Copy(source: frames); }",
+    "class G31DirAll(G31Bag all) : G31DirBase { public G31Seg Seg = new G31Seg(frames: all); public override G31Copy Down => this.Seg.Inner; }",
+    "class G31Store { public static G31DirBase Held = new G31DirAll(all: new G31Bag { Items = [new G31Item { N = 4 }, new G31Item { N = 5 }] }); }",
     "class Probe {",
     "  public static int CountPets(IEnumerable<CastPet> pets) { int n = 0; foreach (CastPet p in pets) { n += 1; } return n; }",
     "  public static int CountPetCursor(IEnumerator<CastPet> pets) { int n = 0; while (pets.MoveNext()) { n += 1; } return n; }",
@@ -744,6 +752,7 @@
     "  public static string DefaultPairNestedEnumElement() { var n = new DefaultPair<(int, CastWeather)>(); return $\"{n.P.Item1.Item2},{n.P.Item2}\"; }",
     "  public static string TupleEnumElementName() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); return $\"{h.Val.Item2}\"; }",
     "  public static string TupleEnumElementText() { var h = new CtorHeld<(CastCat, CastWeather)>((new CastCat(), CastWeather.Rain)); CastWeather m = h.Val.Item2; return m.ToString(); }",
+    "  public static string ConstructedArgumentListRead() { G31DirBase d = new G31DirAssets(vertical: new G31Bag { Items = [new G31Item { N = 1 }, new G31Item { N = 2 }] }); G31DirBase a = new G31DirAll(all: new G31Bag { Items = [new G31Item { N = 3 }] }); return $\"{d.Down.First},{d.Down.Ns.Count},{a.Down.Ns[0]},{G31Store.Held.Down.First},{G31Store.Held.Down.Ns[1]}\"; }",
     "}"
   ],
   "returns": {
@@ -1254,7 +1263,8 @@
     "DefaultStaticNestedEnumElement": "Sun",
     "DefaultPairNestedEnumElement": "Sun,0",
     "TupleEnumElementName": "Rain",
-    "TupleEnumElementText": "Rain"
+    "TupleEnumElementText": "Rain",
+    "ConstructedArgumentListRead": "1,2,3,4,5"
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NTF : NeoGeneratedClassValue, IReadOnlyNTF
     {
         internal NTF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4f3077b2-f264-4798-806b-47414de880a3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "51d60e06-8ddd-422e-98c8-f75424a0c448", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static bool F<T>(T x = default!)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8d3a688f-b3bf-42e8-ad6b-56aca1fbd8fc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "facadeb8-98ed-487e-8a62-4b9293b1c170");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4f3077b2-f264-4798-806b-47414de880a3");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "51d60e06-8ddd-422e-98c8-f75424a0c448");
         }
 
         internal static NTF Create(NeoClient client, NeoMemberClass node)

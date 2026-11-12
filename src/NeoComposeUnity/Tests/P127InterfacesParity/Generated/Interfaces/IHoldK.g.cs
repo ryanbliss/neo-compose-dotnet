@@ -18,14 +18,14 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f7acacb2-81f7-4305-9b20-09849dde992a", NeoValueOwnership.Session, client.TypeArguments.Of<IHoldK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8df27ad6-d58b-4298-b524-c8ffd4a44849", NeoValueOwnership.Session, client.TypeArguments.Of<IHoldK<T>>());
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127InterfacesParity.HoldIK.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "f7acacb2-81f7-4305-9b20-09849dde992a", NeoValueOwnership.Session, client.TypeArguments.Of<IHoldK<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "8df27ad6-d58b-4298-b524-c8ffd4a44849", NeoValueOwnership.Session, client.TypeArguments.Of<IHoldK<T>>());
                 binding.BindValue(value);
             }
         }

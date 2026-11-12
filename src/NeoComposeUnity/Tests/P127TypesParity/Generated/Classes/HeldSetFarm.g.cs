@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldSetFarm : NeoGeneratedClassValue, IReadOnlyHeldSetFarm
     {
         internal HeldSetFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "de5ebd9c-a529-4eaf-bad4-c126ac77b852", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "cb538d73-6060-41be-8e60-3a09d5a9c18c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "de5ebd9c-a529-4eaf-bad4-c126ac77b852",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "b3868bb4-883a-4166-b114-6d53841aba61", Sets),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "8b781206-41d0-4ed2-8e76-9a49dcafe387", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "d75d8f31-5436-45ac-8d1d-eb5f4f678702", Cats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "af8eb384-f5ba-4b73-8840-8c598ac3d635", Groups)
+                "cb538d73-6060-41be-8e60-3a09d5a9c18c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "376d54a8-4835-48be-895b-29794ebe671c", Sets),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "767934a8-873b-4f08-9ca0-1b6257de9552", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "38a79c56-4073-4d1f-b52a-e93f158e6cc5", Cats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "f66e77d0-b031-4785-b8d4-7c3838b8d128", Groups)
             );
         }
 

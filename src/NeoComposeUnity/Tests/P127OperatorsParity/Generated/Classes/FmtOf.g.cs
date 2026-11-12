@@ -23,14 +23,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class FmtOf<T> : NeoGeneratedClassValue, IReadOnlyFmtOf<T>
     {
         internal FmtOf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6e2dcc57-f84c-44cb-af8a-79d1428007c9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "29d6c5a7-69c9-43f0-ae96-35219d2d60e9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static string F(T a)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "dcc4fc7b-184c-4bc3-81b2-e2ac7e9b32f4", client.TypeArguments.Of<FmtOf<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "3a29b211-8c7a-4260-b14b-211855fcdedf", client.TypeArguments.Of<FmtOf<T>>());
             var result = node.InvokeStatic((object?)(a));
             return (string)result!;
         }
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6e2dcc57-f84c-44cb-af8a-79d1428007c9" => new FmtOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "29d6c5a7-69c9-43f0-ae96-35219d2d60e9" => new FmtOf<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FmtOf' without a concrete client type id."),
                 };
             });
@@ -55,7 +55,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "6e2dcc57-f84c-44cb-af8a-79d1428007c9" => new FmtOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "29d6c5a7-69c9-43f0-ae96-35219d2d60e9" => new FmtOf<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'FmtOf' without a concrete client type id."),
                 };
             });

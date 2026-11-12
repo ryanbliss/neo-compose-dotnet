@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class NcPt : NeoGeneratedClassValue, IReadOnlyNcPt
     {
         internal NcPt(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "eba6694e-8bb1-4488-9517-f9c0f1648d0f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8120b098-ef81-422e-a5d2-c6133737f05b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "eba6694e-8bb1-4488-9517-f9c0f1648d0f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8120b098-ef81-422e-a5d2-c6133737f05b");
         }
 
         internal static NcPt Create(NeoClient client, NeoMemberClass node)

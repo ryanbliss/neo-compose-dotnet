@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9f70c670-3259-44c1-957f-70f0cdc130a1");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "61dfa842-3ba5-446d-ac0e-f9cadcab35e5");
         }
 
         internal new static R23MD1 Create(NeoClient client, NeoMemberClass node)

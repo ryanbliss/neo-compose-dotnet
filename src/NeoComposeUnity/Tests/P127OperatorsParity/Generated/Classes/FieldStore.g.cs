@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class FieldStore : NeoGeneratedClassValue, IReadOnlyFieldStore
     {
         internal FieldStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d4f1518b-6547-46d6-a792-ff11a242a008", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b5b3efce-9fc8-48d0-b88d-bba40d84db82", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -43,14 +43,14 @@ namespace NeoCompose.Tests.P127OperatorsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "65fcb704-361f-4fdd-84c2-caf214347e2b", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d689a182-24c0-424a-85d0-68ae6dda1225", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127OperatorsParity.FieldCounter<int>.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "65fcb704-361f-4fdd-84c2-caf214347e2b", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d689a182-24c0-424a-85d0-68ae6dda1225", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -65,9 +65,9 @@ namespace NeoCompose.Tests.P127OperatorsParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "d4f1518b-6547-46d6-a792-ff11a242a008",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("E", "52740f1b-a727-4817-9a42-dc1b49507f3f", E),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "fa627814-3e1a-4e74-8118-189d4a855af1", F)
+                "b5b3efce-9fc8-48d0-b88d-bba40d84db82",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("E", "790d48bd-1e6d-48ff-8b82-2ff85f56df17", E),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "7603c78e-1b70-4c83-8b8b-6a6949dcf46b", F)
             );
         }
 

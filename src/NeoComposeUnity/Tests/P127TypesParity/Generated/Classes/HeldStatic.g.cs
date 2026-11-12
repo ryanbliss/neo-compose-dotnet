@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldStatic<T> : NeoGeneratedClassValue, IReadOnlyHeldStatic<T>
     {
         internal HeldStatic(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d15767cb-debc-4ea1-9057-648b4a76e631", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "799479f7-8339-46aa-b766-dbea5b3a5800", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "026f153b-8fc6-4fca-acfb-8a8174cd0de1", NeoValueOwnership.Session, client.TypeArguments.Of<HeldStatic<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "dff87a16-4c6f-43f2-9b38-2f309ef44ad2", NeoValueOwnership.Session, client.TypeArguments.Of<HeldStatic<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<T>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, child).Serialize(item));
             }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d15767cb-debc-4ea1-9057-648b4a76e631" => new HeldStatic<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "799479f7-8339-46aa-b766-dbea5b3a5800" => new HeldStatic<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'HeldStatic' without a concrete client type id."),
                 };
             });
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d15767cb-debc-4ea1-9057-648b4a76e631" => new HeldStatic<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "799479f7-8339-46aa-b766-dbea5b3a5800" => new HeldStatic<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'HeldStatic' without a concrete client type id."),
                 };
             });

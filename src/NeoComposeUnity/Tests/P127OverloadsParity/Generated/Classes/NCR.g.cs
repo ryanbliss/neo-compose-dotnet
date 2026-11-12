@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class NCR<T> : NeoGeneratedClassValue, IReadOnlyNCR<T>
     {
         internal NCR(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ff5b8962-170f-4f13-801a-f279b3a08e1e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ee4a5295-0e42-4d7d-a7c8-511f067e9a71", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ff5b8962-170f-4f13-801a-f279b3a08e1e" => new NCR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "ee4a5295-0e42-4d7d-a7c8-511f067e9a71" => new NCR<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NCR' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ff5b8962-170f-4f13-801a-f279b3a08e1e" => new NCR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "ee4a5295-0e42-4d7d-a7c8-511f067e9a71" => new NCR<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NCR' without a concrete client type id."),
                 };
             });

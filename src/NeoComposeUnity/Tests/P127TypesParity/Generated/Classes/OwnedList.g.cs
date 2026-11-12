@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OwnedList : NeoGeneratedClassValue, IReadOnlyOwnedList
     {
         internal OwnedList(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e18d3266-dc73-4b21-9479-7f9ca76df8e1", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "56632690-552d-400d-b21c-21ed496a3b62", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e18d3266-dc73-4b21-9479-7f9ca76df8e1",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "7580f4ef-83e7-4e7a-bfd0-749612bd868b", Items)
+                "56632690-552d-400d-b21c-21ed496a3b62",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "cd018904-6da2-4015-adc9-6feab832d7f4", Items)
             );
         }
 

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     public partial class Silent : NeoGeneratedClassValue, IReadOnlySilent
     {
         internal Silent(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "32746e1f-dc27-41f1-99b9-b00325334349", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c842abac-92b8-4fa8-a672-7c3e2f4eba75", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "32746e1f-dc27-41f1-99b9-b00325334349",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "56d3076e-a84e-4e76-8783-43466d1b743d", Calls)
+                "c842abac-92b8-4fa8-a672-7c3e2f4eba75",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "ee512da8-f4f4-46d4-80be-58387d020c57", Calls)
             );
         }
 
