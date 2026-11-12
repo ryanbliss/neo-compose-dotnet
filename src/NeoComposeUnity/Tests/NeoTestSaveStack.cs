@@ -3,9 +3,12 @@
 
 #nullable enable
 
+using System.Linq;
 using UnityEngine;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Tests
 {
@@ -203,6 +206,37 @@ namespace NeoCompose.Tests
                 client.Dispose();
                 throw;
             }
+        }
+
+        /// <summary>
+        /// A parity fixture's <c>persists</c> case: runs the static
+        /// <c>Probe.&lt;name&gt;Write()</c>, then returns a new client over the
+        /// stored rows alone, as the next execution reads them.
+        /// </summary>
+        public static NeoClient WriteAndReload(NeoClient client, string name)
+        {
+            var probe = client.ProjectDataForRuntime.classes.Values.Single(type => type.name == "Probe");
+            NeoMemberNSFunction.GetOrCreateStatic(client, probe.schema[name + "Write"]).InvokeStatic(System.Array.Empty<object?>());
+            // The fixture's unqualified statics live in Session. Save-file
+            // reload alone deliberately drops them, so round-trip that store
+            // and its bindings as well, without carrying any live CLR values.
+            client.PublishHeldPayloadWrites(NeoValueOwnership.Session);
+            var rows = JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, MemberValue>>(JsonConvert.SerializeObject(client.sessionValues))!;
+            var reloaded = ClientFromSchema(client.Synchronizer.Schema, loadedSaveContent: client.SerializeSaveData());
+            var plan = new NeoWritePlan(reloaded);
+            foreach (MemberValue row in rows.Values)
+                plan.Set(NeoValueOwnership.Session, row);
+            foreach (string id in client.ProjectDataForRuntime.classes.Values.SelectMany(type => type.schema.Values))
+            {
+                var member = client.members[id];
+                if (member.Modifier != NeoMemberModifierKind.Static || member is NSFunctionMember
+                    || client.ResolveStaticOwnership(member) != NeoValueOwnership.Session)
+                    continue;
+                if (client.TryResolveStaticBinding(member, NeoValueOwnership.Session, out string? valueId))
+                    plan.Bind(NeoValueOwnership.Session, id, true, valueId);
+            }
+            plan.Commit();
+            return reloaded;
         }
 
         /// <summary>

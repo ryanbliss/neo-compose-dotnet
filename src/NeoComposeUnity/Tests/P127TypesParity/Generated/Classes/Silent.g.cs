@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Silent : NeoGeneratedClassValue, IReadOnlySilent
     {
         internal Silent(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8e3a212e-7df0-4436-ab04-027387be8039", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f0bffb34-53bc-4439-9bb0-a4cef3dbe8c1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8e3a212e-7df0-4436-ab04-027387be8039");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f0bffb34-53bc-4439-9bb0-a4cef3dbe8c1");
         }
 
         internal static Silent Create(NeoClient client, NeoMemberClass node)

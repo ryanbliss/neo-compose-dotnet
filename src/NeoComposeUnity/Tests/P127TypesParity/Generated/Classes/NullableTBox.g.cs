@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class NullableTBox<T> : NeoGeneratedClassValue, IReadOnlyNullableTBox<T> where T : CastPet
     {
         internal NullableTBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "90269e9d-5ced-4d32-8524-367b89360928", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e7a421fa-59a4-4634-937d-a25e78b5ebe3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "90269e9d-5ced-4d32-8524-367b89360928" => new NullableTBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e7a421fa-59a4-4634-937d-a25e78b5ebe3" => new NullableTBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableTBox' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "90269e9d-5ced-4d32-8524-367b89360928" => new NullableTBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e7a421fa-59a4-4634-937d-a25e78b5ebe3" => new NullableTBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableTBox' without a concrete client type id."),
                 };
             });

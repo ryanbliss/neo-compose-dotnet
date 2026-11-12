@@ -34,6 +34,9 @@ namespace NeoCompose.Tests
         public static IEnumerable<string> Refuses() =>
             Fixture()["refuses"]!.Children<JProperty>().Select(property => property.Name);
 
+        public static IEnumerable<string> Persists() =>
+            Fixture()["persists"]!.Children<JProperty>().Select(property => property.Name);
+
         public static IEnumerable<TestCaseData> AssetIdentities() =>
             Fixture()["assetIdentity"]!.Children<JObject>().Select(test => new TestCaseData(test).SetName("AssetIdentity_" + test["name"]!.Value<string>()));
 
@@ -68,6 +71,18 @@ namespace NeoCompose.Tests
                 Assert.That(JToken.DeepEquals(expected, actual), Is.True, $"{probe}: {actual}");
             if (NestedSetConstructorReturns().Contains(probe))
                 AssertNestedConstructorPayload(client, probe, NeoValueOwnership.Session);
+        }
+
+        // The written value reaches the next execution only through its stored rows.
+        [TestCaseSource(nameof(Persists))]
+        public void ProbePersists(string probe)
+        {
+            using NeoClient initial = Client();
+            using NeoClient reloaded = NeoTestSaveStack.WriteAndReload(initial, probe);
+            object? value = InvokeProbe(reloaded, probe);
+            JToken actual = value is null ? JValue.CreateNull() : JToken.FromObject(value);
+            JToken expected = Fixture()["persists"]![probe]!;
+            Assert.That(JToken.DeepEquals(expected, actual), Is.True, $"{probe}: {actual}");
         }
 
         public static IEnumerable<string> ReviewFixReturns() => Returns().Where(name =>
