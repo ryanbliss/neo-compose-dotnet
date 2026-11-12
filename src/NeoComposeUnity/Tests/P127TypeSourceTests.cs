@@ -246,6 +246,47 @@ namespace NeoCompose.Tests
             Assert.That(NeoTypeSources.Violations(client, graph, moved), Is.Empty);
         }
 
+        /// <summary>
+        /// A moved row whose target can't close its typeSource is a binding
+        /// node with no stamp, as a row with no typeSource is.
+        /// </summary>
+        [TestCase("names a row with no stamp")]
+        [TestCase("names a param its row doesn't stamp")]
+        [TestCase("names a path its row doesn't bind")]
+        public void RefusesAMovedRowWhoseTypeSourceItsTargetCannotClose(string shape)
+        {
+            using NeoClient client = BuildClient();
+            TypeBinding pairBound = TestTypeBindings.Class("holder", true, ("T", Open("pair", "A")));
+            (NeoTypeSource typeSource, Dictionary<string, TypeBinding>? stamp) = shape switch
+            {
+                "names a row with no stamp" => (NeoTypeSource.OfType(pairBound, "x"), (Dictionary<string, TypeBinding>?)null),
+                "names a param its row doesn't stamp" => (NeoTypeSource.OfType(pairBound, "x"), TestTypeBindings.Stamp(("B", Int))),
+                _ => (NeoTypeSource.AtPath("x", new[] { "Z" }), TestTypeBindings.Stamp(("A", Int), ("B", Int))),
+            };
+            ObjectMemberValue moved = Obj("c", new()
+            {
+                ["Payload"] = "c.payload",
+                ["Items"] = "c.items",
+                ["P"] = "c.p"
+            }, "holder");
+            moved.typeSource = typeSource;
+            var graph = new Graph(
+                new MemberValue[]
+                {
+                    moved,
+                    Number("c.payload", 4),
+                    Arr("c.items"),
+                    Obj("c.p", new() { ["As"] = "c.p.as" }),
+                    Arr("c.p.as"),
+                    Obj("x", new(), "pair", stamp),
+                });
+            NeoTypeSourcePosition? position = Root(client, "c", "anything");
+            Assert.That(NeoTypeSources.Violations(client, graph, position), Does.Contain("Value \"c\" is a binding node and stores no stamp."));
+            Assert.That(
+                () => NeoTypeSources.Place(client, graph, position),
+                Throws.InvalidOperationException.With.Message.EqualTo("Binding node \"c\" stores no stamp, and its slot doesn't spell one."));
+        }
+
         [Test]
         public void StoresTheClassOfABindingNodeWhoseSlotNamesNone()
         {

@@ -651,9 +651,9 @@ namespace NeoCompose.Runtime
             if (row.typeSource is not NeoTypeSource typeSource)
                 return null;
             MemberValueBase? target = typeSource.ValueId is string targetId ? lookup(targetId) : null;
-            if (typeSource.ValueId is not null && target is null)
-                return null;
-            return SpelledStamp(TypeSourceType(rowId, typeSource, target), classId, ownParams);
+            return ResolveTypeSource(rowId, typeSource, target, out _) is TypeBinding type
+                ? SpelledStamp(type, classId, ownParams)
+                : null;
         }
 
         /// <summary>A binding node's stamp where its position spells the row's own class.</summary>
@@ -989,25 +989,46 @@ namespace NeoCompose.Runtime
 
         /// <summary>The type <paramref name="typeSource"/> resolves to, given the row it names. A type with no row needs no target.</summary>
         internal static TypeBinding TypeSourceType(string rowId, NeoTypeSource typeSource, MemberValueBase? target)
+            => ResolveTypeSource(rowId, typeSource, target, out string? refusal)
+                ?? throw new InvalidOperationException(refusal);
+
+        /// <summary><see cref="TypeSourceType"/>, or null with why <paramref name="typeSource"/> doesn't resolve.</summary>
+        private static TypeBinding? ResolveTypeSource(string rowId, NeoTypeSource typeSource, MemberValueBase? target, out string? refusal)
         {
+            refusal = null;
             if (typeSource.Type is not null && typeSource.ValueId is null)
                 return typeSource.Type;
             string targetId = typeSource.ValueId!;
             if (target is null)
-                throw new InvalidOperationException($"Value \"{rowId}\" typeSource names missing row \"{targetId}\".");
+            {
+                refusal = $"Value \"{rowId}\" typeSource names missing row \"{targetId}\".";
+                return null;
+            }
             Dictionary<string, TypeBinding>? stamp = (target as MemberValue)?.genericBindings;
             if (typeSource.Path is not null)
             {
-                return BindingAtPath(stamp, target.valueType, typeSource.Path)
-                    ?? throw new InvalidOperationException($"Value \"{rowId}\" typeSource.path {PathJson(typeSource.Path)} isn't bound by its target.");
+                TypeBinding? bound = BindingAtPath(stamp, target.valueType, typeSource.Path);
+                if (bound is null)
+                    refusal = $"Value \"{rowId}\" typeSource.path {PathJson(typeSource.Path)} isn't bound by its target.";
+                return bound;
             }
             if (stamp is null)
-                throw new InvalidOperationException($"Value \"{rowId}\" typeSource names row \"{targetId}\", which stores no stamp.");
-            return Substitute(typeSource.Type!, open =>
-                stamp.TryGetValue(open.Param!, out TypeBinding? bound)
-                    ? bound
-                    : throw new InvalidOperationException(
-                        $"Value \"{rowId}\" typeSource.type names param \"{open.Param}\", which row \"{targetId}\" doesn't stamp."));
+            {
+                refusal = $"Value \"{rowId}\" typeSource names row \"{targetId}\", which stores no stamp.";
+                return null;
+            }
+            string? unstamped = null;
+            TypeBinding type = Substitute(typeSource.Type!, open =>
+            {
+                if (stamp.TryGetValue(open.Param!, out TypeBinding? bound))
+                    return bound;
+                unstamped ??= open.Param;
+                return null;
+            });
+            if (unstamped is null)
+                return type;
+            refusal = $"Value \"{rowId}\" typeSource.type names param \"{unstamped}\", which row \"{targetId}\" doesn't stamp.";
+            return null;
         }
 
         /// <summary>The closed type <paramref name="typeSource"/> resolves to, or null while its target is missing or leaves a param unbound.</summary>
