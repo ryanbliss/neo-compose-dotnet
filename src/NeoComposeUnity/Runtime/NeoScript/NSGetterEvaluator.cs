@@ -7529,14 +7529,17 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (FindRowReference(set, ctx) is { } reference
-                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row
-                && row.comparer is not null)
+                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row)
             {
                 TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
-                var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
-                    id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
-                return index.Find(value) is not null;
+                // A comparer, or an entry type's authored Equals, decides membership.
+                if (UsesStoredEquality(row, entryType, ctx))
+                {
+                    var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
+                        id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
+                    return index.Find(value) is not null;
+                }
             }
             if (value is null)
                 return false;
