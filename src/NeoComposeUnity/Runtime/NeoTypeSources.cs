@@ -506,7 +506,10 @@ namespace NeoCompose.Runtime
             if (bindingNode || slotEnv is null)
             {
                 spelled = SpelledStamp(position.Concrete, classId, ownParams)
-                    ?? (stored is null ? DeterminedStamp(client, classId, ownParams, position.Concrete) : null);
+                    ?? (stored is null
+                        ? DeterminedStamp(client, classId, ownParams, position.Concrete)
+                            ?? PreviousPlacementStamp(position.ValueId, row, classId, ownParams, wants)
+                        : null);
                 Dictionary<string, TypeBinding> stamp = stored ?? spelled ?? NoEnv;
                 concreteEnv = ClassSourcedEnv(client, classId, id => stamp.TryGetValue(id, out TypeBinding? bound) ? bound : null);
                 sourcedEnv = ClassSourcedEnv(client, classId, paramId => SourcePathType(new[] { paramId }));
@@ -631,6 +634,26 @@ namespace NeoCompose.Runtime
                     DeclaredMemberType(client, parameter),
                     templateClassId));
             }
+        }
+
+        /// <summary>
+        /// A row moved from a slot that closed its type keeps that type
+        /// (§12.1): its typeSource still names it until this placement
+        /// rewrites it.
+        /// </summary>
+        private static Dictionary<string, TypeBinding>? PreviousPlacementStamp(
+            string rowId,
+            MemberValueBase row,
+            string classId,
+            string[] ownParams,
+            Func<string, MemberValueBase?> lookup)
+        {
+            if (row.typeSource is not NeoTypeSource typeSource)
+                return null;
+            MemberValueBase? target = typeSource.ValueId is string targetId ? lookup(targetId) : null;
+            if (typeSource.ValueId is not null && target is null)
+                return null;
+            return SpelledStamp(TypeSourceType(rowId, typeSource, target), classId, ownParams);
         }
 
         /// <summary>A binding node's stamp where its position spells the row's own class.</summary>
@@ -813,15 +836,7 @@ namespace NeoCompose.Runtime
         // ------------------------------------------------------------------
 
         /// <summary>Writes one placed row's class, stamp and typeSource as its placement requires.</summary>
-        internal static void Apply(NeoTypeSourceRequirement placed) => Apply(placed, null);
-
-        /// <summary>
-        /// <see cref="Apply(NeoTypeSourceRequirement)"/> for a row that may
-        /// have moved: one that becomes a binding node keeps the class type
-        /// its typeSource resolved to, read through <paramref name="lookup"/>
-        /// before the typeSource goes.
-        /// </summary>
-        private static void Apply(NeoTypeSourceRequirement placed, Func<string, MemberValueBase?>? lookup)
+        internal static void Apply(NeoTypeSourceRequirement placed)
         {
             MemberValueBase row = placed.Row;
             // A binding node always stores its class (§12.1).
@@ -835,8 +850,7 @@ namespace NeoCompose.Runtime
             }
             else if (stamped?.genericBindings is null)
             {
-                Dictionary<string, TypeBinding>? stamp = placed.SpelledStamp
-                    ?? (lookup is null ? null : RowOwnStamp(placed.RowId, row, lookup));
+                Dictionary<string, TypeBinding>? stamp = placed.SpelledStamp;
                 if (stamp is null || stamped is null)
                     throw new InvalidOperationException($"Binding node \"{placed.RowId}\" stores no stamp, and its slot doesn't spell one.");
                 stamped.genericBindings = stamp;
@@ -1129,31 +1143,6 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException($"Value \"{rowId}\" under member \"{declared.id}\" is missing typeSource.");
             }
-        }
-
-        /// <summary>
-        /// The closed bindings of a class row's own params, read from the row
-        /// alone: a binding node's stamp, or the class type its typeSource
-        /// resolves to, one hop away. Null when it stores neither.
-        /// </summary>
-        internal static Dictionary<string, TypeBinding>? RowOwnStamp(
-            string rowId,
-            MemberValueBase row,
-            Func<string, MemberValueBase?> lookup)
-        {
-            if ((row as MemberValue)?.genericBindings is { } stamp)
-                return stamp;
-            if (row.typeSource is not NeoTypeSource typeSource)
-                return null;
-            TypeBinding type = TypeSourceType(rowId, typeSource, typeSource.ValueId is string targetId ? lookup(targetId) : null);
-            if (type.Kind != TypeBindingKind.Closed || type.Head!.Type != MemberKind.Class)
-                return null;
-            var own = new Dictionary<string, TypeBinding>(StringComparer.Ordinal);
-            if (type.Bindings is not null)
-                foreach (KeyValuePair<string, TypeBinding> pair in type.Bindings)
-                    if (IsFullyClosed(pair.Value))
-                        own[pair.Key] = pair.Value;
-            return own;
         }
 
         /// <summary>The stamp of the binding node <paramref name="row"/>'s typeSource names, one hop away, or null.</summary>
@@ -1522,7 +1511,7 @@ namespace NeoCompose.Runtime
             {
                 placed.Add(requirement.RowId);
                 if (requirement.RowId != root.id && rows.ContainsKey(requirement.RowId))
-                    Apply(requirement, lookup);
+                    Apply(requirement);
             };
             Walk(client, graph, PlacedRowPosition(client, root.id, root, member, lookup), visit);
             IReadOnlyDictionary<string, (string ParentId, Member ParentMember)>? replayParents = null;
@@ -1651,7 +1640,7 @@ namespace NeoCompose.Runtime
             {
                 if (staged.ContainsKey(placed.RowId) || !Changes(placed))
                 {
-                    Apply(placed, graph.Row);
+                    Apply(placed);
                     return;
                 }
                 MemberValue copy = client.CloneRowForWrite((MemberValue)placed.Row);
@@ -1662,8 +1651,7 @@ namespace NeoCompose.Runtime
                         placed.StampParams,
                         placed.SpelledStamp,
                         placed.TypeSource,
-                        placed.BindingClassId),
-                    graph.Row);
+                        placed.BindingClassId));
                 (imports ??= new Dictionary<string, MemberValue>(StringComparer.Ordinal))[copy.id] = copy;
             });
             return imports is null ? null : new List<MemberValue>(imports.Values);
@@ -1742,8 +1730,7 @@ namespace NeoCompose.Runtime
                         placed.StampParams,
                         placed.SpelledStamp,
                         placed.TypeSource,
-                        placed.BindingClassId),
-                    Row);
+                        placed.BindingClassId));
             }
         }
 

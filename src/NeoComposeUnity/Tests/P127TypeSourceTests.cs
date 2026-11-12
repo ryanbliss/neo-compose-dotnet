@@ -220,6 +220,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void KeepsTheClosedTypeOfARowMovedUnderASlotThatSpellsNone()
+        {
+            using NeoClient client = BuildClient();
+            var graph = new Graph(
+                new MemberValue[]
+                {
+                    Obj("r", new() { ["Closed"] = "c" }),
+                    Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }, "holder", Stamped(Int)),
+                    Number("c.payload", 4),
+                    Arr("c.items"),
+                    Obj("c.p", new() { ["As"] = "c.p.as" }),
+                    Arr("c.p.as"),
+                });
+            NeoTypeSources.Place(client, graph, Root(client, "r", "root"));
+            Assert.That(graph["c"].genericBindings, Is.Null);
+            // An initializer roots a temp's member under a slot that spells nothing.
+            NeoTypeSourcePosition? moved = Root(client, "c", "anything");
+            NeoTypeSources.Place(client, graph, moved);
+            Assert.That(graph["c"].genericBindings, Is.EqualTo(Stamped(Int)));
+            Assert.That(graph["c"].typeSource, Is.Null);
+            Assert.That(
+                graph["c.items"].typeSource,
+                Is.EqualTo(NeoTypeSource.OfType(ListOf(Open("holder", "T"), required: false), "c")));
+            Assert.That(NeoTypeSources.Violations(client, graph, moved), Is.Empty);
+        }
+
+        [Test]
         public void StoresTheClassOfABindingNodeWhoseSlotNamesNone()
         {
             using NeoClient client = BuildClient();
