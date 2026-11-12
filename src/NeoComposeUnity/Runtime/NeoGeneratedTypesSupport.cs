@@ -8247,6 +8247,16 @@ namespace NeoCompose.Runtime
                     return Capture(reference.valueId);
                 }
             }
+            // An object member takes a stored box of a collection as its
+            // collection type takes the collection: by reference (P127 §1.3).
+            if (member is ObjectMember && produced is NeoScript.NeoBox box && IsBoxedCollection(client, box)
+                && scope.ValueReference(box.Payload) is { ownership: NeoValueOwnership boxOwnership } boxReference
+                && client.TryGetValue(boxOwnership, boxReference.valueId, out MemberValue? boxRow)
+                && box.ValueType.Equals(boxRow.valueType))
+            {
+                scope.RecordReferenceOwnership(path, boxOwnership);
+                return Capture(boxReference.valueId);
+            }
             return Capture(MaterializeRuntimeConstructorValue(
                 client,
                 member,
