@@ -11017,7 +11017,10 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member,
             HashSet<string>? retained = null)
         {
-            if (member is ClassMember && plan.Resolve(ownership, valueId) is ObjectMemberValue { value: not null })
+            // An object slot's class value is retained as a class slot's is (P127 §1.2).
+            if (member is ClassMember or ObjectMember
+                && plan.Resolve(ownership, valueId) is ObjectMemberValue { value: not null, valueType: null } row
+                && (member is ClassMember || !string.IsNullOrEmpty(row.classId)))
                 RetainOwnedAliases(plan, ctx, ownership, valueId, member, retained);
         }
 

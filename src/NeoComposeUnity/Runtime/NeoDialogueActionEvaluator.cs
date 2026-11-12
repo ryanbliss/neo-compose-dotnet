@@ -4299,6 +4299,14 @@ namespace NeoCompose.Runtime
             throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
         }
 
+        /// <summary>
+        /// Whether an object slot takes <paramref name="value"/> by reference:
+        /// a stored class value, held as a class slot holds it (P127 §1.2).
+        /// </summary>
+        private static bool HoldsStoredClassValue(object? value, NSGetterEvaluator.Context ctx) =>
+            value is not (null or NeoBox or NeoScriptObject)
+            && NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null;
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -4317,6 +4325,8 @@ namespace NeoCompose.Runtime
                 valueId = box.valueId;
                 return true;
             }
+            if (typeInfo.type == MemberKind.Object && HoldsStoredClassValue(value, ctx))
+                return TryGetValueReferenceId(value, ctx, out valueId);
             if (typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             return TryGetValueReferenceId(value, ctx, out valueId);
@@ -5458,7 +5468,7 @@ namespace NeoCompose.Runtime
             {
                 try
                 {
-                    if (typeInfo.type == MemberKind.Class)
+                    if (typeInfo.type == MemberKind.Class || binding.Member is ObjectMember && HoldsStoredClassValue(value, ctx))
                     {
                         string? valueId = FindValueId(value, ctx);
                         NeoValueOwnership sourceOwnership = default;
@@ -5515,7 +5525,7 @@ namespace NeoCompose.Runtime
                             var objectSlot = binding.Member as ObjectMember ?? new ObjectMember { id = binding.MemberId, name = binding.Member.name, kind = MemberKind.Object };
                             PrepareWrite(client, plan =>
                             {
-                                string id = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
+                                string id = binding.PayloadValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
                                 NeoValuePayload boxed = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, binding.Ownership, value!, ctx, id, plan);
                                 binding.PreparePayload(plan, boxed);
                             });
