@@ -18,7 +18,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "3014c03d-0aa0-4197-8d14-5bcae7e4fad5", NeoValueOwnership.Session, client.TypeArguments.Of<ISV<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "b289dfa3-ecb9-4a85-bf48-6c29504f4c6e", NeoValueOwnership.Session, client.TypeArguments.Of<ISV<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Base' has no value.");
             }
@@ -26,7 +26,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         int Doubled()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d0f9d4ad-44e5-4f32-9a39-cddf5f1cfc81", NeoInterfaceBody.Function, client.TypeArguments.Of<ISV<T>>(), "d0f9d4ad-44e5-4f32-9a39-cddf5f1cfc81", client.TypeArguments.Of<ISV<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "46de5cdc-91ab-40d4-a75a-222c0097fbf0", NeoInterfaceBody.Function, client.TypeArguments.Of<ISV<T>>(), "46de5cdc-91ab-40d4-a75a-222c0097fbf0", client.TypeArguments.Of<ISV<T>>(), Array.Empty<object?>());
             return Convert.ToInt32(result);
         }
     }

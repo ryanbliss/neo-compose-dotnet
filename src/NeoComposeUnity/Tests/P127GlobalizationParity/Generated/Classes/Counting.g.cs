@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127GlobalizationParity
     public partial class Counting : NeoGeneratedClassValue, IReadOnlyCounting
     {
         internal Counting(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1856e4a0-4a70-48bd-b7b7-6db327aa9bbd", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "eb38cf6c-1b0e-4ccf-b4ce-159b2ff478eb", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,9 +50,9 @@ namespace NeoCompose.Tests.P127GlobalizationParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1856e4a0-4a70-48bd-b7b7-6db327aa9bbd",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "aec76427-d985-4265-ae88-98a66a1f42f1", Calls),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Answer", "6bc69624-d7d5-4f49-8275-3205fab92d62", Answer)
+                "eb38cf6c-1b0e-4ccf-b4ce-159b2ff478eb",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Calls", "3308f47d-528f-417e-b8de-b861dbabc660", Calls),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Answer", "b53fba5f-f626-4c69-9f38-c3e2cbaf8924", Answer)
             );
         }
 

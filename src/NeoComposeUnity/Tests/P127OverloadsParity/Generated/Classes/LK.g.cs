@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class LK : NeoGeneratedClassValue, IReadOnlyLK
     {
         internal LK(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "254e4314-bbd8-4385-b44e-8afa7af4645c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9f0d8c76-4b9c-4836-ae6b-6232b2171f66", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static T Apply<T>(NeoDelegateValue f)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "847023d2-8298-4fae-8bf4-8969fd22dcab");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "433424dd-2fe2-43a7-9044-6b45744b5d62");
             var result = node.InvokeGenericStatic(new object?[] { f }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int M(float x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6932a033-4f4a-4ea6-b0f4-25016fdcf910");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "23436283-d03a-4f3e-a42e-23ca83226db7");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int N(int x = 0)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "40058794-9a18-4150-89f1-f1e85347ac39");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9807cde1-c19b-4862-8375-1a2220f217ed");
             var result = node.InvokeStatic((object?)(x));
             return Convert.ToInt32(result);
         }
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static NeoDelegateValue Pick(NeoDelegateValue a, NeoDelegateValue b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fc69bb16-034e-4456-bdb8-97875abdacbc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6df5f119-b1f5-4a04-a74d-b76face06780");
             var result = node.InvokeStatic(a, b);
             return (NeoDelegateValue)result!;
         }
@@ -93,7 +93,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static NeoDelegateValue Pick2(NeoDelegateValue a, NeoDelegateValue b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a3ded936-3bba-4096-95f1-8adf5926eefd");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "984b1a9b-ba2e-4e2b-a816-58b5909322bb");
             var result = node.InvokeStatic(a, b);
             return (NeoDelegateValue)result!;
         }
@@ -108,15 +108,15 @@ namespace NeoCompose.Tests.P127OverloadsParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "254e4314-bbd8-4385-b44e-8afa7af4645c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "bd230ae4-53b7-4c67-8e75-676e1dec831c", F),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FN", "c57424ee-8f11-4d87-96dc-562d50d19ac8", FN),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bare", "2dbd7033-a519-4efc-9822-2be65f1c24eb", Bare),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Self", "d4cd2ef3-df0d-43fd-b78c-995ca70c7e91", Self),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fall", "4cc67ab9-44ef-44f2-be77-1fa3d06e0839", Fall),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P1", "b2235ee3-d985-4b08-84de-49e59c6dc61a", P1),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P2", "9e282b0f-7136-4a96-90e6-b1269419b64c", P2),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "879a0be5-c42b-421e-9ca1-06602d7322b9", X)
+                "9f0d8c76-4b9c-4836-ae6b-6232b2171f66",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("F", "3d9e8255-0c00-4cd6-ae89-70b511706cb3", F),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FN", "5353e89d-6b64-4485-be9c-876fb7cc6c32", FN),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bare", "54dbd613-5cca-49ad-b31b-175376054c41", Bare),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Self", "5add41b4-e4ea-4611-b5b6-d231901e876d", Self),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Fall", "a828ec08-57ec-421d-ba0d-08554ccf12b5", Fall),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P1", "96bfc90d-5d66-4af0-a75c-c2cba69d7ce4", P1),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P2", "430a6595-40d3-4f20-ad4a-86d5a915ef6f", P2),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("X", "58d89373-765e-4baf-8002-6bfd07094276", X)
             );
         }
 
@@ -290,13 +290,13 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(int x)
         {
-            var result = InvokeFunction("M#dc8eb018-bc4e-4095-a134-e2fa0469cbed", (object?)(x));
+            var result = InvokeFunction("M#6fd3e686-7f8e-4b40-9032-cd64cd65cc56", (object?)(x));
             return Convert.ToInt32(result);
         }
 
         public int N()
         {
-            var result = InvokeFunction("N#b931d899-6d71-4fdf-b355-deea201ae2b7");
+            var result = InvokeFunction("N#5b0d2cf9-9226-4e7c-bf0d-2d3fe82251f1");
             return Convert.ToInt32(result);
         }
 

@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class SorCi : NeoGeneratedClassValue, IReadOnlySorCi
     {
         internal SorCi(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c1d881e5-229f-459c-aec1-fbd42a9dcdf5", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b8fc561d-6fe2-4437-9b6b-88947c7c92af", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127EqualityParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "c1d881e5-229f-459c-aec1-fbd42a9dcdf5");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b8fc561d-6fe2-4437-9b6b-88947c7c92af");
         }
 
         internal static SorCi Create(NeoClient client, NeoMemberClass node)

@@ -30,7 +30,7 @@ namespace NeoCompose.Tests.InterfaceParity
         }
 
         internal Shelf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d26f8507-acb5-4159-a69e-8dbe8f6d7d21", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a1169cc4-de2b-4430-bda7-dea5e7c5a810", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d26f8507-acb5-4159-a69e-8dbe8f6d7d21" => new Shelf<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a1169cc4-de2b-4430-bda7-dea5e7c5a810" => new Shelf<U>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Shelf' without a concrete client type id."),
                 };
             });
@@ -54,7 +54,7 @@ namespace NeoCompose.Tests.InterfaceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d26f8507-acb5-4159-a69e-8dbe8f6d7d21" => new Shelf<U>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a1169cc4-de2b-4430-bda7-dea5e7c5a810" => new Shelf<U>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Shelf' without a concrete client type id."),
                 };
             });

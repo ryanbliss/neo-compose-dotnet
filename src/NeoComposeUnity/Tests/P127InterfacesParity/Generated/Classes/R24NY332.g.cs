@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a8f3978b-5f30-4e0e-8edb-ec307b08e3d0");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ac9e43e9-cdd3-4c1d-8c07-67f25a780070");
         }
 
         internal new static R24NY332 Create(NeoClient client, NeoMemberClass node)
@@ -109,13 +109,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("P#c8d734a9-24ae-43b1-b9c1-589f81a41684");
+                var result = ComputeProperty("P#1be011cc-a018-4e19-8a24-087661c50eae");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#c8d734a9-24ae-43b1-b9c1-589f81a41684").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#1be011cc-a018-4e19-8a24-087661c50eae").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
@@ -124,13 +124,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("P#c8d734a9-24ae-43b1-b9c1-589f81a41684");
+                var result = ComputeProperty("P#1be011cc-a018-4e19-8a24-087661c50eae");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
             set
             {
-                var result = writableNode.Get<NeoMemberNSProperty>("P#c8d734a9-24ae-43b1-b9c1-589f81a41684").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("P#1be011cc-a018-4e19-8a24-087661c50eae").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R3NestedStore : NeoGeneratedClassValue, IReadOnlyR3NestedStore
     {
         internal R3NestedStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8df8196c-5091-42f2-831e-12e9903d8c91", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "275d13ae-d8e9-4980-a20a-8d0a5ee07ac8", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eb92fb1e-9b83-4ba8-9d9e-c1afb16c371d", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "57481910-e1f7-4e64-80f8-a3a6bbe4b36f", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.R3NestedTake.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "eb92fb1e-9b83-4ba8-9d9e-c1afb16c371d", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "57481910-e1f7-4e64-80f8-a3a6bbe4b36f", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8df8196c-5091-42f2-831e-12e9903d8c91");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "275d13ae-d8e9-4980-a20a-8d0a5ee07ac8");
         }
 
         internal static R3NestedStore Create(NeoClient client, NeoMemberClass node)

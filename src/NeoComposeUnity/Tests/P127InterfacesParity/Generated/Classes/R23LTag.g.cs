@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R23LTag : NeoGeneratedClassValue, IReadOnlyR23LTag
     {
         internal R23LTag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "eee6f5e2-8de8-4044-8d77-044bad11d399", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "dba54dc5-213f-43d9-aff7-3d03c60e8d8e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "eee6f5e2-8de8-4044-8d77-044bad11d399");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "dba54dc5-213f-43d9-aff7-3d03c60e8d8e");
         }
 
         internal static R23LTag Create(NeoClient client, NeoMemberClass node)
