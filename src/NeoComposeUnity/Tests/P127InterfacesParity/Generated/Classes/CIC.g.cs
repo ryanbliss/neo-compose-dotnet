@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class CIC : NeoGeneratedClassValue, IReadOnlyCIC
     {
         internal CIC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d3c6176e-ed67-447b-809f-4ef5cfbab85e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "bc36ffee-655c-4b8f-a458-a6c3268f0211", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "d3c6176e-ed67-447b-809f-4ef5cfbab85e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "23330c50-40ad-4672-a3ec-c1ec915f14da", P)
+                "bc36ffee-655c-4b8f-a458-a6c3268f0211",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("P", "6dd22ad2-17d6-44cf-b5b2-61639f6fbb68", P)
             );
         }
 

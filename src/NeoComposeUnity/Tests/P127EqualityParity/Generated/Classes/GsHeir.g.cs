@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "acfc3d85-9eda-4a38-92a8-b565d4a81a93" => new GsHeir<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a32675b1-cc8b-441c-a1f2-30b400614537" => new GsHeir<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GsHeir' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127EqualityParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "acfc3d85-9eda-4a38-92a8-b565d4a81a93" => new GsHeir<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a32675b1-cc8b-441c-a1f2-30b400614537" => new GsHeir<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GsHeir' without a concrete client type id."),
                 };
             });

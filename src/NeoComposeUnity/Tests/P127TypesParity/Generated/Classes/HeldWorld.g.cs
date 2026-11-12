@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldWorld : NeoGeneratedClassValue, IReadOnlyHeldWorld
     {
         internal HeldWorld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "16054cc8-72e1-4d5f-94aa-6ff772ad24fc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e65e898a-cd0f-4e4e-a16f-fd3e481ee9e9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -54,12 +54,12 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "16054cc8-72e1-4d5f-94aa-6ff772ad24fc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "895abfc2-9339-4ee8-af34-ae4d0edcb306", One),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Main", "1e014c3c-a216-4d83-9172-defa6f0a39c3", Main),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Two", "6a1707e5-dbb5-45bf-b5c2-a3ff80bc5adb", Two),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Farms", "313f7e0a-0cb8-413e-b68c-45b5c6d63576", Farms),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "3762ee2e-ab57-4e62-b976-7cb62961fb0e", ByName)
+                "e65e898a-cd0f-4e4e-a16f-fd3e481ee9e9",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "c5c0c693-1e33-48bb-b55f-1b86e2cc6d33", One),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Main", "4a1b1ca3-073c-4459-a1e6-14a784701c6c", Main),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Two", "5a4568b8-660a-42c5-ad81-011e77fda62e", Two),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Farms", "3c86f495-ac4d-4153-8a10-a26cb2e077ba", Farms),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "95f87d14-ee0f-4dea-a7af-cafe7ad2c111", ByName)
             );
         }
 

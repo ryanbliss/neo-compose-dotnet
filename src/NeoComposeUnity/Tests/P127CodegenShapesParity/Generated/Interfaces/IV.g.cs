@@ -16,7 +16,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
         string Name()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "adb41a1a-1865-405b-b93f-f2bad3aefe63", NeoInterfaceBody.Function, client.TypeArguments.Of<IV<T>>(), "adb41a1a-1865-405b-b93f-f2bad3aefe63", client.TypeArguments.Of<IV<T>>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "e5521f32-429a-4982-8e94-e36a9b48f6d0", NeoInterfaceBody.Function, client.TypeArguments.Of<IV<T>>(), "e5521f32-429a-4982-8e94-e36a9b48f6d0", client.TypeArguments.Of<IV<T>>(), Array.Empty<object?>());
             return (string)result!;
         }
     }

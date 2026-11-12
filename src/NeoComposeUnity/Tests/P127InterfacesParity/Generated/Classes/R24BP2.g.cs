@@ -28,7 +28,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         }
 
         internal R24BP2(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a0df0451-20ac-458c-8c57-9155e5c5ce66", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e21ca98b-5436-46b3-88dd-e1cda8ad2d9f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,8 +39,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "637aa24b-c19d-4671-aca5-051dbff8a3c6" => (R24BP2<A, B>)(object)new R24BPQ(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "a0df0451-20ac-458c-8c57-9155e5c5ce66" => new R24BP2<A, B>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "91320f7b-8987-46ae-86ae-942ce93799d4" => (R24BP2<A, B>)(object)new R24BPQ(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "e21ca98b-5436-46b3-88dd-e1cda8ad2d9f" => new R24BP2<A, B>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24BP2' without a concrete client type id."),
                 };
             });
@@ -53,8 +53,8 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "637aa24b-c19d-4671-aca5-051dbff8a3c6" => (R24BP2<A, B>)(object)new R24BPQ(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "a0df0451-20ac-458c-8c57-9155e5c5ce66" => new R24BP2<A, B>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "91320f7b-8987-46ae-86ae-942ce93799d4" => (R24BP2<A, B>)(object)new R24BPQ(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "e21ca98b-5436-46b3-88dd-e1cda8ad2d9f" => new R24BP2<A, B>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24BP2' without a concrete client type id."),
                 };
             });
@@ -84,7 +84,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#c628c85b-804a-4408-97df-e43c3656c0a8");
+                var result = ComputeProperty("V#a88fe2bc-56ec-4ac9-92cf-56eb9cc91fd0");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
