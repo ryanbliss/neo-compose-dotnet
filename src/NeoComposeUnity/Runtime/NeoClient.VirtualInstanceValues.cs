@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -828,8 +829,22 @@ namespace NeoCompose.Runtime
         private bool CanReplayVirtualInstanceRoot(ObjectMemberValue root)
         {
             return sessionData.values.ContainsKey(root.id)
-                || (TryInferMemberForValueId(root.id, out Member? member)
-                    && member is ClassMember);
+                || TryInferClassPlacement(root, out _);
+        }
+
+        /// <summary>
+        /// The Class placement a stored root replays under: its slot, or the
+        /// held class of an <c>object</c> slot's class row, as it stores
+        /// (P127 §1.3).
+        /// </summary>
+        private bool TryInferClassPlacement(
+            ObjectMemberValue root,
+            [NotNullWhen(true)] out ClassMember? placement)
+        {
+            placement = TryInferMemberForValueId(root.id, out Member? member)
+                ? ExpansionPayloadMember(root, member) as ClassMember
+                : null;
+            return placement is not null;
         }
 
         private static bool IsStoredClassDefaultRoot(ObjectMemberValue root) =>
@@ -861,8 +876,7 @@ namespace NeoCompose.Runtime
                         return;
                     if ((virtualClassChildren.ContainsKey(root.id)
                             && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
-                        || !TryInferMemberForValueId(root.id, out Member? inferred)
-                        || inferred is not ClassMember placement
+                        || !TryInferClassPlacement(root, out ClassMember? placement)
                         || placement.Payload == NeoMemberPayloadKind.Partial)
                         return;
                 }
@@ -904,8 +918,7 @@ namespace NeoCompose.Runtime
         private void AssertPersistedVirtualInstanceRootIsClassPlacement(
             ObjectMemberValue root)
         {
-            if (!TryInferMemberForValueId(root.id, out Member? member)
-                || member is not ClassMember classMember)
+            if (!TryInferClassPlacement(root, out _))
             {
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' is not reachable through a Class member placement.");
@@ -1447,14 +1460,7 @@ namespace NeoCompose.Runtime
                     ? resolvedOwnership
                     : ResolveAuthoredOwnership(instanceRoot.id, instanceRoot));
             using var allocations = new ReplayAllocationScope(this);
-            ClassMember? placementMember = null;
-            if (TryInferMemberForValueId(
-                    instanceRoot.id,
-                    out Member? inferredPlacement)
-                && inferredPlacement is ClassMember classPlacement)
-            {
-                placementMember = classPlacement;
-            }
+            TryInferClassPlacement(instanceRoot, out ClassMember? placementMember);
             // P127 §12.1: a root that isn't a binding node reads its class's
             // bindings through its typeSource, one hop away.
             IReadOnlyDictionary<string, TypeBinding>? rootStamp = instanceRoot.typeSource is not null

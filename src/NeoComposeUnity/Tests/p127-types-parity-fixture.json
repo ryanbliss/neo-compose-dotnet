@@ -138,6 +138,13 @@
     "class G31PenHolder { public object Value = new G31Pen<int>(); }",
     "class G31CatHolder { public object Value = new G31ObjCat(); }",
     "class G31ObjStore { public static G31PenHolder PO = new G31PenHolder(); public static G31CatHolder CO = new G31CatHolder(); }",
+    "class G31Ng(int v) { public List<int> Xs = [v]; public int Y = v + 1; }",
+    "class G31Pd<T> { public List<T> Xs = []; public int N = 3; }",
+    "class G31Frame<T> { public T Value; }",
+    "class G31FrameSeg<T>(T v) { public List<G31Frame<T>> Frames = [new G31Frame<T> { Value = v }, new G31Frame<T> { Value = v }]; }",
+    "class G31Lane<T>(T v) { public G31FrameSeg<T> A = new G31FrameSeg<T>(v); }",
+    "class G31NgHolder { public object O = new G31Ng(4); }",
+    "class G31ObjStatics { public static object Ng = new G31Ng(4); public static object Pd = new G31Pd<int>(); public static object Seg = new G31FrameSeg<int>(4); public static object Moved = new G31Lane<int>(4).A; public static G31NgHolder Held = new G31NgHolder(); public static List<object> Entries = [new G31Ng(4)]; }",
     "class Probe {",
     "  public static int CountPets(IEnumerable<CastPet> pets) { int n = 0; foreach (CastPet p in pets) { n += 1; } return n; }",
     "  public static int CountPetCursor(IEnumerator<CastPet> pets) { int n = 0; while (pets.MoveNext()) { n += 1; } return n; }",
@@ -764,6 +771,12 @@
     "  public static int ObjectDefaultClassRead() { G31ObjCat c = (G31ObjCat)G31ObjStore.CO.Value; return c.Lives + c.Toys[0]; }",
     "  public static int ObjectDefaultClassMutate() { G31ObjCat c = (G31ObjCat)G31ObjStore.CO.Value; c.Lives = 3; c.Toys.Add(2); return ((G31ObjCat)G31ObjStore.CO.Value).Lives + ((G31ObjCat)G31ObjStore.CO.Value).Toys.Count; }",
     "  public static int ObjectDefaultInstance() { G31PenHolder h = new G31PenHolder(); G31Pen<int> p = (G31Pen<int>)h.Value; p.Items.Add(7); p.N = 2; return ((G31Pen<int>)h.Value).Items[0] + ((G31Pen<int>)h.Value).N; }",
+    "  public static string ObjectStaticConstructedRead() { G31Ng s = (G31Ng)G31ObjStatics.Ng; return $\"{s.Xs[0]}{s.Y}\"; }",
+    "  public static string ObjectStaticGenericAdd() { G31Pd<int> s = (G31Pd<int>)G31ObjStatics.Pd; s.Xs.Add(2); return $\"{s.Xs.Count}{s.N}\"; }",
+    "  public static int ObjectStaticConstructedList() => ((G31FrameSeg<int>)G31ObjStatics.Seg).Frames[1].Value;",
+    "  public static string ObjectStaticMovedMember() => $\"{((G31FrameSeg<int>)G31ObjStatics.Moved).Frames[1].Value}{G31ObjStatics.Moved is G31FrameSeg<string>}\";",
+    "  public static string ObjectFieldConstructedRead() { G31Ng s = (G31Ng)G31ObjStatics.Held.O; return $\"{s.Xs[0]}{s.Y}\"; }",
+    "  public static string ObjectEntryConstructedRead() { G31Ng s = (G31Ng)G31ObjStatics.Entries[0]; return $\"{s.Xs[0]}{s.Y}\"; }",
     "}"
   ],
   "returns": {
@@ -1281,7 +1294,13 @@
     "ObjectDefaultWrite": 4,
     "ObjectDefaultClassRead": 10,
     "ObjectDefaultClassMutate": 5,
-    "ObjectDefaultInstance": 9
+    "ObjectDefaultInstance": 9,
+    "ObjectStaticConstructedRead": "45",
+    "ObjectStaticGenericAdd": "13",
+    "ObjectStaticConstructedList": 4,
+    "ObjectStaticMovedMember": "4False",
+    "ObjectFieldConstructedRead": "45",
+    "ObjectEntryConstructedRead": "45"
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",

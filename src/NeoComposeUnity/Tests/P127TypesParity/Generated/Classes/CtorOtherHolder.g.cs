@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CtorOtherHolder : NeoGeneratedClassValue, IReadOnlyCtorOtherHolder
     {
         internal CtorOtherHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9c047127-052a-4766-a303-338136dbcf02", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "76a0b3a8-7faa-4f37-bd53-7988aa910087", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "9c047127-052a-4766-a303-338136dbcf02",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "c82df957-a068-47cc-a930-f0b6573af4ff", Val)
+                "76a0b3a8-7faa-4f37-bd53-7988aa910087",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "a302c7d1-b807-42f1-9cfb-c7dfba9895b2", Val)
             );
         }
 
