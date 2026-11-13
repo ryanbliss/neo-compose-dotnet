@@ -34,8 +34,11 @@ namespace NeoCompose.Tests
         {
             Asset,
             Save,
+            Session,
         }
 
+        // `saved: true` is also the call a NeoScript temporary's stored class
+        // member makes for the row it holds.
         [Test]
         public void AnAssetRowReadsReadOnly([Values] Read read, [Values] bool saved, [Values] bool required)
         {
@@ -50,16 +53,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ASaveRowReadsWritable([Values] Read read, [Values] bool saved, [Values] bool required)
+        public void AnOwnedRowReadsWritable(
+            [Values] Read read,
+            [Values(Row.Save, Row.Session)] Row row,
+            [Values] bool saved,
+            [Values] bool required)
         {
             using NeoClient client = BuildClient();
 
-            TestArt art = Project(client, Evaluate(client, read, Row.Save), saved, required);
+            TestArt art = Project(client, Evaluate(client, read, row), saved, required);
 
-            Assert.AreEqual("v-save-art", art.valueId);
+            Assert.AreEqual($"v-{row}-art".ToLowerInvariant(), art.valueId);
             Assert.IsFalse(art.IsReadOnly);
-            Assert.AreEqual(NeoValueOwnership.Save, art.ValueOwnership);
-            Assert.AreEqual("Save label", art.Label);
+            Assert.AreEqual(row == Row.Save ? NeoValueOwnership.Save : NeoValueOwnership.Session, art.ValueOwnership);
+            Assert.AreEqual($"{row} label", art.Label);
+        }
+
+        // The class member reads `saved: true`, its `IReadOnly*` implementation `saved: false`.
+        [Test]
+        public void TheClassMemberAndItsReadOnlyInterfaceShareOneView([Values] Row row)
+        {
+            using NeoClient client = BuildClient();
+            object? result = Evaluate(client, Read.Getter, row);
+
+            Assert.AreSame(
+                Project(client, result, saved: true, required: true),
+                Project(client, result, saved: false, required: true));
         }
 
         // Generated: ReadTypeArgument<T>(client, ReadRequiredNSPropertyClass(client, result, false, …), …).
@@ -159,6 +178,8 @@ namespace NeoCompose.Tests
 
         private static string MemberId(Read read, Row row) => $"member-{read}-{row}".ToLowerInvariant();
 
+        private static string RootRowId(Row row) => row == Row.Asset ? "v-root-assets" : $"v-root-{row}".ToLowerInvariant();
+
         private static NeoClient BuildClient()
         {
             var rootSchema = new Dictionary<string, string> { ["Art"] = "member-art" };
@@ -181,7 +202,7 @@ namespace NeoCompose.Tests
             {
                 foreach (Row row in System.Enum.GetValues(typeof(Row)))
                 {
-                    Member member = ReturnArt(read, MemberId(read, row), row == Row.Asset ? "v-root-assets" : "v-root-save");
+                    Member member = ReturnArt(read, MemberId(read, row), RootRowId(row));
                     members[member.id] = member;
                     rootSchema[$"{read}{row}"] = member.id;
                 }
@@ -202,11 +223,13 @@ namespace NeoCompose.Tests
                 {
                     ["v-root-assets"] = ObjectRow("v-root-assets", "class-root", "Art", "v-asset-art"),
                     ["v-root-save"] = ObjectRow("v-root-save", "class-root", "Art", "v-save-art"),
-                    ["v-root-session"] = new ObjectMemberValue { id = "v-root-session", classId = "class-root", value = new Dictionary<string, string>() },
+                    ["v-root-session"] = ObjectRow("v-root-session", "class-root", "Art", "v-session-art"),
                     ["v-asset-art"] = ObjectRow("v-asset-art", ArtClassId, "Label", "v-asset-label"),
                     ["v-save-art"] = ObjectRow("v-save-art", ArtClassId, "Label", "v-save-label"),
+                    ["v-session-art"] = ObjectRow("v-session-art", ArtClassId, "Label", "v-session-label"),
                     ["v-asset-label"] = new StringMemberValue { id = "v-asset-label", value = "Asset label" },
                     ["v-save-label"] = new StringMemberValue { id = "v-save-label", value = "Save label" },
+                    ["v-session-label"] = new StringMemberValue { id = "v-session-label", value = "Session label" },
                 },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
