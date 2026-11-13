@@ -151,19 +151,19 @@ namespace Assets.Scripts.Neo
         public virtual IReadOnlyGenericAnimal MakeDog()
         {
             var result = InvokeFunction("MakeDog");
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => GenericAnimal.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         public virtual IReadOnlyGenericAnimal MakeCat()
         {
             var result = InvokeFunction("MakeCat");
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => GenericAnimal.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => GenericAnimal.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericAnimal.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         public virtual IReadOnlyGenericChecker MakeDogChecker()
         {
             var result = InvokeFunction("MakeDogChecker");
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => GenericChecker.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericChecker.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => GenericChecker.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => GenericChecker.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => GenericChecker.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         public virtual bool IsA<T>(IReadOnlyGenericAnimal animal) where T : class, IReadOnlyGenericAnimal

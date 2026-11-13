@@ -954,7 +954,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             {
                 if (TryReadDetached("Value", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.SequenceGenerated.SequenceItem.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
@@ -1686,7 +1686,7 @@ namespace NeoCompose.Tests.SequenceGenerated
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "12500000-0000-4000-8000-000000000023");
             var result = node.InvokeStatic();
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Box<int>.CreateWritable(factoryClient, factoryNode));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => Box<int>.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => Box<int>.CreateWritable(factoryClient, factoryNode));
         }
 
         public static global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.IEnumerable<string?>> Nested(global::System.Collections.Generic.IEnumerable<string?> value)

@@ -10310,8 +10310,8 @@ namespace NeoCompose.Runtime
             // generates no writable class, so codegen passes null here.
             Func<NeoClient, NeoMemberClassWritable, T>? savedFactory,
             // The class's view over a NeoScript temporary that has not become
-            // rows, given `saved` so it picks read-only as the factories above
-            // do; null keeps every value on the row path.
+            // rows, given `saved` so it picks read-only; null keeps every value
+            // on the row path. A row's ownership alone picks its view.
             Func<NeoClient, NeoDetachedValue, bool, T?>? detachedFactory = null)
         {
             if (value is null)
@@ -10375,8 +10375,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership nodeOwnership = hasOwnership && resolvedOwnership != NeoValueOwnership.Asset
                 ? resolvedOwnership
                 : NeoValueOwnership.Asset;
-            if ((!saved || nodeOwnership != NeoValueOwnership.Asset)
-                && client.TryGetGeneratedClassValue(UnplacedClassMemberId(classId!), valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
+            if (client.TryGetGeneratedClassValue(UnplacedClassMemberId(classId!), valueId!, nodeOwnership, out NeoGeneratedClassValue? cachedValue)
                 && cachedValue.classId == classId
                 && cachedValue is T cachedTyped)
             {
@@ -10385,32 +10384,12 @@ namespace NeoCompose.Runtime
 
             ClassMember member = ClassValueMember(client, valueId!, row, classId!);
 
-            if (saved)
-            {
-                // Stable-id overlay: a value reachable from the save/session
-                // root reports that ownership directly (see the authored
-                // ownership map); the returned writable node clone-on-writes
-                // its own row at its stable id on first mutation, so there is
-                // no path to pre-materialize here.
-                if (!client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
-                    || ownership is not (NeoValueOwnership.Save or NeoValueOwnership.Session or NeoValueOwnership.User))
-                {
-                    throw new InvalidOperationException(
-                        "NSProperty getter returned an asset-owned class value where a saved value was expected.");
-                }
-
-                if (savedFactory is null)
-                {
-                    throw new InvalidOperationException(
-                        "NSProperty getter class value resolved to a writable placement, but the class's allowedStorage is immutable (no writable factory exists).");
-                }
-                return savedFactory(
-                    client,
-                    new NeoMemberClassWritable(client, member, valueId, ownership, bindsOnRead: true));
-            }
-
-            bool writableRow = client.TryGetValueOwnership(valueId, out var readOwnership)
-                && readOwnership != NeoValueOwnership.Asset;
+            // A read never throws on ownership. A Save/Session/User row reads
+            // writable when the class has a writable family; an Asset row reads
+            // read-only, even where the declared type is the writable class.
+            // The stable-id overlay reports a save-reachable row's ownership
+            // directly, and its writable node clone-on-writes on first mutation.
+            bool writableRow = nodeOwnership != NeoValueOwnership.Asset;
             // Every view of a Save/Session row shares one registry key, and
             // native receivers and writable parameters resolve through it: the
             // view registered there must be writable.
@@ -10418,19 +10397,19 @@ namespace NeoCompose.Runtime
             {
                 return savedFactory(
                     client,
-                    new NeoMemberClassWritable(client, member, valueId, readOwnership, bindsOnRead: true));
+                    new NeoMemberClassWritable(client, member, valueId, nodeOwnership, bindsOnRead: true));
             }
 
             if (readOnlyFactory is null)
             {
                 throw new InvalidOperationException(
-                    "NSProperty getter class value requires a read-only factory.");
+                    $"NSProperty getter returned {nodeOwnership}-owned class value '{valueId}', which needs a read-only factory. Regenerate the project's C# types with `neo export`.");
             }
 
             return readOnlyFactory(
                 client,
                 writableRow
-                    ? new NeoMemberClassWritable(client, member, valueId, readOwnership, bindsOnRead: true)
+                    ? new NeoMemberClassWritable(client, member, valueId, nodeOwnership, bindsOnRead: true)
                     : new NeoMemberClass(client, member, valueId, NeoValueOwnership.Asset, bindsOnRead: true));
         }
 

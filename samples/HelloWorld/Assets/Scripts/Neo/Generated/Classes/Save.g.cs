@@ -198,7 +198,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("NeoMemory", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("NeoMemory"));
             }
@@ -224,7 +224,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (TryReadDetached("Quest", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.QuestState.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Quest"));
             }
@@ -241,7 +241,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 if (TryReadDetached("Visited", out _))
                 {
                     if (TryGetDetachedView<NeoList<PlanetVisit>>("Visited", out var detachedView)) return detachedView;
-                    return DetachedList<PlanetVisit>("Visited", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                    return DetachedList<PlanetVisit>("Visited", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Visited");
                 if (TryGetStoredView<NeoList<PlanetVisit>>("Visited", memberNode, out var cached)) return cached;

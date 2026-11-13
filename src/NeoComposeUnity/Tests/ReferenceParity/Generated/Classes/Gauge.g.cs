@@ -416,7 +416,7 @@ namespace NeoCompose.Tests.ReferenceParity
             {
                 if (TryReadDetached("Packed", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Packed"));
             }
@@ -546,7 +546,7 @@ namespace NeoCompose.Tests.ReferenceParity
             {
                 if (TryReadDetached("T", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("T"));
             }
@@ -590,7 +590,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 if (TryReadDetached("Tallies", out _))
                 {
                     if (TryGetDetachedView<NeoList<Tally>>("Tallies", out var detachedView)) return detachedView;
-                    return DetachedList<Tally>("Tallies", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                    return DetachedList<Tally>("Tallies", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::NeoCompose.Tests.ReferenceParity.Tally.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Tallies");
                 if (TryGetStoredView<NeoList<Tally>>("Tallies", memberNode, out var cached)) return cached;

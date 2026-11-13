@@ -96,7 +96,7 @@ namespace NeoCompose.Tests.OverloadParity
             get
             {
                 var tupleValue = NeoGeneratedTypesSupport.ReadTupleValue(node.Get<NeoMemberTuple>("Pair"));
-                return NeoGeneratedTypesSupport.ReadTuple<(TallyWatch @Watch, int @Tag)>(tupleValue, 2, tupleValueTuple => { TallyWatch Element0() { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 0), true, null, static (factoryClient, factoryNode) => TallyWatch.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => TallyWatch.CreateDetached(factoryClient, factoryValue, factorySaved)); } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 1)); } return (Element0(), Element1()); });
+                return NeoGeneratedTypesSupport.ReadTuple<(TallyWatch @Watch, int @Tag)>(tupleValue, 2, tupleValueTuple => { TallyWatch Element0() { return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 0), true, static (factoryClient, factoryNode) => TallyWatch.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => TallyWatch.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => TallyWatch.CreateDetached(factoryClient, factoryValue, factorySaved)); } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(tupleValueTuple, 1)); } return (Element0(), Element1()); });
             }
             set
             {

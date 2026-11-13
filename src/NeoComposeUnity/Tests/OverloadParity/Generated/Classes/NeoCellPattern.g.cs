@@ -148,7 +148,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_aaad2df6-e31e-5f5d-95b9-e265211faed5");
             var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_df8ebca6-a1d1-57c1-8762-227943fc51d8");
             var result = node.InvokeStatic(radiusX, radiusY, excluding.OptionId());
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
@@ -170,7 +170,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_82222600-f67f-5127-bb2d-278381b4ef2f");
             var result = node.InvokeStatic((object?)(radius));
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
@@ -181,7 +181,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_d803cfd5-ce53-57da-abc2-7cd69befeb01");
             var result = node.InvokeStatic((object?)(size));
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
@@ -192,7 +192,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_ef0d4cbb-7182-5d93-9bb8-60a5a18f81a5");
             var result = node.InvokeStatic(direction, length, excluding.OptionId());
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace NeoCompose.Tests.OverloadParity
             var client = TestProjectNeo.RequireInstance().Client;
             var node = NeoMemberNSFunction.GetOrCreateStatic(client, "system_faf10f4f-f5c2-47d8-b4e2-8f196c756668");
             var result = node.InvokeStatic(new object?[] { minX, maxX, minY, maxY, firstShell });
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => NeoCellPattern.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoCellPattern.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoCellPattern.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         public NeoCellPattern(IReadOnlyList<Vector2Int> offsets)

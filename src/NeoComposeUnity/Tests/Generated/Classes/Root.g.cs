@@ -155,7 +155,7 @@ namespace Assets.Scripts.Neo
                 if (TryReadDetached("Heroes", out _))
                 {
                     if (TryGetDetachedView<NeoList<Hero?>>("Heroes", out var detachedView)) return detachedView;
-                    return DetachedList<Hero?>("Heroes", entry => NeoGeneratedTypesSupport.ReadNSPropertyClass(client, entry, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.Hero.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.Hero.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => ((NeoMemberClass)child).value?.value is null ? null : child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("Root.Heroes"), () => IsReadOnly);
+                    return DetachedList<Hero?>("Heroes", entry => NeoGeneratedTypesSupport.ReadNSPropertyClass(client, entry, false, true, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.Hero.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.Hero.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.Hero.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => ((NeoMemberClass)child).value?.value is null ? null : child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("Root.Heroes"), () => IsReadOnly);
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Heroes");
                 if (TryGetStoredView<NeoList<Hero?>>("Heroes", memberNode, out var cached)) return cached;
@@ -243,7 +243,7 @@ namespace Assets.Scripts.Neo
             {
                 if (TryReadDetached("NeoMemory", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoMemory.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.NeoMemory.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoMemory.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.NeoMemory.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.NeoMemory.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
@@ -281,7 +281,7 @@ namespace Assets.Scripts.Neo
             {
                 if (TryReadDetached("SampleLayerGroup", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
@@ -325,7 +325,7 @@ namespace Assets.Scripts.Neo
             {
                 if (TryReadDetached("StorageInherit", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageA.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageA.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageA.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageA.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageA.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
