@@ -246,7 +246,7 @@ namespace NeoCompose.Tests.InterfaceParity
             {
                 if (TryReadDetached("ToolFrames", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(factoryClient, factoryNode));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(factoryClient, factoryNode));
                 }
                 return global::NeoCompose.Tests.InterfaceParity.ToolFrames.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("ToolFrames"));
             }
@@ -262,7 +262,7 @@ namespace NeoCompose.Tests.InterfaceParity
             {
                 if (TryReadDetached("Tools", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.CreateWritable(factoryClient, factoryNode));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.ToolCrate.CreateWritable(factoryClient, factoryNode));
                 }
                 return global::NeoCompose.Tests.InterfaceParity.ToolCrate.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("Tools"));
             }
@@ -278,7 +278,7 @@ namespace NeoCompose.Tests.InterfaceParity
             {
                 if (TryReadDetached("VectorFrames", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(factoryClient, factoryNode));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(factoryClient, factoryNode));
                 }
                 return global::NeoCompose.Tests.InterfaceParity.VectorFrames.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("VectorFrames"));
             }

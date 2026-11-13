@@ -210,7 +210,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = ComputeProperty("Save");
                 result.ThrowIfFailed();
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, static (factoryClient, factoryNode) => OutpostSaveData.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 
@@ -220,7 +220,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = ComputeProperty("SaveUnsafe");
                 result.ThrowIfFailed();
-                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, null, static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, result.value, false, true, static (factoryClient, factoryNode) => OutpostSaveData.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => OutpostSaveData.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OutpostSaveData.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 

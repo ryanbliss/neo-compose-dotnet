@@ -123,7 +123,7 @@ namespace Assets.Scripts.Neo
         public virtual IReadOnlySampleTileInstance ConstructSample()
         {
             var result = InvokeFunction("ConstructSample");
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => SampleTileInstance.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SampleTileInstance.CreateDetached(factoryClient, factoryValue, factorySaved));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => SampleTileInstance.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => SampleTileInstance.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => SampleTileInstance.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
 
         public sealed class Fields

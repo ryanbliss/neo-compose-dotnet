@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.81.12] - 2026-11-12
+
+- Fixed: a generated getter, method, or static member that returns a class value no longer throws "NSProperty getter returned an asset-owned class value where a saved value was expected" when the value is authored data. The value's owner picks its view: a Save, Session, or User row reads writable when the class has a writable family, and an Asset row reads read-only. The class member and its explicit `IReadOnly*` implementation now return the same view, so a cast to `IReadOnly*` to dodge the throw is no longer needed. This covers nullable results, generic results, list entries, and stored members of a pending NeoScript temporary. Requires CLI 0.93.10; run `neo export` after upgrading. Generated code from an older CLI reports `Asset-owned class value '<id>', which needs a read-only factory` until it is regenerated.
+
+```csharp
+// Item.Art is typed in the writable family.
+// Before: threw when Art is authored data. After: a read-only view.
+Art art = item.Art;
+
+// Before: the workaround read through the read-only interface.
+IReadOnlyArt workaround = ((IReadOnlyItem)item).Art;
+```
+
 ## [0.81.11] - 2026-11-11
 
 - Reject a placement write only for an occupied object cell it introduced. Two objects that already overlap in the committed grid, such as stacked doors loaded from a save, no longer fail every unrelated `TrySpawn` in that grid. Root-link spawns into a layer that also has nested members are validated as an insertion again, instead of by rebuilding the whole grid.

@@ -426,7 +426,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(NeoGeneratedTypesSupport.TryGetDetachedArrayOrigin(first, out var origin));
             TestReport owner = ReadReport(client, origin!.owner);
             TestLine added = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client,
-                Evaluate(client, LineType, Line()), true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+                Evaluate(client, LineType, Line()), true, TestLine.Create, TestLine.CreateWritable, TestLine.CreateDetached);
             owner.Lines.Add(added);
             Assert.AreEqual(2, Read().Length, "The memo retains the live list slot, not its old array.");
             _ = owner.valueId;
@@ -612,7 +612,7 @@ namespace NeoCompose.Tests
             string child = report.Lines[0].valueId!;
             Assert.AreNotEqual(child, client.ImportValueReference(destination, child));
             TestLine added = NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
-                client, Evaluate(client, LineType, Line()), true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+                client, Evaluate(client, LineType, Line()), true, TestLine.Create, TestLine.CreateWritable, TestLine.CreateDetached);
             report.Lines.Add(added);
             string addedId = added.valueId!;
             Assert.AreNotEqual(addedId, client.ImportValueReference(destination, addedId),
@@ -754,7 +754,7 @@ namespace NeoCompose.Tests
             NeoMemberNSProperty outer = source.BackingNode.Get<NeoMemberNSProperty>("Doubled");
             Assert.AreEqual(3, Convert.ToInt32(outer.Compute(id).value));
             TestLine ReadClone() => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(
-                client, getter.Compute(id).value, true, null, TestLine.CreateWritable, TestLine.CreateDetached);
+                client, getter.Compute(id).value, true, TestLine.Create, TestLine.CreateWritable, TestLine.CreateDetached);
             TestLine clone = ReadClone();
             string cloneId = clone.valueId!;
             Assert.AreEqual(3, clone.Score, "The memo retains the clone after the outer execution returns a scalar.");
@@ -2056,7 +2056,7 @@ namespace NeoCompose.Tests
                             return detachedView;
                         return DetachedList<TestLine>(
                             "Lines",
-                            entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, TestLine.CreateWritable, TestLine.CreateDetached),
+                            entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, TestLine.Create, TestLine.CreateWritable, TestLine.CreateDetached),
                             (client, child) => TestLine.CreateWritable(client, (NeoMemberClassWritable)child),
                             item => NeoGeneratedTypesSupport.ValueReference(item));
                     }

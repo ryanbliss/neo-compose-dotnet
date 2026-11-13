@@ -106,7 +106,7 @@ namespace Assets.Scripts.Neo
             {
                 if (TryReadDetached("InheritChild", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageE.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageE.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageE.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::Assets.Scripts.Neo.StorageE.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::Assets.Scripts.Neo.StorageE.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 var child = writableNode.Get<NeoMemberClassWritable>("InheritChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageE.CreateWritable(client, child);
