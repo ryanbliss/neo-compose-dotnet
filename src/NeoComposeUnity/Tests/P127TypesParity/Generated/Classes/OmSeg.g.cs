@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmSeg<T> : NeoGeneratedClassValue, IReadOnlyOmSeg<T>
     {
         internal OmSeg(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b7301652-2e01-4320-9f63-fa1a3da10c28", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0c86cf39-a190-4035-918d-accfc233e84c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,8 +36,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e90f5343-c70e-490a-a6d3-437dd46da0ac" => (OmSeg<T>)(object)new OmDerN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "b7301652-2e01-4320-9f63-fa1a3da10c28" => new OmSeg<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "7ef8eba0-f2dd-4f25-9198-12d38fa8dd38" => (OmSeg<T>)(object)new OmDerN(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0c86cf39-a190-4035-918d-accfc233e84c" => new OmSeg<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmSeg' without a concrete client type id."),
                 };
             });
@@ -50,8 +50,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e90f5343-c70e-490a-a6d3-437dd46da0ac" => (OmSeg<T>)(object)new OmDerN(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "b7301652-2e01-4320-9f63-fa1a3da10c28" => new OmSeg<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "7ef8eba0-f2dd-4f25-9198-12d38fa8dd38" => (OmSeg<T>)(object)new OmDerN(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0c86cf39-a190-4035-918d-accfc233e84c" => new OmSeg<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmSeg' without a concrete client type id."),
                 };
             });

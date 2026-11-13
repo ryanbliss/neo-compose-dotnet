@@ -5583,6 +5583,9 @@ namespace NeoCompose.Runtime
 
         internal Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
+            // A collection boxed into an object slot takes its box's shape (§1.3).
+            if (collectionMember is not (ListMember or DictionaryMember) && row?.valueType is not null)
+                collectionMember = TypeRules.PayloadMemberOf(collectionMember, row);
             string? entryMemberId = collectionMember switch
             {
                 ListMember list => list.entryMemberId,

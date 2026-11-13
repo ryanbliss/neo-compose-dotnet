@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Copy : NeoGeneratedClassValue, IReadOnlyG31Copy
     {
         internal G31Copy(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ab6dad34-9d67-4ce4-900b-457642c9f1f8", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7c325bcd-2295-4486-88e8-1c91b6eb159e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public G31Copy(IReadOnlyG31Bag source, int? First = null, IEnumerable<int>? Ns = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "ab6dad34-9d67-4ce4-900b-457642c9f1f8", "c8535d10-130d-5657-b07f-c70521ec3310", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("source", source) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("First", "c53ec084-f3f9-4714-84aa-b832c2d68268", First), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ns", "7a8cc7f3-a3fe-4ba6-98f9-85c5b8566e62", Ns) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7c325bcd-2295-4486-88e8-1c91b6eb159e", "99286c6b-6e39-5ee3-90f1-0267a9fc45a4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("source", source) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("First", "0cecd16e-e4dc-4afd-b08a-43127459c292", First), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ns", "69e2c55b-c135-497c-afa7-693ab91f54fd", Ns) }), false, NeoValueOwnership.Session)
         {
         }
 

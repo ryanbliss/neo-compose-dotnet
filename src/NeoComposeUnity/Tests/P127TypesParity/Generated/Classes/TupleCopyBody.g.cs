@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class TupleCopyBody : NeoGeneratedClassValue, IReadOnlyTupleCopyBody
     {
         internal TupleCopyBody(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6f4f974f-acf8-432c-ae2f-9e29a15936e4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "454abc24-e1ed-4014-90e2-d4f91301aab3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,12 +37,12 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public TupleCopyBody(IReadOnlyTupleCopyHolder h)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6f4f974f-acf8-432c-ae2f-9e29a15936e4", "8b440eea-677c-436b-9e02-4141bec0de9e", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("h", h) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "454abc24-e1ed-4014-90e2-d4f91301aab3", "2a8ba840-23cb-4874-9021-e8c569eca0fe", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("h", h) }), false, NeoValueOwnership.Session)
         {
         }
 
         public TupleCopyBody()
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "6f4f974f-acf8-432c-ae2f-9e29a15936e4", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "454abc24-e1ed-4014-90e2-d4f91301aab3", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
         {
         }
 
