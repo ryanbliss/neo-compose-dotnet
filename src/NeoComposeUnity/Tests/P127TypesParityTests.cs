@@ -607,6 +607,7 @@ namespace NeoCompose.Tests
         /// constructed child throws because the child is already owned.
         /// </summary>
         [TestCase("Om_SC_GS")]
+        [TestCase("Om_SC_GO")]
         [TestCase("Om_SC_GL")]
         [TestCase("Om_SC_GD")]
         public void GenericStaticRefusesAnotherStaticsChild(string probe)

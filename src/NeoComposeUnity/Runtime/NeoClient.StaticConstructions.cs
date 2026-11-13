@@ -154,7 +154,10 @@ namespace NeoCompose.Runtime
                                     context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
                                     object? value = NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null,
                                         binding.Member, initializer, environment, construction);
-                                    if (binding.Member is ClassMember && value is not null)
+                                    // An object static takes a class value by reference, as a class static does (P127 §1.2).
+                                    if (value is not null
+                                        && (binding.Member is ClassMember
+                                            || binding.Member is ObjectMember && NeoScriptExecutor.HoldsStoredClassValue(value, context)))
                                     {
                                         var reference = NSGetterEvaluator.ConstructorReferenceOf(value, context)
                                             ?? throw new NSGetterRuntimeError($"Static initializer '{member.name}' produced no class identity.");

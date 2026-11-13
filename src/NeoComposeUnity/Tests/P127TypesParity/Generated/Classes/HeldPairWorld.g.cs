@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldPairWorld : NeoGeneratedClassValue, IReadOnlyHeldPairWorld
     {
         internal HeldPairWorld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f2e655bb-12fa-4861-86c2-1045b1570fe3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "982273ea-9f3f-4413-9537-fd110475636c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f2e655bb-12fa-4861-86c2-1045b1570fe3",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "7ef72b54-f9ee-45da-ae81-d82bcff1a479", One)
+                "982273ea-9f3f-4413-9537-fd110475636c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "11cafc83-981f-4ed0-b6bb-03208a1643f5", One)
             );
         }
 

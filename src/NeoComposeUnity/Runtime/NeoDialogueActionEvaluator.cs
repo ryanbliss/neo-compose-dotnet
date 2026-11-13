@@ -4303,7 +4303,7 @@ namespace NeoCompose.Runtime
         /// Whether an object slot takes <paramref name="value"/> by reference:
         /// a stored class value, held as a class slot holds it (P127 §1.2).
         /// </summary>
-        private static bool HoldsStoredClassValue(object? value, NSGetterEvaluator.Context ctx) =>
+        internal static bool HoldsStoredClassValue(object? value, NSGetterEvaluator.Context ctx) =>
             value is not (null or NeoBox or NeoScriptObject)
             && NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null;
 

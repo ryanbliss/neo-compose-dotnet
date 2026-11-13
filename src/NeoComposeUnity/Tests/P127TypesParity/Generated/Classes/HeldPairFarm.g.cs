@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldPairFarm : NeoGeneratedClassValue, IReadOnlyHeldPairFarm
     {
         internal HeldPairFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "48ce5c63-0925-46ee-9175-1712364ee84d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e6a4ef08-4816-4e05-aae6-27981b5ffaf5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "48ce5c63-0925-46ee-9175-1712364ee84d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "235d8dd9-9a57-460c-aa3f-2d7736766169", Pair),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pairs", "ae3da8dd-fb03-4cdf-8a3f-699498d63ab5", Pairs)
+                "e6a4ef08-4816-4e05-aae6-27981b5ffaf5",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pair", "e112e1ee-404e-490f-8d4a-46ed986cf762", Pair),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pairs", "448398bd-c001-44a3-aaa4-bd642792d7f5", Pairs)
             );
         }
 
