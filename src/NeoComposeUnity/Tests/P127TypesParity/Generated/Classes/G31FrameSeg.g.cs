@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31FrameSeg<T> : NeoGeneratedClassValue, IReadOnlyG31FrameSeg<T>
     {
         internal G31FrameSeg(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0387d9b9-47ea-412b-ac94-c030169a5742", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d60a6d21-a440-41e8-a831-5a12471badd0", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0387d9b9-47ea-412b-ac94-c030169a5742" => new G31FrameSeg<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d60a6d21-a440-41e8-a831-5a12471badd0" => new G31FrameSeg<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'G31FrameSeg' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0387d9b9-47ea-412b-ac94-c030169a5742" => new G31FrameSeg<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d60a6d21-a440-41e8-a831-5a12471badd0" => new G31FrameSeg<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'G31FrameSeg' without a concrete client type id."),
                 };
             });

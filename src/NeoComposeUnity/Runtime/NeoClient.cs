@@ -3766,6 +3766,16 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, named, silent: true);
         }
 
+        /// <summary>
+        /// Whether a static initializer's plan takes a child from a parent no root
+        /// reaches. Only an initializer's temporary is such a parent: a run-time
+        /// assignment of a temporary's member still refuses.
+        /// </summary>
+        private bool InitializesStaticFromTemporary(NeoWritePlan plan, string parentValueId, NeoValueOwnership parentOwnership) =>
+            staticInitializationPlans.Count != 0
+            && ReferenceEquals(staticInitializationPlans.Peek(), plan)
+            && CanProveUnreachable(parentOwnership, new[] { parentValueId });
+
         private string ImportValueReferenceGraph(
             NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
@@ -3803,8 +3813,11 @@ namespace NeoCompose.Runtime
                 if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId, out NeoValueOwnership parentOwnership))
                 {
                     // A value under a released root is copied, as a shared getter result is.
+                    // So is a temporary's member in a static initializer: a parent no root
+                    // reaches there is the temporary (P127 §1.2).
                     if ((sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
-                        || HeldByReleasedRoot(parentValueId, parentOwnership))
+                        || HeldByReleasedRoot(parentValueId, parentOwnership)
+                        || InitializesStaticFromTemporary(plan, parentValueId, parentOwnership))
                     {
                         TryInferMemberForValueId(sourceValueId, out Member? sharedChildMember);
                         return PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sharedChildMember, listenerCopyIntent, clonedValueIds);
@@ -10806,6 +10819,8 @@ namespace NeoCompose.Runtime
                 if (ResolveStaticOwnership(member) == ownership
                     && TryResolveStaticBinding(member.id, out _, out _, out string? target))
                     staticRoots.Add(target);
+            foreach (var root in ConstructionRoots(ownership))
+                staticRoots.Add(root.valueId);
             for (int index = 0; index < valueIds.Count; index++)
                 pending.Enqueue(valueIds[index]);
             var store = GetWritableStore(ownership);
@@ -11002,6 +11017,17 @@ namespace NeoCompose.Runtime
                         reachable,
                         staticMember);
                 }
+            }
+            foreach (var root in ConstructionRoots(ownership))
+            {
+                if (!TryGetMember(root.memberId, out Member? constructed))
+                    continue;
+                var environment = NeoInterfaceDispatch.Of(this).Environment(root.construction);
+                MarkReachableValue(
+                    ownership,
+                    root.valueId,
+                    reachable,
+                    NeoGenericResolution.SubstituteMember(this, constructed, environment));
             }
             // Only storage boundaries are independent roots. Owned descendants
             // must remain reachable through their current parent/container.

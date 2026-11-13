@@ -970,6 +970,8 @@ namespace NeoCompose.Tests
             NeoScriptExecutor.Execute(client, write, new NeoScriptScope(), context, NeoScriptExecutionOptions.ForImmediate(client));
             Assert.That(NSGetterEvaluator.ReadThroughReference(storedReference, context), Is.EqualTo(13));
             integer.SetValue(NeoValueWritePayload.FromInt(9));
+            // A construction's binding roots its value, as a static's binding does.
+            Assert.That(client.FindUnlinkedSaveValueIds(), Does.Not.Contain(integer.ValueId));
             var saved = JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData())!;
             Assert.That(saved.staticConstructions, Has.Count.EqualTo(2));
             using var restored = NeoTestSaveStack.ClientFromSchema(client.ProjectDataForRuntime, loadedSaveContent: client.SerializeSaveData());

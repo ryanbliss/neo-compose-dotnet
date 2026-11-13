@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmRead : NeoGeneratedClassValue, IReadOnlyOmRead
     {
         internal OmRead(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "17ec8b2c-e152-4298-adf5-e0c1e6459c5e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b428b914-962a-43e8-b4ba-7209b1edd478", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string DerN(IReadOnlyOmDerN x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2f4ab1c0-7520-469a-ab80-9d6cbab1305b");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "39dce3a8-f80b-4f97-9a38-6ba40d3ae1b3");
             var result = node.InvokeStatic((object?)(x));
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string G(IReadOnlyOmG<int> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4b6a2d3b-ebb0-480e-99d4-51f7170f5358");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "4f1422ba-5b01-4594-b44b-9a5de5b3eb17");
             var result = node.InvokeStatic((object?)(x));
             return (string)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string Ng(IReadOnlyOmNg x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8832c2f7-4ec7-46ad-ae12-dee91340c829");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9e9d2ee9-6b3f-42de-9327-f657887847b8");
             var result = node.InvokeStatic((object?)(x));
             return (string)result!;
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string Seg(IReadOnlyOmDerG<int> x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "7cfc993e-1593-413d-9023-7519f1616cc6");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b9b1a1f9-b5ae-4b59-9422-a8f01f8d6222");
             var result = node.InvokeStatic((object?)(x));
             return (string)result!;
         }
@@ -74,7 +74,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "17ec8b2c-e152-4298-adf5-e0c1e6459c5e");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b428b914-962a-43e8-b4ba-7209b1edd478");
         }
 
         internal static OmRead Create(NeoClient client, NeoMemberClass node)

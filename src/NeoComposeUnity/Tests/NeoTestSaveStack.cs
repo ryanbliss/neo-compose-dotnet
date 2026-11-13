@@ -235,6 +235,12 @@ namespace NeoCompose.Tests
                 if (client.TryResolveStaticBinding(member, NeoValueOwnership.Session, out string? valueId))
                     plan.Bind(NeoValueOwnership.Session, id, true, valueId);
             }
+            // A generic static's Session state binds per closed construction.
+            var session = (ProjectSaveData)typeof(NeoClient)
+                .GetField("sessionData", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .GetValue(client)!;
+            foreach (var entry in session.staticConstructions ?? new System.Collections.Generic.List<NeoStaticConstruction>())
+                plan.BindConstruction(NeoValueOwnership.Session, entry.memberId, entry.construction, entry.value);
             plan.Commit();
             return reloaded;
         }
