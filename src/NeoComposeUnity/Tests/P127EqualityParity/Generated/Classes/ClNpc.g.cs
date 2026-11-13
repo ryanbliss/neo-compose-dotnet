@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class ClNpc : NeoGeneratedClassValue, IReadOnlyClNpc
     {
         internal ClNpc(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1d264268-69ed-465f-9b5c-f04663b51f89", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "df96a732-7a70-4544-938b-c83b0f013bb1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -58,9 +58,9 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1d264268-69ed-465f-9b5c-f04663b51f89",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "b2f3f20f-ea6c-47ab-b0de-15de5619799a", V),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Handler", "61d09acd-3e76-458a-9d24-70ac1a039daf", Handler)
+                "df96a732-7a70-4544-938b-c83b0f013bb1",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "1bc2cc3a-3d90-4b0d-a917-7ac58a0e64e6", V),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Handler", "491d6ca1-dd5c-4c50-b196-bab6e8f0b27b", Handler)
             );
         }
 

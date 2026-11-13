@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Bag : NeoGeneratedClassValue, IReadOnlyG31Bag
     {
         internal G31Bag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c23af611-699b-4782-9d15-08c65c1d0a6e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b674379e-a097-4fde-878f-94781868e3be", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c23af611-699b-4782-9d15-08c65c1d0a6e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "ff433589-5d39-4745-bf1d-da6ba3a75646", Items)
+                "b674379e-a097-4fde-878f-94781868e3be",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "fcb1a816-9ac1-4c1f-a042-688f9bcefc30", Items)
             );
         }
 
@@ -107,7 +107,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 if (TryReadDetached("Items", out _))
                 {
                     if (TryGetDetachedView<NeoList<G31Item>>("Items", out var detachedView)) return detachedView;
-                    return DetachedList<G31Item>("Items", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Item.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.G31Item.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.G31Item.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.G31Item.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("G31Bag.Items"), () => IsReadOnly);
+                    return DetachedList<G31Item>("Items", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Item.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Item.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.G31Item.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.G31Item.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.G31Item.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("G31Bag.Items"), () => IsReadOnly);
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Items");
                 if (TryGetStoredView<NeoList<G31Item>>("Items", memberNode, out var cached)) return cached;

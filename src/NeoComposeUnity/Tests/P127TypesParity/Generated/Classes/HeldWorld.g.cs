@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldWorld : NeoGeneratedClassValue, IReadOnlyHeldWorld
     {
         internal HeldWorld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2e051b8c-37ac-4aad-9099-fa370416a670", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "19c9a4c5-a5ce-49a0-9e51-430010c82cf9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -54,12 +54,12 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "2e051b8c-37ac-4aad-9099-fa370416a670",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "660ceeea-6112-45e2-899c-9cea5ece8df5", One),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Main", "0a1a5d01-5691-434e-86bf-4fdd215e6317", Main),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Two", "3f3f0e22-d152-4d09-a3ae-2e5fbab9e420", Two),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Farms", "b6f4fb92-9036-4d62-881c-5862cf175079", Farms),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "ca8a0aea-f96a-456e-bf44-405318467509", ByName)
+                "19c9a4c5-a5ce-49a0-9e51-430010c82cf9",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "8f08ab70-4537-4322-8c0c-7b01eb5b62cb", One),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Main", "133a5858-75d6-430a-ad60-5114677ac128", Main),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Two", "83c210d9-b089-40bd-bd8c-a818af3dc6db", Two),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Farms", "a307ff82-2c4e-4685-9c00-c7fbbdc729e8", Farms),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "bd4a09d6-aab7-4d66-9a4b-742ab4e70b0e", ByName)
             );
         }
 
@@ -139,7 +139,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 if (TryReadDetached("Farms", out _))
                 {
                     if (TryGetDetachedView<NeoList<HeldFarm>>("Farms", out var detachedView)) return detachedView;
-                    return DetachedList<HeldFarm>("Farms", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("HeldWorld.Farms"), () => IsReadOnly);
+                    return DetachedList<HeldFarm>("Farms", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("HeldWorld.Farms"), () => IsReadOnly);
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Farms");
                 if (TryGetStoredView<NeoList<HeldFarm>>("Farms", memberNode, out var cached)) return cached;
@@ -168,7 +168,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("Main", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
@@ -206,7 +206,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("One", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {
@@ -250,7 +250,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("Two", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {

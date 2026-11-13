@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmITDerN : NeoGeneratedClassValue, IReadOnlyOmITDerN
     {
         internal OmITDerN(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "9361a3f6-6a53-427a-99e1-b0521d93a61c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "127328f3-159b-4ebd-898e-c8fd4f037449", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "9361a3f6-6a53-427a-99e1-b0521d93a61c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "f940a2cd-af94-46dd-81c0-1bb76fa66a5d", O)
+                "127328f3-159b-4ebd-898e-c8fd4f037449",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "6af0e1b1-6780-4619-a14a-93bf69c78dd3", O)
             );
         }
 
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("O", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmDerN.CreateWritable(factoryClient, factoryNode));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmDerN.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmDerN.CreateWritable(factoryClient, factoryNode));
                 }
                 return global::NeoCompose.Tests.P127TypesParity.OmDerN.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("O"));
             }

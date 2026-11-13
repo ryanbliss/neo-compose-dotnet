@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmITOut : NeoGeneratedClassValue, IReadOnlyOmITOut
     {
         internal OmITOut(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e3c993e2-937e-40d3-9126-259ad4952511", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e309d332-1804-4faa-ada1-28ca353538f9", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e3c993e2-937e-40d3-9126-259ad4952511",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "1596abdc-accc-40cd-928c-d8420fb90ad4", O)
+                "e309d332-1804-4faa-ada1-28ca353538f9",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "82c48e2b-c583-4f18-8559-086e4874ed01", O)
             );
         }
 
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("O", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmOut.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.OmOut.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmOut.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.OmOut.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.OmOut.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 return global::NeoCompose.Tests.P127TypesParity.OmOut.CreateWritable(client, writableNode.Get<NeoMemberClassWritable>("O"));
             }

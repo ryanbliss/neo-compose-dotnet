@@ -16,13 +16,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
         T Plain(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "a01b9960-6d27-4f08-b447-eb34a99e57a1", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelfGen<T>>(), "a01b9960-6d27-4f08-b447-eb34a99e57a1", client.TypeArguments.Of<IProtSelfGen<T>>(), new object?[] { x });
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "f875e7cc-9ccc-4a00-af16-675bfec9866d", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelfGen<T>>(), "f875e7cc-9ccc-4a00-af16-675bfec9866d", client.TypeArguments.Of<IProtSelfGen<T>>(), new object?[] { x });
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
         T Self(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "10a39601-1911-4b43-a94c-f19d52f8ba4a", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelfGen<T>>(), "10a39601-1911-4b43-a94c-f19d52f8ba4a", client.TypeArguments.Of<IProtSelfGen<T>>(), new object?[] { x });
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "4547d2e2-a2a8-4678-8a34-08d0aaee2f85", NeoInterfaceBody.Function, client.TypeArguments.Of<IProtSelfGen<T>>(), "4547d2e2-a2a8-4678-8a34-08d0aaee2f85", client.TypeArguments.Of<IProtSelfGen<T>>(), new object?[] { x });
             return NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, result, "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
         }
     }

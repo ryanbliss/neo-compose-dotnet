@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public G31DirAll(IReadOnlyG31Bag all, G31Seg? Seg = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "fa154747-74a6-4ec1-a580-d8a3d335f674", "c83b0f1b-dd6e-574e-86b5-e9297de9bed9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("all", all) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seg", "eb718b4f-0bd1-4220-94ad-1151ec1d187d", Seg) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "daf185a8-9705-48a0-91e8-9805d1af175d", "75ea1081-a3b6-5b89-884d-a4917d9203d7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("all", all) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Seg", "77d39d01-8a4d-4baa-bceb-70cdf6701aca", Seg) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -98,7 +98,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 var result = ComputeProperty("Down");
                 result.ThrowIfFailed();
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => G31Copy.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => G31Copy.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, static (factoryClient, factoryNode) => G31Copy.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => G31Copy.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => G31Copy.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
         protected override G31Copy GetDownContract() => Down;
@@ -109,7 +109,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 var result = ComputeProperty("Down");
                 result.ThrowIfFailed();
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, null, static (factoryClient, factoryNode) => G31Copy.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => G31Copy.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result.value, true, static (factoryClient, factoryNode) => G31Copy.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => G31Copy.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => G31Copy.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 
@@ -119,7 +119,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("Seg", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Seg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.G31Seg.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Seg.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.G31Seg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.G31Seg.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {

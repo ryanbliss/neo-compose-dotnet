@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
     public partial class R23RRB<T> : NeoGeneratedClassValue, IReadOnlyR23RRB<T>
     {
         internal R23RRB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f653459f-29ef-49bf-82d6-74f8c9b5076d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0434a0b4-6dee-4eb1-b4dc-4d2be4d8cf50", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,9 +36,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "28255bfe-5c2f-4393-b7f6-b0800c727d6c" => (R23RRB<T>)(object)new R23RRM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "8a76cb13-917b-4b5b-a903-12562621e36f" => (R23RRB<T>)(object)new R23RR3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "f653459f-29ef-49bf-82d6-74f8c9b5076d" => new R23RRB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "8161406e-a1a3-4472-9361-8218a5489269" => (R23RRB<T>)(object)new R23RRM(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d44ad1c1-bf57-4d0a-a71d-bf715bfad1bf" => (R23RRB<T>)(object)new R23RR3(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0434a0b4-6dee-4eb1-b4dc-4d2be4d8cf50" => new R23RRB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23RRB' without a concrete client type id."),
                 };
             });
@@ -51,9 +51,9 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "28255bfe-5c2f-4393-b7f6-b0800c727d6c" => (R23RRB<T>)(object)new R23RRM(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "8a76cb13-917b-4b5b-a903-12562621e36f" => (R23RRB<T>)(object)new R23RR3(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "f653459f-29ef-49bf-82d6-74f8c9b5076d" => new R23RRB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "8161406e-a1a3-4472-9361-8218a5489269" => (R23RRB<T>)(object)new R23RRM(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d44ad1c1-bf57-4d0a-a71d-bf715bfad1bf" => (R23RRB<T>)(object)new R23RR3(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0434a0b4-6dee-4eb1-b4dc-4d2be4d8cf50" => new R23RRB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R23RRB' without a concrete client type id."),
                 };
             });

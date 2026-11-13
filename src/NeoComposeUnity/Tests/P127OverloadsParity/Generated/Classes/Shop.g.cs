@@ -35,7 +35,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class Shop : NeoGeneratedClassValue, IReadOnlyShop
     {
         internal Shop(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "14f7dc6a-ddf6-4f33-b809-e1a58bdcb2df", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "997f1e5a-044c-4504-a62b-755bf6b9fefe", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -54,8 +54,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "14f7dc6a-ddf6-4f33-b809-e1a58bdcb2df",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "aeb83c65-c2f6-4e61-9d86-7826153adbcc", Money)
+                "997f1e5a-044c-4504-a62b-755bf6b9fefe",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Money", "faa42619-6ded-4e20-97d8-be08f2b5f655", Money)
             );
         }
 
@@ -118,7 +118,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
             {
                 if (TryReadDetached("Money", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127OverloadsParity.Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127OverloadsParity.Money.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, detachedValue, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127OverloadsParity.Money.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127OverloadsParity.Money.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127OverloadsParity.Money.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {

@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e5d6a858-853b-4b68-a202-b2d2d0c26c8b" => new R24EC1<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "16ddd915-83c7-4982-a49d-b606049c2560" => new R24EC1<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC1' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "e5d6a858-853b-4b68-a202-b2d2d0c26c8b" => new R24EC1<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "16ddd915-83c7-4982-a49d-b606049c2560" => new R24EC1<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'R24EC1' without a concrete client type id."),
                 };
             });
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         {
             get
             {
-                var result = ComputeProperty("V#4099f560-b835-492a-b203-24cb4d461d1b");
+                var result = ComputeProperty("V#d8a1209e-d5b1-4882-b4e0-866b797d7985");
                 result.ThrowIfFailed();
                 return Convert.ToInt32(result.value);
             }
@@ -89,13 +89,13 @@ namespace NeoCompose.Tests.P127InterfacesParity
             {
                 if (typeof(R24EIV<R24EIQ<R24EK0>>).IsAssignableFrom(typeof(R24EIV<R24EG<T>>)))
                 {
-                    var result = ComputeProperty("V#4099f560-b835-492a-b203-24cb4d461d1b");
+                    var result = ComputeProperty("V#d8a1209e-d5b1-4882-b4e0-866b797d7985");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }
                 else
                 {
-                    var result = ComputeProperty("V#4219045b-5646-4a92-a0d8-f8e37143a16a");
+                    var result = ComputeProperty("V#6d2da41b-3450-4423-ad0e-c2477bbee1c8");
                     result.ThrowIfFailed();
                     return Convert.ToInt32(result.value);
                 }

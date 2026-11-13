@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R3AliasStore : NeoGeneratedClassValue, IReadOnlyR3AliasStore
     {
         internal R3AliasStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "34d8105e-238a-42e9-994b-c4f8a1d182a0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9473c64a-bcf0-4305-bed4-715a639d3dd3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyList<object> Pair()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c3dd02ef-fd49-4b66-a210-6692c74c1a07");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "27f9336b-2759-4baf-a7c1-85a4cc061af5");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadScriptList<object>(result, resultEntry => { return resultEntry!; });
         }
@@ -47,14 +47,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d7a257e3-a7f5-4216-931f-bed6e8fe5a12", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4486dfc9-d6bd-4d64-9c71-9ec1b139321f", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.R3ListTake.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d7a257e3-a7f5-4216-931f-bed6e8fe5a12", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "4486dfc9-d6bd-4d64-9c71-9ec1b139321f", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "34d8105e-238a-42e9-994b-c4f8a1d182a0");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "9473c64a-bcf0-4305-bed4-715a639d3dd3");
         }
 
         internal static R3AliasStore Create(NeoClient client, NeoMemberClass node)

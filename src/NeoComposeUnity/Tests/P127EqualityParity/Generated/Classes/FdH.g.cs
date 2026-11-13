@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127EqualityParity
     public partial class FdH : NeoGeneratedClassValue, IReadOnlyFdH
     {
         internal FdH(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b8f044fe-c894-4d39-9176-5c718e6db54f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "2dbe1089-56a6-4aab-80ce-8d5424ff4f20", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127EqualityParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b8f044fe-c894-4d39-9176-5c718e6db54f",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("C", "a1813350-43cf-4809-bc83-b8a1f59f34e9", C)
+                "2dbe1089-56a6-4aab-80ce-8d5424ff4f20",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("C", "75cad3b8-2be5-4d4e-9c43-7ef674ae4c8d", C)
             );
         }
 

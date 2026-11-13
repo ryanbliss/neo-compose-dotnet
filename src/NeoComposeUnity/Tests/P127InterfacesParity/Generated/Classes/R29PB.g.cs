@@ -41,7 +41,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "1c46f922-c5f9-466a-ba25-7e39a8f9e69b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "fe3fca12-22f6-4af5-ad29-19772f866295");
         }
 
         internal new static R29PB Create(NeoClient client, NeoMemberClass node)
@@ -113,7 +113,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
         string IR29A.M()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "2bad8194-d4f4-4e3a-b664-2c9dcabdaa78", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29A>(), "2bad8194-d4f4-4e3a-b664-2c9dcabdaa78", client.TypeArguments.Of<IR29A>(), Array.Empty<object?>());
+            var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "c8c30c4b-f42a-4449-bad5-cb5351cc8a92", NeoInterfaceBody.Function, client.TypeArguments.Of<IR29A>(), "c8c30c4b-f42a-4449-bad5-cb5351cc8a92", client.TypeArguments.Of<IR29A>(), Array.Empty<object?>());
             return (string)result!;
         }
 
@@ -122,7 +122,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "fa737552-1e52-4485-a0c6-a938be1a4ab8", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29A>(), "fa737552-1e52-4485-a0c6-a938be1a4ab8", client.TypeArguments.Of<IR29A>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "1f7e4c97-3872-4a64-8850-0823e80ed832", NeoInterfaceBody.Get, client.TypeArguments.Of<IR29A>(), "1f7e4c97-3872-4a64-8850-0823e80ed832", client.TypeArguments.Of<IR29A>(), Array.Empty<object?>());
                 return (string)result!;
             }
         }

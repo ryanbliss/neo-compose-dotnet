@@ -33,7 +33,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldSetFarm : NeoGeneratedClassValue, IReadOnlyHeldSetFarm
     {
         internal HeldSetFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "afb17626-68a4-499e-a699-098426d5a825", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "c6d7e9a4-d198-43a6-95b4-1658d86306e6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -52,11 +52,11 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "afb17626-68a4-499e-a699-098426d5a825",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "eb1b5e3b-c379-4ea3-808d-fceb31f1138e", Sets),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "449c52f0-11e3-4649-96b2-8a5116bc0746", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "7b11b542-759d-43e1-ae51-9d9a48716123", Cats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "2d445ce8-a151-490f-9200-706ab48bedc2", Groups)
+                "c6d7e9a4-d198-43a6-95b4-1658d86306e6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sets", "bff21c89-d3e4-4e2f-82b8-a2d7ef6a070d", Sets),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "5471a302-22d0-4e38-a26d-6974c7ba3620", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "9550b302-1522-4cd8-bb88-213c2bcd4929", Cats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Groups", "7a3c82b7-9ec0-4fd5-9310-82b964e4f813", Groups)
             );
         }
 
@@ -136,7 +136,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 if (TryReadDetached("Cats", out _))
                 {
                     if (TryGetDetachedView<NeoList<CastCat>>("Cats", out var detachedView)) return detachedView;
-                    return DetachedList<CastCat>("Cats", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.CastCat.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("HeldSetFarm.Cats"), () => IsReadOnly);
+                    return DetachedList<CastCat>("Cats", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.CastCat.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.P127TypesParity.CastCat.CreateWritable(client, writableChild) : global::NeoCompose.Tests.P127TypesParity.CastCat.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("HeldSetFarm.Cats"), () => IsReadOnly);
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Cats");
                 if (TryGetStoredView<NeoList<CastCat>>("Cats", memberNode, out var cached)) return cached;

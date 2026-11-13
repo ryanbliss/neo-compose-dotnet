@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldPairWorld : NeoGeneratedClassValue, IReadOnlyHeldPairWorld
     {
         internal HeldPairWorld(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1fb502e4-ad8f-4240-962c-36bb2ad910a6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "62f771ee-e864-47d2-8358-4f498e19de5b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "1fb502e4-ad8f-4240-962c-36bb2ad910a6",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "4c0814d4-51b1-4b70-9014-a802db1b101a", One)
+                "62f771ee-e864-47d2-8358-4f498e19de5b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("One", "994744bd-8b71-4ffa-b84c-c4a68d6e7718", One)
             );
         }
 
@@ -106,7 +106,7 @@ namespace NeoCompose.Tests.P127TypesParity
             {
                 if (TryReadDetached("One", out object? detachedValue))
                 {
-                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, null, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldPairFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldPairFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
+                    return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, detachedValue, false, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldPairFarm.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.P127TypesParity.HeldPairFarm.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.P127TypesParity.HeldPairFarm.CreateDetached(factoryClient, factoryValue, factorySaved));
                 }
                 if (IsReadOnly)
                 {

@@ -18,7 +18,7 @@ namespace NeoCompose.Tests.P127InterfacesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "d07c39b0-2cbb-4131-b431-6a1aaad6aa45", NeoInterfaceBody.Get, client.TypeArguments.Of<IR13A>(), "d07c39b0-2cbb-4131-b431-6a1aaad6aa45", client.TypeArguments.Of<IR13A>(), Array.Empty<object?>());
+                var result = NeoGeneratedTypesSupport.InvokeInterfaceSlot(client, this, "7a97ee2b-e274-4ea4-ac0b-55a0797072ba", NeoInterfaceBody.Get, client.TypeArguments.Of<IR13A>(), "7a97ee2b-e274-4ea4-ac0b-55a0797072ba", client.TypeArguments.Of<IR13A>(), Array.Empty<object?>());
                 return Convert.ToInt32(result);
             }
         }
