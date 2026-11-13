@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScTlo<T> : NeoGeneratedClassValue, IReadOnlyScTlo<T>
     {
         internal ScTlo(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c1641358-b695-4128-964e-6869c283a3da", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4f8b845f-6a17-41cd-899c-ab7f5067d895", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "c6669e6d-b936-4080-88ca-18920bb70d96", NeoValueOwnership.Session, client.TypeArguments.Of<ScTlo<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "89524891-009d-445a-9260-eef408697f56", NeoValueOwnership.Session, client.TypeArguments.Of<ScTlo<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<object>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadObjectValue((NeoMemberObject)child) ?? throw new InvalidOperationException("Required object 'Item' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c1641358-b695-4128-964e-6869c283a3da" => new ScTlo<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4f8b845f-6a17-41cd-899c-ab7f5067d895" => new ScTlo<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScTlo' without a concrete client type id."),
                 };
             });
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "c1641358-b695-4128-964e-6869c283a3da" => new ScTlo<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4f8b845f-6a17-41cd-899c-ab7f5067d895" => new ScTlo<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScTlo' without a concrete client type id."),
                 };
             });

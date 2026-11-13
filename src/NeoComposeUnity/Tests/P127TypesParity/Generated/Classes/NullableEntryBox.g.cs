@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class NullableEntryBox<T> : NeoGeneratedClassValue, IReadOnlyNullableEntryBox<T>
     {
         internal NullableEntryBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "edcf95a7-27fc-496a-a062-eb56f5140176", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "a6e753ec-3cfa-4686-ab05-516fd595494e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7169f621-263d-4cf2-b21f-4b9e25d45540", NeoValueOwnership.Session, client.TypeArguments.Of<NullableEntryBox<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a3d193cc-787a-48dd-831c-3fe9dbfdc956", NeoValueOwnership.Session, client.TypeArguments.Of<NullableEntryBox<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<T>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<T>(client, child).Serialize(item));
             }
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "edcf95a7-27fc-496a-a062-eb56f5140176" => new NullableEntryBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a6e753ec-3cfa-4686-ab05-516fd595494e" => new NullableEntryBox<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableEntryBox' without a concrete client type id."),
                 };
             });
@@ -60,7 +60,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "edcf95a7-27fc-496a-a062-eb56f5140176" => new NullableEntryBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a6e753ec-3cfa-4686-ab05-516fd595494e" => new NullableEntryBox<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'NullableEntryBox' without a concrete client type id."),
                 };
             });
