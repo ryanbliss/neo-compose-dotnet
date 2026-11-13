@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScHs<T> : NeoGeneratedClassValue, IReadOnlyScHs<T>
     {
         internal ScHs(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0870e665-13ed-49b3-95c2-d6aba538682f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b22ec50d-245e-4260-984c-23e36cde87dd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "dbeb0edb-abea-4ee4-a865-bf78439287f6", NeoValueOwnership.Session, client.TypeArguments.Of<ScHs<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "40868594-f2fc-4cdb-a343-3d52b2bb8fcb", NeoValueOwnership.Session, client.TypeArguments.Of<ScHs<T>>());
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "dbeb0edb-abea-4ee4-a865-bf78439287f6", NeoValueOwnership.Session, client.TypeArguments.Of<ScHs<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "40868594-f2fc-4cdb-a343-3d52b2bb8fcb", NeoValueOwnership.Session, client.TypeArguments.Of<ScHs<T>>());
                 binding.BindValue(value);
             }
         }
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0870e665-13ed-49b3-95c2-d6aba538682f" => new ScHs<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "b22ec50d-245e-4260-984c-23e36cde87dd" => new ScHs<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScHs' without a concrete client type id."),
                 };
             });
@@ -64,7 +64,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "0870e665-13ed-49b3-95c2-d6aba538682f" => new ScHs<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "b22ec50d-245e-4260-984c-23e36cde87dd" => new ScHs<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScHs' without a concrete client type id."),
                 };
             });

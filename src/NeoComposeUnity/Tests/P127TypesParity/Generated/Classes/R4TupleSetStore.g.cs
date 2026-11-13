@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class R4TupleSetStore : NeoGeneratedClassValue, IReadOnlyR4TupleSetStore
     {
         internal R4TupleSetStore(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "867b8bd9-ecee-4f1c-87a9-b76da5e8d69b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "94da5fd3-163d-42ab-a5c3-22264bc3d916", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5ef93d52-765e-4a11-9713-8f97897c5ef6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "82e11dbe-b462-4fd8-81b6-6d8271633e23", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.R4TupleSetTake.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "5ef93d52-765e-4a11-9713-8f97897c5ef6", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "82e11dbe-b462-4fd8-81b6-6d8271633e23", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "867b8bd9-ecee-4f1c-87a9-b76da5e8d69b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "94da5fd3-163d-42ab-a5c3-22264bc3d916");
         }
 
         internal static R4TupleSetStore Create(NeoClient client, NeoMemberClass node)
