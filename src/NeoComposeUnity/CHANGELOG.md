@@ -5,12 +5,12 @@
 - Fixed: a generated getter, method, or static member that returns a class value no longer throws "NSProperty getter returned an asset-owned class value where a saved value was expected" when the value is authored data. The value's owner picks its view: a Save, Session, or User row reads writable when the class has a writable family, and an Asset row reads read-only. The class member and its explicit `IReadOnly*` implementation now return the same view, so a cast to `IReadOnly*` to dodge the throw is no longer needed. This covers nullable results, generic results, list entries, and stored members of a pending NeoScript temporary. Requires CLI 0.93.10; run `neo export` after upgrading. Generated code from an older CLI reports `Asset-owned class value '<id>', which needs a read-only factory` until it is regenerated.
 
 ```csharp
+// Item.Art is typed in the writable family.
 // Before: threw when Art is authored data. After: a read-only view.
 Art art = item.Art;
-Art picked = item.Pick();
 
-// The workaround cast is no longer needed.
-Art same = ((IReadOnlyItem)item).Art;
+// Before: the workaround read through the read-only interface.
+IReadOnlyArt workaround = ((IReadOnlyItem)item).Art;
 ```
 
 ## [0.81.11] - 2026-11-11
