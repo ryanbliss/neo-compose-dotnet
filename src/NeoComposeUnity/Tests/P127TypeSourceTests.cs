@@ -48,18 +48,16 @@ namespace NeoCompose.Tests
             Assert.That(anything["h"].StampParams, Is.EqualTo(new[] { "T" }));
             Assert.That(anything["h.p"].StampParams, Is.Null);
 
-            var declared = Place(
-                client,
-                new MemberValue[]
-                {
-                    Obj("r", new() { ["Closed"] = "c" }),
-                    Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }),
-                    Number("c.payload", 4),
-                    Arr("c.items"),
-                    Obj("c.p", new() { ["As"] = "c.p.as" }),
-                    Arr("c.p.as"),
-                },
-                Root(client, "r", "root"));
+            MemberValue[] PlainRows(string? classId) => new MemberValue[]
+            {
+                Obj("r", new() { ["Closed"] = "c" }, classId),
+                Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }),
+                Number("c.payload", 4),
+                Arr("c.items"),
+                Obj("c.p", new() { ["As"] = "c.p.as" }),
+                Arr("c.p.as"),
+            };
+            var declared = Place(client, PlainRows(null), Root(client, "r", "root"));
             Assert.That(declared["c"].StampParams, Is.Null);
             // Declarations close every type under a Holder<int> field; each
             // row whose declared type names a param stores it closed.
@@ -67,6 +65,12 @@ namespace NeoCompose.Tests
             Assert.That(declared["c.items"].TypeSource, Is.EqualTo(NeoTypeSource.OfType(ListOf(Int, required: false))));
             Assert.That(declared["c.p.as"].TypeSource, Is.EqualTo(NeoTypeSource.OfType(ListOf(Int, required: false))));
             Assert.That(declared["c.payload"].TypeSource, Is.Null);
+
+            // An `object` slot's class row places through its own class, so
+            // the rows under it store the same closed types.
+            var held = Place(client, PlainRows("plain"), Root(client, "r", "anything"));
+            foreach (string rowId in new[] { "c", "c.items", "c.p.as", "c.payload" })
+                Assert.That(held[rowId].TypeSource, Is.EqualTo(declared[rowId].TypeSource), rowId);
 
             var ownerless = Place(client, HolderRows(Int, Number("h.payload", 4)), NeoTypeSources.OwnerlessPosition("h"));
             Assert.That(ownerless["h"].StampParams, Is.EqualTo(new[] { "T" }));
