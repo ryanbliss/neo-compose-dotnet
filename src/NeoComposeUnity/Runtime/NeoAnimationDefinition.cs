@@ -1296,15 +1296,20 @@ namespace NeoCompose.Runtime
     /// for the next applied frame, so an equip or turn updates immediately
     /// without re-evaluating getters after unrelated animation writes.</para>
     /// </summary>
-    internal sealed class NeoAnimationSegmentSource : IDisposable
+    internal sealed class NeoAnimationSegmentSource : IDisposable, INeoWritableValueListener
     {
         private readonly NeoClient client;
         private readonly NeoMemberClass track;
         private readonly string segmentKey;
         private readonly string label;
         private readonly string? trackValueId;
-        private readonly Dictionary<string, IDisposable> valueSubscriptions = new(StringComparer.Ordinal);
+        // The ids this source listens to: every dependency, plus departed ones
+        // until RefreshSubscriptions prunes them.
+        private readonly HashSet<string> subscribedIds = new(StringComparer.Ordinal);
         private readonly List<string> removedDependencies = new();
+        // ReadContent's scratch, empty between re-resolutions.
+        private readonly List<(int index, MemberValue? row)> orderedFrames = new();
+        private string? segmentGetterSkipKey;
         private bool resolving;
 #if NEO_COMPOSE_PROFILING
         private static readonly Unity.Profiling.ProfilerMarker ResolveSegmentMarker = new("NeoCompose.Animation.ResolveSegment");
@@ -1398,15 +1403,15 @@ namespace NeoCompose.Runtime
             if (disposed)
                 return;
             disposed = true;
-            foreach (var subscription in valueSubscriptions.Values)
-                subscription.Dispose();
-            valueSubscriptions.Clear();
+            foreach (string id in subscribedIds)
+                client.RemoveWritableValueListener(id, this);
+            subscribedIds.Clear();
             contentRows = Array.Empty<MemberValue?>();
             contentPayloads = Array.Empty<NeoValueWritePayload?>();
             contentAuthored = Array.Empty<bool>();
         }
 
-        private void HandleWritableValueChanged(
+        void INeoWritableValueListener.OnWritableValueChanged(
             NeoValueOwnership ownership,
             string valueId)
         {
@@ -1449,23 +1454,34 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Listens to every dependency. A departed one stays subscribed: a
+        /// turn swaps one facing's frame rows for another's and turns back,
+        /// and a change outside <see cref="dependencies"/> is ignored, so
+        /// keeping it costs nothing. Departed ids go once they outnumber the
+        /// live ones three to one, which covers the other facings and still
+        /// bounds a source to four times its reads.
+        /// </summary>
         private void RefreshSubscriptions()
         {
-            foreach (var pair in valueSubscriptions)
-            {
-                if (dependencies.Contains(pair.Key))
-                    continue;
-                pair.Value.Dispose();
-                removedDependencies.Add(pair.Key);
-            }
-            foreach (string id in removedDependencies)
-                valueSubscriptions.Remove(id);
-            removedDependencies.Clear();
             foreach (string id in dependencies)
             {
-                if (!valueSubscriptions.ContainsKey(id))
-                    valueSubscriptions.Add(id, client.SubscribeWritableValue(id, HandleWritableValueChanged));
+                if (subscribedIds.Add(id))
+                    client.AddWritableValueListener(id, this);
             }
+            if (subscribedIds.Count <= 4 * dependencies.Count)
+                return;
+            foreach (string id in subscribedIds)
+            {
+                if (!dependencies.Contains(id))
+                    removedDependencies.Add(id);
+            }
+            foreach (string id in removedDependencies)
+            {
+                subscribedIds.Remove(id);
+                client.RemoveWritableValueListener(id, this);
+            }
+            removedDependencies.Clear();
         }
 
         /// <summary>
@@ -1544,7 +1560,7 @@ namespace NeoCompose.Runtime
                             // unresolvable segment silent and legal at runtime, and
                             // throwing here would take down a clip mid-frame.
                             if (client.ShouldReportAnimationApplySkip(
-                                    $"{label}$segmentGetter"))
+                                    segmentGetterSkipKey ??= $"{label}$segmentGetter"))
                             {
                                 UnityEngine.Debug.LogWarning(
                                     $"{label} Segment getter failed, so the track writes nothing: {result.error}");
@@ -1610,7 +1626,7 @@ namespace NeoCompose.Runtime
             if (ResolveClassMemberRow(segmentRow, "Frames") is ArrayMemberValue framesRow
                 && framesRow.value is not null)
             {
-                var ordered = new List<(int index, MemberValue? row)>();
+                List<(int index, MemberValue? row)> ordered = orderedFrames;
                 foreach (string frameId in framesRow.value)
                 {
                     if (string.IsNullOrWhiteSpace(frameId))
@@ -1638,6 +1654,7 @@ namespace NeoCompose.Runtime
                         authored[position] = true;
                     }
                 }
+                ordered.Clear();
             }
             contentRows = rows;
             contentPayloads = new NeoValueWritePayload?[duration];

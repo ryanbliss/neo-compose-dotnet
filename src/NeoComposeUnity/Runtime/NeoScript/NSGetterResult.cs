@@ -30,10 +30,11 @@ namespace NeoCompose.Runtime.NeoScript
         {
             get;
         }
-        public string? error
-        {
-            get;
-        }
+        // A failure formats its message only when read: a caller that treats
+        // the error as absence never pays for the trace.
+        public string? error => message ?? (failure is null ? null : NeoScriptDebug.FormatError(failure));
+
+        private readonly string? message;
 
         internal Exception? failure
         {
@@ -50,7 +51,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             this.ok = ok;
             this.value = value;
-            this.error = error;
+            message = error;
             this.failure = failure;
         }
 
@@ -60,7 +61,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             ok = true;
             this.value = value;
-            error = null;
+            message = null;
             failure = null;
         }
 
@@ -70,6 +71,7 @@ namespace NeoCompose.Runtime.NeoScript
         public static NSGetterResult Ok(object? value) => new(value);
         public static NSGetterResult Error(string message) => new(false, null, message);
         internal static NSGetterResult Error(string message, Exception failure) => new(false, null, message, failure);
+        internal static NSGetterResult Error(Exception failure) => new(false, null, null, failure);
     }
 
     /// <summary>

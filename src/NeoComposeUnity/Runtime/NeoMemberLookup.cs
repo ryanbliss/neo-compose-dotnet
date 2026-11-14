@@ -37,6 +37,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The reference <see cref="NeoGeneratedTypesSupport.ReferenceEntry{T}"/>
+        /// last made for this lookup. A reference is immutable, so a repeat
+        /// read of the same selection takes it again: a renderer reads a
+        /// sprite's lookup every frame.
+        /// </summary>
+        internal NeoReference? lastReference;
+
+        /// <summary>
         /// The node last resolved for each selection slot. A kept node is
         /// reused while its id, ownership and declaration still match and the
         /// active registry still holds it, which skips composing its key.

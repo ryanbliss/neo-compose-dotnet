@@ -51,6 +51,8 @@ namespace NeoCompose.Runtime
         /// <summary>This reference as the evaluator holds it.</summary>
         internal LookupMember? Holder => holder;
 
+        internal string? HolderRowId => holderRowId;
+
         internal NSSlotReference Slot(NSGetterEvaluator.Context ctx) => Slot(ctx, out _);
 
         internal NSSlotReference Slot(NSGetterEvaluator.Context ctx, out TypeInfo? target)
