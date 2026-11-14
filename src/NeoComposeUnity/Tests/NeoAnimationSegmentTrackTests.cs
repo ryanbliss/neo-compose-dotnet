@@ -842,6 +842,41 @@ namespace NeoCompose.Tests
             Assert.AreEqual(3, source.BaseDuration, "Switching back must read the latest segment state.");
         }
 
+        [Test]
+        public void DepartedSegmentListenersStayBoundedAndDisposeReleasesThem()
+        {
+            ProjectData data = BuildEquipProjectData();
+            var segments = new List<string> { "seg-a", "seg-b" };
+            for (int index = 0; index < 40; index++)
+            {
+                string segment = $"seg-{index}";
+                AddSegment(data, segment, 2, ($"{segment}-0", 0), ($"{segment}-1", 1));
+                segments.Add(segment);
+            }
+            data.values["catalog-value"] = ArrayValue("catalog-value", segments.ToArray());
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            using var track = new NeoMemberClass(client,
+                new ClassMember { id = "probe-track", kind = MemberKind.Class, DeclaredClassId = LookupSegmentTrackClassId }, "track-0");
+            var source = new NeoAnimationSegmentSource(client, track, "Segment", "probe");
+            foreach (string segment in segments)
+            {
+                Equip(client, segment);
+                Assert.AreEqual(2, source.BaseDuration);
+                // A resolution of this track reads 11 ids.
+                Assert.LessOrEqual(source.subscribedIds.Count, 4 * 11, segment);
+            }
+
+            Assert.That(source.subscribedIds, Does.Contain("seg-39-duration"), "The played segment is listened to.");
+            Assert.That(source.subscribedIds, Does.Not.Contain("seg-a-duration"),
+                "Departed segments are pruned once they outnumber the live reads.");
+            Equip(client, "seg-a");
+            client.SetWritableValue(NeoValueOwnership.Session, Number("seg-a-duration", 1));
+            Assert.AreEqual(1, source.BaseDuration, "A pruned segment is listened to again once it plays.");
+
+            source.Dispose();
+            Assert.IsEmpty(source.subscribedIds);
+        }
+
         /// <summary>
         /// P48 §1.2 and §3.1: a Session-stored segment <c>Duration</c> written
         /// at runtime changes the resolved window on the next frame — the case

@@ -186,7 +186,7 @@ namespace NeoCompose.Runtime
                     // An enum's memo holds its option id, which names no row,
                     // so a C# read takes it without a context to resolve it in.
                     if (getter.typeInfo is EnumTypeInfo
-                        && hit.list is { entries: { Length: 1 } ids, entryMember: null, keys: null, isSet: false, detached: null, row: null, tuple: null }
+                        && hit.list is { entries: { Length: 1 } ids, entryMember: null, keys: null, isSet: false }
                         && ids[0] is string optionId)
                     {
                         client.ReplayGetterReads(hit);

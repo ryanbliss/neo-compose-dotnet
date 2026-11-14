@@ -1305,9 +1305,9 @@ namespace NeoCompose.Runtime
         private readonly string? trackValueId;
         // The ids this source listens to: every dependency, plus departed ones
         // until RefreshSubscriptions prunes them.
-        private readonly HashSet<string> subscribedIds = new(StringComparer.Ordinal);
+        internal readonly HashSet<string> subscribedIds = new(StringComparer.Ordinal);
         private readonly List<string> removedDependencies = new();
-        // ReadContent's scratch, empty between re-resolutions.
+        // ReadContent's scratch, cleared before each fill.
         private readonly List<(int index, MemberValue? row)> orderedFrames = new();
         private string? segmentGetterSkipKey;
         private bool resolving;
@@ -1627,6 +1627,7 @@ namespace NeoCompose.Runtime
                 && framesRow.value is not null)
             {
                 List<(int index, MemberValue? row)> ordered = orderedFrames;
+                ordered.Clear();
                 foreach (string frameId in framesRow.value)
                 {
                     if (string.IsNullOrWhiteSpace(frameId))
@@ -1654,7 +1655,6 @@ namespace NeoCompose.Runtime
                         authored[position] = true;
                     }
                 }
-                ordered.Clear();
             }
             contentRows = rows;
             contentPayloads = new NeoValueWritePayload?[duration];
