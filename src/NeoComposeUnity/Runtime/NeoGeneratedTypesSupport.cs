@@ -10089,8 +10089,21 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>P112 §8. The reference to <paramref name="id"/> that Lookup <paramref name="node"/> selects.</summary>
-        public static NeoReference<T> ReferenceEntry<T>(NeoClient client, NeoMemberLookup node, string id) =>
-            new(client, id, node.member, node.value?.id);
+        public static NeoReference<T> ReferenceEntry<T>(NeoClient client, NeoMemberLookup node, string id)
+        {
+            string? holderRowId = node.value?.id;
+            if (node.lastReference is NeoReference<T> last
+                && ReferenceEquals(last.client, client)
+                && ReferenceEquals(last.Holder, node.member)
+                && last.TargetId == id
+                && last.HolderRowId == holderRowId)
+            {
+                return last;
+            }
+            var created = new NeoReference<T>(client, id, node.member, holderRowId);
+            node.lastReference = created;
+            return created;
+        }
 
         /// <summary>P112 §8. The reference an evaluator value holds: a pending temporary's slot or a function's result.</summary>
         public static NeoReference<T>? ReadReference<T>(NeoClient client, object? value)

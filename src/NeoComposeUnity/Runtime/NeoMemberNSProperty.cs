@@ -183,6 +183,15 @@ namespace NeoCompose.Runtime
                 }
                 if (hit is not null)
                 {
+                    // An enum's memo holds its option id, which names no row,
+                    // so a C# read takes it without a context to resolve it in.
+                    if (getter.typeInfo is EnumTypeInfo
+                        && hit.list is { entries: { Length: 1 } ids, entryMember: null, keys: null, isSet: false }
+                        && ids[0] is string optionId)
+                    {
+                        client.ReplayGetterReads(hit);
+                        return NSGetterResult.Ok(new object?[] { optionId });
+                    }
                     if (hit.list is not null)
                     {
                         var listCtx = client.CreateGetterContext(ownership);
@@ -246,7 +255,6 @@ namespace NeoCompose.Runtime
             NeoClient.GetterCaptureFrame capture = default;
             object? value = null;
             object? hostValue = null;
-            string? error = null;
             System.Exception? failure = null;
             try
             {
@@ -262,12 +270,10 @@ namespace NeoCompose.Runtime
             catch (NSGetterRuntimeError ex)
             {
                 failure = ex;
-                error = NeoScriptDebug.FormatError(ex);
             }
             catch (System.Exception ex)
             {
                 failure = NSGetterEvaluator.NormalizeError(ex, ctx);
-                error = NeoScriptDebug.FormatError(failure);
             }
             finally
             {
@@ -284,7 +290,7 @@ namespace NeoCompose.Runtime
                     client.RecycleGetterCapture(capture);
                 // A failed read keeps only what it read, so a watch hears the
                 // change that lets it succeed.
-                else if (error is not null)
+                else if (failure is not null)
                     client.MemoizeGetterReads(memoKey, capture);
                 else if (value is NeoScriptObject { attachedId: null } constructed)
                 {
@@ -307,8 +313,8 @@ namespace NeoCompose.Runtime
             }
             // Effects a replay inside this read queued run once it settles.
             client.DrainDeferredEffects();
-            if (error is not null)
-                return NSGetterResult.Error(error, failure!);
+            if (failure is not null)
+                return NSGetterResult.Error(failure);
             client.ReturnDirectFunctionContext(ctx, hostValue);
             return NSGetterResult.Ok(hostValue);
         }

@@ -199,6 +199,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ReferenceReadReusesItsInstanceUntilTheSelectionChanges()
+        {
+            using var app = new Parity.TestProjectNeo(Client(Data()));
+            Parity.Gauge g = Parity.Probe.G;
+
+            NeoReference<int> first = g.A;
+            Assert.AreSame(first, g.A, "an unchanged selection reads the same reference");
+            g.A = g.ReferenceTo(Parity.Gauge.Fields.Other);
+            NeoReference<int> rebound = g.A;
+            Assert.AreNotSame(first, rebound);
+            Assert.AreEqual(10, rebound.Value);
+            Assert.AreSame(rebound, g.A);
+        }
+
+        [Test]
         public void GeneratedReferenceRefusesAReadonlyTarget()
         {
             using var app = new Parity.TestProjectNeo(Client(Data()));

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.13] - 2026-11-14
+
+- Allocate less when a character turns or starts and stops walking. Animation segment tracks keep their value listeners across re-resolutions instead of resubscribing, reuse their frame scratch list, and cache their failure-report key. A memoized enum getter result no longer allocates an evaluation context, a reference lookup reuses its last `NeoReference` while the target is unchanged, and `NSGetterResult.error` formats a failed getter's message only when read. In Neowyn, each turn or walk/idle switch allocates 205 KB instead of 266 KB. No API changes.
+
 ## [0.81.12] - 2026-11-12
 
 - Fixed: a generated getter, method, or static member that returns a class value no longer throws "NSProperty getter returned an asset-owned class value where a saved value was expected" when the value is authored data. The value's owner picks its view: a Save, Session, or User row reads writable when the class has a writable family, and an Asset row reads read-only. The class member and its explicit `IReadOnly*` implementation now return the same view, so a cast to `IReadOnly*` to dodge the throw is no longer needed. This covers nullable results, generic results, list entries, and stored members of a pending NeoScript temporary. Requires CLI 0.93.10; run `neo export` after upgrading. Generated code from an older CLI reports `Asset-owned class value '<id>', which needs a read-only factory` until it is regenerated.

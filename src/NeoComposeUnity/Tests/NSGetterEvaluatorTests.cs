@@ -1408,6 +1408,63 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Compute_MemoizedEnumResultReplaysItsReads()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out ClassMember testMember,
+                out ObjectMemberValue readOnlyRow,
+                out _);
+            // A computed enum memoizes its option id. A stored one memoizes its row.
+            var enumType = new EnumTypeInfo { type = MemberKind.Enum, required = true, enumId = "enum-color" };
+            var red = new ValuePointer { type = PointerKind.Value, value = new Value { typeInfo = enumType, value = new JArray("red") } };
+            var pick = new ConditionalPointer
+            {
+                type = PointerKind.Conditional,
+                condition = KeyOf(ThisPointer(), "Bool"),
+                whenTrue = red,
+                whenFalse = red,
+            };
+            FunctionWithReturnType body = ReturnFunction(pick, MemberKind.Enum);
+            body.typeInfo = enumType;
+            RequireMember<NSPropertyMember>(client, "member-getter").getter = body;
+            var node = (NeoMemberClass)NeoMember.Create(client, testMember, readOnlyRow.id);
+            var getter = node.Get<NeoMemberNSProperty>("Getter");
+            var key = new NeoClient.GetterMemoKey(
+                NeoValueOwnership.Asset, readOnlyRow.id, "member-getter", NeoValueOwnership.Asset);
+
+            NSGetterResult first = getter.Compute(readOnlyRow.id);
+            Assert.IsTrue(first.ok, first.error);
+            Assert.IsNotNull(client.FindMemoizedGetter(key));
+            NSGetterResult second = getter.Compute(readOnlyRow.id);
+            Assert.That(second.value, Is.EqualTo(new object?[] { "red" }));
+            Assert.AreNotSame(first.value, second.value, "A memo hit hands each read its own array.");
+            var reads = new HashSet<string>();
+            using (client.CaptureValueReads(reads))
+                Assert.That(getter.Compute(readOnlyRow.id).value, Is.EqualTo(new object?[] { "red" }));
+            Assert.That(reads, Does.Contain("v-bool"), "A memo hit replays the reads a watch depends on.");
+        }
+
+        [Test]
+        public void Compute_FailedGetterFormatsItsErrorWhenRead()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out ClassMember testMember,
+                out ObjectMemberValue readOnlyRow,
+                out _);
+            var unwrapNull = JsonConvert.DeserializeObject<Pointer>(
+                "{'type':'forceUnwrap','pointer':{'type':'value','value':{'typeInfo':{'type':3,'required':false},'value':null}}}");
+            RequireMember<NSPropertyMember>(client, "member-getter").getter =
+                ReturnFunction(unwrapNull!, MemberKind.String);
+            var node = (NeoMemberClass)NeoMember.Create(client, testMember, readOnlyRow.id);
+
+            NSGetterResult result = node.Get<NeoMemberNSProperty>("Getter").Compute(readOnlyRow.id);
+
+            Assert.IsFalse(result.ok);
+            StringAssert.Contains("Unexpectedly found null", result.error);
+            Assert.AreEqual(NeoScriptDebug.FormatError(result.failure!), result.error);
+        }
+
+        [Test]
         public void EnumerableQueryPreservesStoredNumericEntryIds()
         {
             using var client = LoadClient();
