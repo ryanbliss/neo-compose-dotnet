@@ -489,6 +489,75 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PlacesATFieldClosedToAClassAsItsClassTypedTwin()
+        {
+            // `Pen<PS>.Value` closes its `V` to PS, so PS and the Seg<int>
+            // under it are closed rows, not binding nodes, and read as they do
+            // in a PS field.
+            using NeoClient client = BuildClient(data =>
+            {
+                data.members["pen-value"] = Generic("pen-value", "V", "Value");
+                data.members["ps-s"] = ClassSlot("ps-s", "S", "seg", TestTypeBindings.Arguments(("E", Int)));
+                data.members["seg-xs-entry"] = Generic("seg-xs-entry", "E");
+                data.members["seg-xs"] = List("seg-xs", "Xs", "seg-xs-entry");
+                data.members["pen-of-ps"] = ClassSlot("pen-of-ps", "H", "pen", TestTypeBindings.Arguments(("V", TestTypeBindings.Class("ps"))));
+                data.members["ps-field"] = ClassSlot("ps-field", "F", "ps", null);
+                data.classes["pen"] = Class("pen", "Pen", new()
+                {
+                    ["Value"] = "pen-value"
+                }, "V");
+                data.classes["ps"] = Class("ps", "PS", new()
+                {
+                    ["S"] = "ps-s"
+                });
+                data.classes["seg"] = Class("seg", "Seg", new()
+                {
+                    ["Xs"] = "seg-xs"
+                }, "E");
+            });
+            var pen = new Graph(
+                Obj("h", new()
+                {
+                    ["Value"] = "h.v"
+                }, "pen"),
+                Obj("h.v", new()
+                {
+                    ["S"] = "h.v.s"
+                }, "ps"),
+                Obj("h.v.s", new()
+                {
+                    ["Xs"] = "h.v.s.xs"
+                }, "seg"),
+                Arr("h.v.s.xs", "h.v.s.xs.0"),
+                Number("h.v.s.xs.0", 3));
+            var twin = new Graph(
+                Obj("c", new()
+                {
+                    ["S"] = "c.s"
+                }, "ps"),
+                Obj("c.s", new()
+                {
+                    ["Xs"] = "c.s.xs"
+                }, "seg"),
+                Arr("c.s.xs", "c.s.xs.0"),
+                Number("c.s.xs.0", 3));
+            NeoTypeSources.Place(client, pen, Root(client, "h", "pen-of-ps"));
+            NeoTypeSources.Place(client, twin, Root(client, "c", "ps-field"));
+
+            Assert.That(pen["h"].genericBindings, Is.Null);
+            Assert.That(pen["h.v"].genericBindings, Is.Null);
+            Assert.That(pen["h.v"].typeSource, Is.Null);
+            foreach ((string rowId, string twinId) in new[] { ("h.v.s", "c.s"), ("h.v.s.xs", "c.s.xs") })
+            {
+                Assert.That(pen[rowId].genericBindings, Is.Null, rowId);
+                Assert.That(pen[rowId].typeSource, Is.EqualTo(twin[twinId].typeSource), rowId);
+            }
+            Assert.That(
+                NeoTypeSources.PlacedRowType(client, "h.v.s.xs", pen["h.v.s.xs"], MemberOf(client, "seg-xs"), pen.Row),
+                Is.EqualTo(ListOf(Int, required: false)));
+        }
+
+        [Test]
         public void TemplateDefaultRowsStoreTheirTypeOpenWithNoRow()
         {
             // Holder<T>'s P defaults to a Pair<T, int>: no instance closes T,
