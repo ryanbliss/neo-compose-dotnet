@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31PenHolder : NeoGeneratedClassValue, IReadOnlyG31PenHolder
     {
         internal G31PenHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "8d76182b-5bfe-4bcd-a53a-4412aae5833b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d647e444-79e4-4a5b-820e-ee00ddbd73f5", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "8d76182b-5bfe-4bcd-a53a-4412aae5833b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "8f6de8bd-1d24-4379-b5f0-9ed02a4a6999", Value)
+                "d647e444-79e4-4a5b-820e-ee00ddbd73f5",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "24f2bb7d-a79d-40e3-8a3f-0d5dbeb9a443", Value)
             );
         }
 

@@ -43,7 +43,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldFarm : NeoGeneratedClassValue, IReadOnlyHeldFarm
     {
         internal HeldFarm(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "f76b94dc-7847-4ac2-b380-3d532beaff0d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "21f11b7a-dde7-4e51-8033-7931cf562761", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -62,16 +62,16 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "f76b94dc-7847-4ac2-b380-3d532beaff0d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "04dceda1-a58d-4c60-8514-14b2a95baf1b", Cats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "462a12fe-bb68-4a24-b15a-f43214a2df37", Nums),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "6837c58b-39aa-483a-b582-35ec021a5256", ByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "fe2e1f5b-d029-4d00-98d8-5d8f91edff2e", Grid),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ListByName", "0cb93088-3d87-4238-a92f-143d2a294d1c", ListByName),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Herd", "ecfd6519-2c97-4a7c-8c3c-aa0ca20ea2d4", Herd),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Next", "9360bcfb-7c63-4bfc-8a5a-f0cba97c7d60", Next),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pet", "589f486a-77fa-44be-b7ee-430ba734fdce", Pet),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Deep", "c2fd4746-14e1-4d06-b4c0-9da787249e18", Deep)
+                "21f11b7a-dde7-4e51-8033-7931cf562761",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cats", "0ce17fab-ed40-4992-a954-a4153141af59", Cats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Nums", "eadc6794-0aa1-4825-9c1a-fd5e000d8e90", Nums),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ByName", "9440c604-d40f-45a8-92da-f3082cdf8773", ByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Grid", "6d6d5e6b-7fb1-4c33-b629-520d33bf029d", Grid),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ListByName", "bc52bf83-3698-41c5-b3df-56e12b58c309", ListByName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Herd", "e890e7ea-27cc-45fc-a2cc-0aa5f9ef6678", Herd),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Next", "e9109da1-59ae-4d30-ad14-0d12e28845ca", Next),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Pet", "21dfa9e1-90aa-4f25-b6bd-b1be845949db", Pet),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Deep", "8494449c-fcfb-449d-bb14-99b647bc2bdd", Deep)
             );
         }
 

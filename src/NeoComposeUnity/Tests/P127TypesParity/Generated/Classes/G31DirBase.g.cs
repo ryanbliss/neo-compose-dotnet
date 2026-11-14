@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public abstract partial class G31DirBase : NeoGeneratedClassValue, IReadOnlyG31DirBase
     {
         internal G31DirBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "67d3e958-3e13-4c91-b9c4-55faced9acf7", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "dac53a4b-63c1-4872-a9b0-6b07af49a76b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -43,8 +43,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "68948dd3-e982-4897-9b99-dd405815a6b5" => new G31DirAssets(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "6fdc3368-4138-43ad-8d3b-41a514f06ff2" => new G31DirAll(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "53d6e167-3241-48f7-b850-d2627bcd6392" => new G31DirAll(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fa4ffd83-f084-475c-95e0-21d6926aebfa" => new G31DirAssets(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'G31DirBase' without a concrete client type id."),
                 };
             });
@@ -57,8 +57,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "68948dd3-e982-4897-9b99-dd405815a6b5" => new G31DirAssets(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "6fdc3368-4138-43ad-8d3b-41a514f06ff2" => new G31DirAll(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "53d6e167-3241-48f7-b850-d2627bcd6392" => new G31DirAll(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fa4ffd83-f084-475c-95e0-21d6926aebfa" => new G31DirAssets(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'G31DirBase' without a concrete client type id."),
                 };
             });
@@ -68,8 +68,8 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "68948dd3-e982-4897-9b99-dd405815a6b5" => new G31DirAssets(client, value, !saved),
-                "6fdc3368-4138-43ad-8d3b-41a514f06ff2" => new G31DirAll(client, value, !saved),
+                "53d6e167-3241-48f7-b850-d2627bcd6392" => new G31DirAll(client, value, !saved),
+                "fa4ffd83-f084-475c-95e0-21d6926aebfa" => new G31DirAssets(client, value, !saved),
                 _ => null,
             };
         }

@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public G31DirAssets(IReadOnlyG31Bag vertical, G31Copy? Down = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "68948dd3-e982-4897-9b99-dd405815a6b5", "6d0cdada-e57b-5e49-a8a8-07dfc55fb040", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("vertical", vertical) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Down", "4444546a-314b-4992-bcba-e85b506c8aa7", Down) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "fa4ffd83-f084-475c-95e0-21d6926aebfa", "dc0d526f-844e-50cc-8c6f-003ab7afbd91", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("vertical", vertical) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Down", "c5c4ec1b-382d-4fde-bf83-4e6d40022dc8", Down) }), false, NeoValueOwnership.Session)
         {
         }
 

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class TupleCopyStatic : NeoGeneratedClassValue, IReadOnlyTupleCopyStatic
     {
         internal TupleCopyStatic(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b0bb5731-d14b-4438-a0d6-99d591ef742b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f24c806c-6bc3-4fc2-b07a-c4f3648dc635", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "40fc39ba-a87a-4e4b-9c9f-fb88af8439bc", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "13bf494a-989a-4690-afb9-5b83b903686c", NeoValueOwnership.Session);
                 var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
                 return new NeoList<(int, int)>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => NeoGeneratedTypesSupport.ReadTuple<(int, int)>(NeoGeneratedTypesSupport.ReadTupleValue((NeoMemberTuple)child), 2, NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple => { int Element0() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 0)); } int Element1() { return Convert.ToInt32(NeoGeneratedTypesSupport.TupleElement(NeoGeneratedTypesSupportReadTupleValueNeoMemberTuplechildTuple, 1)); } return (Element0(), Element1()); }), item => NeoGeneratedTypesSupport.TupleValue(client, child, item));
             }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b0bb5731-d14b-4438-a0d6-99d591ef742b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f24c806c-6bc3-4fc2-b07a-c4f3648dc635");
         }
 
         internal static TupleCopyStatic Create(NeoClient client, NeoMemberClass node)

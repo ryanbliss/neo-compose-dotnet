@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CtorPrimaryCatMap : NeoGeneratedClassValue, IReadOnlyCtorPrimaryCatMap
     {
         internal CtorPrimaryCatMap(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e6d6980b-fc32-4f95-be88-b528754520bb", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "afbe6b39-cfba-47c6-afff-04dc1580ece3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public CtorPrimaryCatMap(IReadOnlyDictionary<string, IReadOnlyCastCat> v, IDictionary<string, CastCat>? Val = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "e6d6980b-fc32-4f95-be88-b528754520bb", "6f2168da-67c1-55e1-a760-0f75269e5284", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "46befb47-161b-4d20-b47f-e7548699ae31", Val) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "afbe6b39-cfba-47c6-afff-04dc1580ece3", "e8abac73-a485-5576-9930-fe6f1c1e8e3e", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "f712aa70-5793-4b13-a7a9-62bc5b44c23f", Val) }), false, NeoValueOwnership.Session)
         {
         }
 

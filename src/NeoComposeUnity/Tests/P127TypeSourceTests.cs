@@ -72,6 +72,31 @@ namespace NeoCompose.Tests
             foreach (string rowId in new[] { "c", "c.items", "c.p.as", "c.payload" })
                 Assert.That(held[rowId].TypeSource, Is.EqualTo(declared[rowId].TypeSource), rowId);
 
+            // A generic class row an `object` slot holds is the binding node.
+            // Its descendants store one of two forms: a pointer through its
+            // stamp (as walked), or the closed type a construction replayed
+            // under it places. Both read closed in one hop.
+            var pointer = new Graph(HolderRows(Int, Number("h.payload", 4)));
+            NeoTypeSources.Place(client, pointer, Root(client, "h", "anything"));
+            var replayed = new Graph(HolderRows(Int, Number("h.payload", 4)));
+            NeoTypeSources.Place(client, replayed, Root(client, "h", "anything"));
+            TypeBinding pairOfInt = TestTypeBindings.Class("pair", false, ("A", Int), ("B", Int));
+            replayed["h.p"].typeSource = NeoTypeSource.OfType(pairOfInt);
+            replayed["h.p.as"].typeSource = NeoTypeSource.OfType(ListOf(Int, required: false));
+            Assert.That(pointer["h.p"].typeSource!.ValueId, Is.EqualTo("h"));
+            foreach ((string form, Graph graph) in new[] { ("pointer", pointer), ("replayed", replayed) })
+            {
+                Assert.That(graph["h"].genericBindings, Is.EqualTo(Stamped(Int)), form);
+                Assert.That(
+                    NeoTypeSources.PlacedRowType(client, "h.p", graph["h.p"], MemberOf(client, "p"), graph.Row),
+                    Is.EqualTo(pairOfInt),
+                    form);
+                Assert.That(
+                    NeoTypeSources.PlacedRowType(client, "h.p.as", graph["h.p.as"], MemberOf(client, "as"), graph.Row),
+                    Is.EqualTo(ListOf(Int, required: false)),
+                    form);
+            }
+
             var ownerless = Place(client, HolderRows(Int, Number("h.payload", 4)), NeoTypeSources.OwnerlessPosition("h"));
             Assert.That(ownerless["h"].StampParams, Is.EqualTo(new[] { "T" }));
         }

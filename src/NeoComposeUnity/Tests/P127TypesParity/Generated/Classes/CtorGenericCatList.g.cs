@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CtorGenericCatList<T> : NeoGeneratedClassValue, IReadOnlyCtorGenericCatList<T>
     {
         internal CtorGenericCatList(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "1b68bdb3-957f-4687-903f-958667d259a9", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "4c444483-f06d-4cdd-9744-f717854e9dc2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1b68bdb3-957f-4687-903f-958667d259a9" => new CtorGenericCatList<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4c444483-f06d-4cdd-9744-f717854e9dc2" => new CtorGenericCatList<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorGenericCatList' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1b68bdb3-957f-4687-903f-958667d259a9" => new CtorGenericCatList<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4c444483-f06d-4cdd-9744-f717854e9dc2" => new CtorGenericCatList<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CtorGenericCatList' without a concrete client type id."),
                 };
             });
