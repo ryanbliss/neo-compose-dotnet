@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B2 cross-runtime types-core parity fixture: object and boxing, Type and typeof, int32 wraparound and checked, explicit conversions, casts, as and default. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result and `refuses` the error message it throws. Expected values match .NET 10 except where the spec makes NeoScript differ (string box identity, NeoScript type spelling). The web half runs through `neo test` (cli/src/commands/p127-types-parity.test.ts); the Unity half runs the same cases over a `neo export`. Vendor this file verbatim. B5 fix round 1 (R19): InvalidCast messages name CLR types (.NET 10); a user type keeps its NeoScript name. R20: an explicit unbox to int or an enum accepts an int or enum box (shared underlying type); a Nullable target, is, as and IsInstanceOfType stay exact (.NET 10). UnboxUndeclaredToEnum keeps NeoScript's undeclared-option refusal (.NET gives 7). CtorBodyCatMapShared and CtorBodyIntSetShared pin main's answer, where a field a constructor body stores its collection argument in shares it with the caller, pending the follow-up on the writable-context spec's §7 copy rule. R23: the Om_<position>_<held> cases sweep `object` slots: each held value (boxes, classes, generic and derived classes, a two-level holder, collections, an `object`-closed generic) in each position (field default, required and nullable fields, static, list entry, dictionary value, a generic closed to object, constructor arguments, initializer block, run-time assignment), against the same value in a typed slot (TY, IT). Each reads, mutates and reads back; `persists` reads the written value in the next execution. The Temp column holds a temporary's member (`new OmW2(4).P`): a static's initializer takes it as its typed slot does, and an initializer block or run-time assignment refuses it in typed and `object` slots alike. FD_Temp and FN_Temp are absent (an unrelated field-default arity failure, also on main), as are GC_Temp, CA_Temp and CP_Temp, which refuse at load (static-symbol-defaults.test.ts). The Om_SC cases take a static's constructed child (`ScSrc.W.P`) in a generic class's static, which initializes at its first read: a class, `object`, `List<object>` or `Dictionary<string, object>` static refuses it as already owned, so the type initializer throws, and a Clone() initializes and reads; a run-time assignment of a whole static's value to another static refuses it as already owned, and its Clone() reads. A generic static takes a temporary's member as a non-generic static does (Om_SC_Temp*, in a typed, `List`, `Dictionary` and `object`-entry static), and a typed class-entry collection runs each computed entry per construction (Om_SC_Ctor*). The Om_SC_H cases reach another generic static's child through a function: of another construction, initialized before or during the read (HwS, HwU), or of a sibling field (HiS, HiM); each refuses as already owned, as a non-generic sibling refuses at load, and a Clone() reads (HcM). The GS column holds each value in a generic class's `object` static, which initializes at its first read, and reads as ST does. Its persists rows carry each construction's Session state into the next execution, as ST's carry a Session static's binding. The SV rows hold a Save generic static, which a save and its reload keep for each construction; SVN is the non-generic control. The OL column holds each value in a list inside an `object` list. The UL column holds each class value, and an int, in an unordered `object` list with another class entry and a scalar, and finds it by kind rather than by position. CL, CD, CS, CG and CN hold a scalar constructor argument in a collection default, CN in a nested list. A class argument there is refused at load as already owned, as in a typed slot, and a collection argument as a shared boxed collection (OwnedCollectionBoxConstructor).",
+  "$comment": "P127 B2 cross-runtime types-core parity fixture: object and boxing, Type and typeof, int32 wraparound and checked, explicit conversions, casts, as and default. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result and `refuses` the error message it throws. Expected values match .NET 10 except where the spec makes NeoScript differ (string box identity, NeoScript type spelling). The web half runs through `neo test` (cli/src/commands/p127-types-parity.test.ts); the Unity half runs the same cases over a `neo export`. Vendor this file verbatim. B5 fix round 1 (R19): InvalidCast messages name CLR types (.NET 10); a user type keeps its NeoScript name. R20: an explicit unbox to int or an enum accepts an int or enum box (shared underlying type); a Nullable target, is, as and IsInstanceOfType stay exact (.NET 10). UnboxUndeclaredToEnum keeps NeoScript's undeclared-option refusal (.NET gives 7). CtorBodyCatMapShared and CtorBodyIntSetShared pin main's answer, where a field a constructor body stores its collection argument in shares it with the caller, pending the follow-up on the writable-context spec's §7 copy rule. R23: the Om_<position>_<held> cases sweep `object` slots: each held value (boxes, classes, generic and derived classes, a two-level holder, collections, an `object`-closed generic) in each position (field default, required and nullable fields, static, list entry, dictionary value, a generic closed to object, constructor arguments, initializer block, run-time assignment), against the same value in a typed slot (TY, IT). Each reads, mutates and reads back; `persists` reads the written value in the next execution. The Temp column holds a temporary's member (`new OmW2(4).P`): a static's initializer takes it as its typed slot does, and an initializer block or run-time assignment refuses it in typed and `object` slots alike. FD_Temp and FN_Temp are absent (an unrelated field-default arity failure, also on main), as are GC_Temp, CA_Temp and CP_Temp, which refuse at load (static-symbol-defaults.test.ts). The Om_SC cases take a static's constructed child (`ScSrc.W.P`) in a generic class's static, which initializes at its first read: a class, `object`, `List<object>` or `Dictionary<string, object>` static refuses it as already owned, so the type initializer throws, and a Clone() initializes and reads; a run-time assignment of a whole static's value to another static refuses it as already owned, and its Clone() reads. A generic static takes a temporary's member as a non-generic static does (Om_SC_Temp*, in a typed, `List`, `Dictionary` and `object`-entry static), and a typed class-entry collection runs each computed entry per construction (Om_SC_Ctor*). The Om_SC_H cases reach another generic static's child through a function: of another construction, initialized before or during the read (HwS, HwU), or of a sibling field (HiS, HiM); each refuses as already owned, as a non-generic sibling refuses at load, and a Clone() reads (HcM). The GS column holds each value in a generic class's `object` static, which initializes at its first read, and reads as ST does. Its persists rows carry each construction's Session state into the next execution, as ST's carry a Session static's binding. The SV rows hold a Save generic static, which a save and its reload keep for each construction; SVN is the non-generic control. The OL column holds each value in a list inside an `object` list. The UL column holds each class value, and an int, in an unordered `object` list with another class entry and a scalar, and finds it by kind rather than by position. CL, CD, CS, CG and CN hold a scalar constructor argument in a collection default, CN in a nested list. A class argument there is refused at load as already owned, as in a typed slot, and a collection argument as a shared boxed collection (OwnedCollectionBoxConstructor). R28: the Rr cases hold a generic instance in a field typed by its own class's parameter (`RrPen<object>` holding `RrPen<int>`), which keeps its own type arguments for `is` and casts.",
   "source": [
     "class R5BoxedSetTake {public object Item;public R5BoxedSetTake(object item){Item=item;}}",
     "class R5BoxedTupleSetStore {public static R5BoxedSetTake Value=new R5BoxedSetTake((((List<object>)[3,(1,2)]).ToSet(),7));}",
@@ -257,6 +257,14 @@
     "class ScCm<T> { public static List<int> L = [1, ScMk.I()]; }",
     "class ScCn<T> { public static List<List<OmNg>> L = [[new OmNg(4)]]; }",
     "class ScCk<T> { public static Dictionary<OmColor, OmNg> D = { [OmColor.Blue]: new OmNg(4) }; }",
+    "class RrPen<T> { public T Value; }",
+    "class RrBox<T> { public T V; }",
+    "class RrHoldO { public object A; }",
+    "class RrPenC<T>(T v) { public T Value = v; }",
+    "class RrAnimal { public int Legs = 4; }",
+    "class RrCage<T> : RrAnimal { public T V; }",
+    "interface IRrB<T> { }",
+    "class RrBy<T> : IRrB<T> { public T V; }",
     "class Probe {",
     "  public static int CountPets(IEnumerable<CastPet> pets) { int n = 0; foreach (CastPet p in pets) { n += 1; } return n; }",
     "  public static int CountPetCursor(IEnumerator<CastPet> pets) { int n = 0; while (pets.MoveNext()) { n += 1; } return n; }",
@@ -1660,6 +1668,22 @@
     "  public static string Om_SVN_Int_N() { return $\"{OmSvN.I}\"; }",
     "  public static void Om_SVN_Ng_NWrite() { OmNg x = OmSvN.Ng; x.Y = 9; x.Xs.Add(7); }",
     "  public static string Om_SVN_Ng_N() { return OmRead.Ng(OmSvN.Ng); }",
+    "  static string RrK(object f) { if (f is RrPen<int> a) { return $\"int{a.Value}\"; } if (f is RrPen<object> b) { return $\"obj{b.Value}\"; } return \"none\"; }",
+    "  public static string RrSameClassInit() { var p = new RrPen<object> { Value = new RrPen<int> { Value = 3 } }; return RrK(p.Value); }",
+    "  public static string RrSameClassLocal() { var i = new RrPen<int> { Value = 3 }; var p = new RrPen<object> { Value = i }; return RrK(p.Value); }",
+    "  public static string RrObjectLocal() { var i = new RrPen<int> { Value = 3 }; object o = i; return RrK(o); }",
+    "  public static string RrOtherClass() { var p = new RrPen<object> { Value = new RrBox<int> { V = 3 } }; var f = p.Value; if (f is RrBox<int> a) { return $\"int{a.V}\"; } if (f is RrBox<object> b) { return $\"obj{b.V}\"; } return \"none\"; }",
+    "  public static string RrSameClassAssign() { var p = new RrPen<object> { Value = 0 }; p.Value = new RrPen<int> { Value = 3 }; return RrK(p.Value); }",
+    "  public static string RrObjectField() { var p = new RrHoldO { A = new RrPen<int> { Value = 3 } }; return RrK(p.A); }",
+    "  public static string RrNested() { var p = new RrPen<RrPen<int>> { Value = new RrPen<int> { Value = 3 } }; return $\"{p.Value.Value}\"; }",
+    "  public static string RrSameClassCtor() { var p = new RrPenC<object>(new RrPenC<int>(3)); var f = p.Value; if (f is RrPenC<int> a) { return $\"int{a.Value}\"; } if (f is RrPenC<object> b) { return $\"obj{b.Value}\"; } return \"none\"; }",
+    "  public static string RrSameClassString() { var p = new RrPen<object> { Value = new RrPen<string> { Value = \"s\" } }; var f = p.Value; if (f is RrPen<string> a) { return $\"str{a.Value}\"; } if (f is RrPen<object> b) { return $\"obj{b.Value}\"; } return \"none\"; }",
+    "  public static string RrObjectList() { List<object> l = [new RrPen<int> { Value = 3 }]; return RrK(l[0]); }",
+    "  public static string RrInterfaceArgument() { var p = new RrBy<IRrB<int>> { V = new RrBy<int> { V = 3 } }; var f = p.V; if (f is RrBy<int> a) { return $\"int{a.V}\"; } return \"none\"; }",
+    "  public static string RrBaseClassArgument() { var p = new RrCage<RrAnimal> { V = new RrCage<int> { V = 3 } }; var f = p.V; if (f is RrCage<int> a) { return $\"int{a.V}\"; } if (f is RrCage<RrAnimal> b) { return \"self\"; } return \"none\"; }",
+    "  public static string RrInterfaceNested() { var p = new RrBy<IRrB<IRrB<int>>> { V = new RrBy<IRrB<int>> { V = new RrBy<int> { V = 3 } } }; var f = p.V; if (f is RrBy<IRrB<int>> a) { var g = a.V; if (g is RrBy<int> c) { return $\"int{c.V}\"; } return \"mid\"; } return \"none\"; }",
+    "  public static string RrBaseClassShared() { var i = new RrCage<int> { V = 3 }; var p = new RrCage<RrAnimal> { V = i }; p.V.Legs = 5; return $\"{i.Legs}{i.V}\"; }",
+    "  public static string RrSameClassCast() { var p = new RrPen<object> { Value = new RrPen<int> { Value = 3 } }; var q = (RrPen<object>)p.Value; q.Value = \"x\"; return $\"{q.Value}\"; }",
     "}"
   ],
   "returns": {
@@ -2446,7 +2470,21 @@
     "Om_SC_CtorM": "1,2",
     "Om_SC_CtorN": "145",
     "Om_SC_CtorK": "145",
-    "Om_SC_HcM": "145|149"
+    "Om_SC_HcM": "145|149",
+    "RrSameClassInit": "int3",
+    "RrSameClassLocal": "int3",
+    "RrObjectLocal": "int3",
+    "RrOtherClass": "int3",
+    "RrSameClassAssign": "int3",
+    "RrObjectField": "int3",
+    "RrNested": "3",
+    "RrSameClassCtor": "int3",
+    "RrSameClassString": "strs",
+    "RrObjectList": "int3",
+    "RrInterfaceArgument": "int3",
+    "RrBaseClassArgument": "int3",
+    "RrInterfaceNested": "int3",
+    "RrBaseClassShared": "53"
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",
@@ -2523,7 +2561,8 @@
     "Om_SC_HwU": "The type initializer for 'ScHs<int>' threw an exception.",
     "Om_SC_HwM": "The type initializer for 'ScHs<int>' threw an exception.",
     "Om_SC_HiS": "The type initializer for 'ScHi<int>' threw an exception.",
-    "Om_SC_HiM": "The type initializer for 'ScHi<int>' threw an exception."
+    "Om_SC_HiM": "The type initializer for 'ScHi<int>' threw an exception.",
+    "RrSameClassCast": "Unable to cast object of type 'RrPen<int>' to type 'RrPen<object>'."
   },
   "persists": {
     "Om_TY_Int_N": "4",

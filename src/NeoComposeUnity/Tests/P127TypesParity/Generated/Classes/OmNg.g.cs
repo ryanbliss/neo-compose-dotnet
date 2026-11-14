@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmNg : NeoGeneratedClassValue, IReadOnlyOmNg
     {
         internal OmNg(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7e59ee79-7123-4b14-97e1-9e7ffb28bd09", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ad3b8fc0-a691-40f9-bb14-fa77790ff668", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public OmNg(int v, IEnumerable<int>? Xs = null, int? Y = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7e59ee79-7123-4b14-97e1-9e7ffb28bd09", "d66259d9-64bc-55c1-a56c-2a0c697cebae", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "373bbb31-fcd2-4074-bebc-7bdd0355286b", Xs), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Y", "0ac7ffee-7005-414d-a92f-90f908ec3ff8", Y) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "ad3b8fc0-a691-40f9-bb14-fa77790ff668", "a175d215-a9c6-5534-bff5-b49a67e4202d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "a2a0fdef-6d02-4c7b-a79a-22cfc3e8caea", Xs), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Y", "f9aa4e95-754e-43f8-8bff-74eee88861df", Y) }), false, NeoValueOwnership.Session)
         {
         }
 

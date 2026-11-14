@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class TupleCopyHolder : NeoGeneratedClassValue, IReadOnlyTupleCopyHolder
     {
         internal TupleCopyHolder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2c065702-4cef-4870-a989-d13572d56d61", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3ca4e08f-0697-422a-bce7-9a6738858571", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "2c065702-4cef-4870-a989-d13572d56d61",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "de765e9f-5a72-436b-89c9-6d339db0746f", Val)
+                "3ca4e08f-0697-422a-bce7-9a6738858571",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Val", "7a787466-b8cf-49df-a266-4b4b025e22f0", Val)
             );
         }
 
