@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cc59dda1-b89f-42ee-af6f-b39493ff6789" => new RrSub<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "701eca34-d0a5-4304-adb2-af01443f2c91" => new RrSub<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrSub' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cc59dda1-b89f-42ee-af6f-b39493ff6789" => new RrSub<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "701eca34-d0a5-4304-adb2-af01443f2c91" => new RrSub<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrSub' without a concrete client type id."),
                 };
             });
