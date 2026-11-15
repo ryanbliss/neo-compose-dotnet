@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Bag : NeoGeneratedClassValue, IReadOnlyG31Bag
     {
         internal G31Bag(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "c1935767-e95b-463d-8ae8-4e982caae4fc", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "85e7fb61-775f-4df0-a10d-b35303fe4ddd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "c1935767-e95b-463d-8ae8-4e982caae4fc",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "bc04fb90-d038-418f-b81a-3fe1a69ff3d0", Items)
+                "85e7fb61-775f-4df0-a10d-b35303fe4ddd",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "95189c6d-1278-41af-9bfa-c5e7e8536daa", Items)
             );
         }
 

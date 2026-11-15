@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmUN : NeoGeneratedClassValue, IReadOnlyOmUN
     {
         internal OmUN(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "7a677d51-3126-4a2c-833d-e942f90fffec", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "e80a6caa-1296-4c0e-aba6-52a98a197ada", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public OmUN(int v, IEnumerable<int>? Xs = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7a677d51-3126-4a2c-833d-e942f90fffec", "8fa9176d-ee90-57e1-990a-d6a8b7ca0b39", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "c5579540-e61e-4600-a5aa-2e474d519c5d", Xs) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "e80a6caa-1296-4c0e-aba6-52a98a197ada", "3e621f5c-02e1-588a-a81b-8d759d729515", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "ac4b6af5-454a-4e07-a8a0-8f05006b1cf7", Xs) }), false, NeoValueOwnership.Session)
         {
         }
 

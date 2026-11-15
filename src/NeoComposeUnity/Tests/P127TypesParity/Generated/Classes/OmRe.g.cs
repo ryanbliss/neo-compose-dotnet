@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmRe : NeoGeneratedClassValue, IReadOnlyOmRe
     {
         internal OmRe(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b9e8d830-5615-403a-9c1d-50572ae165f4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "ed1a0b4b-d3aa-4a10-873c-9eaf46794371", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,9 +48,9 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b9e8d830-5615-403a-9c1d-50572ae165f4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "797e6236-a772-417c-ba01-925541807388", O),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("T", "3e6c7d86-aba4-428f-a91d-d6d1df3ef0b3", T)
+                "ed1a0b4b-d3aa-4a10-873c-9eaf46794371",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "42404cf1-db54-4589-90b2-021daf7e9254", O),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("T", "fbf20758-af8b-47c0-a962-b2537396ad9e", T)
             );
         }
 
