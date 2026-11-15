@@ -754,6 +754,10 @@ namespace NeoCompose.Runtime
                     continue;
                 env[pair.Key] = NeoTypeBindings.ArgumentOfEntry(client, pair.Value, resolved);
             }
+            // A base param whose binding wraps a forwarded param closes over the chain.
+            foreach (string paramId in env.Keys.ToArray())
+                if (!slotArguments.ContainsKey(paramId))
+                    env[paramId] = Substitute(env[paramId], open => env.TryGetValue(open.Param!, out TypeBinding? bound) ? bound : null);
             return env;
         }
 

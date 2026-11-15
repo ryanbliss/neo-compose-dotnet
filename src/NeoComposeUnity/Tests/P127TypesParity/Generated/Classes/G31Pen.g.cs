@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G31Pen<T> : NeoGeneratedClassValue, IReadOnlyG31Pen<T>
     {
         internal G31Pen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "cf74b3e1-af28-42bf-826b-d6b594dcbf33", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fee67031-f27e-478b-9cbe-e1f039f5a538", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cf74b3e1-af28-42bf-826b-d6b594dcbf33" => new G31Pen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fee67031-f27e-478b-9cbe-e1f039f5a538" => new G31Pen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'G31Pen' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cf74b3e1-af28-42bf-826b-d6b594dcbf33" => new G31Pen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fee67031-f27e-478b-9cbe-e1f039f5a538" => new G31Pen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'G31Pen' without a concrete client type id."),
                 };
             });

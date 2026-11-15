@@ -34,7 +34,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1552f4cc-809c-43ac-a76b-634c5264c12c" => new RrWrp<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "2f495c1f-2f99-45a4-8f65-80d012548f55" => new RrWrp<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrWrp' without a concrete client type id."),
                 };
             });
@@ -47,7 +47,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "1552f4cc-809c-43ac-a76b-634c5264c12c" => new RrWrp<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "2f495c1f-2f99-45a4-8f65-80d012548f55" => new RrWrp<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrWrp' without a concrete client type id."),
                 };
             });

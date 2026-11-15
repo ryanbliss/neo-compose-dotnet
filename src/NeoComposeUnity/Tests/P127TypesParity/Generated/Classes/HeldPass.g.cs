@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldPass : NeoGeneratedClassValue, IReadOnlyHeldPass
     {
         internal HeldPass(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ef7c76c8-df47-4120-a365-a9138dfc5729", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f9833530-c19f-4f73-868d-18cf123efe66", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string SetGet(INeoReadOnlySet<IReadOnlyCastCat> l)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a315f11c-6d88-4580-82ae-da37ca7da100");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "8a1588f6-c631-4e17-b3e5-39083f64dd5c");
             var result = node.InvokeStatic((object?)(l));
             return (string)result!;
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string SetName(INeoReadOnlySet<IReadOnlyCastCat> l)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6107b6a3-c627-4ea9-94bd-fef3091fe2eb");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b2c986f9-38ac-48af-a820-d8fba7be18df");
             var result = node.InvokeStatic((object?)(l));
             return (string)result!;
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "ef7c76c8-df47-4120-a365-a9138dfc5729");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "f9833530-c19f-4f73-868d-18cf123efe66");
         }
 
         internal static HeldPass Create(NeoClient client, NeoMemberClass node)
