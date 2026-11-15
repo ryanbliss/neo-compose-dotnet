@@ -1,0 +1,24 @@
+{
+    "schemaVersion": 1,
+    "projectId": "project-id",
+    "versionId": "version-id",
+    "locale": "en-US",
+    "sourceLocale": null,
+    "formattingSyntax": "smart-format",
+    "values": {
+        "07f04823-75b6-5224-94e0-05264cf22554": "g",
+        "127e6135-bedf-50a4-8a0c-04db345e1545": "j",
+        "13588dc6-b9af-5855-83fb-31dbdc56ab5c": "e",
+        "1a9d26b4-d341-5932-aa60-953509053390": "b",
+        "56d964fd-30ad-5ca8-bfc1-ffc52c6485e0": "x",
+        "64218e8c-d519-59e8-a859-c6b753d392fd": "b",
+        "7f97b368-6ee1-5708-85a2-5bbf479ced6b": "f",
+        "91eee648-9e1f-54dc-a5eb-f59f49b067bb": "s",
+        "c7cf0719-d2e4-5e08-8754-55b847f373fa": "a",
+        "d3fc097b-3fcf-5056-9b98-a27e92aac3ca": "a",
+        "deda9e7f-7a4e-54b5-ba75-9a8701c8a01e": "a",
+        "ed1dce56-2089-5a18-9b8b-9665287ac8fe": "x",
+        "f08360ee-3cd9-5693-80e6-3e4f4d077287": "x",
+        "fe27c7a2-2338-5566-9f4f-4c0e44d0f7e1": "a"
+    }
+}

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class RrPenC<T> : NeoGeneratedClassValue, IReadOnlyRrPenC<T>
     {
         internal RrPenC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "69c9ddb6-c0da-4282-a7e2-76b9494058b0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "3aac2422-b2f5-4e02-a5a6-5c04e69deb36", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "69c9ddb6-c0da-4282-a7e2-76b9494058b0" => new RrPenC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "3aac2422-b2f5-4e02-a5a6-5c04e69deb36" => new RrPenC<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrPenC' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "69c9ddb6-c0da-4282-a7e2-76b9494058b0" => new RrPenC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "3aac2422-b2f5-4e02-a5a6-5c04e69deb36" => new RrPenC<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrPenC' without a concrete client type id."),
                 };
             });
@@ -87,7 +87,6 @@ namespace NeoCompose.Tests.P127TypesParity
             }
             set
             {
-                ThrowIfReadOnly("RrPenC.Value");
                 var child = writableNode.Get<NeoMember>("Value");
                 _valueGenericBinding ??= NeoGenericBindings.Resolve<T>(client, child);
                 _valueGenericBinding.Write(child, value);

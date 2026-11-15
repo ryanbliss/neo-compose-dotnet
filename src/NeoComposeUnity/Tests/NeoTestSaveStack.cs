@@ -222,7 +222,7 @@ namespace NeoCompose.Tests
             // and its bindings as well, without carrying any live CLR values.
             client.PublishHeldPayloadWrites(NeoValueOwnership.Session);
             var rows = JsonConvert.DeserializeObject<System.Collections.Generic.Dictionary<string, MemberValue>>(JsonConvert.SerializeObject(client.sessionValues))!;
-            var reloaded = ClientFromSchema(client.Synchronizer.Schema, loadedSaveContent: client.SerializeSaveData());
+            var reloaded = ClientFromSchema(client.Synchronizer.Schema, loadedSaveContent: client.SerializeSaveData(), localization: client.Localization);
             var plan = new NeoWritePlan(reloaded);
             foreach (MemberValue row in rows.Values)
                 plan.Set(NeoValueOwnership.Session, row);

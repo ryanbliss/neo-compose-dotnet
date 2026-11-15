@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Shape : NeoGeneratedClassValue, IReadOnlyShape
     {
         internal Shape(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a0deaa97-8dc9-49e5-8874-57de031c830a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8a766a4a-ce4d-4330-a73b-71ef71548559", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "a0deaa97-8dc9-49e5-8874-57de031c830a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8a766a4a-ce4d-4330-a73b-71ef71548559");
         }
 
         internal static Shape Create(NeoClient client, NeoMemberClass node)

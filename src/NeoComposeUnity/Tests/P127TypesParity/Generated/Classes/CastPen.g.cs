@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CastPen<T> : NeoGeneratedClassValue, IReadOnlyCastPen<T>
     {
         internal CastPen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "d18f3567-2d6b-43e3-81fe-fc702f97ff56", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "f1758103-18f6-43db-80fa-e151d9716fcc", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d18f3567-2d6b-43e3-81fe-fc702f97ff56" => new CastPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f1758103-18f6-43db-80fa-e151d9716fcc" => new CastPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CastPen' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "d18f3567-2d6b-43e3-81fe-fc702f97ff56" => new CastPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f1758103-18f6-43db-80fa-e151d9716fcc" => new CastPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'CastPen' without a concrete client type id."),
                 };
             });

@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "313f1b50-c122-4514-98df-d7eb920eb5db" => new OmDerG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "122cb5ce-7fff-4edd-8b0a-ca622509915e" => new OmDerG<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmDerG' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "313f1b50-c122-4514-98df-d7eb920eb5db" => new OmDerG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "122cb5ce-7fff-4edd-8b0a-ca622509915e" => new OmDerG<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmDerG' without a concrete client type id."),
                 };
             });

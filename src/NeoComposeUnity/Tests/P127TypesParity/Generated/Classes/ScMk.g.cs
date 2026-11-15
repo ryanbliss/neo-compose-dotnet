@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScMk : NeoGeneratedClassValue, IReadOnlyScMk
     {
         internal ScMk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "2d32a8db-7204-4c20-b899-2f9e5ba8501f", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "048f97c3-caa3-46c5-a2cc-a5a0861d46b6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int I()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "a279d1e9-ad73-4b2f-b5ea-2862ab74559c");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "881a4793-0356-4341-9341-1b7d9a6cf189");
             var result = node.InvokeStatic();
             return Convert.ToInt32(result);
         }
@@ -50,7 +50,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "2d32a8db-7204-4c20-b899-2f9e5ba8501f");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "048f97c3-caa3-46c5-a2cc-a5a0861d46b6");
         }
 
         internal static ScMk Create(NeoClient client, NeoMemberClass node)

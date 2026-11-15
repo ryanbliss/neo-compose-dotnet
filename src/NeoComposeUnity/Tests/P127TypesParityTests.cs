@@ -7,9 +7,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using Parity = NeoCompose.Tests.P127TypesParity;
@@ -103,7 +105,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 NeoSchemaClass statics = client.ProjectDataForRuntime.classes.Values.Single(schema => schema.name == "ReviewStoredBoxes");
                 var ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
@@ -163,7 +165,7 @@ namespace NeoCompose.Tests
                 AssertDurableChildren(argumentId);
             }
             // Reopen exactly the SDK's serialized output, without warming or repairing its graph.
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(Schema(), loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(Schema(), serialized);
             AssertReviewReturn(reopened, probe);
             NeoSchemaClass savedStatics = reopened.ProjectDataForRuntime.classes.Values.Single(schema => schema.name == "ReviewStoredBoxes");
             foreach (string name in new[] { "Tuple", "Nested", "Deep", "Replacement" })
@@ -190,7 +192,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 var ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
                 try
@@ -247,7 +249,7 @@ namespace NeoCompose.Tests
                 Assert.That(stored.values.ContainsKey(argumentId), Is.True, "The constructor argument must survive even when its body only reads Count.");
             }
             // The second client gets the untouched serialized SDK Save, with no live object caches.
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(Schema(), loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(Schema(), serialized);
             AssertReviewReturn(reopened, probe);
         }
 
@@ -272,7 +274,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 NeoSchemaClass store = client.ProjectDataForRuntime.classes.Values.Single(schema => schema.name == "R3SetReadStore");
                 var member = (ClassMember)client.members[store.schema["Value"]];
@@ -292,7 +294,7 @@ namespace NeoCompose.Tests
                 }
                 finally { client.ReturnDirectFunctionContext(ctx, null); }
             }
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(Schema(), loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(Schema(), serialized);
             AssertReviewReturn(reopened, "ConstructorAggregateSetReadOnly");
         }
 
@@ -313,7 +315,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 var ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
                 try
@@ -411,7 +413,7 @@ namespace NeoCompose.Tests
                     Assert.That(boxes, Does.Contain(MemberKind.Tuple), name);
             }
             // Reopen the untouched SDK output with a new client and no live value caches.
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(schema, loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(schema, serialized);
             AssertReviewReturn(reopened, probe);
             AssertNestedConstructorPayload(reopened, probe, NeoValueOwnership.Save);
         }
@@ -492,7 +494,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 var ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
                 try
@@ -580,7 +582,7 @@ namespace NeoCompose.Tests
                 _ => new[] { 3d, 1d, 2d },
             };
             Assert.That(numbers, Is.EquivalentTo(expected), probe);
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(Schema(), loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(Schema(), serialized);
             AssertReviewReturn(reopened, probe);
         }
 
@@ -701,7 +703,7 @@ namespace NeoCompose.Tests
                 return data;
             }
             string serialized;
-            using (NeoClient client = NeoTestSaveStack.ClientFromSchema(Schema(), assumeCurrentSchema: false))
+            using (NeoClient client = Open(Schema()))
             {
                 NeoSchemaClass taker = client.ProjectDataForRuntime.classes.Values.Single(schema => schema.name == "Taker");
                 var ctx = client.RentDirectFunctionContext(NeoValueOwnership.Session);
@@ -728,7 +730,7 @@ namespace NeoCompose.Tests
                 }
                 finally { client.ReturnDirectFunctionContext(ctx, null); }
             }
-            using NeoClient reopened = NeoTestSaveStack.ClientFromSchema(Schema(), loadedSaveContent: serialized, assumeCurrentSchema: false);
+            using NeoClient reopened = Open(Schema(), serialized);
             var item = reopened.save.Get<NeoMemberClass>("SavedTaker").Get<NeoMemberObject>("Item");
             if (outArgument)
                 Assert.That(NeoGeneratedTypesSupport.ReadObjectValue(item), Is.EqualTo(7));
@@ -782,7 +784,24 @@ namespace NeoCompose.Tests
         {
             Assert.That(Directory.Exists(Path.Combine(PackageRoot, "P127TypesParity/Generated")), Is.True, "Vendor the compiled types generated artifact.");
             ProjectData data = NeoTestExport.Read(File.ReadAllText(Path.Combine(PackageRoot, "p127-types-parity-export.json")));
-            return NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
+            return Open(data);
+        }
+
+        // A constructor argument's stored strings resolve at load, when its instance replays.
+        private static NeoClient Open(ProjectData data, string? serialized = null) =>
+            NeoTestSaveStack.ClientFromSchema(data, loadedSaveContent: serialized, assumeCurrentSchema: false,
+                localization: NeoLocalization.LoadMain(data.localization, new LocaleSource()));
+
+        private sealed class LocaleSource : INeoLocalizationLocaleFileSource
+        {
+            public bool TryLoadResourcesLocale(ProjectLocalizationExport localization, string locale, out ProjectLocalizationLocaleFile? file)
+            {
+                file = JsonConvert.DeserializeObject<ProjectLocalizationLocaleFile>(File.ReadAllText(Path.Combine(PackageRoot, "p127-types-parity-export.locale.json")));
+                return true;
+            }
+
+            public Task<ProjectLocalizationLocaleFile?> LoadStreamingAssetsLocaleAsync(ProjectLocalizationExport localization, string locale, string streamingAssetsRelativePath)
+                => Task.FromResult<ProjectLocalizationLocaleFile?>(null);
         }
 
         private static JObject Fixture() =>

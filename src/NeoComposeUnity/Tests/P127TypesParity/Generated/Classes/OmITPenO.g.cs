@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmITPenO : NeoGeneratedClassValue, IReadOnlyOmITPenO
     {
         internal OmITPenO(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3fb306f5-07c0-4940-924f-b2c0d44d70a4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "95a1caff-a757-4c4b-8aa5-c35c4987de56", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "3fb306f5-07c0-4940-924f-b2c0d44d70a4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "00c54614-72f8-4e86-91ac-98c3391e8309", O)
+                "95a1caff-a757-4c4b-8aa5-c35c4987de56",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "d7c8ab19-e42d-4a6e-906c-fde1144f4ef5", O)
             );
         }
 

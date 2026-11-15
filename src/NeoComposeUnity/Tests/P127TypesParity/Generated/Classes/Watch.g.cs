@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class Watch<T> : NeoGeneratedClassValue, IReadOnlyWatch<T>
     {
         internal Watch(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b3f1152d-1e97-4d8c-8d91-ba4953e4abe0", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "aacacc57-5d0b-4b25-9b4a-1205f3fc9e00", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -38,7 +38,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b3f1152d-1e97-4d8c-8d91-ba4953e4abe0" => new Watch<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "aacacc57-5d0b-4b25-9b4a-1205f3fc9e00" => new Watch<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Watch' without a concrete client type id."),
                 };
             });
@@ -51,7 +51,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "b3f1152d-1e97-4d8c-8d91-ba4953e4abe0" => new Watch<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "aacacc57-5d0b-4b25-9b4a-1205f3fc9e00" => new Watch<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Watch' without a concrete client type id."),
                 };
             });
