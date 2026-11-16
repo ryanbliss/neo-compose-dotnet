@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScSrc : NeoGeneratedClassValue, IReadOnlyScSrc
     {
         internal ScSrc(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "41809f8f-07d7-455e-bdc6-0d4b94880c3b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "8e4dbd46-7cdb-486c-9054-2f129f890888", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -39,14 +39,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d33cb368-2510-4547-bb7e-4f1a3b55c26f", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "6dbfeb95-0378-45fd-8034-8a9a750a8889", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.OmW2.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "d33cb368-2510-4547-bb7e-4f1a3b55c26f", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "6dbfeb95-0378-45fd-8034-8a9a750a8889", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -59,7 +59,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "41809f8f-07d7-455e-bdc6-0d4b94880c3b");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "8e4dbd46-7cdb-486c-9054-2f129f890888");
         }
 
         internal static ScSrc Create(NeoClient client, NeoMemberClass node)

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScHf : NeoGeneratedClassValue, IReadOnlyScHf
     {
         internal ScHf(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b812811c-f33f-49ce-9ba3-3237c29af090", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "6e3ba3ed-8885-4d24-bc3e-9b5d2e54c395", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyOmNg C()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2550e513-221c-47ed-9dce-b3f82e17e6b5");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5621f38b-31db-4bfa-b079-eddb761929f7");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => OmNg.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => OmNg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OmNg.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static IReadOnlyOmNg P()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d802d8e5-bca5-4d5a-b949-d4718daee3bd");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "fe0fcaa4-d110-4cec-b954-1f1485c383f3");
             var result = node.InvokeStatic();
             return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => OmNg.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => OmNg.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => OmNg.CreateDetached(factoryClient, factoryValue, factorySaved));
         }
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "b812811c-f33f-49ce-9ba3-3237c29af090");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "6e3ba3ed-8885-4d24-bc3e-9b5d2e54c395");
         }
 
         internal static ScHf Create(NeoClient client, NeoMemberClass node)

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class HeldTest : NeoGeneratedClassValue, IReadOnlyHeldTest
     {
         internal HeldTest(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "dd9ea625-088d-41e9-a331-de57864ba28a", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0683e042-1af2-4647-8b4c-413fe9e33024", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static int AddPet<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "05c7f414-795f-4dd4-b58f-81d0b70c61b8");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d11c69ad-715e-47b7-9784-7470b56462c9");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return Convert.ToInt32(result);
         }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static bool IsCatList<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b57f7748-9d9a-461b-840e-fbed96d7bd61");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "6e3f4185-0c18-491c-8330-3a7285f32d45");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -53,7 +53,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static bool IsIntList<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2ca40ae0-1d10-42db-be6e-fbed69b095cc");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "95ff649c-3654-455a-b96d-ed44c8ab32ce");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -61,7 +61,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static bool IsPetDictionary<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "62207094-6b7e-4488-9de8-83007cb9dc5d");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "b30d6a0f-322f-452e-8e0c-6c46c5ff13ed");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -69,7 +69,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static bool IsPetList<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1e9a6d28-b675-43b4-b59d-f0fbcf046690");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "9a7b0c91-04c0-4adf-b7e1-bc0f75a2bb4b");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (bool)result!;
         }
@@ -77,7 +77,7 @@ namespace NeoCompose.Tests.P127TypesParity
         public static string Name<T>(T x)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "cc7f1129-2322-432b-bfbd-1101d8b97557");
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1cf245c7-29af-4b5e-9b3d-181317778508");
             var result = node.InvokeGenericStatic(new object?[] { x }, client.TypeArguments.Table<System.ValueTuple<T>>());
             return (string)result!;
         }
@@ -90,7 +90,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "dd9ea625-088d-41e9-a331-de57864ba28a");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "0683e042-1af2-4647-8b4c-413fe9e33024");
         }
 
         internal static HeldTest Create(NeoClient client, NeoMemberClass node)

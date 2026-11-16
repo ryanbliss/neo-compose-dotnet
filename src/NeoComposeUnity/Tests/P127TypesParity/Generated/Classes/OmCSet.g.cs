@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmCSet : NeoGeneratedClassValue, IReadOnlyOmCSet
     {
         internal OmCSet(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bd1633a3-af66-461a-9ac1-fba8c6604634", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "70dae6c7-5e8a-4923-ad6b-c5ab9c329fee", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public OmCSet(object o, IEnumerable<object>? S = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "bd1633a3-af66-461a-9ac1-fba8c6604634", "5ed109d0-8b04-5a64-88d1-3af6e781b124", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("o", o) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("S", "75379684-58d0-4d35-bcd1-248115e3fdf7", S) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "70dae6c7-5e8a-4923-ad6b-c5ab9c329fee", "28088bd6-d6aa-53ba-8256-267bf11b6c3a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("o", o) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("S", "300e3175-1b79-465c-b635-cd47b9eb9b14", S) }), false, NeoValueOwnership.Session)
         {
         }
 

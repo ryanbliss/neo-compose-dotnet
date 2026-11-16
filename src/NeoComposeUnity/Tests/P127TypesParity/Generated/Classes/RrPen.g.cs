@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class RrPen<T> : NeoGeneratedClassValue, IReadOnlyRrPen<T>
     {
         internal RrPen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bc54f3b7-e6f7-49d8-b8ef-b3bacfa0333e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "898ed4e6-8f00-4868-b407-b776fc6c0664", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bc54f3b7-e6f7-49d8-b8ef-b3bacfa0333e" => new RrPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "898ed4e6-8f00-4868-b407-b776fc6c0664" => new RrPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrPen' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "bc54f3b7-e6f7-49d8-b8ef-b3bacfa0333e" => new RrPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "898ed4e6-8f00-4868-b407-b776fc6c0664" => new RrPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrPen' without a concrete client type id."),
                 };
             });

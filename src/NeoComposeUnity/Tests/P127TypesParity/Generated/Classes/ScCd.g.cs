@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ScCd<T> : NeoGeneratedClassValue, IReadOnlyScCd<T>
     {
         internal ScCd(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "cbced4fb-ec23-4920-8138-052d3e5fe8a7", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "d95ef483-3c5e-42fa-9109-87b4601770ed", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "239c0cdd-eab4-4e2e-b597-5f34a7b79336", NeoValueOwnership.Session, client.TypeArguments.Of<ScCd<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "a423a2a5-99c9-4185-b005-6384f15aa1a3", NeoValueOwnership.Session, client.TypeArguments.Of<ScCd<T>>());
                 var child = binding.GetNodeOrEmpty<NeoMemberDictionaryWritable>();
                 return new NeoDictionary<OmNg>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberDictionaryWritable>(new Dictionary<string, string>()), (client, child) => global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
@@ -45,7 +45,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cbced4fb-ec23-4920-8138-052d3e5fe8a7" => new ScCd<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d95ef483-3c5e-42fa-9109-87b4601770ed" => new ScCd<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScCd' without a concrete client type id."),
                 };
             });
@@ -58,7 +58,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "cbced4fb-ec23-4920-8138-052d3e5fe8a7" => new ScCd<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d95ef483-3c5e-42fa-9109-87b4601770ed" => new ScCd<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'ScCd' without a concrete client type id."),
                 };
             });

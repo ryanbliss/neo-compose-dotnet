@@ -23,7 +23,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmSv<T> : NeoGeneratedClassValue, IReadOnlyOmSv<T>
     {
         internal OmSv(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "febb0749-c8cd-40f7-bd57-ccfd507938da", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "315e2320-c000-4534-bd2c-c8e453fbb902", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -32,14 +32,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7a053716-b5ae-423b-a4bb-256c06462b49", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "26a66743-2fce-4424-af99-ab885fdbb69d", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
                 var child = binding.GetRequiredNode<NeoMemberInt>();
                 return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'I' has no value.");
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "7a053716-b5ae-423b-a4bb-256c06462b49", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "26a66743-2fce-4424-af99-ab885fdbb69d", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
                 binding.SetValue(NeoGeneratedTypesSupport.Value(value));
             }
         }
@@ -49,14 +49,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ba56f7fc-342e-4182-8723-9ce785af5ca0", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "054ceac9-5ae0-416a-a07a-5fc964625077", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.OmNg.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "ba56f7fc-342e-4182-8723-9ce785af5ca0", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "054ceac9-5ae0-416a-a07a-5fc964625077", NeoValueOwnership.Save, client.TypeArguments.Of<OmSv<T>>());
                 binding.BindValue(value);
             }
         }
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "febb0749-c8cd-40f7-bd57-ccfd507938da" => new OmSv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "315e2320-c000-4534-bd2c-c8e453fbb902" => new OmSv<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmSv' without a concrete client type id."),
                 };
             });
@@ -81,7 +81,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "febb0749-c8cd-40f7-bd57-ccfd507938da" => new OmSv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "315e2320-c000-4534-bd2c-c8e453fbb902" => new OmSv<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmSv' without a concrete client type id."),
                 };
             });
