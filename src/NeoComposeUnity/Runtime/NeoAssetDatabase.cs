@@ -52,6 +52,7 @@ namespace NeoCompose.Runtime
         /// Loads the default database and prepares its audio clips before gameplay.
         /// Enable background loading in audio import settings to keep decoding off
         /// the main thread. Clips with preloadAudioData disabled remain on demand.
+        /// In edit mode the audio data load is requested but not awaited.
         /// </summary>
         public static async Awaitable<NeoAssetDatabase?> LoadDefaultAsync(CancellationToken cancellationToken = default)
         {
@@ -66,10 +67,12 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Loads synchronized audio references and waits for preloaded background
-        /// audio data. Resources assets load asynchronously; references outside
-        /// Resources resolve synchronously. Unity's audio import settings control
-        /// whether decoding runs in the background.
+        /// Loads synchronized audio references and, in play mode, waits for preloaded
+        /// background audio data. Edit mode requests the audio data load without
+        /// waiting, because editor tooling never plays it and a background load can
+        /// stay pending until play mode runs. Resources assets load asynchronously;
+        /// references outside Resources resolve synchronously. Unity's audio import
+        /// settings control whether decoding runs in the background.
         /// </summary>
         public async Awaitable PreloadAudioAsync(CancellationToken cancellationToken = default)
         {
@@ -529,12 +532,13 @@ namespace NeoCompose.Runtime
             {
                 if (loaded.loadState == AudioDataLoadState.Unloaded)
                     loaded.LoadAudioData();
+                // Editor tooling never plays audio, and in edit mode a background
+                // load can stay Loading until play mode runs, so only play mode waits.
+                if (!Application.isPlaying)
+                    return;
                 while (loaded.loadState == AudioDataLoadState.Loading)
                 {
-                    if (Application.isPlaying)
-                        await Awaitable.NextFrameAsync(cancellationToken);
-                    else
-                        await System.Threading.Tasks.Task.Yield();
+                    await Awaitable.NextFrameAsync(cancellationToken);
                     cancellationToken.ThrowIfCancellationRequested();
                 }
             }
