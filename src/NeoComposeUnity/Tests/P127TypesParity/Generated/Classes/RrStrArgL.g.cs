@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class RrStrArgL : NeoGeneratedClassValue, IReadOnlyRrStrArgL
     {
         internal RrStrArgL(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "999aaea5-766d-4c2f-8e10-84cad8629125", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "82c3dd83-9cc3-45f3-92ee-c59d9f280bf3", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -37,7 +37,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public RrStrArgL(IReadOnlyList<string> v, IEnumerable<string>? Value = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "999aaea5-766d-4c2f-8e10-84cad8629125", "c36c1cae-65af-5d2c-a9b7-38c8b928ae5b", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "b2ee4ec3-a830-432a-820e-91814666d36a", Value) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "82c3dd83-9cc3-45f3-92ee-c59d9f280bf3", "57898b1c-69ab-55fa-bef7-7d1a2ac9eb13", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "5770edb8-1cfd-4398-8b0b-19f66d7a84dc", Value) }), false, NeoValueOwnership.Session)
         {
         }
 

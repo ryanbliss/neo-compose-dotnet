@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G36Holder : NeoGeneratedClassValue, IReadOnlyG36Holder
     {
         internal G36Holder(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "bf60dfc5-e8cd-48b0-bbbe-c0001594b858", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b21c80cc-ccd7-4d40-97a0-cf036bb0cd5d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -41,14 +41,14 @@ namespace NeoCompose.Tests.P127TypesParity
             get
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "caa1ce93-134d-420c-a827-803338e78291", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1d9141bd-86af-4a65-a332-6d3bbc34bd87", NeoValueOwnership.Session);
                 var child = binding.GetRequiredNode<NeoMemberClassWritable>();
                 return global::NeoCompose.Tests.P127TypesParity.G36Holder.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "caa1ce93-134d-420c-a827-803338e78291", NeoValueOwnership.Session);
+                var binding = NeoGeneratedTypesSupport.StaticBinding(client, "1d9141bd-86af-4a65-a332-6d3bbc34bd87", NeoValueOwnership.Session);
                 binding.BindValue(value);
             }
         }
@@ -63,8 +63,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "bf60dfc5-e8cd-48b0-bbbe-c0001594b858",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Manager", "aa6f3e7c-e409-41f5-9e1e-569f67610992", Manager)
+                "b21c80cc-ccd7-4d40-97a0-cf036bb0cd5d",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Manager", "4a08b966-8f00-462d-96e9-03c86a12aa85", Manager)
             );
         }
 

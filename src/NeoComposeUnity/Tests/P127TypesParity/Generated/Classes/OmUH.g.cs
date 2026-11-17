@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmUH : NeoGeneratedClassValue, IReadOnlyOmUH
     {
         internal OmUH(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0865cfdb-4092-49ea-a3db-3fc42174115b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "b97fdfa2-3dd6-4a5b-a4f4-84e0ebca7384", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "0865cfdb-4092-49ea-a3db-3fc42174115b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "32ce5ce2-d8af-4577-967b-2e2c21c16712", Items)
+                "b97fdfa2-3dd6-4a5b-a4f4-84e0ebca7384",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "dbe009e8-ea63-4c19-a341-0c4ab4fefed6", Items)
             );
         }
 

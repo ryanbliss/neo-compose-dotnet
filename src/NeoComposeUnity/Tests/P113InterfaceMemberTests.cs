@@ -15,7 +15,7 @@ namespace NeoCompose.Tests
     /// <summary>
     /// P113 interface members in the SDK: which rows an interface slot admits,
     /// the slot arguments a determined row reads, every write path's
-    /// closed-or-determined check, and the generated interface read and write
+    /// implements-and-stamped check, and the generated interface read and write
     /// helpers. <c>IContainer&lt;T&gt;</c> is implemented by a closed
     /// <c>Box</c>, an <c>OpenBox&lt;U&gt;</c> it determines, a
     /// <c>Keyed&lt;K, V&gt;</c> it can't determine, and not by <c>Plain</c>.
@@ -89,29 +89,32 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(NeoInterfaceDeterminationKind.Closed, implementers.Determination(BoxId, ContainerId).kind);
             NeoInterfaceDetermination open = implementers.Determination(OpenBoxId, ContainerId);
-            Assert.IsTrue(open.Admits);
+            Assert.IsTrue(open.Determines);
             Assert.AreEqual(OpenBoxU, open.paramByPosition![ContainerT]);
-            Assert.IsFalse(implementers.Determination(KeyedId, ContainerId).Admits);
+            Assert.IsFalse(implementers.Determination(KeyedId, ContainerId).Determines);
             Assert.AreEqual(
                 NeoInterfaceDeterminationKind.NotImplemented,
                 implementers.Determination(PlainId, ContainerId).kind);
             CollectionAssert.AreEqual(
-                new[] { BoxId, OpenBoxId, IntBoxId, CultureBoxId },
+                new[] { BoxId, OpenBoxId, KeyedId, IntBoxId, CultureBoxId },
                 implementers.Implementers(ContainerId));
         }
 
         [Test]
-        public void UndeterminedRowMessage_NamesTheParameterTheInterfaceLeavesOpen()
+        public void RowRefusal_RefusesAnUnimplementedClassOrAnUnstampedOpenRow()
         {
-            var client = LoadClient();
+            var implementers = LoadClient().InterfaceImplementers;
+            var unstamped = new ObjectMemberValue { id = "row" };
+            var stamped = new ObjectMemberValue { id = "row", genericBindings = KeyedStamp() };
 
             Assert.AreEqual(
-                "Holder.Slot can't hold a Keyed, because IContainer doesn't determine Keyed's parameter K.",
-                client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", KeyedId, ContainerId));
+                "Value \"row\" is a binding node and stores no stamp.",
+                implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, KeyedId, ContainerId));
+            Assert.IsNull(implementers.RowRefusal(() => "Holder.Slot", "row", stamped, KeyedId, ContainerId));
             Assert.AreEqual(
                 "Holder.Slot can't hold a Plain, because Plain doesn't implement IContainer.",
-                client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", PlainId, ContainerId));
-            Assert.IsNull(client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", BoxId, ContainerId));
+                implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, PlainId, ContainerId));
+            Assert.IsNull(implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, BoxId, ContainerId));
         }
 
         [Test]
@@ -128,19 +131,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ClassSlotWrite_RefusesAnUndeterminedRow()
+        public void ClassSlotWrite_HoldsAStampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "keyed-row", KeyedId);
+            AddRow(client, "stamped-row", KeyedId, KeyedStamp());
             var holder = client.save;
 
             var error = Assert.Throws<InvalidOperationException>(() =>
                 holder.SetSerializedValue("Slot", Reference("keyed-row")))!;
 
-            Assert.AreEqual(
-                "Holder.Slot can't hold a Keyed, because IContainer doesn't determine Keyed's parameter K.",
-                error.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", error.Message);
             Assert.IsFalse(holder.TryGet<NeoMemberClass>("Slot", out _));
+            holder.SetSerializedValue("Slot", Reference("stamped-row"));
+            Assert.AreEqual(KeyedId, holder.Get<NeoMemberClass>("Slot").ClassId);
         }
 
         [Test]
@@ -239,23 +243,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ListWrites_RefuseAnUndeterminedRow()
+        public void ListWrites_RefuseAnUnstampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "box-row", BoxId);
             AddRow(client, "keyed-row", KeyedId);
+            AddRow(client, "stamped-row", KeyedId, KeyedStamp());
             var list = client.save.GetOrCreateCollection<NeoMemberListWritable>("Containers");
 
             var add = Assert.Throws<InvalidOperationException>(() => list.AddSerialized(Reference("keyed-row")))!;
-            StringAssert.StartsWith("Containers can't hold a Keyed", add.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", add.Message);
             list.AddSerialized(Reference("box-row"));
             var set = Assert.Throws<InvalidOperationException>(() => list.SetSerialized(0, Reference("keyed-row")))!;
-            StringAssert.StartsWith("Containers can't hold a Keyed", set.Message);
-            Assert.AreEqual(1, list.Count);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", set.Message);
+            list.AddSerialized(Reference("stamped-row"));
+            Assert.AreEqual(2, list.Count);
         }
 
         [Test]
-        public void DictionaryWrite_RefusesAnUndeterminedRow()
+        public void DictionaryWrite_RefusesAnUnstampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "keyed-row", KeyedId);
@@ -264,7 +270,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<InvalidOperationException>(() =>
                 dictionary.SetSerialized("a", Reference("keyed-row")))!;
 
-            StringAssert.StartsWith("ByName can't hold a Keyed", error.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", error.Message);
         }
 
         [Test]
@@ -397,7 +403,11 @@ namespace NeoCompose.Tests
         private static NeoValueWritePayload Reference(string valueId) =>
             NeoValueWritePayload.FromValueReference(valueId, null);
 
-        private static void AddRow(NeoClient client, string id, string classId)
+        private static void AddRow(
+            NeoClient client,
+            string id,
+            string classId,
+            Dictionary<string, TypeBinding>? genericBindings = null)
         {
             client.SetSaveValue(new ObjectMemberValue
             {
@@ -406,8 +416,16 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
                 value = new Dictionary<string, string>(),
+                genericBindings = genericBindings,
             });
         }
+
+        /// <summary>The stamp a <c>Keyed&lt;int, string&gt;</c> row stores.</summary>
+        private static Dictionary<string, TypeBinding> KeyedStamp() => new()
+        {
+            [KeyedK] = TestTypeBindings.Of(MemberKind.Int),
+            [KeyedV] = StringArgument,
+        };
 
         private static ProjectData BuildProjectData()
         {

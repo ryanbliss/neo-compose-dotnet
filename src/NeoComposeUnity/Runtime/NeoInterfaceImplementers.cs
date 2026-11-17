@@ -66,7 +66,11 @@ namespace NeoCompose.Runtime
             get;
         }
 
-        internal bool Admits => kind is NeoInterfaceDeterminationKind.Closed
+        /// <summary>
+        /// Whether a row reads its params from the slot. A row of a class the
+        /// interface leaves open reads them from its own stamp (#2556).
+        /// </summary>
+        internal bool Determines => kind is NeoInterfaceDeterminationKind.Closed
             or NeoInterfaceDeterminationKind.Determined;
     }
 
@@ -202,8 +206,8 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Concrete classes that implement <paramref name="interfaceId"/> and
-        /// that it closes or determines, in document order.
+        /// Concrete classes that implement <paramref name="interfaceId"/>, in
+        /// document order.
         /// </summary>
         internal IReadOnlyList<string> Implementers(string interfaceId)
         {
@@ -246,23 +250,44 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P113 §3.3. Null when the interface closes or determines
-        /// <paramref name="rowClassId"/>, else why <paramref name="slotLabel"/>
-        /// can't hold its row.
+        /// Null when <paramref name="slotLabel"/> can hold the row
+        /// <paramref name="rowId"/> of <paramref name="rowClassId"/>, else why
+        /// not. The label is built only for a refusal.
         /// </summary>
-        internal string? UndeterminedRowMessage(string slotLabel, string rowClassId, string interfaceId)
+        internal string? RowRefusal(System.Func<string> slotLabel, string rowId, MemberValue row, string rowClassId, string interfaceId)
         {
-            NeoInterfaceDetermination determination = Determination(rowClassId, interfaceId);
-            if (determination.Admits)
-                return null;
-            string rowName = ClassName(rowClassId);
-            return $"{slotLabel} can't hold a {rowName}, because {Reason(determination, rowName, interfaceId)}.";
+            if (!TryGetConstruction(rowClassId, interfaceId, out _))
+                return NotImplementedRefusal(slotLabel(), rowClassId, interfaceId);
+            return UnstampedRefusal(rowId, row, rowClassId, interfaceId);
         }
 
         /// <summary>
+        /// A row of a class the interface leaves open reads its params from its
+        /// own stamp, so it must store one (#2556).
+        /// </summary>
+        internal string? UnstampedRefusal(string rowId, MemberValue row, string rowClassId, string interfaceId)
+        {
+            if (row.genericBindings is not null)
+                return null;
+            NeoInterfaceDetermination determination = Determination(rowClassId, interfaceId);
+            if (determination.kind is NeoInterfaceDeterminationKind.NotImplemented || determination.Determines)
+                return null;
+            return $"Value \"{rowId}\" is a binding node and stores no stamp.";
+        }
+
+        private string NotImplementedRefusal(string slotLabel, string rowClassId, string interfaceId)
+        {
+            string rowName = ClassName(rowClassId);
+            return $"{slotLabel} can't hold a {rowName}, because {NotImplementedClause(rowName, interfaceId)}.";
+        }
+
+        private string NotImplementedClause(string rowName, string interfaceId) =>
+            $"{rowName} doesn't implement {InterfaceName(interfaceId)}";
+
+        /// <summary>
         /// P113 §3.2 rule 1. Null when a row of <paramref name="rowClassId"/>
-        /// fits <paramref name="slot"/>: its interface closes or determines the
-        /// class, and the class implements it with the slot's arguments. An
+        /// fits <paramref name="slot"/>: its class implements the slot's
+        /// interface with the slot's arguments. An
         /// argument the row's class fills with its own param comes from the
         /// slot, and one <paramref name="contextEnv"/> leaves open at any depth
         /// fits every row. Mirrors the server's <c>interfaceSlotRefusal</c>.
@@ -277,11 +302,9 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> contextEnv)
         {
             string interfaceId = slot.DeclaredInterfaceId!;
-            if (!Determination(rowClassId, interfaceId).Admits)
-                return UndeterminedRowMessage(SlotLabel(ownerName, key), rowClassId, interfaceId);
-            if (slot.interfaceArguments is not { Count: > 0 } slotArguments)
-                return null;
             if (!TryGetConstruction(rowClassId, interfaceId, out var construction))
+                return NotImplementedRefusal(SlotLabel(ownerName, key), rowClassId, interfaceId);
+            if (slot.interfaceArguments is not { Count: > 0 } slotArguments)
                 return null;
             foreach (var pair in slotArguments)
             {
@@ -343,11 +366,8 @@ namespace NeoCompose.Runtime
             string rowClassId,
             IReadOnlyDictionary<string, TypeInfo>? rowArguments)
         {
-            NeoInterfaceDetermination determination = Determination(rowClassId, target.interfaceId);
-            if (!determination.Admits)
-                return Reason(determination, ClassName(rowClassId), target.interfaceId);
             if (!TryGetConstruction(rowClassId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
-                return null;
+                return NotImplementedClause(ClassName(rowClassId), target.interfaceId);
             if (ConstructionMatches(construction, target, rowArguments))
                 return null;
             string implemented = rowArguments is null
@@ -502,42 +522,6 @@ namespace NeoCompose.Runtime
                 ? schemaClass.name
                 : classId;
 
-        private string Reason(NeoInterfaceDetermination determination, string rowName, string interfaceId)
-        {
-            string interfaceName = InterfaceName(interfaceId);
-            switch (determination.kind)
-            {
-                case NeoInterfaceDeterminationKind.NotImplemented:
-                    return $"{rowName} doesn't implement {interfaceName}";
-                case NeoInterfaceDeterminationKind.NarrowedConstraint:
-                    return $"{rowName}'s {ConstraintClause(determination.param!)}, and {interfaceName}'s {ConstraintClause(determination.position!)}";
-                default:
-                    return $"{interfaceName} doesn't determine {rowName}'s parameter {determination.param!.name}";
-            }
-        }
-
-        /// <summary>"T extends Item &amp; IComparable", or "T is unconstrained".</summary>
-        private string ConstraintClause(GenericParamDeclaration param)
-        {
-            if (param.constraints is not { Count: > 0 } constraints)
-                return $"{param.name} is unconstrained";
-            var names = new string[constraints.Count];
-            for (int index = 0; index < constraints.Count; index++)
-            {
-                GenericParamConstraint constraint = constraints[index];
-                string suffix = constraint.nullable == true ? "?" : "";
-                names[index] = constraint.kind switch
-                {
-                    NeoGenericParamConstraintKind.AnyEnum => "Enum",
-                    NeoGenericParamConstraintKind.Enum =>
-                        data.enums.TryGetValue(constraint.enumId!, out Enum? declared) ? declared.name : constraint.enumId!,
-                    NeoGenericParamConstraintKind.Interface => InterfaceName(constraint.interfaceId!) + suffix,
-                    _ => ClassName(constraint.classId!) + suffix,
-                };
-            }
-            return $"{param.name} extends {string.Join(" & ", names)}";
-        }
-
         private Dictionary<string, List<string>> BuildImplementers()
         {
             var byInterface = new Dictionary<string, List<string>>();
@@ -547,8 +531,6 @@ namespace NeoCompose.Runtime
                     continue;
                 foreach (string interfaceId in Constructions(schemaClass.id).Keys)
                 {
-                    if (!Determination(schemaClass.id, interfaceId).Admits)
-                        continue;
                     if (!byInterface.TryGetValue(interfaceId, out List<string>? ids))
                     {
                         ids = new List<string>();

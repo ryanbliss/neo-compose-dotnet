@@ -2607,7 +2607,9 @@ namespace NeoCompose.Runtime
                 return;
             if (!constructed)
             {
-                if (InterfaceImplementers.SlotRefusal(classSlot, ownerClassName, key, rowClassId, environment) is { } refusal)
+                string? refusal = InterfaceImplementers.UnstampedRefusal(payload.valueId!, row, rowClassId, classSlot.DeclaredInterfaceId!)
+                    ?? InterfaceImplementers.SlotRefusal(classSlot, ownerClassName, key, rowClassId, environment);
+                if (refusal is not null)
                     throw new System.InvalidOperationException(refusal);
                 return;
             }
@@ -2620,17 +2622,17 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The class of <paramref name="valueId"/>'s row when an
-        /// <paramref name="interfaceId"/> slot can't hold it, and null when it
-        /// can. Callers build the slot's label only for a refusal.
+        /// Why an <paramref name="interfaceId"/> slot can't hold
+        /// <paramref name="valueId"/>'s row, or null when it can. The slot's
+        /// label is built only for a refusal.
         /// </summary>
-        internal string? InterfaceSlotRefusedClass(string interfaceId, string valueId)
+        internal string? InterfaceSlotRefusal(string interfaceId, string valueId, System.Func<string> slotLabel)
         {
             if (!TryGetValue(valueId, out ObjectMemberValue? row))
                 return null;
             if (NeoGeneratedTypesSupport.ResolveClassValueClassId(this, valueId, row) is not { } rowClassId)
                 return null;
-            return InterfaceImplementers.Determination(rowClassId, interfaceId).Admits ? null : rowClassId;
+            return InterfaceImplementers.RowRefusal(slotLabel, valueId, row, rowClassId, interfaceId);
         }
 
         /// <summary>

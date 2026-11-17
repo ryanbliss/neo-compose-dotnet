@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G36Skill : NeoGeneratedClassValue, IReadOnlyG36Skill
     {
         internal G36Skill(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "b2bf7674-b0e6-4e95-b176-dede45a7376c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "15626020-631d-409d-a93c-9710381ce241", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "b2bf7674-b0e6-4e95-b176-dede45a7376c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Perks", "176975b5-14d4-408d-b105-99d825945f01", Perks)
+                "15626020-631d-409d-a93c-9710381ce241",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Perks", "0932891d-7503-4932-8720-15e9a8779185", Perks)
             );
         }
 

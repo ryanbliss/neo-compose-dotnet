@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class RrBy<T> : NeoGeneratedClassValue, IReadOnlyRrBy<T>
     {
         internal RrBy(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ce35d802-16d2-41f2-a078-cdc45d67984d", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fc13813f-7db0-4801-8359-2a99b4bea432", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ce35d802-16d2-41f2-a078-cdc45d67984d" => new RrBy<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "fc13813f-7db0-4801-8359-2a99b4bea432" => new RrBy<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrBy' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "ce35d802-16d2-41f2-a078-cdc45d67984d" => new RrBy<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "fc13813f-7db0-4801-8359-2a99b4bea432" => new RrBy<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrBy' without a concrete client type id."),
                 };
             });

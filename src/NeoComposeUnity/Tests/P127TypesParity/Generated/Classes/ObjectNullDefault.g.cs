@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class ObjectNullDefault : NeoGeneratedClassValue, IReadOnlyObjectNullDefault
     {
         internal ObjectNullDefault(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3c14a101-896d-4e4b-8b17-473cb91ab5c3", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "333fc155-6427-4f29-9bab-04c71366b48a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "3c14a101-896d-4e4b-8b17-473cb91ab5c3",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "94725534-3f1c-47ba-a5c6-f0cf11cd114e", O)
+                "333fc155-6427-4f29-9bab-04c71366b48a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("O", "991dae1c-b684-4024-9e84-0f072de7de2a", O)
             );
         }
 

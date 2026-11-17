@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85abd3eb-39b7-4afd-abf6-bdb9fc698222" => new RrCage<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "f7da2ac9-a07c-40dc-b238-5d5fec930971" => new RrCage<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrCage' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "85abd3eb-39b7-4afd-abf6-bdb9fc698222" => new RrCage<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "f7da2ac9-a07c-40dc-b238-5d5fec930971" => new RrCage<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'RrCage' without a concrete client type id."),
                 };
             });

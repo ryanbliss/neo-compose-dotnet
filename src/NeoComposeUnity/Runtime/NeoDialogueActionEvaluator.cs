@@ -4333,8 +4333,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// P113 §3.3. A write into an interface slot holds an open row only
-        /// when the slot's interface determines its parameters. The slot is
+        /// P113 §3.3. A write into an interface slot holds a row whose class
+        /// implements the interface, and a row of a class the interface leaves
+        /// open stores its own stamp (#2556). The slot is
         /// <paramref name="key"/> on <paramref name="ownerRowId"/>'s row, or
         /// the entries of the collection row <paramref name="ownerRowId"/>
         /// when <paramref name="key"/> is null.
@@ -4369,12 +4370,8 @@ namespace NeoCompose.Runtime
             string ownerRowId,
             string? key)
         {
-            if (client.InterfaceSlotRefusedClass(interfaceId, valueId) is not { } rowClassId)
-                return;
-            throw new NSGetterRuntimeError(client.InterfaceImplementers.UndeterminedRowMessage(
-                InterfaceSlotLabel(client, ownerRowId, key),
-                rowClassId,
-                interfaceId)!);
+            if (client.InterfaceSlotRefusal(interfaceId, valueId, () => InterfaceSlotLabel(client, ownerRowId, key)) is { } refusal)
+                throw new NSGetterRuntimeError(refusal);
         }
 
         private static string InterfaceSlotLabel(NeoClient client, string ownerRowId, string? key)

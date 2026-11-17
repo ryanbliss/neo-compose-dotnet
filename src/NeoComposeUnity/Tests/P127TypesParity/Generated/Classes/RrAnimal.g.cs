@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class RrAnimal : NeoGeneratedClassValue, IReadOnlyRrAnimal
     {
         internal RrAnimal(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e601f7ee-e6c2-4682-808b-b4f641945da4", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "fc2a5fd6-d6bc-4399-9a89-fee0e89dc895", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "e601f7ee-e6c2-4682-808b-b4f641945da4",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Legs", "2199de20-2f62-4e54-9afb-ff360eee55be", Legs)
+                "fc2a5fd6-d6bc-4399-9a89-fee0e89dc895",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Legs", "cda11e40-631d-4924-ac98-add3e9814569", Legs)
             );
         }
 

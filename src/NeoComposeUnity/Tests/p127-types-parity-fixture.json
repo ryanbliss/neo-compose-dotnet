@@ -287,6 +287,12 @@
     "G36PerkData<float> G36_SECOND = new { Marker = 2, Data = 0.1, Skill = Reference(G36_SKILL) };",
     "G36PerkData<List<int>> G36_NUMBERS = new { Data = [1, 2] };",
     "G36Skill G36_SKILL = new { Perks = [G36_FIRST, G36_SECOND, G36_NUMBERS] };",
+    "class I56Pen<T> { public T Value; }",
+    "interface I56A { }",
+    "class I56Bx<T> : I56A { public T V; }",
+    "class I56Bg<T> : I56A { public List<T> Xs = []; }",
+    "class I56H<U> { public I56A S = new I56Bg<U>(); }",
+    "class I56Store { public static I56Pen<I56A> A = new I56Pen<I56A> { Value = new I56Bx<int> { V = 3 } }; public static I56A S = new I56Bx<int> { V = 3 }; public static I56Bx<I56A> B = new I56Bx<I56A> { V = new I56Bx<int> { V = 3 } }; public static I56H<int> H = new I56H<int>(); }",
     "class Probe {",
     "  public static int CountPets(IEnumerable<CastPet> pets) { int n = 0; foreach (CastPet p in pets) { n += 1; } return n; }",
     "  public static int CountPetCursor(IEnumerator<CastPet> pets) { int n = 0; while (pets.MoveNext()) { n += 1; } return n; }",
@@ -1721,6 +1727,13 @@
     "  public static string RrStringsArgument() { var h = RrStrArgHold.CL; return $\"{h.Value[1]}{RrStrArgHold.CS.Value.Contains(\"d\")}{RrStrArgHold.CD.Value[\"k\"]}{RrStrArgHold.TL.Value[1]}{RrStrArgHold.TS.Value.Contains(\"i\")}{RrStrArgHold.TD.Value[\"k\"]}\"; }",
     "  public static string G36LocalDefault() { var s = G36Holder.Held.Manager.Skills[0]; var f = s.Perks[0]; var n = s.Perks[2]; return $\"{s.Perks.Count}{f is G36PerkData<float>}{(f is G36PerkData<float> g ? g.Data : -1f)}{f.Dependents.First().Marker}{f.Skill!.Perks.Count}{n is G36PerkData<List<int>>}{(n is G36PerkData<List<int>> m ? m.Data[1] : -1)}\"; }",
     "  public static string G36LocalDefaultNew() { var s = new G36Holder().Manager.Skills[0]; var f = s.Perks[1]; return $\"{f is G36PerkData<float>}{(f is G36PerkData<float> g ? g.Data : -1f)}{f.Skill!.Perks.Count}\"; }",
+    "  public static string I56_A7() { var p = new I56Pen<I56A> { Value = new I56Bx<int> { V = 3 } }; if (p.Value is I56Bx<int> a) { return $\"int{a.V}\"; } return \"none\"; }",
+    "  public static string I56_B4() { var p = new I56Pen<I56A> { Value = new I56Bx<int> { V = 3 } }; return $\"int{((I56Bx<int>)p.Value).V}\"; }",
+    "  public static string I56_B5() { var b = new I56Bx<I56A> { V = new I56Bx<int> { V = 3 } }; if (b.V is I56Bx<int> a) { return $\"int{a.V}\"; } return \"none\"; }",
+    "  public static string I56_A7S() { if (I56Store.A.Value is I56Bx<int> a) { return $\"int{a.V}\"; } return \"none\"; }",
+    "  public static string I56_B4S() { return $\"int{((I56Bx<int>)I56Store.S).V}\"; }",
+    "  public static string I56_B5S() { if (I56Store.B.V is I56Bx<int> a) { return $\"int{a.V}\"; } return \"none\"; }",
+    "  public static string I56_HS() { return $\"{I56Store.H.S is I56Bg<int>}{I56Store.H.S is I56Bg<string>}{new I56H<string>().S is I56Bg<string>}\"; }",
     "}"
   ],
   "returns": {
@@ -2535,7 +2548,14 @@
     "RrStringsStatic": "b2",
     "RrStringsArgument": "bTrueegTruej",
     "G36LocalDefault": "3True0.1523True2",
-    "G36LocalDefaultNew": "True0.13"
+    "G36LocalDefaultNew": "True0.13",
+    "I56_A7": "int3",
+    "I56_B4": "int3",
+    "I56_B5": "int3",
+    "I56_A7S": "int3",
+    "I56_B4S": "int3",
+    "I56_B5S": "int3",
+    "I56_HS": "TrueFalseTrue"
   },
   "refuses": {
     "CheckedAdd": "Arithmetic operation resulted in an overflow.",

@@ -31,7 +31,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class G36Perk : NeoGeneratedClassValue, IReadOnlyG36Perk
     {
         internal G36Perk(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "3c1aa8c5-4f93-4822-ab9a-f09d917d6d1e", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "5f2ef379-e1f7-48d6-a49b-8b940fe01189", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -50,10 +50,10 @@ namespace NeoCompose.Tests.P127TypesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "3c1aa8c5-4f93-4822-ab9a-f09d917d6d1e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Marker", "fca87861-876b-4fa2-a22a-da975a3a5666", Marker),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Dependents", "6adcc639-d969-46fb-b1d4-917c80a630fa", Dependents),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Skill", "5f21d46a-d6f0-4a01-83df-74f0343bb4f8", Skill)
+                "5f2ef379-e1f7-48d6-a49b-8b940fe01189",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Marker", "1391018c-8c69-484b-980e-3d294a6e40ac", Marker),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Dependents", "90a73aea-65fe-4c5e-aa2d-2673e6eae365", Dependents),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Skill", "4dd58ae0-edc1-48b1-856f-db53c726375e", Skill)
             );
         }
 

@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class OmPen<T> : NeoGeneratedClassValue, IReadOnlyOmPen<T>
     {
         internal OmPen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "31151c41-becd-459b-9bac-eeddb6d1879b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "0249a10d-d4b0-4d0a-a7ed-286b1ab18a82", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -36,7 +36,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "31151c41-becd-459b-9bac-eeddb6d1879b" => new OmPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "0249a10d-d4b0-4d0a-a7ed-286b1ab18a82" => new OmPen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmPen' without a concrete client type id."),
                 };
             });
@@ -49,7 +49,7 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "31151c41-becd-459b-9bac-eeddb6d1879b" => new OmPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "0249a10d-d4b0-4d0a-a7ed-286b1ab18a82" => new OmPen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'OmPen' without a concrete client type id."),
                 };
             });

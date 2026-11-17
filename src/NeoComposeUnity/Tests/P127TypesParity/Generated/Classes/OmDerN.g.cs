@@ -32,7 +32,7 @@ namespace NeoCompose.Tests.P127TypesParity
         }
 
         public OmDerN(int v, IEnumerable<int>? Xs = null, int? W = null)
-            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "7a0c2219-0ef3-46b1-9efa-92abbae80987", "63d42062-5c08-51e3-a87f-bd825ca133da", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "89b74ddf-bcff-4a4d-90be-488c80b4cdc1", Xs), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "adbcbdb2-2cde-4793-b989-aa3d4a016052", W) }), false, NeoValueOwnership.Session)
+            : this(TestProjectNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(TestProjectNeo.RequireInstance().Client, "9bc62b55-1792-49a0-8073-9c55194dcb12", "c42cf64e-4f10-5912-9924-f76358244bea", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("v", v) }, new global::NeoCompose.Runtime.NeoGeneratedConstructorValue[] { new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Xs", "99cd1a88-c81e-4a6a-b98b-de4920b7bad9", Xs), new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("W", "19be1b79-2412-4454-8e8f-ac290bfca69b", W) }), false, NeoValueOwnership.Session)
         {
         }
 

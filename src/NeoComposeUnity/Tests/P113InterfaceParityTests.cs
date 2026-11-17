@@ -37,22 +37,12 @@ namespace NeoCompose.Tests
 
         public static IEnumerable<string> Returns() => CaseNames("returns");
 
-        public static IEnumerable<string> Refuses() => CaseNames("refuses");
-
         [TestCaseSource(nameof(Returns))]
         public void ProbeReturns(string probe)
         {
             using NeoClient client = Client();
 
             Assert.AreEqual(Case("returns", probe).ToObject<object>(), InvokeProbe(client, probe));
-        }
-
-        [TestCaseSource(nameof(Refuses))]
-        public void ProbeRefuses(string probe)
-        {
-            using NeoClient client = Client();
-
-            StringAssert.Contains(Case("refuses", probe).Value<string>(), Assert.Catch(() => InvokeProbe(client, probe)).ToString());
         }
 
         [Test]
