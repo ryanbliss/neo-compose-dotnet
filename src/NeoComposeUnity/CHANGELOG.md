@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.81.14] - 2026-11-17
+
+- Fixed: edit-mode loads no longer hang waiting for audio data. `NeoAssetDatabase.LoadDefaultAsync`, `PreloadAudioAsync`, and `NeoLoader` still request preloaded audio data in edit mode, but only wait for it in play mode. In edit mode a background-loading clip whose data was unloaded can stay `Loading` until play mode runs, so editor tooling such as the post-synchronize processor could wait forever. No API changes.
+
 ## [0.81.13] - 2026-11-14
 
 - Allocate less when a character turns or starts and stops walking. Animation segment tracks keep their value listeners across re-resolutions instead of resubscribing, reuse their frame scratch list, and cache their failure-report key. A memoized enum getter result no longer allocates an evaluation context, a reference lookup reuses its last `NeoReference` while the target is unchanged, and `NSGetterResult.error` formats a failed getter's message only when read. In Neowyn, each turn or walk/idle switch allocates 205 KB instead of 266 KB. No API changes.

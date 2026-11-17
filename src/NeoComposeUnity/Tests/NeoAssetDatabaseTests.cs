@@ -73,7 +73,8 @@ MonoBehaviour:
                 await database.PreloadAudioAsync();
                 var loaded = database.TryGetAudioClip("legacy");
                 Assert.That(loaded, Is.Not.Null);
-                Assert.That(loaded!.loadState, Is.EqualTo(AudioDataLoadState.Loaded));
+                // Edit mode requests the audio data without waiting for it.
+                Assert.That(loaded!.loadState, Is.Not.EqualTo(AudioDataLoadState.Unloaded));
                 Assert.That(database.TryGetValueForAudioClip(loaded)!.fileId, Is.EqualTo("legacy"));
                 Assert.That(database.TryGetAudioClip("missing"), Is.Null);
                 AssetDatabase.TryGetGUIDAndLocalFileIdentifier(loaded, out string loadedGuid, out long loadedId);
@@ -131,6 +132,31 @@ MonoBehaviour:
                 Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Unloaded));
                 await database.PreloadAudioAsync();
                 Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Unloaded));
+            }
+            finally
+            {
+                Object.DestroyImmediate(database);
+            }
+        }
+
+        [Test]
+        public async Task EditModePreloadRequestsUnloadedBackgroundAudioWithoutWaiting()
+        {
+            string path = WriteClip("background");
+            var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            // An interactive editor can leave this clip Loading until play mode runs,
+            // so edit mode must return without waiting on the load it requested.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            try
+            {
+                database.SetFile("audio", "audio", path, "", "", "", null, "", "", audioClip: clip);
+                clip.UnloadAudioData();
+                Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Unloaded));
+                var preload = database.PreloadAudioAsync(timeout.Token);
+                Assert.That(clip.loadState, Is.EqualTo(AudioDataLoadState.Loading));
+                Assert.That(preload.GetAwaiter().IsCompleted, Is.True, "Edit mode must not wait for audio data.");
+                await preload;
             }
             finally
             {
