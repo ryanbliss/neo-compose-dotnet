@@ -1,5 +1,5 @@
 {
-  "$comment": "P113 \u00a710 cross-runtime interface member parity fixture. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result. The web half runs the cases through `neo test` (cli/src/commands/interface-members-parity.test.ts); the Unity half, P113InterfaceParityTests, runs them over a `neo export` of the same source, with the export's generated C# compiled beside it. Vendor this file verbatim.",
+  "$comment": "P113 \u00a710 cross-runtime interface member parity fixture. Each case calls a static Probe function of `source` on a fresh session; `returns` pins its result. The web half runs the cases through `neo test` (cli/src/commands/interface-members-parity.test.ts); the Unity half, P113InterfaceParityTests, runs them over a `neo export` of the same source, with the export's generated C# compiled beside it. Vendor this file verbatim. The stored #2556 cases hold a class the interface leaves open in a field default (BagFieldDefault), a field a static's initializer sets (BagInitializer) and a static (BagStatic).",
   "source": [
     "class Item { public string Name = \"\"; }",
     "",
@@ -56,6 +56,7 @@
     "  public ToolFrames ToolFrames = new();",
     "  public VectorFrames VectorFrames = new();",
     "  public Bag<Seed, Red>? Sack;",
+    "  public IContainer<Seed> Stocked = new Bag<Seed, Red>();",
     "  public IContainer<Seed>? PouchView => this.Pouch;",
     "}",
     "",
@@ -77,6 +78,8 @@
     "  public static HarvestInventory TemporaryInventory() { return new HarvestInventory { Contents = [new Seed { Name = \"oat\" }] }; }",
     "",
     "  @storage(allowed: .Session) public static Player P = new();",
+    "  public static Player Q = new Player { Pouch = new Bag<Seed, Red>() };",
+    "  public static IContainer<Seed> Stash = new Bag<Seed, Red>();",
     "",
     "  public static int ClosedRead() {",
     "    Probe.P.Pouch = new SeedPouch { Contents = [new Seed { Name = \"a\" }, new Seed { Name = \"b\" }] };",
@@ -167,6 +170,9 @@
     "  public static bool BagIntoIndexer() { IContainer<Seed> bag = new Bag<Seed, Red>(); Probe.P.Racks.Add(new SeedPouch()); Probe.P.Racks[0] = bag; return Probe.P.Racks[0] is Bag<Seed, Red>; }",
     "  public static bool BagIntoDictionary() { IContainer<Seed> bag = new Bag<Seed, Red>(); Probe.P.ByName[\"a\"] = bag; return Probe.P.ByName[\"a\"] is Bag<Seed, Red>; }",
     "  public static bool BagIntoBox() { IContainer<Seed> bag = new Bag<Seed, Red>(); Probe.P.Boxed.Value = bag; return Probe.P.Boxed.Value is Bag<Seed, Red>; }",
+    "  public static bool BagFieldDefault() { return Probe.P.Stocked is Bag<Seed, Red>; }",
+    "  public static bool BagInitializer() { return Probe.Q.Pouch is Bag<Seed, Red>; }",
+    "  public static bool BagStatic() { return Probe.Stash is Bag<Seed, Red>; }",
     "}"
   ],
   "returns": {
@@ -188,6 +194,9 @@
     "BagIntoInsert": true,
     "BagIntoIndexer": true,
     "BagIntoDictionary": true,
-    "BagIntoBox": true
+    "BagIntoBox": true,
+    "BagFieldDefault": true,
+    "BagInitializer": true,
+    "BagStatic": true
   }
 }

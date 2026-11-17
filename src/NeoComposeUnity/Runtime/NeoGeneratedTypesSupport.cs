@@ -9606,14 +9606,19 @@ namespace NeoCompose.Runtime
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
             // §4.1) — read in the environment of the slot's owner.
-            IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                client.SlotClassArguments(member, effectiveClassId);
+            // A class its interface slot leaves open carries a stamp (#2556).
+            Dictionary<string, TypeBinding>? stamp = (member.defaultValue as ObjectMemberValueBase)?.genericBindings;
+            IReadOnlyDictionary<string, TypeBinding>? classArguments = stamp is null
+                ? client.SlotClassArguments(member, effectiveClassId)
+                : NeoGenericResolution.CloseClassArgumentsFromStamp(
+                    client,
+                    stamp, client.SlotClassArguments(member, effectiveClassId));
             RuntimeClassPlan classPlan = classArguments is null
                 ? ResolveRuntimeClassPlan(client, effectiveClassId)
                 : ResolveRuntimeClassPlan(
                     client,
                     effectiveClassId,
-                    NeoGenericResolution.SlotRowEnv(client, member, env, null, effectiveClassId),
+                    NeoGenericResolution.SlotRowEnv(client, member, env, stamp, effectiveClassId),
                     classArguments);
             // A constructed slot admits the default's class as the server's
             // default construction does, once its params are known bound.
@@ -9649,6 +9654,9 @@ namespace NeoCompose.Runtime
                 classArguments,
                 classPlan,
                 requireCompleteDefault: true);
+            // The row is the binding node the stamp closes, as a cloned row's is.
+            if (stamp is not null)
+                row.genericBindings ??= new Dictionary<string, TypeBinding>(stamp);
             client.CaptureClonedListenerDefaults(clonedIds, member, row);
             client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
             return row;
