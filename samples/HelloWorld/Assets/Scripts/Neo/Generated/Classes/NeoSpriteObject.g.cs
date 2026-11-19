@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObject, INeoSpriteObjectValue
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoSpriteObjectBase
     {
         new bool IsReadOnly { get; }
 
@@ -20,8 +20,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSpriteObject writable);
-
-        new string Name { get; }
 
         new NeoReadOnlySprite Sprite { get; }
 
@@ -50,7 +48,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         new int? SortingOrder { get; }
     }
 
-    public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
+    public partial class NeoSpriteObject : NeoSpriteObjectBase, IReadOnlyNeoSpriteObject
     {
         internal NeoSpriteObject(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -138,25 +136,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.ApplyVariant(this, variant);
         }
 
-        Sprite INeoSpriteObjectValue.Sprite => Sprite;
-        string INeoSpriteObjectValue.MaskInteraction => MaskInteraction.OptionId();
-
         public static NeoClassRef<NeoSpriteObject> Definition { get; } = new NeoClassRef<NeoSpriteObject>("system_d48b66ab-4d59-47e7-a25a-591fe97062de");
 
-        public new virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSpriteObject.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public virtual NeoSprite Sprite
+        public new virtual NeoSprite Sprite
         {
             get
             {
@@ -170,6 +152,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
+        protected override Sprite GetSpriteContract() => Sprite;
 
         NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
         {
@@ -184,7 +167,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
         /// </summary>
-        public virtual bool FlipX
+        public new virtual bool FlipX
         {
             get
             {
@@ -196,11 +179,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "FlipX", NeoGeneratedTypesSupport.Value(value));
             }
         }
+        protected override bool GetFlipXContract() => FlipX;
 
         /// <summary>
         /// Mirrors the sprite vertically about its own centre. Maps to SpriteRenderer.flipY.
         /// </summary>
-        public virtual bool FlipY
+        public new virtual bool FlipY
         {
             get
             {
@@ -212,11 +196,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "FlipY", NeoGeneratedTypesSupport.Value(value));
             }
         }
+        protected override bool GetFlipYContract() => FlipY;
 
         /// <summary>
         /// How this sprite reacts to sprite masks. Maps to SpriteRenderer.maskInteraction. The web canvas has no real sprite mask, so anything other than None previews as a distinguishable treatment rather than as the mask itself — only Unity renders the real thing.
         /// </summary>
-        public virtual NeoSpriteMaskInteraction MaskInteraction
+        public new virtual NeoSpriteMaskInteraction MaskInteraction
         {
             get
             {
@@ -229,11 +214,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "MaskInteraction", NeoGeneratedTypesSupport.Value(new[] { value.OptionId() }));
             }
         }
+        protected override NeoSpriteMaskInteraction GetMaskInteractionContract() => MaskInteraction;
 
         /// <summary>
         /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
         /// </summary>
-        public virtual int? SortingOrder
+        public new virtual int? SortingOrder
         {
             get
             {
@@ -245,6 +231,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(writableNode, "SortingOrder", NeoGeneratedTypesSupport.Value(value));
             }
         }
+        protected override int? GetSortingOrderContract() => SortingOrder;
 
         NeoReadOnlyList<IReadOnlyNeoPlacementTile> IReadOnlyNeoObject.PlacementTiles
         {
@@ -313,7 +300,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -345,7 +332,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

@@ -57,6 +57,24 @@ namespace NeoCompose.Runtime
             return function.StaticNode;
         }
 
+        private TypeBinding? generatedConstruction;
+
+        public static NeoMemberNSFunction GetOrCreateStatic(NeoClient client, string memberId, TypeInfo construction)
+        {
+            var function = NeoNSFunctionRuntime.ResolveSignature(client, memberId);
+            if (!function.IsStatic)
+                throw new InvalidOperationException($"NSFunction '{function.Member.name}' is not static.");
+            TypeBinding closed = NeoGeneratedTypesSupport.ConstructionIdentity(construction);
+            var nodes = function.ConstructedStaticNodes ??= new Dictionary<TypeBinding, NeoMemberNSFunction>();
+            if (!nodes.TryGetValue(closed, out var node) || node.isDisposed)
+                nodes[closed] = node = new NeoMemberNSFunction(client, function.Member, null, NeoValueOwnership.Session)
+                {
+                    resolved = function,
+                    generatedConstruction = closed,
+                };
+            return node;
+        }
+
         // This node's resolved function, current while the client's schema
         // resolution is the one it was resolved under.
         private NeoResolvedNSFunction? resolved;
@@ -314,7 +332,7 @@ namespace NeoCompose.Runtime
                 receiver: null,
                 args,
                 ctx,
-                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true, typeArguments: typeArguments);
+                NeoScriptExecutionOptions.ForImmediate(client), ownsContext: true, typeArguments: typeArguments, boundStaticConstruction: generatedConstruction);
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -346,7 +364,7 @@ namespace NeoCompose.Runtime
                     receiver: null,
                     args,
                     ctx,
-                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true, typeArguments: typeArguments));
+                    NeoScriptExecutionOptions.ForDirectFunction(client), ownsContext: true, typeArguments: typeArguments, boundStaticConstruction: generatedConstruction));
             }
             catch (Exception exception)
             {
@@ -509,6 +527,7 @@ namespace NeoCompose.Runtime
         internal NeoScriptTerminalNormalizer? TerminalNormalizer;
         internal NeoScriptTerminalNormalizer? BoundaryTerminalNormalizer;
         internal NeoMemberNSFunction? StaticNode;
+        internal Dictionary<TypeBinding, NeoMemberNSFunction>? ConstructedStaticNodes;
 
         // Diagnostic subjects depend only on the signature. Formatting them
         // per call put three string allocations on every invocation.
@@ -752,6 +771,8 @@ namespace NeoCompose.Runtime
                     ref effectiveArgumentTypes, staticConstruction ?? interfaceConstruction);
             }
 
+            var hostOut = site is null ? NeoOutArgument.Bind(ref args, function.ArgumentTypes) : null;
+
             // Immediate functions cannot retain a lexical scope after completion:
             // delegate literals capture values, and callbacks finish within the call.
             // Deferred or unexpectedly suspended frames keep their own scopes.
@@ -802,6 +823,16 @@ namespace NeoCompose.Runtime
                     normalizer = function.BoundaryTerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType, true);
                 else
                     normalizer = function.TerminalNormalizer ??= CreateTerminalNormalizer(client, function, effectiveReturnType, false);
+                if (hostOut is not null)
+                {
+                    var resultNormalizer = normalizer;
+                    normalizer = (execution, frame) =>
+                    {
+                        var result = resultNormalizer(execution, frame);
+                        NeoOutArgument.Complete(hostOut, frame);
+                        return result;
+                    };
+                }
                 started = true;
                 NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
                     client,
@@ -1194,7 +1225,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError(error.Message, NeoErrorContract.NeoArgumentError, error);
                 }
                 if (boundary)
-                    normalized = NSGetterEvaluator.ResolveHostCollection(normalized, ctx);
+                    normalized = NeoGeneratedTypesSupport.GeneratedResult(normalized, effectiveReturnType, ctx);
                 // Marshalling usually returns the evaluator's own value;
                 // reuse the executor's result instead of allocating a copy
                 // of it.
@@ -2097,6 +2128,7 @@ namespace NeoCompose.Runtime
                     : payload.value;
             }
             value = NSGetterEvaluator.UnwrapHostComparer(value, client);
+            value = NeoGeneratedTypesSupport.ImportClrComparer(value, ctx);
             value = NSGetterEvaluator.ImportFormatProvider(value);
             if (NSGetterEvaluator.IsClrFormatProvider(value, typeInfo))
                 return value;
@@ -2116,7 +2148,7 @@ namespace NeoCompose.Runtime
             if (typeInfo.type == MemberKind.NSDelegate && value is NeoDelegateValue callable)
                 callable.delegateType ??= NeoTypeBindings.FromTypeInfo(typeInfo);
             // P127 §14. A C# value crosses into an object parameter boxed.
-            if (typeInfo.type == MemberKind.Object && value is not (null or NeoBox or NeoTypeValue))
+            if (typeInfo.type is MemberKind.Object or MemberKind.Interface && value is not (null or NeoBox or NeoTypeValue))
                 value = NeoGeneratedTypesSupport.BoxClrArgument(client, ownership, value, ctx, in subject);
             // Primitives, value references and enum ids match none of the
             // rewrites in NormalizeRewritten, so they skip its chain.
@@ -2626,6 +2658,8 @@ namespace NeoCompose.Runtime
             TypeInfo typeInfo,
             ValueSubject subject)
         {
+            if (IsNumberStyles(typeInfo) && value is System.Globalization.NumberStyles style)
+                return (int)style;
             if (IsNumberStyles(typeInfo) && IsNumber(value))
                 return value;
             object?[] optionIds = NormalizeEnumOptions(value, subject);

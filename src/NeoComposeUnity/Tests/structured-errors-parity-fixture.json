@@ -479,7 +479,7 @@
       "updatedAt": 1,
       "code": "string text = Message.Length == 0 ? GetType().FullName! : $\"{GetType().FullName}: {Message}\";\nNeoError? inner = InnerError;\nif (inner == null) {\n  return text;\n}\nreturn $\"{text}\\n ---> {inner.ToString()}\\n   --- End of inner exception stack trace ---\";",
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "ToString",
           "coordinateSpace": "body"
@@ -960,7 +960,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoError",
           "coordinateSpace": "body"
@@ -1197,7 +1197,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoNullReferenceError",
           "coordinateSpace": "body"
@@ -1294,7 +1294,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoNullReferenceError base argument message",
             "coordinateSpace": "body"
@@ -1400,7 +1400,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoNullReferenceError base argument innerError",
             "coordinateSpace": "body"
@@ -1542,7 +1542,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoIndexOutOfRangeError",
           "coordinateSpace": "body"
@@ -1639,7 +1639,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoIndexOutOfRangeError base argument message",
             "coordinateSpace": "body"
@@ -1745,7 +1745,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoIndexOutOfRangeError base argument innerError",
             "coordinateSpace": "body"
@@ -1887,7 +1887,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoKeyNotFoundError",
           "coordinateSpace": "body"
@@ -1984,7 +1984,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoKeyNotFoundError base argument message",
             "coordinateSpace": "body"
@@ -2090,7 +2090,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoKeyNotFoundError base argument innerError",
             "coordinateSpace": "body"
@@ -2232,7 +2232,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArgumentError",
           "coordinateSpace": "body"
@@ -2329,7 +2329,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument message",
             "coordinateSpace": "body"
@@ -2435,7 +2435,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument innerError",
             "coordinateSpace": "body"
@@ -2577,7 +2577,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoInvalidOperationError",
           "coordinateSpace": "body"
@@ -2674,7 +2674,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoInvalidOperationError base argument message",
             "coordinateSpace": "body"
@@ -2780,7 +2780,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoInvalidOperationError base argument innerError",
             "coordinateSpace": "body"
@@ -2922,7 +2922,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArithmeticError",
           "coordinateSpace": "body"
@@ -3019,7 +3019,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArithmeticError base argument message",
             "coordinateSpace": "body"
@@ -3125,7 +3125,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArithmeticError base argument innerError",
             "coordinateSpace": "body"
@@ -3267,7 +3267,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoHostError",
           "coordinateSpace": "body"
@@ -3364,7 +3364,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoHostError base argument message",
             "coordinateSpace": "body"
@@ -3470,7 +3470,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoHostError base argument innerError",
             "coordinateSpace": "body"
@@ -3612,7 +3612,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoOverflowError",
           "coordinateSpace": "body"
@@ -3709,7 +3709,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoOverflowError base argument message",
             "coordinateSpace": "body"
@@ -3815,7 +3815,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoOverflowError base argument innerError",
             "coordinateSpace": "body"
@@ -3957,7 +3957,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoDivideByZeroError",
           "coordinateSpace": "body"
@@ -4054,7 +4054,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoDivideByZeroError base argument message",
             "coordinateSpace": "body"
@@ -4160,7 +4160,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoDivideByZeroError base argument innerError",
             "coordinateSpace": "body"
@@ -4302,7 +4302,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoFormatError",
           "coordinateSpace": "body"
@@ -4399,7 +4399,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoFormatError base argument message",
             "coordinateSpace": "body"
@@ -4505,7 +4505,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoFormatError base argument innerError",
             "coordinateSpace": "body"
@@ -4647,7 +4647,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoInvalidCastError",
           "coordinateSpace": "body"
@@ -4744,7 +4744,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoInvalidCastError base argument message",
             "coordinateSpace": "body"
@@ -4850,7 +4850,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoInvalidCastError base argument innerError",
             "coordinateSpace": "body"
@@ -4992,7 +4992,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoNotSupportedError",
           "coordinateSpace": "body"
@@ -5089,7 +5089,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoNotSupportedError base argument message",
             "coordinateSpace": "body"
@@ -5195,7 +5195,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoNotSupportedError base argument innerError",
             "coordinateSpace": "body"
@@ -5337,7 +5337,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArgumentNullError",
           "coordinateSpace": "body"
@@ -5434,7 +5434,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentNullError base argument message",
             "coordinateSpace": "body"
@@ -5540,7 +5540,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentNullError base argument innerError",
             "coordinateSpace": "body"
@@ -5682,7 +5682,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArgumentOutOfRangeError",
           "coordinateSpace": "body"
@@ -5779,7 +5779,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentOutOfRangeError base argument message",
             "coordinateSpace": "body"
@@ -5885,7 +5885,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentOutOfRangeError base argument innerError",
             "coordinateSpace": "body"
@@ -6027,7 +6027,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoCultureNotFoundError",
           "coordinateSpace": "body"
@@ -6124,7 +6124,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoCultureNotFoundError base argument message",
             "coordinateSpace": "body"
@@ -6230,7 +6230,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoCultureNotFoundError base argument innerError",
             "coordinateSpace": "body"
@@ -6372,7 +6372,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoTypeInitializationError",
           "coordinateSpace": "body"
@@ -6469,7 +6469,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoTypeInitializationError base argument message",
             "coordinateSpace": "body"
@@ -6575,7 +6575,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoTypeInitializationError base argument innerError",
             "coordinateSpace": "body"
@@ -6717,7 +6717,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArgumentError",
           "coordinateSpace": "body"
@@ -6814,7 +6814,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument message",
             "coordinateSpace": "body"
@@ -6920,7 +6920,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument innerError",
             "coordinateSpace": "body"
@@ -7062,7 +7062,7 @@
       "createdAt": 1,
       "updatedAt": 1,
       "action": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "NeoArgumentError",
           "coordinateSpace": "body"
@@ -7159,7 +7159,7 @@
       },
       "compiledBaseArguments": [
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument message",
             "coordinateSpace": "body"
@@ -7265,7 +7265,7 @@
           }
         },
         {
-          "compilerRevision": 19,
+          "compilerRevision": 20,
           "source": {
             "name": "NeoArgumentError base argument innerError",
             "coordinateSpace": "body"
@@ -7380,7 +7380,7 @@
       "source": "try { throw new NeoArgumentError(message: \"bad\"); } catch (NeoArgumentError error) { return error.Message; } catch (NeoError error) { return \"wrong\"; }",
       "expected": "bad",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -7568,7 +7568,7 @@
       "source": "var original = new NeoError(message: \"\"); try { try { throw original; } catch (string message) { throw; } } catch (NeoError caught) { return caught == original ? caught.Message + \"same\" : \"copied\"; }",
       "expected": "same",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -7828,7 +7828,7 @@
       "source": "string trace = \"\"; try { try { throw \"error\"; } finally { trace += \"F\"; } } catch (string error) when (trace == \"\") { trace += \"C\"; } finally { trace += \"O\"; } return trace;",
       "expected": "FCO",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -8128,7 +8128,7 @@
       "source": "Dictionary<string, string> trace = { \"value\": \"\" }; NeoDelegate<string> call = () => { try { throw \"error\"; } finally { trace[\"value\"] += \"F\"; } }; try { string ignored = call(); } catch (string error) when (trace[\"value\"] == \"\") { trace[\"value\"] += \"C\"; } return trace[\"value\"];",
       "expected": "FC",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -8263,7 +8263,7 @@
                   "argumentTypes": []
                 },
                 "action": {
-                  "compilerRevision": 19,
+                  "compilerRevision": 20,
                   "source": {
                     "coordinateSpace": "body",
                     "name": "getter <delegate>"
@@ -8686,7 +8686,7 @@
       "source": "Dictionary<string, string> trace = { \"value\": \"\" }; NeoDelegate<bool> filter = () => { trace[\"value\"] += \"P\"; throw \"filter failed\"; }; try { try { throw \"original\"; } finally { trace[\"value\"] += \"F\"; } } catch (string error) when (filter()) { return \"wrong\"; } catch (string error) when (trace[\"value\"] == \"P\") { trace[\"value\"] += error; } return trace[\"value\"];",
       "expected": "PForiginal",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -8821,7 +8821,7 @@
                   "argumentTypes": []
                 },
                 "action": {
-                  "compilerRevision": 19,
+                  "compilerRevision": 20,
                   "source": {
                     "coordinateSpace": "body",
                     "name": "getter <delegate>"
@@ -9372,7 +9372,7 @@
       "source": "try { try { throw \"original\"; } finally { try { throw \"inner\"; } catch (string error) {} } } catch (string error) { return error; }",
       "expected": "original",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -9534,7 +9534,7 @@
       "source": "try { try { throw \"original\"; } finally { throw \"replacement\"; } } catch (string error) when (error == \"replacement\") { return error; } catch (string error) { return \"wrong\"; }",
       "expected": "replacement",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -9722,7 +9722,7 @@
       "source": "string value = \"before\"; try { return value; } finally { value = \"after\"; }",
       "expected": "before",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -9858,7 +9858,7 @@
       "source": "string trace = \"\"; for (int i=0; i<3; i++) { try { if (i==1) continue; if(i==2) break; trace += \"B\"; } finally { trace += \"F\"; } } return trace;",
       "expected": "BFFF",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -10219,7 +10219,7 @@
       "source": "int zero = 0; try { int result = 1 / zero; } catch (NeoArithmeticError error) { return error.Message; } return \"wrong\";",
       "expected": "Division by zero",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -10415,7 +10415,7 @@
       "source": "string? value = null; try { string text = value!; } catch (NeoNullReferenceError error) { return \"null\"; } return \"wrong\";",
       "expected": "null",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -10581,7 +10581,7 @@
       "source": "List<int> values = []; try { int value = values[0]; } catch (NeoIndexOutOfRangeError error) { return \"bounds\"; } return \"wrong\";",
       "expected": "bounds",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -10765,7 +10765,7 @@
       "source": "Dictionary<string, int> values = {}; try { int value = values[\"missing\"]; } catch (NeoKeyNotFoundError error) { return \"key\"; } return \"wrong\";",
       "expected": "key",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -10949,7 +10949,7 @@
       "source": "string text = \"abc\"; int index = -1; try { string value = text.Substring(index); } catch (NeoArgumentError error) { return \"argument\"; } return \"wrong\";",
       "expected": "argument",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -11155,7 +11155,7 @@
       "source": "bool cleaned = false; try { try { throw \"first\"; } catch (string error) { throw \"second\"; } finally { cleaned = true; } } catch (string error) when (!cleaned) { return error; } return \"wrong\";",
       "expected": "second",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -11397,7 +11397,7 @@
       "source": "try { throw new GenericError<int>(message: \"typed\"); } catch (GenericError<string> error) { return \"wrong\"; } catch (GenericError<int> error) { return error.Message; }",
       "expected": "typed",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -11602,7 +11602,7 @@
       "source": "try { throw new GenericError<(int,string)>(message: \"tuple\"); } catch (GenericError<(int,int)> error) { return \"wrong\"; } catch (GenericError<(int Number,string Text)> error) { return error.Message; }",
       "expected": "tuple",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -11851,7 +11851,7 @@
       "source": "try { throw new GenericError<(int,string)>(message: \"tuple\"); } catch (GenericError<(int,int)> error) when (true) { return \"wrong\"; } catch (NeoError error) { return error.Message; }",
       "expected": "tuple",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -12104,7 +12104,7 @@
       "source": "var error = new GenericError<int>(message: \"typed\"); try { throw error; } catch (NeoError caught) { return error == caught ? caught.Message : \"copied\"; }",
       "expected": "typed",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -12326,7 +12326,7 @@
       "source": "try { throw new AuthoredError(message: \"bad\") { Detail = \"E42\" }; } catch (NeoError error) { return error switch { AuthoredError detail => detail.Detail ?? \"missing\", _ => \"wrong\" }; }",
       "expected": "E42",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -12592,7 +12592,7 @@
       "source": "int zero = 0; try { int value = 1 / zero; } catch (NeoDivideByZeroError error) { return error is NeoArithmeticError ? \"divide\" : \"wrong\"; } return \"wrong\";",
       "expected": "divide",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -12803,7 +12803,7 @@
       "source": "decimal zero = 0m; try { decimal value = 1m / zero; } catch (NeoDivideByZeroError error) { return error.Message; } return \"wrong\";",
       "expected": "Attempted to divide by zero.",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -12999,7 +12999,7 @@
       "source": "var inner = new NeoArgumentError(message: \"inner\"); try { throw new NeoInvalidOperationError(message: \"outer\", innerError: inner); } catch (NeoError error) { return error.InnerError == inner ? error.InnerError!.Message : \"copied\"; }",
       "expected": "inner",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -13288,7 +13288,7 @@
       "source": "var error = new NeoError(message: \"m\"); return error.InnerError == null ? \"none\" : \"wrong\";",
       "expected": "none",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -13475,7 +13475,7 @@
       "source": "var error = new NeoInvalidOperationError(message: \"outer\", innerError: new NeoArgumentError(message: \"middle\", innerError: new NeoError(message: \"\"))); return error.ToString();",
       "expected": "NeoInvalidOperationError: outer\n ---> NeoArgumentError: middle\n ---> NeoError\n   --- End of inner exception stack trace ---\n   --- End of inner exception stack trace ---",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"
@@ -13695,7 +13695,7 @@
       "source": "try { try { decimal zero = 0m; decimal value = 1m / zero; } catch (NeoDivideByZeroError error) { throw new NeoInvalidOperationError(message: \"wrapped\", innerError: error); } } catch (NeoInvalidOperationError error) { return error.InnerError!.Message; } return \"wrong\";",
       "expected": "Attempted to divide by zero.",
       "getter": {
-        "compilerRevision": 19,
+        "compilerRevision": 20,
         "source": {
           "name": "getter",
           "coordinateSpace": "body"

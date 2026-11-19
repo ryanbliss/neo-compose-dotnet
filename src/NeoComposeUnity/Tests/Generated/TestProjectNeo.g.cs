@@ -25,9 +25,10 @@ namespace Assets.Scripts.Neo
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
             : base(client, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, NeoClassIdsByType)
         {
+            Client.RegisterGeneratedDetachedClassFactories(NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
-            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds);
+            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds, NeoTypeArgumentInterfaceIds);
             Instance = this;
             Assets = new Root(client, client.assets, true, NeoValueOwnership.Asset);
             Save = new Root(client, client.save, false, client.save.ownership);

@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using NeoCompose.Runtime;
 using NeoCompose.Runtime.NeoScript.Hashing;
 using NUnit.Framework;
 
@@ -19,6 +20,56 @@ namespace NeoCompose.Tests
             Assert.That(NeoEnums.OrphanValue("a"), Is.EqualTo(-1 - (int)(0xE40C292Cu % 0x7FFFFFFFu)));
             Assert.That(NeoEnums.OrphanValue("foobar"), Is.EqualTo(-1 - (int)(0xBF9CF968u % 0x7FFFFFFFu)));
             Assert.That(NeoEnums.OrphanValue(""), Is.EqualTo(-1 - (int)(0x811C9DC5u % 0x7FFFFFFFu)));
+        }
+
+        private enum FirstOrphans
+        {
+            Declared
+        }
+        private enum SecondOrphans
+        {
+            Declared
+        }
+
+        [Test]
+        public void GeneratedOrphanNumbersDoNotDependOnReadOrder()
+        {
+            var firstA = NeoUndeclaredEnumOptions<FirstOrphans>.FromOptionId("a");
+            var firstB = NeoUndeclaredEnumOptions<FirstOrphans>.FromOptionId("foobar");
+            var secondB = NeoUndeclaredEnumOptions<SecondOrphans>.FromOptionId("foobar");
+            var secondA = NeoUndeclaredEnumOptions<SecondOrphans>.FromOptionId("a");
+            Assert.That((int)firstA, Is.EqualTo(-1 - (int)(0xE40C292Cu % 0x7FFFFFFFu)));
+            Assert.That((int)firstB, Is.EqualTo(-1 - (int)(0xBF9CF968u % 0x7FFFFFFFu)));
+            Assert.That((int)secondA, Is.EqualTo((int)firstA));
+            Assert.That((int)secondB, Is.EqualTo((int)firstB));
+            Assert.That(NeoUndeclaredEnumOptions<FirstOrphans>.OptionId(firstA), Is.EqualTo("a"));
+            Assert.That(NeoUndeclaredEnumOptions<FirstOrphans>.OptionId(firstB), Is.EqualTo("foobar"));
+        }
+
+        [Test]
+        public void DigitShapesOptionsRoundTripAndUnknownReverseFails()
+        {
+            foreach (System.Globalization.DigitShapes value in System.Enum.GetValues(typeof(System.Globalization.DigitShapes)))
+            {
+                Assert.That(NeoDigitShapesOptions.FromOptionId(value.OptionId()), Is.EqualTo(value));
+                Assert.That(NeoDigitShapesOptions.IsKnown(value.OptionId()), Is.True);
+                Assert.That(value.TextId(), Is.EqualTo(value.ToString()));
+                Assert.That(NeoEnumOptions<System.Globalization.DigitShapes>.ToOptionId!(value), Is.EqualTo(value.OptionId()));
+                Assert.That(NeoEnumOptions<System.Globalization.DigitShapes>.FromOptionId!(value.OptionId()), Is.EqualTo(value));
+            }
+            Assert.That(NeoDigitShapesOptions.ToOptionIds(null), Is.Empty);
+            Assert.Throws<System.ArgumentNullException>(() => System.Globalization.DigitShapes.Context.Text());
+            Assert.Throws<System.InvalidOperationException>(() => NeoUndeclaredEnumOptions<FirstOrphans>.OptionId((FirstOrphans)123));
+        }
+
+        [Test]
+        public void RuntimeEnumNumbersFollowDeclarationOrder()
+        {
+            Assert.That((int)NeoPlayDirection.Forward, Is.Zero);
+            Assert.That((int)NeoPlayDirection.Reverse, Is.EqualTo(1));
+            Assert.That((int)NeoSpriteMaskInteraction.None, Is.Zero);
+            Assert.That((int)NeoSpriteMaskInteraction.VisibleInsideMask, Is.EqualTo(1));
+            Assert.That((int)NeoSpriteMaskInteraction.VisibleOutsideMask, Is.EqualTo(2));
         }
 
         [Test]

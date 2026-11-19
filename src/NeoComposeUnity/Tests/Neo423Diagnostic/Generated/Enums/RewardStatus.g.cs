@@ -14,8 +14,8 @@ namespace NeoCompose.Tests.Diagnostic423
     [NeoEnum(typeof(RewardStatusOptions))]
     public enum RewardStatus
     {
-        Pending = 1221689960,
-        Claimed = 1268317339,
+        Pending = 0,
+        Claimed = 1,
     }
 
     /// <summary>

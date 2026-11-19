@@ -117,6 +117,8 @@ namespace NeoCompose.Tests.ReferenceParity
                 [typeof(global::NeoCompose.Tests.ReferenceParity.IReadOnlyProbe)] = "ab398896-eeaf-4744-9184-5ef40bc06404",
                 [typeof(global::NeoCompose.Tests.ReferenceParity.Pinboard)] = "b83a7c99-8c59-447c-b473-ad6903f26ec4",
                 [typeof(global::NeoCompose.Tests.ReferenceParity.IReadOnlyPinboard)] = "b83a7c99-8c59-447c-b473-ad6903f26ec4",
+                [typeof(global::NeoCompose.Tests.ReferenceParity.Box<>)] = "f5ef74a7-39c4-42f3-a4cb-3f199cc3b232",
+                [typeof(global::NeoCompose.Tests.ReferenceParity.IReadOnlyBox<>)] = "f5ef74a7-39c4-42f3-a4cb-3f199cc3b232",
                 [typeof(global::NeoCompose.Tests.ReferenceParity.Assets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.ReferenceParity.IReadOnlyAssets)] = "root-assets-class-id",
                 [typeof(global::NeoCompose.Tests.ReferenceParity.Save)] = "root-save-class-id",

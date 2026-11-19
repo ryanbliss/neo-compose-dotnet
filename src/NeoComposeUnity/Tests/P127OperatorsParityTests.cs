@@ -33,7 +33,7 @@ namespace NeoCompose.Tests
         public void SharedExportIsVendored()
         {
             Assert.That(File.Exists(Export), Is.True, "Vendor Compose's validated B5 export.");
-            Assert.That(Directory.Exists(Root + "Fixtures~/P127OperatorsParity/Generated"), Is.True, "Vendor the B8 generated artifact alongside its export.");
+            Assert.That(Directory.Exists(Root + "P127OperatorsParity/Generated"), Is.True, "Vendor the generated artifact alongside its export.");
             Assert.That(NeoTestExport.Read(File.ReadAllText(Export)).classes.Values.Any(type => type.name == "Probe"), Is.True);
         }
 
@@ -75,7 +75,7 @@ namespace NeoCompose.Tests
         private static NeoClient LoadClient()
         {
             Assert.That(File.Exists(Export), Is.True, "Vendor Compose's validated B5 export.");
-            Assert.That(Directory.Exists(Root + "Fixtures~/P127OperatorsParity/Generated"), Is.True, "Vendor the B8 generated artifact alongside its export.");
+            Assert.That(Directory.Exists(Root + "P127OperatorsParity/Generated"), Is.True, "Vendor the generated artifact alongside its export.");
             return NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(Export)), assumeCurrentSchema: false);
         }
 

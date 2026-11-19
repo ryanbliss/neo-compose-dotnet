@@ -461,7 +461,7 @@ namespace NeoCompose.Runtime
             {
                 return existing;
             }
-            if (member is ClassMember { DeclaredInterfaceId: not null } interfaceSlot
+            if (member is ClassMember interfaceSlot
                 && HoldsInterfaceBox(client, interfaceSlot, overrideValueId, NeoValueOwnership.Asset))
                 return new NeoMemberInterfaceBox(client, interfaceSlot, overrideValueId, NeoValueOwnership.Asset);
             return member switch
@@ -541,7 +541,7 @@ namespace NeoCompose.Runtime
             {
                 return existing;
             }
-            if (member is ClassMember { DeclaredInterfaceId: not null } interfaceSlot
+            if (member is ClassMember interfaceSlot
                 && HoldsInterfaceBox(client, interfaceSlot, overrideValueId, ownership))
                 return new NeoMemberInterfaceBox(client, interfaceSlot, overrideValueId, ownership);
             return member switch
@@ -1040,6 +1040,35 @@ namespace NeoCompose.Runtime
             if (id is not null && plan.Resolve(ownership, id) is TValue candidate)
                 return (TValue)client.CloneRowForWrite(candidate, sharesArrayEntries);
             return EnsureWritableValue(sharesArrayEntries);
+        }
+
+        /// <summary>
+        /// A writable culture or number format's C# writes are writes to its
+        /// slot (§12.1), so a writable node hands out a row its own store
+        /// holds. One it inherits, such as an Asset default, is copied into
+        /// the store, and a member default with no row is bound to a new row,
+        /// as a vector write through either does. Neither copy changes the
+        /// value, so neither notifies. C# writes to a row already held are
+        /// published here and at commit.
+        /// </summary>
+        internal MemberValue OwnHeldPayload(PayloadMemberValue row)
+        {
+            if (valueId is null)
+            {
+                var bound = (PayloadMemberValue)client.CloneRowForWrite(row);
+                bound.id = System.Guid.NewGuid().ToString();
+                bound.typeSource = null;
+                var plan = new NeoWritePlan(client);
+                BindNewValue(plan, (TValue)(MemberValue)bound);
+                plan.SilenceRows();
+                plan.Commit();
+                return bound;
+            }
+            if (client.HasWritableValue(ownership, row.id))
+                return client.DefersGlobalizationWrites ? row : client.PublishHeldPayloadWrite(ownership, row) ?? row;
+            client.EnsureWritableShadow(ownership, row.id);
+            RefreshCommittedValue();
+            return (MemberValue?)value ?? row;
         }
 
         protected void BindNewValue(TValue newRow)

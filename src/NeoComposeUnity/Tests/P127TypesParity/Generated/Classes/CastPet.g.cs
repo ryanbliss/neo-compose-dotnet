@@ -25,7 +25,7 @@ namespace NeoCompose.Tests.P127TypesParity
     public partial class CastPet : NeoGeneratedClassValue, IReadOnlyCastPet
     {
         internal CastPet(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "4419a3c5-525f-490f-aa72-163cd35af410", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -42,7 +42,7 @@ namespace NeoCompose.Tests.P127TypesParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "4419a3c5-525f-490f-aa72-163cd35af410");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501");
         }
 
         internal static CastPet Create(NeoClient client, NeoMemberClass node)
@@ -52,8 +52,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "09dd8830-f046-4eaa-804f-ec3cc546441e" => new CastCat(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e1868955-e041-483d-9107-fa0aac145a18" => new CastDog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new CastPet(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -66,8 +66,8 @@ namespace NeoCompose.Tests.P127TypesParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "09dd8830-f046-4eaa-804f-ec3cc546441e" => new CastCat(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e1868955-e041-483d-9107-fa0aac145a18" => new CastDog(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new CastPet(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -77,9 +77,9 @@ namespace NeoCompose.Tests.P127TypesParity
         {
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
-                "09dd8830-f046-4eaa-804f-ec3cc546441e" => new CastCat(client, value, !saved),
-                "e1868955-e041-483d-9107-fa0aac145a18" => new CastDog(client, value, !saved),
-                "4419a3c5-525f-490f-aa72-163cd35af410" => new CastPet(client, value, !saved),
+                "1fbf4e88-e65a-4bc0-ba86-87741d0c83cb" => new CastDog(client, value, !saved),
+                "a9620b6a-00ee-4bda-a352-db21304009ed" => new CastCat(client, value, !saved),
+                "65c41d1f-a77e-4fa6-a0d7-2dd7931f9501" => new CastPet(client, value, !saved),
                 _ => null,
             };
         }
@@ -116,7 +116,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -133,7 +133,7 @@ namespace NeoCompose.Tests.P127TypesParity
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

@@ -232,7 +232,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// <summary>
         /// How long the scheduled content runs, in its own frames — the referenced clip's Duration on a child track, the segment's Duration on a segment track. Neo answers this for you; it is not a value you author.
         /// </summary>
-        protected abstract int BaseDuration { get; }
+        protected int BaseDuration => GetBaseDurationContract();
+        protected abstract int GetBaseDurationContract();
 
         public sealed class Fields
         {
@@ -267,7 +268,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<TField>(NeoField<TField> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -291,7 +292,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<TField>(NeoField<TField> field, Action<TField, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

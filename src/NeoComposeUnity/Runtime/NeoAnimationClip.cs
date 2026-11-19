@@ -31,8 +31,8 @@ namespace NeoCompose.Runtime
     [NeoEnum(typeof(NeoPlayDirectionOptions))]
     public enum NeoPlayDirection
     {
-        Forward = 1428466493,
-        Reverse = 1985462563,
+        Forward = 0,
+        Reverse = 1,
     }
 
     /// <summary>

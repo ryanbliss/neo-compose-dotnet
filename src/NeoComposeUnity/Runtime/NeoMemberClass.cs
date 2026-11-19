@@ -304,7 +304,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        protected TMember GetMember<TMember>(string key)
+        protected internal TMember GetMember<TMember>(string key)
             where TMember : Member
         {
             if (!TryGetMember(key, out TMember? childMember))
@@ -700,7 +700,8 @@ namespace NeoCompose.Runtime
 
         private bool HoldsObjectRow(Member childMember, string? childValueId) =>
             childValueId is not null
-            && client.TryGetValue(client.ChildValueOwnership(childMember, ownership, childValueId), childValueId, out ObjectMemberValue? row)
+            && client.TryGetValue(client.ChildValueOwnership(childMember, ownership, childValueId), childValueId, out MemberValue? row)
+            && (row is ObjectMemberValue || row.valueType is not null)
             && !row.IsRemoved;
 
         // Over the pairs: a dictionary's Values view is an allocation of its own.

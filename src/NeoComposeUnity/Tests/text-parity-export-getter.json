@@ -3,7 +3,7 @@
   "code": "List<string> parts = \" 12, 3.50 ,x,,\".Trim().Split(\",\");\nint quantity = int.TryParse(parts[0]) ?? 0;\ndecimal price = decimal.Parse(parts[1]);\ndecimal total = decimal.Parse(\"1234.5\");\nfloat ratio = float.Parse(\"2.5\");\nstring padded = parts[2].Trim().PadLeft(3, \"*\");\nstring blank = string.IsNullOrWhiteSpace(parts[3]) ? \"blank\" : \"text\";\nreturn $\"{quantity.ToString(\"D3\")}|{price.ToString(\"N2\")}|{total.ToString(\"N2\")}|{ratio.ToString(\"F0\")}|{padded}|{string.Join(\"/\", parts)}|{parts.Count}|{blank}\";",
   "expected": "012|3.50|1,234.50|2|**x|12/ 3.50 /x//|5|blank",
   "getter": {
-    "compilerRevision": 19,
+    "compilerRevision": 20,
     "source": {
       "name": "ComputedText.textProbe",
       "uri": "Classes/ComputedText.neo",
@@ -15,7 +15,7 @@
         "typeInfo": {
           "type": 7,
           "required": true,
-          "classId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb"
+          "classId": "700b2d8a-2384-4938-996a-09c69dbd6858"
         },
         "pointer": {
           "type": "value",
@@ -23,7 +23,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "classId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb"
+              "classId": "700b2d8a-2384-4938-996a-09c69dbd6858"
             },
             "value": null
           }
@@ -88,7 +88,7 @@
                       }
                     },
                     "source": {
-                      "line": 20,
+                      "line": 4,
                       "column": 49
                     }
                   },
@@ -106,13 +106,13 @@
               }
             },
             "source": {
-              "line": 20,
+              "line": 4,
               "column": 57
             }
           }
         },
         "source": {
-          "line": 20,
+          "line": 4,
           "column": 7
         }
       },
@@ -157,7 +157,7 @@
                 }
               },
               "source": {
-                "line": 21,
+                "line": 5,
                 "column": 34
               }
             },
@@ -174,7 +174,7 @@
           }
         },
         "source": {
-          "line": 21,
+          "line": 5,
           "column": 7
         }
       },
@@ -187,43 +187,57 @@
             "required": true
           },
           "pointer": {
-            "type": "function",
-            "function": {
-              "type": "textOp",
-              "info": {
-                "op": "parse",
-                "number": "decimal",
-                "argPointers": [
-                  {
-                    "type": "keyOf",
-                    "keyOf": {
-                      "pointer": {
-                        "type": "variable",
-                        "variableId": "parts"
+            "type": "primitiveMember",
+            "primitive": {
+              "type": 20,
+              "required": true
+            },
+            "member": "Parse",
+            "args": [
+              {
+                "type": "keyOf",
+                "keyOf": {
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "parts"
+                  },
+                  "key": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 2,
+                        "required": true
                       },
-                      "key": {
-                        "type": "value",
-                        "value": {
-                          "typeInfo": {
-                            "type": 2,
-                            "required": true
-                          },
-                          "value": 1
-                        }
-                      }
+                      "value": 1
                     }
                   }
-                ]
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 111
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  },
+                  "value": null
+                }
               }
-            },
-            "source": {
-              "line": 22,
-              "column": 36
-            }
+            ]
           }
         },
         "source": {
-          "line": 22,
+          "line": 6,
           "column": 7
         }
       },
@@ -236,34 +250,48 @@
             "required": true
           },
           "pointer": {
-            "type": "function",
-            "function": {
-              "type": "textOp",
-              "info": {
-                "op": "parse",
-                "number": "decimal",
-                "argPointers": [
-                  {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 3,
-                        "required": true
-                      },
-                      "value": "1234.5"
-                    }
-                  }
-                ]
-              }
+            "type": "primitiveMember",
+            "primitive": {
+              "type": 20,
+              "required": true
             },
-            "source": {
-              "line": 23,
-              "column": 36
-            }
+            "member": "Parse",
+            "args": [
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": "1234.5"
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 111
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            ]
           }
         },
         "source": {
-          "line": 23,
+          "line": 7,
           "column": 7
         }
       },
@@ -276,34 +304,48 @@
             "required": true
           },
           "pointer": {
-            "type": "function",
-            "function": {
-              "type": "textOp",
-              "info": {
-                "op": "parse",
-                "number": "float",
-                "argPointers": [
-                  {
-                    "type": "value",
-                    "value": {
-                      "typeInfo": {
-                        "type": 3,
-                        "required": true
-                      },
-                      "value": "2.5"
-                    }
-                  }
-                ]
-              }
+            "type": "primitiveMember",
+            "primitive": {
+              "type": 4,
+              "required": true
             },
-            "source": {
-              "line": 24,
-              "column": 32
-            }
+            "member": "Parse",
+            "args": [
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 3,
+                    "required": true
+                  },
+                  "value": "2.5"
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "value": 231
+                }
+              },
+              {
+                "type": "value",
+                "value": {
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  },
+                  "value": null
+                }
+              }
+            ]
           }
         },
         "source": {
-          "line": 24,
+          "line": 8,
           "column": 7
         }
       },
@@ -350,7 +392,7 @@
                       }
                     },
                     "source": {
-                      "line": 25,
+                      "line": 9,
                       "column": 36
                     }
                   },
@@ -378,13 +420,13 @@
               }
             },
             "source": {
-              "line": 25,
+              "line": 9,
               "column": 46
             }
           }
         },
         "source": {
-          "line": 25,
+          "line": 9,
           "column": 7
         }
       },
@@ -428,7 +470,7 @@
                 }
               },
               "source": {
-                "line": 26,
+                "line": 10,
                 "column": 47
               }
             },
@@ -455,7 +497,7 @@
           }
         },
         "source": {
-          "line": 26,
+          "line": 10,
           "column": 7
         }
       },
@@ -469,34 +511,48 @@
               "type": "+",
               "pointers": [
                 {
-                  "type": "function",
-                  "function": {
-                    "type": "textOp",
-                    "info": {
-                      "op": "format",
-                      "number": "int",
-                      "argPointers": [
-                        {
-                          "type": "variable",
-                          "variableId": "quantity"
-                        },
-                        {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "D3"
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  "source": {
-                    "line": 27,
-                    "column": 34
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": ""
                   }
+                },
+                {
+                  "type": "primitiveMember",
+                  "primitive": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "member": "ToString",
+                  "receiver": {
+                    "type": "variable",
+                    "variableId": "quantity"
+                  },
+                  "args": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "D3"
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 0,
+                          "required": true
+                        },
+                        "value": null
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "value",
@@ -509,34 +565,38 @@
                   }
                 },
                 {
-                  "type": "function",
-                  "function": {
-                    "type": "textOp",
-                    "info": {
-                      "op": "format",
-                      "number": "decimal",
-                      "argPointers": [
-                        {
-                          "type": "variable",
-                          "variableId": "price"
-                        },
-                        {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "N2"
-                          }
-                        }
-                      ]
-                    }
+                  "type": "primitiveMember",
+                  "primitive": {
+                    "type": 20,
+                    "required": true
                   },
-                  "source": {
-                    "line": 27,
-                    "column": 57
-                  }
+                  "member": "ToString",
+                  "receiver": {
+                    "type": "variable",
+                    "variableId": "price"
+                  },
+                  "args": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "N2"
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 0,
+                          "required": true
+                        },
+                        "value": null
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "value",
@@ -549,34 +609,38 @@
                   }
                 },
                 {
-                  "type": "function",
-                  "function": {
-                    "type": "textOp",
-                    "info": {
-                      "op": "format",
-                      "number": "decimal",
-                      "argPointers": [
-                        {
-                          "type": "variable",
-                          "variableId": "total"
-                        },
-                        {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "N2"
-                          }
-                        }
-                      ]
-                    }
+                  "type": "primitiveMember",
+                  "primitive": {
+                    "type": 20,
+                    "required": true
                   },
-                  "source": {
-                    "line": 27,
-                    "column": 80
-                  }
+                  "member": "ToString",
+                  "receiver": {
+                    "type": "variable",
+                    "variableId": "total"
+                  },
+                  "args": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "N2"
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 0,
+                          "required": true
+                        },
+                        "value": null
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "value",
@@ -589,34 +653,38 @@
                   }
                 },
                 {
-                  "type": "function",
-                  "function": {
-                    "type": "textOp",
-                    "info": {
-                      "op": "format",
-                      "number": "float",
-                      "argPointers": [
-                        {
-                          "type": "variable",
-                          "variableId": "ratio"
-                        },
-                        {
-                          "type": "value",
-                          "value": {
-                            "typeInfo": {
-                              "type": 3,
-                              "required": true
-                            },
-                            "value": "F0"
-                          }
-                        }
-                      ]
-                    }
+                  "type": "primitiveMember",
+                  "primitive": {
+                    "type": 4,
+                    "required": true
                   },
-                  "source": {
-                    "line": 27,
-                    "column": 103
-                  }
+                  "member": "ToString",
+                  "receiver": {
+                    "type": "variable",
+                    "variableId": "ratio"
+                  },
+                  "args": [
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "F0"
+                      }
+                    },
+                    {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 0,
+                          "required": true
+                        },
+                        "value": null
+                      }
+                    }
+                  ]
                 },
                 {
                   "type": "value",
@@ -667,7 +735,7 @@
                     }
                   },
                   "source": {
-                    "line": 27,
+                    "line": 11,
                     "column": 132
                   }
                 },
@@ -682,20 +750,28 @@
                   }
                 },
                 {
-                  "type": "function",
-                  "function": {
-                    "type": "count",
-                    "info": {
-                      "collectionPointer": {
-                        "type": "variable",
-                        "variableId": "parts"
+                  "type": "format",
+                  "pointer": {
+                    "type": "function",
+                    "function": {
+                      "type": "count",
+                      "info": {
+                        "collectionPointer": {
+                          "type": "variable",
+                          "variableId": "parts"
+                        }
                       }
+                    },
+                    "source": {
+                      "line": 11,
+                      "column": 152
                     }
                   },
-                  "source": {
-                    "line": 27,
-                    "column": 152
-                  }
+                  "sourceType": {
+                    "type": 2,
+                    "required": true
+                  },
+                  "mode": "interpolation"
                 },
                 {
                   "type": "value",
@@ -716,7 +792,7 @@
           }
         },
         "source": {
-          "line": 27,
+          "line": 11,
           "column": 7
         }
       }
