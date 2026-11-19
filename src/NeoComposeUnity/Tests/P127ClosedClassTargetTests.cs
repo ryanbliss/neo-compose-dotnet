@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -16,9 +17,9 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// P127 §1.2. A Lookup or class slot with a closed generic class type
-    /// judges a row by its closed type: its class, closed by the slot it's
-    /// placed in, or with its own params as wildcards when that slot leaves
-    /// it open (the server's <c>closedClassTargetViolation</c>). The runtime
+    /// judges a row by its closed type: its class, closed by the arguments
+    /// it was built with, then by the slot it's placed in, each param both
+    /// leave open an unknown that equals only itself (the server's <c>closedClassTargetViolation</c>). The runtime
     /// doesn't judge an object target (the TypeScript runtime's
     /// <c>assertReferenceFits</c>). <c>DerivedBox&lt;T&gt; : Box&lt;T&gt;</c>,
     /// <c>SeedBox : Box&lt;Seed&gt;</c>, <c>DerivedPair&lt;T, U&gt; : Box&lt;T&gt;</c>
@@ -45,7 +46,6 @@ namespace NeoCompose.Tests
         private const string ListBoxId = "class-list-box";
         private const string Box2Id = "class-box2";
         private const string TwinId = "class-twin";
-        private const string SeedPairId = "class-seed-pair";
         private const string NarrowId = "class-narrow";
         private const string HoldsId = "iface-holds";
         private const string HoldsT = "iface-holds-t";
@@ -93,8 +93,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = LoadClient();
 
-            // DerivedPair passes Box its own T, which matches any argument.
-            Assert.IsTrue(Lookup(client, "Tools").Add("pair-row"));
+            // Weird<T> passes Box a Tool, whatever its T.
             Assert.IsTrue(Lookup(client, "Tools").Add("weird-row"));
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "Seeds").Add("weird-row"));
             Assert.AreEqual(
@@ -126,6 +125,13 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = LoadClient();
 
+            // Paired, a Box<Seed> slot, closes DerivedPair's T and leaves its U open.
+            Assert.IsTrue(Lookup(client, "Seeds").Add("pair-row"));
+            var pairError = Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tools").Add("pair-row"));
+            Assert.AreEqual(
+                "lookup member Tools target pair-row is DerivedPair<Seed, U>, but the member declares Box<Tool>. Point it at a Box<Tool> row.",
+                pairError!.Message);
+
             // Listed, a Box<List<Seed>> slot, closes its ListBox<T> : Box<List<T>> row as ListBox<Seed>.
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "ToolLists").Add("list-row"));
             Assert.AreEqual(
@@ -143,30 +149,172 @@ namespace NeoCompose.Tests
             Assert.IsTrue(Lookup(client, "SeedHolders").IsSelectableId("loose-row"));
             Assert.IsFalse(Lookup(client, "ToolHolders").IsSelectableId("seed-box-row"));
             Assert.IsFalse(Lookup(client, "ToolHolders").IsSelectableId("loose-row"));
-            // IHolds doesn't determine DerivedPair's U.
-            Assert.IsFalse(Lookup(client, "SeedHolders").IsSelectableId("pair-row"));
+            // Paired closes DerivedPair's T as Seed and leaves its U open, and
+            // DerivedPair<Seed, U> : Box<Seed> implements IHolds<Seed> (#2556).
+            Assert.IsTrue(Lookup(client, "SeedHolders").IsSelectableId("pair-row"));
+        }
+
+        // ListBox<T> : Box<List<T>> implements IHolds<List<T>>, naming its T
+        // inside List<T>. Listed, a Box<List<Seed>> slot, closes list-row by
+        // unification; HeldList, an IHolds<List<Seed>> slot, holds the
+        // stamped ListBox<Seed> held-list-row.
+        [TestCase("list-row", 9)]
+        [TestCase("held-list-row", 13)]
+        public void AnInterfaceLookupReadsAnArgumentThatNestsTheRowsParam(string rowId, int k)
+        {
+            using NeoClient client = LoadClient();
+
+            Assert.IsTrue(Lookup(client, "SeedListHolders").Add(rowId));
+            CollectionAssert.AreEqual(new[] { rowId }, Lookup(client, "SeedListHolders").Selected());
+            Assert.AreEqual(k, Convert.ToInt32(ReadK(client, rowId, new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = BoxId,
+                typeArguments = new Dictionary<string, TypeInfo>
+                {
+                    [BoxT] = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = ClassType(SeedId) },
+                },
+            })));
+            var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "ToolListHolders").Add(rowId));
+            Assert.AreEqual(
+                $"Holder.ToolListHolders can't reference '{rowId}', because ListBox implements IHolds<List<Seed>>, not IHolds<List<Tool>>.",
+                error!.Message);
         }
 
         [TestCase("SeedHolders", "seed-row", "Holder.SeedHolders can't reference 'seed-row', because Seed doesn't implement IHolds.")]
         [TestCase("ToolHolders", "seed-box-row", "Holder.ToolHolders can't reference 'seed-box-row', because SeedBox implements IHolds<Seed>, not IHolds<Tool>.")]
         // Loose closes its row as DerivedBox<Seed>.
         [TestCase("ToolHolders", "loose-row", "Holder.ToolHolders can't reference 'loose-row', because DerivedBox implements IHolds<Seed>, not IHolds<Tool>.")]
-        [TestCase("ToolHolders", "pair-row", "Holder.ToolHolders can't reference 'pair-row', because IHolds doesn't determine DerivedPair's parameter U.")]
-        // SeedPair : DerivedPair<Seed, Tool> closes it.
-        [TestCase(
-            "SeedHolders",
-            "pair-row",
-            "Holder.SeedHolders can't reference 'pair-row', because IHolds doesn't determine DerivedPair's parameter U. Reference a class that binds it, such as SeedPair.")]
-        [TestCase(
-            "SeedHolders",
-            "narrow-row",
-            "Holder.SeedHolders can't reference 'narrow-row', because Narrow's T extends Seed, and IHolds's T is unconstrained.")]
+        // Paired closes DerivedPair's T as Seed, whatever its U.
+        [TestCase("ToolHolders", "pair-row", "Holder.ToolHolders can't reference 'pair-row', because DerivedPair implements IHolds<Seed>, not IHolds<Tool>.")]
         public void AnInterfaceLookupRefusesARowInTheServersWords(string lookup, string rowId, string message)
         {
             using NeoClient client = LoadClient();
 
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, lookup).Add(rowId));
             Assert.AreEqual(message, error!.Message);
+        }
+
+        // A row stamps the arguments its slot leaves open, so a reference
+        // reads them as C# does, at any depth. TagPair<T, U> : Box<T>, ITag<U>;
+        // TagL<T, U> : Box<T>, ITag<List<U>>; Mix<T, U> : Box<T>, ITag<(T, U)>;
+        // MixD<T, U> : Box<U>, ITag<Dictionary<string, List<T>>>.
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "ITag<Tool>", true)]
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "ITag<Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "TagPair<Seed,Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "IHolds<Seed>", true)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "IHolds<Tool>", false)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "TagPair<Tool,Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<List<Tool>>", true)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<List<Seed>>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "TagL<Seed,Seed>", false)]
+        [TestCase("TagL<Seed,Tool>", "ITag<List<Tool>>", "IHolds<Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "ITag<List<Tool>>", "TagL<Tool,Tool>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Seed,Tool)>", true)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Tool,Tool)>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Seed,Seed)>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "Mix<Seed,Seed>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "ITag<(Tool,Tool)>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "ITag<(Seed,Seed)>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "Mix<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,List<Tool>>>", true)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,List<Seed>>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<List<Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "MixD<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<Dictionary<string,List<Seed>>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<Dictionary<string,Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<List<Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "MixD<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "ITag<Dictionary<string,List<Tool>>>", "IHolds<Tool>", false)]
+        public void AReferenceReadsTheArgumentsARowStamps(string row, string slot, string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient(row, slot, target, stamped: true);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
+        }
+
+        // A variant slot's argument only bounds its row's: the row reads as
+        // the type it was built with, as an object's runtime type does in C#.
+        // VOne<U> : IProd<U>, ISink<U>, with IProd<out X> and ISink<in X>.
+        [TestCase("VOne<Sprout>", "IProd<Seed>", "IProd<Sprout>", "ISink<Seed>", SproutId)]
+        [TestCase("VOne<Seed>", "ISink<Sprout>", "ISink<Seed>", "IProd<Sprout>", SeedId)]
+        public void AVariantSlotKeepsTheArgumentsItsRowWasBuiltWith(
+            string row,
+            string slot,
+            string readAs,
+            string refusedAs,
+            string ownClassId)
+        {
+            using (NeoClient client = LoadTagClient(row, slot, readAs, stamped: true))
+            {
+                var node = client.save.Get<NeoMemberClass>("TagSlot");
+
+                Assert.AreEqual(
+                    TestTypeBindings.Class(ownClassId),
+                    NeoTypeBindingViews.BindingOf(node.GenericEnv[VOneU].memberId!));
+                Assert.AreEqual(7d, node.Get<NeoMemberInt>("k").value!.value);
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+                LogAssert.NoUnexpectedReceived();
+            }
+            using (NeoClient byClass = LoadTagClient(row, slot, row, stamped: true))
+                Assert.IsTrue(Lookup(byClass, "Tagged").Add("tag-row"));
+            using NeoClient refusing = LoadTagClient(row, slot, refusedAs, stamped: true);
+            Assert.Throws<InvalidOperationException>(() => Lookup(refusing, "Tagged").Add("tag-row"));
+        }
+
+        // Unstamped, the U a Box<Seed> slot leaves open is unknown: it equals
+        // no type, so only a target that doesn't read it accepts.
+        [TestCase("Box<Seed>", true)]
+        [TestCase("IHolds<Seed>", true)]
+        [TestCase("Box<Tool>", false)]
+        [TestCase("ITag<Tool>", false)]
+        [TestCase("ITag<Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", false)]
+        [TestCase("TagPair<Seed,Seed>", false)]
+        public void AReferenceRefusesWhatAParamNothingClosesDecides(string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient("TagPair<Seed,Tool>", "Box<Seed>", target, stamped: false);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
+        }
+
+        // The same unknown U at a variant position (ITag<out X>) converts to
+        // nothing, so the reference is refused rather than throwing.
+        [TestCase("Box<Seed>", true)]
+        [TestCase("ITag<Tool>", false)]
+        [TestCase("ITag<Seed>", false)]
+        public void AVariantPositionRefusesWhatAParamNothingClosesDecides(string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient("TagPair<Seed,Tool>", "Box<Seed>", target, stamped: false, tagVariance: NeoGenericParamVarianceKind.Out);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
+        }
+
+        // An interface slot holds any class that implements it, as C# does
+        // (#2556): the server's objectTargetViolation asks only that the row
+        // implement IHolds<Seed>. Paired leaves DerivedPair's U open, and
+        // Narrowed closes Narrow<T extends Seed> as Narrow<Seed>.
+        [TestCase("pair-row", 7)]
+        [TestCase("narrow-row", 10)]
+        public void AnInterfaceLookupHoldsARowItsInterfaceLeavesOpen(string rowId, int k)
+        {
+            using NeoClient client = LoadClient();
+
+            Assert.IsTrue(Lookup(client, "SeedHolders").Add(rowId));
+            CollectionAssert.AreEqual(new[] { rowId }, Lookup(client, "SeedHolders").Selected());
+            Assert.AreEqual(k, Convert.ToInt32(ReadK(client, rowId, Boxed(BoxId, (BoxT, SeedId)))));
         }
 
         [Test]
@@ -730,6 +878,141 @@ namespace NeoCompose.Tests
             return Load(data);
         }
 
+        private const string TagId = "iface-tag";
+        private const string ProdId = "iface-prod";
+        private const string SinkId = "iface-sink";
+        private const string SproutId = "class-sprout";
+        private const string VOneId = "class-v-one";
+        private const string VOneU = "class-v-one-u";
+
+        /// <summary>
+        /// The fixture with a <c>tag-row</c> of <paramref name="row"/> in a
+        /// <paramref name="slot"/> field, stamped with its arguments when
+        /// <paramref name="stamped"/>, and a <c>Tagged</c> lookup declaring
+        /// <paramref name="target"/>. Each type is spelled by class name.
+        /// </summary>
+        private static NeoClient LoadTagClient(string row, string slot, string target, bool stamped, NeoGenericParamVarianceKind? tagVariance = null)
+        {
+            ProjectData data = BuildProjectData();
+            data.interfaces[TagId] = new Interface
+            {
+                id = TagId,
+                projectId = "project",
+                name = "ITag",
+                members = new Dictionary<string, InterfaceMember>(),
+                genericParams = new List<GenericParamDeclaration> { new() { id = TagId + "-x", name = "X", variance = tagVariance } },
+            };
+            TypeBinding Param(string classId, string name) => Forward($"{classId}-{name}");
+            foreach ((string id, string name, TypeBinding boxArgument, Func<string, TypeBinding> tagArgument) in new (string, string, TypeBinding, Func<string, TypeBinding>)[]
+            {
+                ("class-tag-pair", "TagPair", Param("class-tag-pair", "t"), id => Param(id, "u")),
+                ("class-tag-l", "TagL", Param("class-tag-l", "t"), id => TestTypeBindings.List(Param(id, "u"))),
+                ("class-mix", "Mix", Param("class-mix", "t"), id => TestTypeBindings.Tuple(Param(id, "t"), Param(id, "u"))),
+                ("class-mix-d", "MixD", Param("class-mix-d", "u"), id => TestTypeBindings.Dictionary(
+                    TestTypeBindings.Of(MemberKind.String),
+                    TestTypeBindings.List(Param(id, "t")))),
+            })
+            {
+                NeoSchemaClass tagged = Extending(Class(id, name, genericParam: ($"{id}-t", "T"), secondParam: ($"{id}-u", "U")), boxArgument);
+                tagged.implementsInterfaces = new List<InterfaceConstruction>
+                {
+                    new()
+                    {
+                        interfaceId = TagId,
+                        arguments = new Dictionary<string, TypeBinding> { [TagId + "-x"] = tagArgument(id) },
+                    },
+                };
+                data.classes[id] = tagged;
+            }
+            foreach ((string id, string name, NeoGenericParamVarianceKind variance) in new[]
+            {
+                (ProdId, "IProd", NeoGenericParamVarianceKind.Out),
+                (SinkId, "ISink", NeoGenericParamVarianceKind.In),
+            })
+            {
+                data.interfaces[id] = new Interface
+                {
+                    id = id,
+                    projectId = "project",
+                    name = name,
+                    members = new Dictionary<string, InterfaceMember>(),
+                    genericParams = new List<GenericParamDeclaration> { new() { id = id + "-x", name = "X", variance = variance } },
+                };
+            }
+            NeoSchemaClass sprout = Class(SproutId, "Sprout");
+            sprout.extendsClassId = SeedId;
+            data.classes[SproutId] = sprout;
+            NeoSchemaClass vOne = Class(VOneId, "VOne", new Dictionary<string, string> { ["k"] = "member-k" }, (VOneU, "U"));
+            vOne.implementsInterfaces = new List<InterfaceConstruction>
+            {
+                new() { interfaceId = ProdId, arguments = new Dictionary<string, TypeBinding> { [ProdId + "-x"] = Forward(VOneU) } },
+                new() { interfaceId = SinkId, arguments = new Dictionary<string, TypeBinding> { [SinkId + "-x"] = Forward(VOneU) } },
+            };
+            data.classes[VOneId] = vOne;
+            TypeBinding slotType = TagKey(slot, data);
+            var slotMember = new ClassMember
+            {
+                id = "member-tag-slot",
+                projectId = "project",
+                name = "TagSlot",
+                kind = MemberKind.Class,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var slotArguments = new Dictionary<string, TypeBinding>(slotType.Bindings!, StringComparer.Ordinal);
+            if (slotType.Head!.Type == MemberKind.Interface)
+            {
+                slotMember.DeclaredInterfaceId = slotType.Head.InterfaceId;
+                slotMember.interfaceArguments = slotArguments;
+            }
+            else
+            {
+                slotMember.DeclaredClassId = slotType.Head.ClassId;
+                slotMember.classArguments = slotArguments;
+            }
+            data.members[slotMember.id] = slotMember;
+            data.members["member-tagged"] = new LookupMember
+            {
+                id = "member-tagged",
+                projectId = "project",
+                name = "Tagged",
+                kind = MemberKind.Lookup,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Selection = NeoMemberSelectionKind.Single,
+                declaredTypeInfo = NeoTypeBindings.ToTypeInfo(TagKey(target, data)),
+            };
+            data.classes["class-holder"].schema["TagSlot"] = slotMember.id;
+            data.classes["class-holder"].schema["Tagged"] = "member-tagged";
+            ((ObjectMemberValue)data.values["root-save-value"]).value!["TagSlot"] = "tag-row";
+            TypeBinding rowType = TagKey(row, data);
+            ObjectMemberValue tagRow = Row("tag-row", rowType.Head!.ClassId!, new Dictionary<string, string> { ["k"] = "tag-k" });
+            data.values["tag-k"] = new NumberMemberValue { id = "tag-k", value = 7d };
+            if (stamped)
+                tagRow.genericBindings = new Dictionary<string, TypeBinding>(rowType.Bindings!, StringComparer.Ordinal);
+            data.values[tagRow.id] = tagRow;
+            return Load(data);
+        }
+
+        /// <summary><paramref name="spelled"/>, a type naming the fixture's classes and interfaces, as a binding.</summary>
+        private static TypeBinding TagKey(string spelled, ProjectData data) =>
+            TestTypeBindings.FromKey(
+                Regex.Replace(spelled, @"\b(Seed|Sprout|Tool|Box|IHolds|ITag|IProd|ISink|VOne|TagPair|TagL|MixD|Mix)\b", match => match.Value switch
+                {
+                    "Seed" => "c:" + SeedId,
+                    "Sprout" => "c:" + SproutId,
+                    "IProd" => "i:" + ProdId,
+                    "ISink" => "i:" + SinkId,
+                    "VOne" => "c:" + VOneId,
+                    "Tool" => "c:" + ToolId,
+                    "Box" => "c:" + BoxId,
+                    "IHolds" => "i:" + HoldsId,
+                    "ITag" => "i:" + TagId,
+                    "TagPair" => "c:class-tag-pair",
+                    "TagL" => "c:class-tag-l",
+                    "MixD" => "c:class-mix-d",
+                    _ => "c:class-mix",
+                }),
+                data);
+
         private static ProjectData BuildProjectData()
         {
             return new ProjectData
@@ -758,6 +1041,9 @@ namespace NeoCompose.Tests
                         ["DerivedSeeds"] = "member-derived-seeds",
                         ["SeedHolders"] = "member-seed-holders",
                         ["ToolHolders"] = "member-tool-holders",
+                        ["SeedListHolders"] = "member-seed-list-holders",
+                        ["ToolListHolders"] = "member-tool-list-holders",
+                        ["HeldList"] = "member-held-list",
                         ["Listed"] = "member-listed",
                         ["Twinned"] = "member-twinned",
                         ["Lists"] = "member-lists",
@@ -798,7 +1084,6 @@ namespace NeoCompose.Tests
                     [ListBoxId] = Extending(Class(ListBoxId, "ListBox", genericParam: ("class-list-box-t", "T")), ListOfListBoxT),
                     [Box2Id] = Class(Box2Id, "Box2", genericParam: ("class-box2-a", "A"), secondParam: ("class-box2-b", "B")),
                     [TwinId] = Twin(),
-                    [SeedPairId] = SeedPair(),
                     [NarrowId] = Narrow(),
                     [HoldId] = Class(HoldId, "Hold", new Dictionary<string, string>
                     {
@@ -847,6 +1132,18 @@ namespace NeoCompose.Tests
                     ["member-derived-seeds"] = BoxLookup("member-derived-seeds", "DerivedSeeds", DerivedBoxId, DerivedBoxT, SeedId),
                     ["member-seed-holders"] = HoldsLookup("member-seed-holders", "SeedHolders", SeedId),
                     ["member-tool-holders"] = HoldsLookup("member-tool-holders", "ToolHolders", ToolId),
+                    ["member-seed-list-holders"] = HoldsLookup("member-seed-list-holders", "SeedListHolders", SeedId, list: true),
+                    ["member-tool-list-holders"] = HoldsLookup("member-tool-list-holders", "ToolListHolders", ToolId, list: true),
+                    ["member-held-list"] = new ClassMember
+                    {
+                        id = "member-held-list",
+                        projectId = "project",
+                        name = "HeldList",
+                        kind = MemberKind.Class,
+                        Requirement = NeoMemberRequirementKind.Required,
+                        DeclaredInterfaceId = HoldsId,
+                        interfaceArguments = new Dictionary<string, TypeBinding> { [HoldsT] = SeedList },
+                    },
                     ["member-hold-inner"] = HoldInner(),
                     ["member-hold-pair"] = ClassSlot("member-hold-pair", "Pair", BoxId, (BoxT, HoldTuple)),
                     ["member-hold-tuple-seed"] = ClassSlot("member-hold-tuple-seed", "Item2", SeedId),
@@ -929,6 +1226,7 @@ namespace NeoCompose.Tests
                         ["Paired"] = "pair-row",
                         ["ToolBoxed"] = "weird-row",
                         ["Listed"] = "list-row",
+                        ["HeldList"] = "held-list-row",
                         ["Twinned"] = "twin-row",
                         ["Planted"] = "seed-row",
                         ["Narrowed"] = "narrow-row",
@@ -954,6 +1252,9 @@ namespace NeoCompose.Tests
                     ["pair-row"] = Row("pair-row", DerivedPairId, new Dictionary<string, string> { ["k"] = "pair-k" }),
                     ["weird-row"] = Row("weird-row", WeirdId, new Dictionary<string, string> { ["k"] = "weird-k" }),
                     ["list-row"] = Row("list-row", ListBoxId, new Dictionary<string, string> { ["k"] = "list-k" }),
+                    ["held-list-row"] = Stamped(
+                        Row("held-list-row", ListBoxId, new Dictionary<string, string> { ["k"] = "held-list-k" }),
+                        ("class-list-box-t", TestTypeBindings.Class(SeedId))),
                     ["twin-row"] = Row("twin-row", TwinId),
                     ["seed-row"] = Row("seed-row", SeedId),
                     ["narrow-row"] = Row("narrow-row", NarrowId, new Dictionary<string, string> { ["k"] = "narrow-k" }),
@@ -971,6 +1272,7 @@ namespace NeoCompose.Tests
                     ["callback-k"] = new NumberMemberValue { id = "callback-k", value = 15d },
                     ["weird-k"] = new NumberMemberValue { id = "weird-k", value = 8d },
                     ["list-k"] = new NumberMemberValue { id = "list-k", value = 9d },
+                    ["held-list-k"] = new NumberMemberValue { id = "held-list-k", value = 13d },
                     ["loose-k"] = new NumberMemberValue { id = "loose-k", value = 6d },
                     ["pair-k"] = new NumberMemberValue { id = "pair-k", value = 7d },
                 },
@@ -1104,19 +1406,6 @@ namespace NeoCompose.Tests
                 ["class-box2-b"] = Forward("class-twin-t"),
             };
             return twin;
-        }
-
-        /// <summary><c>SeedPair : DerivedPair&lt;Seed, Tool&gt;</c>.</summary>
-        private static NeoSchemaClass SeedPair()
-        {
-            NeoSchemaClass seedPair = Class(SeedPairId, "SeedPair");
-            seedPair.extendsClassId = DerivedPairId;
-            seedPair.extendsGenericBindings = new Dictionary<string, TypeBinding>
-            {
-                [DerivedPairT] = Seed,
-                ["class-derived-pair-u"] = Tool,
-            };
-            return seedPair;
         }
 
         /// <summary><c>Narrow&lt;T extends Seed&gt; : Box&lt;T&gt;</c>.</summary>
@@ -1258,7 +1547,13 @@ namespace NeoCompose.Tests
                 declaredTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = Box2Id, typeArguments = typeArguments },
             };
 
-        private static LookupMember HoldsLookup(string id, string name, string argumentClassId) =>
+        private static ObjectMemberValue Stamped(ObjectMemberValue row, (string Param, TypeBinding Binding) argument)
+        {
+            row.genericBindings = TestTypeBindings.Stamp(argument);
+            return row;
+        }
+
+        private static LookupMember HoldsLookup(string id, string name, string argumentClassId, bool list = false) =>
             new()
             {
                 id = id,
@@ -1274,7 +1569,9 @@ namespace NeoCompose.Tests
                     interfaceId = HoldsId,
                     typeArguments = new Dictionary<string, TypeInfo>
                     {
-                        [HoldsT] = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = argumentClassId },
+                        [HoldsT] = list
+                            ? new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = ClassType(argumentClassId) }
+                            : ClassType(argumentClassId),
                     },
                 },
             };

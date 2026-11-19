@@ -9,7 +9,7 @@ namespace NeoCompose.Runtime.NeoScript
 {
     public static partial class NSGetterEvaluator
     {
-        private static TypeBinding InterfaceReceiverType(object receiver, Context ctx)
+        internal static TypeBinding InterfaceReceiverType(object receiver, Context ctx)
         {
             if (receiver is int or long or float or double or decimal)
                 throw new NeoScriptPreExecutionValidationError("A numeric interface receiver must retain its primitive kind in a box.");
@@ -80,7 +80,7 @@ namespace NeoCompose.Runtime.NeoScript
             return ReadImplementation(target, receiver, ctx);
         }
 
-        private static object? ReadImplementation(NeoInterfaceDispatch.Implementation target, object? receiver, Context ctx)
+        internal static object? ReadImplementation(NeoInterfaceDispatch.Implementation target, object? receiver, Context ctx)
         {
             if (target.PrimitiveMember is not null)
                 return InvokePrimitiveImplementation(target, receiver, Array.Empty<object?>(), ctx);
@@ -180,6 +180,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
             else
                 target = ResolveStaticParameter((TypeParameterStaticPointer)pointer, ctx, "set");
+            WriteImplementation(target, receiver, value, type, scope, ctx);
+        }
+
+        internal static void WriteImplementation(NeoInterfaceDispatch.Implementation target, object? receiver,
+            object? value, TypeInfo type, NeoScriptScope scope, Context ctx)
+        {
             ctx.client.TryGetMember(target.MemberId, out var member);
             if (member is NSPropertyMember implementation)
             {

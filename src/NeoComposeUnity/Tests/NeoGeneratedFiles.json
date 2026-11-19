@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "test-project",
-  "codegenRevision": "e44199d2925bf1da30a4d27cef4b268fdc4746fc9b9443e9f732c3410c1334e2",
+  "codegenRevision": "f03e30f3bb152fd9f036d6f7dda532c33a0ab73cb21104a53c5c534eb559247f",
   "files": [
     {
       "id": "class:class-abstract-readonly-stats",
@@ -56,7 +56,7 @@
     {
       "id": "class:class-contract-null-child",
       "path": "Generated/Classes/ContractNullChild.g.cs",
-      "hash": "b4823932c661a293f3f287c925fc46d4f31bde213b0c28d09a5121ac51894dc7"
+      "hash": "0ab5f53fb9191cf3d716281128e83cf1a76b35f93109c3280e904e0896dc8e89"
     },
     {
       "id": "class:class-contract-null-deep-child",
@@ -136,7 +136,7 @@
     {
       "id": "class:class-generic-probe",
       "path": "Generated/Classes/GenericProbe.g.cs",
-      "hash": "d6efcd5c3947a02a03a8f720ea6a6334e67f964fb127c6863ed08c5ad7247314"
+      "hash": "9361e9648d8c10707e7d69d42d6bcdd88d488fdcf7aa48b6e3e7e95949e7450a"
     },
     {
       "id": "class:class-generic-string-contract",
@@ -231,7 +231,7 @@
     {
       "id": "class:class-text-node-memory",
       "path": "Generated/Classes/NeoTextNodeMemory.g.cs",
-      "hash": "8784c69d42599ead2f975e7b4dccd257417fa9b9fe9a936200237441a4e3e690"
+      "hash": "6a472c65828d8e1f9bc0c3af1765bdb603c974c2f573c7e2f868db0a1c982150"
     },
     {
       "id": "class:class-override",
@@ -251,7 +251,7 @@
     {
       "id": "class:class-root",
       "path": "Generated/Classes/Root.g.cs",
-      "hash": "eb99d5db47949fc195c5d92e153a0ebf1d461118655e59fb7a589fbc885d10e6"
+      "hash": "133b6f9142c504019e486e28ee53e632476048165519efad2b504e2fdbb4b1df"
     },
     {
       "id": "class:class-sample-blocked-path",
@@ -266,32 +266,32 @@
     {
       "id": "class:class-sample-tile-instance",
       "path": "Generated/Classes/SampleTileInstance.g.cs",
-      "hash": "48e0169be28c4f88b492e8148e1869661b1f846f3b2437a46c972cda9e51d2c3"
+      "hash": "55f262a3ab3c6e163c6cb7a05d90162c67c9f87c8921c77f6f5ddb7405c0dda1"
     },
     {
       "id": "class:class-sample-tile-layer-link",
       "path": "Generated/Classes/SampleTileLayerLink.g.cs",
-      "hash": "58b99b10efdc78447b36da4cbd6d412a30f20cc02d50b0f1a299a0b6ce0c59cd"
+      "hash": "7e6871c917f391a82268bb64633cd4a4c83cbf00481aff1b1e044f4a3de5e124"
     },
     {
       "id": "class:class-storage-a",
       "path": "Generated/Classes/StorageA.g.cs",
-      "hash": "732b592d70569d9ed60ede35cdf6189c4927a5754af6a0af846af706befa485b"
+      "hash": "cfe570e84e7d07ba7df8677a50baa049441f2e26100cfd6cad30935756575429"
     },
     {
       "id": "class:class-storage-b",
       "path": "Generated/Classes/StorageB.g.cs",
-      "hash": "ba4f516e150acc4b8158f9f93ade0434b17f8854978ab89b390bf93b2222bcd8"
+      "hash": "49927696f0c4eb5c91113ea0c86ce30da7193716cf8727cb42c5ea3c7938f4ac"
     },
     {
       "id": "class:class-storage-c",
       "path": "Generated/Classes/StorageC.g.cs",
-      "hash": "f8bd6da93631377e9a46a95ff2932cbc31bed34a1d2d2464e86af64b63aa63e3"
+      "hash": "327031e4501539d9032cfc19f278da7c5133ba0088abf50980493a35248be379"
     },
     {
       "id": "class:class-storage-d",
       "path": "Generated/Classes/StorageD.g.cs",
-      "hash": "28300eded6c1b400197a629504abfab65316d27f9bf825d97c6880cf55d1dff9"
+      "hash": "44b5b7df2d41847047005faed223f18b5bc5d0117b25bb9bce73b551fa93cd7b"
     },
     {
       "id": "class:class-storage-e",

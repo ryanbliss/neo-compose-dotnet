@@ -25,6 +25,15 @@ namespace NeoCompose.Runtime
         Ineligible,
     }
 
+    /// <summary>What <see cref="NeoReferenceTypes.OpenClassRowType"/> does with a row param its slot leaves open.</summary>
+    internal enum NeoUnboundRowParamKind
+    {
+        /// <summary>The row has no arguments: it stays open.</summary>
+        Refuse,
+        /// <summary>The param is its own argument, an unknown that equals only itself.</summary>
+        Keep,
+    }
+
     /// <summary>
     /// The P112 type rules the runtime applies to references. Mirrors
     /// <c>reference-category.ts</c>, <c>slot-type-info.ts</c>,
@@ -404,22 +413,61 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P113 §3.6. The type a class row has as a reference target: its
-        /// class, closed by <paramref name="slot"/> when the class is open,
+        /// class, with the arguments its <paramref name="stamp"/> stores
+        /// (§12.1), then those <paramref name="slot"/> gives an open class,
         /// the slot's type read in <paramref name="env"/>, its
-        /// <see cref="RowSlotEnvironment"/>. Null when it stays open. The
-        /// server's <c>classRowTypeInfo</c>.
+        /// <see cref="RowSlotEnvironment"/>. A param neither closes is its
+        /// own argument, an unknown. Null when it stays open. The server's
+        /// <c>classRowTypeInfo</c>.
         /// </summary>
         internal static ClassTypeInfo? ClassRowTypeInfo(
             NeoClient client,
             string rowClassId,
             Member? slot,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry>? env = null)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry>? env = null,
+            IReadOnlyDictionary<string, TypeBinding>? stamp = null)
         {
             if (ClosedClassRowType(client, rowClassId) is { } closed)
                 return closed;
             if (slot is null)
                 return null;
-            return OpenClassRowType(client, rowClassId, SlotTypeInfo(client, slot, env is { Count: > 0 } ? env : null));
+            Dictionary<string, TypeInfo>? stamped = StampedRowArguments(client, rowClassId, stamp, out bool closesRow);
+            // The row was built with these arguments, so its slot can't change them.
+            if (closesRow)
+                return new ClassTypeInfo { type = MemberKind.Class, required = true, classId = rowClassId, typeArguments = stamped };
+            ClassTypeInfo? rowType = OpenClassRowType(client, rowClassId, SlotTypeInfo(client, slot, env is { Count: > 0 } ? env : null), NeoUnboundRowParamKind.Keep);
+            if (stamped is null || rowType?.typeArguments is not { } typeArguments)
+                return rowType;
+            var merged = new Dictionary<string, TypeInfo>(typeArguments, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, TypeInfo> pair in stamped)
+                merged[pair.Key] = pair.Value;
+            return new ClassTypeInfo { type = MemberKind.Class, required = true, classId = rowClassId, typeArguments = merged };
+        }
+
+        /// <summary>The row's params <paramref name="stamp"/> closes, as type infos; null for none. <paramref name="closesRow"/> when it closes every one.</summary>
+        private static Dictionary<string, TypeInfo>? StampedRowArguments(
+            NeoClient client,
+            string rowClassId,
+            IReadOnlyDictionary<string, TypeBinding>? stamp,
+            out bool closesRow)
+        {
+            closesRow = false;
+            if (stamp is not { Count: > 0 } || !client.TryGetClass(rowClassId, out NeoSchemaClass? rowClass))
+                return null;
+            Dictionary<string, TypeInfo>? stamped = null;
+            bool all = true;
+            foreach (GenericParamDeclaration parameter in rowClass.genericParams!)
+            {
+                if (!stamp.TryGetValue(parameter.id, out TypeBinding? binding) || binding.Kind != TypeBindingKind.Closed)
+                {
+                    all = false;
+                    continue;
+                }
+                stamped ??= new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
+                stamped[parameter.id] = NeoTypeBindings.ToTypeInfo(binding);
+            }
+            closesRow = stamped is not null && all;
+            return stamped;
         }
 
         /// <summary>
@@ -547,10 +595,14 @@ namespace NeoCompose.Runtime
         /// slot's type: the slot's arguments when it names the row's class,
         /// the arguments worked back from a base it names (P127 §1.2), or
         /// those an interface it names determines (P113 §3.6). Null when the
-        /// slot leaves the row open, names its class bare, or forwards an
-        /// owner's open parameters.
+        /// slot names its class bare, forwards an owner's open parameters, or,
+        /// unless <paramref name="unbound"/> keeps it, leaves a row param open.
         /// </summary>
-        internal static ClassTypeInfo? OpenClassRowType(NeoClient client, string rowClassId, TypeInfo? stored)
+        internal static ClassTypeInfo? OpenClassRowType(
+            NeoClient client,
+            string rowClassId,
+            TypeInfo? stored,
+            NeoUnboundRowParamKind unbound = NeoUnboundRowParamKind.Refuse)
         {
             if (stored is null || NeoNSFunctionRuntime.ContainsGeneric(stored))
                 return null;
@@ -564,8 +616,10 @@ namespace NeoCompose.Runtime
             }
             Dictionary<string, TypeInfo>? typeArguments = stored switch
             {
-                ClassTypeInfo classType => BaseSlotRowTypeArguments(client, rowClassId, classType),
-                InterfaceTypeInfo interfaceType => InterfaceSlotRowTypeArguments(client, rowClassId, interfaceType),
+                ClassTypeInfo classType => BaseSlotRowTypeArguments(client, rowClassId, classType, unbound),
+                InterfaceTypeInfo interfaceType => unbound == NeoUnboundRowParamKind.Keep
+                    ? InterfaceSlotRowTypeArguments(client, rowClassId, interfaceType)
+                    : DeterminedRowTypeArguments(client, rowClassId, interfaceType),
                 _ => null,
             };
             if (typeArguments is null)
@@ -575,17 +629,24 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The arguments an open row takes from a slot typed by one of its
-        /// bases, as C# infers them: <c>DerivedBox&lt;T&gt;</c> from
+        /// bases: <c>DerivedBox&lt;T&gt;</c> from
         /// <c>Box&lt;Seed&gt;</c>, and <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c>
         /// from <c>Box&lt;List&lt;Seed&gt;&gt;</c>. Null when what the row passes
-        /// doesn't unify with the slot's arguments, or leaves a row param
-        /// unbound, since the row then stays open. The server's
-        /// <c>baseSlotRowTypeArguments</c>.
+        /// doesn't unify with the slot's arguments. A row param the slot
+        /// leaves unbound is its own argument (<see cref="LeavesParamOpen"/>)
+        /// when <paramref name="unbound"/> keeps it, else the row stays open.
+        /// The server's <c>baseSlotRowTypeArguments</c>.
         /// </summary>
-        private static Dictionary<string, TypeInfo>? BaseSlotRowTypeArguments(NeoClient client, string rowClassId, ClassTypeInfo slot)
+        private static Dictionary<string, TypeInfo>? BaseSlotRowTypeArguments(
+            NeoClient client,
+            string rowClassId,
+            ClassTypeInfo slot,
+            NeoUnboundRowParamKind unbound)
         {
             if (client.TypeRules.UnifyRowParams(client, rowClassId, slot.classId, slot.typeArguments) is not { } bound)
                 return null;
+            if (unbound == NeoUnboundRowParamKind.Keep)
+                return KeptRowTypeArguments(client, rowClassId, bound);
             if (!client.TryGetClass(rowClassId, out NeoSchemaClass? rowClass))
                 return null;
             foreach (GenericParamDeclaration parameter in rowClass.genericParams!)
@@ -597,7 +658,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>The arguments an interface slot determines for a row (P113 §3.6).</summary>
-        private static Dictionary<string, TypeInfo>? InterfaceSlotRowTypeArguments(NeoClient client, string rowClassId, InterfaceTypeInfo slot)
+        private static Dictionary<string, TypeInfo>? DeterminedRowTypeArguments(NeoClient client, string rowClassId, InterfaceTypeInfo slot)
         {
             if (slot.typeArguments is not { } interfaceArguments
                 || client.InterfaceImplementers.Determination(rowClassId, slot.interfaceId) is not
@@ -615,16 +676,84 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The arguments an interface slot gives a row (P113 §3.6): each param
+        /// the interface names takes the slot's argument in its place, so
+        /// <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c> in an
+        /// <c>IHolds&lt;List&lt;Seed&gt;&gt;</c> slot binds <c>Seed</c>. The
+        /// interface arm of the server's <c>openClassRowTypeArguments</c>.
+        /// </summary>
+        private static Dictionary<string, TypeInfo>? InterfaceSlotRowTypeArguments(NeoClient client, string rowClassId, InterfaceTypeInfo slot)
+        {
+            if (!client.InterfaceImplementers.TryGetConstruction(rowClassId, slot.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
+                return null;
+            var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
+            foreach (KeyValuePair<string, TypeBinding> position in construction)
+            {
+                if (NeoTypeSources.IsFullyClosed(position.Value)
+                    || slot.typeArguments is not { } interfaceArguments
+                    || !interfaceArguments.TryGetValue(position.Key, out TypeInfo? argument))
+                {
+                    continue;
+                }
+                if (position.Value.IsOpen)
+                    bound.TryAdd(position.Value.Param!, argument);
+                else if (NeoTypeBindingViews.TryView(position.Value, out _) is Member member)
+                    NeoTypeRules.BindRowParams(SlotTypeInfo(client, member), argument, rowClassId, bound);
+            }
+            return KeptRowTypeArguments(client, rowClassId, bound);
+        }
+
+        /// <summary><paramref name="rowClassId"/>'s arguments from <paramref name="bound"/>, each unbound param its own.</summary>
+        private static Dictionary<string, TypeInfo>? KeptRowTypeArguments(NeoClient client, string rowClassId, Dictionary<string, TypeInfo> bound)
+        {
+            if (!client.TryGetClass(rowClassId, out NeoSchemaClass? rowClass))
+                return null;
+            var typeArguments = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
+            foreach (GenericParamDeclaration parameter in rowClass.genericParams!)
+            {
+                typeArguments[parameter.id] = bound.TryGetValue(parameter.id, out TypeInfo? argument)
+                    ? argument
+                    : OwnParam(rowClassId, parameter.id);
+            }
+            return typeArguments;
+        }
+
+        private static GenericTypeInfo OwnParam(string rowClassId, string paramId) => new GenericTypeInfo
+        {
+            type = MemberKind.Generic,
+            required = true,
+            ownerClassId = rowClassId,
+            genericParamId = paramId,
+        };
+
+        /// <summary>
+        /// Whether a class row's type keeps one of its own params as its
+        /// argument, because its slot leaves that param open. The server's
+        /// <c>rowTypeLeavesParamOpen</c>.
+        /// </summary>
+        internal static bool LeavesParamOpen(ClassTypeInfo rowType)
+        {
+            if (rowType.typeArguments is not { } arguments)
+                return false;
+            foreach (TypeInfo argument in arguments.Values)
+            {
+                if (argument is GenericTypeInfo generic && generic.ownerClassId == rowType.classId)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// P127 §1.2. Whether a row of <paramref name="rowClassId"/> converts
         /// to class <paramref name="target"/>. <paramref name="rowType"/> is
-        /// its <see cref="ClassRowTypeInfo"/>, null when its slot leaves an
-        /// open row unclosed: the row's own params are then inferred from the
-        /// target, as C# infers them. A type that stays open fits. The class
-        /// arm of the server's <c>classRowFits</c>.
+        /// its <see cref="ClassRowTypeInfo"/>. A param it leaves open is an
+        /// unknown, equal only to itself; when <paramref name="rowType"/> is
+        /// null, every param is inferred from the target. The class arm of
+        /// the server's <c>classRowFits</c>.
         /// </summary>
         internal static bool ClassRowFits(NeoClient client, string rowClassId, ClassTypeInfo? rowType, ClassTypeInfo target) =>
-            rowType is null
-                ? client.TypeRules.OpenRowConvertsToClass(client, rowClassId, target)
+            rowType is null || LeavesParamOpen(rowType)
+                ? client.TypeRules.OpenRowConvertsToClass(client, rowClassId, target, rowType?.typeArguments)
                 : client.TypeRules.Assignable(client, rowType, target) != false;
 
         /// <summary>
@@ -644,7 +773,8 @@ namespace NeoCompose.Runtime
             string targetId,
             string rowClassId,
             Member? slot,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            IReadOnlyDictionary<string, TypeBinding>? stamp)
         {
             if (lookup.declaredTypeInfo is not InterfaceTypeInfo declared)
                 return null;
@@ -658,7 +788,7 @@ namespace NeoCompose.Runtime
                 return refusal;
             if (declared.typeArguments is null || rowClass.genericParams is not { Count: > 0 })
                 return null;
-            if (ClassRowTypeInfo(client, rowClassId, slot, env)?.typeArguments is not { } rowArguments)
+            if (ClassRowTypeInfo(client, rowClassId, slot, env, stamp)?.typeArguments is not { } rowArguments)
                 return null;
             return implementers.TargetRefusal(label, targetId, rowClassId, declared, rowArguments);
         }
@@ -680,7 +810,8 @@ namespace NeoCompose.Runtime
             string targetId,
             string rowClassId,
             Member? slot,
-            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            IReadOnlyDictionary<string, TypeBinding>? stamp)
         {
             if (lookup.declaredTypeInfo is not ClassTypeInfo { typeArguments: { Count: > 0 } } declared)
                 return null;
@@ -690,7 +821,7 @@ namespace NeoCompose.Runtime
             // The server judges an open row unclosed first, then closed by its slot.
             if (ClosedClassRowType(client, rowClassId) is null && !ClassRowFits(client, rowClassId, null, declared))
                 refused = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = rowClassId };
-            else if (ClassRowTypeInfo(client, rowClassId, slot, env) is { } rowType && !ClassRowFits(client, rowClassId, rowType, declared))
+            else if (ClassRowTypeInfo(client, rowClassId, slot, env, stamp) is { } rowType && !ClassRowFits(client, rowClassId, rowType, declared))
                 refused = rowType;
             if (refused is null)
                 return null;
@@ -923,6 +1054,8 @@ namespace NeoCompose.Runtime
                 case MemberKind.Generic:
                     if (FunctionGenericIndexOf(typeInfo) is int index)
                         text.Append('T').Append(index);
+                    else if (ClassParamName(client, typeInfo) is { } paramName)
+                        text.Append(paramName);
                     else
                         text.Append("Generic<").Append(GenericParamIdOf(typeInfo)).Append('>');
                     break;
@@ -1029,6 +1162,20 @@ namespace NeoCompose.Runtime
             FunctionArgumentTypeInfo argument => argument.enumId,
             _ => null,
         };
+
+        /// <summary>
+        /// A class type param's name, as a partly open row prints one. The
+        /// server's <c>classGenericParamName</c>.
+        /// </summary>
+        private static string? ClassParamName(NeoClient client, TypeInfo typeInfo)
+        {
+            if (typeInfo is not GenericTypeInfo { ownerClassId: { } ownerClassId } generic
+                || !client.TryGetClass(ownerClassId, out NeoSchemaClass? owner))
+            {
+                return null;
+            }
+            return owner.genericParams?.Find(parameter => parameter.id == generic.genericParamId)?.name;
+        }
 
         private static string? GenericParamIdOf(TypeInfo typeInfo) => typeInfo switch
         {

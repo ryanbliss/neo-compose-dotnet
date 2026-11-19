@@ -34,7 +34,7 @@ namespace NeoCompose.Runtime.NeoScript.Numerics
 
         private static readonly BigInteger TwoPow96 = BigInteger.One << 96;
 
-        /// <summary>.NET's <c>DoublePowers10</c>, as far as these conversions index it.</summary>
+        /// <summary><c>DoublePowers10</c>, as far as these conversions index it.</summary>
         private static readonly double[] DoublePowers10 =
         {
             1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9,
@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime.NeoScript.Numerics
 
         /// <summary>
         /// <c>decimal.Create*</c> from a float: checked throws; the others clamp
-        /// at ±2^96 and map NaN to <c>0.0</c>, as .NET 10 does.
+        /// at ±2^96 and map NaN to <c>0.0</c>.
         /// </summary>
         internal static string DecimalFromSingle(float value, NeoCreateMode mode)
         {

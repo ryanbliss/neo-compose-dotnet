@@ -650,6 +650,60 @@ namespace NeoCompose.Tests
                 NeoGenericResolution.FirstUnboundParamId(bare));
         }
 
+        [Test]
+        public void ResolveInstanceEnv_ANullableForwardReadsAReferenceTypeNullable()
+        {
+            var client = LoadClient();
+            TypeBinding card = TestTypeBindings.Class("class-card-base");
+            var arguments = new Dictionary<string, TypeBinding>
+            {
+                [NeoGenericTestFixture.ParamT] = TestTypeBindings.Open("class-middle", NeoGenericTestFixture.ParamU, nullable: true),
+            };
+            TypeBinding Bound(TypeBinding owner)
+            {
+                var ownerEnv = new Dictionary<string, NeoGenericEnvEntry>
+                {
+                    [NeoGenericTestFixture.ParamU] = NeoGenericEnvEntry.Bound(NeoTypeBindingViews.Id(owner)),
+                };
+                var env = NeoGenericResolution.ResolveInstanceEnv(client, "class-enchant", arguments, ownerEnv);
+                return NeoTypeBindingViews.BindingOf(env[NeoGenericTestFixture.ParamT].memberId!)!;
+            }
+
+            Assert.AreEqual(card.WithRequired(false), Bound(card));
+            Assert.AreEqual(NeoGenericTestFixture.FloatArgument, Bound(NeoGenericTestFixture.FloatArgument));
+        }
+
+        [Test]
+        public void ResolveInstanceEnv_ANullableForwardReadsAnOwnerEntryWithBindingsNullable()
+        {
+            // Outer<Card> { Holder<List<T>> H }, Holder<U> { Box<U?> B }: U is
+            // List<T> under {T: Card}, so B's argument is List<Card>?.
+            ProjectData data = NeoGenericTestFixture.BuildProjectData();
+            data.members["member-values"].Requirement = NeoMemberRequirementKind.Required;
+            data.members["member-values-entry"].Requirement = NeoMemberRequirementKind.Required;
+            using NeoClient client = NeoTestSaveStack.ClientFromSchema(data);
+            TypeBinding card = TestTypeBindings.Class("class-card-base");
+            var arguments = new Dictionary<string, TypeBinding>
+            {
+                [NeoGenericTestFixture.ParamT] = TestTypeBindings.Open("class-middle", NeoGenericTestFixture.ParamU, nullable: true),
+            };
+            var ownerEnv = new Dictionary<string, NeoGenericEnvEntry>
+            {
+                [NeoGenericTestFixture.ParamU] = NeoGenericEnvEntry.Bound(
+                    "member-values",
+                    new Dictionary<string, NeoGenericEnvEntry>
+                    {
+                        [NeoGenericTestFixture.ParamT] = NeoGenericEnvEntry.Bound(NeoTypeBindingViews.Id(card)),
+                    }),
+            };
+
+            var env = NeoGenericResolution.ResolveInstanceEnv(client, "class-enchant", arguments, ownerEnv);
+
+            Assert.AreEqual(
+                TestTypeBindings.List(card, required: false),
+                NeoTypeBindings.ArgumentOfEntry(client, env[NeoGenericTestFixture.ParamT], NeoGenericResolution.EmptyEnv));
+        }
+
         // ------------------------------------------------------------------
         // Substitution (Decision-10 field partition).
         // ------------------------------------------------------------------

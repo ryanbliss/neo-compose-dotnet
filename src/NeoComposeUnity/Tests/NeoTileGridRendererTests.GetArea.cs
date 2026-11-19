@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using BindingFlags = System.Reflection.BindingFlags;
+using FieldInfo = System.Reflection.FieldInfo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -171,6 +173,52 @@ namespace NeoCompose.Tests
             string projectJson = File.ReadAllText(projectJsonPath);
             var members = (JObject)JObject.Parse(projectJson)["members"]!;
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(projectJson), assumeCurrentSchema: false);
+            CollectionAssert.IsEmpty(UnhandledSystemNatives(members, client), "System natives with no SDK runtime.");
+            const string unknown = "system_native_without_a_runtime";
+            members[unknown] = new JObject { ["name"] = "UnknownNative", ["kind"] = (int)MemberKind.Function };
+            CollectionAssert.AreEqual(new[] { $"UnknownNative ({unknown})" }, UnhandledSystemNatives(members, client));
+            StringAssert.Contains("Unknown NeoRandom member", Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.InvokeRandomFunction(client, "unknown-native", null, Array.Empty<object?>(), CallReceiverKind.Static))!.Message);
+        }
+
+        private static List<string> UnhandledSystemNatives(JObject members, NeoClient client)
+        {
+            var loweredObjectMembers = new HashSet<string>();
+            var scope = new NeoScriptScope();
+            var context = client.CreateGetterContext(NeoValueOwnership.Asset);
+            // Join the runtime's IR kinds to its canonical slots, and exercise each
+            // EvalObjectMember branch before recognizing it. A constant alone is not coverage.
+            foreach (FieldInfo kind in typeof(ObjectMemberKind).GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                FieldInfo? slot = typeof(NeoObjectContract).GetField(kind.Name + "Member", BindingFlags.NonPublic | BindingFlags.Static);
+                if (slot is null)
+                    continue; // Enum Text has no object schema native.
+                var pointer = new ObjectMemberPointer
+                {
+                    type = PointerKind.ObjectMember,
+                    member = (string)kind.GetRawConstantValue()!,
+                    receiver = Int(7),
+                    receiverType = new PrimitiveTypeInfo { type = MemberKind.Int, required = true },
+                    args = new Pointer[] { Int(7), Int(7) },
+                };
+                Assert.DoesNotThrow(() => NSGetterEvaluator.EvalPointer(pointer, scope, context), kind.Name);
+                loweredObjectMembers.Add((string)slot.GetRawConstantValue()!);
+            }
+            // MemberwiseClone lowers to classClone, not objectMember. Its row guard
+            // proves the actual clone handler was reached, rather than unknown dispatch.
+            var clone = new FunctionPointer
+            {
+                type = PointerKind.Function,
+                function = new ClassCloneFunction
+                {
+                    type = FunctionKind.ClassClone,
+                    info = new FunctionClassCloneInfo { receiverPointer = Int(7) },
+                },
+            };
+            Assert.That(Assert.Throws<NSGetterRuntimeError>(() => NSGetterEvaluator.EvalPointer(clone, scope, context))!.Message,
+                Does.Contain("Class.Clone receiver has no backing value row."));
+            loweredObjectMembers.Add(NeoObjectContract.MemberwiseCloneMember);
+
             var unhandled = new List<string>();
             int natives = 0;
             foreach (var pair in members)
@@ -193,13 +241,13 @@ namespace NeoCompose.Tests
                         client, pair.Key, null, arguments, CallReceiverKind.Static));
                     continue;
                 }
+                if (loweredObjectMembers.Contains(pair.Key) || NeoSystemComparerClasses.Operations.ContainsKey(pair.Key))
+                    continue;
                 if (!NeoCellPatternRuntime.Handles(pair.Key) && !NeoScriptGridQueries.Handles(pair.Key) && !NeoWorldLayerRuntime.Handles(pair.Key) && pair.Key != NeoLayerLinkRuntime.TrySpawnChildId && pair.Key != NeoLayerLinkRuntime.TrySpawnId && pair.Key != NeoLayerLinkRuntime.TrySetId)
                     unhandled.Add($"{pair.Value!["name"]} ({pair.Key})");
             }
             Assert.Greater(natives, 0, "The sample export has no system natives; the kind filter is wrong.");
-            CollectionAssert.IsEmpty(unhandled, "System natives with no SDK runtime.");
-            StringAssert.Contains("Unknown NeoRandom member", Assert.Throws<NSGetterRuntimeError>(() =>
-                NSGetterEvaluator.InvokeRandomFunction(client, "unknown-native", null, Array.Empty<object?>(), CallReceiverKind.Static))!.Message);
+            return unhandled;
         }
 
         /// <summary>

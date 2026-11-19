@@ -168,7 +168,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
             return BoolCompareTo(value, target.Value);
         }
 
-        /// <summary>A format's letter, lowercased as .NET's <c>format | 0x20</c> does; <c>'g'</c> for null or <c>""</c>.</summary>
+        /// <summary>A format's letter, lowercased as <c>format | 0x20</c>; <c>'g'</c> for null or <c>""</c>.</summary>
         internal static char FormatLetter(string? format)
         {
             if (format is null || format.Length == 0)

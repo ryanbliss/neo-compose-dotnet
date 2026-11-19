@@ -2141,7 +2141,7 @@ namespace NeoCompose.Runtime
                 && !NSGetterEvaluator.IsIntrinsicSequence(value, typeInfo, ctx)
                 && !NSGetterEvaluator.IsRowRecord(value, ctx))
             {
-                if (value is not null && client.SequenceCollectionElements.TryGetValue(NSGetterEvaluator.SequenceCollectionIdentity(value), out _))
+                if (value is not null && client.SequenceCollectionTypes.TryGetValue(NSGetterEvaluator.CollectionTypeKey(value), out _))
                     throw new InvalidOperationException($"{subject} has a collection element type incompatible with its declared interface.");
                 value = NeoSequences.WriteBoxed(client, value, typeInfo);
             }
@@ -3067,8 +3067,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Whether <paramref name="value"/> is a float: any number, since a
-        /// float holds NaN and both infinities as a C# float does (P127
-        /// §12.1).
+        /// float holds NaN and both infinities (P127 §12.1).
         /// </summary>
         private static bool IsNumber(object value) =>
             value is double or float or int or long or short;

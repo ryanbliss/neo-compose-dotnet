@@ -17,6 +17,18 @@ namespace NeoCompose.Tests
         [TestCaseSource(nameof(Cases))]
         public void CapturedReadsMatchCli(string name) => NeoSourceParityFixture.AssertTrueCase(FixtureFile, name);
 
+        // A stored class value has one owner, so one already in a stored tuple
+        // can't join a second one; ClassListCopyClone and
+        // ClassPairWriteBackClone copy it instead. The CLI shares it until
+        // ryanbliss/neo-compose#2596 checks owners in tuples.
+        [TestCase("ClassListCopyControl")]
+        [TestCase("ClassPairWriteBack")]
+        public void AnOwnedClassValueCantJoinASecondStoredTuple(string name)
+        {
+            Exception error = Assert.Catch(() => NeoSourceParityFixture.AssertTrueCase(FixtureFile, name));
+            StringAssert.Contains("is already owned by parent value", error.ToString());
+        }
+
         [TestCase("Get")]
         [TestCase("GetRows")]
         public void HostReceivesCurrentTupleContents(string name)

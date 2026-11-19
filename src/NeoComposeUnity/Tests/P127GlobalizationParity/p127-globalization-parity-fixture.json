@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 §11 globalization parity. Expected values: .NET 10 (InvariantGlobalization, PredefinedCulturesOnly) via /tmp/p127/probes/b7-parity; vectors and Color through Unity 6's ToString bodies. The unityDiff rows are .NET 10's answers; the SDK under Unity skips them (contract §3, change 1). A persists row spans two executions: Probe.<name>Write() runs and its effects are stored, then Probe.<name>() runs in a fresh execution over the stored values and returns the pinned result. The neoOnly rows are pinned by contract §12.1 rather than probed, because they grow a NeoScript List<string> that a .NET array can't.",
+  "$comment": "P127 §11 globalization parity. Expected values: .NET 10 (InvariantGlobalization, PredefinedCulturesOnly); vectors and Color through Unity 6's ToString bodies. The unityDiff rows are .NET 10's answers; the SDK under Unity skips them (contract §3, change 1). A persists row spans two executions: Probe.<name>Write() runs and its effects are stored, then Probe.<name>() runs in a fresh execution over the stored values and returns the pinned result. The neoOnly rows are pinned by contract §12.1 rather than probed, because they grow a NeoScript List<string> that a .NET array can't.",
   "source": [
     "enum Hue { Red, Green, Blue }",
     "class Counting : IFormatProvider { public int Calls = 0; public NumberFormatInfo Answer = NumberFormatInfo.InvariantInfo; public object? GetFormat(Type? formatType) { Calls = Calls + 1; return Answer; } }",
@@ -401,21 +401,21 @@
       "source": [
         "class D { public static void M() { CultureInfo.InvariantCulture.Name = \"x\"; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'CultureInfo.Name' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'CultureInfo.Name'."
     },
     {
       "name": "NumberFormatIsReadOnlyWrite",
       "source": [
         "class D { public static void M() { NumberFormatInfo.InvariantInfo.IsReadOnly = true; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'NumberFormatInfo.IsReadOnly' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'NumberFormatInfo.IsReadOnly'."
     },
     {
       "name": "CurrentCultureWrite",
       "source": [
         "class D { public static void M() { CultureInfo.CurrentCulture = CultureInfo.InvariantCulture; } }"
       ],
-      "message": "Classes/Diag.neo:1:36 — CS0200: Property or indexer 'CultureInfo.CurrentCulture' cannot be assigned to -- it is read only"
+      "message": "Classes/Diag.neo:1:36 — read-only-property-assignment: Cannot assign to read-only property 'CultureInfo.CurrentCulture'."
     },
     {
       "name": "IntToStringIntProvider",

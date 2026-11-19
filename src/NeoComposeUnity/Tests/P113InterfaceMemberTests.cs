@@ -15,12 +15,16 @@ namespace NeoCompose.Tests
     /// <summary>
     /// P113 interface members in the SDK: which rows an interface slot admits,
     /// the slot arguments a determined row reads, every write path's
-    /// closed-or-determined check, and the generated interface read and write
+    /// implements-and-stamped check, and the generated interface read and write
     /// helpers. <c>IContainer&lt;T&gt;</c> is implemented by a closed
     /// <c>Box</c>, an <c>OpenBox&lt;U&gt;</c> it determines, a
     /// <c>Keyed&lt;K, V&gt;</c> it can't determine, and not by <c>Plain</c>.
     /// <c>IntBox</c> and <c>CultureBox</c> implement it with other arguments
-    /// than the slots' <c>IContainer&lt;string&gt;</c>.
+    /// than the slots' <c>IContainer&lt;string&gt;</c>, and <c>TwoBox</c>
+    /// implements both <c>IContainer&lt;int&gt;</c> and
+    /// <c>IContainer&lt;string&gt;</c>. <c>SeedMaker</c> and
+    /// <c>SproutMaker</c> implement the covariant <c>IProducer&lt;out X&gt;</c>
+    /// over <c>Seed</c> and its subclass <c>Sprout</c>.
     /// </summary>
     public class P113InterfaceMemberTests
     {
@@ -36,6 +40,13 @@ namespace NeoCompose.Tests
         private const string IntBoxId = "class-int-box";
         private const string CultureBoxId = "class-culture-box";
         private const string HolderP = "class-generic-holder-p";
+        private const string TwoBoxId = "class-two-box";
+        private const string ProducerId = "iface-producer";
+        private const string ProducerX = "iface-producer-x";
+        private const string SeedId = "class-seed";
+        private const string SproutId = "class-sprout";
+        private const string SeedMakerId = "class-seed-maker";
+        private const string SproutMakerId = "class-sprout-maker";
 
         private interface ITestContainer
         {
@@ -89,29 +100,32 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(NeoInterfaceDeterminationKind.Closed, implementers.Determination(BoxId, ContainerId).kind);
             NeoInterfaceDetermination open = implementers.Determination(OpenBoxId, ContainerId);
-            Assert.IsTrue(open.Admits);
+            Assert.IsTrue(open.Determines);
             Assert.AreEqual(OpenBoxU, open.paramByPosition![ContainerT]);
-            Assert.IsFalse(implementers.Determination(KeyedId, ContainerId).Admits);
+            Assert.IsFalse(implementers.Determination(KeyedId, ContainerId).Determines);
             Assert.AreEqual(
                 NeoInterfaceDeterminationKind.NotImplemented,
                 implementers.Determination(PlainId, ContainerId).kind);
             CollectionAssert.AreEqual(
-                new[] { BoxId, OpenBoxId, IntBoxId, CultureBoxId },
+                new[] { BoxId, OpenBoxId, KeyedId, IntBoxId, CultureBoxId, TwoBoxId },
                 implementers.Implementers(ContainerId));
         }
 
         [Test]
-        public void UndeterminedRowMessage_NamesTheParameterTheInterfaceLeavesOpen()
+        public void RowRefusal_RefusesAnUnimplementedClassOrAnUnstampedOpenRow()
         {
-            var client = LoadClient();
+            var implementers = LoadClient().InterfaceImplementers;
+            var unstamped = new ObjectMemberValue { id = "row" };
+            var stamped = new ObjectMemberValue { id = "row", genericBindings = KeyedStamp() };
 
             Assert.AreEqual(
-                "Holder.Slot can't hold a Keyed, because IContainer doesn't determine Keyed's parameter K.",
-                client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", KeyedId, ContainerId));
+                "Value \"row\" is a binding node and stores no stamp.",
+                implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, KeyedId, ContainerId));
+            Assert.IsNull(implementers.RowRefusal(() => "Holder.Slot", "row", stamped, KeyedId, ContainerId));
             Assert.AreEqual(
                 "Holder.Slot can't hold a Plain, because Plain doesn't implement IContainer.",
-                client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", PlainId, ContainerId));
-            Assert.IsNull(client.InterfaceImplementers.UndeterminedRowMessage("Holder.Slot", BoxId, ContainerId));
+                implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, PlainId, ContainerId));
+            Assert.IsNull(implementers.RowRefusal(() => "Holder.Slot", "row", unstamped, BoxId, ContainerId));
         }
 
         [Test]
@@ -128,19 +142,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ClassSlotWrite_RefusesAnUndeterminedRow()
+        public void ClassSlotWrite_HoldsAStampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "keyed-row", KeyedId);
+            AddRow(client, "stamped-row", KeyedId, KeyedStamp());
             var holder = client.save;
 
             var error = Assert.Throws<InvalidOperationException>(() =>
                 holder.SetSerializedValue("Slot", Reference("keyed-row")))!;
 
-            Assert.AreEqual(
-                "Holder.Slot can't hold a Keyed, because IContainer doesn't determine Keyed's parameter K.",
-                error.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", error.Message);
             Assert.IsFalse(holder.TryGet<NeoMemberClass>("Slot", out _));
+            holder.SetSerializedValue("Slot", Reference("stamped-row"));
+            Assert.AreEqual(KeyedId, holder.Get<NeoMemberClass>("Slot").ClassId);
         }
 
         [Test]
@@ -178,6 +193,37 @@ namespace NeoCompose.Tests
                 "ByName can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<string>.",
                 set.Message);
             Assert.AreEqual(0, list.Count);
+        }
+
+        [Test]
+        public void ClassSlotWrite_HoldsARowThroughAnyConstructionItsClassImplements()
+        {
+            var client = LoadClient();
+            AddRow(client, "two-row", TwoBoxId);
+            var holder = client.save;
+
+            // TwoBox : IContainer<int>, IContainer<string> fits IContainer<string> by its second.
+            holder.SetSerializedValue("Slot", Reference("two-row"));
+            Assert.AreEqual(TwoBoxId, holder.Get<NeoMemberClass>("Slot").ClassId);
+            ClassMember typeSlot = InterfaceSlot("member-type-slot", "TypeSlot", ObjectArgument(NeoObjectTypeKind.Type));
+            NeoSlotAdmission refused = NeoGenericResolution.ConstructedSlotAccepts(client, typeSlot, TwoBoxId, NeoGenericResolution.EmptyEnv);
+            Assert.AreEqual(
+                "TypeSlot can't hold a TwoBox, because TwoBox implements IContainer<int> and IContainer<string>, not IContainer<Type>.",
+                refused.reason);
+        }
+
+        [Test]
+        public void ConstructedSlotAccepts_ConvertsACovariantArgument()
+        {
+            var client = LoadClient();
+            ClassMember seeds = InterfaceSlotWithArgument("member-seeds", "Seeds", TestTypeBindings.Class(SeedId), ProducerId, ProducerX);
+            ClassMember sprouts = InterfaceSlotWithArgument("member-sprouts", "Sprouts", TestTypeBindings.Class(SproutId), ProducerId, ProducerX);
+
+            // IProducer<Sprout> converts to IProducer<Seed>, not back.
+            Assert.IsTrue(NeoGenericResolution.ConstructedSlotAccepts(client, seeds, SproutMakerId, NeoGenericResolution.EmptyEnv).ok);
+            Assert.AreEqual(
+                "Sprouts can't hold a SeedMaker, because SeedMaker implements IProducer<Seed>, not IProducer<Sprout>.",
+                NeoGenericResolution.ConstructedSlotAccepts(client, sprouts, SeedMakerId, NeoGenericResolution.EmptyEnv).reason);
         }
 
         [Test]
@@ -239,23 +285,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ListWrites_RefuseAnUndeterminedRow()
+        public void ListWrites_RefuseAnUnstampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "box-row", BoxId);
             AddRow(client, "keyed-row", KeyedId);
+            AddRow(client, "stamped-row", KeyedId, KeyedStamp());
             var list = client.save.GetOrCreateCollection<NeoMemberListWritable>("Containers");
 
             var add = Assert.Throws<InvalidOperationException>(() => list.AddSerialized(Reference("keyed-row")))!;
-            StringAssert.StartsWith("Containers can't hold a Keyed", add.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", add.Message);
             list.AddSerialized(Reference("box-row"));
             var set = Assert.Throws<InvalidOperationException>(() => list.SetSerialized(0, Reference("keyed-row")))!;
-            StringAssert.StartsWith("Containers can't hold a Keyed", set.Message);
-            Assert.AreEqual(1, list.Count);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", set.Message);
+            list.AddSerialized(Reference("stamped-row"));
+            Assert.AreEqual(2, list.Count);
         }
 
         [Test]
-        public void DictionaryWrite_RefusesAnUndeterminedRow()
+        public void DictionaryWrite_RefusesAnUnstampedRowTheInterfaceLeavesOpen()
         {
             var client = LoadClient();
             AddRow(client, "keyed-row", KeyedId);
@@ -264,7 +312,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<InvalidOperationException>(() =>
                 dictionary.SetSerialized("a", Reference("keyed-row")))!;
 
-            StringAssert.StartsWith("ByName can't hold a Keyed", error.Message);
+            Assert.AreEqual("Value \"keyed-row\" is a binding node and stores no stamp.", error.Message);
         }
 
         [Test]
@@ -397,7 +445,11 @@ namespace NeoCompose.Tests
         private static NeoValueWritePayload Reference(string valueId) =>
             NeoValueWritePayload.FromValueReference(valueId, null);
 
-        private static void AddRow(NeoClient client, string id, string classId)
+        private static void AddRow(
+            NeoClient client,
+            string id,
+            string classId,
+            Dictionary<string, TypeBinding>? genericBindings = null)
         {
             client.SetSaveValue(new ObjectMemberValue
             {
@@ -406,8 +458,16 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
                 value = new Dictionary<string, string>(),
+                genericBindings = genericBindings,
             });
         }
+
+        /// <summary>The stamp a <c>Keyed&lt;int, string&gt;</c> row stores.</summary>
+        private static Dictionary<string, TypeBinding> KeyedStamp() => new()
+        {
+            [KeyedK] = TestTypeBindings.Of(MemberKind.Int),
+            [KeyedV] = StringArgument,
+        };
 
         private static ProjectData BuildProjectData()
         {
@@ -430,7 +490,21 @@ namespace NeoCompose.Tests
                     rootSaveFileMemberId = "root-save",
                     rootSessionMemberId = "root-session",
                 },
-                interfaces = new Dictionary<string, Interface> { [ContainerId] = container },
+                interfaces = new Dictionary<string, Interface>
+                {
+                    [ContainerId] = container,
+                    [ProducerId] = new Interface
+                    {
+                        id = ProducerId,
+                        projectId = "project",
+                        name = "IProducer",
+                        members = new Dictionary<string, InterfaceMember>(),
+                        genericParams = new List<GenericParamDeclaration>
+                        {
+                            new() { id = ProducerX, name = "X", variance = NeoGenericParamVarianceKind.Out },
+                        },
+                    },
+                },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
                     ["class-root"] = Class("class-root", "Root"),
@@ -450,6 +524,11 @@ namespace NeoCompose.Tests
                     [PlainId] = Class(PlainId, "Plain"),
                     [IntBoxId] = Implementing(Class(IntBoxId, "IntBox"), TestTypeBindings.Of(MemberKind.Int)),
                     [CultureBoxId] = Implementing(Class(CultureBoxId, "CultureBox"), ObjectArgument(NeoObjectTypeKind.CultureInfo)),
+                    [TwoBoxId] = Implementing(Class(TwoBoxId, "TwoBox"), TestTypeBindings.Of(MemberKind.Int), StringArgument),
+                    [SeedId] = Class(SeedId, "Seed"),
+                    [SproutId] = Extending(Class(SproutId, "Sprout"), SeedId),
+                    [SeedMakerId] = Producing(Class(SeedMakerId, "SeedMaker"), SeedId),
+                    [SproutMakerId] = Producing(Class(SproutMakerId, "SproutMaker"), SproutId),
                     ["class-generic-holder"] = Class(
                         "class-generic-holder",
                         "GenericHolder",
@@ -496,11 +575,16 @@ namespace NeoCompose.Tests
         private static ClassMember InterfaceSlot(string id, string name, TypeBinding? argument = null) =>
             InterfaceSlotWithArgument(id, name, argument ?? StringArgument);
 
-        private static ClassMember InterfaceSlotWithArgument(string id, string name, TypeBinding argument)
+        private static ClassMember InterfaceSlotWithArgument(
+            string id,
+            string name,
+            TypeBinding argument,
+            string interfaceId = ContainerId,
+            string paramId = ContainerT)
         {
             return (ClassMember)JsonConvert.DeserializeObject<Member>(
-                $"{{'id':'{id}','projectId':'project','name':'{name}','kind':7,'interfaceId':'{ContainerId}',"
-                    + $"'interfaceArguments':{{'{ContainerT}':{JsonConvert.SerializeObject(argument)}}},"
+                $"{{'id':'{id}','projectId':'project','name':'{name}','kind':7,'interfaceId':'{interfaceId}',"
+                    + $"'interfaceArguments':{{'{paramId}':{JsonConvert.SerializeObject(argument)}}},"
                     + "'createdAt':'x','updatedAt':'x'}")!;
         }
 
@@ -510,16 +594,36 @@ namespace NeoCompose.Tests
         private static TypeBinding Forward(string paramId) =>
             TestTypeBindings.Open(paramId.Substring(0, paramId.LastIndexOf('-')), paramId);
 
-        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, TypeBinding argument)
+        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, params TypeBinding[] arguments)
+        {
+            schemaClass.implementsInterfaces = new List<InterfaceConstruction>();
+            foreach (TypeBinding argument in arguments)
+            {
+                schemaClass.implementsInterfaces.Add(new InterfaceConstruction
+                {
+                    interfaceId = ContainerId,
+                    arguments = new Dictionary<string, TypeBinding> { [ContainerT] = argument },
+                });
+            }
+            return schemaClass;
+        }
+
+        private static NeoSchemaClass Producing(NeoSchemaClass schemaClass, string producedClassId)
         {
             schemaClass.implementsInterfaces = new List<InterfaceConstruction>
             {
                 new()
                 {
-                    interfaceId = ContainerId,
-                    arguments = new Dictionary<string, TypeBinding> { [ContainerT] = argument },
+                    interfaceId = ProducerId,
+                    arguments = new Dictionary<string, TypeBinding> { [ProducerX] = TestTypeBindings.Class(producedClassId) },
                 },
             };
+            return schemaClass;
+        }
+
+        private static NeoSchemaClass Extending(NeoSchemaClass schemaClass, string baseClassId)
+        {
+            schemaClass.extendsClassId = baseClassId;
             return schemaClass;
         }
 

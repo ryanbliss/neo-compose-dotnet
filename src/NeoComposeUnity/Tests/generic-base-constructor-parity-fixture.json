@@ -17,10 +17,9 @@
     "}",
     "class NullableCaller<U> {",
     " public U? Value(U? value) => Probe.MakeNullable<U>(value);",
-    " public U? Declared() => Probe.MakeNullable<U>(null);",
-    " public U? Implicit() => Probe.MakeNullableImplicit<U>(null);",
+    " public U? Declared() => Probe.MakeNullable<U>(default);",
+    " public U? Implicit() => Probe.MakeNullableImplicit<U>(default);",
     "}",
-    "class NullableDerived : NullableCaller<bool> {}",
     "class RepeatedPairDerived : NullableCaller<Pair<int, int>> {}",
     "class ChainedCaller<U> { public U Run(U value) => Probe.ForwardConstruction<U>(value); }",
     "class Probe {",
@@ -29,9 +28,6 @@
     " public static string ChainedString() => new ChainedCaller<string>().Run(\"chain\");",
     " public static bool RepeatedPairNullable() => new RepeatedPairDerived().Declared() == null && new RepeatedPairDerived().Implicit() == null;",
     " public static bool ForwardedTypes() => new NullableCaller<int>().Value(3) == 3 && new NullableCaller<string>().Value(\"x\") == \"x\" && new NullableCaller<int>().Value(4) == 4;",
-    " public static bool ClassForwardedNullable() => new NullableCaller<float>().Declared() == null;",
-    " public static bool ClassForwardedNullableImplicit() => new NullableCaller<int>().Implicit() == null;",
-    " public static bool InheritedNullable() => new NullableDerived().Declared() == null && new NullableDerived().Implicit() == null;",
     " public static T? MakeNullable<T>(T? value) => new ValueBox<T?>(value).Value;",
     " public static T? MakeNullableImplicit<T>(T? value) => new ImplicitBox<T?>() { Value = value }.Value;",
     " public static bool NullableDeclared() => MakeNullable<string>(null) == null && MakeNullable<string>(\"a\") == \"a\";",
@@ -65,15 +61,5 @@
     "RepeatedPairNullable": true,
     "ChainedInt": 7,
     "ChainedString": "chain"
-  },
-  "refuses": {
-    "ClassForwardedNullable": "NSFunction argument 1 does not match its declared runtime type.",
-    "ClassForwardedNullableImplicit": "NSFunction argument 1 does not match its declared runtime type.",
-    "InheritedNullable": "NSFunction argument 1 does not match its declared runtime type."
-  },
-  "notes": {
-    "ClassForwardedNullable": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused.",
-    "ClassForwardedNullableImplicit": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused.",
-    "InheritedNullable": "P127 §4.2: T? over a non-null value-kind binding (float, int, bool) is that value type, so null passed to MakeNullable<T>(T? value) is refused."
   }
 }

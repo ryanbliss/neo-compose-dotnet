@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -828,8 +829,22 @@ namespace NeoCompose.Runtime
         private bool CanReplayVirtualInstanceRoot(ObjectMemberValue root)
         {
             return sessionData.values.ContainsKey(root.id)
-                || (TryInferMemberForValueId(root.id, out Member? member)
-                    && member is ClassMember);
+                || TryInferClassPlacement(root, out _);
+        }
+
+        /// <summary>
+        /// The Class placement a stored root replays under: its slot, or the
+        /// held class of an <c>object</c> slot's class row, as it stores
+        /// (P127 §1.3).
+        /// </summary>
+        private bool TryInferClassPlacement(
+            ObjectMemberValue root,
+            [NotNullWhen(true)] out ClassMember? placement)
+        {
+            placement = TryInferMemberForValueId(root.id, out Member? member)
+                ? ExpansionPayloadMember(root, member) as ClassMember
+                : null;
+            return placement is not null;
         }
 
         private static bool IsStoredClassDefaultRoot(ObjectMemberValue root) =>
@@ -861,8 +876,7 @@ namespace NeoCompose.Runtime
                         return;
                     if ((virtualClassChildren.ContainsKey(root.id)
                             && virtualRootByFootprintId.TryGetValue(root.id, out string? owner) && owner != root.id)
-                        || !TryInferMemberForValueId(root.id, out Member? inferred)
-                        || inferred is not ClassMember placement
+                        || !TryInferClassPlacement(root, out ClassMember? placement)
                         || placement.Payload == NeoMemberPayloadKind.Partial)
                         return;
                 }
@@ -904,8 +918,7 @@ namespace NeoCompose.Runtime
         private void AssertPersistedVirtualInstanceRootIsClassPlacement(
             ObjectMemberValue root)
         {
-            if (!TryInferMemberForValueId(root.id, out Member? member)
-                || member is not ClassMember classMember)
+            if (!TryInferClassPlacement(root, out _))
             {
                 throw new InvalidOperationException(
                     $"P75 sparse instance root '{root.id}' is not reachable through a Class member placement.");
@@ -1447,24 +1460,14 @@ namespace NeoCompose.Runtime
                     ? resolvedOwnership
                     : ResolveAuthoredOwnership(instanceRoot.id, instanceRoot));
             using var allocations = new ReplayAllocationScope(this);
-            ClassMember? placementMember = null;
-            if (TryInferMemberForValueId(
-                    instanceRoot.id,
-                    out Member? inferredPlacement)
-                && inferredPlacement is ClassMember classPlacement)
-            {
-                placementMember = classPlacement;
-            }
+            TryInferClassPlacement(instanceRoot, out ClassMember? placementMember);
             // P127 §12.1: a root that isn't a binding node reads its class's
             // bindings through its typeSource, one hop away.
             IReadOnlyDictionary<string, TypeBinding>? rootStamp = instanceRoot.typeSource is not null
                 ? NeoTypeSources.TypeSourcedClassRowStamp(this, instanceRoot, instanceRoot.classId!)
                 : instanceRoot.genericBindings;
             IReadOnlyDictionary<string, TypeBinding>? replayClassArguments =
-                NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    this,
-                    rootStamp,
-                    SlotClassArguments(placementMember, instanceRoot.classId!));
+                SlotClassArguments(placementMember, instanceRoot.classId!, rootStamp);
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             ConstructionSnapshot? snapshot = null;
             bool wasReplaying = isReplayingVirtualInstance;
@@ -1986,10 +1989,7 @@ namespace NeoCompose.Runtime
                 virtualId = VirtualValueId(instanceRoot.id, sourceIdentity, replayIdHash);
             }
             claimedVirtualIds[virtualId] = path;
-            // The slot controls ownership; a box's held type controls its child graph.
-            Member payloadMember = row.valueType is { } heldType
-                ? TypeRules.Box(heldType).Member ?? member
-                : member;
+            Member payloadMember = ExpansionPayloadMember(row, member);
             var node = new VirtualExpansionNode
             {
                 row = row,
@@ -2090,6 +2090,19 @@ namespace NeoCompose.Runtime
                 return child;
             }
             return node;
+        }
+
+        /// <summary>
+        /// The slot controls ownership; a box's held type, or the class of an
+        /// <c>object</c> slot's class row, controls its child graph (P127 §1.3).
+        /// </summary>
+        private Member ExpansionPayloadMember(MemberValue row, Member member)
+        {
+            if (row.valueType is { } heldType)
+                return TypeRules.Box(heldType).Member ?? member;
+            if (member is ObjectMember && row is ObjectMemberValue { classId: { Length: > 0 } heldClassId })
+                return NeoGeneratedTypesSupport.UnplacedClassMember(this, heldClassId, null, row);
+            return member;
         }
 
         private static bool CanHoldOverlayClassValue(Member member)
@@ -2225,7 +2238,7 @@ namespace NeoCompose.Runtime
             switch (clone)
             {
                 case ObjectMemberValue obj when obj.value is not null:
-                    if (node.member is ClassMember)
+                    if (node.payloadMember is ClassMember)
                     {
                         obj.value = node.classChildren.ToDictionary(
                             pair => pair.Key,
@@ -2463,7 +2476,7 @@ namespace NeoCompose.Runtime
                     OwnedComparerValueId(materialized ?? node.row) == comparerChild.virtualId ? comparerChild.virtualId : null,
                     ownership, instanceRoot);
 
-            if (node.member is ClassMember)
+            if (node.payloadMember is ClassMember)
             {
                 Dictionary<string, string>? stored =
                     (materialized as ObjectMemberValue)?.value;
@@ -3154,7 +3167,7 @@ namespace NeoCompose.Runtime
         /// omitted value lands at two different ids. A member with no id is
         /// written as <see cref="InlineMemberSentinel"/> rather than as an
         /// empty segment, which is what the web emits for an inline
-        /// declaration.</para>
+        /// declaration. So is a binding view, whose id is process-local.</para>
         /// </summary>
         internal static string VirtualSourceIdentity(
             MemberValue row,
@@ -3163,10 +3176,15 @@ namespace NeoCompose.Runtime
         {
             if (!string.IsNullOrEmpty(row.sourceValueId))
                 return row.sourceValueId!;
-            string memberId = string.IsNullOrEmpty(member.id)
+            return PositionalSourceIdentity(member.id, path);
+        }
+
+        internal static string PositionalSourceIdentity(string? memberId, string path)
+        {
+            string stable = string.IsNullOrEmpty(memberId) || NeoTypeBindingViews.IsViewId(memberId)
                 ? InlineMemberSentinel
-                : member.id;
-            return $"path:{memberId}:{path}";
+                : memberId;
+            return $"path:{stable}:{path}";
         }
 
         /// <summary>
@@ -3174,6 +3192,13 @@ namespace NeoCompose.Runtime
         /// a positional source identity. Byte-identical to the web's.
         /// </summary>
         internal const string InlineMemberSentinel = "<inline>";
+
+        /// <summary>
+        /// Starts the member id a listener descriptor stores for a binding
+        /// view's position: the type the view stands for, spelled as the web
+        /// spells it. Byte-identical to the web's.
+        /// </summary>
+        internal const string StableViewPrefix = "view:";
 
         /// <summary>
         /// uuidv5 (RFC 4122, SHA-1, big-endian) of

@@ -15,7 +15,7 @@ namespace NeoCompose.Runtime
     /// <see cref="NeoDecimalMath.Divide(string, string, int)"/>,
     /// <see cref="NeoDecimalMath.FromFloat"/>) produced a result outside the
     /// decimal envelope: a coefficient above 2⁹⁶ − 1 at the requested scale.
-    /// It carries .NET's overflow message, and the evaluator raises it as
+    /// It carries the overflow message, and the evaluator raises it as
     /// <c>NeoOverflowError</c>, as the operators throw directly (P127 §3.4).
     /// </summary>
     public class DecimalOverflowException : Exception
@@ -85,12 +85,12 @@ namespace NeoCompose.Runtime
             return powers;
         }
 
-        /// <summary>.NET's <c>SR.Overflow_Decimal</c>.</summary>
+        /// <summary>The decimal overflow message.</summary>
         internal const string OverflowMessage = "Value was either too large or too small for a Decimal.";
 
         internal static NeoRuntimeError Overflow() => new(NeoErrorClass.NeoOverflowError, OverflowMessage);
 
-        /// <summary>.NET's <c>SR.Arg_DivideByZero</c>.</summary>
+        /// <summary>The divide-by-zero message.</summary>
         private static NeoRuntimeError DivideByZero() => new(
             NeoErrorClass.NeoDivideByZeroError,
             "Attempted to divide by zero.");
@@ -185,8 +185,8 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// The explicit rounding entry points' overflow check. Their scale is
         /// at most the 0..28 digits they are given, so only the coefficient can
-        /// leave the envelope; it throws .NET's <c>OverflowException</c>
-        /// message, as the equivalent C# conversion does (P127 §3.4).
+        /// leave the envelope; it throws the <c>OverflowException</c>
+        /// message (P127 §3.4).
         /// </summary>
         private static DecimalParts AssertWithinEnvelope(DecimalParts parts)
         {
@@ -441,7 +441,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// <c>SearchScale</c>: the largest power of 10, at most 9 and at most
         /// what keeps the scale within 28, that <paramref name="quotient"/>
-        /// can be scaled up by and still fit in 96 bits. Like .NET, it throws
+        /// can be scaled up by and still fit in 96 bits. It throws
         /// <c>NeoOverflowError</c> when that power is below 9 and can't bring
         /// a negative <paramref name="scale"/> to 0.
         /// </summary>

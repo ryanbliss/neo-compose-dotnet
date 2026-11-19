@@ -1911,6 +1911,8 @@ namespace NeoCompose.Runtime.NeoScript
             private bool collectionMembersResolved;
             private JsonMember? collectionMember;
             private JsonMember? entryMember;
+            private bool heldTypeResolved;
+            private CollectionTypeInfo? heldType;
             /// <summary>The row's value node, kept so repeated reads skip the id lookup.</summary>
             internal NeoValueNode? node;
             // The getter capture that last recorded a read of this row.
@@ -2044,6 +2046,17 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ResolveCollectionMembers(client);
                 return entryMember;
+            }
+
+            /// <summary>The row's own collection type, built once: its member and bindings don't change.</summary>
+            internal CollectionTypeInfo? HeldType(NeoClient client)
+            {
+                if (!heldTypeResolved)
+                {
+                    heldType = StoredCollectionType(this, client);
+                    heldTypeResolved = true;
+                }
+                return heldType;
             }
 
             private void ResolveCollectionMembers(NeoClient client)
@@ -2718,8 +2731,9 @@ namespace NeoCompose.Runtime.NeoScript
                 strings |= arr[i] is string;
             }
             if (llp.typeInfo is { type: MemberKind.Set, entryTypeInfo: { } entryType })
-                return EqualitySetQuery(new FunctionCollectionQueryInfo { op = "ToSet", equality = new EqualitySite { type = entryType } }, arr, scope, ctx);
-            return KeepDerived(arr, null, strings);
+                return CreatedCollection(EqualitySetQuery(new FunctionCollectionQueryInfo { op = "ToSet", equality = new EqualitySite { type = entryType } }, arr, scope, ctx),
+                    MemberKind.Set, entryType, ctx);
+            return CreatedCollection(KeepDerived(arr, null, strings), MemberKind.List, llp.typeInfo?.entryTypeInfo, ctx);
         }
 
         /// <summary>A dictionary literal's entries.</summary>
@@ -2739,9 +2753,9 @@ namespace NeoCompose.Runtime.NeoScript
                 && equality.Default.Type.Equals(original.Equality.Default.Type)
                 && SameObject(equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx),
                     original.Equality.Comparer ?? DefaultComparer(original.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx), ctx))
-                return KeepDerived(new RuntimeDictionary(equality,
+                return CreatedCollection(KeepDerived(new RuntimeDictionary(equality,
                     NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true), original),
-                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo));
+                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo)), MemberKind.Dictionary, dlp.typeInfo?.entryTypeInfo, ctx, dlp.typeInfo?.keyEnumId);
             IDictionary<string, object?> dict = new RuntimeDictionary(equality, capacity);
             if (source is not null)
             {
@@ -2763,7 +2777,7 @@ namespace NeoCompose.Runtime.NeoScript
                 dict[key] = value;
                 strings |= value is string;
             }
-            return KeepDerived(dict, null, strings);
+            return CreatedCollection(KeepDerived(dict, null, strings), MemberKind.Dictionary, dlp.typeInfo?.entryTypeInfo, ctx, dlp.typeInfo?.keyEnumId);
         }
 
         /// <summary>A force-unwrapped value, which must not be null.</summary>
@@ -5016,7 +5030,9 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     owner = outer;
                     string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
-                    if (entryId is not null && Answers(batch, outer.Ownership, entryId, read) is { } nested)
+                    // Evaluating the key can call a function that commits the held batch.
+                    if (entryId is not null && ctx.client.PendingScriptWrites is { } current
+                        && Answers(current, outer.Ownership, entryId, read) is { } nested)
                     {
                         value = null;
                         return nested;
@@ -5024,6 +5040,13 @@ namespace NeoCompose.Runtime.NeoScript
                     value = entryId is null ? outer.Row.id : ResolvePendingEntry(outer, entryId, ctx);
                     return null;
                 }
+                // Evaluating the receiver can call a function that commits the held batch.
+                if (ctx.client.PendingScriptWrites is not { } live)
+                {
+                    value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
+                    return null;
+                }
+                batch = live;
                 if (keyOf.keyOf.key is ValuePointer
                     && EvalPointer(keyOf.keyOf.key, scope, ctx) is string key
                     && StoredMemberId(batch, receiver, key, ctx, out NeoValueOwnership memberOwnership) is string memberId
@@ -5053,6 +5076,13 @@ namespace NeoCompose.Runtime.NeoScript
             if (pointer is FunctionPointer { function: TupleElementFunction tupleElement })
             {
                 object? raw = EvalTupleElement(tupleElement.info, scope, ctx, refreshCollection: false);
+                // Evaluating the tuple can call a function that commits the held batch.
+                if (ctx.client.PendingScriptWrites is not { } live)
+                {
+                    value = evaluate ? RuntimeCollection(ReadNestedCollectionAlias(raw, ctx), ctx) : raw;
+                    return null;
+                }
+                batch = live;
                 if (raw is not null && ctx.client.CommitRemovedScriptAlias(raw, ctx))
                 {
                     value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
@@ -5173,11 +5203,31 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            if (pending is NeoWriteBatch.PendingList list)
-                return PendingListEntry(list, keyPointer, scope, ctx);
+            if (pending is NeoWriteBatch.PendingList indexed
+                && keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
+                return indexed[ListPosition(indexed.Count, position)];
+            NeoWriteBatch batch = ctx.client.PendingScriptWrites!;
             var key = EvalPointer(keyPointer, scope, ctx);
+            // Evaluating the key can call a function that commits the held
+            // batch, so the entry is the collection's current one.
+            if (!ReferenceEquals(batch, ctx.client.PendingScriptWrites))
+            {
+                if (ctx.client.PendingScriptWrites?.Collection(pending.Ownership, pending.Row.id) is { } current)
+                    pending = current;
+                else if (!ctx.client.TryGetValue(pending.Ownership, pending.Row.id, out MemberValue? row))
+                    throw new NSGetterRuntimeError($"Collection '{pending.Row.id}' has no row.");
+                else if (row is ArrayMemberValue array)
+                    pending = new NeoWriteBatch.PendingList(array, pending.Ownership, null);
+                else
+                    return ObjectEntryId(row, key);
+            }
+            return pending is NeoWriteBatch.PendingList list ? PendingListEntry(list, key) : ObjectEntryId(pending.Row, key);
+        }
+
+        private static string ObjectEntryId(MemberValue row, object? key)
+        {
             string k = key as string ?? key?.ToString() ?? "null";
-            if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
+            if (!((ObjectMemberValue)row).value!.TryGetValue(k, out string? entryId))
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object", NeoErrorContract.NeoKeyNotFoundError);
             return entryId;
         }
@@ -5191,22 +5241,15 @@ namespace NeoCompose.Runtime.NeoScript
             return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
         }
 
-        private static string PendingListEntry(
-            NeoWriteBatch.PendingList list,
-            Pointer keyPointer,
-            NeoScriptScope scope,
-            Context ctx)
+        private static string PendingListEntry(NeoWriteBatch.PendingList list, object? key)
         {
-            if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
-                return list[ListPosition(list.Count, position)];
-            var key = EvalPointer(keyPointer, scope, ctx);
             if (key is string valueId)
             {
                 if (!list.Contains(valueId))
                     throw new NSGetterRuntimeError($"Value id '{valueId}' is not a member of this List");
                 return valueId;
             }
-            if (TryAsDouble(key, out position))
+            if (TryAsDouble(key, out double position))
                 return list[ListPosition(list.Count, position)];
             throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'", NeoErrorContract.NeoIndexOutOfRangeError);
         }
@@ -5402,17 +5445,27 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoValueNode? declaredNode = null;
                 return ResolveValueIfId(declaredValueId, ctx, receiverOwnership, member, ref declaredNode);
             }
-            // A row the sparse index does not cover can omit a null class
-            // or reference default. Match the generated accessor without hiding
-            // missing required fields or evaluating an initializer out of
+            // An optional member that declares no value reads null. A generic
+            // slot closed over a nullable type is one: its declaration is the
+            // required `T`, so construction stores no default row for it.
+            if (member.Requirement != NeoMemberRequirementKind.Required
+                && MemberValueFactory.DefaultOf(member) is null
+                && NeoGeneratedTypesSupport.IsStoredConstructorMember(member))
+            {
+                return null;
+            }
+            // A row the sparse index does not cover can omit a null class,
+            // object or reference default. Match the generated accessor without
+            // hiding missing required fields or evaluating an initializer out of
             // context.
             if (MemberValueFactory.IsLiteralNullClassDefault(member)
+                || member is ObjectMember { Requirement: NeoMemberRequirementKind.Optional, defaultValue: { value: null, init: null } }
                 || member is LookupMember
                 {
                     Requirement: NeoMemberRequirementKind.Optional,
                     Selection: NeoMemberSelectionKind.Single,
                     valueId: null,
-                    defaultValue: null or { init: null, value: null or { Length: 0 } },
+                    defaultValue: { init: null, value: null or { Length: 0 } },
                 })
             {
                 return null;
@@ -5516,6 +5569,52 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client.RememberSchemaResolutionSite(site);
             }
             return entry;
+        }
+
+        /// <summary>One receiver Class's property setter (or none) for a write site.</summary>
+        internal sealed class SetterSiteTarget
+        {
+            internal readonly object schemaResolution;
+            internal readonly string classId;
+            internal readonly NSPropertyMember? property;
+            internal readonly SetterSiteTarget? next;
+            internal readonly int count;
+
+            internal SetterSiteTarget(object schemaResolution, string classId, NSPropertyMember? property, SetterSiteTarget? next)
+            {
+                this.schemaResolution = schemaResolution;
+                this.classId = classId;
+                this.property = property;
+                this.next = next;
+                count = (next?.count ?? 0) + 1;
+            }
+        }
+
+        /// <summary>
+        /// The property setter a write of <paramref name="memberId"/> on a
+        /// <paramref name="classId"/> receiver dispatches to, or null for a
+        /// stored field. Cached on the site while the schema resolution holds.
+        /// </summary>
+        internal static NSPropertyMember? SetterAt(KeyOf site, string classId, string memberId, Context ctx)
+        {
+            SetterSiteTarget? targets = site.setters;
+            if (targets is not null && !ReferenceEquals(targets.schemaResolution, ctx.client.SchemaResolution))
+                targets = null;
+            for (SetterSiteTarget? target = targets; target is not null; target = target.next)
+            {
+                if (SameId(target.classId, classId))
+                    return target.property;
+            }
+            NSPropertyMember? property = ctx.client.ProjectDataForRuntime.members.ContainsKey(memberId)
+                ? NeoInterfaceDispatch.Of(ctx.client).ClassAccessor(classId, memberId, "set") as NSPropertyMember
+                : null;
+            if ((targets?.count ?? 0) < CallSiteTarget.MaxTargets)
+            {
+                site.setters = new SetterSiteTarget(ctx.client.SchemaResolution, classId, property, targets);
+                if (targets is null)
+                    ctx.client.RememberSchemaResolutionSite(site);
+            }
+            return property;
         }
 
         /// <summary>
@@ -6021,11 +6120,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return RoundArithmetic(left * right, numeric);
                 case '/':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Division by zero", NeoErrorContract.NeoArithmeticError);
+                        throw new NeoRuntimeError(NeoErrorClass.NeoDivideByZeroError, "Division by zero");
                     return RoundArithmetic(left / right, numeric);
                 case '%':
                     if (right == 0)
-                        throw new NSGetterRuntimeError("Modulo by zero", NeoErrorContract.NeoArithmeticError);
+                        throw new NeoRuntimeError(NeoErrorClass.NeoDivideByZeroError, "Modulo by zero");
                     return RoundArithmetic(left % right, numeric);
                 default:
                     throw new NSGetterRuntimeError($"Unknown arithmetic op '{op}'");
@@ -7456,17 +7555,62 @@ namespace NeoCompose.Runtime.NeoScript
                 ? NeoSetEntryKey.OfRuntimeTuple(tupleMember, tuple, ctx, collectionRow)
                 : NeoSetEntryKey.OfPayload(member, value, ctx.client);
 
+        /// <summary>
+        /// Whether entries of <paramref name="entryMember"/> may compare by
+        /// authored Equals. False for keyed kinds and identity-only classes,
+        /// so their Contains skips resolving the entry type.
+        /// </summary>
+        private static bool MayHaveAuthoredEquality(JsonMember entryMember, Context ctx) =>
+            !RuntimeEquality.KeyEquivalentKind(entryMember.kind)
+            && !(entryMember is ClassMember member
+                && member.TryGetDeclaredClassId(out string classId)
+                && HasOnlyIdentityClasses(classId, ctx));
+
+        /// <summary>
+        /// Whether comparing <paramref name="type"/> can call an authored
+        /// Equals. A tuple asks its elements; collections compare by identity.
+        /// </summary>
+        private static bool ReachesAuthoredEquality(TypeBinding type, Context ctx)
+        {
+            switch (type.Head!.Type)
+            {
+                case MemberKind.Tuple:
+                    for (int index = 0; index < type.Bindings!.Count; index++)
+                        if (ReachesAuthoredEquality(type.At(index), ctx))
+                            return true;
+                    return false;
+                case MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup:
+                    return false;
+                case MemberKind.Class:
+                    return !HasOnlyIdentityClasses(type.Head.ClassId!, ctx);
+                default:
+                    return !RuntimeEquality.KeyEquivalentKind(type.Head.Type);
+            }
+        }
+
+        /// <summary>
+        /// Whether a script's Set membership of <paramref name="row"/> asks
+        /// its equality index: a comparer, or an entry type's authored Equals,
+        /// decides. Keys decide the rest, so a stored copy of a list isn't its
+        /// source.
+        /// </summary>
+        internal static bool SetDecidesByEquality(MemberValue row, TypeBinding type, Context ctx) =>
+            row.comparer is not null || ReachesAuthoredEquality(type, ctx);
+
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (FindRowReference(set, ctx) is { } reference
                 && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row
-                && row.comparer is not null)
+                && (row.comparer is not null || MayHaveAuthoredEquality(entryMember, ctx)))
             {
                 TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
-                var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
-                    id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
-                return index.Find(value) is not null;
+                if (SetDecidesByEquality(row, entryType, ctx))
+                {
+                    var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
+                        id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
+                    return index.Find(value) is not null;
+                }
             }
             if (value is null)
                 return false;
@@ -7581,7 +7725,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, set.Row), new HashSet<string>()));
-                if (UsesStoredEquality(set.Row, type, ctx))
+                if (SetDecidesByEquality(set.Row, type, ctx))
                     return set.FindEqualityEntry(value, entryMember, type, plan, ctx) is not null;
             }
             if (entryMember is ClassMember)
@@ -9713,7 +9857,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (a is null || b is null)
                 return a is null && b is null;
-            // P127 §1.2. Boxes and Type values compare by identity, as C#'s object == does.
+            // P127 §1.2. Boxes and Type values compare by identity, as object == does.
             if (a is NeoBox or NeoTypeValue || b is NeoBox or NeoTypeValue)
                 return NeoBox.SameIdentity(a, b);
             if (IsEnumValue(a) || IsEnumValue(b))
@@ -9761,7 +9905,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return JsEqual(ReadThroughReference(a, ctx), ReadThroughReference(b, ctx), ctx);
             if (a is null || b is null)
                 return a is null && b is null;
-            if (ReferenceEquals(a, b))
+            if (NeoBox.SameIdentity(a, b))
                 return true;
             if (a is NeoBox aString && aString.ValueType.Head!.Type == MemberKind.String && b is string rawB)
                 return string.Equals((string?)aString.Payload, rawB, StringComparison.Ordinal);
@@ -9784,8 +9928,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             if (value is string id)
                 return id;
+            // A list bound to a stored row is that row, whichever array reads it.
             if (value is object?[] array && runtimeLists.TryGetValue(array, out var list))
-                return list.origin;
+                return list.reference is { } bound && ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex)
+                    ? bound.valueId : list.origin;
             if (value is NSSlotReference slot)
                 return slot.TargetId;
             if (value is NeoVariantReference variant)
@@ -9871,6 +10017,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return false;
             }
+            // List, Set and Dictionary are invariant: a collection matches
+            // only its own held type, however it was reached.
+            if (CollectionElementOf(checkType) is not null && HeldCollectionType(value, ctx) is { } held)
+                return CollectionRuntimeType(CloseContextType(checkType, ctx)) is { } target && RecordedTypeMatches(held, target);
             switch (checkType.type)
             {
                 case MemberKind.Tuple:
@@ -9980,7 +10130,7 @@ namespace NeoCompose.Runtime.NeoScript
                             if (!env.TryGetValue(pair.Key, out NeoGenericEnvEntry entry) || !entry.IsBound)
                                 return false;
                             TypeInfo actual = NeoGenericResolution.TypeInfoFromArgumentSignature(NeoGenericResolution.SignatureOfEntry(ctx.client, entry, NeoGenericResolution.BindingEnv(env, entry)));
-                            if (!NeoClient.TypeInfoMatches(pair.Value, actual))
+                            if (!RuntimeTypesEqual(pair.Value, actual))
                                 return false;
                         }
                         return true;
@@ -10849,6 +10999,8 @@ namespace NeoCompose.Runtime.NeoScript
             if (member is not (ClassMember or ListMember or DictionaryMember))
                 return;
             bool alreadyRetained = retained.TryGetValue((ownership, id), out string? rootId);
+            // A released row placed again is let go again when it is taken out.
+            bool released = ctx.client.IsReleasedRoot(id);
             var remapped = new Dictionary<(NeoValueOwnership scope, string id), string>();
             if (alreadyRetained)
                 remapped[(ownership, id)] = rootId!;
@@ -10890,6 +11042,8 @@ namespace NeoCompose.Runtime.NeoScript
                     if (member is ListMember or DictionaryMember)
                         ctx.client.RegisterRetainedRootContract(retainedRoot, member);
                     batch.RegisterRetainedRoot(retainedRoot, member, ctx.allocationTracker);
+                    if (released)
+                        ctx.client.MarkReleasedRoot(retainedRoot);
                 }
                 foreach (var inserted in insertedAliases)
                     if (ctx.client.HasWritableValue(NeoValueOwnership.Session, inserted.target))
@@ -10924,7 +11078,10 @@ namespace NeoCompose.Runtime.NeoScript
             JsonMember? member,
             HashSet<string>? retained = null)
         {
-            if (member is ClassMember && plan.Resolve(ownership, valueId) is ObjectMemberValue { value: not null })
+            // An object slot's class value is retained as a class slot's is (P127 §1.2).
+            if (member is ClassMember or ObjectMember
+                && plan.Resolve(ownership, valueId) is ObjectMemberValue { value: not null, valueType: null } row
+                && (member is ClassMember || !string.IsNullOrEmpty(row.classId)))
                 RetainOwnedAliases(plan, ctx, ownership, valueId, member, retained);
         }
 
@@ -10947,6 +11104,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (member is ListMember or DictionaryMember)
                     ctx.client.RegisterRetainedRootContract(rootId, member);
                 ctx.allocationTracker.RegisterSessionRoot(rootId);
+                ctx.client.MarkReleasedRoot(rootId);
                 var aliases = new List<object>();
                 NeoScriptObject? escapedAlias = null;
                 foreach (var pair in remapped)
@@ -12616,6 +12774,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (entries.Length == 0 || entries.Length > MaxPooledLength)
                     return;
                 DerivedCollections.Remove(entries);
+                // A reused array is a new list, so its type record goes with its identity.
+                runtimeLists.Remove(entries);
                 Array.Clear(entries, 0, entries.Length);
                 (free ??= new object?[MaxPooledLength + 1][])[entries.Length] = entries;
             }

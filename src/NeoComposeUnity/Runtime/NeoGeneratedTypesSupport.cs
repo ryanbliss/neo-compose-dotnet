@@ -798,6 +798,8 @@ namespace NeoCompose.Runtime
             private readonly string? constructedClassId;
             private NeoScript.NSGetterEvaluator.Context? evaluationContext;
             internal ObjectMemberValue? initializerReceiver;
+            // The row an initializer stored a collection in, by the collection object.
+            private Dictionary<object, string>? initializedRows;
 
             internal NeoConstructionScope(
                 NeoClient client,
@@ -820,7 +822,15 @@ namespace NeoCompose.Runtime
                 innerClasses?.Clear();
                 referenceOwnership?.Clear();
                 listenerInitializers?.Clear();
+                initializedRows?.Clear();
             }
+
+            internal void RecordInitializedRow(object value, string id) =>
+                (initializedRows ??= new(NeoScript.NSGetterEvaluator.ReferenceEqualityComparer.Instance))[value] = id;
+
+            /// <summary>The row an initializer stored <paramref name="value"/> in, or null.</summary>
+            internal string? InitializedRow(object? value) =>
+                value is not null && initializedRows?.TryGetValue(value, out string? id) == true ? id : null;
 
             /// <summary>
             /// Per-class recursion guard for literal defaults: false when
@@ -4206,7 +4216,7 @@ namespace NeoCompose.Runtime
             {
                 ValidateConstructedRowShape(client, member, row, path, requireNonNull, env);
             }
-            else if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            else if (requireNonNull && RefusesNullRow(client, member, row))
             {
                 throw new InvalidOperationException($"Constructed required field '{path}' has a null value.");
             }
@@ -4236,9 +4246,7 @@ namespace NeoCompose.Runtime
                         string actualClassId = classMember.RowClassId(classRow.classId);
                         classRow.classId = actualClassId;
                         IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                            NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                client,
-                                classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
+                            client.SlotClassArguments(classMember, actualClassId, classRow.genericBindings);
                         // A slot whose arguments name its owner's params
                         // (Box<List<T>> in a Hold<T>) reads them in the
                         // owner's environment, as the owned-member walk does.
@@ -4272,10 +4280,12 @@ namespace NeoCompose.Runtime
                         try
                         {
                             var elementEnv = NeoGenericResolution.RowEnvOr(client, tupleRow, tupleMember, env);
+                            bool initialized = InitializerOf(tupleMember) is not null;
                             for (int index = 0; index < tupleRow.value.Length; index++)
                             {
                                 if (!client.TryGetMember(tupleMember.elementMemberIds[index], out Member? element))
                                     throw new InvalidOperationException($"Constructed Tuple field '{path}' is missing element {index + 1}.");
+                                bool holdsDefault = initialized && HoldsTypeArgumentDefault(client, tupleMember, element);
                                 element = NeoGenericResolution.SubstituteMember(client, element, elementEnv);
                                 string childId = tupleRow.value[index];
                                 bool childIsTrustedStaged = trustedMaterialization && stagedById.ContainsKey(childId);
@@ -4298,7 +4308,8 @@ namespace NeoCompose.Runtime
                                     traversal,
                                     elementEnv,
                                     referenceOwnershipByPath,
-                                    trustedMaterialization);
+                                    trustedMaterialization,
+                                    requireNonNull: !holdsDefault);
                             }
                         }
                         finally
@@ -4500,7 +4511,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema member '{member.id}' ({member.kind}).");
             }
-            if (requireNonNull && member.Requirement == NeoMemberRequirementKind.Required && IsNullStoredValue(row))
+            if (requireNonNull && RefusesNullRow(client, member, row))
             {
                 throw new InvalidOperationException(
                     $"Constructed required field '{path}' has a null value.");
@@ -5545,7 +5556,8 @@ namespace NeoCompose.Runtime
                         resolved,
                         argumentValues,
                         root.id,
-                        ctx);
+                        ctx,
+                        scope);
                     ReplayImmutableMembers(client, root, ctx);
                 }
                 catch
@@ -5580,7 +5592,8 @@ namespace NeoCompose.Runtime
             NeoResolvedDeclaredConstructor resolved,
             object?[] argumentValues,
             string rootValueId,
-            NeoScript.NSGetterEvaluator.Context ctx)
+            NeoScript.NSGetterEvaluator.Context ctx,
+            NeoConstructionScope scope)
         {
             if (!client.TryGetValue(
                     NeoValueOwnership.Session,
@@ -5596,7 +5609,7 @@ namespace NeoCompose.Runtime
                 SerializeConstructionProvenanceArgs(
                     client,
                     resolved.link.record,
-                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false)));
+                    CollectConstructionProvenanceArgs(client, resolved, argumentValues, ctx, deferLiterals: false, scope)));
         }
 
         /// <summary>
@@ -5620,7 +5633,9 @@ namespace NeoCompose.Runtime
             NeoResolvedDeclaredConstructor resolved,
             object?[] argumentValues,
             NeoScript.NSGetterEvaluator.Context ctx,
-            bool deferLiterals)
+            bool deferLiterals,
+            NeoConstructionScope? construction = null,
+            NeoScript.NeoScriptObject? detached = null)
         {
             ConstructorRecord? record = resolved.link.record;
             if (record is null || record.argumentTypes.Length == 0)
@@ -5660,8 +5675,11 @@ namespace NeoCompose.Runtime
                     : argument;
                 argumentType = NeoTypeRules.Declared(argumentType);
                 MemberKind declaredKind = argumentType.type;
+                // A collection an initializer or the body stored is recorded as that row: the argument and the field are one object.
                 string? rowId = NeoTypeSources.ConstructorArgumentStoresRow(declaredKind)
                     ? NeoScript.NSGetterEvaluator.ConstructorReferenceOf(value, ctx)?.valueId
+                        ?? construction?.InitializedRow(value)
+                        ?? StoredListRow(detached, value)
                     : null;
                 // P127 §1.3. A box or Type value records as the box row it mints.
                 bool boxes = declaredKind == MemberKind.Object && value is NeoScript.NeoBox or NeoScript.NeoTypeValue;
@@ -6366,6 +6384,24 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>Whether a required slot refuses a null row. A type parameter's initializer, such as `default` under a reference binding, may leave null (P127 §4.2).</summary>
+        private static bool RefusesNullRow(NeoClient client, Member member, MemberValue row) =>
+            member.Requirement == NeoMemberRequirementKind.Required
+            && IsNullStoredValue(row)
+            && (InitializerOf(member) is null || !DeclaresTypeParameter(client, member));
+
+        /// <summary>
+        /// P127 §4.1. Whether an initializer's tuple element holds `default(T)`: the element
+        /// is typed by a type parameter, or the whole tuple is a type argument.
+        /// </summary>
+        private static bool HoldsTypeArgumentDefault(NeoClient client, Member tuple, Member declaredElement) =>
+            declaredElement is GenericMember || DeclaresTypeParameter(client, tuple);
+
+        /// <summary>Whether <paramref name="member"/> is declared as a type parameter, before or after its binding is substituted.</summary>
+        private static bool DeclaresTypeParameter(NeoClient client, Member member) =>
+            member is GenericMember
+            || (client.TryGetMember(member.id, out Member? declared) && declared is GenericMember);
+
         /// <summary>
         /// Completeness is asserted on the FINISHED instance because a declared
         /// constructor's body and its call site both write after the graph is
@@ -6412,7 +6448,7 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' pointing at missing value '{fieldId}'.");
                     }
-                    if (IsNullStoredValue(field))
+                    if (RefusesNullRow(client, member, field!))
                     {
                         throw new InvalidOperationException(
                             $"Declared constructor for '{resolved.schemaClass.name}' left required member '{entry.schemaKey}'/'{entry.memberId}' null.");
@@ -6466,10 +6502,7 @@ namespace NeoCompose.Runtime
             }
             string classId = placementMember.RowClassId(placementMember.defaultValue.classId);
             IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    client,
-                    storedRoot.genericBindings,
-                    client.SlotClassArguments(placementMember, classId));
+                client.SlotClassArguments(placementMember, classId, storedRoot.genericBindings);
             // The placement reads its arguments in its owner's environment.
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = classArguments is null
                 ? ResolveRuntimeInstanceEnv(client, classId, null)
@@ -6878,9 +6911,12 @@ namespace NeoCompose.Runtime
             NeoScript.NSGetterEvaluator.Context ctx, NeoWritePlan? plan = null,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null,
             CollectionInsertion? insertion = null,
-            string? currentDestinationValueId = null)
+            string? currentDestinationValueId = null,
+            bool initializerDefault = false)
         {
-            client.RequireStoredValue(member, value, client.StoredMemberPath(member), script: true);
+            // An initializer's default is checked per element, where a type argument may hold null.
+            if (!initializerDefault)
+                client.RequireStoredValue(member, value, script: true);
             if (value is null || value is NeoValuePayload || value is INeoValuePayloadProvider
                 || value is string[] || value is IDictionary<string, string>
                 || member is not (ListMember or DictionaryMember or TupleMember))
@@ -6913,7 +6949,8 @@ namespace NeoCompose.Runtime
                 }, env, member.name, scope: null, insertion,
                 selections: plan is null ? null : new NeoScript.LocalCollectionSelections.Materialization(plan, ctx, ownership),
                 tupleAssignment: member is TupleMember && plan is not null && currentDestinationValueId is not null
-                    ? new TupleAssignment(plan, ctx, ownership, currentDestinationValueId) : null);
+                    ? new TupleAssignment(plan, ctx, ownership, currentDestinationValueId) : null,
+                initializerDefault: initializerDefault);
             return CallSiteWritePayload(payload, rows);
         }
 
@@ -7807,10 +7844,16 @@ namespace NeoCompose.Runtime
                             return false;
                         int owned = 0;
                         string bodyClassId = classMember.RowClassId(body.classId);
+                        Dictionary<string, TypeBinding>? bodyStamp = body switch
+                        {
+                            ObjectMemberValueBase declared => declared.genericBindings,
+                            MemberValue row => row.genericBindings,
+                            _ => null,
+                        };
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
                             bodyClassId,
-                            client.SlotClassArguments(classMember, bodyClassId)))
+                            client.SlotClassArguments(classMember, bodyClassId, bodyStamp)))
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
                                 return true;
@@ -8205,6 +8248,16 @@ namespace NeoCompose.Runtime
                     return Capture(reference.valueId);
                 }
             }
+            // An object member takes a stored box of a collection as its
+            // collection type takes the collection: by reference (P127 §1.3).
+            if (member is ObjectMember && produced is NeoScript.NeoBox box && IsBoxedCollection(client, box)
+                && scope.ValueReference(box.Payload) is { ownership: NeoValueOwnership boxOwnership } boxReference
+                && client.TryGetValue(boxOwnership, boxReference.valueId, out MemberValue? boxRow)
+                && box.ValueType.Equals(boxRow.valueType))
+            {
+                scope.RecordReferenceOwnership(path, boxOwnership);
+                return Capture(boxReference.valueId);
+            }
             return Capture(MaterializeRuntimeConstructorValue(
                 client,
                 member,
@@ -8215,11 +8268,14 @@ namespace NeoCompose.Runtime
                 env,
                 path,
                 scope,
-                preserveOptionalNull: true));
+                preserveOptionalNull: true,
+                initializerDefault: true));
 
             string? Capture(string? id)
             {
                 client.ExitReadFrame(initializerFrame, id);
+                if (produced is object?[] or IDictionary<string, object?> or NeoScript.RuntimeSet or NeoScript.RuntimeTuple && id is not null)
+                    scope.RecordInitializedRow(produced, id);
                 if (produced is not null && id is not null && authored.changeListeners is { Count: > 0 })
                     (scope.listenerInitializers ??= new())[path] = new InitializedListenerOccurrence
                     {
@@ -8285,14 +8341,17 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
             TupleAssignment? tupleAssignment = null,
-            string? destinationId = null)
+            string? destinationId = null,
+            bool initializerDefault = false)
         {
             destinationId ??= tupleAssignment?.DestinationId;
             if (insertion?.Existing(member, runtimeValue, destinationId) is { } existing)
                 return existing;
             if (runtimeValue is null)
             {
-                if (member.Requirement == NeoMemberRequirementKind.Required)
+                // P127 §4.2. A type parameter's `default` stores null under a reference binding.
+                if (member.Requirement == NeoMemberRequirementKind.Required
+                    && !(initializerDefault && DeclaresTypeParameter(client, member)))
                 {
                     client.RequireStoredValue(member, null, path);
                 }
@@ -8304,9 +8363,9 @@ namespace NeoCompose.Runtime
             // reference as a class field does (P127 §1.2).
             if (member is ObjectMember objectSlot && runtimeValue is not null)
             {
-                if (runtimeValue is not NeoGeneratedClassValue held)
+                if (HeldClassId(client, runtimeValue, valueReference) is not string heldClassId)
                     return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path, insertion, destinationId);
-                RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = held.classId }, new NeoSlotContext(client));
+                RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = heldClassId }, new NeoSlotContext(client));
             }
             if (member is ClassMember { DeclaredInterfaceId: not null }
                 && runtimeValue is NeoScript.NeoBox or string or NeoScript.NeoTypeValue)
@@ -8381,7 +8440,8 @@ namespace NeoCompose.Runtime
                 path,
                 scope,
                 insertion, selections, member is TupleMember ? tupleAssignment : null,
-                member is TupleMember ? destinationId : null);
+                member is TupleMember ? destinationId : null,
+                initializerDefault);
             MemberValue row = MemberValueFactory.Create(
                 member,
                 payload,
@@ -8426,7 +8486,8 @@ namespace NeoCompose.Runtime
             CollectionInsertion? insertion = null,
             NeoScript.LocalCollectionSelections.Materialization? selections = null,
             TupleAssignment? tupleAssignment = null,
-            string? destinationId = null)
+            string? destinationId = null,
+            bool initializerDefault = false)
         {
             destinationId ??= tupleAssignment?.DestinationId;
             NeoValuePayload? wrappedPayload = runtimeValue
@@ -8434,7 +8495,8 @@ namespace NeoCompose.Runtime
                     ? provider.ToNeoValuePayload()
                     : null;
             object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
-            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required)
+            if (suppliedValue is null && member.Requirement == NeoMemberRequirementKind.Required
+                && !(initializerDefault && DeclaresTypeParameter(client, member)))
             {
                 client.RequireStoredValue(member, null, path);
             }
@@ -8468,11 +8530,16 @@ namespace NeoCompose.Runtime
                 for (int index = 0; index < count; index++)
                 {
                     string memberId = tupleMember.elementMemberIds[index];
-                    if (!client.TryGetMember(memberId, out Member? element))
+                    if (!client.TryGetMember(memberId, out Member? declaredElement))
                         throw new InvalidOperationException($"Tuple field '{path}' references missing element '{memberId}'.");
-                    element = NeoGenericResolution.SubstituteMember(client, element, genericEnv);
+                    Member element = NeoGenericResolution.SubstituteMember(client, declaredElement, genericEnv);
                     object? item = suppliedValue is NeoScript.RuntimeTuple runtimeTuple
                         ? runtimeTuple[index] : ((System.Runtime.CompilerServices.ITuple)suppliedValue)[index];
+                    if (item is null && initializerDefault && HoldsTypeArgumentDefault(client, member, declaredElement))
+                    {
+                        element = element.ShallowClone();
+                        element.DeclaredRequirement = NeoMemberRequirementKind.Optional;
+                    }
                     ids[index] = MaterializeRuntimeConstructorValue(client, element, item, rows, nowIso, valueReference, genericEnv,
                         $"{path}.Item{index + 1}", scope, preserveOptionalNull: true, insertion, selections,
                         tupleAssignment?.Element(index),
@@ -9540,14 +9607,16 @@ namespace NeoCompose.Runtime
             // below — the default's effective type may be the DECLARED open
             // type, closed only by the slot (specs/class-generics.md
             // §4.1) — read in the environment of the slot's owner.
+            // A class its interface slot leaves open carries a stamp (#2556).
+            Dictionary<string, TypeBinding>? stamp = (member.defaultValue as ObjectMemberValueBase)?.genericBindings;
             IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                client.SlotClassArguments(member, effectiveClassId);
+                client.SlotClassArguments(member, effectiveClassId, stamp);
             RuntimeClassPlan classPlan = classArguments is null
                 ? ResolveRuntimeClassPlan(client, effectiveClassId)
                 : ResolveRuntimeClassPlan(
                     client,
                     effectiveClassId,
-                    NeoGenericResolution.SlotRowEnv(client, member, env, null, effectiveClassId),
+                    NeoGenericResolution.SlotRowEnv(client, member, env, stamp, effectiveClassId),
                     classArguments);
             // A constructed slot admits the default's class as the server's
             // default construction does, once its params are known bound.
@@ -9583,6 +9652,9 @@ namespace NeoCompose.Runtime
                 classArguments,
                 classPlan,
                 requireCompleteDefault: true);
+            // The row is the binding node the stamp closes, as a cloned row's is.
+            if (stamp is not null)
+                row.genericBindings ??= new Dictionary<string, TypeBinding>(stamp);
             client.CaptureClonedListenerDefaults(clonedIds, member, row);
             client.CaptureAuthoredListenerDefaults(member.defaultValue.changeListeners, member.defaultValue.changeListenerEndpoints, clonedIds, member, row);
             return row;
@@ -10012,9 +10084,7 @@ namespace NeoCompose.Runtime
                                 }
                             }
                         }
-                        var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            client,
-                            sourceValue.genericBindings, client.SlotClassArguments(classMember, classId));
+                        var classArguments = client.SlotClassArguments(classMember, classId, sourceValue.genericBindings);
                         // The clone's environment reads the slot's arguments
                         // in the owner's (env), as the server clone does.
                         RuntimeClassPlan classPlan = classArguments is null

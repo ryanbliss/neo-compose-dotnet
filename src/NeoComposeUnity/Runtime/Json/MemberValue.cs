@@ -659,6 +659,17 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for a Dictionary / Class <see cref="Member.defaultValue"/>.</summary>
     public class ObjectMemberValueBase : MemberValueBase<Dictionary<string, string>?>
     {
+        /// <summary>
+        /// P127 §12.1: a class default's stamp, for a class its interface
+        /// slot leaves open (#2556). Absent when the slot spells or
+        /// determines the class's arguments.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        [JsonConverter(typeof(GenericBindingsStampConverter))]
+        public Dictionary<string, TypeBinding>? genericBindings
+        {
+            get; set;
+        }
     }
 
     /// <summary>Carrier for an NSDelegate declaration default.</summary>

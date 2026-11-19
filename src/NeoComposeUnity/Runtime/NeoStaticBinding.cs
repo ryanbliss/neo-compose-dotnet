@@ -94,6 +94,26 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// The row a payload write replaces in place, or null for a new row.
+        /// An object static holding a class value names that value by
+        /// reference, so a payload write rebinds instead of overwriting it
+        /// (P127 §1.2).
+        /// </summary>
+        internal string? PayloadValueId
+        {
+            get
+            {
+                if (!Resolve(out string? valueId))
+                    return null;
+                bool holdsClassValue = member is ObjectMember
+                    && client.TryGetOverlaidValue(Ownership, valueId, out MemberValue? row)
+                    && row is ObjectMemberValue { valueType: null }
+                    && !string.IsNullOrEmpty(row.classId);
+                return holdsClassValue ? null : valueId;
+            }
+        }
+
+        /// <summary>
         /// Resolves the current target as the requested member wrapper.
         /// Returns false for an ordinary optional/unset binding. A dangling
         /// target or a node-kind mismatch is reported as corrupt project/save
@@ -316,7 +336,8 @@ namespace NeoCompose.Runtime
             string valueId;
             NeoTimestamp createdAt = nowIso;
             MemberValue? previous = null;
-            if (Resolve(out string? currentValueId))
+            string? currentValueId = PayloadValueId;
+            if (currentValueId is not null)
             {
                 valueId = currentValueId;
                 if (!client.TryGetOverlaidValue(Ownership, valueId, out previous))
@@ -371,7 +392,8 @@ namespace NeoCompose.Runtime
 
         private HashSet<string>? BindValueReference(NeoValueWritePayload payload)
         {
-            if (member is not ClassMember classMember)
+            // An object static holds a class value by reference, as a class static does (P127 §1.2).
+            if (member is not (ClassMember or ObjectMember { objectType: null }))
             {
                 throw new System.InvalidOperationException(
                     $"Static member '{member.name}' is not Class-valued and cannot bind a value reference.");
@@ -384,22 +406,26 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Cannot bind static member '{member.name}' to missing Class value '{sourceValueId}'.");
             }
-            string actualClassId = classMember.RowClassId(sourceRow.classId);
-            if (!client.SlotNamesClass(classMember, actualClassId))
+            if (member is ClassMember classMember)
             {
-                throw new System.InvalidOperationException(
-                    $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
+                string actualClassId = classMember.RowClassId(sourceRow.classId);
+                if (!client.SlotNamesClass(classMember, actualClassId))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Cannot bind static member '{member.name}' ({classMember.DeclaredTypeId}) to incompatible runtime class '{actualClassId}'.");
+                }
+                client.RequireSlotAdmits(classMember, null, member.name, payload, NeoGenericResolution.EmptyEnv);
             }
-            client.RequireSlotAdmits(classMember, null, member.name, payload, NeoGenericResolution.EmptyEnv);
 
             var plan = new NeoWritePlan(client);
             string importedValueId = sourceValueId;
             HashSet<string>? movedValueIds = null;
+            // A static takes a same-store row as a slot does: a row another
+            // parent owns needs Clone() (P109 §4).
             if (client.TryGetValueOwnership(
                     sourceValueId,
                     out NeoValueOwnership sourceOwnership)
-                && sourceOwnership != NeoValueOwnership.Asset
-                && sourceOwnership != Ownership)
+                && sourceOwnership != NeoValueOwnership.Asset)
             {
                 importedValueId = client.ImportValueReference(
                     plan, Ownership,

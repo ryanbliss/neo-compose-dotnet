@@ -29,7 +29,8 @@ namespace NeoCompose.Runtime
         // The C# object a box row reads as for the rest of the run: the box
         // last read from the row, or the one written into it (§1.2). A write
         // replaces the row, so the slot reads its new box; a reload builds
-        // new rows, so each slot reads its own box, as C# deserialization does.
+        // new rows, so each slot reads its own box, and two slots that shared
+        // one box before the reload no longer share it.
         private static readonly ConditionalWeakTable<MemberValue, object> rowBoxes = new();
         private static readonly ConditionalWeakTable<MemberValue, object> readOnlyRowBoxes = new();
 
@@ -357,6 +358,30 @@ namespace NeoCompose.Runtime
         {
             if (client.TypeRules.SlotViolation(slot, probe, context) is string refusal)
                 throw new InvalidOperationException($"Cannot write object field '{name}': {refusal}");
+        }
+
+        /// <summary>
+        /// The class an object slot's value is an instance of, or null for a
+        /// value it boxes. An evaluator class value, such as an initializer's
+        /// <c>new Pen&lt;int&gt;()</c>, is held by reference as a C# one is (§1.2).
+        /// </summary>
+        private static string? HeldClassId(NeoClient client, object value, Func<object?, NeoConstructorValueReference?> valueReference)
+        {
+            switch (value)
+            {
+                case NeoGeneratedClassValue generated:
+                    return generated.classId;
+                case NeoScriptObject { attachedId: null } detached:
+                    return detached.plan.classId;
+                case IDictionary<string, object?>:
+                    if (valueReference(value) is not { valueId: { Length: > 0 } valueId } source)
+                        return null;
+                    if (!client.TryGetValue(source.ownership ?? NeoValueOwnership.Session, valueId, out MemberValue? row))
+                        return null;
+                    return string.IsNullOrEmpty(row.classId) ? null : row.classId;
+                default:
+                    return null;
+            }
         }
 
         private static bool IsCollectionMember(Member member) => member switch
@@ -1081,6 +1106,8 @@ namespace NeoCompose.Runtime
                 .MakeGenericMethod(view)
                 .CreateDelegate(typeof(Func<NeoClient, Member, NeoMember, object?>));
 
+        // Selected only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         private static object? ReadThroughCodec<T>(NeoClient client, Member held, NeoMember node) =>
             NeoGenericBindings.ResolveForMember<T>(client, held, node).Read(node);
 
@@ -1102,6 +1129,8 @@ namespace NeoCompose.Runtime
             return (node, client) => (Delegate)bind!.Invoke(node, new[] { converter.Invoke(null, new object[] { client }) })!;
         }
 
+        // Selected only by reflection; retain it in stripped players.
+        [UnityEngine.Scripting.Preserve]
         private static Func<object?, TResult> DelegateResultConverter<TResult>(NeoClient client) =>
             result => TryConvertValue<TResult>(client, result, null, null, out TResult converted)
                 ? converted

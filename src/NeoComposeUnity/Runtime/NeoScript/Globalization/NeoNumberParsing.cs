@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
         /// <summary><c>NumberStyles.Number</c>.</summary>
         internal const int DefaultDecimalStyle = 111;
 
-        // .NET's NumberBuffer digit capacities, less the NUL.
+        // NumberBuffer digit capacities, less the NUL.
         private const int Int32MaxDigits = 10;
         private const int DecimalMaxDigits = 30;
         private const int SingleMaxDigits = 113;
@@ -216,7 +216,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return true;
         }
 
-        /// <summary>.NET's <c>MatchChars</c>: <paramref name="value"/> up to its first NUL; U+00A0 and U+202F also match a space.</summary>
+        /// <summary><c>MatchChars</c>: <paramref name="value"/> up to its first NUL; U+00A0 and U+202F also match a space.</summary>
         private static int MatchChars(string s, int p, string value)
         {
             if (value.Length == 0 || value[0] == 0)
@@ -243,7 +243,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return next;
         }
 
-        /// <summary>.NET's <c>TryStringToNumber</c> over <c>TryParseNumber</c>, or false when the text is malformed.</summary>
+        /// <summary><c>TryStringToNumber</c> over <c>TryParseNumber</c>, or false when the text is malformed.</summary>
         private static bool TryStringToNumber(
             string s,
             int styles,
@@ -482,7 +482,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return true;
         }
 
-        /// <summary>.NET's <c>HasTrailingChars</c> tail: trailing white, then only NULs.</summary>
+        /// <summary><c>HasTrailingChars</c> tail: trailing white, then only NULs.</summary>
         private static bool AcceptsTrailing(string value, int index, int num, int styles)
         {
             if (IsWhite(num))
@@ -500,7 +500,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return TrailingZeros(value, index);
         }
 
-        /// <summary>.NET's <c>TryParseBinaryIntegerStyle</c> for the <c>Integer</c> subset of styles.</summary>
+        /// <summary><c>TryParseBinaryIntegerStyle</c> for the <c>Integer</c> subset of styles.</summary>
         private static Failure ParseInt32IntegerStyle(string value, int styles, NumberFormatInfo info, out int result)
         {
             result = 0;
@@ -664,7 +664,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
 
         private static bool IsBinaryChar(int c) => c == '0' || c == '1';
 
-        /// <summary>.NET's <c>TryParseBinaryIntegerHexOrBinaryNumberStyle</c> for int32.</summary>
+        /// <summary><c>TryParseBinaryIntegerHexOrBinaryNumberStyle</c> for int32.</summary>
         private static Failure ParseInt32HexOrBinary(string value, int styles, bool hex, out int result)
         {
             result = 0;
@@ -776,7 +776,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return RadixScan.TrailingOverflow;
         }
 
-        /// <summary>.NET's <c>TryNumberBufferToBinaryInteger</c> for int32.</summary>
+        /// <summary><c>TryNumberBufferToBinaryInteger</c> for int32.</summary>
         private static Failure NumberToInt32(NeoNumberBuffer parsed, bool hasNonZeroTail, out int result)
         {
             result = 0;
@@ -819,7 +819,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return NumberToInt32(parsed, hasNonZeroTail, out result);
         }
 
-        /// <summary>.NET's <c>TryNumberToDecimal</c>.</summary>
+        /// <summary><c>TryNumberToDecimal</c>.</summary>
         private static Failure NumberToDecimal(NeoNumberBuffer parsed, bool hasNonZeroTail, out decimal result)
         {
             result = 0m;
@@ -1008,7 +1008,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return (float)(mantissa * PowerOf2(exponent2));
         }
 
-        /// <summary>.NET's <c>NumberToFloat</c> for float32.</summary>
+        /// <summary><c>NumberToFloat</c> for float32.</summary>
         private static float NumberToSingle(NeoNumberBuffer parsed, bool hasNonZeroTail)
         {
             float result;
@@ -1021,7 +1021,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
             return parsed.IsNegative ? -result : result;
         }
 
-        /// <summary>.NET's <c>TryParseFloat</c>, with its symbol fallbacks.</summary>
+        /// <summary><c>TryParseFloat</c>, with its symbol fallbacks.</summary>
         private static bool ParseSingleValue(string s, int styles, NumberFormatInfo info, out float result)
         {
             if (TryStringToNumber(s, styles, info, NeoNumberBufferKind.FloatingPoint, SingleMaxDigits, out NeoNumberBuffer parsed, out bool hasNonZeroTail))

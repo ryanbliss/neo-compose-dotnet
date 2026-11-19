@@ -127,6 +127,10 @@ namespace NeoCompose.Runtime.NeoScript
             string valueId, Member member, object? assigned,
             IReadOnlyDictionary<string, NeoGenericEnvEntry>? targetEnv = null)
         {
+            // A released owner lets go of the collection it replaces, so its
+            // aliases keep the old contents as a released row of their own.
+            if (member is ListMember or DictionaryMember && ctx.client.HeldByReleasedRoot(valueId, ownership))
+                RetainOwnedAliases(plan, ctx, ownership, valueId, member, null);
             if (member is ListMember list)
                 PrepareAssignedListAlias(plan, ctx, ownership, valueId, list, assigned, targetEnv);
             if (member is not (SetMember or DictionaryMember))
@@ -529,7 +533,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             object? collection = ListQueryReceiver(EvalPointer(info.collectionPointer, scope, ctx), ctx);
             bool isList = CollectionIsList(collection);
-            if (info.equality is not null && info.op is "Distinct" or "ToSet")
+            if (info.equality is not null && info.op is "Distinct")
+                return EqualitySetQuery(info, collection, scope, ctx);
+            if (info.equality is not null && info.op is "ToSet")
                 return EqualitySetQuery(info, collection, scope, ctx);
             if (info.op == "ToSet" && info.capacity is not null && Number(EvalPointer(info.capacity, scope, ctx)!) < 0)
                 throw NeoHashingErrors.CapacityRange();

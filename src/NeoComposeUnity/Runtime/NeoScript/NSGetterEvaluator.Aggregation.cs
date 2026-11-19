@@ -111,7 +111,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             if (info.nullable)
                 return false;
-            // .NET reads a List through its span even as an IEnumerable.
+            // A List reads through its span even as an IEnumerable.
             object? source = collection is EnumerableQuery query ? query.Source : collection;
             return source is object?[] && FindRowReference(source, ctx)?.CollectionMember(ctx.client) is not SetMember;
         }
@@ -252,6 +252,7 @@ namespace NeoCompose.Runtime.NeoScript
             BoundEquality? equality = info.equality is null ? null : BindEquality(info.equality, scope, ctx);
             IDictionary<string, object?> result = new RuntimeDictionary(equality ?? BindEquality(
                 new EqualitySite { type = new PrimitiveTypeInfo { type = MemberKind.String, required = true } }, scope, ctx));
+            TypeInfo? entryType = info.valueFunction?.typeInfo ?? QueryElementType(collection, ctx);
             var groups = new Dictionary<string, List<object?>>();
             var groupedKeys = equality is null ? null : new NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, List<object?>>(equality, NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Set);
             PreparedCollectionCallback valueSelector = default;
@@ -297,12 +298,12 @@ namespace NeoCompose.Runtime.NeoScript
                         if (groupedKeys is not null)
                         {
                             result = new RuntimeDictionary(equality!, groupedKeys.MapValues<object?>(
-                                group => KeepDerived(group.ToArray(), CollectionEntryMember(collection, ctx), true),
+                                group => CreatedCollection(KeepDerived(group.ToArray(), CollectionEntryMember(collection, ctx), true), MemberKind.List, entryType, ctx),
                                 NeoCompose.Runtime.NeoScript.Hashing.NeoHashTableKind.Dictionary));
                         }
                         else
                             foreach (var group in groups)
-                                result.Add(group.Key, KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true));
+                                result.Add(group.Key, CreatedCollection(KeepDerived(group.Value.ToArray(), CollectionEntryMember(collection, ctx), true), MemberKind.List, entryType, ctx));
                     }
                     return KeepDerived(result, CollectionEntryMember(collection, ctx), true);
                 }

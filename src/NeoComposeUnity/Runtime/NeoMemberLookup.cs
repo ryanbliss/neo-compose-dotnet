@@ -254,8 +254,8 @@ namespace NeoCompose.Runtime
                 ? NeoReferenceTypes.RowSlotEnvironment(client, valueId, ownership)
                 : NeoGenericResolution.EmptyEnv;
             return member.declaredTypeInfo is InterfaceTypeInfo
-                ? NeoReferenceTypes.InterfaceTargetRefusal(client, member, valueId, rowClassId, slot, env)
-                : NeoReferenceTypes.ClosedClassTargetRefusal(client, member, valueId, rowClassId, slot, env);
+                ? NeoReferenceTypes.InterfaceTargetRefusal(client, member, valueId, rowClassId, slot, env, row.genericBindings)
+                : NeoReferenceTypes.ClosedClassTargetRefusal(client, member, valueId, rowClassId, slot, env, row.genericBindings);
         }
 
         /// <summary>Why an unbound reference can't select <paramref name="valueId"/>.</summary>

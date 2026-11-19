@@ -23,7 +23,7 @@ namespace NeoCompose.Runtime.Json
     /// primitive's implementation reached through <c>T.Parse</c>), stored in
     /// place of a <c>memberId</c> as
     /// <c>{ kind: BuiltIn, declaring, name, arity, parameterTypes, explicitInterface?, typeArguments?, delegateType? }</c>.
-    /// It names the method .NET binds. Immutable, with structural equality.
+    /// It names the bound method. Immutable, with structural equality.
     /// </summary>
     public sealed class NeoBuiltInTarget : IEquatable<NeoBuiltInTarget>
     {

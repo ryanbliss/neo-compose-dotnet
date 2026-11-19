@@ -271,9 +271,9 @@ namespace NeoCompose.Runtime
                 string identity;
                 if (descriptor.sourceValueId is null)
                 {
-                    if (node.member.id != descriptor.memberId)
+                    if (!PersistsUnder(node.member.id, descriptor.memberId))
                         return null;
-                    identity = $"path:{descriptor.memberId}:{descriptor.pathKey}";
+                    identity = PositionalSourceIdentity(descriptor.memberId, descriptor.pathKey);
                 }
                 else
                 {
@@ -284,6 +284,15 @@ namespace NeoCompose.Runtime
                 return VirtualValueId(sourceRootId, identity) == id ? node : null;
             }
         }
+
+        /// <summary>
+        /// Whether a node's member is the one a listener descriptor names. A
+        /// binding view's id is process-local, so a descriptor names a view by
+        /// the type it stands for; the descriptor's path fixes which view.
+        /// </summary>
+        internal static bool PersistsUnder(string memberId, string stored) =>
+            memberId == stored
+            || (NeoTypeBindingViews.IsViewId(memberId) && stored.StartsWith(StableViewPrefix, StringComparison.Ordinal));
 
         private Dictionary<string, NeoDelegateValue[]>? PendingConstructionListeners(string ownerId)
         {

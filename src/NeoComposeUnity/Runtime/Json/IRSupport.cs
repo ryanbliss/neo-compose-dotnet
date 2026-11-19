@@ -422,6 +422,10 @@ namespace NeoCompose.Runtime.Json
         [JsonIgnore]
         internal NeoScript.NSGetterEvaluator.DetachedSlotSite? detachedSlots;
 
+        /// <summary>The property setter this write dispatches to, one per receiver Class.</summary>
+        [JsonIgnore]
+        internal NeoScript.NSGetterEvaluator.SetterSiteTarget? setters;
+
         /// <summary>The held write batch shape (<see cref="NeoWriteBatch.Shape"/>) under which this read can't reach a pending collection.</summary>
         [JsonIgnore]
         internal int pendingUnreachedShape;
@@ -430,6 +434,7 @@ namespace NeoCompose.Runtime.Json
         {
             resolvedMembers = null;
             detachedSlots = null;
+            setters = null;
         }
     }
 

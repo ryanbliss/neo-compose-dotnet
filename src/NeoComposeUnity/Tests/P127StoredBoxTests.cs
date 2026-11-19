@@ -492,7 +492,7 @@ namespace NeoCompose.Tests
         }
 
         // IEqualityComparer<in T> takes a comparer over any type the slot's
-        // argument converts to: C#'s Enum : ValueType : object, with Type,
+        // argument converts to: Enum : ValueType : object, with Type,
         // CultureInfo and NumberFormatInfo deriving from object (§2.1). The
         // compose type-info-compatibility.test.ts ancestor pairs, both ways.
         [TestCase("enum-type-arg", "ValueType", null)]

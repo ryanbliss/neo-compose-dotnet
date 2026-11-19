@@ -31,14 +31,14 @@ namespace NeoCompose.Tests.P127OverloadsParity
     public partial class GOB<T> : NeoGeneratedClassValue, IReadOnlyGOB<T>
     {
         internal GOB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "e91a2fd1-4574-47fc-a3aa-60e1113fcb14", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "33ddc079-72e9-449a-86f5-f66529921a5e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static int S(T a, int b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "5befeab6-fb10-4601-a2cf-dc02bf62f8e2", client.TypeArguments.Of<GOB<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "281dd6c3-11a3-4ec7-b66a-856963d73d15", client.TypeArguments.Of<GOB<T>>());
             var result = node.InvokeStatic(a, b);
             return Convert.ToInt32(result);
         }
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests.P127OverloadsParity
         public static int S(int c, T d)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c0e9a1c7-a933-49c7-9ee8-fac9bb01d167", client.TypeArguments.Of<GOB<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "bca63dc4-2987-4e2f-b531-1572872b97b9", client.TypeArguments.Of<GOB<T>>());
             var result = node.InvokeStatic(c, d);
             return Convert.ToInt32(result);
         }
@@ -58,8 +58,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "df6e3b2d-eb9b-4b0d-99ac-bb2177872763" => (GOB<T>)(object)new GOD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
-                    "e91a2fd1-4574-47fc-a3aa-60e1113fcb14" => new GOB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "d157d313-4ed8-4bde-bbf2-62a5a4ae0e64" => (GOB<T>)(object)new GOD(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "33ddc079-72e9-449a-86f5-f66529921a5e" => new GOB<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOB' without a concrete client type id."),
                 };
             });
@@ -72,8 +72,8 @@ namespace NeoCompose.Tests.P127OverloadsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "df6e3b2d-eb9b-4b0d-99ac-bb2177872763" => (GOB<T>)(object)new GOD(factoryClient, factoryNode, false, factoryNode.ownership),
-                    "e91a2fd1-4574-47fc-a3aa-60e1113fcb14" => new GOB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "d157d313-4ed8-4bde-bbf2-62a5a4ae0e64" => (GOB<T>)(object)new GOD(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "33ddc079-72e9-449a-86f5-f66529921a5e" => new GOB<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GOB' without a concrete client type id."),
                 };
             });
@@ -105,25 +105,25 @@ namespace NeoCompose.Tests.P127OverloadsParity
 
         public int M(T a, int b)
         {
-            var result = InvokeFunction("M#4144c8cd-b0d9-4679-a27e-3a8022f950d0", a, b);
+            var result = InvokeFunction("M#e5ccd2d1-2aaf-486d-947f-f377ac8a5627", a, b);
             return Convert.ToInt32(result);
         }
 
         public int M(int c, T d)
         {
-            var result = InvokeFunction("M#928a7b7f-fe1f-4668-9764-da7d718b066b", c, d);
+            var result = InvokeFunction("M#0559b32a-308f-4780-9210-a9810f0ca5f6", c, d);
             return Convert.ToInt32(result);
         }
 
         public virtual int V(T a, int b)
         {
-            var result = InvokeFunction("V#9699f6e7-5a7e-47c6-a2ed-163044652928", a, b);
+            var result = InvokeFunction("V#962334c8-6c92-4998-9cb9-b1ea9b82e0e1", a, b);
             return Convert.ToInt32(result);
         }
 
         public virtual int V(int c, T d)
         {
-            var result = InvokeFunction("V#3d6fbde0-c11b-40b7-884e-c54978bc2aab", c, d);
+            var result = InvokeFunction("V#5a1fb927-e29b-4860-bb86-228d845ac1a9", c, d);
             return Convert.ToInt32(result);
         }
 

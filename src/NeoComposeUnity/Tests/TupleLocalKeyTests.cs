@@ -30,9 +30,12 @@ namespace NeoCompose.Tests
             }
         }
 
-        [Test]
-        public void StoredSourcesKeepCopySemantics() =>
-            NeoSourceParityFixture.AssertTrueCase(FixtureFile, "SdkStoredSourceCopy");
+        // A Set stores a copy of a stored row's list, so a held Add, Contains,
+        // and a committed Contains all find no source list in it.
+        [TestCase("SdkStoredSourceCopy")]
+        [TestCase("SdkStoredSourceAddsACopy")]
+        public void StoredSourcesKeepCopySemantics(string name) =>
+            NeoSourceParityFixture.AssertTrueCase(FixtureFile, name);
 
         [TestCaseSource(nameof(Cases))]
         public void LocalKeysMatchCli(string name) => NeoSourceParityFixture.AssertTrueCase(FixtureFile, name);

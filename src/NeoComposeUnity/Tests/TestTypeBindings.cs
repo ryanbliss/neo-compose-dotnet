@@ -34,8 +34,8 @@ namespace NeoCompose.Tests
             TypeBinding.Closed(new TypeHead(MemberKind.Enum, required, enumId: enumId));
 
         /// <summary>Class <paramref name="classId"/>'s own parameter <paramref name="param"/>, forwarded.</summary>
-        internal static TypeBinding Open(string classId, string param) =>
-            TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: classId), param);
+        internal static TypeBinding Open(string classId, string param, bool nullable = false) =>
+            TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: classId), param, nullable);
 
         /// <summary>Interface <paramref name="interfaceId"/>'s own parameter <paramref name="param"/>, forwarded.</summary>
         internal static TypeBinding OpenInterface(string interfaceId, string param) =>

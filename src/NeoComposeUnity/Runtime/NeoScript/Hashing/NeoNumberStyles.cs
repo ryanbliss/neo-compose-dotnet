@@ -17,7 +17,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
     /// </summary>
     internal static class NeoNumberStyles
     {
-        /// <summary><c>System.Globalization.NumberStyles</c>' members and .NET 10 values, in declaration order.</summary>
+        /// <summary><c>System.Globalization.NumberStyles</c>' members and values, in declaration order.</summary>
         internal static readonly IReadOnlyList<KeyValuePair<string, int>> Members = new[]
         {
             new KeyValuePair<string, int>("None", 0),
@@ -81,7 +81,7 @@ namespace NeoCompose.Runtime.NeoScript.Hashing
             return ValuesByName[name];
         }
 
-        /// <summary><c>NumberStyles.ToString(format)</c>, .NET's flags format for <c>G</c> and <c>F</c>.</summary>
+        /// <summary><c>NumberStyles.ToString(format)</c>, the flags format for <c>G</c> and <c>F</c>.</summary>
         internal static string Format(int value, string? format)
         {
             char letter = NeoEnums.FormatLetter(format);

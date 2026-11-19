@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
     public partial class Parsed : NeoGeneratedClassValue, IReadOnlyParsed
     {
         internal Parsed(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "6c6c8882-92d3-4c2a-b361-94dc809e4e3c", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "29d0977f-4201-4268-b2c2-dd319bf338d2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,14 +46,14 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             bool InvokeBody()
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c8adcdeb-c21e-489b-99a3-cd4af97eb299");
+                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "44fc05a8-938b-4338-be79-c08761e8f5b0");
                 var result_ = node.InvokeStatic(s, resultOut);
                 return (bool)result_!;
             }
 
             IReadOnlyParsed? ReadResultOut(NeoClient client, object? rawValue)
             {
-                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, rawValue, false, true, null, static (factoryClient, factoryNode) => Parsed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Parsed.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadNSPropertyClass(client, rawValue, false, true, static (factoryClient, factoryNode) => Parsed.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => Parsed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Parsed.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 
@@ -67,7 +67,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             bool InvokeBody()
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "c42cf271-b2fb-4c11-8d3b-28791f4f3690");
+                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "2927011a-bbdd-4c8d-813d-fb03b4e55acf");
                 var result_ = node.InvokeGenericStatic(new object?[] { items, resultOut }, client.TypeArguments.Table<System.ValueTuple<T>>());
                 return (bool)result_!;
             }
@@ -89,7 +89,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             bool InvokeBody()
             {
                 var client = TestProjectNeo.RequireInstance().Client;
-                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "36fb1b08-75f9-40de-a302-9c44e62a605c");
+                var node = NeoMemberNSFunction.GetOrCreateStatic(client, "1d8e7f08-0ef1-4ad9-9593-17566e9c18a9");
                 var result_ = node.InvokeStatic(s, resultOut);
                 return (bool)result_!;
             }
@@ -97,7 +97,7 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             IReadOnlyParsed ReadResultOut(NeoClient client, object? rawValue)
             {
                 if (rawValue is null) return default!;
-                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, rawValue, true, null, static (factoryClient, factoryNode) => Parsed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Parsed.CreateDetached(factoryClient, factoryValue, factorySaved));
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, rawValue, true, static (factoryClient, factoryNode) => Parsed.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => Parsed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => Parsed.CreateDetached(factoryClient, factoryValue, factorySaved));
             }
         }
 
@@ -111,8 +111,8 @@ namespace NeoCompose.Tests.P127CodegenShapesParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "6c6c8882-92d3-4c2a-b361-94dc809e4e3c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "440663e1-1523-4677-8899-3965c6cbf296", V)
+                "29d0977f-4201-4268-b2c2-dd319bf338d2",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("V", "2cccebe6-2683-4235-9f3e-456a0e4f2388", V)
             );
         }
 

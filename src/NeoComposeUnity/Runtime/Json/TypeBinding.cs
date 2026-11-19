@@ -118,7 +118,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// A tuple head's element labels in order, <c>""</c> for an
         /// unlabeled element (P127 §12.1); null when no element has one.
-        /// Compile-time names, as C#'s <c>TupleElementNames</c> are, so only
+        /// Compile-time names, not part of the runtime type, so only
         /// declarations and stamps keep them.
         /// </summary>
         public IReadOnlyList<string>? Names
@@ -228,7 +228,7 @@ namespace NeoCompose.Runtime.Json
     /// stored type position. A <see cref="TypeBindingKind.Closed"/> binding
     /// is a <see cref="Head"/> with one <see cref="Bindings"/> entry per
     /// parameter of a generic head: a declared class's or interface's by
-    /// param id, a built-in's by decimal position in C# arity order (List,
+    /// param id, a built-in's by decimal position in type argument order (List,
     /// Set and Reference <c>"0"</c>; Dictionary <c>"0"</c> key and
     /// <c>"1"</c> value; tuples <c>"0"</c>..; NeoDelegate <c>"0"</c> the
     /// result, then its parameters; NeoAction its parameters from
@@ -245,7 +245,8 @@ namespace NeoCompose.Runtime.Json
             IReadOnlyDictionary<string, TypeBinding>? bindings,
             TypeDefinition? definition,
             string? param,
-            int? index = null)
+            int? index = null,
+            bool nullable = false)
         {
             Kind = kind;
             Head = head;
@@ -253,13 +254,14 @@ namespace NeoCompose.Runtime.Json
             Definition = definition;
             Param = param;
             Index = index;
+            Nullable = nullable;
         }
 
         public static TypeBinding Closed(TypeHead head, IReadOnlyDictionary<string, TypeBinding>? bindings = null) =>
             new(TypeBindingKind.Closed, head, bindings is { Count: > 0 } ? bindings : null, null, null);
 
-        public static TypeBinding Open(TypeDefinition owner, string param) =>
-            new(TypeBindingKind.Open, null, null, owner, param);
+        public static TypeBinding Open(TypeDefinition owner, string param, bool nullable = false) =>
+            new(TypeBindingKind.Open, null, null, owner, param, nullable: nullable);
 
         public static TypeBinding OfDefinition(TypeDefinition definition) =>
             new(TypeBindingKind.Definition, null, null, definition, null);
@@ -305,11 +307,33 @@ namespace NeoCompose.Runtime.Json
             get;
         }
 
+        /// <summary>
+        /// An open binding spelled <c>U?</c>: a reference type bound to
+        /// <see cref="Param"/> reads nullable, a value type as itself.
+        /// </summary>
+        public bool Nullable
+        {
+            get;
+        }
+
         /// <summary>This closed binding with its head's nullability set to <paramref name="required"/>.</summary>
         public TypeBinding WithRequired(bool required) =>
             Kind != TypeBindingKind.Closed || Head!.Required == required
                 ? this
                 : new TypeBinding(TypeBindingKind.Closed, Head.WithRequired(required), Bindings, null, null);
+
+        /// <summary>
+        /// This type argument spelled <c>?</c>: a forward marks it, a
+        /// reference type reads nullable, a value type stays itself.
+        /// </summary>
+        public TypeBinding AsNullableArgument()
+        {
+            if (IsOpen)
+                return Nullable ? this : Open(Definition!, Param!, nullable: true);
+            if (Kind != TypeBindingKind.Closed || TypeBindings.IsValueType(Head!))
+                return this;
+            return WithRequired(false);
+        }
 
         /// <summary>The closed binding at decimal position <paramref name="index"/>.</summary>
         public TypeBinding At(int index) => Bindings![index.ToString(CultureInfo.InvariantCulture)];
@@ -324,7 +348,8 @@ namespace NeoCompose.Runtime.Json
                 || !Equals(Head, other.Head)
                 || !Equals(Definition, other.Definition)
                 || Param != other.Param
-                || Index != other.Index)
+                || Index != other.Index
+                || Nullable != other.Nullable)
             {
                 return false;
             }
@@ -356,7 +381,7 @@ namespace NeoCompose.Runtime.Json
         {
             if (hash != 0)
                 return hash;
-            int combined = HashCode.Combine(Kind, Head, Definition, Param, Index);
+            int combined = HashCode.Combine(Kind, Head, Definition, Param, Index, Nullable);
             if (Bindings is not null)
             {
                 // Order-independent, as Bindings is a map.
@@ -797,7 +822,7 @@ namespace NeoCompose.Runtime.Json
 
         private static TypeBinding ReadOpen(JObject obj, string subject)
         {
-            RequireOnly(obj, subject, "kind", "owner", "param");
+            RequireOnly(obj, subject, "kind", "owner", "param", "nullable");
             if (obj["owner"] is not JObject ownerToken)
                 throw new JsonSerializationException($"{subject} needs an 'owner' definition object.");
             TypeDefinition owner = ReadDefinition(ownerToken, $"{subject}.owner");
@@ -809,7 +834,16 @@ namespace NeoCompose.Runtime.Json
                 if (index >= arity)
                     throw new JsonSerializationException($"{subject} names param {index} of a definition with {arity}.");
             }
-            return TypeBinding.Open(owner, param);
+            bool nullable = false;
+            if (obj["nullable"] is JToken flag)
+            {
+                if (flag.Type != JTokenType.Boolean)
+                    throw new JsonSerializationException($"{subject}.nullable must be a boolean.");
+                if (!flag.Value<bool>())
+                    throw new JsonSerializationException($"{subject}.nullable is stored only as true.");
+                nullable = true;
+            }
+            return TypeBinding.Open(owner, param, nullable);
         }
 
         private static TypeBinding ReadDefinitionBinding(JObject obj, string subject)
@@ -1067,6 +1101,11 @@ namespace NeoCompose.Runtime.Json
                     WriteDefinition(writer, binding.Definition!);
                     writer.WritePropertyName("param");
                     writer.WriteValue(binding.Param);
+                    if (binding.Nullable)
+                    {
+                        writer.WritePropertyName("nullable");
+                        writer.WriteValue(true);
+                    }
                     break;
                 case TypeBindingKind.MethodParam:
                     writer.WritePropertyName("index");

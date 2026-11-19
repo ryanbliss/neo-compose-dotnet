@@ -587,7 +587,7 @@ namespace NeoCompose.Runtime
         /// class converts along its chain, and to an interface its records
         /// construct with matching arguments; a primitive, enum or tuple
         /// converts to an interface the conformance table lists for it; and
-        /// every value converts up C#'s built-in hierarchy. Keys erase a
+        /// every value converts up the built-in hierarchy. Keys erase a
         /// reference type's <c>?</c> at every depth, so this is the server's
         /// <c>NullabilityComparison.Erased</c>.
         /// </summary>
@@ -758,6 +758,28 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        /// <summary>
+        /// P127 §4.8. <paramref name="actual"/>, an interface argument,
+        /// converts to <paramref name="expected"/> at
+        /// <paramref name="parameter"/>: equal, or a reference conversion its
+        /// variance allows. The server's <c>interfaceArgumentConverts</c>.
+        /// </summary>
+        internal bool ArgumentConverts(NeoClient client, GenericParamDeclaration? parameter, TypeInfo actual, TypeInfo expected)
+        {
+            if (NeoReferenceTypes.InvariantlyEqual(actual, expected))
+                return true;
+            if (parameter?.variance is not { } variance)
+                return false;
+            // An open param has no head: an unknown converts to nothing.
+            if (NeoTypeBindings.ArgumentOf(actual).Head is not { } actualHead || TypeBindings.IsValueType(actualHead))
+                return false;
+            if (NeoTypeBindings.ArgumentOf(expected).Head is not { } expectedHead || TypeBindings.IsValueType(expectedHead))
+                return false;
+            return variance == NeoGenericParamVarianceKind.Out
+                ? Assignable(client, actual, expected) == true
+                : Assignable(client, expected, actual) == true;
+        }
+
         /// <summary>The arguments <paramref name="from"/> implements interface <paramref name="to"/> with are <paramref name="to"/>'s, nested <c>?</c> included. The server's <c>constructsInterface</c>.</summary>
         private bool ConstructionKeepsNullability(NeoClient client, TypeInfo from, TypeInfo to)
         {
@@ -779,11 +801,7 @@ namespace NeoCompose.Runtime
                         break;
                     }
                     TypeInfo actual = NeoTypeBindings.ToTypeInfo(binding!);
-                    var variance = parameters?.FirstOrDefault(parameter => parameter.id == pair.Key)?.variance;
-                    bool identity = NeoReferenceTypes.InvariantlyEqual(actual, pair.Value);
-                    if (!identity && (TypeBindings.IsValueType(binding!.Head!) || TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(pair.Value).Head!)
-                        || !(variance == NeoGenericParamVarianceKind.Out ? Assignable(client, actual, pair.Value) == true
-                            : variance == NeoGenericParamVarianceKind.In && Assignable(client, pair.Value, actual) == true)))
+                    if (!ArgumentConverts(client, parameters?.FirstOrDefault(parameter => parameter.id == pair.Key), actual, pair.Value))
                     {
                         matches = false;
                         break;
@@ -825,7 +843,7 @@ namespace NeoCompose.Runtime
             key.Kind == NeoRuntimeTypeKeyKind.Builtin && Array.IndexOf(NeoRuntimeTypeKeys.P127Builtins, key.Name) >= 0;
 
         /// <summary>
-        /// P127 §1.2, §2.1: C#'s <c>Enum : ValueType : object</c>, with
+        /// P127 §1.2, §2.1: <c>Enum : ValueType : object</c>, with
         /// <c>Type</c>, <c>CultureInfo</c>, <c>NumberFormatInfo</c> and the
         /// built-in comparers deriving straight from <c>object</c>. Value
         /// types box to <c>ValueType</c>, enums to <c>Enum</c>, and every
@@ -867,7 +885,7 @@ namespace NeoCompose.Runtime
         };
 
         /// <summary>
-        /// C#'s class conversion: <paramref name="to"/> is an ancestor of
+        /// The class conversion: <paramref name="to"/> is an ancestor of
         /// <paramref name="from"/>, and the arguments <paramref name="from"/>
         /// passes up its extends chain to it are <paramref name="to"/>'s.
         /// Walks the chain once; an open target compares no arguments. The
@@ -924,20 +942,48 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P127 §1.2. Whether a row of open <paramref name="rowClassId"/>
-        /// converts to <paramref name="target"/>, inferring its params as C#
-        /// does: each binds to the first type in its place among what the row
+        /// converts to <paramref name="target"/>, inferring its params: each binds to the first type in its place among what the row
         /// passes the target's class, and the substituted arguments must then
         /// equal the target's. So <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c>
         /// fits <c>Box&lt;List&lt;Seed&gt;&gt;</c> but not <c>Box&lt;Seed&gt;</c>,
         /// and <c>Twin&lt;T&gt; : Box2&lt;T, T&gt;</c> fits <c>Box2&lt;Seed, Seed&gt;</c>
-        /// but not <c>Box2&lt;Seed, Tool&gt;</c>. The server's
-        /// <c>openRowConvertsToClass</c>.
+        /// but not <c>Box2&lt;Seed, Tool&gt;</c>. <paramref name="known"/> are
+        /// the row's arguments, its own param where nothing closes one, which
+        /// then equals only itself. The server's <c>openRowConvertsToClass</c>.
         /// </summary>
-        internal bool OpenRowConvertsToClass(NeoClient client, string rowClassId, ClassTypeInfo target)
+        internal bool OpenRowConvertsToClass(
+            NeoClient client,
+            string rowClassId,
+            ClassTypeInfo target,
+            Dictionary<string, TypeInfo>? known = null)
         {
             if (target.classId == rowClassId)
+                return known is null || TypeArgumentsEqual(known, target.typeArguments);
+            if (OpenRowBaseArguments(client, rowClassId, target.classId) is not { } passed)
+                return false;
+            if (known is null)
+                return UnifyPassed(passed, rowClassId, target.typeArguments) is not null;
+            var substituted = new Dictionary<string, TypeInfo>(passed.Count, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, TypeInfo> pair in passed)
+                substituted[pair.Key] = SubstituteParams(pair.Value, rowClassId, known);
+            return TypeArgumentsEqual(substituted, target.typeArguments);
+        }
+
+        /// <summary>Whether each of <paramref name="expected"/>'s arguments equals <paramref name="actual"/>'s, unknowns only themselves. The server's <c>typeArgumentsEqual</c>.</summary>
+        private static bool TypeArgumentsEqual(
+            IReadOnlyDictionary<string, TypeInfo> actual,
+            Dictionary<string, TypeInfo>? expected)
+        {
+            if (expected is null)
                 return true;
-            return UnifyRowParams(client, rowClassId, target.classId, target.typeArguments) is not null;
+            foreach (KeyValuePair<string, TypeInfo> pair in expected)
+            {
+                if (!actual.TryGetValue(pair.Key, out TypeInfo? passed))
+                    return false;
+                if (!NeoReferenceTypes.InvariantlyEqual(passed, pair.Value))
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -955,6 +1001,18 @@ namespace NeoCompose.Runtime
         {
             if (OpenRowBaseArguments(client, rowClassId, baseClassId) is not { } passed)
                 return null;
+            return UnifyPassed(passed, rowClassId, expected);
+        }
+
+        /// <summary>
+        /// Binds <paramref name="rowClassId"/>'s params in <paramref name="passed"/>
+        /// to <paramref name="expected"/>, as <see cref="UnifyRowParams"/> does.
+        /// </summary>
+        private static Dictionary<string, TypeInfo>? UnifyPassed(
+            Dictionary<string, TypeInfo> passed,
+            string rowClassId,
+            Dictionary<string, TypeInfo>? expected)
+        {
             var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
             if (expected is null)
                 return bound;
@@ -1237,7 +1295,7 @@ namespace NeoCompose.Runtime
         /// binding. A shape mismatch binds nothing there; the substituted
         /// comparison then refuses it. The server's <c>bindRowParams</c>.
         /// </summary>
-        private static void BindRowParams(TypeInfo pattern, TypeInfo target, string rowClassId, Dictionary<string, TypeInfo> bound)
+        internal static void BindRowParams(TypeInfo pattern, TypeInfo target, string rowClassId, Dictionary<string, TypeInfo> bound)
         {
             switch (pattern)
             {
@@ -1309,7 +1367,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary><paramref name="typeInfo"/> with each of <paramref name="ownerClassId"/>'s params in <paramref name="arguments"/> replaced.</summary>
-        private static TypeInfo SubstituteParams(TypeInfo typeInfo, string ownerClassId, Dictionary<string, TypeInfo> arguments)
+        internal static TypeInfo SubstituteParams(TypeInfo typeInfo, string ownerClassId, IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             switch (typeInfo)
             {
@@ -1371,7 +1429,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static TypeInfo[] SubstituteArgumentTypes(TypeInfo[] argumentTypes, string ownerClassId, Dictionary<string, TypeInfo> arguments)
+        private static TypeInfo[] SubstituteArgumentTypes(TypeInfo[] argumentTypes, string ownerClassId, IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             var substituted = new TypeInfo[argumentTypes.Length];
             for (int index = 0; index < argumentTypes.Length; index++)
@@ -1382,7 +1440,7 @@ namespace NeoCompose.Runtime
         private static Dictionary<string, TypeInfo> SubstituteArguments(
             Dictionary<string, TypeInfo> typeArguments,
             string ownerClassId,
-            Dictionary<string, TypeInfo> arguments)
+            IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             var substituted = new Dictionary<string, TypeInfo>(typeArguments.Count, StringComparer.Ordinal);
             foreach (KeyValuePair<string, TypeInfo> pair in typeArguments)

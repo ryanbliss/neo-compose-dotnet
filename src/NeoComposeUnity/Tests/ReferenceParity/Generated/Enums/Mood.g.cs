@@ -27,8 +27,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return optionId switch
             {
-                "e194171e-4482-42ff-ae33-d747e20ee21f" => Mood.Calm,
-                "9e3d435e-ae05-4fd4-9216-30abdc09f3cf" => Mood.Happy,
+                "d39596cc-3717-4096-9c32-078c6fbfa2a5" => Mood.Calm,
+                "450798e6-b77d-48eb-ab97-f0891d3f9f07" => Mood.Happy,
                 _ => NeoUndeclaredEnumOptions<Mood>.FromOptionId(optionId),
             };
         }
@@ -37,8 +37,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return value switch
             {
-                Mood.Calm => "e194171e-4482-42ff-ae33-d747e20ee21f",
-                Mood.Happy => "9e3d435e-ae05-4fd4-9216-30abdc09f3cf",
+                Mood.Calm => "d39596cc-3717-4096-9c32-078c6fbfa2a5",
+                Mood.Happy => "450798e6-b77d-48eb-ab97-f0891d3f9f07",
                 _ => NeoUndeclaredEnumOptions<Mood>.OptionId(value),
             };
         }
@@ -55,8 +55,8 @@ namespace NeoCompose.Tests.ReferenceParity
         {
             return optionId switch
             {
-                "e194171e-4482-42ff-ae33-d747e20ee21f" => true,
-                "9e3d435e-ae05-4fd4-9216-30abdc09f3cf" => true,
+                "d39596cc-3717-4096-9c32-078c6fbfa2a5" => true,
+                "450798e6-b77d-48eb-ab97-f0891d3f9f07" => true,
                 _ => false,
             };
         }

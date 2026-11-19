@@ -2607,7 +2607,9 @@ namespace NeoCompose.Runtime
                 return;
             if (!constructed)
             {
-                if (InterfaceImplementers.SlotRefusal(classSlot, ownerClassName, key, rowClassId, environment) is { } refusal)
+                string? refusal = InterfaceImplementers.UnstampedRefusal(payload.valueId!, row, rowClassId, classSlot.DeclaredInterfaceId!)
+                    ?? InterfaceImplementers.SlotRefusal(classSlot, ownerClassName, key, rowClassId, environment);
+                if (refusal is not null)
                     throw new System.InvalidOperationException(refusal);
                 return;
             }
@@ -2620,30 +2622,36 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// The class of <paramref name="valueId"/>'s row when an
-        /// <paramref name="interfaceId"/> slot can't hold it, and null when it
-        /// can. Callers build the slot's label only for a refusal.
+        /// Why an <paramref name="interfaceId"/> slot can't hold
+        /// <paramref name="valueId"/>'s row, or null when it can. The slot's
+        /// label is built only for a refusal.
         /// </summary>
-        internal string? InterfaceSlotRefusedClass(string interfaceId, string valueId)
+        internal string? InterfaceSlotRefusal(string interfaceId, string valueId, System.Func<string> slotLabel)
         {
             if (!TryGetValue(valueId, out ObjectMemberValue? row))
                 return null;
             if (NeoGeneratedTypesSupport.ResolveClassValueClassId(this, valueId, row) is not { } rowClassId)
                 return null;
-            return InterfaceImplementers.Determination(rowClassId, interfaceId).Admits ? null : rowClassId;
+            return InterfaceImplementers.RowRefusal(slotLabel, valueId, row, rowClassId, interfaceId);
         }
 
         /// <summary>
         /// P113 §1. The class arguments a row of <paramref name="rowClassId"/>
-        /// takes from <paramref name="slot"/>.
+        /// takes: its <paramref name="stamp"/> first, as its runtime type,
+        /// then <paramref name="slot"/>'s for each param the stamp leaves out.
+        /// A variant slot's argument only bounds the row's: an
+        /// <c>IProd&lt;out X&gt;</c> slot of <c>IProd&lt;Seed&gt;</c> holds a
+        /// <c>VOne&lt;Sprout&gt;</c>.
         /// </summary>
         internal IReadOnlyDictionary<string, TypeBinding>? SlotClassArguments(
             ClassMember? slot,
-            string rowClassId)
+            string rowClassId,
+            IReadOnlyDictionary<string, TypeBinding>? stamp = null)
         {
-            if (slot?.DeclaredInterfaceId is null)
-                return slot?.classArguments;
-            return InterfaceImplementers.SlotClassArguments(slot, rowClassId);
+            IReadOnlyDictionary<string, TypeBinding>? slotArguments = slot?.DeclaredInterfaceId is null
+                ? slot?.classArguments
+                : InterfaceImplementers.SlotClassArguments(slot, rowClassId);
+            return NeoGenericResolution.CloseClassArgumentsFromStamp(this, stamp, slotArguments);
         }
 
         internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId) =>
@@ -2823,6 +2831,7 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            var interfaceDispatch = NeoInterfaceDispatch.ForSchemaValidation(this);
             foreach (NeoSchemaClass schemaClass in data.classes.Values)
             {
                 IList<MergedSchemaEntry> surface =
@@ -2842,7 +2851,7 @@ namespace NeoCompose.Runtime
                     }
                 }
 
-                ValidateReadOnlyInterfaceSetters(schemaClass, surface);
+                ValidateReadOnlyInterfaceSetters(schemaClass, surface, interfaceDispatch);
             }
         }
 
@@ -2859,73 +2868,55 @@ namespace NeoCompose.Runtime
 
         private void ValidateReadOnlyInterfaceSetters(
             NeoSchemaClass schemaClass,
-            IList<MergedSchemaEntry> surface)
+            IList<MergedSchemaEntry> surface,
+            NeoInterfaceDispatch dispatch)
         {
             var readOnlyKeys = new Dictionary<string, Member>();
+            var readOnlySites = new Dictionary<(string, string), Member>();
             foreach (MergedSchemaEntry entry in surface)
             {
                 if (data.members.TryGetValue(entry.memberId, out Member? member)
                     && member.Mutability == NeoMemberMutabilityKind.ReadOnly)
                 {
                     readOnlyKeys[entry.schemaKey] = member;
+                    if (member.explicitImplementation is { } site)
+                        readOnlySites.TryAdd((site.interfaceId, site.interfaceMemberId), member);
                 }
             }
             if (readOnlyKeys.Count == 0)
                 return;
 
-            var visited = new HashSet<string>();
-            foreach (NeoSchemaClass ancestor in ResolveClassInheritanceChain(schemaClass.id))
+            var receiver = TypeBinding.Closed(new TypeHead(MemberKind.Class, true, classId: schemaClass.id),
+                schemaClass.genericParams?.ToDictionary(parameter => parameter.id,
+                    parameter => TypeBinding.Open(new TypeDefinition(MemberKind.Class, classId: schemaClass.id), parameter.id)));
+            foreach (var construction in dispatch.Closure(receiver))
             {
-                if (ancestor.implementsInterfaces is null)
-                    continue;
-                foreach (InterfaceConstruction construction in ancestor.implementsInterfaces)
-                {
-                    ValidateReadOnlyInterfaceSetters(
-                        schemaClass,
-                        construction.interfaceId,
-                        readOnlyKeys,
-                        visited);
-                }
-            }
-        }
-
-        private void ValidateReadOnlyInterfaceSetters(
-            NeoSchemaClass schemaClass,
-            string interfaceId,
-            IReadOnlyDictionary<string, Member> readOnlyKeys,
-            HashSet<string> visited)
-        {
-            if (!visited.Add(interfaceId)
-                || !data.interfaces.TryGetValue(interfaceId, out Interface? contract))
-            {
-                return;
-            }
-            if (contract.members is not null)
-            {
+                var contract = data.interfaces[construction.Head!.InterfaceId!];
                 foreach (var pair in contract.members)
                 {
-                    if (pair.Value.kind != NeoInterfaceMemberKind.Property
-                        || pair.Value.IsStatic
-                        || !pair.Value.IsSettable
-                        || pair.Value.SetterAccess == NeoMemberAccessKind.Private
-                        || pair.Value.implementationMemberId is not null
-                        || !readOnlyKeys.TryGetValue(pair.Key, out Member? member))
-                    {
+                    if (pair.Value.kind != NeoInterfaceMemberKind.Property || pair.Value.IsStatic
+                        || !pair.Value.IsSettable || pair.Value.SetterAccess == NeoMemberAccessKind.Private)
                         continue;
+                    string slot = pair.Value.id ?? pair.Key;
+                    Member? member = readOnlyKeys.GetValueOrDefault(pair.Key)
+                        ?? readOnlySites.GetValueOrDefault((contract.id, slot));
+                    if (member is null)
+                        continue;
+                    Member setter;
+                    try
+                    {
+                        setter = data.members[dispatch.Resolve(receiver, construction, slot, "set").MemberId];
                     }
+                    catch (NeoScript.NSGetterRuntimeError error)
+                    {
+                        throw new InvalidOperationException(
+                            $"Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}): {error.Message}", error);
+                    }
+                    if (setter.Mutability != NeoMemberMutabilityKind.ReadOnly)
+                        continue;
                     throw new InvalidOperationException(
-                        $"Read-only member '{member.name}' ({member.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
+                        $"Read-only member '{setter.name}' ({setter.id}) on Class '{schemaClass.name}' cannot fulfill settable interface property '{pair.Key}' from Interface '{contract.name}' ({contract.id}).");
                 }
-            }
-            if (contract.extendsInterfaces is null)
-                return;
-            foreach (InterfaceConstruction parent in contract.extendsInterfaces)
-            {
-                ValidateReadOnlyInterfaceSetters(
-                    schemaClass,
-                    parent.interfaceId,
-                    readOnlyKeys,
-                    visited);
             }
         }
 
@@ -3783,6 +3774,16 @@ namespace NeoCompose.Runtime
             plan.Set(ownership, named, silent: true);
         }
 
+        /// <summary>
+        /// Whether a static initializer's plan takes a child from a parent no root
+        /// reaches. Only an initializer's temporary is such a parent: a run-time
+        /// assignment of a temporary's member still refuses.
+        /// </summary>
+        private bool InitializesStaticFromTemporary(NeoWritePlan plan, string parentValueId, NeoValueOwnership parentOwnership) =>
+            staticInitializationPlans.Count != 0
+            && ReferenceEquals(staticInitializationPlans.Peek(), plan)
+            && CanProveUnreachable(parentOwnership, new[] { parentValueId });
+
         private string ImportValueReferenceGraph(
             NeoWritePlan plan,
             NeoValueOwnership targetOwnership,
@@ -3817,9 +3818,14 @@ namespace NeoCompose.Runtime
                 {
                     return sourceValueId;
                 }
-                if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId))
+                if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId, out NeoValueOwnership parentOwnership))
                 {
-                    if (sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
+                    // A value under a released root is copied, as a shared getter result is.
+                    // So is a temporary's member in a static initializer: a parent no root
+                    // reaches there is the temporary (P127 §1.2).
+                    if ((sourceOwnership == NeoValueOwnership.Session && HasSharedGetterAncestor(parentValueId))
+                        || HeldByReleasedRoot(parentValueId, parentOwnership)
+                        || InitializesStaticFromTemporary(plan, parentValueId, parentOwnership))
                     {
                         TryInferMemberForValueId(sourceValueId, out Member? sharedChildMember);
                         return PrepareFreshClone(plan, targetOwnership, sourceOwnership, sourceValueId, sharedChildMember, listenerCopyIntent, clonedValueIds);
@@ -5585,6 +5591,9 @@ namespace NeoCompose.Runtime
 
         internal Member? TryResolveCollectionEntryMember(Member? collectionMember, MemberValue? row = null)
         {
+            // A collection boxed into an object slot takes its box's shape (§1.3).
+            if (collectionMember is not (ListMember or DictionaryMember) && row?.valueType is not null)
+                collectionMember = TypeRules.PayloadMemberOf(collectionMember, row);
             string? entryMemberId = collectionMember switch
             {
                 ListMember list => list.entryMemberId,
@@ -5995,6 +6004,15 @@ namespace NeoCompose.Runtime
                     && TryResolveCollectionEntryMember(containerMember) is Member containedMember)
                 {
                     member = containedMember;
+                    return true;
+                }
+                // An entry a held batch added is placed by its pending collection.
+                if (scriptWriteBatch?.TryGetEntryParent(valueId, out string? pendingParent) == true
+                    && pendingParent is not null
+                    && TryInferMemberForValueId(pendingParent, visitingValueIds, out Member? pendingMember, ownership)
+                    && TryResolveCollectionEntryMember(pendingMember, ResolveValueRow(pendingParent)) is Member pendingEntry)
+                {
+                    member = pendingEntry;
                     return true;
                 }
 
@@ -10812,6 +10830,8 @@ namespace NeoCompose.Runtime
                 if (ResolveStaticOwnership(member) == ownership
                     && TryResolveStaticBinding(member.id, out _, out _, out string? target))
                     staticRoots.Add(target);
+            foreach (var root in ConstructionRoots(ownership))
+                staticRoots.Add(root.valueId);
             for (int index = 0; index < valueIds.Count; index++)
                 pending.Enqueue(valueIds[index]);
             var store = GetWritableStore(ownership);
@@ -11008,6 +11028,17 @@ namespace NeoCompose.Runtime
                         reachable,
                         staticMember);
                 }
+            }
+            foreach (var root in ConstructionRoots(ownership))
+            {
+                if (!TryGetMember(root.memberId, out Member? constructed))
+                    continue;
+                var environment = NeoInterfaceDispatch.Of(this).Environment(root.construction);
+                MarkReachableValue(
+                    ownership,
+                    root.valueId,
+                    reachable,
+                    NeoGenericResolution.SubstituteMember(this, constructed, environment));
             }
             // Only storage boundaries are independent roots. Owned descendants
             // must remain reachable through their current parent/container.

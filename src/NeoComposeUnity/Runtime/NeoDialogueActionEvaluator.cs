@@ -2418,9 +2418,8 @@ namespace NeoCompose.Runtime
             string? unboundChildId = null)
         {
             if (keyOfPointer.memberId is string memberId
-                && client.ProjectDataForRuntime.members.ContainsKey(memberId)
                 && NSGetterEvaluator.FindRowClassIdByReference(receiver, ctx) is string receiverClassId
-                && NeoInterfaceDispatch.Of(client).ClassAccessor(receiverClassId, memberId, "set") is NSPropertyMember property
+                && NSGetterEvaluator.SetterAt(keyOfPointer.keyOf, receiverClassId, memberId, ctx) is NSPropertyMember property
                 && !NSGetterEvaluator.ContainsFrame(ctx.setterCallStack, property.id))
             {
                 NSGetterEvaluator.WriteClassProperty(property, receiver!, assigned, ctx);
@@ -2995,10 +2994,12 @@ namespace NeoCompose.Runtime
                 && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Lookup or MemberKind.Dictionary)
             {
                 object? receiver;
-                if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
+                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(instruction.target))
                 {
+                    // Evaluating the key can commit the held batch, so the pending
+                    // collection belongs to the one held now.
                     if (NSGetterEvaluator.FindPendingTarget(keyOfTarget, scope, ctx, out receiver, out var owner, out object? entry) is { } pending)
-                        return CollectionMutation.Target(PendingTarget(client, batch, pending, instruction.target.typeInfo));
+                        return CollectionMutation.Target(PendingTarget(client, client.PendingScriptWrites!, pending, instruction.target.typeInfo));
                     // An entry of a pending collection: its store is the
                     // collection's, and reading the collection would commit it.
                     if (owner is not null)
@@ -3031,10 +3032,11 @@ namespace NeoCompose.Runtime
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver);
             }
             if (instruction.target.pointer is FunctionPointer { function: TupleElementFunction }
-                && client.PendingScriptWrites is { HasCollections: true } tupleBatch)
+                && client.PendingScriptWrites is { HasCollections: true })
             {
+                // Evaluating the tuple can commit the held batch, as a key can.
                 if (NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out object? element) is { } pending)
-                    return CollectionMutation.Target(PendingTarget(client, tupleBatch, pending, instruction.target.typeInfo));
+                    return CollectionMutation.Target(PendingTarget(client, client.PendingScriptWrites!, pending, instruction.target.typeInfo));
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, element);
             }
             if (instruction.target.pointer is FunctionPointer or ForceUnwrapPointer)
@@ -3839,8 +3841,9 @@ namespace NeoCompose.Runtime
             JsonMember? member = null;
             if (target.pointer is StaticMemberPointer staticMember)
             {
-                client.TryGetMember(staticMember.memberId, out member);
                 var binding = NSGetterEvaluator.ResolveStaticBinding(staticMember.memberId, staticMember.staticConstruction, ctx);
+                // A generic type's static holds what its construction binds.
+                member = binding.Member;
                 rowId = binding.ValueId;
             }
             else if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
@@ -4299,6 +4302,14 @@ namespace NeoCompose.Runtime
             throw new NSGetterRuntimeError($"Stored interface member '{label}' requires an authored class value. Store sequence contents in a List.");
         }
 
+        /// <summary>
+        /// Whether an object slot takes <paramref name="value"/> by reference:
+        /// a stored class value, held as a class slot holds it (P127 §1.2).
+        /// </summary>
+        internal static bool HoldsStoredClassValue(object? value, NSGetterEvaluator.Context ctx) =>
+            value is not (null or NeoBox or NeoScriptObject)
+            && NSGetterEvaluator.FindRowClassIdByReference(value, ctx) is not null;
+
         private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
@@ -4317,14 +4328,17 @@ namespace NeoCompose.Runtime
                 valueId = box.valueId;
                 return true;
             }
+            if (typeInfo.type == MemberKind.Object && HoldsStoredClassValue(value, ctx))
+                return TryGetValueReferenceId(value, ctx, out valueId);
             if (typeInfo.type is not (MemberKind.Class or MemberKind.Interface))
                 return false;
             return TryGetValueReferenceId(value, ctx, out valueId);
         }
 
         /// <summary>
-        /// P113 §3.3. A write into an interface slot holds an open row only
-        /// when the slot's interface determines its parameters. The slot is
+        /// P113 §3.3. A write into an interface slot holds a row whose class
+        /// implements the interface, and a row of a class the interface leaves
+        /// open stores its own stamp (#2556). The slot is
         /// <paramref name="key"/> on <paramref name="ownerRowId"/>'s row, or
         /// the entries of the collection row <paramref name="ownerRowId"/>
         /// when <paramref name="key"/> is null.
@@ -4359,12 +4373,8 @@ namespace NeoCompose.Runtime
             string ownerRowId,
             string? key)
         {
-            if (client.InterfaceSlotRefusedClass(interfaceId, valueId) is not { } rowClassId)
-                return;
-            throw new NSGetterRuntimeError(client.InterfaceImplementers.UndeterminedRowMessage(
-                InterfaceSlotLabel(client, ownerRowId, key),
-                rowClassId,
-                interfaceId)!);
+            if (client.InterfaceSlotRefusal(interfaceId, valueId, () => InterfaceSlotLabel(client, ownerRowId, key)) is { } refusal)
+                throw new NSGetterRuntimeError(refusal);
         }
 
         private static string InterfaceSlotLabel(NeoClient client, string ownerRowId, string? key)
@@ -5177,6 +5187,19 @@ namespace NeoCompose.Runtime
             return NeoGenericResolution.RowEnv(client, row, collection);
         }
 
+        /// <summary>
+        /// A null entry the call site types as nullable. One static serves
+        /// <c>Box&lt;Cat&gt;</c> and <c>Box&lt;Cat?&gt;</c>, so its stamp may read required.
+        /// </summary>
+        private static JsonMember NullableEntry(JsonMember entry, object? value, TypeInfo entryTypeInfo)
+        {
+            if (value is not null || entryTypeInfo.required || entry.Requirement != NeoMemberRequirementKind.Required)
+                return entry;
+            JsonMember optional = entry.ShallowClone();
+            optional.DeclaredRequirement = NeoMemberRequirementKind.Optional;
+            return optional;
+        }
+
         private static JsonMember EntryMember(NeoClient client, MemberValue collectionRow, TypeInfo entryTypeInfo) =>
             NamesEntryMember(entryTypeInfo)
                 && client.TryInferMemberForValueId(collectionRow.id, out JsonMember? collection)
@@ -5445,7 +5468,7 @@ namespace NeoCompose.Runtime
             {
                 try
                 {
-                    if (typeInfo.type == MemberKind.Class)
+                    if (typeInfo.type == MemberKind.Class || binding.Member is ObjectMember && HoldsStoredClassValue(value, ctx))
                     {
                         string? valueId = FindValueId(value, ctx);
                         NeoValueOwnership sourceOwnership = default;
@@ -5502,7 +5525,7 @@ namespace NeoCompose.Runtime
                             var objectSlot = binding.Member as ObjectMember ?? new ObjectMember { id = binding.MemberId, name = binding.Member.name, kind = MemberKind.Object };
                             PrepareWrite(client, plan =>
                             {
-                                string id = binding.ValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
+                                string id = binding.PayloadValueId ?? NSGetterEvaluator.StaticSlotId(binding.MemberId);
                                 NeoValuePayload boxed = NeoGeneratedTypesSupport.EvaluatorObjectPayload(client, objectSlot, binding.Ownership, value!, ctx, id, plan);
                                 binding.PreparePayload(plan, boxed);
                             });
@@ -6699,7 +6722,7 @@ namespace NeoCompose.Runtime
                                     batch.Plan.Set(ownership, CreateValueRow(
                                         batch.Plan, client,
                                         ownership,
-                                        entryMember ?? EntryMember(batch, list, entryTypeInfo),
+                                        NullableEntry(entryMember ?? EntryMember(batch, list, entryTypeInfo), insertedValue, entryTypeInfo),
                                         insertedValue,
                                         childId,
                                         now,
@@ -6780,7 +6803,7 @@ namespace NeoCompose.Runtime
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, member, CollectionRowEnv(ctx.client, list.Row), new HashSet<string>()));
-                if (NSGetterEvaluator.UsesStoredEquality(list.Row, type, ctx))
+                if (NSGetterEvaluator.SetDecidesByEquality(list.Row, type, ctx))
                     return list.FindEqualityEntry(value, member, type, batch.Plan, ctx);
                 if (member is not ClassMember)
                     return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx, list.Row), member, batch.Plan);

@@ -575,14 +575,14 @@
       "source": [
         "class Use { public static bool U() { bool a = true; bool b = false; return a < b; } }"
       ],
-      "message": "CS0019: Operator '<' cannot be applied to operands of type 'bool' and 'bool'"
+      "message": "operator-operand-types: Operator '<' is not defined for 'bool' and 'bool'."
     },
     {
       "name": "RelString",
       "source": [
         "class Use { public static bool U() { string a = \"a\"; string b = \"b\"; return a < b; } }"
       ],
-      "message": "CS0019: Operator '<' cannot be applied to operands of type 'string' and 'string'"
+      "message": "operator-operand-types: Operator '<' is not defined for 'string' and 'string'."
     },
     {
       "name": "RelMixedEnums",
@@ -591,7 +591,7 @@
         "enum Fk { A, B }",
         "class Use { public static bool U() { Ek a = Ek.A; Fk b = Fk.B; return a < b; } }"
       ],
-      "message": "CS0019: Operator '<' cannot be applied to operands of type 'Ek' and 'Fk'"
+      "message": "operator-operand-types: Operator '<' is not defined for 'Ek' and 'Fk'."
     },
     {
       "name": "RelClass",
@@ -599,7 +599,7 @@
         "class N { }",
         "class Use { public static bool U() { N a = new N(); N b = new N(); return a >= b; } }"
       ],
-      "message": "CS0019: Operator '>=' cannot be applied to operands of type 'N' and 'N'"
+      "message": "operator-operand-types: Operator '>=' is not defined for 'N' and 'N'."
     }
   ]
 }

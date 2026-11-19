@@ -65,6 +65,30 @@ namespace NeoCompose.Runtime
             return index;
         }
 
+        /// <summary>
+        /// Each closed construction's bound value in <paramref name="ownership"/>,
+        /// committed or pending in a static initialization or the candidate plan.
+        /// They are roots, as a non-generic static's binding is (P127 §5.3).
+        /// </summary>
+        private IEnumerable<(string memberId, TypeBinding construction, string valueId)> ConstructionRoots(NeoValueOwnership ownership)
+        {
+            HashSet<(string memberId, TypeBinding construction)>? rebound = null;
+            foreach (var plan in staticInitializationPlans.Append(candidateReadPlan))
+                if (plan?.ConstructionBindings is not null)
+                    foreach (var pair in plan.ConstructionBindings)
+                    {
+                        if (pair.Key.ownership != ownership)
+                            continue;
+                        (rebound ??= new()).Add((pair.Key.memberId, pair.Key.construction));
+                        if (pair.Value is string valueId)
+                            yield return (pair.Key.memberId, pair.Key.construction, valueId);
+                    }
+            // A pending binding replaces its committed one.
+            foreach (var entry in ConstructionEntries(ownership).Entries.Values)
+                if (entry.value is string valueId && rebound?.Contains((entry.memberId, entry.construction)) != true)
+                    yield return (entry.memberId, entry.construction, valueId);
+        }
+
         internal bool IsInitializingStaticConstruction(TypeBinding construction) =>
             staticConstructionStates.TryGetValue(NeoInterfaceDispatch.Identity(construction), out var state) && state.Initializing;
 
@@ -148,13 +172,22 @@ namespace NeoCompose.Runtime
                                 var binding = state.Bindings[member.id];
                                 InitializerBody? initializer = member.valueId is string sourceId
                                     ? plan.Resolve(NeoValueOwnership.Asset, sourceId)?.init : MemberValueFactory.InitializerOf(member);
-                                if (initializer is not null)
+                                // A collection whose entries run code builds as its literal does.
+                                bool computedTemplate = initializer is null && member.valueId is string templateId
+                                    && binding.Member is ListMember and not SetMember or DictionaryMember
+                                    && TemplateRunsCode(plan, templateId);
+                                if (initializer is not null || computedTemplate)
                                 {
                                     var context = CreateGetterContext(binding.Ownership);
                                     context.BindRoot(NeoScriptValueMarshaller.ResolveRoot(this, context));
-                                    object? value = NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null,
-                                        binding.Member, initializer, environment, construction);
-                                    if (binding.Member is ClassMember && value is not null)
+                                    object? value = initializer is not null
+                                        ? NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null,
+                                            binding.Member, initializer, environment, construction)
+                                        : EvaluateStaticTemplate(plan, binding.Member, member.valueId!, context, environment, construction);
+                                    // An object static takes a class value by reference, as a class static does (P127 §1.2).
+                                    if (value is not null
+                                        && (binding.Member is ClassMember
+                                            || binding.Member is ObjectMember && NeoScriptExecutor.HoldsStoredClassValue(value, context)))
                                     {
                                         var reference = NSGetterEvaluator.ConstructorReferenceOf(value, context)
                                             ?? throw new NSGetterRuntimeError($"Static initializer '{member.name}' produced no class identity.");
@@ -165,7 +198,8 @@ namespace NeoCompose.Runtime
                                     {
                                         object? payload = binding.Member is ObjectMember objectMember && value is NeoBox or NeoTypeValue
                                             ? NeoGeneratedTypesSupport.EvaluatorObjectPayload(this, objectMember, binding.Ownership, value!, context, Guid.NewGuid().ToString(), plan)
-                                            : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment);
+                                            : value is null ? null : NeoGeneratedTypesSupport.MaterializeCollectionAssignment(this, binding.Member, value, binding.Ownership, context, plan, environment,
+                                                initializerDefault: true);
                                         binding.PrepareInitialValue(plan, payload);
                                     }
                                 }
@@ -209,6 +243,74 @@ namespace NeoCompose.Runtime
             {
                 state.Initializing = false;
             }
+        }
+
+        /// <summary>
+        /// Whether a static's template holds a row that runs code: a computed entry
+        /// of a collection literal carries its own initializer (P127 §3.2).
+        /// </summary>
+        private static bool TemplateRunsCode(NeoWritePlan plan, string valueId)
+        {
+            MemberValue? row = plan.Resolve(NeoValueOwnership.Asset, valueId);
+            if (row is null)
+                return false;
+            if (row.init is not null)
+                return true;
+            switch (row)
+            {
+                case ArrayMemberValue { classId: null, value: { } ids }:
+                    foreach (string id in ids)
+                        if (TemplateRunsCode(plan, id))
+                            return true;
+                    return false;
+                case ObjectMemberValue { classId: null, value: { } pairs }:
+                    foreach (string id in pairs.Values)
+                        if (TemplateRunsCode(plan, id))
+                            return true;
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// A static's template as its literal builds it, as a declaration default's
+        /// copy does: a computed row runs its initializer, and a literal row reads.
+        /// </summary>
+        private object? EvaluateStaticTemplate(NeoWritePlan plan, Member member, string valueId, NSGetterEvaluator.Context context,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> environment, TypeBinding construction)
+        {
+            MemberValue row = plan.Resolve(NeoValueOwnership.Asset, valueId)
+                ?? throw new NSGetterRuntimeError($"Static member '{member.name}' has a missing template value '{valueId}'.");
+            if (row.init is not null)
+                return NeoGeneratedTypesSupport.EvaluateInitializer(this, context, default, null, member, row.init, environment, construction);
+            if (!TemplateRunsCode(plan, valueId))
+                return NSGetterEvaluator.ResolveStoredCollection(
+                    NSGetterEvaluator.ResolveValueIfId(valueId, context, NeoValueOwnership.Asset, member), context);
+            if (member is ListMember and not SetMember && row is ArrayMemberValue { value: { } ids })
+            {
+                Member entry = TemplateEntryMember(member, ((ListMember)member).entryMemberId, environment);
+                var entries = new object?[ids.Length];
+                for (int index = 0; index < ids.Length; index++)
+                    entries[index] = EvaluateStaticTemplate(plan, entry, ids[index], context, environment, construction);
+                return entries;
+            }
+            if (member is DictionaryMember dictionary && row is ObjectMemberValue { value: { } pairs })
+            {
+                Member entry = TemplateEntryMember(member, dictionary.entryMemberId, environment);
+                var entries = new Dictionary<string, object?>(pairs.Count, StringComparer.Ordinal);
+                foreach (var pair in pairs)
+                    entries[pair.Key] = EvaluateStaticTemplate(plan, entry, pair.Value, context, environment, construction);
+                return entries;
+            }
+            throw new NSGetterRuntimeError($"Static member '{member.name}' has a computed entry in a value it cannot build.");
+        }
+
+        private Member TemplateEntryMember(Member member, string? entryMemberId, IReadOnlyDictionary<string, NeoGenericEnvEntry> environment)
+        {
+            if (entryMemberId is null || !TryGetMember(entryMemberId, out Member? entry))
+                throw new NSGetterRuntimeError($"Static member '{member.name}' has no entry member '{entryMemberId}'.");
+            return NeoGenericResolution.SubstituteMember(this, entry, environment);
         }
 
         private void RefreshStaticInitializationPlans(NeoWritePlan committed)

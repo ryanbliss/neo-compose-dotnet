@@ -27,7 +27,7 @@ namespace NeoCompose.Tests.P127OrderingParity
     public partial class Rev : NeoGeneratedClassValue, IReadOnlyRev
     {
         internal Rev(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "475714b8-e9a2-4464-93cf-a7df5ee3d532", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "eea087e5-4a2e-4590-9602-58ca369c5233", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OrderingParity
         private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "475714b8-e9a2-4464-93cf-a7df5ee3d532");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "eea087e5-4a2e-4590-9602-58ca369c5233");
         }
 
         internal static Rev Create(NeoClient client, NeoMemberClass node)

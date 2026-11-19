@@ -51,7 +51,7 @@ namespace NeoCompose.Tests
         // P127 §8.1: a primitive, vector, enum or tuple satisfies an
         // interface constraint through the conformance table, as the
         // server's satisfiesTypeInfoConstraint admits it. An enum implements
-        // only the non-generic IComparable, as in C#.
+        // only the non-generic IComparable.
         [TestCase("int", "IComparable`1", true)]
         [TestCase("float", "IComparable`1", true)]
         [TestCase("string", "IComparable`1", true)]

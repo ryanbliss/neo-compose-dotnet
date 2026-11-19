@@ -153,20 +153,43 @@ namespace NeoCompose.Tests
             Assert.That(Resolve(client).MemberId, Is.EqualTo(nullable.id));
         }
 
-        [Test]
-        public void GenericMethodsMatchByArityAndPositionIncludingNestedTypes()
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        public void GenericMethodsMatchByArityAndPositionIncludingNestedTypes(int depth)
         {
-            var wrongArity = Function("wrong-arity", Arg(List(MethodParam("wrong-arity", 0))), arity: 2);
-            var wrongPosition = Function("wrong-position", Arg(List(MethodParam("wrong-position", 1))), arity: 2);
-            var method = Function("implementation", Arg(List(MethodParam("implementation", 0))), arity: 1);
-            var schema = Schema(Arg(List(MethodParam("contract", 0))), wrongArity, wrongPosition, method);
+            TypeInfo Parameter(string owner, int position)
+            {
+                var type = MethodParam(owner, position);
+                for (int i = 0; i < depth; i++)
+                    type = List(type);
+                return type;
+            }
+            var wrongArity = Function("wrong-arity", Arg(Parameter("wrong-arity", 0)), arity: 2);
+            var wrongPosition = Function("wrong-position", Arg(Parameter("wrong-position", 1)), arity: 2);
+            var method = Function("implementation", Arg(Parameter("implementation", 0)), arity: 1);
+            var schema = Schema(Arg(Parameter("contract", 0)), wrongArity, wrongPosition, method);
             Member(schema).genericParams = Generics(1);
             using var client = NeoTestSaveStack.ClientFromSchema(schema);
             Assert.That(Resolve(client).MemberId, Is.EqualTo(method.id));
             Member(schema).genericParams = Generics(2);
-            Member(schema).argumentTypes![0] = Arg(List(MethodParam("contract", 1)));
+            Member(schema).argumentTypes![0] = Arg(Parameter("contract", 1));
             client.InvalidateSchemaResolutionCaches();
             Assert.That(Resolve(client).MemberId, Is.EqualTo(wrongPosition.id));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GenericMethodReturnTypesMatchByPosition(bool nested)
+        {
+            TypeInfo Result(string owner, int position) => nested ? List(MethodParam(owner, position)) : MethodParam(owner, position);
+            var wrong = Function("wrong", Arg(Scalar(MemberKind.Int)), Result("wrong", 0), arity: 2);
+            var right = Function("right", Arg(Scalar(MemberKind.Int)), Result("right", 1), arity: 2);
+            var schema = Schema(Arg(Scalar(MemberKind.Int)), wrong, right);
+            Member(schema).genericParams = Generics(2);
+            Member(schema).returnTypeInfo = Result("contract", 1);
+            using var client = NeoTestSaveStack.ClientFromSchema(schema);
+            Assert.That(Resolve(client).MemberId, Is.EqualTo(right.id));
         }
 
         [Test]
@@ -354,7 +377,7 @@ namespace NeoCompose.Tests
                 ["M#b"] = second
             });
             Assert.That(Assert.Throws<JsonSerializationException>(() => RecordShapeContractGuard.ValidateProjectData(data))!.Message,
-                Is.EqualTo("Interface \"IStore\" (interface-id) declares functions \"a\" and \"b\" with one name and the same parameters (CS0111)."));
+                Is.EqualTo("Interface \"IStore\" (interface-id) declares functions \"a\" and \"b\" with the same name and parameter signature."));
         }
 
         [Test]

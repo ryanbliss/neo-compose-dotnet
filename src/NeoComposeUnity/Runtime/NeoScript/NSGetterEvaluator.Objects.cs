@@ -163,7 +163,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// value-kind or other non-reference target, the value itself, boxed
         /// when it was raw, for <c>object</c>, <c>ValueType</c> and <c>Enum</c>.
         /// </summary>
-        /// <param name="held">The value's held type; null for a row, or a raw value read through an interface or <c>object</c>.</param>
+        /// <param name="held">The value's held type; null for a row, or a raw value other than a widened collection read through an interface or <c>object</c>.</param>
         private static bool TryCast(object value, TypeBinding? held, object payload, TypeInfo target, Context ctx, out object? result)
         {
             result = null;
@@ -866,9 +866,10 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// A value's held type and payload: a box's own, a <c>Type</c>'s,
-        /// or the closed static type of a raw value. Null for a row, or a
-        /// raw value whose static type is a class, an interface or <c>object</c>.
+        /// A value's held type and payload: a box's own, a <c>Type</c>'s, a
+        /// widened collection's recorded one, or the closed static type of a
+        /// raw value. Null for a row, or another raw value whose static type
+        /// is a class, an interface or <c>object</c>.
         /// </summary>
         private static TypeBinding? HeldType(object value, TypeInfo? staticType, Context ctx, out object payload)
         {
@@ -895,11 +896,12 @@ namespace NeoCompose.Runtime.NeoScript
             }
             payload = value;
             if (staticType is null)
-                return value is string ? TypeBinding.Closed(new TypeHead(MemberKind.String, true)) : null;
+                return value is string ? TypeBinding.Closed(new TypeHead(MemberKind.String, true)) : RecordedCollectionType(value, ctx);
             TypeInfo closed = CloseContextType(staticType, ctx);
             if (value is string && IsReferenceStatic(closed))
                 return TypeBinding.Closed(new TypeHead(MemberKind.String, true));
-            return IsReferenceStatic(closed) && value is not NeoVariantReference ? null : HeldTypeOf(closed);
+            // A widened collection holds the type it recorded.
+            return IsReferenceStatic(closed) && value is not NeoVariantReference ? RecordedCollectionType(value, ctx) : HeldTypeOf(closed);
         }
 
         /// <summary>§3.6 <c>GetType()</c>: a row's class with its bindings, a box's held type, a raw value's closed static type.</summary>
@@ -927,6 +929,16 @@ namespace NeoCompose.Runtime.NeoScript
 
         /// <summary>The held type a raw value of the closed static type boxes as: never nullable at the top.</summary>
         private static TypeBinding HeldTypeOf(TypeInfo closed) => RuntimeTypeOf(closed).WithRequired(true);
+
+        /// <summary>
+        /// P127 §5.3. Whether two type arguments are one runtime type: a
+        /// reference type's <c>?</c> isn't part of it, a value type's is.
+        /// </summary>
+        private static bool RuntimeTypesEqual(TypeInfo left, TypeInfo right) =>
+            NeoClient.TypeInfoMatches(left, right)
+            || !NeoNSFunctionRuntime.ContainsGeneric(left)
+                && !NeoNSFunctionRuntime.ContainsGeneric(right)
+                && RuntimeTypeOf(left).Equals(RuntimeTypeOf(right));
 
         /// <summary>
         /// A closed type's runtime type (§2): nullable references and tuple

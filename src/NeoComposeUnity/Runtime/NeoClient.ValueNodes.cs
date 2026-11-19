@@ -145,6 +145,49 @@ namespace NeoCompose.Runtime
                 node.retainedRoot = new NeoValueNode.RetainedRootContract(member, SchemaResolution, row, ReadRow);
         }
 
+        // Counts every root ever marked, so none marked skips the walk.
+        private int releasedRootMarks;
+
+        internal void MarkReleasedRoot(string id)
+        {
+            if (ValueNode(id) is { live: true, session: { IsRemoved: false }, releasedRoot: false } node)
+            {
+                node.releasedRoot = true;
+                releasedRootMarks++;
+            }
+        }
+
+        internal bool IsReleasedRoot(string id) => ExistingValueNode(id)?.releasedRoot == true;
+
+        /// <summary>
+        /// P127: true when the collections above <paramref name="parentValueId"/>
+        /// end at a released root that was not placed again. A class row
+        /// below the root still owns its own fields. The adoption refusal and
+        /// every list or dictionary assignment read it.
+        /// </summary>
+        internal bool HeldByReleasedRoot(string parentValueId, NeoValueOwnership parentOwnership)
+        {
+            // Only a Session row can be a released root.
+            if (parentOwnership != NeoValueOwnership.Session || releasedRootMarks == 0)
+                return false;
+            string? id = parentValueId;
+            NeoValueOwnership ownership = parentOwnership;
+            var seen = new HashSet<string>();
+            while (id is not null && seen.Add(id))
+            {
+                if (ownership == NeoValueOwnership.Session && IsReleasedRoot(id))
+                    return !TryFindOwnedParent(ownership, id, out _);
+                if (IsClassRow(ownership, id) || !TryFindOwnedParent(ownership, id, out id, out ownership))
+                    return false;
+            }
+            return false;
+        }
+
+        private bool IsClassRow(NeoValueOwnership ownership, string id) =>
+            TryGetValue(ownership, id, out MemberValue? row)
+            && row is ObjectMemberValue objectRow
+            && (objectRow.classId is not null || (TryInferMemberForValueId(id, out Member? member) && member is ClassMember));
+
         private MemberValueBase? ReadRow(string id) => TryGetValue(id, out MemberValue? found) ? found : null;
 
         private bool TryRetainedRootMember(string id, NeoValueOwnership? ownership, out Member? member)

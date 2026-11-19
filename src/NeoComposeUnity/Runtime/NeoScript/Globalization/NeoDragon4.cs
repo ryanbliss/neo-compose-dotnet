@@ -10,7 +10,7 @@ using System.Text;
 
 namespace NeoCompose.Runtime.NeoScript.Globalization
 {
-    /// <summary>.NET's <c>NumberBuffer.Kind</c>.</summary>
+    /// <summary><c>NumberBuffer.Kind</c>.</summary>
     internal enum NeoNumberBufferKind
     {
         Integer,
@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
         FloatingPoint,
     }
 
-    /// <summary>.NET's <c>NumberBuffer</c>, with <see cref="Digits"/> holding exactly <c>DigitsCount</c> ASCII digits.</summary>
+    /// <summary><c>NumberBuffer</c>, with <see cref="Digits"/> holding exactly <c>DigitsCount</c> ASCII digits.</summary>
     internal sealed class NeoNumberBuffer
     {
         internal NeoNumberBufferKind Kind;

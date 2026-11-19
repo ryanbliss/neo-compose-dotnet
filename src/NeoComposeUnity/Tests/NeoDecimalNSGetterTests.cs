@@ -495,7 +495,7 @@ namespace NeoCompose.Tests
         // Stored decimal collections (P127 §3.4 Average).
         // ------------------------------------------------------------------
 
-        // .NET seeds a List's Average with 0m but a HashSet's with its first entry.
+        // A List's Average seeds with 0m but a Set's with its first entry.
         [Test]
         public void Average_StoredRows_SeedLikeDotNet()
         {

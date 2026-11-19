@@ -25,16 +25,16 @@ namespace NeoCompose.Tests.P127OperatorsParity
     public partial class Gen<T> : NeoGeneratedClassValue, IReadOnlyGen<T>
     {
         internal Gen(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "a053ecea-c508-4c7e-a48c-526660bc023b", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "37be4b7d-dcc4-49cf-8442-775435ff7688", isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public static Gen<T> operator +(Gen<T> a, Gen<T> b)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "d91aa145-2e7a-40eb-ba38-a8140af5fd51", client.TypeArguments.Of<Gen<T>>());
+            var node = NeoMemberNSFunction.GetOrCreateStatic(client, "80013483-4b1c-4a9d-bb09-b440daaa846b", client.TypeArguments.Of<Gen<T>>());
             var result = node.InvokeStatic(a, b);
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, static (factoryClient, factoryNode) => Gen<T>.CreateWritable(factoryClient, factoryNode));
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, static (factoryClient, factoryNode) => Gen<T>.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => Gen<T>.CreateWritable(factoryClient, factoryNode));
         }
 
         internal static Gen<T> Create(NeoClient client, NeoMemberClass node)
@@ -44,7 +44,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a053ecea-c508-4c7e-a48c-526660bc023b" => new Gen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "37be4b7d-dcc4-49cf-8442-775435ff7688" => new Gen<T>(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gen' without a concrete client type id."),
                 };
             });
@@ -57,7 +57,7 @@ namespace NeoCompose.Tests.P127OperatorsParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "a053ecea-c508-4c7e-a48c-526660bc023b" => new Gen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "37be4b7d-dcc4-49cf-8442-775435ff7688" => new Gen<T>(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'Gen' without a concrete client type id."),
                 };
             });

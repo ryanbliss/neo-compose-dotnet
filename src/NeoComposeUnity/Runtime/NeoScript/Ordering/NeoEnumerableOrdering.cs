@@ -16,7 +16,7 @@ namespace NeoCompose.Runtime.NeoScript.Ordering
         /// <param name="descending"><c>OrderByDescending</c> or <c>ThenByDescending</c>.</param>
         /// <param name="defaultValueType">
         /// <c>K</c> is a value type compared by <c>Comparer&lt;K&gt;.Default</c>.
-        /// With one level, .NET then compares descending keys as
+        /// With one level, it then compares descending keys as
         /// <c>Compare(right, left)</c>, which an authored <c>CompareTo</c> can
         /// observe.
         /// </param>

@@ -48,18 +48,16 @@ namespace NeoCompose.Tests
             Assert.That(anything["h"].StampParams, Is.EqualTo(new[] { "T" }));
             Assert.That(anything["h.p"].StampParams, Is.Null);
 
-            var declared = Place(
-                client,
-                new MemberValue[]
-                {
-                    Obj("r", new() { ["Closed"] = "c" }),
-                    Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }),
-                    Number("c.payload", 4),
-                    Arr("c.items"),
-                    Obj("c.p", new() { ["As"] = "c.p.as" }),
-                    Arr("c.p.as"),
-                },
-                Root(client, "r", "root"));
+            MemberValue[] PlainRows(string? classId) => new MemberValue[]
+            {
+                Obj("r", new() { ["Closed"] = "c" }, classId),
+                Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }),
+                Number("c.payload", 4),
+                Arr("c.items"),
+                Obj("c.p", new() { ["As"] = "c.p.as" }),
+                Arr("c.p.as"),
+            };
+            var declared = Place(client, PlainRows(null), Root(client, "r", "root"));
             Assert.That(declared["c"].StampParams, Is.Null);
             // Declarations close every type under a Holder<int> field; each
             // row whose declared type names a param stores it closed.
@@ -67,6 +65,37 @@ namespace NeoCompose.Tests
             Assert.That(declared["c.items"].TypeSource, Is.EqualTo(NeoTypeSource.OfType(ListOf(Int, required: false))));
             Assert.That(declared["c.p.as"].TypeSource, Is.EqualTo(NeoTypeSource.OfType(ListOf(Int, required: false))));
             Assert.That(declared["c.payload"].TypeSource, Is.Null);
+
+            // An `object` slot's class row places through its own class, so
+            // the rows under it store the same closed types.
+            var held = Place(client, PlainRows("plain"), Root(client, "r", "anything"));
+            foreach (string rowId in new[] { "c", "c.items", "c.p.as", "c.payload" })
+                Assert.That(held[rowId].TypeSource, Is.EqualTo(declared[rowId].TypeSource), rowId);
+
+            // A generic class row an `object` slot holds is the binding node.
+            // Its descendants store one of two forms: a pointer through its
+            // stamp (as walked), or the closed type a construction replayed
+            // under it places. Both read closed in one hop.
+            var pointer = new Graph(HolderRows(Int, Number("h.payload", 4)));
+            NeoTypeSources.Place(client, pointer, Root(client, "h", "anything"));
+            var replayed = new Graph(HolderRows(Int, Number("h.payload", 4)));
+            NeoTypeSources.Place(client, replayed, Root(client, "h", "anything"));
+            TypeBinding pairOfInt = TestTypeBindings.Class("pair", false, ("A", Int), ("B", Int));
+            replayed["h.p"].typeSource = NeoTypeSource.OfType(pairOfInt);
+            replayed["h.p.as"].typeSource = NeoTypeSource.OfType(ListOf(Int, required: false));
+            Assert.That(pointer["h.p"].typeSource!.ValueId, Is.EqualTo("h"));
+            foreach ((string form, Graph graph) in new[] { ("pointer", pointer), ("replayed", replayed) })
+            {
+                Assert.That(graph["h"].genericBindings, Is.EqualTo(Stamped(Int)), form);
+                Assert.That(
+                    NeoTypeSources.PlacedRowType(client, "h.p", graph["h.p"], MemberOf(client, "p"), graph.Row),
+                    Is.EqualTo(pairOfInt),
+                    form);
+                Assert.That(
+                    NeoTypeSources.PlacedRowType(client, "h.p.as", graph["h.p.as"], MemberOf(client, "as"), graph.Row),
+                    Is.EqualTo(ListOf(Int, required: false)),
+                    form);
+            }
 
             var ownerless = Place(client, HolderRows(Int, Number("h.payload", 4)), NeoTypeSources.OwnerlessPosition("h"));
             Assert.That(ownerless["h"].StampParams, Is.EqualTo(new[] { "T" }));
@@ -217,6 +246,74 @@ namespace NeoCompose.Tests
             Assert.That(NeoTypeSources.Violations(client, graph, position)[0], Is.EqualTo("Value \"h\" is a binding node and stores no stamp."));
             var error = Assert.Throws<InvalidOperationException>(() => NeoTypeSources.Place(client, graph, position));
             Assert.That(error!.Message, Is.EqualTo("Binding node \"h\" stores no stamp, and its slot doesn't spell one."));
+        }
+
+        [Test]
+        public void KeepsTheClosedTypeOfARowMovedUnderASlotThatSpellsNone()
+        {
+            using NeoClient client = BuildClient();
+            var graph = new Graph(
+                new MemberValue[]
+                {
+                    Obj("r", new() { ["Closed"] = "c" }),
+                    Obj("c", new() { ["Payload"] = "c.payload", ["Items"] = "c.items", ["P"] = "c.p" }, "holder", Stamped(Int)),
+                    Number("c.payload", 4),
+                    Arr("c.items"),
+                    Obj("c.p", new() { ["As"] = "c.p.as" }),
+                    Arr("c.p.as"),
+                });
+            NeoTypeSources.Place(client, graph, Root(client, "r", "root"));
+            Assert.That(graph["c"].genericBindings, Is.Null);
+            // An initializer roots a temp's member under a slot that spells nothing.
+            NeoTypeSourcePosition? moved = Root(client, "c", "anything");
+            NeoTypeSources.Place(client, graph, moved);
+            Assert.That(graph["c"].genericBindings, Is.EqualTo(Stamped(Int)));
+            Assert.That(graph["c"].typeSource, Is.Null);
+            Assert.That(
+                graph["c.items"].typeSource,
+                Is.EqualTo(NeoTypeSource.OfType(ListOf(Open("holder", "T"), required: false), "c")));
+            Assert.That(NeoTypeSources.Violations(client, graph, moved), Is.Empty);
+        }
+
+        /// <summary>
+        /// A moved row whose target can't close its typeSource is a binding
+        /// node with no stamp, as a row with no typeSource is.
+        /// </summary>
+        [TestCase("names a row with no stamp")]
+        [TestCase("names a param its row doesn't stamp")]
+        [TestCase("names a path its row doesn't bind")]
+        public void RefusesAMovedRowWhoseTypeSourceItsTargetCannotClose(string shape)
+        {
+            using NeoClient client = BuildClient();
+            TypeBinding pairBound = TestTypeBindings.Class("holder", true, ("T", Open("pair", "A")));
+            (NeoTypeSource typeSource, Dictionary<string, TypeBinding>? stamp) = shape switch
+            {
+                "names a row with no stamp" => (NeoTypeSource.OfType(pairBound, "x"), (Dictionary<string, TypeBinding>?)null),
+                "names a param its row doesn't stamp" => (NeoTypeSource.OfType(pairBound, "x"), TestTypeBindings.Stamp(("B", Int))),
+                _ => (NeoTypeSource.AtPath("x", new[] { "Z" }), TestTypeBindings.Stamp(("A", Int), ("B", Int))),
+            };
+            ObjectMemberValue moved = Obj("c", new()
+            {
+                ["Payload"] = "c.payload",
+                ["Items"] = "c.items",
+                ["P"] = "c.p"
+            }, "holder");
+            moved.typeSource = typeSource;
+            var graph = new Graph(
+                new MemberValue[]
+                {
+                    moved,
+                    Number("c.payload", 4),
+                    Arr("c.items"),
+                    Obj("c.p", new() { ["As"] = "c.p.as" }),
+                    Arr("c.p.as"),
+                    Obj("x", new(), "pair", stamp),
+                });
+            NeoTypeSourcePosition? position = Root(client, "c", "anything");
+            Assert.That(NeoTypeSources.Violations(client, graph, position), Does.Contain("Value \"c\" is a binding node and stores no stamp."));
+            Assert.That(
+                () => NeoTypeSources.Place(client, graph, position),
+                Throws.InvalidOperationException.With.Message.EqualTo("Binding node \"c\" stores no stamp, and its slot doesn't spell one."));
         }
 
         [Test]
@@ -389,6 +486,75 @@ namespace NeoCompose.Tests
             Assert.That(NeoTypeSources.Violations(client, graph, position), Is.Empty);
             Assert.That(graph["h"].genericBindings, Is.EqualTo(Stamped(ListOf(Int))));
             Assert.That(graph["h.payload"].typeSource, Is.EqualTo(NeoTypeSource.AtPath("h", new[] { "T" })));
+        }
+
+        [Test]
+        public void PlacesATFieldClosedToAClassAsItsClassTypedTwin()
+        {
+            // `Pen<PS>.Value` closes its `V` to PS, so PS and the Seg<int>
+            // under it are closed rows, not binding nodes, and read as they do
+            // in a PS field.
+            using NeoClient client = BuildClient(data =>
+            {
+                data.members["pen-value"] = Generic("pen-value", "V", "Value");
+                data.members["ps-s"] = ClassSlot("ps-s", "S", "seg", TestTypeBindings.Arguments(("E", Int)));
+                data.members["seg-xs-entry"] = Generic("seg-xs-entry", "E");
+                data.members["seg-xs"] = List("seg-xs", "Xs", "seg-xs-entry");
+                data.members["pen-of-ps"] = ClassSlot("pen-of-ps", "H", "pen", TestTypeBindings.Arguments(("V", TestTypeBindings.Class("ps"))));
+                data.members["ps-field"] = ClassSlot("ps-field", "F", "ps", null);
+                data.classes["pen"] = Class("pen", "Pen", new()
+                {
+                    ["Value"] = "pen-value"
+                }, "V");
+                data.classes["ps"] = Class("ps", "PS", new()
+                {
+                    ["S"] = "ps-s"
+                });
+                data.classes["seg"] = Class("seg", "Seg", new()
+                {
+                    ["Xs"] = "seg-xs"
+                }, "E");
+            });
+            var pen = new Graph(
+                Obj("h", new()
+                {
+                    ["Value"] = "h.v"
+                }, "pen"),
+                Obj("h.v", new()
+                {
+                    ["S"] = "h.v.s"
+                }, "ps"),
+                Obj("h.v.s", new()
+                {
+                    ["Xs"] = "h.v.s.xs"
+                }, "seg"),
+                Arr("h.v.s.xs", "h.v.s.xs.0"),
+                Number("h.v.s.xs.0", 3));
+            var twin = new Graph(
+                Obj("c", new()
+                {
+                    ["S"] = "c.s"
+                }, "ps"),
+                Obj("c.s", new()
+                {
+                    ["Xs"] = "c.s.xs"
+                }, "seg"),
+                Arr("c.s.xs", "c.s.xs.0"),
+                Number("c.s.xs.0", 3));
+            NeoTypeSources.Place(client, pen, Root(client, "h", "pen-of-ps"));
+            NeoTypeSources.Place(client, twin, Root(client, "c", "ps-field"));
+
+            Assert.That(pen["h"].genericBindings, Is.Null);
+            Assert.That(pen["h.v"].genericBindings, Is.Null);
+            Assert.That(pen["h.v"].typeSource, Is.Null);
+            foreach ((string rowId, string twinId) in new[] { ("h.v.s", "c.s"), ("h.v.s.xs", "c.s.xs") })
+            {
+                Assert.That(pen[rowId].genericBindings, Is.Null, rowId);
+                Assert.That(pen[rowId].typeSource, Is.EqualTo(twin[twinId].typeSource), rowId);
+            }
+            Assert.That(
+                NeoTypeSources.PlacedRowType(client, "h.v.s.xs", pen["h.v.s.xs"], MemberOf(client, "seg-xs"), pen.Row),
+                Is.EqualTo(ListOf(Int, required: false)));
         }
 
         [Test]

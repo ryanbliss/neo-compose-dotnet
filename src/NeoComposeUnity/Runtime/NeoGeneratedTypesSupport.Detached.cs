@@ -344,7 +344,8 @@ namespace NeoCompose.Runtime
                         resolved,
                         argumentValues,
                         ctx,
-                        deferLiterals: true);
+                        deferLiterals: true,
+                        detached: created);
                     created.constructor = resolved.link.record;
                     if (created.attachedId is not null
                         && client.TryGetValue(NeoValueOwnership.Session, created.attachedId, out ObjectMemberValue? live))
@@ -363,6 +364,7 @@ namespace NeoCompose.Runtime
                 finally
                 {
                     created.constructing = false;
+                    created.storedLists = null;
                 }
                 return created;
             }
@@ -488,6 +490,8 @@ namespace NeoCompose.Runtime
                     return false;
                 ReleaseDetachedSlot(target, index);
                 SetDetachedArray(target, index, copy);
+                if (target.constructing)
+                    (target.storedLists ??= new object?[target.SlotCount])[index] = entries;
                 target.MarkWritten(index);
                 return true;
             }
@@ -813,6 +817,8 @@ namespace NeoCompose.Runtime
         /// <summary>Drops the ownership a slot's previous value held.</summary>
         private static void ReleaseDetachedSlot(NeoScriptObject target, int index)
         {
+            if (target.storedLists is { } stored)
+                stored[index] = null;
             ref object? value = ref target.Slot(index);
             if (value is NeoScriptObject previous)
             {
@@ -828,6 +834,13 @@ namespace NeoCompose.Runtime
                 value = null;
                 ListBuffers.Return(buffer);
             }
+        }
+
+        /// <summary>The row of the List field <paramref name="target"/>'s body last stored <paramref name="value"/> in, or null.</summary>
+        private static string? StoredListRow(NeoScriptObject? target, object? value)
+        {
+            int index = target?.storedLists is { } stored && value is object?[]? Array.IndexOf(stored, value) : -1;
+            return index >= 0 && target!.TryGetValue(target.plan.slots[index].schemaKey, out object? id) ? id as string : null;
         }
 
         private static void ReleaseDetachedEntries(IReadOnlyList<object?> entries)

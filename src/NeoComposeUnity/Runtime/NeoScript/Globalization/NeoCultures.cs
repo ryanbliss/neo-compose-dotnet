@@ -68,7 +68,7 @@ namespace NeoCompose.Runtime.NeoScript.Globalization
 
         /// <summary>
         /// <c>Parent</c>: the <c>InvariantCulture</c> singleton for every
-        /// invariant culture, as on .NET 10, where Mono returns a distinct
+        /// invariant culture (P127 §14 "One object"). Mono returns a distinct
         /// invariant culture for <c>new CultureInfo("")</c> and its copies.
         /// </summary>
         internal static CultureInfo Parent(CultureInfo culture) =>

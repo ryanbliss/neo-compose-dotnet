@@ -260,6 +260,18 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void EndpointAtABindingViewPositionMatchesTheTypeItStandsFor()
+        {
+            // The view id is process-local; the stored descriptor names the type.
+            string view = NeoTypeBindingViews.Prefix + "7";
+            Assert.That(NeoClient.PersistsUnder(view, "view:{\"kind\":0}"), Is.True);
+            Assert.That(NeoClient.PersistsUnder(view, NeoTypeBindingViews.Prefix + "3"), Is.False);
+            Assert.That(NeoClient.PersistsUnder(view, "item-entry"), Is.False);
+            Assert.That(NeoClient.PersistsUnder("item-entry", "view:{\"kind\":0}"), Is.False);
+            Assert.That(NeoClient.PersistsUnder("item-entry", "item-entry"), Is.True);
+        }
+
+        [Test]
         public void ListenerCapacityIncludesTheServerEnvelopeAndUtf8Payload()
         {
             var save = new ProjectSaveData { projectId = "listeners", version = new VersionData { id = "version" } };

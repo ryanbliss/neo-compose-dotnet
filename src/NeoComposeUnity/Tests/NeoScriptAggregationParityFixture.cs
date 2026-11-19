@@ -169,90 +169,112 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""list""
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""list""
+                        },
+                        ""elementType"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
+                      ""op"": ""GroupBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 3,
+                                  ""required"": true
+                                },
+                                ""value"": ""all""
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 135
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 3,
                           ""required"": true
                         }
                       }
-                    },
-                    ""op"": ""GroupBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 3,
-                                ""required"": true
-                              },
-                              ""value"": ""all""
-                            }
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 135
-                          }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 3,
-                        ""required"": true
-                      }
                     }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 127
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 127
+                ""collectionType"": {
+                  ""type"": 5,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 6,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 6,
+                      ""required"": true,
+                      ""entryTypeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    },
+                    ""readOnly"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -505,85 +527,52 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
                             ""type"": 6,
                             ""required"": true,
                             ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
                             }
-                          }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""item""
+                            }
+                          ]
                         },
-                        ""entries"": [
-                          {
-                            ""type"": ""variable"",
-                            ""variableId"": ""item""
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      }
-                    },
-                    ""op"": ""Zip"",
-                    ""otherPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
+                        ""elementType"": {
                           ""type"": 6,
                           ""required"": true,
                           ""entryTypeInfo"": {
                             ""type"": 2,
                             ""required"": true
                           }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          }
-                        ]
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""a"",
+                      ""op"": ""Zip"",
+                      ""otherPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
                             ""type"": 6,
                             ""required"": true,
@@ -592,66 +581,116 @@ namespace NeoCompose.Tests
                               ""required"": true
                             }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
                                   ""type"": 2,
                                   ""required"": true
-                                }
-                              },
-                              ""value"": null
+                                },
+                                ""value"": 0
+                              }
                             }
-                          }
+                          ]
                         },
-                        {
-                          ""id"": ""b"",
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""a""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 121
-                          }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
+                        ""elementType"": {
                           ""type"": 2,
                           ""required"": true
+                        }
+                      },
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""a"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          },
+                          {
+                            ""id"": ""b"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""a""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 121
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
                         }
                       }
                     }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 105
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 105
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 6,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -884,134 +923,146 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""item""
+                            },
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""item""
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      },
+                      ""op"": ""Aggregate"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""a"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          },
+                          {
+                            ""id"": ""b"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""b""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 128
+                            }
+                          }
+                        ],
                         ""typeInfo"": {
                           ""type"": 6,
                           ""required"": true,
                           ""entryTypeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""variable"",
-                            ""variableId"": ""item""
-                          },
-                          {
-                            ""type"": ""variable"",
-                            ""variableId"": ""item""
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      }
-                    },
-                    ""op"": ""Aggregate"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""a"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
-                              },
-                              ""value"": null
-                            }
-                          }
-                        },
-                        {
-                          ""id"": ""b"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""b""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 128
-                          }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
                         }
                       }
                     }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 117
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 117
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -1234,163 +1285,180 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""item""
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        }
+                      },
+                      ""op"": ""ToDictionary"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 3,
+                                  ""required"": true
+                                },
+                                ""value"": ""key""
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 122
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 3,
+                          ""required"": true
+                        }
+                      },
+                      ""valueFunction"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 136
+                            }
+                          }
+                        ],
                         ""typeInfo"": {
                           ""type"": 6,
                           ""required"": true,
                           ""entryTypeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""variable"",
-                            ""variableId"": ""item""
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      }
-                    },
-                    ""op"": ""ToDictionary"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 3,
-                                ""required"": true
-                              },
-                              ""value"": ""key""
-                            }
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 122
-                          }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 3,
-                        ""required"": true
-                      }
-                    },
-                    ""valueFunction"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                }
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 136
-                          }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
                         }
                       }
                     }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 114
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 114
+                ""collectionType"": {
+                  ""type"": 5,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 6,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    }
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -1665,124 +1733,145 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""select"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 5,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 6,
-                              ""required"": true,
-                              ""entryTypeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              }
-                            }
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""variable"",
-                            ""variableId"": ""item""
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 5,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        }
-                      }
-                    },
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""select"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 5,
+                            ""type"": 6,
                             ""required"": true,
                             ""entryTypeInfo"": {
-                              ""type"": 6,
+                              ""type"": 5,
                               ""required"": true,
                               ""entryTypeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              }
-                            }
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 5,
+                                ""type"": 6,
                                 ""required"": true,
                                 ""entryTypeInfo"": {
-                                  ""type"": 6,
-                                  ""required"": true,
-                                  ""entryTypeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  }
+                                  ""type"": 2,
+                                  ""required"": true
                                 }
-                              },
-                              ""value"": null
+                              }
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""variable"",
+                              ""variableId"": ""item""
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 5,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
                           }
                         }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 125
+                      },
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 5,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 6,
+                                ""required"": true,
+                                ""entryTypeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                }
+                              }
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 5,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 6,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  }
+                                },
+                                ""value"": null
+                              }
+                            }
                           }
-                        }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 5,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 6,
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 125
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 5,
                           ""required"": true,
                           ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           }
                         }
                       }
                     }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 117
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 117
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 5,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 6,
+                      ""required"": true,
+                      ""entryTypeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    }
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -2081,58 +2170,75 @@ namespace NeoCompose.Tests
                 ""type"": ""count"",
                 ""info"": {
                   ""collectionPointer"": {
-                    ""type"": ""function"",
-                    ""function"": {
-                      ""type"": ""collectionQuery"",
-                      ""info"": {
-                        ""collectionPointer"": {
-                          ""type"": ""sequenceConversion"",
-                          ""operation"": ""queryEnumerable"",
-                          ""pointer"": {
-                            ""type"": ""listLiteral"",
-                            ""typeInfo"": {
-                              ""type"": 6,
-                              ""required"": true,
-                              ""entryTypeInfo"": {
+                    ""type"": ""sequenceConversion"",
+                    ""operation"": ""retainCollectionType"",
+                    ""pointer"": {
+                      ""type"": ""function"",
+                      ""function"": {
+                        ""type"": ""collectionQuery"",
+                        ""info"": {
+                          ""collectionPointer"": {
+                            ""type"": ""sequenceConversion"",
+                            ""operation"": ""queryEnumerable"",
+                            ""pointer"": {
+                              ""type"": ""listLiteral"",
+                              ""typeInfo"": {
                                 ""type"": 6,
                                 ""required"": true,
                                 ""entryTypeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
                                 }
-                              }
+                              },
+                              ""entries"": [
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""a""
+                                },
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""b""
+                                },
+                                {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""a""
+                                }
+                              ]
                             },
-                            ""entries"": [
-                              {
-                                ""type"": ""variable"",
-                                ""variableId"": ""a""
-                              },
-                              {
-                                ""type"": ""variable"",
-                                ""variableId"": ""b""
-                              },
-                              {
-                                ""type"": ""variable"",
-                                ""variableId"": ""a""
+                            ""elementType"": {
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
                               }
-                            ]
-                          },
-                          ""elementType"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
                             }
-                          }
-                        },
-                        ""op"": ""Distinct"",
-                        ""reference"": true
+                          },
+                          ""op"": ""Distinct"",
+                          ""reference"": true
+                        }
+                      },
+                      ""source"": {
+                        ""line"": 1,
+                        ""column"": 116
                       }
                     },
-                    ""source"": {
-                      ""line"": 1,
-                      ""column"": 116
+                    ""collectionType"": {
+                      ""type"": 6,
+                      ""required"": true,
+                      ""entryTypeInfo"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""readOnly"": true
                     }
                   }
                 }
@@ -2225,102 +2331,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -2389,79 +2508,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 180
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 180
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 172
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 172
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -2551,102 +2683,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -2715,79 +2860,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 183
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 183
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 175
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 175
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -2877,102 +3035,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -3030,79 +3201,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 181
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 181
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 173
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 173
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -3192,102 +3376,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -3366,79 +3563,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 186
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 186
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 178
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 178
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -3528,102 +3738,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -3692,79 +3915,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 185
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 185
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 177
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 177
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -3854,102 +4090,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -4027,79 +4276,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 180
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 180
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 172
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 172
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -4189,102 +4451,115 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 2
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 106
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 106
+                            }
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 98
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 98
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -4419,79 +4694,92 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 194
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 194
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 186
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 186
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -4580,115 +4868,139 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""collectionQuery"",
-                        ""info"": {
-                          ""collectionPointer"": {
-                            ""type"": ""sequenceConversion"",
-                            ""operation"": ""queryEnumerable"",
-                            ""pointer"": {
-                              ""type"": ""listLiteral"",
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""retainCollectionType"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""collectionQuery"",
+                            ""info"": {
+                              ""collectionPointer"": {
+                                ""type"": ""sequenceConversion"",
+                                ""operation"": ""queryEnumerable"",
+                                ""pointer"": {
+                                  ""type"": ""listLiteral"",
+                                  ""typeInfo"": {
+                                    ""type"": 6,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  ""entries"": [
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 2
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 1
+                                      }
+                                    }
+                                  ]
+                                },
+                                ""elementType"": {
                                   ""type"": 2,
                                   ""required"": true
                                 }
                               },
-                              ""entries"": [
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 2
-                                  }
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 1
-                                  }
-                                }
-                              ]
-                            },
-                            ""elementType"": {
-                              ""type"": 2,
-                              ""required"": true
+                              ""op"": ""ToSet""
                             }
-                          },
-                          ""op"": ""ToSet""
-                        }
-                      },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 95
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
                           },
                           ""source"": {
                             ""line"": 1,
-                            ""column"": 113
+                            ""column"": 95
+                          }
+                        },
+                        ""collectionType"": {
+                          ""type"": 9,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 113
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 105
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 105
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -4757,71 +5069,83 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""variable"",
-                    ""variableId"": ""ordered""
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""ordered""
                     },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 186
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 186
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 178
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 178
+              ""collectionType"": {
+                ""type"": 9,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
               }
             },
             ""source"": {
@@ -4910,115 +5234,139 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""collectionQuery"",
-                        ""info"": {
-                          ""collectionPointer"": {
-                            ""type"": ""sequenceConversion"",
-                            ""operation"": ""queryEnumerable"",
-                            ""pointer"": {
-                              ""type"": ""listLiteral"",
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""retainCollectionType"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""collectionQuery"",
+                            ""info"": {
+                              ""collectionPointer"": {
+                                ""type"": ""sequenceConversion"",
+                                ""operation"": ""queryEnumerable"",
+                                ""pointer"": {
+                                  ""type"": ""listLiteral"",
+                                  ""typeInfo"": {
+                                    ""type"": 6,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  ""entries"": [
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 2
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 1
+                                      }
+                                    }
+                                  ]
+                                },
+                                ""elementType"": {
                                   ""type"": 2,
                                   ""required"": true
                                 }
                               },
-                              ""entries"": [
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 2
-                                  }
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 1
-                                  }
-                                }
-                              ]
-                            },
-                            ""elementType"": {
-                              ""type"": 2,
-                              ""required"": true
+                              ""op"": ""ToSet""
                             }
-                          },
-                          ""op"": ""ToSet""
-                        }
-                      },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 95
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
                           },
                           ""source"": {
                             ""line"": 1,
-                            ""column"": 113
+                            ""column"": 95
+                          }
+                        },
+                        ""collectionType"": {
+                          ""type"": 9,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 113
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 105
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 105
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -5087,71 +5435,83 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""variable"",
-                    ""variableId"": ""ordered""
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""ordered""
                     },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 189
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 189
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 181
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 181
+              ""collectionType"": {
+                ""type"": 9,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
               }
             },
             ""source"": {
@@ -5240,115 +5600,139 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""collectionQuery"",
-                        ""info"": {
-                          ""collectionPointer"": {
-                            ""type"": ""sequenceConversion"",
-                            ""operation"": ""queryEnumerable"",
-                            ""pointer"": {
-                              ""type"": ""listLiteral"",
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""retainCollectionType"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""collectionQuery"",
+                            ""info"": {
+                              ""collectionPointer"": {
+                                ""type"": ""sequenceConversion"",
+                                ""operation"": ""queryEnumerable"",
+                                ""pointer"": {
+                                  ""type"": ""listLiteral"",
+                                  ""typeInfo"": {
+                                    ""type"": 6,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  ""entries"": [
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 2
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 1
+                                      }
+                                    }
+                                  ]
+                                },
+                                ""elementType"": {
                                   ""type"": 2,
                                   ""required"": true
                                 }
                               },
-                              ""entries"": [
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 2
-                                  }
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 1
-                                  }
-                                }
-                              ]
-                            },
-                            ""elementType"": {
-                              ""type"": 2,
-                              ""required"": true
+                              ""op"": ""ToSet""
                             }
-                          },
-                          ""op"": ""ToSet""
-                        }
-                      },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 95
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
                           },
                           ""source"": {
                             ""line"": 1,
-                            ""column"": 113
+                            ""column"": 95
+                          }
+                        },
+                        ""collectionType"": {
+                          ""type"": 9,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 113
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 105
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 105
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -5406,71 +5790,83 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""variable"",
-                    ""variableId"": ""ordered""
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""variable"",
+                      ""variableId"": ""ordered""
                     },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                    ""op"": ""ThenBy"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 0
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 0
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 187
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 187
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 179
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 179
+              ""collectionType"": {
+                ""type"": 9,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                }
               }
             },
             ""source"": {
@@ -5601,190 +5997,203 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 2
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
-                            }
-                          }
-                        ]
-                      },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""OrderBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
                           ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
                           },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
-                            }
-                          }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""assign"",
-                          ""bindings"": [
+                          ""entries"": [
                             {
-                              ""id"": ""$assignment_0"",
-                              ""typeInfo"": {
-                                ""type"": ""Unknown"",
-                                ""required"": true
-                              },
-                              ""pointer"": {
-                                ""type"": ""variable"",
-                                ""variableId"": ""counter""
-                              }
-                            }
-                          ],
-                          ""target"": {
-                            ""pointer"": {
-                              ""type"": ""keyOf"",
-                              ""keyOf"": {
-                                ""pointer"": {
-                                  ""type"": ""variable"",
-                                  ""variableId"": ""$assignment_0""
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
                                 },
-                                ""key"": {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 0
-                                  }
-                                }
+                                ""value"": 2
                               }
                             },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
                             ""typeInfo"": {
                               ""type"": 2,
                               ""required"": true
                             },
-                            ""writability"": ""local""
-                          },
-                          ""operator"": ""++"",
-                          ""pointer"": {
-                            ""type"": ""operation"",
-                            ""operation"": {
-                              ""type"": ""arithmetic"",
-                              ""arithmetic"": {
-                                ""type"": ""+"",
-                                ""pointers"": [
-                                  {
-                                    ""type"": ""keyOf"",
-                                    ""keyOf"": {
-                                      ""pointer"": {
-                                        ""type"": ""variable"",
-                                        ""variableId"": ""$assignment_0""
-                                      },
-                                      ""key"": {
-                                        ""type"": ""value"",
-                                        ""value"": {
-                                          ""typeInfo"": {
-                                            ""type"": 2,
-                                            ""required"": true
-                                          },
-                                          ""value"": 0
-                                        }
-                                      }
-                                    }
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""assign"",
+                            ""bindings"": [
+                              {
+                                ""id"": ""$assignment_0"",
+                                ""typeInfo"": {
+                                  ""type"": ""Unknown"",
+                                  ""required"": true
+                                },
+                                ""pointer"": {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""counter""
+                                }
+                              }
+                            ],
+                            ""target"": {
+                              ""pointer"": {
+                                ""type"": ""keyOf"",
+                                ""keyOf"": {
+                                  ""pointer"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""$assignment_0""
                                   },
-                                  {
+                                  ""key"": {
                                     ""type"": ""value"",
                                     ""value"": {
                                       ""typeInfo"": {
                                         ""type"": 2,
                                         ""required"": true
                                       },
-                                      ""value"": 1
+                                      ""value"": 0
                                     }
                                   }
-                                ],
-                                ""numeric"": ""int""
+                                }
+                              },
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""writability"": ""local""
+                            },
+                            ""operator"": ""++"",
+                            ""pointer"": {
+                              ""type"": ""operation"",
+                              ""operation"": {
+                                ""type"": ""arithmetic"",
+                                ""arithmetic"": {
+                                  ""type"": ""+"",
+                                  ""pointers"": [
+                                    {
+                                      ""type"": ""keyOf"",
+                                      ""keyOf"": {
+                                        ""pointer"": {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""$assignment_0""
+                                        },
+                                        ""key"": {
+                                          ""type"": ""value"",
+                                          ""value"": {
+                                            ""typeInfo"": {
+                                              ""type"": 2,
+                                              ""required"": true
+                                            },
+                                            ""value"": 0
+                                          }
+                                        }
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 1
+                                      }
+                                    }
+                                  ],
+                                  ""numeric"": ""int""
+                                }
                               }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 122
                             }
                           },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 122
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""variable"",
+                              ""variableId"": ""n""
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 136
+                            }
                           }
-                        },
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""variable"",
-                            ""variableId"": ""n""
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 136
-                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 112
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 112
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -5807,79 +6216,92 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""ordered""
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""ordered""
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""ThenBy"",
-                    ""function"": {
-                      ""compilerRevision"": 20,
-                      ""source"": {
-                        ""uri"": ""Query.neo"",
-                        ""coordinateSpace"": ""file"",
-                        ""name"": ""Query.Result <callback>""
-                      },
-                      ""parameters"": [
-                        {
-                          ""id"": ""n"",
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          },
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": null
+                      ""op"": ""ThenBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
                             }
                           }
-                        }
-                      ],
-                      ""instructions"": [
-                        {
-                          ""type"": ""return"",
-                          ""pointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 183
                             }
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 183
                           }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
-                      ],
-                      ""typeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""keyType"": ""int""
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 175
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 175
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
                 }
               }
             },
@@ -6012,77 +6434,89 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 21
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 12
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 11
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 22
+                              }
+                            }
+                          ]
                         },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 21
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 12
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 11
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 22
-                            }
-                          }
-                        ]
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""ToSet""
+                      ""op"": ""ToSet""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 106
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 106
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -6094,158 +6528,195 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""function"",
-                    ""function"": {
-                      ""type"": ""collectionQuery"",
-                      ""info"": {
-                        ""collectionPointer"": {
-                          ""type"": ""function"",
-                          ""function"": {
-                            ""type"": ""collectionQuery"",
-                            ""info"": {
-                              ""collectionPointer"": {
-                                ""type"": ""variable"",
-                                ""variableId"": ""n""
-                              },
-                              ""op"": ""OrderBy"",
-                              ""function"": {
-                                ""compilerRevision"": 20,
-                                ""source"": {
-                                  ""uri"": ""Query.neo"",
-                                  ""coordinateSpace"": ""file"",
-                                  ""name"": ""Query.Result <callback>""
-                                },
-                                ""parameters"": [
-                                  {
-                                    ""id"": ""v"",
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""collectionQuery"",
+                          ""info"": {
+                            ""collectionPointer"": {
+                              ""type"": ""sequenceConversion"",
+                              ""operation"": ""retainCollectionType"",
+                              ""pointer"": {
+                                ""type"": ""function"",
+                                ""function"": {
+                                  ""type"": ""collectionQuery"",
+                                  ""info"": {
+                                    ""collectionPointer"": {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""n""
                                     },
-                                    ""pointer"": {
-                                      ""type"": ""value"",
-                                      ""value"": {
-                                        ""typeInfo"": {
-                                          ""type"": 2,
-                                          ""required"": true
-                                        },
-                                        ""value"": null
-                                      }
-                                    }
-                                  }
-                                ],
-                                ""instructions"": [
-                                  {
-                                    ""type"": ""return"",
-                                    ""pointer"": {
-                                      ""type"": ""operation"",
-                                      ""operation"": {
-                                        ""type"": ""arithmetic"",
-                                        ""arithmetic"": {
-                                          ""type"": ""/"",
-                                          ""pointers"": [
-                                            {
-                                              ""type"": ""variable"",
-                                              ""variableId"": ""v""
-                                            },
-                                            {
-                                              ""type"": ""value"",
-                                              ""value"": {
-                                                ""typeInfo"": {
-                                                  ""type"": 2,
-                                                  ""required"": true
-                                                },
-                                                ""value"": 10
+                                    ""op"": ""OrderBy"",
+                                    ""function"": {
+                                      ""compilerRevision"": 20,
+                                      ""source"": {
+                                        ""uri"": ""Query.neo"",
+                                        ""coordinateSpace"": ""file"",
+                                        ""name"": ""Query.Result <callback>""
+                                      },
+                                      ""parameters"": [
+                                        {
+                                          ""id"": ""v"",
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""pointer"": {
+                                            ""type"": ""value"",
+                                            ""value"": {
+                                              ""typeInfo"": {
+                                                ""type"": 2,
+                                                ""required"": true
+                                              },
+                                              ""value"": null
+                                            }
+                                          }
+                                        }
+                                      ],
+                                      ""instructions"": [
+                                        {
+                                          ""type"": ""return"",
+                                          ""pointer"": {
+                                            ""type"": ""operation"",
+                                            ""operation"": {
+                                              ""type"": ""arithmetic"",
+                                              ""arithmetic"": {
+                                                ""type"": ""/"",
+                                                ""pointers"": [
+                                                  {
+                                                    ""type"": ""variable"",
+                                                    ""variableId"": ""v""
+                                                  },
+                                                  {
+                                                    ""type"": ""value"",
+                                                    ""value"": {
+                                                      ""typeInfo"": {
+                                                        ""type"": 2,
+                                                        ""required"": true
+                                                      },
+                                                      ""value"": 10
+                                                    }
+                                                  }
+                                                ],
+                                                ""numeric"": ""int""
                                               }
                                             }
-                                          ],
-                                          ""numeric"": ""int""
+                                          },
+                                          ""source"": {
+                                            ""line"": 1,
+                                            ""column"": 134
+                                          }
                                         }
+                                      ],
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
                                       }
                                     },
-                                    ""source"": {
-                                      ""line"": 1,
-                                      ""column"": 134
-                                    }
+                                    ""keyType"": ""int""
                                   }
-                                ],
-                                ""typeInfo"": {
+                                },
+                                ""source"": {
+                                  ""line"": 1,
+                                  ""column"": 126
+                                }
+                              },
+                              ""collectionType"": {
+                                ""type"": 9,
+                                ""required"": true,
+                                ""entryTypeInfo"": {
                                   ""type"": 2,
                                   ""required"": true
                                 }
+                              }
+                            },
+                            ""op"": ""ThenBy"",
+                            ""function"": {
+                              ""compilerRevision"": 20,
+                              ""source"": {
+                                ""uri"": ""Query.neo"",
+                                ""coordinateSpace"": ""file"",
+                                ""name"": ""Query.Result <callback>""
                               },
-                              ""keyType"": ""int""
-                            }
-                          },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 126
-                          }
-                        },
-                        ""op"": ""ThenBy"",
-                        ""function"": {
-                          ""compilerRevision"": 20,
-                          ""source"": {
-                            ""uri"": ""Query.neo"",
-                            ""coordinateSpace"": ""file"",
-                            ""name"": ""Query.Result <callback>""
-                          },
-                          ""parameters"": [
-                            {
-                              ""id"": ""v"",
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""pointer"": {
-                                ""type"": ""value"",
-                                ""value"": {
+                              ""parameters"": [
+                                {
+                                  ""id"": ""v"",
                                   ""typeInfo"": {
                                     ""type"": 2,
                                     ""required"": true
                                   },
-                                  ""value"": null
+                                  ""pointer"": {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": null
+                                    }
+                                  }
                                 }
+                              ],
+                              ""instructions"": [
+                                {
+                                  ""type"": ""return"",
+                                  ""pointer"": {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""v""
+                                  },
+                                  ""source"": {
+                                    ""line"": 1,
+                                    ""column"": 156
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
                               }
-                            }
-                          ],
-                          ""instructions"": [
-                            {
-                              ""type"": ""return"",
-                              ""pointer"": {
-                                ""type"": ""variable"",
-                                ""variableId"": ""v""
-                              },
-                              ""source"": {
-                                ""line"": 1,
-                                ""column"": 156
-                              }
-                            }
-                          ],
-                          ""typeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
+                            },
+                            ""keyType"": ""int""
                           }
                         },
-                        ""keyType"": ""int""
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 148
+                        }
+                      },
+                      ""collectionType"": {
+                        ""type"": 9,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
-                    ""source"": {
-                      ""line"": 1,
-                      ""column"": 148
-                    }
-                  },
-                  ""op"": ""Distinct""
+                    ""op"": ""Distinct""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 167
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 167
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -6335,66 +6806,79 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 8,
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
                             ""required"": true,
-                            ""enumId"": ""pending:enum:Query.neo:Tone""
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 8,
-                                ""required"": true,
-                                ""enumId"": ""pending:enum:Query.neo:Tone""
-                              },
-                              ""value"": [
-                                ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
-                              ]
+                            ""entryTypeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""pending:enum:Query.neo:Tone""
                             }
                           },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 8,
-                                ""required"": true,
-                                ""enumId"": ""pending:enum:Query.neo:Tone""
-                              },
-                              ""value"": [
-                                ""pending:enum-option:pending:enum:Query.neo:Tone:Blue""
-                              ]
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 8,
+                                  ""required"": true,
+                                  ""enumId"": ""pending:enum:Query.neo:Tone""
+                                },
+                                ""value"": [
+                                  ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
+                                ]
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 8,
+                                  ""required"": true,
+                                  ""enumId"": ""pending:enum:Query.neo:Tone""
+                                },
+                                ""value"": [
+                                  ""pending:enum-option:pending:enum:Query.neo:Tone:Blue""
+                                ]
+                              }
                             }
-                          }
-                        ]
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 8,
+                          ""required"": true,
+                          ""enumId"": ""pending:enum:Query.neo:Tone""
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 8,
-                        ""required"": true,
-                        ""enumId"": ""pending:enum:Query.neo:Tone""
-                      }
-                    },
-                    ""op"": ""ToSet"",
-                    ""enumEntries"": true
+                      ""op"": ""ToSet"",
+                      ""enumEntries"": true
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 107
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 107
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 8,
+                    ""required"": true,
+                    ""enumId"": ""pending:enum:Query.neo:Tone""
+                  }
                 }
               }
             },
@@ -6424,69 +6908,89 @@ namespace NeoCompose.Tests
                               ""type"": ""keyOf"",
                               ""keyOf"": {
                                 ""pointer"": {
-                                  ""type"": ""function"",
-                                  ""function"": {
-                                    ""type"": ""collectionQuery"",
-                                    ""info"": {
-                                      ""collectionPointer"": {
-                                        ""type"": ""variable"",
-                                        ""variableId"": ""n""
-                                      },
-                                      ""op"": ""GroupBy"",
-                                      ""function"": {
-                                        ""compilerRevision"": 20,
-                                        ""source"": {
-                                          ""uri"": ""Query.neo"",
-                                          ""coordinateSpace"": ""file"",
-                                          ""name"": ""Query.Result <callback>""
+                                  ""type"": ""sequenceConversion"",
+                                  ""operation"": ""retainCollectionType"",
+                                  ""pointer"": {
+                                    ""type"": ""function"",
+                                    ""function"": {
+                                      ""type"": ""collectionQuery"",
+                                      ""info"": {
+                                        ""collectionPointer"": {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""n""
                                         },
-                                        ""parameters"": [
-                                          {
-                                            ""id"": ""v"",
-                                            ""typeInfo"": {
-                                              ""type"": 8,
-                                              ""required"": true,
-                                              ""enumId"": ""pending:enum:Query.neo:Tone""
-                                            },
-                                            ""pointer"": {
-                                              ""type"": ""value"",
-                                              ""value"": {
-                                                ""typeInfo"": {
-                                                  ""type"": 8,
-                                                  ""required"": true,
-                                                  ""enumId"": ""pending:enum:Query.neo:Tone""
-                                                },
-                                                ""value"": null
+                                        ""op"": ""GroupBy"",
+                                        ""function"": {
+                                          ""compilerRevision"": 20,
+                                          ""source"": {
+                                            ""uri"": ""Query.neo"",
+                                            ""coordinateSpace"": ""file"",
+                                            ""name"": ""Query.Result <callback>""
+                                          },
+                                          ""parameters"": [
+                                            {
+                                              ""id"": ""v"",
+                                              ""typeInfo"": {
+                                                ""type"": 8,
+                                                ""required"": true,
+                                                ""enumId"": ""pending:enum:Query.neo:Tone""
+                                              },
+                                              ""pointer"": {
+                                                ""type"": ""value"",
+                                                ""value"": {
+                                                  ""typeInfo"": {
+                                                    ""type"": 8,
+                                                    ""required"": true,
+                                                    ""enumId"": ""pending:enum:Query.neo:Tone""
+                                                  },
+                                                  ""value"": null
+                                                }
                                               }
                                             }
-                                          }
-                                        ],
-                                        ""instructions"": [
-                                          {
-                                            ""type"": ""return"",
-                                            ""pointer"": {
-                                              ""type"": ""variable"",
-                                              ""variableId"": ""v""
-                                            },
-                                            ""source"": {
-                                              ""line"": 1,
-                                              ""column"": 135
+                                          ],
+                                          ""instructions"": [
+                                            {
+                                              ""type"": ""return"",
+                                              ""pointer"": {
+                                                ""type"": ""variable"",
+                                                ""variableId"": ""v""
+                                              },
+                                              ""source"": {
+                                                ""line"": 1,
+                                                ""column"": 135
+                                              }
                                             }
+                                          ],
+                                          ""typeInfo"": {
+                                            ""type"": 8,
+                                            ""required"": true,
+                                            ""enumId"": ""pending:enum:Query.neo:Tone""
                                           }
-                                        ],
-                                        ""typeInfo"": {
-                                          ""type"": 8,
-                                          ""required"": true,
-                                          ""enumId"": ""pending:enum:Query.neo:Tone""
-                                        }
-                                      },
-                                      ""enumKey"": true,
-                                      ""enumEntries"": true
+                                        },
+                                        ""enumKey"": true,
+                                        ""enumEntries"": true
+                                      }
+                                    },
+                                    ""source"": {
+                                      ""line"": 1,
+                                      ""column"": 127
                                     }
                                   },
-                                  ""source"": {
-                                    ""line"": 1,
-                                    ""column"": 127
+                                  ""collectionType"": {
+                                    ""type"": 5,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 6,
+                                      ""required"": true,
+                                      ""entryTypeInfo"": {
+                                        ""type"": 8,
+                                        ""required"": true,
+                                        ""enumId"": ""pending:enum:Query.neo:Tone""
+                                      },
+                                      ""readOnly"": true
+                                    },
+                                    ""keyEnumId"": ""pending:enum:Query.neo:Tone"",
+                                    ""readOnly"": true
                                   }
                                 },
                                 ""key"": {
@@ -6618,66 +7122,79 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 8,
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
                             ""required"": true,
-                            ""enumId"": ""pending:enum:Query.neo:Tone""
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 8,
-                                ""required"": true,
-                                ""enumId"": ""pending:enum:Query.neo:Tone""
-                              },
-                              ""value"": [
-                                ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
-                              ]
+                            ""entryTypeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""pending:enum:Query.neo:Tone""
                             }
                           },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 8,
-                                ""required"": true,
-                                ""enumId"": ""pending:enum:Query.neo:Tone""
-                              },
-                              ""value"": [
-                                ""pending:enum-option:pending:enum:Query.neo:Tone:Blue""
-                              ]
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 8,
+                                  ""required"": true,
+                                  ""enumId"": ""pending:enum:Query.neo:Tone""
+                                },
+                                ""value"": [
+                                  ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
+                                ]
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 8,
+                                  ""required"": true,
+                                  ""enumId"": ""pending:enum:Query.neo:Tone""
+                                },
+                                ""value"": [
+                                  ""pending:enum-option:pending:enum:Query.neo:Tone:Blue""
+                                ]
+                              }
                             }
-                          }
-                        ]
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 8,
+                          ""required"": true,
+                          ""enumId"": ""pending:enum:Query.neo:Tone""
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 8,
-                        ""required"": true,
-                        ""enumId"": ""pending:enum:Query.neo:Tone""
-                      }
-                    },
-                    ""op"": ""ToSet"",
-                    ""enumEntries"": true
+                      ""op"": ""ToSet"",
+                      ""enumEntries"": true
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 107
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 107
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 8,
+                    ""required"": true,
+                    ""enumId"": ""pending:enum:Query.neo:Tone""
+                  }
                 }
               }
             },
@@ -6699,69 +7216,84 @@ namespace NeoCompose.Tests
                       ""type"": ""keyOf"",
                       ""keyOf"": {
                         ""pointer"": {
-                          ""type"": ""function"",
-                          ""function"": {
-                            ""type"": ""collectionQuery"",
-                            ""info"": {
-                              ""collectionPointer"": {
-                                ""type"": ""variable"",
-                                ""variableId"": ""n""
-                              },
-                              ""op"": ""ToDictionary"",
-                              ""function"": {
-                                ""compilerRevision"": 20,
-                                ""source"": {
-                                  ""uri"": ""Query.neo"",
-                                  ""coordinateSpace"": ""file"",
-                                  ""name"": ""Query.Result <callback>""
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""retainCollectionType"",
+                          ""pointer"": {
+                            ""type"": ""function"",
+                            ""function"": {
+                              ""type"": ""collectionQuery"",
+                              ""info"": {
+                                ""collectionPointer"": {
+                                  ""type"": ""variable"",
+                                  ""variableId"": ""n""
                                 },
-                                ""parameters"": [
-                                  {
-                                    ""id"": ""v"",
-                                    ""typeInfo"": {
-                                      ""type"": 8,
-                                      ""required"": true,
-                                      ""enumId"": ""pending:enum:Query.neo:Tone""
-                                    },
-                                    ""pointer"": {
-                                      ""type"": ""value"",
-                                      ""value"": {
-                                        ""typeInfo"": {
-                                          ""type"": 8,
-                                          ""required"": true,
-                                          ""enumId"": ""pending:enum:Query.neo:Tone""
-                                        },
-                                        ""value"": null
+                                ""op"": ""ToDictionary"",
+                                ""function"": {
+                                  ""compilerRevision"": 20,
+                                  ""source"": {
+                                    ""uri"": ""Query.neo"",
+                                    ""coordinateSpace"": ""file"",
+                                    ""name"": ""Query.Result <callback>""
+                                  },
+                                  ""parameters"": [
+                                    {
+                                      ""id"": ""v"",
+                                      ""typeInfo"": {
+                                        ""type"": 8,
+                                        ""required"": true,
+                                        ""enumId"": ""pending:enum:Query.neo:Tone""
+                                      },
+                                      ""pointer"": {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 8,
+                                            ""required"": true,
+                                            ""enumId"": ""pending:enum:Query.neo:Tone""
+                                          },
+                                          ""value"": null
+                                        }
                                       }
                                     }
-                                  }
-                                ],
-                                ""instructions"": [
-                                  {
-                                    ""type"": ""return"",
-                                    ""pointer"": {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""v""
-                                    },
-                                    ""source"": {
-                                      ""line"": 1,
-                                      ""column"": 140
+                                  ],
+                                  ""instructions"": [
+                                    {
+                                      ""type"": ""return"",
+                                      ""pointer"": {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""v""
+                                      },
+                                      ""source"": {
+                                        ""line"": 1,
+                                        ""column"": 140
+                                      }
                                     }
+                                  ],
+                                  ""typeInfo"": {
+                                    ""type"": 8,
+                                    ""required"": true,
+                                    ""enumId"": ""pending:enum:Query.neo:Tone""
                                   }
-                                ],
-                                ""typeInfo"": {
-                                  ""type"": 8,
-                                  ""required"": true,
-                                  ""enumId"": ""pending:enum:Query.neo:Tone""
-                                }
-                              },
-                              ""enumKey"": true,
-                              ""enumEntries"": true
+                                },
+                                ""enumKey"": true,
+                                ""enumEntries"": true
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 132
                             }
                           },
-                          ""source"": {
-                            ""line"": 1,
-                            ""column"": 132
+                          ""collectionType"": {
+                            ""type"": 5,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""pending:enum:Query.neo:Tone""
+                            },
+                            ""keyEnumId"": ""pending:enum:Query.neo:Tone"",
+                            ""readOnly"": true
                           }
                         },
                         ""key"": {
@@ -6880,53 +7412,66 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 8,
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
                             ""required"": true,
-                            ""enumId"": ""pending:enum:Query.neo:Tone""
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 8,
-                                ""required"": true,
-                                ""enumId"": ""pending:enum:Query.neo:Tone""
-                              },
-                              ""value"": [
-                                ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
-                              ]
+                            ""entryTypeInfo"": {
+                              ""type"": 8,
+                              ""required"": true,
+                              ""enumId"": ""pending:enum:Query.neo:Tone""
                             }
-                          }
-                        ]
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 8,
+                                  ""required"": true,
+                                  ""enumId"": ""pending:enum:Query.neo:Tone""
+                                },
+                                ""value"": [
+                                  ""pending:enum-option:pending:enum:Query.neo:Tone:Red""
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 8,
+                          ""required"": true,
+                          ""enumId"": ""pending:enum:Query.neo:Tone""
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 8,
-                        ""required"": true,
-                        ""enumId"": ""pending:enum:Query.neo:Tone""
-                      }
-                    },
-                    ""op"": ""ToSet"",
-                    ""enumEntries"": true
+                      ""op"": ""ToSet"",
+                      ""enumEntries"": true
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 96
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 96
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 8,
+                    ""required"": true,
+                    ""enumId"": ""pending:enum:Query.neo:Tone""
+                  }
                 }
               }
             },
@@ -8315,39 +8860,51 @@ namespace NeoCompose.Tests
                     ""type"": ""sequenceConversion"",
                     ""operation"": ""queryEnumerable"",
                     ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""listRepeat"",
-                        ""info"": {
-                          ""valuePointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""listRepeat"",
+                          ""info"": {
+                            ""valuePointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            },
+                            ""countPointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
-                          },
-                          ""countPointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          },
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
                           }
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 71
                         }
                       },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 71
+                      ""collectionType"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
                     ""elementType"": {
@@ -9555,39 +10112,51 @@ namespace NeoCompose.Tests
                     ""type"": ""sequenceConversion"",
                     ""operation"": ""queryEnumerable"",
                     ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""listRepeat"",
-                        ""info"": {
-                          ""valuePointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""listRepeat"",
+                          ""info"": {
+                            ""valuePointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            },
+                            ""countPointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
-                          },
-                          ""countPointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          },
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
                           }
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 73
                         }
                       },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 73
+                      ""collectionType"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
                     ""elementType"": {
@@ -10816,29 +11385,41 @@ namespace NeoCompose.Tests
                 }
               },
               ""pointer"": {
-                ""type"": ""function"",
-                ""function"": {
-                  ""type"": ""collectionQuery"",
-                  ""info"": {
-                    ""collectionPointer"": {
-                      ""type"": ""sequenceConversion"",
-                      ""operation"": ""queryEnumerable"",
-                      ""pointer"": {
-                        ""type"": ""variable"",
-                        ""variableId"": ""l""
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""variable"",
+                          ""variableId"": ""l""
+                        },
+                        ""elementType"": {
+                          ""type"": 20,
+                          ""required"": true
+                        }
                       },
-                      ""elementType"": {
-                        ""type"": 20,
-                        ""required"": true
-                      }
-                    },
-                    ""op"": ""ToSet"",
-                    ""decimalEntries"": true
+                      ""op"": ""ToSet"",
+                      ""decimalEntries"": true
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 132
                   }
                 },
-                ""source"": {
-                  ""line"": 1,
-                  ""column"": 132
+                ""collectionType"": {
+                  ""type"": 9,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 20,
+                    ""required"": true
+                  }
                 }
               }
             },
@@ -12018,39 +12599,51 @@ namespace NeoCompose.Tests
                     ""type"": ""sequenceConversion"",
                     ""operation"": ""queryEnumerable"",
                     ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""listRepeat"",
-                        ""info"": {
-                          ""valuePointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""listRepeat"",
+                          ""info"": {
+                            ""valuePointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            },
+                            ""countPointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
-                          },
-                          ""countPointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          },
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
                           }
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 71
                         }
                       },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 71
+                      ""collectionType"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
                     ""elementType"": {
@@ -13215,39 +13808,51 @@ namespace NeoCompose.Tests
                     ""type"": ""sequenceConversion"",
                     ""operation"": ""queryEnumerable"",
                     ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""listRepeat"",
-                        ""info"": {
-                          ""valuePointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""listRepeat"",
+                          ""info"": {
+                            ""valuePointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            },
+                            ""countPointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
-                          },
-                          ""countPointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          },
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
                           }
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 74
                         }
                       },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 74
+                      ""collectionType"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
                     ""elementType"": {
@@ -13437,39 +14042,51 @@ namespace NeoCompose.Tests
                     ""type"": ""sequenceConversion"",
                     ""operation"": ""queryEnumerable"",
                     ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""listRepeat"",
-                        ""info"": {
-                          ""valuePointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 1
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""listRepeat"",
+                          ""info"": {
+                            ""valuePointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 1
+                              }
+                            },
+                            ""countPointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 0
+                              }
+                            },
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             }
-                          },
-                          ""countPointer"": {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 0
-                            }
-                          },
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
                           }
+                        },
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 71
                         }
                       },
-                      ""source"": {
-                        ""line"": 1,
-                        ""column"": 71
+                      ""collectionType"": {
+                        ""type"": 6,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
                       }
                     },
                     ""elementType"": {
@@ -13634,77 +14251,90 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""listLiteral"",
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""listLiteral"",
+                        ""typeInfo"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""entries"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 2
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 3
+                            }
+                          }
+                        ]
                       },
-                      ""entries"": [
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 2
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 3
-                          }
-                        }
-                      ]
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""Distinct""
+                    ""op"": ""Distinct""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 87
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 87
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -13854,28 +14484,41 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""n""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""n""
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": false
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": false
-                    }
-                  },
-                  ""op"": ""Distinct""
+                    ""op"": ""Distinct""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 124
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 124
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": false
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -14015,29 +14658,42 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""n""
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""variable"",
+                        ""variableId"": ""n""
+                      },
+                      ""elementType"": {
+                        ""type"": 20,
+                        ""required"": true
+                      }
                     },
-                    ""elementType"": {
-                      ""type"": 20,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""Distinct"",
-                  ""decimalEntries"": true
+                    ""op"": ""Distinct"",
+                    ""decimalEntries"": true
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 126
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 126
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 20,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -14116,185 +14772,198 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""listLiteral"",
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""entries"": [
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 2
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 3
-                          }
-                        }
-                      ]
-                    },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""Zip"",
-                  ""otherPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""listLiteral"",
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""entries"": [
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 10
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 20
-                          }
-                        }
-                      ]
-                    },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""a"",
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""listLiteral"",
                         ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        }
+                        },
+                        ""entries"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 2
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 3
+                            }
+                          }
+                        ]
                       },
-                      {
-                        ""id"": ""b"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
-                        }
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""operation"",
-                          ""operation"": {
-                            ""type"": ""arithmetic"",
-                            ""arithmetic"": {
-                              ""type"": ""+"",
-                              ""pointers"": [
-                                {
-                                  ""type"": ""variable"",
-                                  ""variableId"": ""a""
-                                },
-                                {
-                                  ""type"": ""variable"",
-                                  ""variableId"": ""b""
-                                }
-                              ],
-                              ""numeric"": ""int""
+                    },
+                    ""op"": ""Zip"",
+                    ""otherPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""listLiteral"",
+                        ""typeInfo"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""entries"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 10
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 20
+                            }
+                          }
+                        ]
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    },
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""a"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
                             }
                           }
                         },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 100
+                        {
+                          ""id"": ""b"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
+                          }
                         }
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""operation"",
+                            ""operation"": {
+                              ""type"": ""arithmetic"",
+                              ""arithmetic"": {
+                                ""type"": ""+"",
+                                ""pointers"": [
+                                  {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""a""
+                                  },
+                                  {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""b""
+                                  }
+                                ],
+                                ""numeric"": ""int""
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 100
+                          }
+                        }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
                     }
                   }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 79
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 79
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -14373,232 +15042,258 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""function"",
-                      ""function"": {
-                        ""type"": ""collectionQuery"",
-                        ""info"": {
-                          ""collectionPointer"": {
-                            ""type"": ""sequenceConversion"",
-                            ""operation"": ""queryEnumerable"",
-                            ""pointer"": {
-                              ""type"": ""listLiteral"",
-                              ""typeInfo"": {
-                                ""type"": 6,
-                                ""required"": true,
-                                ""entryTypeInfo"": {
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""retainCollectionType"",
+                        ""pointer"": {
+                          ""type"": ""function"",
+                          ""function"": {
+                            ""type"": ""collectionQuery"",
+                            ""info"": {
+                              ""collectionPointer"": {
+                                ""type"": ""sequenceConversion"",
+                                ""operation"": ""queryEnumerable"",
+                                ""pointer"": {
+                                  ""type"": ""listLiteral"",
+                                  ""typeInfo"": {
+                                    ""type"": 6,
+                                    ""required"": true,
+                                    ""entryTypeInfo"": {
+                                      ""type"": 2,
+                                      ""required"": true
+                                    }
+                                  },
+                                  ""entries"": [
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 21
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 12
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 11
+                                      }
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 22
+                                      }
+                                    }
+                                  ]
+                                },
+                                ""elementType"": {
                                   ""type"": 2,
                                   ""required"": true
                                 }
                               },
-                              ""entries"": [
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 21
-                                  }
+                              ""op"": ""OrderBy"",
+                              ""function"": {
+                                ""compilerRevision"": 20,
+                                ""source"": {
+                                  ""uri"": ""Query.neo"",
+                                  ""coordinateSpace"": ""file"",
+                                  ""name"": ""Query.Result <callback>""
                                 },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
+                                ""parameters"": [
+                                  {
+                                    ""id"": ""n"",
                                     ""typeInfo"": {
                                       ""type"": 2,
                                       ""required"": true
                                     },
-                                    ""value"": 12
+                                    ""pointer"": {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": null
+                                      }
+                                    }
                                   }
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
+                                ],
+                                ""instructions"": [
+                                  {
+                                    ""type"": ""return"",
+                                    ""pointer"": {
+                                      ""type"": ""operation"",
+                                      ""operation"": {
+                                        ""type"": ""arithmetic"",
+                                        ""arithmetic"": {
+                                          ""type"": ""/"",
+                                          ""pointers"": [
+                                            {
+                                              ""type"": ""variable"",
+                                              ""variableId"": ""n""
+                                            },
+                                            {
+                                              ""type"": ""value"",
+                                              ""value"": {
+                                                ""typeInfo"": {
+                                                  ""type"": 2,
+                                                  ""required"": true
+                                                },
+                                                ""value"": 10
+                                              }
+                                            }
+                                          ],
+                                          ""numeric"": ""int""
+                                        }
+                                      }
                                     },
-                                    ""value"": 11
+                                    ""source"": {
+                                      ""line"": 1,
+                                      ""column"": 98
+                                    }
                                   }
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 22
-                                  }
-                                }
-                              ]
-                            },
-                            ""elementType"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""op"": ""OrderBy"",
-                          ""function"": {
-                            ""compilerRevision"": 20,
-                            ""source"": {
-                              ""uri"": ""Query.neo"",
-                              ""coordinateSpace"": ""file"",
-                              ""name"": ""Query.Result <callback>""
-                            },
-                            ""parameters"": [
-                              {
-                                ""id"": ""n"",
+                                ],
                                 ""typeInfo"": {
                                   ""type"": 2,
                                   ""required"": true
-                                },
-                                ""pointer"": {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": null
-                                  }
                                 }
-                              }
-                            ],
-                            ""instructions"": [
-                              {
-                                ""type"": ""return"",
-                                ""pointer"": {
-                                  ""type"": ""operation"",
-                                  ""operation"": {
-                                    ""type"": ""arithmetic"",
-                                    ""arithmetic"": {
-                                      ""type"": ""/"",
-                                      ""pointers"": [
-                                        {
-                                          ""type"": ""variable"",
-                                          ""variableId"": ""n""
-                                        },
-                                        {
-                                          ""type"": ""value"",
-                                          ""value"": {
-                                            ""typeInfo"": {
-                                              ""type"": 2,
-                                              ""required"": true
-                                            },
-                                            ""value"": 10
-                                          }
-                                        }
-                                      ],
-                                      ""numeric"": ""int""
-                                    }
-                                  }
-                                },
-                                ""source"": {
-                                  ""line"": 1,
-                                  ""column"": 98
-                                }
-                              }
-                            ],
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
+                              },
+                              ""keyType"": ""int""
                             }
                           },
-                          ""keyType"": ""int""
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 90
+                          }
+                        },
+                        ""collectionType"": {
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""readOnly"": true
                         }
                       },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
+                      }
+                    },
+                    ""op"": ""ThenByDescending"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
                       ""source"": {
-                        ""line"": 1,
-                        ""column"": 90
-                      }
-                    },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenByDescending"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
-                        }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""operation"",
-                          ""operation"": {
-                            ""type"": ""arithmetic"",
-                            ""arithmetic"": {
-                              ""type"": ""%"",
-                              ""pointers"": [
-                                {
-                                  ""type"": ""variable"",
-                                  ""variableId"": ""n""
-                                },
-                                {
-                                  ""type"": ""value"",
-                                  ""value"": {
-                                    ""typeInfo"": {
-                                      ""type"": 2,
-                                      ""required"": true
-                                    },
-                                    ""value"": 10
-                                  }
-                                }
-                              ],
-                              ""numeric"": ""int""
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
                             }
                           }
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 130
                         }
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""operation"",
+                            ""operation"": {
+                              ""type"": ""arithmetic"",
+                              ""arithmetic"": {
+                                ""type"": ""%"",
+                                ""pointers"": [
+                                  {
+                                    ""type"": ""variable"",
+                                    ""variableId"": ""n""
+                                  },
+                                  {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 10
+                                    }
+                                  }
+                                ],
+                                ""numeric"": ""int""
+                              }
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 130
+                          }
+                        }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                    },
+                    ""keyType"": ""int""
+                  }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 122
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 122
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -14688,6 +15383,171 @@ namespace NeoCompose.Tests
                 ""readOnly"": true
               },
               ""pointer"": {
+                ""type"": ""sequenceConversion"",
+                ""operation"": ""retainCollectionType"",
+                ""pointer"": {
+                  ""type"": ""function"",
+                  ""function"": {
+                    ""type"": ""collectionQuery"",
+                    ""info"": {
+                      ""collectionPointer"": {
+                        ""type"": ""sequenceConversion"",
+                        ""operation"": ""queryEnumerable"",
+                        ""pointer"": {
+                          ""type"": ""listLiteral"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            }
+                          },
+                          ""entries"": [
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 21
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 12
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 11
+                              }
+                            },
+                            {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": 22
+                              }
+                            }
+                          ]
+                        },
+                        ""elementType"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""op"": ""OrderBy"",
+                      ""function"": {
+                        ""compilerRevision"": 20,
+                        ""source"": {
+                          ""uri"": ""Query.neo"",
+                          ""coordinateSpace"": ""file"",
+                          ""name"": ""Query.Result <callback>""
+                        },
+                        ""parameters"": [
+                          {
+                            ""id"": ""n"",
+                            ""typeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
+                            },
+                            ""pointer"": {
+                              ""type"": ""value"",
+                              ""value"": {
+                                ""typeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""value"": null
+                              }
+                            }
+                          }
+                        ],
+                        ""instructions"": [
+                          {
+                            ""type"": ""return"",
+                            ""pointer"": {
+                              ""type"": ""operation"",
+                              ""operation"": {
+                                ""type"": ""arithmetic"",
+                                ""arithmetic"": {
+                                  ""type"": ""/"",
+                                  ""pointers"": [
+                                    {
+                                      ""type"": ""variable"",
+                                      ""variableId"": ""n""
+                                    },
+                                    {
+                                      ""type"": ""value"",
+                                      ""value"": {
+                                        ""typeInfo"": {
+                                          ""type"": 2,
+                                          ""required"": true
+                                        },
+                                        ""value"": 10
+                                      }
+                                    }
+                                  ],
+                                  ""numeric"": ""int""
+                                }
+                              }
+                            },
+                            ""source"": {
+                              ""line"": 1,
+                              ""column"": 117
+                            }
+                          }
+                        ],
+                        ""typeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
+                        }
+                      },
+                      ""keyType"": ""int""
+                    }
+                  },
+                  ""source"": {
+                    ""line"": 1,
+                    ""column"": 109
+                  }
+                },
+                ""collectionType"": {
+                  ""type"": 6,
+                  ""required"": true,
+                  ""entryTypeInfo"": {
+                    ""type"": 2,
+                    ""required"": true
+                  },
+                  ""readOnly"": true
+                }
+              }
+            },
+            ""source"": {
+              ""line"": 1,
+              ""column"": 71
+            }
+          },
+          {
+            ""type"": ""return"",
+            ""pointer"": {
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
                 ""type"": ""function"",
                 ""function"": {
                   ""type"": ""collectionQuery"",
@@ -14696,64 +15556,15 @@ namespace NeoCompose.Tests
                       ""type"": ""sequenceConversion"",
                       ""operation"": ""queryEnumerable"",
                       ""pointer"": {
-                        ""type"": ""listLiteral"",
-                        ""typeInfo"": {
-                          ""type"": 6,
-                          ""required"": true,
-                          ""entryTypeInfo"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""entries"": [
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 21
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 12
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 11
-                            }
-                          },
-                          {
-                            ""type"": ""value"",
-                            ""value"": {
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""value"": 22
-                            }
-                          }
-                        ]
+                        ""type"": ""variable"",
+                        ""variableId"": ""ordered""
                       },
                       ""elementType"": {
                         ""type"": 2,
                         ""required"": true
                       }
                     },
-                    ""op"": ""OrderBy"",
+                    ""op"": ""ThenBy"",
                     ""function"": {
                       ""compilerRevision"": 20,
                       ""source"": {
@@ -14784,34 +15595,12 @@ namespace NeoCompose.Tests
                         {
                           ""type"": ""return"",
                           ""pointer"": {
-                            ""type"": ""operation"",
-                            ""operation"": {
-                              ""type"": ""arithmetic"",
-                              ""arithmetic"": {
-                                ""type"": ""/"",
-                                ""pointers"": [
-                                  {
-                                    ""type"": ""variable"",
-                                    ""variableId"": ""n""
-                                  },
-                                  {
-                                    ""type"": ""value"",
-                                    ""value"": {
-                                      ""typeInfo"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""value"": 10
-                                    }
-                                  }
-                                ],
-                                ""numeric"": ""int""
-                              }
-                            }
+                            ""type"": ""variable"",
+                            ""variableId"": ""n""
                           },
                           ""source"": {
                             ""line"": 1,
-                            ""column"": 117
+                            ""column"": 155
                           }
                         }
                       ],
@@ -14825,85 +15614,17 @@ namespace NeoCompose.Tests
                 },
                 ""source"": {
                   ""line"": 1,
-                  ""column"": 109
-                }
-              }
-            },
-            ""source"": {
-              ""line"": 1,
-              ""column"": 71
-            }
-          },
-          {
-            ""type"": ""return"",
-            ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""variable"",
-                      ""variableId"": ""ordered""
-                    },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ThenBy"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
-                        }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""variable"",
-                          ""variableId"": ""n""
-                        },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 155
-                        }
-                      }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""keyType"": ""int""
+                  ""column"": 147
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 147
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -14982,129 +15703,142 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""select"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""dictLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 5,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""key"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": ""b""
-                          }
-                        },
-                        ""value"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
-                        }
-                      },
-                      {
-                        ""key"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": ""a""
-                          }
-                        },
-                        ""value"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 2
-                          }
-                        }
-                      }
-                    ]
-                  },
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""name"": ""Query.Result"",
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""__foreach_key__"",
-                        ""typeInfo"": {
-                          ""type"": 3,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
-                        }
-                      },
-                      {
-                        ""id"": ""__foreach_value__"",
-                        ""typeInfo"": {
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""select"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""dictLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 5,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
                           ""type"": 2,
                           ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
+                        }
+                      },
+                      ""entries"": [
+                        {
+                          ""key"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""b""
+                            }
+                          },
                           ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
+                          }
+                        },
+                        {
+                          ""key"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""a""
+                            }
+                          },
+                          ""value"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 2
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""variable"",
-                          ""variableId"": ""__foreach_key__""
+                      ]
+                    },
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""name"": ""Query.Result"",
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""__foreach_key__"",
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
+                          }
+                        },
+                        {
+                          ""id"": ""__foreach_value__"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
+                          }
                         }
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__foreach_key__""
+                          }
+                        }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 3,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 3,
-                      ""required"": true
                     }
                   }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 85
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 85
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -15183,73 +15917,86 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""op"": ""Values"",
-                  ""collectionPointer"": {
-                    ""type"": ""dictLiteral"",
-                    ""typeInfo"": {
-                      ""type"": 5,
-                      ""required"": true,
-                      ""entryTypeInfo"": {
-                        ""type"": 2,
-                        ""required"": true
-                      }
-                    },
-                    ""entries"": [
-                      {
-                        ""key"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": ""b""
-                          }
-                        },
-                        ""value"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""op"": ""Values"",
+                    ""collectionPointer"": {
+                      ""type"": ""dictLiteral"",
+                      ""typeInfo"": {
+                        ""type"": 5,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
+                          ""type"": 2,
+                          ""required"": true
                         }
                       },
-                      {
-                        ""key"": {
-                          ""type"": ""value"",
+                      ""entries"": [
+                        {
+                          ""key"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""b""
+                            }
+                          },
                           ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": ""a""
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
                           }
                         },
-                        ""value"": {
-                          ""type"": ""value"",
+                        {
+                          ""key"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""a""
+                            }
+                          },
                           ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 2
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 2
+                            }
                           }
                         }
-                      }
-                    ]
+                      ]
+                    }
                   }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 82
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 82
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -15331,196 +16078,209 @@ namespace NeoCompose.Tests
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
-                  ""type"": ""function"",
-                  ""function"": {
-                    ""type"": ""collectionQuery"",
-                    ""info"": {
-                      ""collectionPointer"": {
-                        ""type"": ""sequenceConversion"",
-                        ""operation"": ""queryEnumerable"",
-                        ""pointer"": {
-                          ""type"": ""listLiteral"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""entries"": [
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 1
-                              }
-                            },
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 2
-                              }
-                            }
-                          ]
-                        },
-                        ""elementType"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""op"": ""ToDictionary"",
-                      ""function"": {
-                        ""compilerRevision"": 20,
-                        ""source"": {
-                          ""uri"": ""Query.neo"",
-                          ""coordinateSpace"": ""file"",
-                          ""name"": ""Query.Result <callback>""
-                        },
-                        ""parameters"": [
-                          {
-                            ""id"": ""n"",
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""retainCollectionType"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""collectionQuery"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""listLiteral"",
                             ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": null
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
                               }
-                            }
-                          }
-                        ],
-                        ""instructions"": [
-                          {
-                            ""type"": ""return"",
-                            ""pointer"": {
-                              ""type"": ""operation"",
-                              ""operation"": {
-                                ""type"": ""arithmetic"",
-                                ""arithmetic"": {
-                                  ""type"": ""+"",
-                                  ""pointers"": [
-                                    {
-                                      ""type"": ""value"",
-                                      ""value"": {
-                                        ""typeInfo"": {
-                                          ""type"": 3,
-                                          ""required"": true
-                                        },
-                                        ""value"": ""k""
-                                      }
-                                    },
-                                    {
-                                      ""type"": ""format"",
-                                      ""pointer"": {
-                                        ""type"": ""variable"",
-                                        ""variableId"": ""n""
-                                      },
-                                      ""sourceType"": {
-                                        ""type"": 2,
-                                        ""required"": true
-                                      },
-                                      ""mode"": ""concatenation""
-                                    }
-                                  ]
+                            },
+                            ""entries"": [
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 1
+                                }
+                              },
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 2
                                 }
                               }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 87
-                            }
+                            ]
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        ],
-                        ""typeInfo"": {
-                          ""type"": 3,
-                          ""required"": true
-                        }
-                      },
-                      ""valueFunction"": {
-                        ""compilerRevision"": 20,
-                        ""source"": {
-                          ""uri"": ""Query.neo"",
-                          ""coordinateSpace"": ""file"",
-                          ""name"": ""Query.Result <callback>""
                         },
-                        ""parameters"": [
-                          {
-                            ""id"": ""n"",
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": null
+                        ""op"": ""ToDictionary"",
+                        ""function"": {
+                          ""compilerRevision"": 20,
+                          ""source"": {
+                            ""uri"": ""Query.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Query.Result <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
                               }
                             }
-                          }
-                        ],
-                        ""instructions"": [
-                          {
-                            ""type"": ""return"",
-                            ""pointer"": {
-                              ""type"": ""operation"",
-                              ""operation"": {
-                                ""type"": ""arithmetic"",
-                                ""arithmetic"": {
-                                  ""type"": ""*"",
-                                  ""pointers"": [
-                                    {
-                                      ""type"": ""variable"",
-                                      ""variableId"": ""n""
-                                    },
-                                    {
-                                      ""type"": ""value"",
-                                      ""value"": {
-                                        ""typeInfo"": {
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""arithmetic"",
+                                  ""arithmetic"": {
+                                    ""type"": ""+"",
+                                    ""pointers"": [
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 3,
+                                            ""required"": true
+                                          },
+                                          ""value"": ""k""
+                                        }
+                                      },
+                                      {
+                                        ""type"": ""format"",
+                                        ""pointer"": {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""n""
+                                        },
+                                        ""sourceType"": {
                                           ""type"": 2,
                                           ""required"": true
                                         },
-                                        ""value"": 3
+                                        ""mode"": ""concatenation""
                                       }
-                                    }
-                                  ],
-                                  ""numeric"": ""int""
+                                    ]
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 87
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          }
+                        },
+                        ""valueFunction"": {
+                          ""compilerRevision"": 20,
+                          ""source"": {
+                            ""uri"": ""Query.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Query.Result <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
                                 }
                               }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 103
                             }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""operation"",
+                                ""operation"": {
+                                  ""type"": ""arithmetic"",
+                                  ""arithmetic"": {
+                                    ""type"": ""*"",
+                                    ""pointers"": [
+                                      {
+                                        ""type"": ""variable"",
+                                        ""variableId"": ""n""
+                                      },
+                                      {
+                                        ""type"": ""value"",
+                                        ""value"": {
+                                          ""typeInfo"": {
+                                            ""type"": 2,
+                                            ""required"": true
+                                          },
+                                          ""value"": 3
+                                        }
+                                      }
+                                    ],
+                                    ""numeric"": ""int""
+                                  }
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 103
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        ],
-                        ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
                         }
                       }
+                    },
+                    ""source"": {
+                      ""line"": 1,
+                      ""column"": 79
                     }
                   },
-                  ""source"": {
-                    ""line"": 1,
-                    ""column"": 79
+                  ""collectionType"": {
+                    ""type"": 5,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""readOnly"": true
                   }
                 },
                 ""key"": {
@@ -15607,107 +16367,120 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""collectionQuery"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""sequenceConversion"",
-                    ""operation"": ""queryEnumerable"",
-                    ""pointer"": {
-                      ""type"": ""listLiteral"",
-                      ""typeInfo"": {
-                        ""type"": 6,
-                        ""required"": true,
-                        ""entryTypeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""entries"": [
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 1
-                          }
-                        },
-                        {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": 2
-                          }
-                        }
-                      ]
-                    },
-                    ""elementType"": {
-                      ""type"": 2,
-                      ""required"": true
-                    }
-                  },
-                  ""op"": ""ToDictionary"",
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file"",
-                      ""name"": ""Query.Result <callback>""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""n"",
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""collectionQuery"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""queryEnumerable"",
+                      ""pointer"": {
+                        ""type"": ""listLiteral"",
                         ""typeInfo"": {
-                          ""type"": 2,
-                          ""required"": true
-                        },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
-                        }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": ""same""
+                          ""type"": 6,
+                          ""required"": true,
+                          ""entryTypeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
                         },
-                        ""source"": {
-                          ""line"": 1,
-                          ""column"": 107
-                        }
+                        ""entries"": [
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 1
+                            }
+                          },
+                          {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": 2
+                            }
+                          }
+                        ]
+                      },
+                      ""elementType"": {
+                        ""type"": 2,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 3,
-                      ""required"": true
+                    },
+                    ""op"": ""ToDictionary"",
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file"",
+                        ""name"": ""Query.Result <callback>""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""n"",
+                          ""typeInfo"": {
+                            ""type"": 2,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""value"": null
+                            }
+                          }
+                        }
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
+                              },
+                              ""value"": ""same""
+                            }
+                          },
+                          ""source"": {
+                            ""line"": 1,
+                            ""column"": 107
+                          }
+                        }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 3,
+                        ""required"": true
+                      }
                     }
                   }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 99
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 99
+              ""collectionType"": {
+                ""type"": 5,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 2,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {
@@ -15789,97 +16562,110 @@ namespace NeoCompose.Tests
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
-                  ""type"": ""function"",
-                  ""function"": {
-                    ""type"": ""collectionQuery"",
-                    ""info"": {
-                      ""collectionPointer"": {
-                        ""type"": ""sequenceConversion"",
-                        ""operation"": ""queryEnumerable"",
-                        ""pointer"": {
-                          ""type"": ""listLiteral"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""entries"": [
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 1
-                              }
-                            }
-                          ]
-                        },
-                        ""elementType"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""op"": ""ToDictionary"",
-                      ""function"": {
-                        ""compilerRevision"": 20,
-                        ""source"": {
-                          ""uri"": ""Query.neo"",
-                          ""coordinateSpace"": ""file"",
-                          ""name"": ""Query.Result <callback>""
-                        },
-                        ""parameters"": [
-                          {
-                            ""id"": ""n"",
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""retainCollectionType"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""collectionQuery"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""listLiteral"",
                             ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            },
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": null
-                              }
-                            }
-                          }
-                        ],
-                        ""instructions"": [
-                          {
-                            ""type"": ""return"",
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 3,
-                                  ""required"": true
-                                },
-                                ""value"": ""__proto__""
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
                               }
                             },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 84
-                            }
+                            ""entries"": [
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 1
+                                }
+                              }
+                            ]
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
                           }
-                        ],
-                        ""typeInfo"": {
-                          ""type"": 3,
-                          ""required"": true
+                        },
+                        ""op"": ""ToDictionary"",
+                        ""function"": {
+                          ""compilerRevision"": 20,
+                          ""source"": {
+                            ""uri"": ""Query.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Query.Result <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
+                              }
+                            }
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 3,
+                                    ""required"": true
+                                  },
+                                  ""value"": ""__proto__""
+                                }
+                              },
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 84
+                              }
+                            }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          }
                         }
                       }
+                    },
+                    ""source"": {
+                      ""line"": 1,
+                      ""column"": 76
                     }
                   },
-                  ""source"": {
-                    ""line"": 1,
-                    ""column"": 76
+                  ""collectionType"": {
+                    ""type"": 5,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 2,
+                      ""required"": true
+                    },
+                    ""readOnly"": true
                   }
                 },
                 ""key"": {
@@ -15969,155 +16755,173 @@ namespace NeoCompose.Tests
               ""type"": ""keyOf"",
               ""keyOf"": {
                 ""pointer"": {
-                  ""type"": ""function"",
-                  ""function"": {
-                    ""type"": ""collectionQuery"",
-                    ""info"": {
-                      ""collectionPointer"": {
-                        ""type"": ""sequenceConversion"",
-                        ""operation"": ""queryEnumerable"",
-                        ""pointer"": {
-                          ""type"": ""listLiteral"",
-                          ""typeInfo"": {
-                            ""type"": 6,
-                            ""required"": true,
-                            ""entryTypeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
-                            }
-                          },
-                          ""entries"": [
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 1
-                              }
-                            },
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 2
-                              }
-                            },
-                            {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": 3
-                              }
-                            }
-                          ]
-                        },
-                        ""elementType"": {
-                          ""type"": 2,
-                          ""required"": true
-                        }
-                      },
-                      ""op"": ""GroupBy"",
-                      ""function"": {
-                        ""compilerRevision"": 20,
-                        ""source"": {
-                          ""uri"": ""Query.neo"",
-                          ""coordinateSpace"": ""file"",
-                          ""name"": ""Query.Result <callback>""
-                        },
-                        ""parameters"": [
-                          {
-                            ""id"": ""n"",
+                  ""type"": ""sequenceConversion"",
+                  ""operation"": ""retainCollectionType"",
+                  ""pointer"": {
+                    ""type"": ""function"",
+                    ""function"": {
+                      ""type"": ""collectionQuery"",
+                      ""info"": {
+                        ""collectionPointer"": {
+                          ""type"": ""sequenceConversion"",
+                          ""operation"": ""queryEnumerable"",
+                          ""pointer"": {
+                            ""type"": ""listLiteral"",
                             ""typeInfo"": {
-                              ""type"": 2,
-                              ""required"": true
+                              ""type"": 6,
+                              ""required"": true,
+                              ""entryTypeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              }
                             },
-                            ""pointer"": {
-                              ""type"": ""value"",
-                              ""value"": {
-                                ""typeInfo"": {
-                                  ""type"": 2,
-                                  ""required"": true
-                                },
-                                ""value"": null
+                            ""entries"": [
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 1
+                                }
+                              },
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 2
+                                }
+                              },
+                              {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": 3
+                                }
+                              }
+                            ]
+                          },
+                          ""elementType"": {
+                            ""type"": 2,
+                            ""required"": true
+                          }
+                        },
+                        ""op"": ""GroupBy"",
+                        ""function"": {
+                          ""compilerRevision"": 20,
+                          ""source"": {
+                            ""uri"": ""Query.neo"",
+                            ""coordinateSpace"": ""file"",
+                            ""name"": ""Query.Result <callback>""
+                          },
+                          ""parameters"": [
+                            {
+                              ""id"": ""n"",
+                              ""typeInfo"": {
+                                ""type"": 2,
+                                ""required"": true
+                              },
+                              ""pointer"": {
+                                ""type"": ""value"",
+                                ""value"": {
+                                  ""typeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  },
+                                  ""value"": null
+                                }
                               }
                             }
-                          }
-                        ],
-                        ""instructions"": [
-                          {
-                            ""type"": ""return"",
-                            ""pointer"": {
-                              ""type"": ""conditional"",
-                              ""condition"": {
-                                ""type"": ""operation"",
-                                ""operation"": {
-                                  ""type"": ""boolean"",
-                                  ""expression"": {
-                                    ""condition"": {
-                                      ""type"": ""equalTo"",
-                                      ""operand1"": {
-                                        ""type"": ""variable"",
-                                        ""variableId"": ""n""
-                                      },
-                                      ""operand2"": {
-                                        ""type"": ""value"",
-                                        ""value"": {
-                                          ""typeInfo"": {
-                                            ""type"": 2,
-                                            ""required"": true
-                                          },
-                                          ""value"": 2
+                          ],
+                          ""instructions"": [
+                            {
+                              ""type"": ""return"",
+                              ""pointer"": {
+                                ""type"": ""conditional"",
+                                ""condition"": {
+                                  ""type"": ""operation"",
+                                  ""operation"": {
+                                    ""type"": ""boolean"",
+                                    ""expression"": {
+                                      ""condition"": {
+                                        ""type"": ""equalTo"",
+                                        ""operand1"": {
+                                          ""type"": ""variable"",
+                                          ""variableId"": ""n""
+                                        },
+                                        ""operand2"": {
+                                          ""type"": ""value"",
+                                          ""value"": {
+                                            ""typeInfo"": {
+                                              ""type"": 2,
+                                              ""required"": true
+                                            },
+                                            ""value"": 2
+                                          }
                                         }
                                       }
                                     }
                                   }
+                                },
+                                ""whenTrue"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 3,
+                                      ""required"": true
+                                    },
+                                    ""value"": ""even""
+                                  }
+                                },
+                                ""whenFalse"": {
+                                  ""type"": ""value"",
+                                  ""value"": {
+                                    ""typeInfo"": {
+                                      ""type"": 3,
+                                      ""required"": true
+                                    },
+                                    ""value"": ""odd""
+                                  }
                                 }
                               },
-                              ""whenTrue"": {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 3,
-                                    ""required"": true
-                                  },
-                                  ""value"": ""even""
-                                }
-                              },
-                              ""whenFalse"": {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 3,
-                                    ""required"": true
-                                  },
-                                  ""value"": ""odd""
-                                }
+                              ""source"": {
+                                ""line"": 1,
+                                ""column"": 91
                               }
-                            },
-                            ""source"": {
-                              ""line"": 1,
-                              ""column"": 91
                             }
+                          ],
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
                           }
-                        ],
-                        ""typeInfo"": {
-                          ""type"": 3,
-                          ""required"": true
                         }
                       }
+                    },
+                    ""source"": {
+                      ""line"": 1,
+                      ""column"": 83
                     }
                   },
-                  ""source"": {
-                    ""line"": 1,
-                    ""column"": 83
+                  ""collectionType"": {
+                    ""type"": 5,
+                    ""required"": true,
+                    ""entryTypeInfo"": {
+                      ""type"": 6,
+                      ""required"": true,
+                      ""entryTypeInfo"": {
+                        ""type"": 2,
+                        ""required"": true
+                      },
+                      ""readOnly"": true
+                    },
+                    ""readOnly"": true
                   }
                 },
                 ""key"": {
@@ -16208,175 +17012,157 @@ namespace NeoCompose.Tests
           {
             ""type"": ""return"",
             ""pointer"": {
-              ""type"": ""function"",
-              ""function"": {
-                ""type"": ""select"",
-                ""info"": {
-                  ""collectionPointer"": {
-                    ""type"": ""function"",
-                    ""function"": {
-                      ""type"": ""collectionQuery"",
-                      ""info"": {
-                        ""collectionPointer"": {
-                          ""type"": ""sequenceConversion"",
-                          ""operation"": ""queryEnumerable"",
-                          ""pointer"": {
-                            ""type"": ""listLiteral"",
-                            ""typeInfo"": {
-                              ""type"": 6,
-                              ""required"": true,
-                              ""entryTypeInfo"": {
+              ""type"": ""sequenceConversion"",
+              ""operation"": ""retainCollectionType"",
+              ""pointer"": {
+                ""type"": ""function"",
+                ""function"": {
+                  ""type"": ""select"",
+                  ""info"": {
+                    ""collectionPointer"": {
+                      ""type"": ""sequenceConversion"",
+                      ""operation"": ""retainCollectionType"",
+                      ""pointer"": {
+                        ""type"": ""function"",
+                        ""function"": {
+                          ""type"": ""collectionQuery"",
+                          ""info"": {
+                            ""collectionPointer"": {
+                              ""type"": ""sequenceConversion"",
+                              ""operation"": ""queryEnumerable"",
+                              ""pointer"": {
+                                ""type"": ""listLiteral"",
+                                ""typeInfo"": {
+                                  ""type"": 6,
+                                  ""required"": true,
+                                  ""entryTypeInfo"": {
+                                    ""type"": 2,
+                                    ""required"": true
+                                  }
+                                },
+                                ""entries"": [
+                                  {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 2
+                                    }
+                                  },
+                                  {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 10
+                                    }
+                                  },
+                                  {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
+                                      },
+                                      ""value"": 1
+                                    }
+                                  }
+                                ]
+                              },
+                              ""elementType"": {
                                 ""type"": 2,
                                 ""required"": true
                               }
                             },
-                            ""entries"": [
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 2
-                                }
+                            ""op"": ""GroupBy"",
+                            ""function"": {
+                              ""compilerRevision"": 20,
+                              ""source"": {
+                                ""uri"": ""Query.neo"",
+                                ""coordinateSpace"": ""file"",
+                                ""name"": ""Query.Result <callback>""
                               },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
+                              ""parameters"": [
+                                {
+                                  ""id"": ""n"",
                                   ""typeInfo"": {
                                     ""type"": 2,
                                     ""required"": true
                                   },
-                                  ""value"": 10
-                                }
-                              },
-                              {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": 1
-                                }
-                              }
-                            ]
-                          },
-                          ""elementType"": {
-                            ""type"": 2,
-                            ""required"": true
-                          }
-                        },
-                        ""op"": ""GroupBy"",
-                        ""function"": {
-                          ""compilerRevision"": 20,
-                          ""source"": {
-                            ""uri"": ""Query.neo"",
-                            ""coordinateSpace"": ""file"",
-                            ""name"": ""Query.Result <callback>""
-                          },
-                          ""parameters"": [
-                            {
-                              ""id"": ""n"",
-                              ""typeInfo"": {
-                                ""type"": 2,
-                                ""required"": true
-                              },
-                              ""pointer"": {
-                                ""type"": ""value"",
-                                ""value"": {
-                                  ""typeInfo"": {
-                                    ""type"": 2,
-                                    ""required"": true
-                                  },
-                                  ""value"": null
-                                }
-                              }
-                            }
-                          ],
-                          ""instructions"": [
-                            {
-                              ""type"": ""return"",
-                              ""pointer"": {
-                                ""type"": ""operation"",
-                                ""operation"": {
-                                  ""type"": ""arithmetic"",
-                                  ""arithmetic"": {
-                                    ""type"": ""+"",
-                                    ""pointers"": [
-                                      {
-                                        ""type"": ""value"",
-                                        ""value"": {
-                                          ""typeInfo"": {
-                                            ""type"": 3,
-                                            ""required"": true
-                                          },
-                                          ""value"": """"
-                                        }
+                                  ""pointer"": {
+                                    ""type"": ""value"",
+                                    ""value"": {
+                                      ""typeInfo"": {
+                                        ""type"": 2,
+                                        ""required"": true
                                       },
-                                      {
-                                        ""type"": ""format"",
-                                        ""pointer"": {
-                                          ""type"": ""variable"",
-                                          ""variableId"": ""n""
-                                        },
-                                        ""sourceType"": {
-                                          ""type"": 2,
-                                          ""required"": true
-                                        },
-                                        ""mode"": ""concatenation""
-                                      }
-                                    ]
+                                      ""value"": null
+                                    }
                                   }
                                 }
-                              },
-                              ""source"": {
-                                ""line"": 1,
-                                ""column"": 95
+                              ],
+                              ""instructions"": [
+                                {
+                                  ""type"": ""return"",
+                                  ""pointer"": {
+                                    ""type"": ""operation"",
+                                    ""operation"": {
+                                      ""type"": ""arithmetic"",
+                                      ""arithmetic"": {
+                                        ""type"": ""+"",
+                                        ""pointers"": [
+                                          {
+                                            ""type"": ""value"",
+                                            ""value"": {
+                                              ""typeInfo"": {
+                                                ""type"": 3,
+                                                ""required"": true
+                                              },
+                                              ""value"": """"
+                                            }
+                                          },
+                                          {
+                                            ""type"": ""format"",
+                                            ""pointer"": {
+                                              ""type"": ""variable"",
+                                              ""variableId"": ""n""
+                                            },
+                                            ""sourceType"": {
+                                              ""type"": 2,
+                                              ""required"": true
+                                            },
+                                            ""mode"": ""concatenation""
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  ""source"": {
+                                    ""line"": 1,
+                                    ""column"": 95
+                                  }
+                                }
+                              ],
+                              ""typeInfo"": {
+                                ""type"": 3,
+                                ""required"": true
                               }
                             }
-                          ],
-                          ""typeInfo"": {
-                            ""type"": 3,
-                            ""required"": true
                           }
-                        }
-                      }
-                    },
-                    ""source"": {
-                      ""line"": 1,
-                      ""column"": 87
-                    }
-                  },
-                  ""function"": {
-                    ""compilerRevision"": 20,
-                    ""source"": {
-                      ""name"": ""Query.Result"",
-                      ""uri"": ""Query.neo"",
-                      ""coordinateSpace"": ""file""
-                    },
-                    ""parameters"": [
-                      {
-                        ""id"": ""__foreach_key__"",
-                        ""typeInfo"": {
-                          ""type"": 3,
-                          ""required"": true
                         },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 3,
-                              ""required"": true
-                            },
-                            ""value"": null
-                          }
+                        ""source"": {
+                          ""line"": 1,
+                          ""column"": 87
                         }
                       },
-                      {
-                        ""id"": ""__foreach_value__"",
-                        ""typeInfo"": {
+                      ""collectionType"": {
+                        ""type"": 5,
+                        ""required"": true,
+                        ""entryTypeInfo"": {
                           ""type"": 6,
                           ""required"": true,
                           ""entryTypeInfo"": {
@@ -16385,42 +17171,91 @@ namespace NeoCompose.Tests
                           },
                           ""readOnly"": true
                         },
-                        ""pointer"": {
-                          ""type"": ""value"",
-                          ""value"": {
-                            ""typeInfo"": {
-                              ""type"": 6,
-                              ""required"": true,
-                              ""entryTypeInfo"": {
-                                ""type"": 2,
+                        ""readOnly"": true
+                      }
+                    },
+                    ""function"": {
+                      ""compilerRevision"": 20,
+                      ""source"": {
+                        ""name"": ""Query.Result"",
+                        ""uri"": ""Query.neo"",
+                        ""coordinateSpace"": ""file""
+                      },
+                      ""parameters"": [
+                        {
+                          ""id"": ""__foreach_key__"",
+                          ""typeInfo"": {
+                            ""type"": 3,
+                            ""required"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 3,
                                 ""required"": true
                               },
-                              ""readOnly"": true
+                              ""value"": null
+                            }
+                          }
+                        },
+                        {
+                          ""id"": ""__foreach_value__"",
+                          ""typeInfo"": {
+                            ""type"": 6,
+                            ""required"": true,
+                            ""entryTypeInfo"": {
+                              ""type"": 2,
+                              ""required"": true
                             },
-                            ""value"": null
+                            ""readOnly"": true
+                          },
+                          ""pointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                              ""typeInfo"": {
+                                ""type"": 6,
+                                ""required"": true,
+                                ""entryTypeInfo"": {
+                                  ""type"": 2,
+                                  ""required"": true
+                                },
+                                ""readOnly"": true
+                              },
+                              ""value"": null
+                            }
                           }
                         }
-                      }
-                    ],
-                    ""instructions"": [
-                      {
-                        ""type"": ""return"",
-                        ""pointer"": {
-                          ""type"": ""variable"",
-                          ""variableId"": ""__foreach_key__""
+                      ],
+                      ""instructions"": [
+                        {
+                          ""type"": ""return"",
+                          ""pointer"": {
+                            ""type"": ""variable"",
+                            ""variableId"": ""__foreach_key__""
+                          }
                         }
+                      ],
+                      ""typeInfo"": {
+                        ""type"": 3,
+                        ""required"": true
                       }
-                    ],
-                    ""typeInfo"": {
-                      ""type"": 3,
-                      ""required"": true
                     }
                   }
+                },
+                ""source"": {
+                  ""line"": 1,
+                  ""column"": 102
                 }
               },
-              ""source"": {
-                ""line"": 1,
-                ""column"": 102
+              ""collectionType"": {
+                ""type"": 6,
+                ""required"": true,
+                ""entryTypeInfo"": {
+                  ""type"": 3,
+                  ""required"": true
+                },
+                ""readOnly"": true
               }
             },
             ""source"": {

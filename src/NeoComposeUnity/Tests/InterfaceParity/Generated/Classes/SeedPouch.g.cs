@@ -21,13 +21,13 @@ namespace NeoCompose.Tests.InterfaceParity
 
         bool TryWritable(out SeedPouch writable);
 
-        new NeoList<Seed> Contents { get; }
+        new NeoReadOnlyList<IReadOnlySeed> Contents { get; }
     }
 
     public partial class SeedPouch : NeoGeneratedClassValue, IReadOnlySeedPouch
     {
         internal SeedPouch(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "0de5fefb-22df-40bb-b992-4bdac31142d6", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "7a6a5e21-7856-4eee-9eaa-2baaafee06d0", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -46,8 +46,8 @@ namespace NeoCompose.Tests.InterfaceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "0de5fefb-22df-40bb-b992-4bdac31142d6",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "6f584ed7-8bea-4cac-a174-fe026fcfe2da", Contents)
+                "7a6a5e21-7856-4eee-9eaa-2baaafee06d0",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Contents", "a2739fc8-4c72-48b9-9344-2bf2f90e01b8", Contents)
             );
         }
 
@@ -107,11 +107,26 @@ namespace NeoCompose.Tests.InterfaceParity
                 if (TryReadDetached("Contents", out _))
                 {
                     if (TryGetDetachedView<NeoList<Seed>>("Contents", out var detachedView)) return detachedView;
-                    return DetachedList<Seed>("Contents", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                    return DetachedList<Seed>("Contents", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, true, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, writableChild) : global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SeedPouch.Contents"), () => IsReadOnly);
                 }
                 var memberNode = writableNode.Get<NeoMemberListWritable>("Contents");
                 if (TryGetStoredView<NeoList<Seed>>("Contents", memberNode, out var cached)) return cached;
-                return CacheStoredView("Contents", memberNode, new NeoList<Seed>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Contents"), (client, child) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, (NeoMemberClassWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item)));
+                return CacheStoredView("Contents", memberNode, new NeoList<Seed>(client, memberNode, () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Contents"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(client, writableChild) : global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SeedPouch.Contents"), () => IsReadOnly));
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlySeed> IReadOnlySeedPouch.Contents
+        {
+            get
+            {
+                if (TryReadDetached("Contents", out _))
+                {
+                    if (TryGetDetachedView<NeoReadOnlyList<IReadOnlySeed>>("Contents", out var detachedView)) return detachedView;
+                    return DetachedReadOnlyList<IReadOnlySeed>("Contents", entry => NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, entry, false, static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => global::NeoCompose.Tests.InterfaceParity.Seed.CreateDetached(factoryClient, factoryValue, factorySaved)), (client, child) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, (NeoMemberClass)child));
+                }
+                var memberNode = node.Get<NeoMemberList>("Contents");
+                if (TryGetStoredView<NeoReadOnlyList<IReadOnlySeed>>("Contents", memberNode, out var cached)) return cached;
+                return CacheStoredView("Contents", memberNode, new NeoReadOnlyList<IReadOnlySeed>(client, memberNode, (client, child) => global::NeoCompose.Tests.InterfaceParity.Seed.Create(client, (NeoMemberClass)child)));
             }
         }
 

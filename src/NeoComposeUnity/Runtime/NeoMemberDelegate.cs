@@ -178,38 +178,56 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        // Each overload is selected only by reflection; retain them in stripped players.
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn> Bind<TReturn>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn>>(() => convert(Invoke()));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1> Bind<TReturn, P1>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1>>(p1 => convert(Invoke(p1)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2> Bind<TReturn, P1, P2>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2>>((p1, p2) => convert(Invoke(p1, p2)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3> Bind<TReturn, P1, P2, P3>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3>>((p1, p2, p3) => convert(Invoke(p1, p2, p3)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4> Bind<TReturn, P1, P2, P3, P4>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4>>((p1, p2, p3, p4) => convert(Invoke(p1, p2, p3, p4)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5> Bind<TReturn, P1, P2, P3, P4, P5>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5>>((p1, p2, p3, p4, p5) => convert(Invoke(p1, p2, p3, p4, p5)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6> Bind<TReturn, P1, P2, P3, P4, P5, P6>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6>>((p1, p2, p3, p4, p5, p6) => convert(Invoke(p1, p2, p3, p4, p5, p6)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7>>((p1, p2, p3, p4, p5, p6, p7) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8>>((p1, p2, p3, p4, p5, p6, p7, p8) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9>>((p1, p2, p3, p4, p5, p6, p7, p8, p9) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15)));
+        [UnityEngine.Scripting.Preserve]
         public NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16> Bind<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16>(Func<object?, TReturn> convert) =>
             TrackBinding<NeoDelegate<TReturn, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, P12, P13, P14, P15, P16>>((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16) => convert(Invoke(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16)));
     }

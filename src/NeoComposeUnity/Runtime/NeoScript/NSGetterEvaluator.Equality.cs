@@ -132,7 +132,11 @@ namespace NeoCompose.Runtime.NeoScript
             internal readonly TypeInfo StaticType;
             internal readonly string Name;
             internal readonly bool RawIdentity;
-            internal bool KeyEquivalent => RawIdentity || Type.Head!.Type is MemberKind.Int or MemberKind.Float or MemberKind.Decimal or MemberKind.String or MemberKind.Bool or MemberKind.Enum;
+            internal bool KeyEquivalent => RawIdentity || KeyEquivalentKind(Type.Head!.Type);
+
+            /// <summary>Whether values of <paramref name="kind"/> compare by key, never by authored Equals.</summary>
+            internal static bool KeyEquivalentKind(MemberKind kind) =>
+                kind is MemberKind.Int or MemberKind.Float or MemberKind.Decimal or MemberKind.String or MemberKind.Bool or MemberKind.Enum;
             private readonly (TypeBinding Construction, string Member)? equatable;
             private readonly bool primitive;
 
@@ -242,49 +246,53 @@ namespace NeoCompose.Runtime.NeoScript
         private static bool HasOnlyIdentityClasses(string classId, Context ctx)
         {
             var cache = ComparerCache(ctx);
-            if (cache.CustomEquality is null)
-            {
-                var custom = new Dictionary<string, bool>(StringComparer.Ordinal);
-                var interfaceCache = new Dictionary<string, bool>(StringComparer.Ordinal);
-                string equatable = NeoPrimitiveConformance.InterfaceId("IEquatable`1");
-                bool InterfaceHasEquality(string id)
-                {
-                    if (interfaceCache.TryGetValue(id, out bool known))
-                        return known;
-                    interfaceCache[id] = false;
-                    return interfaceCache[id] = id == equatable || ctx.client.ProjectDataForRuntime.interfaces[id].extendsInterfaces?.Any(parent => InterfaceHasEquality(parent.interfaceId)) == true;
-                }
-                bool ClassHasEquality(string id)
-                {
-                    if (custom.TryGetValue(id, out bool known))
-                        return known;
-                    custom[id] = false;
-                    var declaration = ctx.client.ProjectDataForRuntime.classes[id];
-                    bool Overrides(string name, string canonical) => declaration.schema.TryGetValue(name + "#" + canonical, out string member) && member != canonical;
-                    return custom[id] = Overrides("Equals", NeoObjectContract.EqualsMember)
-                        || Overrides("GetHashCode", NeoObjectContract.GetHashCodeMember)
-                        || declaration.implementsInterfaces?.Any(item => InterfaceHasEquality(item.interfaceId)) == true
-                        || declaration.extendsClassId is { } parent && ClassHasEquality(parent);
-                }
-                foreach (string id in ctx.client.ProjectDataForRuntime.classes.Keys)
-                    ClassHasEquality(id);
-                // Mark ancestors once. Selecting another closed class then
-                // asks one cached question, without scanning all subclasses.
-                var affected = new Dictionary<string, bool>(StringComparer.Ordinal);
-                foreach (var item in custom)
-                {
-                    if (!item.Value)
-                        continue;
-                    string? current = item.Key;
-                    while (current is not null && !affected.ContainsKey(current))
-                    {
-                        affected.Add(current, true);
-                        current = ctx.client.ProjectDataForRuntime.classes[current].extendsClassId;
-                    }
-                }
-                cache.CustomEquality = affected;
-            }
+            // Built apart, so a cached answer allocates no closure.
+            cache.CustomEquality ??= ClassesWithCustomEquality(ctx);
             return !cache.CustomEquality.ContainsKey(classId);
+        }
+
+        /// <summary>Classes with authored equality, and every ancestor of one.</summary>
+        private static Dictionary<string, bool> ClassesWithCustomEquality(Context ctx)
+        {
+            var custom = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var interfaceCache = new Dictionary<string, bool>(StringComparer.Ordinal);
+            string equatable = NeoPrimitiveConformance.InterfaceId("IEquatable`1");
+            bool InterfaceHasEquality(string id)
+            {
+                if (interfaceCache.TryGetValue(id, out bool known))
+                    return known;
+                interfaceCache[id] = false;
+                return interfaceCache[id] = id == equatable || ctx.client.ProjectDataForRuntime.interfaces[id].extendsInterfaces?.Any(parent => InterfaceHasEquality(parent.interfaceId)) == true;
+            }
+            bool ClassHasEquality(string id)
+            {
+                if (custom.TryGetValue(id, out bool known))
+                    return known;
+                custom[id] = false;
+                var declaration = ctx.client.ProjectDataForRuntime.classes[id];
+                bool Overrides(string name, string canonical) => declaration.schema.TryGetValue(name + "#" + canonical, out string member) && member != canonical;
+                return custom[id] = Overrides("Equals", NeoObjectContract.EqualsMember)
+                    || Overrides("GetHashCode", NeoObjectContract.GetHashCodeMember)
+                    || declaration.implementsInterfaces?.Any(item => InterfaceHasEquality(item.interfaceId)) == true
+                    || declaration.extendsClassId is { } parent && ClassHasEquality(parent);
+            }
+            foreach (string id in ctx.client.ProjectDataForRuntime.classes.Keys)
+                ClassHasEquality(id);
+            // Mark ancestors once. Selecting another closed class then
+            // asks one cached question, without scanning all subclasses.
+            var affected = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var item in custom)
+            {
+                if (!item.Value)
+                    continue;
+                string? current = item.Key;
+                while (current is not null && !affected.ContainsKey(current))
+                {
+                    affected.Add(current, true);
+                    current = ctx.client.ProjectDataForRuntime.classes[current].extendsClassId;
+                }
+            }
+            return affected;
         }
 
         internal sealed class BoundEquality : IEqualityComparer<object?>
