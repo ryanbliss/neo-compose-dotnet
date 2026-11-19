@@ -5026,15 +5026,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 // The receiver resolves the same way, so an entry of a pending
                 // collection reads through its pending row.
-                NeoWriteBatch.PendingCollection? outer = FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _);
-                // Evaluating the receiver can call a function that commits the held batch.
-                if (ctx.client.PendingScriptWrites is not { } live)
-                {
-                    value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
-                    return null;
-                }
-                batch = live;
-                if (outer is not null)
+                if (FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _) is { } outer)
                 {
                     owner = outer;
                     string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
@@ -5046,6 +5038,13 @@ namespace NeoCompose.Runtime.NeoScript
                     value = entryId is null ? outer.Row.id : ResolvePendingEntry(outer, entryId, ctx);
                     return null;
                 }
+                // Evaluating the receiver can call a function that commits the held batch.
+                if (ctx.client.PendingScriptWrites is not { } live)
+                {
+                    value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
+                    return null;
+                }
+                batch = live;
                 if (keyOf.keyOf.key is ValuePointer
                     && EvalPointer(keyOf.keyOf.key, scope, ctx) is string key
                     && StoredMemberId(batch, receiver, key, ctx, out NeoValueOwnership memberOwnership) is string memberId
