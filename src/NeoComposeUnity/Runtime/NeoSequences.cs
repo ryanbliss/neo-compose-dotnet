@@ -88,7 +88,17 @@ namespace NeoCompose.Runtime
                 using var operation = new Operation(client, node.ownership);
                 if (node.value is null)
                     throw new InvalidOperationException("The collection has no value.");
-                return NSGetterEvaluator.UnwrapRow(node.value, operation.Context, node.ownership);
+                object? value = NSGetterEvaluator.UnwrapRow(node.value, operation.Context, node.ownership);
+                // Its own stored type outlives this operation's row references,
+                // so a later read still decodes its entries.
+                if (value is not null && node.member is { } member
+                    && NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, member,
+                        member.ownerEnvironment ?? NeoGenericResolution.EmptyEnv, new HashSet<string>()) is { } own
+                    && !NeoNSFunctionRuntime.ContainsGeneric(own))
+                {
+                    return NSGetterEvaluator.TagSequenceCollection(value, own, operation.Context);
+                }
+                return value;
             }
             if (source is NeoGeneratedClassValue generated)
             {

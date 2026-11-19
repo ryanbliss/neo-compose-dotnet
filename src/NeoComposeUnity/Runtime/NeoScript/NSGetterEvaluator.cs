@@ -5026,7 +5026,15 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 // The receiver resolves the same way, so an entry of a pending
                 // collection reads through its pending row.
-                if (FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _) is { } outer)
+                NeoWriteBatch.PendingCollection? outer = FindPending(keyOf.keyOf.pointer, PendingRead.Entry, scope, ctx, evaluate: true, out receiver, out _, out _);
+                // Evaluating the receiver can call a function that commits the held batch.
+                if (ctx.client.PendingScriptWrites is not { } live)
+                {
+                    value = evaluate ? EvaluateKeyOf(keyOf, receiver, scope, ctx) : null;
+                    return null;
+                }
+                batch = live;
+                if (outer is not null)
                 {
                     owner = outer;
                     string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
@@ -5067,6 +5075,13 @@ namespace NeoCompose.Runtime.NeoScript
             if (pointer is FunctionPointer { function: TupleElementFunction tupleElement })
             {
                 object? raw = EvalTupleElement(tupleElement.info, scope, ctx, refreshCollection: false);
+                // Evaluating the tuple can call a function that commits the held batch.
+                if (ctx.client.PendingScriptWrites is not { } live)
+                {
+                    value = evaluate ? RuntimeCollection(ReadNestedCollectionAlias(raw, ctx), ctx) : raw;
+                    return null;
+                }
+                batch = live;
                 if (raw is not null && ctx.client.CommitRemovedScriptAlias(raw, ctx))
                 {
                     value = evaluate ? EvalPointer(pointer, scope, ctx) : null;
@@ -9869,8 +9884,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return value;
             if (value is string id)
                 return id;
+            // A list bound to a stored row is that row, whichever array reads it.
             if (value is object?[] array && runtimeLists.TryGetValue(array, out var list))
-                return list.origin;
+                return list.reference is { } bound && ReferenceEquals(list.referenceIndex, ctx.rowReverseIndex)
+                    ? bound.valueId : list.origin;
             if (value is NSSlotReference slot)
                 return slot.TargetId;
             if (value is NeoVariantReference variant)

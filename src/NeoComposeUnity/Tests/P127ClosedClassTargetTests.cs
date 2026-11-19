@@ -45,7 +45,6 @@ namespace NeoCompose.Tests
         private const string ListBoxId = "class-list-box";
         private const string Box2Id = "class-box2";
         private const string TwinId = "class-twin";
-        private const string SeedPairId = "class-seed-pair";
         private const string NarrowId = "class-narrow";
         private const string HoldsId = "iface-holds";
         private const string HoldsT = "iface-holds-t";
@@ -143,30 +142,36 @@ namespace NeoCompose.Tests
             Assert.IsTrue(Lookup(client, "SeedHolders").IsSelectableId("loose-row"));
             Assert.IsFalse(Lookup(client, "ToolHolders").IsSelectableId("seed-box-row"));
             Assert.IsFalse(Lookup(client, "ToolHolders").IsSelectableId("loose-row"));
-            // IHolds doesn't determine DerivedPair's U.
-            Assert.IsFalse(Lookup(client, "SeedHolders").IsSelectableId("pair-row"));
+            // Paired closes DerivedPair's T as Seed and leaves its U open, and
+            // DerivedPair<Seed, U> : Box<Seed> implements IHolds<Seed> (#2556).
+            Assert.IsTrue(Lookup(client, "SeedHolders").IsSelectableId("pair-row"));
         }
 
         [TestCase("SeedHolders", "seed-row", "Holder.SeedHolders can't reference 'seed-row', because Seed doesn't implement IHolds.")]
         [TestCase("ToolHolders", "seed-box-row", "Holder.ToolHolders can't reference 'seed-box-row', because SeedBox implements IHolds<Seed>, not IHolds<Tool>.")]
         // Loose closes its row as DerivedBox<Seed>.
         [TestCase("ToolHolders", "loose-row", "Holder.ToolHolders can't reference 'loose-row', because DerivedBox implements IHolds<Seed>, not IHolds<Tool>.")]
-        [TestCase("ToolHolders", "pair-row", "Holder.ToolHolders can't reference 'pair-row', because IHolds doesn't determine DerivedPair's parameter U.")]
-        // SeedPair : DerivedPair<Seed, Tool> closes it.
-        [TestCase(
-            "SeedHolders",
-            "pair-row",
-            "Holder.SeedHolders can't reference 'pair-row', because IHolds doesn't determine DerivedPair's parameter U. Reference a class that binds it, such as SeedPair.")]
-        [TestCase(
-            "SeedHolders",
-            "narrow-row",
-            "Holder.SeedHolders can't reference 'narrow-row', because Narrow's T extends Seed, and IHolds's T is unconstrained.")]
         public void AnInterfaceLookupRefusesARowInTheServersWords(string lookup, string rowId, string message)
         {
             using NeoClient client = LoadClient();
 
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, lookup).Add(rowId));
             Assert.AreEqual(message, error!.Message);
+        }
+
+        // An interface slot holds any class that implements it, as C# does
+        // (#2556): the server's objectTargetViolation asks only that the row
+        // implement IHolds<Seed>. Paired leaves DerivedPair's U open, and
+        // Narrowed closes Narrow<T extends Seed> as Narrow<Seed>.
+        [TestCase("pair-row", 7)]
+        [TestCase("narrow-row", 10)]
+        public void AnInterfaceLookupHoldsARowItsInterfaceLeavesOpen(string rowId, int k)
+        {
+            using NeoClient client = LoadClient();
+
+            Assert.IsTrue(Lookup(client, "SeedHolders").Add(rowId));
+            CollectionAssert.AreEqual(new[] { rowId }, Lookup(client, "SeedHolders").Selected());
+            Assert.AreEqual(k, Convert.ToInt32(ReadK(client, rowId, Boxed(BoxId, (BoxT, SeedId)))));
         }
 
         [Test]
@@ -798,7 +803,6 @@ namespace NeoCompose.Tests
                     [ListBoxId] = Extending(Class(ListBoxId, "ListBox", genericParam: ("class-list-box-t", "T")), ListOfListBoxT),
                     [Box2Id] = Class(Box2Id, "Box2", genericParam: ("class-box2-a", "A"), secondParam: ("class-box2-b", "B")),
                     [TwinId] = Twin(),
-                    [SeedPairId] = SeedPair(),
                     [NarrowId] = Narrow(),
                     [HoldId] = Class(HoldId, "Hold", new Dictionary<string, string>
                     {
@@ -1104,19 +1108,6 @@ namespace NeoCompose.Tests
                 ["class-box2-b"] = Forward("class-twin-t"),
             };
             return twin;
-        }
-
-        /// <summary><c>SeedPair : DerivedPair&lt;Seed, Tool&gt;</c>.</summary>
-        private static NeoSchemaClass SeedPair()
-        {
-            NeoSchemaClass seedPair = Class(SeedPairId, "SeedPair");
-            seedPair.extendsClassId = DerivedPairId;
-            seedPair.extendsGenericBindings = new Dictionary<string, TypeBinding>
-            {
-                [DerivedPairT] = Seed,
-                ["class-derived-pair-u"] = Tool,
-            };
-            return seedPair;
         }
 
         /// <summary><c>Narrow&lt;T extends Seed&gt; : Box&lt;T&gt;</c>.</summary>
