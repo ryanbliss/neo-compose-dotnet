@@ -7552,6 +7552,28 @@ namespace NeoCompose.Runtime.NeoScript
                 && member.TryGetDeclaredClassId(out string classId)
                 && HasOnlyIdentityClasses(classId, ctx));
 
+        /// <summary>
+        /// Whether comparing <paramref name="type"/> can call an authored
+        /// Equals. A tuple asks its elements; collections compare by identity.
+        /// </summary>
+        private static bool ReachesAuthoredEquality(TypeBinding type, Context ctx)
+        {
+            switch (type.Head!.Type)
+            {
+                case MemberKind.Tuple:
+                    for (int index = 0; index < type.Bindings!.Count; index++)
+                        if (ReachesAuthoredEquality(type.At(index), ctx))
+                            return true;
+                    return false;
+                case MemberKind.List or MemberKind.Set or MemberKind.Dictionary or MemberKind.Lookup:
+                    return false;
+                case MemberKind.Class:
+                    return !HasOnlyIdentityClasses(type.Head.ClassId!, ctx);
+                default:
+                    return !RuntimeEquality.KeyEquivalentKind(type.Head.Type);
+            }
+        }
+
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (FindRowReference(set, ctx) is { } reference
@@ -7560,8 +7582,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
-                // A comparer, or an entry type's authored Equals, decides membership.
-                if (UsesStoredEquality(row, entryType, ctx))
+                // A comparer, or an entry type's authored Equals, decides
+                // membership. Keys decide the rest, so a stored copy of a
+                // list isn't its source.
+                if (row.comparer is not null || ReachesAuthoredEquality(entryType, ctx))
                 {
                     var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
                         id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
