@@ -145,6 +145,9 @@ namespace NeoCompose.Tests
         {
             JObject function = FieldMember((int)MemberKind.NSFunction);
             function["operator"] = true;
+            function["name"] = "op_Addition";
+            function["modifier"] = (int)NeoMemberModifierKind.Static;
+            function["argumentTypes"] = new JArray(new JObject { ["type"] = (int)MemberKind.Int, ["required"] = true }, new JObject { ["type"] = (int)MemberKind.Int, ["required"] = true });
             Assert.DoesNotThrow(() => RecordShapeContractGuard.ValidateMemberRecord(function));
             function["operator"] = false;
             Assert.Throws<JsonSerializationException>(() => RecordShapeContractGuard.ValidateMemberRecord(function));
@@ -153,7 +156,7 @@ namespace NeoCompose.Tests
             field["operator"] = true;
             Assert.That(
                 Assert.Throws<JsonSerializationException>(() => RecordShapeContractGuard.ValidateMemberRecord(field))!.Message,
-                Does.Contain("only functions carry"));
+                Is.EqualTo("Member \"field\": operator is only valid on a function member."));
         }
 
         [Test]

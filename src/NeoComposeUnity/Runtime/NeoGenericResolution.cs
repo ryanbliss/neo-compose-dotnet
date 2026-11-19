@@ -1432,6 +1432,8 @@ namespace NeoCompose.Runtime
             FunctionArgumentTypeInfo argument,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
+            if (argument.type == MemberKind.Generic && argument.ownerMemberId is not null)
+                return argument;
             if (argument.type == MemberKind.Generic)
             {
                 NeoClassArgumentSignature? signature = GenericBindingSignature(
@@ -1442,6 +1444,9 @@ namespace NeoCompose.Runtime
                 if (signature is null)
                     return argument;
                 FunctionArgumentTypeInfo resolved = FunctionArgumentFromSignature(argument.name, signature);
+                resolved.mode = argument.mode;
+                resolved.flow = argument.flow;
+                resolved.defaultValue = argument.defaultValue;
                 resolved.required = NeoGeneratedTypesSupport.ClosedSlotRequired(resolved, declaredNullable: !argument.required);
                 return resolved;
             }

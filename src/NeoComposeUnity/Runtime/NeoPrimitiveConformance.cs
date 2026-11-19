@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -75,6 +76,25 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal static class NeoPrimitiveConformance
     {
+        internal static NeoConformingTypeKind? Kind(TypeBinding type) => type.Head?.Type switch
+        {
+            MemberKind.Int => NeoConformingTypeKind.Int,
+            MemberKind.Float => NeoConformingTypeKind.Float,
+            MemberKind.Decimal => NeoConformingTypeKind.Decimal,
+            MemberKind.Bool => NeoConformingTypeKind.Bool,
+            MemberKind.String => NeoConformingTypeKind.String,
+            MemberKind.Vector2 => NeoConformingTypeKind.Vector2,
+            MemberKind.Vector2Int => NeoConformingTypeKind.Vector2Int,
+            MemberKind.Vector3 => NeoConformingTypeKind.Vector3,
+            MemberKind.Vector3Int => NeoConformingTypeKind.Vector3Int,
+            MemberKind.Color => NeoConformingTypeKind.Color,
+            MemberKind.Enum => NeoConformingTypeKind.Enum,
+            MemberKind.Tuple => NeoConformingTypeKind.Tuple,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.Enum => NeoConformingTypeKind.Enum,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.CultureInfo => NeoConformingTypeKind.CultureInfo,
+            MemberKind.Object when type.Head.ObjectType == NeoObjectTypeKind.NumberFormatInfo => NeoConformingTypeKind.NumberFormatInfo,
+            _ => null,
+        };
         /// <summary>The 31 system interfaces (§7.1–§7.3), keyed by .NET metadata name, in table order.</summary>
         internal static readonly IReadOnlyList<KeyValuePair<string, string>> InterfaceIds = new[]
         {
@@ -113,6 +133,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>§7.4's <c>System.Globalization.NumberStyles</c> system enum.</summary>
         internal const string NumberStylesEnumId = "system_727c12c2-6d52-4b54-866e-f16b1fef95f1";
+        internal const string DigitShapesEnumId = "system_94a8cb10-30fb-482c-8898-f3f4a67b8520";
 
         private static readonly Dictionary<string, string> IdsByName = InterfaceIds.ToDictionary(entry => entry.Key, entry => entry.Value);
 
@@ -132,12 +153,15 @@ namespace NeoCompose.Runtime
         private const NeoConformanceArgumentKind Int = NeoConformanceArgumentKind.Int;
         private const NeoConformanceArgumentKind Bool = NeoConformanceArgumentKind.Bool;
 
-        /// <summary><c>INumber&lt;S&gt;</c> and the closure §7.3's bases give it: 20 constructions.</summary>
-        private static readonly NeoConformanceConstruction[] NumberClosure =
+        /// <summary>The shared int/float prefix in .NET 10 GetInterfaces order.</summary>
+        private static readonly NeoConformanceConstruction[] BinaryNumberPrefix =
         {
-            Construction("INumber`1", Self),
             Construction("IComparable"),
+            Construction("IFormattable"),
             Construction("IComparable`1", Self),
+            Construction("IEquatable`1", Self),
+            Construction("IBitwiseOperators`3", Self, Self, Self),
+            Construction("INumber`1", Self),
             Construction("IComparisonOperators`3", Self, Self, Bool),
             Construction("IEqualityOperators`3", Self, Self, Bool),
             Construction("IModulusOperators`3", Self, Self, Self),
@@ -146,20 +170,14 @@ namespace NeoCompose.Runtime
             Construction("IAdditiveIdentity`2", Self, Self),
             Construction("IDecrementOperators`1", Self),
             Construction("IDivisionOperators`3", Self, Self, Self),
-            Construction("IEquatable`1", Self),
             Construction("IIncrementOperators`1", Self),
             Construction("IMultiplicativeIdentity`2", Self, Self),
             Construction("IMultiplyOperators`3", Self, Self, Self),
+            Construction("IParsable`1", Self),
             Construction("ISubtractionOperators`3", Self, Self, Self),
             Construction("IUnaryPlusOperators`2", Self, Self),
             Construction("IUnaryNegationOperators`2", Self, Self),
-            Construction("IFormattable"),
-            Construction("IParsable`1", Self),
         };
-
-        private static readonly NeoConformanceConstruction[] SignedNumber = NumberClosure
-            .Concat(new[] { Construction("IMinMaxValue`1", Self), Construction("ISignedNumber`1", Self) })
-            .ToArray();
 
         private static readonly NeoConformanceConstruction[] ComparableParsable =
         {
@@ -187,13 +205,37 @@ namespace NeoCompose.Runtime
         internal static readonly IReadOnlyDictionary<NeoConformingTypeKind, NeoConformanceConstruction[]> Table =
             new Dictionary<NeoConformingTypeKind, NeoConformanceConstruction[]>
             {
-                [NeoConformingTypeKind.Int] = SignedNumber
-                    .Concat(new[] { Construction("IBitwiseOperators`3", Self, Self, Self), Construction("IShiftOperators`3", Self, Int, Self) })
+                [NeoConformingTypeKind.Int] = BinaryNumberPrefix
+                    .Concat(new[] { Construction("IShiftOperators`3", Self, Int, Self), Construction("IMinMaxValue`1", Self), Construction("ISignedNumber`1", Self) })
                     .ToArray(),
-                [NeoConformingTypeKind.Float] = SignedNumber
-                    .Concat(new[] { Construction("IBitwiseOperators`3", Self, Self, Self) })
+                [NeoConformingTypeKind.Float] = BinaryNumberPrefix
+                    .Concat(new[] { Construction("ISignedNumber`1", Self), Construction("IMinMaxValue`1", Self) })
                     .ToArray(),
-                [NeoConformingTypeKind.Decimal] = SignedNumber,
+                [NeoConformingTypeKind.Decimal] = new[]
+                {
+                    Construction("IFormattable"),
+                    Construction("IComparable"),
+                    Construction("IComparable`1", Self),
+                    Construction("IEquatable`1", Self),
+                    Construction("INumberBase`1", Self),
+                    Construction("IAdditionOperators`3", Self, Self, Self),
+                    Construction("IAdditiveIdentity`2", Self, Self),
+                    Construction("IDecrementOperators`1", Self),
+                    Construction("IDivisionOperators`3", Self, Self, Self),
+                    Construction("IEqualityOperators`3", Self, Self, Bool),
+                    Construction("IIncrementOperators`1", Self),
+                    Construction("IMultiplicativeIdentity`2", Self, Self),
+                    Construction("IMultiplyOperators`3", Self, Self, Self),
+                    Construction("IParsable`1", Self),
+                    Construction("ISubtractionOperators`3", Self, Self, Self),
+                    Construction("IUnaryPlusOperators`2", Self, Self),
+                    Construction("IUnaryNegationOperators`2", Self, Self),
+                    Construction("INumber`1", Self),
+                    Construction("IComparisonOperators`3", Self, Self, Bool),
+                    Construction("IModulusOperators`3", Self, Self, Self),
+                    Construction("ISignedNumber`1", Self),
+                    Construction("IMinMaxValue`1", Self),
+                },
                 [NeoConformingTypeKind.Bool] = ComparableParsable,
                 [NeoConformingTypeKind.String] = ComparableParsable,
                 [NeoConformingTypeKind.Vector2] = UnityValue,
@@ -209,10 +251,10 @@ namespace NeoCompose.Runtime
                 [NeoConformingTypeKind.Tuple] = new[]
                 {
                     Construction("IEquatable`1", Self),
-                    Construction("IComparable`1", Self),
-                    Construction("IComparable"),
                     Construction("IStructuralEquatable"),
                     Construction("IStructuralComparable"),
+                    Construction("IComparable"),
+                    Construction("IComparable`1", Self),
                 },
                 [NeoConformingTypeKind.CultureInfo] = FormatProvider,
                 [NeoConformingTypeKind.NumberFormatInfo] = FormatProvider,

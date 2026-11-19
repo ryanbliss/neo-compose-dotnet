@@ -267,7 +267,7 @@ namespace NeoCompose.Tests
 
         [TestCase(false)]
         [TestCase(true)]
-        public void ValueBoxInterfaceChecksDistinguishAuthoredFromProtected(bool system)
+        public void ValueBoxInterfaceChecksUseCanonicalIdentityRatherThanSystemMetadata(bool system)
         {
             using NeoClient client = BuildClient();
             // Use JSON so the test also verifies preservation of export metadata.
@@ -282,22 +282,11 @@ namespace NeoCompose.Tests
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             object? Eval(JObject pointer) => NSGetterEvaluator.EvalPointer(pointer.ToObject<Pointer>()!, new NeoScriptScope(), ctx);
             JObject boxed = Box(Int(1), IntType());
-            if (system)
-            {
-                foreach (JObject pointer in new[] { IsCheck(boxed, InterfaceType(Thing)), Cast(boxed, InterfaceType(Thing), "as"), Cast(boxed, InterfaceType(Thing)), TypeMember("IsInstanceOfType", TypeOf(InterfaceType(Thing)), boxed) })
-                {
-                    var error = Assert.Throws<NSGetterRuntimeError>(() => Eval(pointer))!;
-                    Assert.That(error.Message, Is.EqualTo("Interface conformance for boxed int isn't supported yet (P127 B5)."));
-                }
-            }
-            else
-            {
-                Assert.That(Eval(IsCheck(boxed, InterfaceType(Thing))), Is.False);
-                Assert.That(Eval(TypeMember("IsInstanceOfType", TypeOf(InterfaceType(Thing)), boxed)), Is.False);
-                Assert.That(Eval(Cast(boxed, InterfaceType(Thing), "as")), Is.Null);
-                Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(Cast(boxed, InterfaceType(Thing))))!.Message,
-                    Is.EqualTo("Unable to cast object of type 'int' to type 'IThing'."));
-            }
+            Assert.That(Eval(IsCheck(boxed, InterfaceType(Thing))), Is.False);
+            Assert.That(Eval(TypeMember("IsInstanceOfType", TypeOf(InterfaceType(Thing)), boxed)), Is.False);
+            Assert.That(Eval(Cast(boxed, InterfaceType(Thing), "as")), Is.Null);
+            Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(Cast(boxed, InterfaceType(Thing))))!.Message,
+                Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'IThing'."));
         }
 
         [Test]
@@ -409,12 +398,13 @@ namespace NeoCompose.Tests
             {
                 id = "null-text",
                 name = "ToString",
+                extendsMemberId = NeoObjectContract.ToStringMember,
                 kind = MemberKind.NSFunction,
                 argumentTypes = System.Array.Empty<FunctionArgumentTypeInfo>(),
                 returnTypeInfo = StringType(nullable: true).ToObject<TypeInfo>()!,
                 action = action,
             };
-            client.ProjectDataForRuntime.classes[Circle].schema["ToString"] = "null-text";
+            client.ProjectDataForRuntime.classes[Circle].schema["ToString#" + NeoObjectContract.ToStringMember] = "null-text";
             client.InvalidateSchemaResolutionCaches();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var row = new ObjectMemberValue { id = "receiver", classId = Circle, value = new Dictionary<string, string>() };
@@ -422,6 +412,9 @@ namespace NeoCompose.Tests
             var scope = new NeoScriptScope(new Dictionary<string, object?> { ["o"] = value });
             object? Eval(JObject pointer) => NSGetterEvaluator.EvalPointer(pointer.ToObject<Pointer>()!, scope, ctx);
             Assert.That(Eval(ObjectMember("ToString", Local("o"), ObjectType())), Is.Null);
+            JObject baseCall = ObjectMember("ToString", Local("o"), ObjectType());
+            baseCall["dispatch"] = "base";
+            Assert.That(Eval(baseCall), Is.EqualTo("Circle"));
             foreach (string mode in new[] { "interpolation", "concatenation" })
                 Assert.That(Eval(New("format", new JObject { ["pointer"] = Local("o"), ["sourceType"] = ObjectType(), ["mode"] = mode })), Is.EqualTo(""));
             JObject tupleType = TupleType(ObjectType(), IntType());
@@ -487,8 +480,18 @@ namespace NeoCompose.Tests
         public void UnboxingToAnotherValueTypeFails()
         {
             NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Int(3), IntType()), FloatType()), FloatType()));
-            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoError));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'float'."));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidCastError));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'System.Single'."));
+        }
+
+        [TestCase(false, "System.Int32")]
+        [TestCase(true, "System.Nullable`1[System.Int32]")]
+        public void UnboxingStringUsesClrTypeNames(bool nullable, string targetName)
+        {
+            JObject target = nullable ? Nullable(IntType()) : IntType();
+            NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Text("text"), StringType()), target), target));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoInvalidCastError));
+            Assert.That(error.Message, Is.EqualTo($"Unable to cast object of type 'System.String' to type '{targetName}'."));
         }
 
         [Test]
@@ -562,7 +565,7 @@ namespace NeoCompose.Tests
             object? result = Run(Cast(asEnum, EnumType()), EnumType());
             Assert.That(result, Is.EqualTo(new object?[] { "mars" }));
             NSGetterRuntimeError error = Fails(() => Run(Cast(Box(Int(1), IntType()), ObjectType(NeoObjectTypeKind.Enum)), ObjectType(NeoObjectTypeKind.Enum)));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'Enum'."));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'System.Enum'."));
         }
 
         [TestCase(3.7d, false, 3d)]
@@ -578,7 +581,7 @@ namespace NeoCompose.Tests
         public void CheckedFloatToIntOverflows()
         {
             NSGetterRuntimeError error = Fails(() => Run(Convert(Float(1e10d), FloatType(), IntType(), isChecked: true), IntType()));
-            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoArithmeticError));
+            Assert.That(error.Payload.ClassId, Is.EqualTo(NeoErrorContract.NeoOverflowError));
             Assert.That(error.Message, Is.EqualTo("Arithmetic operation resulted in an overflow."));
         }
 
@@ -598,7 +601,7 @@ namespace NeoCompose.Tests
             Assert.That(Run(Convert(Option("mars"), EnumType(), IntType()), IntType()), Is.EqualTo(1d));
             Assert.That(Run(Convert(Int(2), IntType(), EnumType()), EnumType()), Is.EqualTo(new object?[] { "venus" }));
             NSGetterRuntimeError error = Fails(() => Run(Convert(Int(7), IntType(), EnumType()), EnumType()));
-            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'int' to type 'Planet'."));
+            Assert.That(error.Message, Is.EqualTo("Unable to cast object of type 'System.Int32' to type 'Planet'."));
         }
 
         [Test]

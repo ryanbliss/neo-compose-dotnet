@@ -30,14 +30,23 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 ["p122-authored-error"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.AuthoredError.CreateDetached(client, value, saved),
                 ["root-assets-class"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.Assets.CreateDetached(client, value, saved),
                 ["root-save-class"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.Save.CreateDetached(client, value, saved),
+                ["system_0b1427ff-db1a-4eed-8ef5-bea49da97282"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoTypeInitializationError.CreateDetached(client, value, saved),
                 ["system_0f2970bc-bd11-5173-847c-713e88b47a44"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoIndexOutOfRangeError.CreateDetached(client, value, saved),
                 ["system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoHostError.CreateDetached(client, value, saved),
+                ["system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoOverflowError.CreateDetached(client, value, saved),
                 ["system_15d87ce2-551e-5c05-adde-f9d84ad376fb"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNullReferenceError.CreateDetached(client, value, saved),
+                ["system_3ca9b9c6-a628-459d-a931-85d690ab3639"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoCultureNotFoundError.CreateDetached(client, value, saved),
+                ["system_78da8250-826b-4835-813e-fe2ae0d03653"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentNullError.CreateDetached(client, value, saved),
                 ["system_791c90d0-8414-5971-8c1c-680f933ab42c"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.CreateDetached(client, value, saved),
+                ["system_87021243-5739-4af3-86ac-34fe2b5e4559"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoFormatError.CreateDetached(client, value, saved),
                 ["system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoKeyNotFoundError.CreateDetached(client, value, saved),
                 ["system_8c9fb766-c6aa-597a-a027-38a2dbc01687"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentError.CreateDetached(client, value, saved),
                 ["system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArithmeticError.CreateDetached(client, value, saved),
                 ["system_bdca6d33-5224-5412-8e50-bef6fe0720bf"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidOperationError.CreateDetached(client, value, saved),
+                ["system_c7bd056b-9f80-4905-85e4-f33e1ac5093b"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentOutOfRangeError.CreateDetached(client, value, saved),
+                ["system_d002b786-c17a-4371-905d-3653451db3d3"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoDivideByZeroError.CreateDetached(client, value, saved),
+                ["system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNotSupportedError.CreateDetached(client, value, saved),
+                ["system_fec6c25d-834f-42b1-b40c-ac02fd9dd916"] = (client, value, saved) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidCastError.CreateDetached(client, value, saved),
             };
 
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
@@ -48,14 +57,23 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 ["p122-authored-error"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.AuthoredError.Create(client, node),
                 ["root-assets-class"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.Assets.Create(client, node),
                 ["root-save-class"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.Save.Create(client, node),
+                ["system_0b1427ff-db1a-4eed-8ef5-bea49da97282"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoTypeInitializationError.Create(client, node),
                 ["system_0f2970bc-bd11-5173-847c-713e88b47a44"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoIndexOutOfRangeError.Create(client, node),
                 ["system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoHostError.Create(client, node),
+                ["system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoOverflowError.Create(client, node),
                 ["system_15d87ce2-551e-5c05-adde-f9d84ad376fb"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNullReferenceError.Create(client, node),
+                ["system_3ca9b9c6-a628-459d-a931-85d690ab3639"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoCultureNotFoundError.Create(client, node),
+                ["system_78da8250-826b-4835-813e-fe2ae0d03653"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentNullError.Create(client, node),
                 ["system_791c90d0-8414-5971-8c1c-680f933ab42c"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.Create(client, node),
+                ["system_87021243-5739-4af3-86ac-34fe2b5e4559"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoFormatError.Create(client, node),
                 ["system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoKeyNotFoundError.Create(client, node),
                 ["system_8c9fb766-c6aa-597a-a027-38a2dbc01687"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentError.Create(client, node),
                 ["system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArithmeticError.Create(client, node),
                 ["system_bdca6d33-5224-5412-8e50-bef6fe0720bf"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidOperationError.Create(client, node),
+                ["system_c7bd056b-9f80-4905-85e4-f33e1ac5093b"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentOutOfRangeError.Create(client, node),
+                ["system_d002b786-c17a-4371-905d-3653451db3d3"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoDivideByZeroError.Create(client, node),
+                ["system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNotSupportedError.Create(client, node),
+                ["system_fec6c25d-834f-42b1-b40c-ac02fd9dd916"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidCastError.Create(client, node),
             };
 
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> NeoReadOnlyValueFactories =>
@@ -69,14 +87,23 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 ["p122-authored-error"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.AuthoredError.CreateWritable(client, node),
                 ["root-assets-class"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.Assets.CreateWritable(client, node),
                 ["root-save-class"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.Save.CreateWritable(client, node),
+                ["system_0b1427ff-db1a-4eed-8ef5-bea49da97282"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoTypeInitializationError.CreateWritable(client, node),
                 ["system_0f2970bc-bd11-5173-847c-713e88b47a44"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoIndexOutOfRangeError.CreateWritable(client, node),
                 ["system_0f99c3c5-9fc0-5254-a796-190d20eee2a2"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoHostError.CreateWritable(client, node),
+                ["system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoOverflowError.CreateWritable(client, node),
                 ["system_15d87ce2-551e-5c05-adde-f9d84ad376fb"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNullReferenceError.CreateWritable(client, node),
+                ["system_3ca9b9c6-a628-459d-a931-85d690ab3639"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoCultureNotFoundError.CreateWritable(client, node),
+                ["system_78da8250-826b-4835-813e-fe2ae0d03653"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentNullError.CreateWritable(client, node),
                 ["system_791c90d0-8414-5971-8c1c-680f933ab42c"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.CreateWritable(client, node),
+                ["system_87021243-5739-4af3-86ac-34fe2b5e4559"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoFormatError.CreateWritable(client, node),
                 ["system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoKeyNotFoundError.CreateWritable(client, node),
                 ["system_8c9fb766-c6aa-597a-a027-38a2dbc01687"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentError.CreateWritable(client, node),
                 ["system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArithmeticError.CreateWritable(client, node),
                 ["system_bdca6d33-5224-5412-8e50-bef6fe0720bf"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidOperationError.CreateWritable(client, node),
+                ["system_c7bd056b-9f80-4905-85e4-f33e1ac5093b"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentOutOfRangeError.CreateWritable(client, node),
+                ["system_d002b786-c17a-4371-905d-3653451db3d3"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoDivideByZeroError.CreateWritable(client, node),
+                ["system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoNotSupportedError.CreateWritable(client, node),
+                ["system_fec6c25d-834f-42b1-b40c-ac02fd9dd916"] = (client, node) => global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidCastError.CreateWritable(client, node),
             };
 
         internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
@@ -90,14 +117,23 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.AuthoredError)] = "p122-authored-error",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.Assets)] = "root-assets-class",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.Save)] = "root-save-class",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoTypeInitializationError)] = "system_0b1427ff-db1a-4eed-8ef5-bea49da97282",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoIndexOutOfRangeError)] = "system_0f2970bc-bd11-5173-847c-713e88b47a44",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoHostError)] = "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoOverflowError)] = "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoNullReferenceError)] = "system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoCultureNotFoundError)] = "system_3ca9b9c6-a628-459d-a931-85d690ab3639",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentNullError)] = "system_78da8250-826b-4835-813e-fe2ae0d03653",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoError)] = "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoFormatError)] = "system_87021243-5739-4af3-86ac-34fe2b5e4559",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoKeyNotFoundError)] = "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentError)] = "system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArithmeticError)] = "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidOperationError)] = "system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentOutOfRangeError)] = "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoDivideByZeroError)] = "system_d002b786-c17a-4371-905d-3653451db3d3",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoNotSupportedError)] = "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidCastError)] = "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916",
             };
 
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentClassIds =
@@ -113,14 +149,24 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyAssets)] = "root-assets-class",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.Save)] = "root-save-class",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlySave)] = "root-save-class",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoTypeInitializationError)] = "system_0b1427ff-db1a-4eed-8ef5-bea49da97282",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoTypeInitializationError)] = "system_0b1427ff-db1a-4eed-8ef5-bea49da97282",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoIndexOutOfRangeError)] = "system_0f2970bc-bd11-5173-847c-713e88b47a44",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoIndexOutOfRangeError)] = "system_0f2970bc-bd11-5173-847c-713e88b47a44",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoHostError)] = "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoHostError)] = "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoOverflowError)] = "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoOverflowError)] = "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoNullReferenceError)] = "system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoNullReferenceError)] = "system_15d87ce2-551e-5c05-adde-f9d84ad376fb",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoCultureNotFoundError)] = "system_3ca9b9c6-a628-459d-a931-85d690ab3639",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoCultureNotFoundError)] = "system_3ca9b9c6-a628-459d-a931-85d690ab3639",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentNullError)] = "system_78da8250-826b-4835-813e-fe2ae0d03653",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoArgumentNullError)] = "system_78da8250-826b-4835-813e-fe2ae0d03653",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoError)] = "system_791c90d0-8414-5971-8c1c-680f933ab42c",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoError)] = "system_791c90d0-8414-5971-8c1c-680f933ab42c",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoFormatError)] = "system_87021243-5739-4af3-86ac-34fe2b5e4559",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoFormatError)] = "system_87021243-5739-4af3-86ac-34fe2b5e4559",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoKeyNotFoundError)] = "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoKeyNotFoundError)] = "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentError)] = "system_8c9fb766-c6aa-597a-a027-38a2dbc01687",
@@ -129,6 +175,14 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoArithmeticError)] = "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidOperationError)] = "system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
                 [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoInvalidOperationError)] = "system_bdca6d33-5224-5412-8e50-bef6fe0720bf",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoArgumentOutOfRangeError)] = "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoArgumentOutOfRangeError)] = "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoDivideByZeroError)] = "system_d002b786-c17a-4371-905d-3653451db3d3",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoDivideByZeroError)] = "system_d002b786-c17a-4371-905d-3653451db3d3",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoNotSupportedError)] = "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoNotSupportedError)] = "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.NeoInvalidCastError)] = "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916",
+                [typeof(global::NeoCompose.Tests.StructuredErrorGenerated.IReadOnlyNeoInvalidCastError)] = "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916",
             };
 
         internal static readonly IReadOnlyDictionary<Type, string> NeoTypeArgumentEnumIds =
@@ -226,6 +280,10 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         bool TryWritable(out NeoError writable);
 
         string Message { get; }
+
+        IReadOnlyNeoError? InnerError { get; }
+
+        string? ToString();
     }
 
     public partial class NeoError : NeoErrorBase, IReadOnlyNeoError
@@ -240,8 +298,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_791c90d0-8414-5971-8c1c-680f933ab42c", "system_5749aebc-8464-5186-b995-7f5a69e702b4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_791c90d0-8414-5971-8c1c-680f933ab42c", "system_5749aebc-8464-5186-b995-7f5a69e702b4", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -258,13 +316,22 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 return clientClassId switch
                 {
                     "p122-authored-error" => new AuthoredError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -278,13 +345,22 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 return clientClassId switch
                 {
                     "p122-authored-error" => new AuthoredError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(factoryClient, factoryNode, false, factoryNode.ownership),
                     "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -295,13 +371,22 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return NeoGeneratedTypesSupport.DetachedClassId(value) switch
             {
                 "p122-authored-error" => new AuthoredError(client, value, !saved),
+                "system_0b1427ff-db1a-4eed-8ef5-bea49da97282" => new NeoTypeInitializationError(client, value, !saved),
                 "system_0f2970bc-bd11-5173-847c-713e88b47a44" => new NeoIndexOutOfRangeError(client, value, !saved),
                 "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2" => new NeoHostError(client, value, !saved),
+                "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(client, value, !saved),
                 "system_15d87ce2-551e-5c05-adde-f9d84ad376fb" => new NeoNullReferenceError(client, value, !saved),
+                "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(client, value, !saved),
+                "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(client, value, !saved),
+                "system_87021243-5739-4af3-86ac-34fe2b5e4559" => new NeoFormatError(client, value, !saved),
                 "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183" => new NeoKeyNotFoundError(client, value, !saved),
                 "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(client, value, !saved),
                 "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(client, value, !saved),
                 "system_bdca6d33-5224-5412-8e50-bef6fe0720bf" => new NeoInvalidOperationError(client, value, !saved),
+                "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(client, value, !saved),
+                "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(client, value, !saved),
+                "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05" => new NeoNotSupportedError(client, value, !saved),
+                "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916" => new NeoInvalidCastError(client, value, !saved),
                 "system_791c90d0-8414-5971-8c1c-680f933ab42c" => new NeoError(client, value, !saved),
                 _ => null,
             };
@@ -327,11 +412,34 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return TryWritable<NeoError>(out writable);
         }
 
+        public virtual IReadOnlyNeoError? InnerError
+        {
+            get
+            {
+                if (TryReadDetachedLookup("InnerError", out NeoMember? detachedSelection))
+                {
+                    return detachedSelection is null ? null : detachedSelection is NeoMemberClassWritable writableDetachedSelection ? global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.CreateWritable(client, writableDetachedSelection) : global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.Create(client, (NeoMemberClass)detachedSelection);
+                }
+                var selected = node.Get<NeoMemberLookup>("InnerError").GetFirstSelected();
+                return selected is null ? null : selected is NeoMemberClassWritable writableSelected ? global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.CreateWritable(client, writableSelected) : global::NeoCompose.Tests.StructuredErrorGenerated.NeoError.Create(client, (NeoMemberClass)selected);
+            }
+        }
+
+
+        public virtual string? ToString()
+        {
+            var result = InvokeFunction("ToString#system_11f5674b-46d3-4319-82bf-72d657de66f4");
+            if (result is null) return null;
+            return (string)result!;
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -339,6 +447,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -357,6 +466,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -398,8 +508,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoNullReferenceError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_15d87ce2-551e-5c05-adde-f9d84ad376fb", "system_22c5afbb-36d1-59c9-9302-d65c437e25d9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoNullReferenceError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_15d87ce2-551e-5c05-adde-f9d84ad376fb", "system_22c5afbb-36d1-59c9-9302-d65c437e25d9", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -462,6 +572,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -469,6 +581,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -487,6 +600,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -528,8 +642,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoIndexOutOfRangeError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0f2970bc-bd11-5173-847c-713e88b47a44", "system_7e66b321-59ef-5d57-a126-15aee7505321", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoIndexOutOfRangeError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0f2970bc-bd11-5173-847c-713e88b47a44", "system_7e66b321-59ef-5d57-a126-15aee7505321", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -592,6 +706,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -599,6 +715,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -617,6 +734,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -658,8 +776,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoKeyNotFoundError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183", "system_0adaa530-dae1-5bc9-a498-de27d719b0c2", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoKeyNotFoundError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_89737f3c-fc9c-5ad3-89a4-0fc92b5f2183", "system_0adaa530-dae1-5bc9-a498-de27d719b0c2", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -722,6 +840,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -729,6 +849,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -747,6 +868,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -788,8 +910,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoArgumentError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_8c9fb766-c6aa-597a-a027-38a2dbc01687", "system_072bd389-2311-50dc-9a64-80f43b2f1ee1", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoArgumentError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_8c9fb766-c6aa-597a-a027-38a2dbc01687", "system_072bd389-2311-50dc-9a64-80f43b2f1ee1", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -805,6 +927,9 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoArgumentError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -817,6 +942,9 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoArgumentError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -824,7 +952,14 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
 
         internal new static NeoArgumentError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
         {
-            return new NeoArgumentError(client, value, !saved);
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "system_3ca9b9c6-a628-459d-a931-85d690ab3639" => new NeoCultureNotFoundError(client, value, !saved),
+                "system_78da8250-826b-4835-813e-fe2ae0d03653" => new NeoArgumentNullError(client, value, !saved),
+                "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b" => new NeoArgumentOutOfRangeError(client, value, !saved),
+                "system_8c9fb766-c6aa-597a-a027-38a2dbc01687" => new NeoArgumentError(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new NeoArgumentError Clone()
@@ -852,6 +987,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -859,6 +996,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -877,6 +1015,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -918,8 +1057,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoInvalidOperationError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_bdca6d33-5224-5412-8e50-bef6fe0720bf", "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoInvalidOperationError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_bdca6d33-5224-5412-8e50-bef6fe0720bf", "system_96788ed2-20ae-54fa-b6cb-2e7d558513a8", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -982,6 +1121,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -989,6 +1130,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -1007,6 +1149,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -1048,8 +1191,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoArithmeticError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab", "system_2f292163-652d-51be-a4d3-e0f908703890", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoArithmeticError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab", "system_2f292163-652d-51be-a4d3-e0f908703890", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -1065,6 +1208,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => new NeoArithmeticError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                 };
             });
@@ -1077,6 +1222,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
+                    "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => new NeoArithmeticError(factoryClient, factoryNode, false, factoryNode.ownership),
                 };
             });
@@ -1084,7 +1231,13 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
 
         internal new static NeoArithmeticError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
         {
-            return new NeoArithmeticError(client, value, !saved);
+            return NeoGeneratedTypesSupport.DetachedClassId(value) switch
+            {
+                "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0" => new NeoOverflowError(client, value, !saved),
+                "system_d002b786-c17a-4371-905d-3653451db3d3" => new NeoDivideByZeroError(client, value, !saved),
+                "system_a6998aea-3c72-5696-af9d-cfe2b4ed73ab" => new NeoArithmeticError(client, value, !saved),
+                _ => null,
+            };
         }
 
         public new NeoArithmeticError Clone()
@@ -1112,6 +1265,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1119,6 +1274,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -1137,6 +1293,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -1178,8 +1335,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public NeoHostError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2", "system_0fc09d80-5049-5e79-a41d-e09757f6f89a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public NeoHostError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0f99c3c5-9fc0-5254-a796-190d20eee2a2", "system_0fc09d80-5049-5e79-a41d-e09757f6f89a", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -1242,6 +1399,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1249,6 +1408,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -1267,6 +1427,1213 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoOverflowError : IReadOnlyNeoArithmeticError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoOverflowError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoOverflowError writable);
+    }
+
+    public partial class NeoOverflowError : NeoArithmeticError, IReadOnlyNeoOverflowError
+    {
+        internal NeoOverflowError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoOverflowError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoOverflowError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0", "system_84cb5d4e-29a7-4982-b4e2-1ea565670bdc", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoOverflowError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_136088d0-03bc-46c6-b168-f2fe8fd7b9e0", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoOverflowError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoOverflowError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoOverflowError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoOverflowError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoOverflowError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoOverflowError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoOverflowError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoOverflowError(client, value, !saved);
+        }
+
+        public new NeoOverflowError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoOverflowError IReadOnlyNeoOverflowError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoOverflowError writable)
+        {
+            return TryWritable<NeoOverflowError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoDivideByZeroError : IReadOnlyNeoArithmeticError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoDivideByZeroError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoDivideByZeroError writable);
+    }
+
+    public partial class NeoDivideByZeroError : NeoArithmeticError, IReadOnlyNeoDivideByZeroError
+    {
+        internal NeoDivideByZeroError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoDivideByZeroError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoDivideByZeroError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_d002b786-c17a-4371-905d-3653451db3d3", "system_5538df3f-643f-4c8b-be97-272244dbef71", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoDivideByZeroError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_d002b786-c17a-4371-905d-3653451db3d3", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoDivideByZeroError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDivideByZeroError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoDivideByZeroError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoDivideByZeroError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDivideByZeroError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoDivideByZeroError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoDivideByZeroError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoDivideByZeroError(client, value, !saved);
+        }
+
+        public new NeoDivideByZeroError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoDivideByZeroError IReadOnlyNeoDivideByZeroError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoDivideByZeroError writable)
+        {
+            return TryWritable<NeoDivideByZeroError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoFormatError : IReadOnlyNeoError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoFormatError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoFormatError writable);
+    }
+
+    public partial class NeoFormatError : NeoError, IReadOnlyNeoFormatError
+    {
+        internal NeoFormatError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoFormatError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoFormatError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_87021243-5739-4af3-86ac-34fe2b5e4559", "system_57f835c0-2afe-4f76-8d80-1b795868e90d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoFormatError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_87021243-5739-4af3-86ac-34fe2b5e4559", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoFormatError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoFormatError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoFormatError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoFormatError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoFormatError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoFormatError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoFormatError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoFormatError(client, value, !saved);
+        }
+
+        public new NeoFormatError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoFormatError IReadOnlyNeoFormatError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoFormatError writable)
+        {
+            return TryWritable<NeoFormatError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoInvalidCastError : IReadOnlyNeoError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoInvalidCastError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoInvalidCastError writable);
+    }
+
+    public partial class NeoInvalidCastError : NeoError, IReadOnlyNeoInvalidCastError
+    {
+        internal NeoInvalidCastError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoInvalidCastError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoInvalidCastError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916", "system_0fbd840f-90fb-4c93-bc57-f0173a8fc1a7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoInvalidCastError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_fec6c25d-834f-42b1-b40c-ac02fd9dd916", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoInvalidCastError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoInvalidCastError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoInvalidCastError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoInvalidCastError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoInvalidCastError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoInvalidCastError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoInvalidCastError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoInvalidCastError(client, value, !saved);
+        }
+
+        public new NeoInvalidCastError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoInvalidCastError IReadOnlyNeoInvalidCastError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoInvalidCastError writable)
+        {
+            return TryWritable<NeoInvalidCastError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoNotSupportedError : IReadOnlyNeoError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoNotSupportedError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoNotSupportedError writable);
+    }
+
+    public partial class NeoNotSupportedError : NeoError, IReadOnlyNeoNotSupportedError
+    {
+        internal NeoNotSupportedError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoNotSupportedError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoNotSupportedError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05", "system_7c69e3f8-2271-4485-9ffe-4b41b1fb64e7", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoNotSupportedError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_fc6e9ad1-b51d-4e76-8e67-1d2158e17e05", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoNotSupportedError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoNotSupportedError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoNotSupportedError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoNotSupportedError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoNotSupportedError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoNotSupportedError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoNotSupportedError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoNotSupportedError(client, value, !saved);
+        }
+
+        public new NeoNotSupportedError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoNotSupportedError IReadOnlyNeoNotSupportedError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoNotSupportedError writable)
+        {
+            return TryWritable<NeoNotSupportedError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoArgumentNullError : IReadOnlyNeoArgumentError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoArgumentNullError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoArgumentNullError writable);
+    }
+
+    public partial class NeoArgumentNullError : NeoArgumentError, IReadOnlyNeoArgumentNullError
+    {
+        internal NeoArgumentNullError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoArgumentNullError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoArgumentNullError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_78da8250-826b-4835-813e-fe2ae0d03653", "system_07b2e628-5817-4469-8867-4a75fbcc3d6d", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoArgumentNullError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_78da8250-826b-4835-813e-fe2ae0d03653", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoArgumentNullError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoArgumentNullError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoArgumentNullError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoArgumentNullError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoArgumentNullError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoArgumentNullError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoArgumentNullError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoArgumentNullError(client, value, !saved);
+        }
+
+        public new NeoArgumentNullError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoArgumentNullError IReadOnlyNeoArgumentNullError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoArgumentNullError writable)
+        {
+            return TryWritable<NeoArgumentNullError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoArgumentOutOfRangeError : IReadOnlyNeoArgumentError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoArgumentOutOfRangeError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoArgumentOutOfRangeError writable);
+    }
+
+    public partial class NeoArgumentOutOfRangeError : NeoArgumentError, IReadOnlyNeoArgumentOutOfRangeError
+    {
+        internal NeoArgumentOutOfRangeError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoArgumentOutOfRangeError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoArgumentOutOfRangeError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b", "system_4a5584f2-c91c-4d97-965b-2ca431923d28", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoArgumentOutOfRangeError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_c7bd056b-9f80-4905-85e4-f33e1ac5093b", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoArgumentOutOfRangeError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoArgumentOutOfRangeError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoArgumentOutOfRangeError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoArgumentOutOfRangeError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoArgumentOutOfRangeError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoArgumentOutOfRangeError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoArgumentOutOfRangeError(client, value, !saved);
+        }
+
+        public new NeoArgumentOutOfRangeError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoArgumentOutOfRangeError IReadOnlyNeoArgumentOutOfRangeError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoArgumentOutOfRangeError writable)
+        {
+            return TryWritable<NeoArgumentOutOfRangeError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoCultureNotFoundError : IReadOnlyNeoArgumentError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoCultureNotFoundError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoCultureNotFoundError writable);
+    }
+
+    public partial class NeoCultureNotFoundError : NeoArgumentError, IReadOnlyNeoCultureNotFoundError
+    {
+        internal NeoCultureNotFoundError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoCultureNotFoundError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoCultureNotFoundError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_3ca9b9c6-a628-459d-a931-85d690ab3639", "system_884ba41d-ab88-4f25-a4da-511ddadcab2e", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoCultureNotFoundError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_3ca9b9c6-a628-459d-a931-85d690ab3639", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoCultureNotFoundError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCultureNotFoundError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoCultureNotFoundError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoCultureNotFoundError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoCultureNotFoundError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoCultureNotFoundError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoCultureNotFoundError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoCultureNotFoundError(client, value, !saved);
+        }
+
+        public new NeoCultureNotFoundError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoCultureNotFoundError IReadOnlyNeoCultureNotFoundError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoCultureNotFoundError writable)
+        {
+            return TryWritable<NeoCultureNotFoundError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.OnChanged(field, handler);
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoTypeInitializationError : IReadOnlyNeoError
+    {
+        new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoTypeInitializationError Clone();
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTypeInitializationError writable);
+    }
+
+    public partial class NeoTypeInitializationError : NeoError, IReadOnlyNeoTypeInitializationError
+    {
+        internal NeoTypeInitializationError(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal NeoTypeInitializationError(NeoClient client, NeoDetachedValue value, bool isReadOnly)
+            : base(client, value, isReadOnly)
+        {
+        }
+
+        public NeoTypeInitializationError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0b1427ff-db1a-4eed-8ef5-bea49da97282", "system_33a20325-0cbd-461d-bac7-fabd6ef29e32", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        public NeoTypeInitializationError()
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "system_0b1427ff-db1a-4eed-8ef5-bea49da97282", null, new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { }), false, NeoValueOwnership.Session)
+        {
+        }
+
+        internal new static NeoTypeInitializationError Create(NeoClient client, NeoMemberClass node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTypeInitializationError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoTypeInitializationError(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoTypeInitializationError CreateWritable(NeoClient client, NeoMemberClassWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTypeInitializationError>(client, node, static (factoryClient, factoryNode) =>
+            {
+                var clientClassId = factoryNode.ClassId;
+                return clientClassId switch
+                {
+                    _ => new NeoTypeInitializationError(factoryClient, factoryNode, false, factoryNode.ownership),
+                };
+            });
+        }
+
+        internal new static NeoTypeInitializationError? CreateDetached(NeoClient client, NeoDetachedValue value, bool saved)
+        {
+            return new NeoTypeInitializationError(client, value, !saved);
+        }
+
+        public new NeoTypeInitializationError Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
+        }
+
+        IReadOnlyNeoTypeInitializationError IReadOnlyNeoTypeInitializationError.Clone()
+        {
+            return Clone();
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTypeInitializationError writable)
+        {
+            return TryWritable<NeoTypeInitializationError>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                return base.GetLocalizedTextId(field);
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -1360,6 +2727,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             private Fields() {}
 
             public static readonly NeoField<string> Message = new("Message");
+
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1367,6 +2736,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
             };
         }
 
@@ -1385,6 +2755,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
             };
         }
 
@@ -1428,8 +2799,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
         {
         }
 
-        public AuthoredError(string message)
-            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "p122-authored-error", "p122-authored-error-constructor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message) }), false, NeoValueOwnership.Session)
+        public AuthoredError(string message, IReadOnlyNeoError? innerError = null)
+            : this(StructuredErrorsNeo.RequireInstance().Client, NeoGeneratedTypesSupport.EvaluateDeclaredConstructor(StructuredErrorsNeo.RequireInstance().Client, "p122-authored-error", "p122-authored-error-constructor", new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument[] { new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("message", message), new global::NeoCompose.Runtime.NeoDeclaredConstructorArgument("innerError", innerError) }), false, NeoValueOwnership.Session)
         {
         }
 
@@ -1510,6 +2881,8 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
 
             public static readonly NeoField<string> Message = new("Message");
 
+            public static readonly NeoField<IReadOnlyNeoError?> InnerError = new("InnerError");
+
             public static readonly NeoField<string?> Detail = new("Detail");
         }
 
@@ -1518,6 +2891,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Message] = () => null,
+                [Fields.InnerError] = () => null,
                 [Fields.Detail] = () => null,
             };
         }
@@ -1537,6 +2911,7 @@ namespace NeoCompose.Tests.StructuredErrorGenerated
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Message] = () => Message,
+                [Fields.InnerError] = () => InnerError,
                 [Fields.Detail] = () => Detail,
             };
         }
