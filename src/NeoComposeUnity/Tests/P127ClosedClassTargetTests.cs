@@ -92,8 +92,7 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = LoadClient();
 
-            // DerivedPair passes Box its own T, which matches any argument.
-            Assert.IsTrue(Lookup(client, "Tools").Add("pair-row"));
+            // Weird<T> passes Box a Tool, whatever its T.
             Assert.IsTrue(Lookup(client, "Tools").Add("weird-row"));
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "Seeds").Add("weird-row"));
             Assert.AreEqual(
@@ -125,6 +124,13 @@ namespace NeoCompose.Tests
         {
             using NeoClient client = LoadClient();
 
+            // Paired, a Box<Seed> slot, closes DerivedPair's T and leaves its U open.
+            Assert.IsTrue(Lookup(client, "Seeds").Add("pair-row"));
+            var pairError = Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tools").Add("pair-row"));
+            Assert.AreEqual(
+                "lookup member Tools target pair-row is DerivedPair<Seed, U>, but the member declares Box<Tool>. Point it at a Box<Tool> row.",
+                pairError!.Message);
+
             // Listed, a Box<List<Seed>> slot, closes its ListBox<T> : Box<List<T>> row as ListBox<Seed>.
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "ToolLists").Add("list-row"));
             Assert.AreEqual(
@@ -151,6 +157,8 @@ namespace NeoCompose.Tests
         [TestCase("ToolHolders", "seed-box-row", "Holder.ToolHolders can't reference 'seed-box-row', because SeedBox implements IHolds<Seed>, not IHolds<Tool>.")]
         // Loose closes its row as DerivedBox<Seed>.
         [TestCase("ToolHolders", "loose-row", "Holder.ToolHolders can't reference 'loose-row', because DerivedBox implements IHolds<Seed>, not IHolds<Tool>.")]
+        // Paired closes DerivedPair's T as Seed, whatever its U.
+        [TestCase("ToolHolders", "pair-row", "Holder.ToolHolders can't reference 'pair-row', because DerivedPair implements IHolds<Seed>, not IHolds<Tool>.")]
         public void AnInterfaceLookupRefusesARowInTheServersWords(string lookup, string rowId, string message)
         {
             using NeoClient client = LoadClient();

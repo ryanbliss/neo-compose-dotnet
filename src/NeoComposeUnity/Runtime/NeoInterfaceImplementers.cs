@@ -389,7 +389,7 @@ namespace NeoCompose.Runtime
             return $"{ClassName(rowClassId)} implements {implemented}, not {wanted}";
         }
 
-        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; a forwarded one without <paramref name="rowArguments"/> is skipped.</summary>
+        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; a forwarded one without <paramref name="rowArguments"/>, or with the row's own param there, is skipped.</summary>
         private bool ConstructionMatches(
             IReadOnlyDictionary<string, TypeBinding> construction,
             InterfaceTypeInfo target,
@@ -407,6 +407,9 @@ namespace NeoCompose.Runtime
                         continue;
                     return false;
                 }
+                // The row's own param, which its slot leaves open, is a wildcard.
+                if (position.Value.IsOpen && actual is GenericTypeInfo own && own.genericParamId == position.Value.Param)
+                    continue;
                 if (!NeoReferenceTypes.InvariantlyEqual(actual, argument))
                     return false;
             }

@@ -929,14 +929,28 @@ namespace NeoCompose.Runtime
         /// equal the target's. So <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c>
         /// fits <c>Box&lt;List&lt;Seed&gt;&gt;</c> but not <c>Box&lt;Seed&gt;</c>,
         /// and <c>Twin&lt;T&gt; : Box2&lt;T, T&gt;</c> fits <c>Box2&lt;Seed, Seed&gt;</c>
-        /// but not <c>Box2&lt;Seed, Tool&gt;</c>. The server's
-        /// <c>openRowConvertsToClass</c>.
+        /// but not <c>Box2&lt;Seed, Tool&gt;</c>. <paramref name="known"/> are
+        /// the row's arguments, its own param where its slot leaves one open.
+        /// The server's <c>openRowConvertsToClass</c>.
         /// </summary>
-        internal bool OpenRowConvertsToClass(NeoClient client, string rowClassId, ClassTypeInfo target)
+        internal bool OpenRowConvertsToClass(
+            NeoClient client,
+            string rowClassId,
+            ClassTypeInfo target,
+            Dictionary<string, TypeInfo>? known = null)
         {
             if (target.classId == rowClassId)
-                return true;
-            return UnifyRowParams(client, rowClassId, target.classId, target.typeArguments) is not null;
+                return known is null || UnifyPassed(known, rowClassId, target.typeArguments) is not null;
+            if (OpenRowBaseArguments(client, rowClassId, target.classId) is not { } passed)
+                return false;
+            if (known is not null)
+            {
+                var substituted = new Dictionary<string, TypeInfo>(passed.Count, StringComparer.Ordinal);
+                foreach (KeyValuePair<string, TypeInfo> pair in passed)
+                    substituted[pair.Key] = SubstituteParams(pair.Value, rowClassId, known);
+                passed = substituted;
+            }
+            return UnifyPassed(passed, rowClassId, target.typeArguments) is not null;
         }
 
         /// <summary>
@@ -954,6 +968,18 @@ namespace NeoCompose.Runtime
         {
             if (OpenRowBaseArguments(client, rowClassId, baseClassId) is not { } passed)
                 return null;
+            return UnifyPassed(passed, rowClassId, expected);
+        }
+
+        /// <summary>
+        /// Binds <paramref name="rowClassId"/>'s params in <paramref name="passed"/>
+        /// to <paramref name="expected"/>, as <see cref="UnifyRowParams"/> does.
+        /// </summary>
+        private static Dictionary<string, TypeInfo>? UnifyPassed(
+            Dictionary<string, TypeInfo> passed,
+            string rowClassId,
+            Dictionary<string, TypeInfo>? expected)
+        {
             var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
             if (expected is null)
                 return bound;
