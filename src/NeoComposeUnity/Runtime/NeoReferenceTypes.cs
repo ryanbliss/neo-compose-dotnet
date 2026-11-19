@@ -638,7 +638,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// The arguments an interface slot gives a row (P113 §3.6): each param
-        /// the interface forwards takes the slot's argument there. The
+        /// the interface names takes the slot's argument in its place, so
+        /// <c>ListBox&lt;T&gt; : Box&lt;List&lt;T&gt;&gt;</c> in an
+        /// <c>IHolds&lt;List&lt;Seed&gt;&gt;</c> slot binds <c>Seed</c>. The
         /// interface arm of the server's <c>openClassRowTypeArguments</c>.
         /// </summary>
         private static Dictionary<string, TypeInfo>? InterfaceSlotRowTypeArguments(NeoClient client, string rowClassId, InterfaceTypeInfo slot)
@@ -648,13 +650,16 @@ namespace NeoCompose.Runtime
             var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
             foreach (KeyValuePair<string, TypeBinding> position in construction)
             {
-                if (position.Value.IsOpen
-                    && slot.typeArguments is { } interfaceArguments
-                    && interfaceArguments.TryGetValue(position.Key, out TypeInfo? argument)
-                    && !bound.ContainsKey(position.Value.Param!))
+                if (NeoTypeSources.IsFullyClosed(position.Value)
+                    || slot.typeArguments is not { } interfaceArguments
+                    || !interfaceArguments.TryGetValue(position.Key, out TypeInfo? argument))
                 {
-                    bound[position.Value.Param!] = argument;
+                    continue;
                 }
+                if (position.Value.IsOpen)
+                    bound.TryAdd(position.Value.Param!, argument);
+                else if (NeoTypeBindingViews.TryView(position.Value, out _) is Member member)
+                    NeoTypeRules.BindRowParams(SlotTypeInfo(client, member), argument, rowClassId, bound);
             }
             return KeptRowTypeArguments(client, rowClassId, bound);
         }

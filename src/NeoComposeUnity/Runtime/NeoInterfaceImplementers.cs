@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 
@@ -368,7 +369,7 @@ namespace NeoCompose.Runtime
         {
             if (!TryGetConstruction(rowClassId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
                 return NotImplementedClause(ClassName(rowClassId), target.interfaceId);
-            if (ConstructionMatches(construction, target, rowArguments))
+            if (ConstructionMatches(construction, rowClassId, target, rowArguments))
                 return null;
             string implemented = rowArguments is null
                 ? ConstructionLabel(target.interfaceId, construction, NeoGenericResolution.EmptyEnv)
@@ -377,7 +378,7 @@ namespace NeoCompose.Runtime
                     type = MemberKind.Interface,
                     required = true,
                     interfaceId = target.interfaceId,
-                    typeArguments = ConstructionTypeArguments(construction, rowArguments),
+                    typeArguments = ConstructionTypeArguments(construction, rowClassId, rowArguments),
                 });
             string wanted = NeoReferenceTypes.Format(client, new InterfaceTypeInfo
             {
@@ -389,9 +390,10 @@ namespace NeoCompose.Runtime
             return $"{ClassName(rowClassId)} implements {implemented}, not {wanted}";
         }
 
-        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; a forwarded one without <paramref name="rowArguments"/>, or with the row's own param there, is skipped.</summary>
+        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; one naming the row's params without <paramref name="rowArguments"/>, or naming a param its slot leaves open, is skipped.</summary>
         private bool ConstructionMatches(
             IReadOnlyDictionary<string, TypeBinding> construction,
+            string rowClassId,
             InterfaceTypeInfo target,
             IReadOnlyDictionary<string, TypeInfo>? rowArguments)
         {
@@ -401,14 +403,14 @@ namespace NeoCompose.Runtime
             {
                 if (!expected.TryGetValue(position.Key, out TypeInfo? argument))
                     return false;
-                if (ConstructionArgument(position.Value, rowArguments) is not { } actual)
+                if (ConstructionArgument(position.Value, rowClassId, rowArguments) is not { } actual)
                 {
-                    if (position.Value.IsOpen)
+                    if (!NeoTypeSources.IsFullyClosed(position.Value))
                         continue;
                     return false;
                 }
-                // The row's own param, which its slot leaves open, is a wildcard.
-                if (position.Value.IsOpen && actual is GenericTypeInfo own && own.genericParamId == position.Value.Param)
+                // A position naming a param the row's slot leaves open is a wildcard.
+                if (NamesRowParam(actual, rowClassId))
                     continue;
                 if (!NeoReferenceTypes.InvariantlyEqual(actual, argument))
                     return false;
@@ -416,24 +418,40 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        /// <summary>Whether <paramref name="typeInfo"/> names one of <paramref name="rowClassId"/>'s params; unified with itself, it binds each.</summary>
+        private static bool NamesRowParam(TypeInfo typeInfo, string rowClassId)
+        {
+            var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
+            NeoTypeRules.BindRowParams(typeInfo, typeInfo, rowClassId, bound);
+            return bound.Count > 0;
+        }
+
         private Dictionary<string, TypeInfo> ConstructionTypeArguments(
             IReadOnlyDictionary<string, TypeBinding> construction,
+            string rowClassId,
             IReadOnlyDictionary<string, TypeInfo> rowArguments)
         {
             var typeArguments = new Dictionary<string, TypeInfo>(construction.Count);
             foreach (KeyValuePair<string, TypeBinding> position in construction)
             {
-                if (ConstructionArgument(position.Value, rowArguments) is { } actual)
+                if (ConstructionArgument(position.Value, rowClassId, rowArguments) is { } actual)
                     typeArguments[position.Key] = actual;
             }
             return typeArguments;
         }
 
-        private TypeInfo? ConstructionArgument(TypeBinding binding, IReadOnlyDictionary<string, TypeInfo>? rowArguments)
+        /// <summary>The type a construction position spells once <paramref name="rowArguments"/> closes the row's params it names, at any depth; null without them. The server's <c>boundTypeArgumentTypeInfo</c>.</summary>
+        private TypeInfo? ConstructionArgument(TypeBinding binding, string rowClassId, IReadOnlyDictionary<string, TypeInfo>? rowArguments)
         {
             if (binding.IsOpen)
                 return rowArguments is not null && rowArguments.TryGetValue(binding.Param!, out TypeInfo? argument) ? argument : null;
-            return NeoTypeBindingViews.TryView(binding, out _) is Member member ? NeoReferenceTypes.SlotTypeInfo(client, member) : null;
+            if (NeoTypeBindingViews.TryView(binding, out _) is not Member member)
+                return null;
+            TypeInfo typeInfo = NeoReferenceTypes.SlotTypeInfo(client, member);
+            if (NeoTypeSources.IsFullyClosed(binding))
+                return typeInfo;
+            // ListBox<T> : Box<List<T>> names its param inside the position.
+            return rowArguments is null ? null : NeoTypeRules.SubstituteParams(typeInfo, rowClassId, rowArguments);
         }
 
         /// <summary>
@@ -451,7 +469,7 @@ namespace NeoCompose.Runtime
                     continue;
                 if (!TryGetConstruction(classId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
                     continue;
-                if (ConstructionMatches(construction, target, null))
+                if (ConstructionMatches(construction, classId, target, null))
                     return ClassName(classId);
             }
             return null;

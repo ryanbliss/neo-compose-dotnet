@@ -153,6 +153,34 @@ namespace NeoCompose.Tests
             Assert.IsTrue(Lookup(client, "SeedHolders").IsSelectableId("pair-row"));
         }
 
+        // ListBox<T> : Box<List<T>> implements IHolds<List<T>>, naming its T
+        // inside List<T>. Listed, a Box<List<Seed>> slot, closes list-row by
+        // unification; HeldList, an IHolds<List<Seed>> slot, holds the
+        // stamped ListBox<Seed> held-list-row.
+        [TestCase("list-row", 9)]
+        [TestCase("held-list-row", 13)]
+        public void AnInterfaceLookupReadsAnArgumentThatNestsTheRowsParam(string rowId, int k)
+        {
+            using NeoClient client = LoadClient();
+
+            Assert.IsTrue(Lookup(client, "SeedListHolders").Add(rowId));
+            CollectionAssert.AreEqual(new[] { rowId }, Lookup(client, "SeedListHolders").Selected());
+            Assert.AreEqual(k, Convert.ToInt32(ReadK(client, rowId, new ClassTypeInfo
+            {
+                type = MemberKind.Class,
+                required = true,
+                classId = BoxId,
+                typeArguments = new Dictionary<string, TypeInfo>
+                {
+                    [BoxT] = new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = ClassType(SeedId) },
+                },
+            })));
+            var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, "ToolListHolders").Add(rowId));
+            Assert.AreEqual(
+                $"Holder.ToolListHolders can't reference '{rowId}', because ListBox implements IHolds<List<Seed>>, not IHolds<List<Tool>>.",
+                error!.Message);
+        }
+
         [TestCase("SeedHolders", "seed-row", "Holder.SeedHolders can't reference 'seed-row', because Seed doesn't implement IHolds.")]
         [TestCase("ToolHolders", "seed-box-row", "Holder.ToolHolders can't reference 'seed-box-row', because SeedBox implements IHolds<Seed>, not IHolds<Tool>.")]
         // Loose closes its row as DerivedBox<Seed>.
@@ -771,6 +799,9 @@ namespace NeoCompose.Tests
                         ["DerivedSeeds"] = "member-derived-seeds",
                         ["SeedHolders"] = "member-seed-holders",
                         ["ToolHolders"] = "member-tool-holders",
+                        ["SeedListHolders"] = "member-seed-list-holders",
+                        ["ToolListHolders"] = "member-tool-list-holders",
+                        ["HeldList"] = "member-held-list",
                         ["Listed"] = "member-listed",
                         ["Twinned"] = "member-twinned",
                         ["Lists"] = "member-lists",
@@ -859,6 +890,18 @@ namespace NeoCompose.Tests
                     ["member-derived-seeds"] = BoxLookup("member-derived-seeds", "DerivedSeeds", DerivedBoxId, DerivedBoxT, SeedId),
                     ["member-seed-holders"] = HoldsLookup("member-seed-holders", "SeedHolders", SeedId),
                     ["member-tool-holders"] = HoldsLookup("member-tool-holders", "ToolHolders", ToolId),
+                    ["member-seed-list-holders"] = HoldsLookup("member-seed-list-holders", "SeedListHolders", SeedId, list: true),
+                    ["member-tool-list-holders"] = HoldsLookup("member-tool-list-holders", "ToolListHolders", ToolId, list: true),
+                    ["member-held-list"] = new ClassMember
+                    {
+                        id = "member-held-list",
+                        projectId = "project",
+                        name = "HeldList",
+                        kind = MemberKind.Class,
+                        Requirement = NeoMemberRequirementKind.Required,
+                        DeclaredInterfaceId = HoldsId,
+                        interfaceArguments = new Dictionary<string, TypeBinding> { [HoldsT] = SeedList },
+                    },
                     ["member-hold-inner"] = HoldInner(),
                     ["member-hold-pair"] = ClassSlot("member-hold-pair", "Pair", BoxId, (BoxT, HoldTuple)),
                     ["member-hold-tuple-seed"] = ClassSlot("member-hold-tuple-seed", "Item2", SeedId),
@@ -941,6 +984,7 @@ namespace NeoCompose.Tests
                         ["Paired"] = "pair-row",
                         ["ToolBoxed"] = "weird-row",
                         ["Listed"] = "list-row",
+                        ["HeldList"] = "held-list-row",
                         ["Twinned"] = "twin-row",
                         ["Planted"] = "seed-row",
                         ["Narrowed"] = "narrow-row",
@@ -966,6 +1010,9 @@ namespace NeoCompose.Tests
                     ["pair-row"] = Row("pair-row", DerivedPairId, new Dictionary<string, string> { ["k"] = "pair-k" }),
                     ["weird-row"] = Row("weird-row", WeirdId, new Dictionary<string, string> { ["k"] = "weird-k" }),
                     ["list-row"] = Row("list-row", ListBoxId, new Dictionary<string, string> { ["k"] = "list-k" }),
+                    ["held-list-row"] = Stamped(
+                        Row("held-list-row", ListBoxId, new Dictionary<string, string> { ["k"] = "held-list-k" }),
+                        ("class-list-box-t", TestTypeBindings.Class(SeedId))),
                     ["twin-row"] = Row("twin-row", TwinId),
                     ["seed-row"] = Row("seed-row", SeedId),
                     ["narrow-row"] = Row("narrow-row", NarrowId, new Dictionary<string, string> { ["k"] = "narrow-k" }),
@@ -983,6 +1030,7 @@ namespace NeoCompose.Tests
                     ["callback-k"] = new NumberMemberValue { id = "callback-k", value = 15d },
                     ["weird-k"] = new NumberMemberValue { id = "weird-k", value = 8d },
                     ["list-k"] = new NumberMemberValue { id = "list-k", value = 9d },
+                    ["held-list-k"] = new NumberMemberValue { id = "held-list-k", value = 13d },
                     ["loose-k"] = new NumberMemberValue { id = "loose-k", value = 6d },
                     ["pair-k"] = new NumberMemberValue { id = "pair-k", value = 7d },
                 },
@@ -1257,7 +1305,13 @@ namespace NeoCompose.Tests
                 declaredTypeInfo = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = Box2Id, typeArguments = typeArguments },
             };
 
-        private static LookupMember HoldsLookup(string id, string name, string argumentClassId) =>
+        private static ObjectMemberValue Stamped(ObjectMemberValue row, (string Param, TypeBinding Binding) argument)
+        {
+            row.genericBindings = TestTypeBindings.Stamp(argument);
+            return row;
+        }
+
+        private static LookupMember HoldsLookup(string id, string name, string argumentClassId, bool list = false) =>
             new()
             {
                 id = id,
@@ -1273,7 +1327,9 @@ namespace NeoCompose.Tests
                     interfaceId = HoldsId,
                     typeArguments = new Dictionary<string, TypeInfo>
                     {
-                        [HoldsT] = new ClassTypeInfo { type = MemberKind.Class, required = true, classId = argumentClassId },
+                        [HoldsT] = list
+                            ? new CollectionTypeInfo { type = MemberKind.List, required = true, entryTypeInfo = ClassType(argumentClassId) }
+                            : ClassType(argumentClassId),
                     },
                 },
             };

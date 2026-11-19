@@ -1262,7 +1262,7 @@ namespace NeoCompose.Runtime
         /// binding. A shape mismatch binds nothing there; the substituted
         /// comparison then refuses it. The server's <c>bindRowParams</c>.
         /// </summary>
-        private static void BindRowParams(TypeInfo pattern, TypeInfo target, string rowClassId, Dictionary<string, TypeInfo> bound)
+        internal static void BindRowParams(TypeInfo pattern, TypeInfo target, string rowClassId, Dictionary<string, TypeInfo> bound)
         {
             switch (pattern)
             {
@@ -1334,7 +1334,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary><paramref name="typeInfo"/> with each of <paramref name="ownerClassId"/>'s params in <paramref name="arguments"/> replaced.</summary>
-        private static TypeInfo SubstituteParams(TypeInfo typeInfo, string ownerClassId, Dictionary<string, TypeInfo> arguments)
+        internal static TypeInfo SubstituteParams(TypeInfo typeInfo, string ownerClassId, IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             switch (typeInfo)
             {
@@ -1396,7 +1396,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static TypeInfo[] SubstituteArgumentTypes(TypeInfo[] argumentTypes, string ownerClassId, Dictionary<string, TypeInfo> arguments)
+        private static TypeInfo[] SubstituteArgumentTypes(TypeInfo[] argumentTypes, string ownerClassId, IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             var substituted = new TypeInfo[argumentTypes.Length];
             for (int index = 0; index < argumentTypes.Length; index++)
@@ -1407,7 +1407,7 @@ namespace NeoCompose.Runtime
         private static Dictionary<string, TypeInfo> SubstituteArguments(
             Dictionary<string, TypeInfo> typeArguments,
             string ownerClassId,
-            Dictionary<string, TypeInfo> arguments)
+            IReadOnlyDictionary<string, TypeInfo> arguments)
         {
             var substituted = new Dictionary<string, TypeInfo>(typeArguments.Count, StringComparer.Ordinal);
             foreach (KeyValuePair<string, TypeInfo> pair in typeArguments)
