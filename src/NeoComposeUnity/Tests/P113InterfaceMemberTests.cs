@@ -20,7 +20,11 @@ namespace NeoCompose.Tests
     /// <c>Box</c>, an <c>OpenBox&lt;U&gt;</c> it determines, a
     /// <c>Keyed&lt;K, V&gt;</c> it can't determine, and not by <c>Plain</c>.
     /// <c>IntBox</c> and <c>CultureBox</c> implement it with other arguments
-    /// than the slots' <c>IContainer&lt;string&gt;</c>.
+    /// than the slots' <c>IContainer&lt;string&gt;</c>, and <c>TwoBox</c>
+    /// implements both <c>IContainer&lt;int&gt;</c> and
+    /// <c>IContainer&lt;string&gt;</c>. <c>SeedMaker</c> and
+    /// <c>SproutMaker</c> implement the covariant <c>IProducer&lt;out X&gt;</c>
+    /// over <c>Seed</c> and its subclass <c>Sprout</c>.
     /// </summary>
     public class P113InterfaceMemberTests
     {
@@ -36,6 +40,13 @@ namespace NeoCompose.Tests
         private const string IntBoxId = "class-int-box";
         private const string CultureBoxId = "class-culture-box";
         private const string HolderP = "class-generic-holder-p";
+        private const string TwoBoxId = "class-two-box";
+        private const string ProducerId = "iface-producer";
+        private const string ProducerX = "iface-producer-x";
+        private const string SeedId = "class-seed";
+        private const string SproutId = "class-sprout";
+        private const string SeedMakerId = "class-seed-maker";
+        private const string SproutMakerId = "class-sprout-maker";
 
         private interface ITestContainer
         {
@@ -96,7 +107,7 @@ namespace NeoCompose.Tests
                 NeoInterfaceDeterminationKind.NotImplemented,
                 implementers.Determination(PlainId, ContainerId).kind);
             CollectionAssert.AreEqual(
-                new[] { BoxId, OpenBoxId, KeyedId, IntBoxId, CultureBoxId },
+                new[] { BoxId, OpenBoxId, KeyedId, IntBoxId, CultureBoxId, TwoBoxId },
                 implementers.Implementers(ContainerId));
         }
 
@@ -182,6 +193,37 @@ namespace NeoCompose.Tests
                 "ByName can't hold a IntBox, because IntBox implements IContainer<int>, not IContainer<string>.",
                 set.Message);
             Assert.AreEqual(0, list.Count);
+        }
+
+        [Test]
+        public void ClassSlotWrite_HoldsARowThroughAnyConstructionItsClassImplements()
+        {
+            var client = LoadClient();
+            AddRow(client, "two-row", TwoBoxId);
+            var holder = client.save;
+
+            // TwoBox : IContainer<int>, IContainer<string> fits IContainer<string> by its second.
+            holder.SetSerializedValue("Slot", Reference("two-row"));
+            Assert.AreEqual(TwoBoxId, holder.Get<NeoMemberClass>("Slot").ClassId);
+            ClassMember typeSlot = InterfaceSlot("member-type-slot", "TypeSlot", ObjectArgument(NeoObjectTypeKind.Type));
+            NeoSlotAdmission refused = NeoGenericResolution.ConstructedSlotAccepts(client, typeSlot, TwoBoxId, NeoGenericResolution.EmptyEnv);
+            Assert.AreEqual(
+                "TypeSlot can't hold a TwoBox, because TwoBox implements IContainer<int> and IContainer<string>, not IContainer<Type>.",
+                refused.reason);
+        }
+
+        [Test]
+        public void ConstructedSlotAccepts_ConvertsACovariantArgument()
+        {
+            var client = LoadClient();
+            ClassMember seeds = InterfaceSlotWithArgument("member-seeds", "Seeds", TestTypeBindings.Class(SeedId), ProducerId, ProducerX);
+            ClassMember sprouts = InterfaceSlotWithArgument("member-sprouts", "Sprouts", TestTypeBindings.Class(SproutId), ProducerId, ProducerX);
+
+            // IProducer<Sprout> converts to IProducer<Seed>, not back.
+            Assert.IsTrue(NeoGenericResolution.ConstructedSlotAccepts(client, seeds, SproutMakerId, NeoGenericResolution.EmptyEnv).ok);
+            Assert.AreEqual(
+                "Sprouts can't hold a SeedMaker, because SeedMaker implements IProducer<Seed>, not IProducer<Sprout>.",
+                NeoGenericResolution.ConstructedSlotAccepts(client, sprouts, SeedMakerId, NeoGenericResolution.EmptyEnv).reason);
         }
 
         [Test]
@@ -448,7 +490,21 @@ namespace NeoCompose.Tests
                     rootSaveFileMemberId = "root-save",
                     rootSessionMemberId = "root-session",
                 },
-                interfaces = new Dictionary<string, Interface> { [ContainerId] = container },
+                interfaces = new Dictionary<string, Interface>
+                {
+                    [ContainerId] = container,
+                    [ProducerId] = new Interface
+                    {
+                        id = ProducerId,
+                        projectId = "project",
+                        name = "IProducer",
+                        members = new Dictionary<string, InterfaceMember>(),
+                        genericParams = new List<GenericParamDeclaration>
+                        {
+                            new() { id = ProducerX, name = "X", variance = NeoGenericParamVarianceKind.Out },
+                        },
+                    },
+                },
                 classes = new Dictionary<string, NeoSchemaClass>
                 {
                     ["class-root"] = Class("class-root", "Root"),
@@ -468,6 +524,11 @@ namespace NeoCompose.Tests
                     [PlainId] = Class(PlainId, "Plain"),
                     [IntBoxId] = Implementing(Class(IntBoxId, "IntBox"), TestTypeBindings.Of(MemberKind.Int)),
                     [CultureBoxId] = Implementing(Class(CultureBoxId, "CultureBox"), ObjectArgument(NeoObjectTypeKind.CultureInfo)),
+                    [TwoBoxId] = Implementing(Class(TwoBoxId, "TwoBox"), TestTypeBindings.Of(MemberKind.Int), StringArgument),
+                    [SeedId] = Class(SeedId, "Seed"),
+                    [SproutId] = Extending(Class(SproutId, "Sprout"), SeedId),
+                    [SeedMakerId] = Producing(Class(SeedMakerId, "SeedMaker"), SeedId),
+                    [SproutMakerId] = Producing(Class(SproutMakerId, "SproutMaker"), SproutId),
                     ["class-generic-holder"] = Class(
                         "class-generic-holder",
                         "GenericHolder",
@@ -514,11 +575,16 @@ namespace NeoCompose.Tests
         private static ClassMember InterfaceSlot(string id, string name, TypeBinding? argument = null) =>
             InterfaceSlotWithArgument(id, name, argument ?? StringArgument);
 
-        private static ClassMember InterfaceSlotWithArgument(string id, string name, TypeBinding argument)
+        private static ClassMember InterfaceSlotWithArgument(
+            string id,
+            string name,
+            TypeBinding argument,
+            string interfaceId = ContainerId,
+            string paramId = ContainerT)
         {
             return (ClassMember)JsonConvert.DeserializeObject<Member>(
-                $"{{'id':'{id}','projectId':'project','name':'{name}','kind':7,'interfaceId':'{ContainerId}',"
-                    + $"'interfaceArguments':{{'{ContainerT}':{JsonConvert.SerializeObject(argument)}}},"
+                $"{{'id':'{id}','projectId':'project','name':'{name}','kind':7,'interfaceId':'{interfaceId}',"
+                    + $"'interfaceArguments':{{'{paramId}':{JsonConvert.SerializeObject(argument)}}},"
                     + "'createdAt':'x','updatedAt':'x'}")!;
         }
 
@@ -528,16 +594,36 @@ namespace NeoCompose.Tests
         private static TypeBinding Forward(string paramId) =>
             TestTypeBindings.Open(paramId.Substring(0, paramId.LastIndexOf('-')), paramId);
 
-        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, TypeBinding argument)
+        private static NeoSchemaClass Implementing(NeoSchemaClass schemaClass, params TypeBinding[] arguments)
+        {
+            schemaClass.implementsInterfaces = new List<InterfaceConstruction>();
+            foreach (TypeBinding argument in arguments)
+            {
+                schemaClass.implementsInterfaces.Add(new InterfaceConstruction
+                {
+                    interfaceId = ContainerId,
+                    arguments = new Dictionary<string, TypeBinding> { [ContainerT] = argument },
+                });
+            }
+            return schemaClass;
+        }
+
+        private static NeoSchemaClass Producing(NeoSchemaClass schemaClass, string producedClassId)
         {
             schemaClass.implementsInterfaces = new List<InterfaceConstruction>
             {
                 new()
                 {
-                    interfaceId = ContainerId,
-                    arguments = new Dictionary<string, TypeBinding> { [ContainerT] = argument },
+                    interfaceId = ProducerId,
+                    arguments = new Dictionary<string, TypeBinding> { [ProducerX] = TestTypeBindings.Class(producedClassId) },
                 },
             };
+            return schemaClass;
+        }
+
+        private static NeoSchemaClass Extending(NeoSchemaClass schemaClass, string baseClassId)
+        {
+            schemaClass.extendsClassId = baseClassId;
             return schemaClass;
         }
 

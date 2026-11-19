@@ -758,6 +758,27 @@ namespace NeoCompose.Runtime
             return true;
         }
 
+        /// <summary>
+        /// P127 §4.8. <paramref name="actual"/>, an interface argument,
+        /// converts to <paramref name="expected"/> at
+        /// <paramref name="parameter"/>: equal, or a reference conversion its
+        /// variance allows. The server's <c>interfaceArgumentConverts</c>.
+        /// </summary>
+        internal bool ArgumentConverts(NeoClient client, GenericParamDeclaration? parameter, TypeInfo actual, TypeInfo expected)
+        {
+            if (NeoReferenceTypes.InvariantlyEqual(actual, expected))
+                return true;
+            if (parameter?.variance is not { } variance)
+                return false;
+            if (TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(actual).Head!))
+                return false;
+            if (TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(expected).Head!))
+                return false;
+            return variance == NeoGenericParamVarianceKind.Out
+                ? Assignable(client, actual, expected) == true
+                : Assignable(client, expected, actual) == true;
+        }
+
         /// <summary>The arguments <paramref name="from"/> implements interface <paramref name="to"/> with are <paramref name="to"/>'s, nested <c>?</c> included. The server's <c>constructsInterface</c>.</summary>
         private bool ConstructionKeepsNullability(NeoClient client, TypeInfo from, TypeInfo to)
         {
@@ -779,11 +800,7 @@ namespace NeoCompose.Runtime
                         break;
                     }
                     TypeInfo actual = NeoTypeBindings.ToTypeInfo(binding!);
-                    var variance = parameters?.FirstOrDefault(parameter => parameter.id == pair.Key)?.variance;
-                    bool identity = NeoReferenceTypes.InvariantlyEqual(actual, pair.Value);
-                    if (!identity && (TypeBindings.IsValueType(binding!.Head!) || TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(pair.Value).Head!)
-                        || !(variance == NeoGenericParamVarianceKind.Out ? Assignable(client, actual, pair.Value) == true
-                            : variance == NeoGenericParamVarianceKind.In && Assignable(client, pair.Value, actual) == true)))
+                    if (!ArgumentConverts(client, parameters?.FirstOrDefault(parameter => parameter.id == pair.Key), actual, pair.Value))
                     {
                         matches = false;
                         break;

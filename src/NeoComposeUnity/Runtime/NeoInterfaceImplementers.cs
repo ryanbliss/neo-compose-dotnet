@@ -91,6 +91,9 @@ namespace NeoCompose.Runtime
 
         private static readonly IReadOnlyList<string> EmptyIds = new List<string>();
 
+        private static readonly IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>> EmptyList =
+            new List<IReadOnlyDictionary<string, TypeBinding>>();
+
         private static readonly List<GenericParamDeclaration> EmptyScope = new();
 
         private readonly NeoClient client;
@@ -99,6 +102,10 @@ namespace NeoCompose.Runtime
             closureByInterfaceId = new();
         private readonly Dictionary<string, IReadOnlyDictionary<string, IReadOnlyDictionary<string, TypeBinding>>>
             mapByClassId = new();
+        private readonly Dictionary<(string, string), IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>>>
+            listByKey = new();
+        private readonly Dictionary<(string, string), IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>>>
+            interfaceListByKey = new();
         private readonly Dictionary<(string, string), NeoInterfaceDetermination> determinationByKey = new();
         private readonly Dictionary<string, List<GenericParamDeclaration>> scopeByClassId = new();
         private readonly Dictionary<(ClassMember, string), IReadOnlyDictionary<string, TypeBinding>?>
@@ -129,8 +136,8 @@ namespace NeoCompose.Runtime
                 [interfaceId] = IdentityConstruction(interfaceId, declaration.genericParams),
             };
             // P127 §4.7 lets a list hold several constructions of one
-            // interface. This index keeps each interface's first construction;
-            // per-construction dispatch reads the lists themselves.
+            // interface. This map keeps each interface's first construction;
+            // ConstructionList and per-construction dispatch read them all.
             if (declaration.extendsInterfaces is not null)
             {
                 foreach (InterfaceConstruction parent in declaration.extendsInterfaces)
@@ -190,6 +197,101 @@ namespace NeoCompose.Runtime
             string interfaceId,
             out IReadOnlyDictionary<string, TypeBinding> construction) =>
             Constructions(classId).TryGetValue(interfaceId, out construction!);
+
+        /// <summary>
+        /// Every construction of <paramref name="interfaceId"/>
+        /// <paramref name="classId"/> implements: its base's, then its own
+        /// base list's in order, each entry followed by the interfaces it
+        /// extends (P127 §4.7). The server's <c>constructionList</c>.
+        /// </summary>
+        internal IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>> ConstructionList(
+            string classId,
+            string interfaceId)
+        {
+            var key = (classId, interfaceId);
+            if (listByKey.TryGetValue(key, out var cached))
+                return cached;
+            if (!Constructions(classId).ContainsKey(interfaceId))
+                return EmptyList;
+            NeoSchemaClass schemaClass = data.classes[classId];
+            string visitKey = "l:" + classId;
+            if (!visiting.Add(visitKey))
+                return EmptyList;
+            var list = new List<IReadOnlyDictionary<string, TypeBinding>>();
+            if (schemaClass.extendsClassId is { } baseId)
+            {
+                var bindings = schemaClass.extendsGenericBindings;
+                foreach (var inherited in ConstructionList(baseId, interfaceId))
+                    AddDistinct(list, bindings is null ? inherited : Substitute(inherited, bindings));
+            }
+            if (schemaClass.implementsInterfaces is not null)
+            {
+                foreach (InterfaceConstruction implemented in schemaClass.implementsInterfaces)
+                {
+                    foreach (var reached in InterfaceConstructionList(implemented.interfaceId, interfaceId))
+                        AddDistinct(list, Substitute(reached, implemented.arguments ?? EmptyConstruction));
+                }
+            }
+            visiting.Remove(visitKey);
+            listByKey[key] = list;
+            return list;
+        }
+
+        /// <summary>Every construction of <paramref name="interfaceId"/> that <paramref name="fromId"/> is or extends, in its own terms.</summary>
+        private IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>> InterfaceConstructionList(
+            string fromId,
+            string interfaceId)
+        {
+            var key = (fromId, interfaceId);
+            if (interfaceListByKey.TryGetValue(key, out var cached))
+                return cached;
+            if (!InterfaceClosure(fromId).ContainsKey(interfaceId))
+                return EmptyList;
+            Interface declaration = data.interfaces[fromId];
+            string visitKey = "il:" + fromId;
+            if (!visiting.Add(visitKey))
+                return EmptyList;
+            var list = new List<IReadOnlyDictionary<string, TypeBinding>>();
+            if (fromId == interfaceId)
+                list.Add(IdentityConstruction(interfaceId, declaration.genericParams));
+            if (declaration.extendsInterfaces is not null)
+            {
+                foreach (InterfaceConstruction parent in declaration.extendsInterfaces)
+                {
+                    foreach (var reached in InterfaceConstructionList(parent.interfaceId, interfaceId))
+                        AddDistinct(list, Substitute(reached, parent.arguments ?? EmptyConstruction));
+                }
+            }
+            visiting.Remove(visitKey);
+            interfaceListByKey[key] = list;
+            return list;
+        }
+
+        private static void AddDistinct(
+            List<IReadOnlyDictionary<string, TypeBinding>> list,
+            IReadOnlyDictionary<string, TypeBinding> construction)
+        {
+            foreach (var known in list)
+            {
+                if (SameConstruction(known, construction))
+                    return;
+            }
+            list.Add(construction);
+        }
+
+        private static bool SameConstruction(
+            IReadOnlyDictionary<string, TypeBinding> a,
+            IReadOnlyDictionary<string, TypeBinding> b)
+        {
+            if (a.Count != b.Count)
+                return false;
+            foreach (var pair in a)
+            {
+                if (!b.TryGetValue(pair.Key, out TypeBinding? other) || !pair.Value.Equals(other))
+                    return false;
+            }
+            return true;
+        }
 
         internal bool Implements(string classId, string interfaceId) =>
             Constructions(classId).ContainsKey(interfaceId);
@@ -287,8 +389,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P113 §3.2 rule 1. Null when a row of <paramref name="rowClassId"/>
-        /// fits <paramref name="slot"/>: its class implements the slot's
-        /// interface with the slot's arguments. An
+        /// fits <paramref name="slot"/>: one construction of the slot's
+        /// interface its class implements converts to the slot's (P127 §4.7,
+        /// §4.8). An
         /// argument the row's class fills with its own param comes from the
         /// slot, and one <paramref name="contextEnv"/> leaves open at any depth
         /// fits every row. Mirrors the server's <c>interfaceSlotRefusal</c>.
@@ -303,10 +406,36 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGenericEnvEntry> contextEnv)
         {
             string interfaceId = slot.DeclaredInterfaceId!;
-            if (!TryGetConstruction(rowClassId, interfaceId, out var construction))
+            IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>> constructions = ConstructionList(rowClassId, interfaceId);
+            if (constructions.Count == 0)
                 return NotImplementedRefusal(SlotLabel(ownerName, key), rowClassId, interfaceId);
             if (slot.interfaceArguments is not { Count: > 0 } slotArguments)
                 return null;
+            foreach (var construction in constructions)
+            {
+                if (ConstructionFitsSlot(interfaceId, construction, slotArguments, contextEnv))
+                    return null;
+            }
+            string rowName = ClassName(rowClassId);
+            var labels = new List<string>(constructions.Count);
+            foreach (var construction in constructions)
+                labels.Add(ConstructionLabel(interfaceId, construction, NeoGenericResolution.EmptyEnv));
+            string wanted = ConstructionLabel(interfaceId, slotArguments, contextEnv);
+            return $"{SlotLabel(ownerName, key)} can't hold a {rowName}, because {rowName} implements {ListLabel(labels)}, not {wanted}.";
+        }
+
+        /// <summary>
+        /// Each position <paramref name="construction"/> closes converts to
+        /// the slot's argument, by variance where the interface declares it
+        /// (P127 §4.8). A position the row's class fills with its own param,
+        /// or <paramref name="contextEnv"/> leaves open, fits.
+        /// </summary>
+        private bool ConstructionFitsSlot(
+            string interfaceId,
+            IReadOnlyDictionary<string, TypeBinding> construction,
+            IReadOnlyDictionary<string, TypeBinding> slotArguments,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> contextEnv)
+        {
             foreach (var pair in slotArguments)
             {
                 if (!construction.TryGetValue(pair.Key, out TypeBinding? rowBinding))
@@ -319,12 +448,34 @@ namespace NeoCompose.Runtime
                 var rowSignature = NeoGenericResolution.SignatureOfBinding(client, rowBinding, NeoGenericResolution.EmptyEnv);
                 if (NeoGenericResolution.SignaturesEqual(slotSignature, rowSignature))
                     continue;
-                string rowName = ClassName(rowClassId);
-                string implemented = ConstructionLabel(interfaceId, construction, NeoGenericResolution.EmptyEnv);
-                string wanted = ConstructionLabel(interfaceId, slotArguments, contextEnv);
-                return $"{SlotLabel(ownerName, key)} can't hold a {rowName}, because {rowName} implements {implemented}, not {wanted}.";
+                GenericParamDeclaration? parameter = InterfaceParam(interfaceId, pair.Key);
+                if (parameter?.variance is null)
+                    return false;
+                if (!client.TypeRules.ArgumentConverts(
+                        client,
+                        parameter,
+                        NeoGenericResolution.TypeInfoFromArgumentSignature(rowSignature),
+                        NeoGenericResolution.TypeInfoFromArgumentSignature(slotSignature)))
+                {
+                    return false;
+                }
             }
-            return null;
+            return true;
+        }
+
+        private GenericParamDeclaration? InterfaceParam(string interfaceId, string paramId)
+        {
+            if (!data.interfaces.TryGetValue(interfaceId, out Interface? declaration))
+                return null;
+            return declaration.genericParams?.Find(parameter => parameter.id == paramId);
+        }
+
+        /// <summary><c>A</c>, <c>A and B</c>, <c>A, B and C</c>.</summary>
+        private static string ListLabel(List<string> labels)
+        {
+            if (labels.Count < 2)
+                return string.Concat(labels);
+            return $"{string.Join(", ", labels.GetRange(0, labels.Count - 1))} and {labels[labels.Count - 1]}";
         }
 
         /// <summary>
@@ -367,19 +518,27 @@ namespace NeoCompose.Runtime
             string rowClassId,
             IReadOnlyDictionary<string, TypeInfo>? rowArguments)
         {
-            if (!TryGetConstruction(rowClassId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
+            IReadOnlyList<IReadOnlyDictionary<string, TypeBinding>> constructions = ConstructionList(rowClassId, target.interfaceId);
+            if (constructions.Count == 0)
                 return NotImplementedClause(ClassName(rowClassId), target.interfaceId);
-            if (ConstructionMatches(construction, rowClassId, target, rowArguments))
-                return null;
-            string implemented = rowArguments is null
-                ? ConstructionLabel(target.interfaceId, construction, NeoGenericResolution.EmptyEnv)
-                : NeoReferenceTypes.Format(client, new InterfaceTypeInfo
-                {
-                    type = MemberKind.Interface,
-                    required = true,
-                    interfaceId = target.interfaceId,
-                    typeArguments = ConstructionTypeArguments(construction, rowClassId, rowArguments),
-                });
+            foreach (var construction in constructions)
+            {
+                if (ConstructionMatches(construction, rowClassId, target, rowArguments))
+                    return null;
+            }
+            var labels = new List<string>(constructions.Count);
+            foreach (var construction in constructions)
+            {
+                labels.Add(rowArguments is null
+                    ? ConstructionLabel(target.interfaceId, construction, NeoGenericResolution.EmptyEnv)
+                    : NeoReferenceTypes.Format(client, new InterfaceTypeInfo
+                    {
+                        type = MemberKind.Interface,
+                        required = true,
+                        interfaceId = target.interfaceId,
+                        typeArguments = ConstructionTypeArguments(construction, rowClassId, rowArguments),
+                    }));
+            }
             string wanted = NeoReferenceTypes.Format(client, new InterfaceTypeInfo
             {
                 type = MemberKind.Interface,
@@ -387,10 +546,10 @@ namespace NeoCompose.Runtime
                 interfaceId = target.interfaceId,
                 typeArguments = target.typeArguments,
             });
-            return $"{ClassName(rowClassId)} implements {implemented}, not {wanted}";
+            return $"{ClassName(rowClassId)} implements {ListLabel(labels)}, not {wanted}";
         }
 
-        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; one naming the row's params without <paramref name="rowArguments"/> is skipped. A param nothing closes is its own argument, equal only to itself.</summary>
+        /// <summary><paramref name="construction"/>'s positions convert to <paramref name="target"/>'s arguments, by variance where the interface declares it (P127 §4.8); one naming the row's params without <paramref name="rowArguments"/> is skipped. A param nothing closes is its own argument, equal only to itself.</summary>
         private bool ConstructionMatches(
             IReadOnlyDictionary<string, TypeBinding> construction,
             string rowClassId,
@@ -409,7 +568,7 @@ namespace NeoCompose.Runtime
                         continue;
                     return false;
                 }
-                if (!NeoReferenceTypes.InvariantlyEqual(actual, argument))
+                if (!client.TypeRules.ArgumentConverts(client, InterfaceParam(target.interfaceId, position.Key), actual, argument))
                     return false;
             }
             return true;
@@ -456,10 +615,11 @@ namespace NeoCompose.Runtime
                     continue;
                 if (!client.ClassChainContains(classId, rowClassId))
                     continue;
-                if (!TryGetConstruction(classId, target.interfaceId, out IReadOnlyDictionary<string, TypeBinding> construction))
-                    continue;
-                if (ConstructionMatches(construction, classId, target, null))
-                    return ClassName(classId);
+                foreach (var construction in ConstructionList(classId, target.interfaceId))
+                {
+                    if (ConstructionMatches(construction, classId, target, null))
+                        return ClassName(classId);
+                }
             }
             return null;
         }
