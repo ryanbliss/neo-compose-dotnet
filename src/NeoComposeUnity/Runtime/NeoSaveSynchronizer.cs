@@ -2564,8 +2564,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static List<NeoStaticConstruction> CopyConstructions(List<NeoStaticConstruction>? source) =>
-            source is null ? new List<NeoStaticConstruction>() : new List<NeoStaticConstruction>(source);
+        internal static List<NeoStaticConstruction> CopyConstructions(List<NeoStaticConstruction>? source) =>
+            source is null ? new List<NeoStaticConstruction>() : source.Select(entry => new NeoStaticConstruction
+            {
+                memberId = entry.memberId,
+                construction = entry.construction,
+                value = entry.value,
+            }).ToList();
 
         private static GameSaveRecordDescriptor? FindValueDescriptor(
             GameSaveRecordCache? cache,

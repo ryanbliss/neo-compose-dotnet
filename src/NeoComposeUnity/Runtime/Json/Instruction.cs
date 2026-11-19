@@ -412,7 +412,10 @@ namespace NeoCompose.Runtime.Json
 
     public sealed class ChangeListenerTarget
     {
-        public Pointer owner = null!;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? kind;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Pointer? owner;
         public string memberId = null!;
         public TypeInfo typeInfo = null!;
         public string writability = null!;
@@ -536,8 +539,18 @@ namespace NeoCompose.Runtime.Json
             {
                 if (obj["target"] is not JObject target)
                     throw new JsonSerializationException("Change listener instruction requires a target.");
-                if (target["owner"] is not JObject)
-                    throw new JsonSerializationException("Change listener target requires an owner pointer.");
+                if (target.Value<string>("kind") == "static")
+                {
+                    if (target["owner"] is not null)
+                        throw new JsonSerializationException("Static change listener target cannot have an owner pointer.");
+                }
+                else
+                {
+                    if (target["kind"] is not null)
+                        throw new JsonSerializationException("Change listener target kind must be static or absent.");
+                    if (target["owner"] is not JObject)
+                        throw new JsonSerializationException("Change listener target requires an owner pointer.");
+                }
                 if (string.IsNullOrWhiteSpace(target["memberId"]?.Value<string>()))
                     throw new JsonSerializationException("Change listener target requires a member id.");
                 if (target["typeInfo"] is not JObject)
