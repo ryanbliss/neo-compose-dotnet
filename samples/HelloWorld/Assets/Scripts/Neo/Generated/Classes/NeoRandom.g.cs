@@ -21,13 +21,13 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoRandom writable);
 
-        float Range(float min, float max);
+        float Value();
 
         int Range(int min, int max);
 
-        int Seed { get; set; }
+        float Range(float min, float max);
 
-        float Value();
+        int Seed { get; set; }
     }
 
     public sealed partial class NeoRandom : NeoGeneratedClassValue, IReadOnlyNeoRandom
@@ -103,6 +103,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoRandom>(out writable);
         }
 
+        private int _constructorSeed
+        {
+            get
+            {
+                if (TryReadDetached("_constructorSeed", out object? detachedValue))
+                {
+                    return Convert.ToInt32(detachedValue);
+                }
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("_constructorSeed")) ?? throw new InvalidOperationException("Required int '_constructorSeed' has no value.");
+            }
+        }
+
 
 
 
@@ -123,27 +135,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
 
 
-        private int _constructorSeed
+        public float Value()
         {
-            get
-            {
-                if (TryReadDetached("_constructorSeed", out object? detachedValue))
-                {
-                    return Convert.ToInt32(detachedValue);
-                }
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("_constructorSeed")) ?? throw new InvalidOperationException("Required int '_constructorSeed' has no value.");
-            }
-        }
-
-        private int GetSeed()
-        {
-            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_9d442bde-25e8-51af-baab-08e99947edcd", this, new object?[] { });
-            return Convert.ToInt32(result);
-        }
-
-        public float Range(float min, float max)
-        {
-            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_5b15f87c-3ea4-57d8-9156-f12366b73b3b", this, new object?[] { min, max });
+            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_135e16a9-1996-5e5b-9c2a-730b2896a2cd", this, new object?[] { });
             return Convert.ToSingle(result);
         }
 
@@ -153,33 +147,39 @@ namespace HelloWorld.Assets.Scripts.Neo
             return Convert.ToInt32(result);
         }
 
+        public float Range(float min, float max)
+        {
+            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_5b15f87c-3ea4-57d8-9156-f12366b73b3b", this, new object?[] { min, max });
+            return Convert.ToSingle(result);
+        }
+
+        private int GetSeed()
+        {
+            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_9d442bde-25e8-51af-baab-08e99947edcd", this, new object?[] { });
+            return Convert.ToInt32(result);
+        }
+
         [NeoMemberMethod("system_1eea1de7-5a9b-55e6-8d59-5d27f829d4db")]
         private void SetSeed(int seed)
         {
             NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_1eea1de7-5a9b-55e6-8d59-5d27f829d4db", this, new object?[] { seed });
         }
 
-        public float Value()
-        {
-            var result = NeoCompose.Runtime.NeoScript.NSGetterEvaluator.InvokeRandomFunction(client, "system_135e16a9-1996-5e5b-9c2a-730b2896a2cd", this, new object?[] { });
-            return Convert.ToSingle(result);
-        }
-
         public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<int> Seed = new("Seed");
-
             internal static readonly NeoField<int> _constructorSeed = new("_constructorSeed");
+
+            public static readonly NeoField<int> Seed = new("Seed");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Seed] = () => null,
                 [Fields._constructorSeed] = () => null,
+                [Fields.Seed] = () => null,
             };
         }
 
@@ -197,8 +197,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Seed] = () => Seed,
                 [Fields._constructorSeed] = () => _constructorSeed,
+                [Fields.Seed] = () => Seed,
             };
         }
 

@@ -1,0 +1,8 @@
+@id("system_15d87ce2-551e-5c05-adde-f9d84ad376fb")
+@system(kind: .ScriptRuntime)
+class NeoNullReferenceError : NeoError {
+  @id("system_22c5afbb-36d1-59c9-9302-d65c437e25d9")
+  public NeoNullReferenceError(string message)
+  : base(message: message) {
+  }
+}

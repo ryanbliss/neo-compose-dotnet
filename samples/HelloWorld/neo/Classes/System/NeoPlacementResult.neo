@@ -1,0 +1,15 @@
+@id("system_8244dd57-5f81-569e-96b8-6a4d46dc5e09")
+@system(kind: .WorldAuthoring, worldKind: .PlacementResult)
+sealed class NeoPlacementResult(bool ok, string? errorCode = null, string? message = null) {
+  @id("system_c12faebb-e7f3-5b4d-8745-812cfcabf565")
+  @system(kind: .WorldAuthoring)
+  public virtual readonly string? ErrorCode = errorCode;
+
+  @id("system_eb4cc383-f5b3-54da-ae08-4cbf2269161f")
+  @system(kind: .WorldAuthoring)
+  public virtual readonly string? Message = message;
+
+  @id("system_3482fd2b-8aa3-58cd-8695-1c7a6b38a8ae")
+  @system(kind: .WorldAuthoring)
+  public virtual readonly bool Ok = ok;
+}

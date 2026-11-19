@@ -5,8 +5,8 @@
     DefaultObjectLayer,
   ],
   defaultLayer:
-    @id("neo-tile-grid-record-relations-v1-relation-a3b613dd556dace5f06bde8295442753")
-    DefaultObjectLayer
+  @id("neo-tile-grid-record-relations-v1-relation-a3b613dd556dace5f06bde8295442753")
+  DefaultObjectLayer
 )
 class ExitPromptObject37f67d : ExitPromptObject {
   @id("neo-tile-grid-record-relations-v1-member-31465119e4c7dde8767888fe5d0bf854")

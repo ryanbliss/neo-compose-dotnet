@@ -50,6 +50,7 @@ namespace NeoCompose.Tests
                 {
                     type = InstructionKind.Assign,
                     operatorValue = "=",
+                    bindings = assignment.bindings,
                     target = assignment.target,
                     pointer = new FunctionPointer
                     {
@@ -65,7 +66,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 },
-                new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=", target = assignment.target, pointer = assignment.target.pointer },
+                new AssignInstruction { type = InstructionKind.Assign, operatorValue = "=", bindings = assignment.bindings, target = assignment.target, pointer = assignment.target.pointer },
                 assignment,
             };
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);

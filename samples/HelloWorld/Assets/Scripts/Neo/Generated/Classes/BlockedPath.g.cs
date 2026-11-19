@@ -48,22 +48,22 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTile>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, Enabled, Name, Position, Size, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
+        public BlockedPath(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoTile>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, Tiles, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTile>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoTile>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "system_98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BootGlyphSealLocked", "e0316e12-b70d-4d4a-9c16-1861ce394849", BootGlyphSealLocked),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BootGlyphSealReady", "0659d085-0267-4d6e-8e18-b726f393f740", BootGlyphSealReady)
@@ -163,19 +163,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<int> Count = new("Count");
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             internal static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
+
+            public static readonly NeoField<int> Count = new("Count");
 
             public static readonly NeoField<NeoDialogueReference> BootGlyphSealLocked = new("BootGlyphSealLocked");
 
@@ -186,13 +186,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.Count] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.Tiles] = () => null,
+                [Fields.Count] = () => null,
                 [Fields.BootGlyphSealLocked] = () => null,
                 [Fields.BootGlyphSealReady] = () => null,
             };
@@ -212,13 +212,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.Count] = () => Count,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.Tiles] = () => Tiles,
+                [Fields.Count] = () => Count,
                 [Fields.BootGlyphSealLocked] = () => BootGlyphSealLocked,
                 [Fields.BootGlyphSealReady] = () => BootGlyphSealReady,
             };

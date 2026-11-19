@@ -258,7 +258,7 @@ namespace NeoCompose.Tests
             var retargeted = ObjectValue("thing-instance", "thing-class");
             retargeted.instanceConstructorId = "thing-ctor";
             retargeted.constructorArgs = new Dictionary<string, JToken?> { ["__arg_0__"] = "alternate-payload" };
-            retargeted.genericBindings = new Dictionary<string, string>(((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
+            retargeted.genericBindings = new Dictionary<string, TypeBinding>(((ObjectMemberValue)data.values["thing-instance"]).genericBindings!);
             ((JObject)incoming["values"]!)[retargeted.id] = JObject.FromObject(retargeted);
             client.ApplyExternalSaveContent(incoming.ToString());
             Assert.AreEqual(count + 1, client.VirtualConstructionCount);

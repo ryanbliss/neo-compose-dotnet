@@ -38,6 +38,19 @@ namespace NeoCompose.Tests.ReferenceParity
         /// The object's box collider, or null for none. Any world object can carry one: placed objects, nested children, and sprites alike.
         /// </summary>
         new IReadOnlyNeoCollider? Collider { get; }
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid;
+
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        IReadOnlyNeoTileGrid? GetArea();
     }
 
     public abstract partial class NeoObjectBase : NeoGeneratedWorldObjectValue, IReadOnlyNeoObjectBase, INeoWorldObjectValue, INeoColliderSource
@@ -54,7 +67,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "56151cfe-c6f1-4e7d-996b-17b2fd850a11" => new Critter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
+                    "4809822a-06bf-4e71-9185-8732a251e6a9" => new Critter(factoryClient, factoryNode, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -67,7 +80,7 @@ namespace NeoCompose.Tests.ReferenceParity
                 var clientClassId = factoryNode.ClassId;
                 return clientClassId switch
                 {
-                    "56151cfe-c6f1-4e7d-996b-17b2fd850a11" => new Critter(factoryClient, factoryNode, false, factoryNode.ownership),
+                    "4809822a-06bf-4e71-9185-8732a251e6a9" => new Critter(factoryClient, factoryNode, false, factoryNode.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -214,6 +227,22 @@ namespace NeoCompose.Tests.ReferenceParity
                 return child.value?.value is null ? null : global::NeoCompose.Tests.ReferenceParity.NeoCollider.Create(client, child);
             }
         }
+
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public virtual T? GetArea<T>() where T : class, IReadOnlyNeoTileGrid
+        {
+            var result = client.ScriptGridQueries.Invoke("system_7ad477e2-be5b-4892-b9ba-2a2f2476988d", this, new object?[] { }, client.TypeArguments.Table<System.ValueTuple<T>>());
+            return result is null ? null : NeoGeneratedTypesSupport.ReadTypeArgument<T>(client, NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, false, static (factoryClient, factoryNode) => NeoTileGrid.Create(factoryClient, factoryNode), static (factoryClient, factoryNode) => NeoTileGrid.CreateWritable(factoryClient, factoryNode), static (factoryClient, factoryValue, factorySaved) => NeoTileGrid.CreateDetached(factoryClient, factoryValue, factorySaved)), "T", TestProjectNeo.NeoReadOnlyValueFactories, TestProjectNeo.NeoWritableValueFactories);
+        }
+
+        /// <summary>
+        /// The nearest tile grid that owns this value, or null when no grid owns it or that grid is not a T. Nested children answer with their placed root's grid.
+        /// </summary>
+        public IReadOnlyNeoTileGrid? GetArea()
+            => GetArea<IReadOnlyNeoTileGrid>();
 
         public sealed class Fields
         {

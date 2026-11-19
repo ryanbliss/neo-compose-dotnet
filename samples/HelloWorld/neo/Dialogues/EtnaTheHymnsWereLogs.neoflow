@@ -37,9 +37,9 @@ sealed class EtnaTheHymnsWereLogs : NeoDialogue {
     group: Visits.High,
     order: 0,
     when: [
-    @id("2750ef9f-5c09-5098-85b5-83a86b862d4d")
-    Condition1,
-  ],
+      @id("2750ef9f-5c09-5098-85b5-83a86b862d4d")
+      Condition1,
+    ],
     limit: 1,
   ) => H1;
 

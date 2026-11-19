@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
 
         /// <summary>The smallest current export: four empty project roots.</summary>
         public const string ProjectJson = @"{
-  ""metadata"": { ""schemaVersion"": 46, ""projectId"": ""project-1"", ""versionId"": ""v1"", ""semver"": { ""label"": ""1.0"" } },
+  ""metadata"": { ""schemaVersion"": 47, ""projectId"": ""project-1"", ""versionId"": ""v1"", ""semver"": { ""label"": ""1.0"" } },
   ""project"": {
     ""id"": ""project-1"",
     ""name"": ""Save Tests"",
@@ -56,6 +56,7 @@ namespace NeoCompose.Tests
 
         public static string SaveContent(string name, string values = "{}") =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
+            "\"requiredSaveFormatRevision\":" + NeoSaveFormat.P127Revision + "," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"values\":" + values + "," +
             "\"createdAt\":1,\"updatedAt\":2}";
@@ -67,6 +68,7 @@ namespace NeoCompose.Tests
         /// </summary>
         public static string SyncedSaveContent(string name) =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
+            "\"requiredSaveFormatRevision\":" + NeoSaveFormat.P127Revision + "," +
             "\"releaseChannelId\":\"" + TargetChannel + "\"," +
             "\"serverId\":\"server-1\",\"snapshotId\":\"snap-1\"," +
             "\"snapshotRevision\":1,\"synchronizedAt\":3," +
@@ -432,9 +434,14 @@ namespace NeoCompose.Tests
                         recordKind = NeoGameSaveRecordKinds.Value;
                         recordId = value.valueId;
                         break;
-                    case GameSaveStaticBindingSetChange binding:
+                    case GameSaveStaticBindingSetChange { construction: null } binding:
                         recordKind = NeoGameSaveRecordKinds.StaticBinding;
                         recordId = binding.memberId;
+                        break;
+                    case GameSaveStaticBindingSetChange binding:
+                        // The server mints a construction's record id.
+                        recordKind = NeoGameSaveRecordKinds.StaticConstruction;
+                        recordId = $"construction-{chunkedAppends.Count}-{descriptors.Count}";
                         break;
                     case GameSaveStaticBindingRestoreToAuthoredChange binding:
                         recordKind = NeoGameSaveRecordKinds.StaticBinding;

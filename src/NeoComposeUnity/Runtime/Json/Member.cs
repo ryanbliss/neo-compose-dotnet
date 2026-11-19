@@ -47,6 +47,30 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty("access", NullValueHandling = NullValueHandling.Ignore)]
         private NeoMemberAccessKind? access;
         /// <summary>
+        /// P127 §5. Declaration-local accessor access on an NSProperty row or
+        /// an auto-property field member. Absent means <see cref="Access"/>.
+        /// </summary>
+        [JsonProperty("getterAccess", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? getterAccess;
+        [JsonProperty("setterAccess", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberAccessKind? setterAccess;
+        /// <summary>
+        /// P127 §5. The interface member this class member implements
+        /// explicitly, through one construction. Declaration-local.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ExplicitInterfaceImplementation? explicitImplementation;
+        /// <summary>P127 §5. Declaration-local on field members. Absent means Field.</summary>
+        [JsonProperty("declarationForm", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoMemberDeclarationFormKind? declarationForm;
+        /// <summary>
+        /// P127 §5. Declaration-local. On an NSProperty row, its accessors
+        /// (see <see cref="NSPropertyMember.Accessors"/>); on an auto-property
+        /// field member, <c>Get</c>, <c>GetSet</c> or <c>GetInit</c>.
+        /// </summary>
+        [JsonProperty("accessors", NullValueHandling = NullValueHandling.Ignore)]
+        private NeoPropertyAccessorsKind? accessors;
+        /// <summary>
         /// When set, this member is an *override* of the referenced
         /// member. Most other fields may be absent on overrides;
         /// missing fields resolve from the inherited member via the
@@ -100,6 +124,33 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonIgnore]
         internal string? substitutedDeclarationIdentity;
+
+        /// <summary>
+        /// Runtime-only: the environment this member was read in, when its
+        /// type names its owner's params in a place substitution leaves them
+        /// (<c>Box&lt;List&lt;T&gt;&gt;</c> or <c>List&lt;T&gt;</c> in a
+        /// <c>Hold&lt;T&gt;</c>). The row placed in it reads those params
+        /// through it, as the server walk's <c>ownerEnv</c>. See
+        /// <see cref="NeoGenericResolution.SlotRowEnv"/>.
+        /// </summary>
+        [JsonIgnore]
+        internal IReadOnlyDictionary<string, NeoGenericEnvEntry>? ownerEnvironment;
+
+        // NeoGenericResolution.ReadsOwnerParams, memoized under the schema
+        // resolution it was computed in.
+        [JsonIgnore]
+        internal bool readsOwnerParams;
+
+        [JsonIgnore]
+        internal object? readsOwnerParamsResolution;
+
+        // NeoTypeSources.DefaultRootTypeSource, memoized under the schema
+        // resolution it was computed in.
+        [JsonIgnore]
+        internal NeoTypeSource? defaultRootTypeSource;
+
+        [JsonIgnore]
+        internal object? defaultRootTypeSourceResolution;
 
         // Runtime projection used by class references and grid layer settings.
         // Explicit child bindings win; absent children read declaration defaults.
@@ -315,6 +366,58 @@ namespace NeoCompose.Runtime.Json
             set => DeclaredAccess = value;
         }
 
+        /// <summary>P127 §5. The getter's access: its own when declared, else the member's.</summary>
+        [JsonIgnore]
+        public NeoMemberAccessKind GetterAccess
+        {
+            get => getterAccess ?? Access;
+            set => getterAccess = value;
+        }
+
+        /// <summary>P127 §5. The setter's access: its own when declared, else the member's.</summary>
+        [JsonIgnore]
+        public NeoMemberAccessKind SetterAccess
+        {
+            get => setterAccess ?? Access;
+            set => setterAccess = value;
+        }
+
+        [JsonIgnore]
+        public NeoMemberDeclarationFormKind DeclarationForm
+        {
+            get => declarationForm ?? NeoMemberDeclarationFormKind.Field;
+            set => declarationForm = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredGetterAccess
+        {
+            get => getterAccess;
+            set => getterAccess = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberAccessKind? DeclaredSetterAccess
+        {
+            get => setterAccess;
+            set => setterAccess = value;
+        }
+
+        [JsonIgnore]
+        internal NeoMemberDeclarationFormKind? DeclaredDeclarationForm
+        {
+            get => declarationForm;
+            set => declarationForm = value;
+        }
+
+        /// <summary>The declaration-local <c>accessors</c>, absent when unset (P127 §5).</summary>
+        [JsonIgnore]
+        internal NeoPropertyAccessorsKind? DeclaredAccessors
+        {
+            get => accessors;
+            set => accessors = value;
+        }
+
         /// <summary>The resolved storage placement used by runtime consumers.</summary>
         [JsonIgnore]
         public NeoMemberStorage Storage
@@ -479,6 +582,9 @@ namespace NeoCompose.Runtime.Json
         internal Member ShallowClone()
         {
             var clone = (Member)MemberwiseClone();
+            // A substituted clone's type can differ from its source's.
+            clone.readsOwnerParamsResolution = null;
+            clone.defaultRootTypeSourceResolution = null;
             clone.resolvedShape = resolvedShape?.Clone();
             clone.declaredWireFields = declaredWireFields is null
                 ? null
@@ -836,7 +942,18 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>The declared interface; null on a class member.</summary>
-        internal string? DeclaredInterfaceId => interfaceId;
+        internal string? DeclaredInterfaceId
+        {
+            get => interfaceId;
+            set
+            {
+                interfaceId = value;
+                if (value is null)
+                    return;
+                classId = null;
+                classArguments = null;
+            }
+        }
 
         /// <summary>The declared class or interface, for messages.</summary>
         internal string DeclaredTypeId => classId ?? interfaceId!;
@@ -845,7 +962,7 @@ namespace NeoCompose.Runtime.Json
         internal MemberKind TypeKind => interfaceId is null ? MemberKind.Class : MemberKind.Interface;
 
         /// <summary>The declared class's or interface's arguments.</summary>
-        internal Dictionary<string, GenericBinding>? TypeArguments => classArguments ?? interfaceArguments;
+        internal Dictionary<string, TypeBinding>? TypeArguments => classArguments ?? interfaceArguments;
 
         /// <summary>The declared type as type info.</summary>
         internal TypeInfo DeclaredTypeInfo(bool required, Dictionary<string, TypeInfo>? typeArguments)
@@ -889,7 +1006,8 @@ namespace NeoCompose.Runtime.Json
         /// its arguments, keyed by the interface's param ids (P113 §4.4).
         /// Immutable after creation.
         /// </summary>
-        public Dictionary<string, GenericBinding>? interfaceArguments;
+        [JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? interfaceArguments;
 
         /// <summary>
         /// Selects a full Class value or recursive sparse override graph.
@@ -921,9 +1039,11 @@ namespace NeoCompose.Runtime.Json
         /// keyed by target param id (specs/class-generics.md
         /// Decision 7). Complete-or-absent; immutable after creation.
         /// Absent (<c>null</c>) means a plain (non-constructed) reference —
-        /// the same semantics as the web model.
+        /// the same semantics as the web model. Each argument is a P127 §12.1
+        /// type argument: a closed type or a forwarded parameter.
         /// </summary>
-        public Dictionary<string, GenericBinding>? classArguments;
+        [JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? classArguments;
 
         /// <summary>
         /// Synthetic placement of a class value known only by its row
@@ -949,6 +1069,19 @@ namespace NeoCompose.Runtime.Json
     public sealed class TupleMember : Member<string[]?>
     {
         public string[] elementMemberIds = null!;
+    }
+
+    /// <summary>
+    /// P127 §1.3. An <c>object</c>, <c>ValueType</c>, <c>Enum</c>,
+    /// <c>Type</c>, <c>CultureInfo</c> or <c>NumberFormatInfo</c> slot,
+    /// narrowed by <see cref="objectType"/> (absent means <c>object</c>). A
+    /// held non-row value stores its payload with the row's
+    /// <see cref="MemberValueBase.valueType"/>.
+    /// </summary>
+    public sealed class ObjectMember : Member<object?>
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoObjectTypeKind? objectType;
     }
 
     public sealed class GenericMember : Member<object?>
@@ -1119,7 +1252,9 @@ namespace NeoCompose.Runtime.Json
     /// <c>TValue</c> is <c>object?</c>. <see cref="code"/> is
     /// client-authored NeoScript; <see cref="returnTypeInfo"/> is the
     /// declared return type; <see cref="getter"/> and <see cref="setter"/>
-    /// are the server-compiled IR bodies.
+    /// are the server-compiled IR bodies. A set-only row (P127 §5) has no
+    /// <see cref="code"/> or <see cref="getter"/>, and a contract row has no
+    /// bodies at all.
     /// </summary>
     public sealed class NSPropertyMember : Member<object?>
     {
@@ -1132,6 +1267,18 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType getter = null!;
         public string? setterCode;
         public FunctionWithReturnType? setter;
+
+        /// <summary>
+        /// P127 §5. Absent reads as GetSet with a setter body, otherwise Get.
+        /// An <c>init</c> body (<c>GetInit</c>, <c>Init</c>) is stored in
+        /// <see cref="setterCode"/>.
+        /// </summary>
+        [JsonIgnore]
+        public NeoPropertyAccessorsKind Accessors
+        {
+            get => DeclaredAccessors ?? (setterCode is null ? NeoPropertyAccessorsKind.Get : NeoPropertyAccessorsKind.GetSet);
+            set => DeclaredAccessors = value;
+        }
     }
 
     /// <summary>
@@ -1139,12 +1286,33 @@ namespace NeoCompose.Runtime.Json
     /// the parameter is defaulted; a present wrapper with a null
     /// <see cref="value"/> is an explicit null default. The payload carries no
     /// kind of its own — it is interpreted by the parameter's own
-    /// <c>type</c>/<c>enumId</c>: bool, integer, float, decimal canonical
-    /// string, string, or a single enum option id.
+    /// <c>type</c>/<c>enumId</c>: bool, integer, float (a number or a stored
+    /// float string, P127 §12.1), decimal canonical string, string, a single
+    /// enum option id, or a flags enum's number (P127 §4.1). P127 §4.1's
+    /// <c>{ default: true }</c> form (<see cref="isDefault"/>) carries no
+    /// value: it is the parameter type's default under the call's bindings.
     /// </summary>
     public sealed class ParameterDefaultValue
     {
         public object? value;
+        [JsonProperty("default", NullValueHandling = NullValueHandling.Ignore)]
+        public bool? isDefault;
+
+        public bool ShouldSerializevalue() => isDefault != true;
+    }
+
+    /// <summary>
+    /// P127 §4.3. A parameter's nullable flow attributes. Non-empty when
+    /// present; <see cref="disallowNull"/> is stored only as <c>true</c>.
+    /// </summary>
+    public sealed class ParameterFlow
+    {
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? maybeNullWhen;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? notNullWhen;
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? disallowNull;
     }
 
     [JsonConverter(typeof(FunctionArgumentTypeInfoConverter))]
@@ -1157,6 +1325,15 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public ParameterDefaultValue? defaultValue;
+        /// <summary>P127 §4.3. Absent means by value. An Out parameter takes no default.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoParameterModeKind? mode;
+        /// <summary>P127 §4.3. Nullable flow attributes; absent when none.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public ParameterFlow? flow;
+        /// <summary>P127 §1.3. The narrowing of an Object-kind parameter.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoObjectTypeKind? objectType;
         public string? classId;
         public string? interfaceId;
         public string? enumId;
@@ -1218,13 +1395,27 @@ namespace NeoCompose.Runtime.Json
             TupleElementTypeInfo[]? elements = json["elements"]?.ToObject<TupleElementTypeInfo[]>(serializer);
             if (type == MemberKind.Tuple)
                 TupleTypeInfo.ValidateElements(elements);
+            string name = json.Value<string>("name") ?? throw new JsonSerializationException(
+                "Function argument type info is missing 'name'.");
+            NeoParameterModeKind? mode = json["mode"] is null
+                ? null
+                : StrictRecordShapeEnums.ReadRequired<NeoParameterModeKind>(json, "mode", $"Parameter '{name}'");
+            ParameterDefaultValue? defaultValue = ReadParameterDefault(json["defaultValue"]);
+            if (mode == NeoParameterModeKind.Out && defaultValue is not null)
+            {
+                throw new JsonSerializationException(
+                    $"Out parameter '{name}' cannot declare a default value.");
+            }
+            StrictRecordShapeEnums.ValidateOptional<NeoObjectTypeKind>(json, "objectType", $"Parameter '{name}'");
             return new FunctionArgumentTypeInfo
             {
-                name = json.Value<string>("name") ?? throw new JsonSerializationException(
-                    "Function argument type info is missing 'name'."),
+                name = name,
                 type = type,
                 required = json.Value<bool?>("required") ?? false,
-                defaultValue = ReadParameterDefault(json["defaultValue"]),
+                defaultValue = defaultValue,
+                mode = mode,
+                flow = ReadParameterFlow(json["flow"], name),
+                objectType = json["objectType"] is null ? null : (NeoObjectTypeKind?)json.Value<int>("objectType"),
                 classId = json.Value<string>("classId"),
                 interfaceId = json.Value<string>("interfaceId"),
                 enumId = json.Value<string>("enumId"),
@@ -1274,9 +1465,10 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
-        /// P65 §3.1 — reads the <c>{ value }</c> default wrapper. Only the
-        /// §1.2 constant scalars are legal payloads, so anything structured is
-        /// a malformed export rather than a tolerable unknown.
+        /// P65 §3.1 — reads the <c>{ value }</c> default wrapper, or P127
+        /// §4.1's <c>{ default: true }</c>. Only the §1.2 constant scalars are
+        /// legal payloads, so anything structured is a malformed export rather
+        /// than a tolerable unknown.
         /// </summary>
         private static ParameterDefaultValue? ReadParameterDefault(JToken? token)
         {
@@ -1286,6 +1478,17 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     "Function argument 'defaultValue' must be an object when present.");
+            }
+            if (wrapper.Property("default") is JProperty defaultLiteral)
+            {
+                if (defaultLiteral.Value.Type != JTokenType.Boolean
+                    || !defaultLiteral.Value.Value<bool>()
+                    || wrapper.Count != 1)
+                {
+                    throw new JsonSerializationException(
+                        "Function argument 'defaultValue' must be exactly { default: true } when it declares 'default'.");
+                }
+                return new ParameterDefaultValue { isDefault = true };
             }
             if (!wrapper.TryGetValue("value", out JToken? valueToken))
             {
@@ -1303,6 +1506,47 @@ namespace NeoCompose.Runtime.Json
                     $"Function argument 'defaultValue' payload of type {valueToken.Type} is not a P65 §1.2 constant."),
             };
             return new ParameterDefaultValue { value = value };
+        }
+
+        /// <summary>P127 §4.3. A non-empty <c>flow</c> object of known boolean keys.</summary>
+        private static ParameterFlow? ReadParameterFlow(JToken? token, string name)
+        {
+            if (token is null)
+                return null;
+            if (token is not JObject { Count: > 0 } obj)
+            {
+                throw new JsonSerializationException(
+                    $"Parameter '{name}' field 'flow' must be a non-empty object when present.");
+            }
+            var flow = new ParameterFlow();
+            foreach (JProperty property in obj.Properties())
+            {
+                if (property.Value.Type != JTokenType.Boolean)
+                {
+                    throw new JsonSerializationException(
+                        $"Parameter '{name}' flow field '{property.Name}' must be a boolean.");
+                }
+                bool value = property.Value.Value<bool>();
+                switch (property.Name)
+                {
+                    case "maybeNullWhen":
+                        flow.maybeNullWhen = value;
+                        break;
+                    case "notNullWhen":
+                        flow.notNullWhen = value;
+                        break;
+                    case "disallowNull" when value:
+                        flow.disallowNull = true;
+                        break;
+                    case "disallowNull":
+                        throw new JsonSerializationException(
+                            $"Parameter '{name}' flow field 'disallowNull' must be true when present.");
+                    default:
+                        throw new JsonSerializationException(
+                            $"Parameter '{name}' flow has unknown field '{property.Name}'.");
+                }
+            }
+            return flow;
         }
 
         private static TypeInfo? ReadDelegateReturnType(
@@ -1330,15 +1574,95 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>A type parameter a function declares (P110 §4).</summary>
+    [JsonConverter(typeof(FunctionGenericParamConverter))]
     public sealed class FunctionGenericParam
     {
         public string name = null!;
-        /// <summary>A required Class or Enum type info, or null for none.</summary>
+        /// <summary>
+        /// P127 §4.7. Class, Interface and Enum type infos, and the
+        /// <c>Enum</c> object type info, in source order; non-empty when
+        /// present. Class and Interface entries may be nullable
+        /// (<c>required: false</c>).
+        /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public TypeInfo? constraint;
+        public TypeInfo[]? constraints;
         /// <summary>The type a call that names none binds, or null for none.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TypeInfo? defaultType;
+
+        /// <summary>The class constraint, which C# puts first (CS0406).</summary>
+        [JsonIgnore]
+        public ClassTypeInfo? ClassConstraint =>
+            constraints is { Length: > 0 } ? constraints[0] as ClassTypeInfo : null;
+    }
+
+    /// <summary>
+    /// Strict reader for <see cref="FunctionGenericParam"/>: the P127 §4.7
+    /// <c>constraints</c> list replaces the single <c>constraint</c>.
+    /// Read-only; default serialization handles writes.
+    /// </summary>
+    public sealed class FunctionGenericParamConverter : JsonConverter
+    {
+        public override bool CanWrite => false;
+
+        public override bool CanConvert(Type objectType) => objectType == typeof(FunctionGenericParam);
+
+        public override object? ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null)
+                return null;
+            var obj = NeoJsonObjectReader.Read(reader);
+            string name = obj.Value<string>("name") ?? throw new JsonSerializationException(
+                "Function generic param is missing 'name'.");
+            if (obj.Property("constraint") is not null)
+            {
+                throw new JsonSerializationException(
+                    $"Function generic param '{name}' uses removed field 'constraint'; schema "
+                    + $"{NeoProjectExportContract.CurrentSchemaVersion} requires 'constraints'.");
+            }
+            var parameter = new FunctionGenericParam
+            {
+                name = name,
+                defaultType = obj["defaultType"]?.ToObject<TypeInfo>(serializer),
+            };
+            if (obj.Property("constraints") is not JProperty constraints)
+                return parameter;
+            if (constraints.Value is not JArray { Count: > 0 } list)
+            {
+                throw new JsonSerializationException(
+                    $"Function generic param '{name}' field 'constraints' must be a non-empty array when present.");
+            }
+            parameter.constraints = new TypeInfo[list.Count];
+            for (int index = 0; index < list.Count; index++)
+            {
+                TypeInfo constraint = list[index].ToObject<TypeInfo>(serializer)
+                    ?? throw new JsonSerializationException(
+                        $"Function generic param '{name}' has a null constraint.");
+                bool nullable = constraint is ClassTypeInfo or InterfaceTypeInfo;
+                bool admitted = nullable
+                    || constraint is EnumTypeInfo
+                    || constraint is ObjectTypeInfo { objectType: NeoObjectTypeKind.Enum };
+                if (!admitted || (!constraint.required && !nullable))
+                {
+                    throw new JsonSerializationException(
+                        $"Function generic param '{name}' constraint {index} must be a Class, Interface or Enum type, and only a Class or Interface may be nullable.");
+                }
+                parameter.constraints[index] = constraint;
+            }
+            return parameter;
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotSupportedException();
+        }
     }
 
     /// <summary>Mirror of TS-side <c>TMemberFunction</c>.</summary>
@@ -1352,6 +1676,18 @@ namespace NeoCompose.Runtime.Json
         public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
+
+        /// <summary>P127 §6. Present only as <c>true</c>, on a user-defined operator.</summary>
+        [JsonProperty("operator", NullValueHandling = NullValueHandling.Ignore)]
+        private bool? isOperator;
+
+        [JsonIgnore]
+        public bool IsOperator
+        {
+            get => isOperator == true;
+            set => isOperator = value ? true : null;
+        }
+
 
         [JsonIgnore]
         public NeoFunctionDispatchKind Dispatch
@@ -1431,6 +1767,18 @@ namespace NeoCompose.Runtime.Json
         public FunctionGenericParam[]? genericParams;
         [JsonProperty("dispatch", NullValueHandling = NullValueHandling.Ignore)]
         private NeoFunctionDispatchKind? dispatch;
+
+        /// <summary>P127 §6. Present only as <c>true</c>, on a user-defined operator.</summary>
+        [JsonProperty("operator", NullValueHandling = NullValueHandling.Ignore)]
+        private bool? isOperator;
+
+        [JsonIgnore]
+        public bool IsOperator
+        {
+            get => isOperator == true;
+            set => isOperator = value ? true : null;
+        }
+
 
         [JsonIgnore]
         public NeoFunctionDispatchKind Dispatch
@@ -1707,6 +2055,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(SetMember);
                 case MemberKind.Tuple:
                     return typeof(TupleMember);
+                case MemberKind.Object:
+                    return typeof(ObjectMember);
                 case MemberKind.Class:
                     return typeof(ClassMember);
                 case MemberKind.Enum:

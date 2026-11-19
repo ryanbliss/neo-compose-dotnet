@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 46,
+    "schemaVersion": 47,
     "projectId": "project-id",
     "versionId": "p125",
     "semver": {
@@ -4347,17 +4347,19 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 22,
-            "required": true,
-            "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
-            "typeArguments": {
-              "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-                "type": 2,
-                "required": true
+          "constraints": [
+            {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 2,
+                  "required": true
+                }
               }
             }
-          }
+          ]
         }
       ],
       "code": "int sum = 0; foreach (var item in values) sum += item; return sum;",
@@ -5292,11 +5294,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 22,
-            "required": true,
-            "interfaceId": "12500000-0000-4000-8000-000000000052"
-          }
+          "constraints": [
+            {
+              "type": 22,
+              "required": true,
+              "interfaceId": "12500000-0000-4000-8000-000000000052"
+            }
+          ]
         }
       ],
       "code": "int sum = 0; foreach (var item in values) sum += item; return sum;",
@@ -8833,17 +8837,19 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 22,
-            "required": true,
-            "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
-            "typeArguments": {
-              "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-                "type": 2,
-                "required": true
+          "constraints": [
+            {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 2,
+                  "required": true
+                }
               }
             }
-          }
+          ]
         }
       ],
       "code": "return value;",
@@ -8960,17 +8966,19 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 22,
-            "required": true,
-            "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
-            "typeArguments": {
-              "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-                "type": 2,
-                "required": true
+          "constraints": [
+            {
+              "type": 22,
+              "required": true,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "typeArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "type": 2,
+                  "required": true
+                }
               }
             }
-          }
+          ]
         }
       ],
       "code": "return value;",
@@ -9344,28 +9352,6 @@
         }
       }
     },
-    "21b38731-92cd-5453-97a0-e5b257ee117a": {
-      "id": "21b38731-92cd-5453-97a0-e5b257ee117a",
-      "name": "T",
-      "kind": 7,
-      "requirement": 1,
-      "modifier": 1,
-      "classId": "12500000-0000-4000-8000-000000000069",
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "38e4c9f5-a2b8-55a5-89fe-e203b65214cc": {
-      "id": "38e4c9f5-a2b8-55a5-89fe-e203b65214cc",
-      "name": "T",
-      "kind": 7,
-      "requirement": 1,
-      "modifier": 1,
-      "classId": "12500000-0000-4000-8000-000000000069",
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
     "4ed69bfa-b85a-5778-8f83-ae7723e75bad": {
       "createdAt": 0,
       "updatedAt": 0,
@@ -9381,67 +9367,6 @@
       },
       "valueId": "1454090d-35f9-594e-b134-05cb3f6c1d60"
     },
-    "5873f6c3-afd4-5913-8e05-6a82b10f6531": {
-      "id": "5873f6c3-afd4-5913-8e05-6a82b10f6531",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "58bd7b1e-b172-558b-8b39-c97eb56d0f19": {
-      "id": "58bd7b1e-b172-558b-8b39-c97eb56d0f19",
-      "name": "T",
-      "kind": 7,
-      "requirement": 1,
-      "modifier": 1,
-      "classId": "12500000-0000-4000-8000-000000000069",
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "590c48e2-b297-5dcf-8ba3-62514e13c66c": {
-      "id": "590c48e2-b297-5dcf-8ba3-62514e13c66c",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "70562ab6-0c0a-54d8-a3d2-ddee0025d8c3": {
-      "id": "70562ab6-0c0a-54d8-a3d2-ddee0025d8c3",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "7edd3295-d597-5ed7-a818-6ced8c7e5103": {
-      "id": "7edd3295-d597-5ed7-a818-6ced8c7e5103",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
-    "8381d5c8-c9c6-588f-91ea-7c89518425dc": {
-      "id": "8381d5c8-c9c6-588f-91ea-7c89518425dc",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
-    },
     "aaf61471-e678-5ffc-ba1c-a97ff55388ec": {
       "id": "aaf61471-e678-5ffc-ba1c-a97ff55388ec",
       "name": "Item",
@@ -9451,8 +9376,11 @@
       "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
       "interfaceArguments": {
         "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-          "kind": 1,
-          "memberId": "70562ab6-0c0a-54d8-a3d2-ddee0025d8c3"
+          "kind": 0,
+          "type": {
+            "type": 2,
+            "required": true
+          }
         }
       },
       "projectId": "project-id",
@@ -9487,8 +9415,11 @@
       "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
       "interfaceArguments": {
         "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-          "kind": 1,
-          "memberId": "590c48e2-b297-5dcf-8ba3-62514e13c66c"
+          "kind": 0,
+          "type": {
+            "type": 2,
+            "required": true
+          }
         }
       },
       "projectId": "project-id",
@@ -9504,16 +9435,6 @@
       "kind": 7,
       "requirement": 1,
       "classId": "12500000-0000-4000-8000-000000000006"
-    },
-    "e061dac1-cb6d-5790-bef4-a0d6e475147e": {
-      "id": "e061dac1-cb6d-5790-bef4-a0d6e475147e",
-      "name": "T",
-      "kind": 2,
-      "requirement": 1,
-      "modifier": 1,
-      "projectId": "project-id",
-      "createdAt": 1700000000000,
-      "updatedAt": 1700000000000
     },
     "root-assets-member-id": {
       "createdAt": 0,
@@ -9570,17 +9491,20 @@
       "id": "12500000-0000-4000-8000-000000000052",
       "name": "IInts",
       "members": {},
-      "extendsInterfaceIds": [
-        "system_d1413390-a2a6-4137-a8f8-e931da847345"
-      ],
-      "extendsInterfaceArguments": {
-        "system_d1413390-a2a6-4137-a8f8-e931da847345": {
-          "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-            "kind": 1,
-            "memberId": "5873f6c3-afd4-5913-8e05-6a82b10f6531"
+      "extendsInterfaces": [
+        {
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "arguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "kind": 0,
+              "type": {
+                "type": 2,
+                "required": true
+              }
+            }
           }
         }
-      },
+      ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9595,22 +9519,34 @@
           "name": "T"
         }
       ],
-      "extendsInterfaceIds": [
-        "12500000-0000-4000-8000-000000000080",
-        "system_d1413390-a2a6-4137-a8f8-e931da847345"
-      ],
-      "extendsInterfaceArguments": {
-        "12500000-0000-4000-8000-000000000080": {
-          "48d2102b-de51-4812-9aff-4dcaca00a326": {
-            "genericParamId": "b4365a74-6efa-420b-b453-5fd0ca70d388"
+      "extendsInterfaces": [
+        {
+          "interfaceId": "12500000-0000-4000-8000-000000000080",
+          "arguments": {
+            "48d2102b-de51-4812-9aff-4dcaca00a326": {
+              "kind": 1,
+              "owner": {
+                "type": 22,
+                "interfaceId": "12500000-0000-4000-8000-000000000071"
+              },
+              "param": "b4365a74-6efa-420b-b453-5fd0ca70d388"
+            }
           }
         },
-        "system_d1413390-a2a6-4137-a8f8-e931da847345": {
-          "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-            "genericParamId": "b4365a74-6efa-420b-b453-5fd0ca70d388"
+        {
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "arguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "kind": 1,
+              "owner": {
+                "type": 22,
+                "interfaceId": "12500000-0000-4000-8000-000000000071"
+              },
+              "param": "b4365a74-6efa-420b-b453-5fd0ca70d388"
+            }
           }
         }
-      },
+      ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9684,7 +9620,6 @@
           "name": "T"
         }
       ],
-      "extendsInterfaceIds": [],
       "id": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
       "projectId": "project-id",
       "system": {
@@ -9724,7 +9659,6 @@
           "name": "T"
         }
       ],
-      "extendsInterfaceIds": [],
       "id": "system_d1413390-a2a6-4137-a8f8-e931da847345",
       "projectId": "project-id",
       "system": {
@@ -9748,17 +9682,20 @@
         "MoveNext",
         "Dispose"
       ],
-      "implementsInterfaceIds": [
-        "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a"
-      ],
-      "implementsInterfaceArguments": {
-        "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a": {
-          "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
-            "kind": 1,
-            "memberId": "8381d5c8-c9c6-588f-91ea-7c89518425dc"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "system_1604985c-2d92-4aca-9fcb-16a667aaaf1a",
+          "arguments": {
+            "system_8c8392fe-41f0-4116-9ac8-e325a187d8aa": {
+              "kind": 0,
+              "type": {
+                "type": 2,
+                "required": true
+              }
+            }
           }
         }
-      },
+      ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -9770,8 +9707,10 @@
         "GetEnumerator": "12500000-0000-4000-8000-000000000007",
         "Values": "12500000-0000-4000-8000-000000000015"
       },
-      "implementsInterfaceIds": [
-        "12500000-0000-4000-8000-000000000052"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "12500000-0000-4000-8000-000000000052"
+        }
       ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
@@ -9865,16 +9804,21 @@
         "Value",
         "GetEnumerator"
       ],
-      "implementsInterfaceIds": [
-        "system_d1413390-a2a6-4137-a8f8-e931da847345"
-      ],
-      "implementsInterfaceArguments": {
-        "system_d1413390-a2a6-4137-a8f8-e931da847345": {
-          "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-            "genericParamId": "f00251d8-a780-45db-b302-9701e01ed751"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+          "arguments": {
+            "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+              "kind": 1,
+              "owner": {
+                "type": 7,
+                "classId": "12500000-0000-4000-8000-000000000020"
+              },
+              "param": "f00251d8-a780-45db-b302-9701e01ed751"
+            }
           }
         }
-      },
+      ],
       "genericParams": [
         {
           "id": "f00251d8-a780-45db-b302-9701e01ed751",
@@ -9912,8 +9856,11 @@
       "extendsClassId": "12500000-0000-4000-8000-000000000020",
       "extendsGenericBindings": {
         "f00251d8-a780-45db-b302-9701e01ed751": {
-          "kind": 1,
-          "memberId": "e061dac1-cb6d-5790-bef4-a0d6e475147e"
+          "kind": 0,
+          "type": {
+            "type": 2,
+            "required": true
+          }
         }
       },
       "requiredConstructorId": "15afee1c-39f1-5c9d-b5cf-fa5766f9873f",
@@ -9931,16 +9878,21 @@
         {
           "id": "dbeaba28-effd-4206-b504-0bdba6e1ab0a",
           "name": "T",
-          "constraint": {
-            "kind": 2,
-            "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
-            "interfaceArguments": {
-              "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
-                "kind": 1,
-                "memberId": "7edd3295-d597-5ed7-a818-6ced8c7e5103"
+          "constraints": [
+            {
+              "kind": 2,
+              "interfaceId": "system_d1413390-a2a6-4137-a8f8-e931da847345",
+              "interfaceArguments": {
+                "system_b0cbeea1-21c9-4164-b6de-20f4f3fbbfa2": {
+                  "kind": 0,
+                  "type": {
+                    "type": 2,
+                    "required": true
+                  }
+                }
               }
             }
-          }
+          ]
         }
       ],
       "projectId": "project-id",
@@ -9968,17 +9920,21 @@
         "Value",
         "GetEnumerator"
       ],
-      "implementsInterfaceIds": [
-        "12500000-0000-4000-8000-000000000071"
-      ],
-      "implementsInterfaceArguments": {
-        "12500000-0000-4000-8000-000000000071": {
-          "b4365a74-6efa-420b-b453-5fd0ca70d388": {
-            "kind": 1,
-            "memberId": "21b38731-92cd-5453-97a0-e5b257ee117a"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "12500000-0000-4000-8000-000000000071",
+          "arguments": {
+            "b4365a74-6efa-420b-b453-5fd0ca70d388": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "12500000-0000-4000-8000-000000000069"
+              }
+            }
           }
         }
-      },
+      ],
       "projectId": "project-id",
       "createdAt": 1700000000000,
       "updatedAt": 1700000000000
@@ -10006,21 +9962,29 @@
         "GetEnumerator": "12500000-0000-4000-8000-000000000079"
       },
       "extendsClassId": "12500000-0000-4000-8000-000000000076",
-      "implementsInterfaceIds": [
-        "12500000-0000-4000-8000-000000000071"
-      ],
-      "implementsInterfaceArguments": {
-        "12500000-0000-4000-8000-000000000071": {
-          "b4365a74-6efa-420b-b453-5fd0ca70d388": {
-            "kind": 1,
-            "memberId": "58bd7b1e-b172-558b-8b39-c97eb56d0f19"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "12500000-0000-4000-8000-000000000071",
+          "arguments": {
+            "b4365a74-6efa-420b-b453-5fd0ca70d388": {
+              "kind": 0,
+              "type": {
+                "type": 7,
+                "required": true,
+                "classId": "12500000-0000-4000-8000-000000000069"
+              }
+            }
           }
         }
-      },
+      ],
       "extendsGenericBindings": {
         "d5e2682f-7647-4035-861e-d0259ea4061c": {
-          "kind": 1,
-          "memberId": "38e4c9f5-a2b8-55a5-89fe-e203b65214cc"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "12500000-0000-4000-8000-000000000069"
+          }
         }
       },
       "projectId": "project-id",

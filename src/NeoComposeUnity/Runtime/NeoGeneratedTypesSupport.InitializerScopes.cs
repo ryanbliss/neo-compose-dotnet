@@ -251,8 +251,11 @@ namespace NeoCompose.Runtime
                 if (member is not ClassMember && member is not ListMember && member is not DictionaryMember && member is not TupleMember)
                     continue;
                 var root = MemberValueFactory.CreateFromDefault(member, "initializer-index", default, default);
-                if (root is not null)
-                    Walk(root, member, member.id);
+                if (root is null)
+                    continue;
+                // A default root reads its entries as its member reads them (P127 §12.1).
+                root.typeSource = NeoTypeSources.DefaultRootTypeSource(client, member, root);
+                Walk(root, member, member.id);
             }
             return index;
 

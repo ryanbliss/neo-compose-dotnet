@@ -109,7 +109,8 @@ namespace NeoCompose.Tests
         public void ReadOnlySdkListWorksAsAnEnumerableWithoutMaterialization()
         {
             var data = JObject.Parse(File.ReadAllText("Packages/com.ryanbliss.neocompose/Tests/sequence-generated-export.json"));
-            const string entryId = "8381d5c8-c9c6-588f-91ea-7c89518425dc";
+            const string entryId = "number-entry";
+            data["members"]![entryId] = new JObject { ["id"] = entryId, ["name"] = "Entry", ["projectId"] = "project-id", ["kind"] = 2, ["requirement"] = 1 };
             data["members"]!["numbers"] = new JObject { ["id"] = "numbers", ["name"] = "Numbers", ["projectId"] = "project-id", ["kind"] = 6, ["entryMemberId"] = entryId };
             data["values"]!["number-a"] = new JObject { ["id"] = "number-a", ["projectId"] = "project-id", ["memberId"] = entryId, ["value"] = 2 };
             data["values"]!["number-b"] = new JObject { ["id"] = "number-b", ["projectId"] = "project-id", ["memberId"] = entryId, ["value"] = 3 };
@@ -153,7 +154,7 @@ namespace NeoCompose.Tests
                 ["kind"] = 7,
                 ["interfaceId"] = NeoSequenceContract.Enumerator,
                 ["requirement"] = 0,
-                ["typeArguments"] = new JObject { [NeoSequenceContract.EnumeratorElement] = new JObject { ["kind"] = 1, ["memberId"] = "8381d5c8-c9c6-588f-91ea-7c89518425dc" } },
+                ["typeArguments"] = new JObject { [NeoSequenceContract.EnumeratorElement] = new JObject { ["kind"] = 0, ["type"] = new JObject { ["type"] = 2, ["required"] = true } } },
             };
             string field = "cursor-field";
             if (nested)

@@ -112,18 +112,7 @@ namespace NeoCompose.Runtime
             || after.instanceConstructorId != before.instanceConstructorId
             || (after.value is null) != (before.value is null)
             || !NeoSemanticJson.MapsEqual(after.constructorArgs, before.constructorArgs)
-            || !BindingsEqual(after.genericBindings, before.genericBindings);
+            || !TypeBinding.BindingsEqual(after.genericBindings, before.genericBindings);
 
-        private static bool BindingsEqual(Dictionary<string, string>? left, Dictionary<string, string>? right)
-        {
-            if (left is not { Count: > 0 } || right is not { Count: > 0 })
-                return (left?.Count ?? 0) == (right?.Count ?? 0);
-            if (left.Count != right.Count)
-                return false;
-            foreach (var pair in left)
-                if (!right.TryGetValue(pair.Key, out string? other) || other != pair.Value)
-                    return false;
-            return true;
-        }
     }
 }

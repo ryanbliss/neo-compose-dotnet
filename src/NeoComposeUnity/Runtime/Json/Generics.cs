@@ -11,10 +11,10 @@ using Newtonsoft.Json.Linq;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
-    /// Constraint on a generic parameter. Absent (a null field on the
-    /// declaration) means any eligible member type. Exactly one of
-    /// <see cref="classId"/> / <see cref="enumId"/> is set, matching
-    /// <see cref="kind"/> — enforced by
+    /// One constraint on a generic parameter. The fields set match
+    /// <see cref="kind"/>: <see cref="classId"/> for Class,
+    /// <see cref="enumId"/> for Enum, <see cref="interfaceId"/> for
+    /// Interface, and none for AnyEnum (P127 §4.7) — enforced by
     /// <see cref="GenericParamConstraintConverter"/> on read.
     /// </summary>
     [JsonConverter(typeof(GenericParamConstraintConverter))]
@@ -27,13 +27,10 @@ namespace NeoCompose.Runtime.Json
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string? classId;
 
-        /// <summary>
-        /// Optional constructed arguments for a Class constraint. Bindings use
-        /// the same canonical numeric discriminators as class arguments on a
-        /// member.
-        /// </summary>
+        /// <summary>Optional constructed arguments for a Class constraint (P127 §12.1 type arguments).</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, GenericBinding>? classArguments;
+        [JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? classArguments;
 
         /// <summary>Set iff <see cref="kind"/> is Enum.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -45,46 +42,70 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>Present iff <see cref="interfaceId"/> names a generic interface.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public Dictionary<string, GenericBinding>? interfaceArguments;
+        [JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? interfaceArguments;
+
+        /// <summary>
+        /// P127 §4.2. A nullable constraint annotation
+        /// (<c>INumber&lt;TSelf&gt;?</c>) on a Class or Interface arm. Only
+        /// <c>true</c> is stored.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool? nullable;
     }
 
     /// <summary>
-    /// One generic parameter declared by a class. <see cref="id"/> is
-    /// stable (never regenerated); <see cref="name"/> is the C#-identifier
-    /// display name and a cross-repo codegen contract — renames are safe,
-    /// ids are load-bearing (specs/class-generics.md Decision 2/3).
+    /// One generic parameter declared by a class or interface.
+    /// <see cref="id"/> is stable (never regenerated); <see cref="name"/> is
+    /// the C#-identifier display name and a cross-repo codegen contract —
+    /// renames are safe, ids are load-bearing (specs/class-generics.md
+    /// Decision 2/3).
     /// </summary>
+    [JsonConverter(typeof(GenericParamDeclarationConverter))]
     public class GenericParamDeclaration
     {
         public string id = null!;
         public string name = null!;
-        public GenericParamConstraint? constraint;
+
+        /// <summary>P127 §4.7. Non-empty when present, in source order.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public List<GenericParamConstraint>? constraints;
+
+        /// <summary>P127 §4.8. Interface params only; absent means invariant.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public NeoGenericParamVarianceKind? variance;
+
+        /// <summary>The class constraint, which C# puts first (CS0406).</summary>
+        [JsonIgnore]
+        public GenericParamConstraint? ClassConstraint =>
+            constraints is { Count: > 0 } && constraints[0].kind == NeoGenericParamConstraintKind.Class
+                ? constraints[0]
+                : null;
     }
 
     /// <summary>
-    /// How a generic param is implemented — at the extends boundary
-    /// (<see cref="NeoSchemaClass.extendsGenericBindings"/>) or at a usage site
-    /// (<see cref="ClassMember.classArguments"/>). Exactly one of
-    /// <see cref="genericParamId"/> / <see cref="memberId"/> is set,
-    /// matching <see cref="kind"/> — enforced by
-    /// <see cref="GenericBindingConverter"/> on read.
+    /// One implemented or extended interface construction (P127 §4.7). A
+    /// list may hold several constructions of one generic interface.
     /// </summary>
-    [JsonConverter(typeof(GenericBindingConverter))]
-    public class GenericBinding
+    public class InterfaceConstruction
     {
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public NeoGenericBindingKind kind;
+        [JsonProperty(Required = Required.Always)]
+        public string interfaceId = null!;
 
-        /// <summary>Set iff <see cref="kind"/> is Generic.</summary>
+        /// <summary>Interface param id → type argument. Present iff the interface is generic.</summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? genericParamId;
+        [JsonConverter(typeof(TypeArgumentsConverter))]
+        public Dictionary<string, TypeBinding>? arguments;
+    }
 
-        /// <summary>Set iff <see cref="kind"/> is Member.</summary>
-        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        public string? memberId;
-
-        /// <summary>True when this binding forwards an in-scope param.</summary>
-        public bool IsForward => kind == NeoGenericBindingKind.Generic;
+    /// <summary>
+    /// P127 §5. The interface member an interface override, a reabstraction
+    /// or an explicit implementation names, through one construction.
+    /// </summary>
+    public class ExplicitInterfaceImplementation : InterfaceConstruction
+    {
+        [JsonProperty(Required = Required.Always)]
+        public string interfaceMemberId = null!;
     }
 
     /// <summary>
@@ -139,6 +160,7 @@ namespace NeoCompose.Runtime.Json
                     kind = kind,
                     classId = classId,
                     classArguments = ReadArguments(obj, "classArguments", serializer),
+                    nullable = ReadNullable(obj, "Class"),
                 };
             }
             if (kind == NeoGenericParamConstraintKind.Interface)
@@ -164,6 +186,7 @@ namespace NeoCompose.Runtime.Json
                     kind = kind,
                     interfaceId = interfaceId,
                     interfaceArguments = ReadArguments(obj, "interfaceArguments", serializer),
+                    nullable = ReadNullable(obj, "Interface"),
                 };
             }
             if (kind == NeoGenericParamConstraintKind.Enum)
@@ -179,6 +202,11 @@ namespace NeoCompose.Runtime.Json
                     throw new JsonSerializationException(
                         "Generic param constraint of kind 'Enum' cannot declare 'interfaceId'.");
                 }
+                if (obj.Property("nullable") is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Generic param constraint of kind 'Enum' cannot declare 'nullable'.");
+                }
                 var enumId = obj.Value<string>("enumId");
                 if (string.IsNullOrEmpty(enumId))
                 {
@@ -187,38 +215,48 @@ namespace NeoCompose.Runtime.Json
                 }
                 return new GenericParamConstraint { kind = kind, enumId = enumId };
             }
+            if (kind == NeoGenericParamConstraintKind.AnyEnum)
+            {
+                foreach (JProperty property in obj.Properties())
+                {
+                    if (property.Name != "kind")
+                    {
+                        throw new JsonSerializationException(
+                            $"Generic param constraint of kind 'AnyEnum' cannot declare '{property.Name}'.");
+                    }
+                }
+                return new GenericParamConstraint { kind = kind };
+            }
             throw new JsonSerializationException(
                 $"Unknown generic param constraint kind '{(int)kind}'.");
         }
 
-        private static Dictionary<string, GenericBinding>? ReadArguments(
+        private static bool? ReadNullable(JObject obj, string kind)
+        {
+            JToken? token = obj["nullable"];
+            if (token is null)
+                return null;
+            if (token.Type != JTokenType.Boolean || !token.Value<bool>())
+            {
+                throw new JsonSerializationException(
+                    $"Generic param constraint of kind '{kind}' field 'nullable' must be true when present.");
+            }
+            return true;
+        }
+
+        private static Dictionary<string, TypeBinding>? ReadArguments(
             JObject obj,
             string field,
             JsonSerializer serializer)
         {
             if (obj.Property(field) is not JProperty argumentsProperty)
                 return null;
-            if (argumentsProperty.Value is not JObject)
+            if (argumentsProperty.Value is not JObject arguments)
             {
                 throw new JsonSerializationException(
                     $"Generic param constraint field '{field}' must be an object when present.");
             }
-            var arguments = argumentsProperty.Value.ToObject<
-                Dictionary<string, GenericBinding>>(serializer);
-            if (arguments is null)
-            {
-                throw new JsonSerializationException(
-                    $"Generic param constraint field '{field}' could not be read.");
-            }
-            foreach (var pair in arguments)
-            {
-                if (string.IsNullOrEmpty(pair.Key) || pair.Value is null)
-                {
-                    throw new JsonSerializationException(
-                        $"Generic param constraint field '{field}' must map non-empty parameter ids to bindings.");
-                }
-            }
-            return arguments;
+            return TypeBindings.ReadArguments(arguments, $"Generic param constraint field '{field}'");
         }
 
         public override void WriteJson(
@@ -232,15 +270,16 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Strict numeric-discriminator reader for <see cref="GenericBinding"/>.
-    /// An absent kind uses the zero ordinal, Generic. Read-only; default
-    /// serialization handles writes.
+    /// Strict reader for <see cref="GenericParamDeclaration"/>: the P127 §4.7
+    /// <c>constraints</c> list replaces the single <c>constraint</c>, and the
+    /// list is non-empty when present. Read-only; default serialization
+    /// handles writes.
     /// </summary>
-    public class GenericBindingConverter : JsonConverter
+    public class GenericParamDeclarationConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(GenericBinding);
+            return objectType == typeof(GenericParamDeclaration);
         }
 
         public override bool CanWrite => false;
@@ -254,44 +293,38 @@ namespace NeoCompose.Runtime.Json
             if (reader.TokenType == JsonToken.Null)
                 return null;
             var obj = NeoJsonObjectReader.Read(reader);
-            RecordShapeContractGuard.ValidateGenericBinding(obj);
-            var kind = StrictRecordShapeEnums.ReadDefaulted(
-                obj,
-                "kind",
-                "Generic binding",
-                NeoGenericBindingKind.Generic);
-            if (kind == NeoGenericBindingKind.Generic)
+            RecordShapeContractGuard.ValidateGenericParamDeclaration(obj);
+            string? id = obj.Value<string>("id");
+            string? name = obj.Value<string>("name");
+            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(name))
             {
-                if (obj.Property("memberId") is not null)
-                {
-                    throw new JsonSerializationException(
-                        "Generic binding of kind 'Generic' cannot declare 'memberId'.");
-                }
-                var genericParamId = obj.Value<string>("genericParamId");
-                if (string.IsNullOrEmpty(genericParamId))
-                {
-                    throw new JsonSerializationException(
-                        "Generic binding of kind 'Generic' is missing 'genericParamId'.");
-                }
-                return new GenericBinding { kind = kind, genericParamId = genericParamId };
+                throw new JsonSerializationException(
+                    "Generic param declaration requires a non-empty 'id' and 'name'.");
             }
-            if (kind == NeoGenericBindingKind.Member)
+            var declaration = new GenericParamDeclaration { id = id!, name = name! };
+            if (obj.Property("constraints") is JProperty constraints)
             {
-                if (obj.Property("genericParamId") is not null)
+                if (constraints.Value is not JArray { Count: > 0 } list)
                 {
                     throw new JsonSerializationException(
-                        "Generic binding of kind 'Member' cannot declare 'genericParamId'.");
+                        $"Generic param '{name}' field 'constraints' must be a non-empty array when present.");
                 }
-                var memberId = obj.Value<string>("memberId");
-                if (string.IsNullOrEmpty(memberId))
+                declaration.constraints = new List<GenericParamConstraint>(list.Count);
+                foreach (JToken entry in list)
                 {
-                    throw new JsonSerializationException(
-                        "Generic binding of kind 'Member' is missing 'memberId'.");
+                    declaration.constraints.Add(entry.ToObject<GenericParamConstraint>(serializer)
+                        ?? throw new JsonSerializationException(
+                            $"Generic param '{name}' has a null constraint."));
                 }
-                return new GenericBinding { kind = kind, memberId = memberId };
             }
-            throw new JsonSerializationException(
-                $"Unknown generic binding kind '{(int)kind}'.");
+            if (obj["variance"] is not null)
+            {
+                declaration.variance = StrictRecordShapeEnums.ReadRequired<NeoGenericParamVarianceKind>(
+                    obj,
+                    "variance",
+                    $"Generic param '{name}'");
+            }
+            return declaration;
         }
 
         public override void WriteJson(
@@ -300,7 +333,7 @@ namespace NeoCompose.Runtime.Json
             JsonSerializer serializer)
         {
             throw new NotImplementedException(
-                "GenericBindingConverter is read-only; default serialization handles writes.");
+                "GenericParamDeclarationConverter is read-only; default serialization handles writes.");
         }
     }
 }

@@ -244,6 +244,7 @@ namespace HelloWorld.Assets.Tests
                     id = request.customId,
                     snapshotId = Guid.NewGuid().ToString("N"),
                     snapshotRevision = 1,
+                    requiredSaveFormatRevision = request.requiredSaveFormatRevision,
                     releaseChannelId = Channel,
                     name = request.name,
                     projectId = "project-1",
@@ -287,6 +288,9 @@ namespace HelloWorld.Assets.Tests
                         case GameSaveValueRestoreToAuthoredChange restore:
                             values.Remove(restore.valueId);
                             break;
+                        case GameSaveStaticBindingSetChange { construction: not null }:
+                        case GameSaveStaticBindingRestoreToAuthoredChange { construction: not null }:
+                            throw new NotSupportedException("The sample cloud stores no static constructions.");
                         case GameSaveStaticBindingSetChange binding:
                             bindings[binding.memberId] = binding.valueId;
                             break;

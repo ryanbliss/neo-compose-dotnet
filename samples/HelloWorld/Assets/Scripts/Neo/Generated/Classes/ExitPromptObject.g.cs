@@ -229,17 +229,17 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+            public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<bool> Enabled = new("Enabled");
 
-            public static readonly NeoField<NeoVector3> Position = new("Position");
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
-            public static readonly NeoField<int> Count = new("Count");
-
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -252,12 +252,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => null,
                 [Fields.Size] = () => null,
                 [Fields.PlacementTiles] = () => null,
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Position] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.Cell] = () => null,
-                [Fields.Count] = () => null,
                 [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -281,12 +281,12 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Children] = () => Children,
                 [Fields.Size] = () => Size,
                 [Fields.PlacementTiles] = () => PlacementTiles,
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Position] = () => Position,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.Cell] = () => Cell,
-                [Fields.Count] = () => Count,
                 [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
             };
         }
 

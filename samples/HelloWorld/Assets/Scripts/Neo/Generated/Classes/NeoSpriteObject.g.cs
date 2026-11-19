@@ -21,6 +21,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoSpriteObject writable);
 
+        new string Name { get; }
+
+        new NeoReadOnlySprite Sprite { get; }
+
 
         /// <summary>
         /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
@@ -39,15 +43,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         /// </summary>
         new NeoSpriteMaskInteraction MaskInteraction { get; }
 
-        new string Name { get; }
-
 
         /// <summary>
         /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
         /// </summary>
         new int? SortingOrder { get; }
-
-        new NeoReadOnlySprite Sprite { get; }
     }
 
     public partial class NeoSpriteObject : NeoObject, IReadOnlyNeoSpriteObject, INeoSpriteObjectValue
@@ -57,29 +57,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoSpriteObject(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Collider, Enabled, Name, Position, Size, Children, PlacementTiles, FlipX, FlipY, MaskInteraction, SortingOrder, Sprite), false, NeoValueOwnership.Session)
+        public NeoSpriteObject(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Position, Size, Enabled, Collider, PlacementTiles, Children, Sprite, FlipX, FlipY, MaskInteraction, SortingOrder), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoMemberClassWritable CreateFactoryNode(NeoCollider? Collider = null, bool? Enabled = null, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null, Sprite? Sprite = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null, bool? Enabled = null, NeoCollider? Collider = null, IEnumerable<NeoPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, Sprite? Sprite = null, bool? FlipX = null, bool? FlipY = null, NeoSpriteMaskInteraction? MaskInteraction = null, int? SortingOrder = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
                 "system_d48b66ab-4d59-47e7-a25a-591fe97062de",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "system_441cb790-a45f-4488-a5a9-6f375af6c369", Name),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "system_7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "system_e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Enabled", "system_4858148e-1c42-449d-8a03-c1601da529bd", Enabled),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "system_a0083c92-72f7-405f-8863-ff86f995d36d", Collider),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "system_5a9ca1f5-a21b-4d4e-8c55-00341af594b4", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "system_bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipX", "system_9fcab37a-9743-4e35-8eee-80cb560f1433", FlipX),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlipY", "system_ddd09f08-1656-4404-b36b-5570a4c01fcf", FlipY),
                 new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaskInteraction", "system_f2a8c86d-ace5-421b-9475-0f3f6f97b2a6", MaskInteraction),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "system_e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite)
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "system_6f32f1f2-83ea-42fc-8647-34ed0946b7f1", SortingOrder)
             );
         }
 
@@ -143,6 +143,44 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public static NeoClassRef<NeoSpriteObject> Definition { get; } = new NeoClassRef<NeoSpriteObject>("system_d48b66ab-4d59-47e7-a25a-591fe97062de");
 
+        public new virtual string Name
+        {
+            get
+            {
+                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public virtual NeoSprite Sprite
+        {
+            get
+            {
+                var memberNode = writableNode.Get<NeoMemberSpriteWritable>("Sprite");
+                if (TryGetStoredView<NeoSprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoSprite(memberNode, this));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
+        {
+            get
+            {
+                var memberNode = node.Get<NeoMemberSprite>("Sprite");
+                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
+                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
+            }
+        }
+
         /// <summary>
         /// Mirrors the sprite horizontally about its own centre. Maps to SpriteRenderer.flipX.
         /// </summary>
@@ -192,19 +230,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new virtual string Name
-        {
-            get
-            {
-                return node.Get<NeoMemberString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSpriteObject.Name");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
         /// <summary>
         /// Added to the object layer's sorting order; it does not replace it. The result competes with every renderer in the sorting layer, or in the enclosing sorting group, and among equal orders the renderer lower on screen draws in front. Leave unset to use the layer's order.
         /// </summary>
@@ -218,31 +243,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ThrowIfReadOnly("NeoSpriteObject.SortingOrder");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "SortingOrder", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public virtual NeoSprite Sprite
-        {
-            get
-            {
-                var memberNode = writableNode.Get<NeoMemberSpriteWritable>("Sprite");
-                if (TryGetStoredView<NeoSprite>("Sprite", memberNode, out var cached)) return cached;
-                return CacheStoredView("Sprite", memberNode, new NeoSprite(memberNode, this));
-            }
-            set
-            {
-                ThrowIfReadOnly("NeoSpriteObject.Sprite");
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
-        NeoReadOnlySprite IReadOnlyNeoSpriteObject.Sprite
-        {
-            get
-            {
-                var memberNode = node.Get<NeoMemberSprite>("Sprite");
-                if (TryGetStoredView<NeoReadOnlySprite>("Sprite", memberNode, out var cached)) return cached;
-                return CacheStoredView("Sprite", memberNode, new NeoReadOnlySprite(memberNode));
             }
         }
 
@@ -260,25 +260,27 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<int> Count = new("Count");
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
 
-            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<int> Count = new("Count");
+
+            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
 
             public static readonly NeoField<bool> FlipX = new("FlipX");
 
@@ -287,29 +289,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoSpriteMaskInteraction> MaskInteraction = new("MaskInteraction");
 
             public static readonly NeoField<int?> SortingOrder = new("SortingOrder");
-
-            public static readonly NeoField<NeoSprite> Sprite = new("Sprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.Cell] = () => null,
-                [Fields.Children] = () => null,
-                [Fields.Count] = () => null,
-                [Fields.GridCell] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
+                [Fields.Sprite] = () => null,
                 [Fields.FlipX] = () => null,
                 [Fields.FlipY] = () => null,
                 [Fields.MaskInteraction] = () => null,
                 [Fields.SortingOrder] = () => null,
-                [Fields.Sprite] = () => null,
             };
         }
 
@@ -327,21 +327,21 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.Cell] = () => Cell,
-                [Fields.Children] = () => Children,
-                [Fields.Count] = () => Count,
-                [Fields.GridCell] = () => GridCell,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
+                [Fields.Sprite] = () => Sprite,
                 [Fields.FlipX] = () => FlipX,
                 [Fields.FlipY] = () => FlipY,
                 [Fields.MaskInteraction] = () => MaskInteraction,
                 [Fields.SortingOrder] = () => SortingOrder,
-                [Fields.Sprite] = () => Sprite,
             };
         }
 

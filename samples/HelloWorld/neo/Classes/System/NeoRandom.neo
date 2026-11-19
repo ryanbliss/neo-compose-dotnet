@@ -1,0 +1,45 @@
+@id("system_75b4633d-65d0-5da1-ac09-e7c2de0cd102")
+@system(kind: .ScriptRuntime)
+sealed class NeoRandom(int seed) {
+  @id("system_9d442bde-25e8-51af-baab-08e99947edcd")
+  @system(kind: .ScriptRuntime)
+  native private int GetSeed();
+
+  @id("system_5b15f87c-3ea4-57d8-9156-f12366b73b3b")
+  @system(kind: .ScriptRuntime)
+  native public float Range(float min, float max);
+
+  @id("system_60709cd5-8924-5a8c-93e5-482c1e678cdb")
+  @system(kind: .ScriptRuntime)
+  native public int Range(int min, int max);
+
+  @id("system_e4f25ff7-8b23-5c07-8bcc-6e112fd75575")
+  @system(kind: .ScriptRuntime)
+  public int Seed {
+    get => GetSeed();
+
+    set {
+      SetSeed(value);
+    }
+  }
+
+  @id("system_1eea1de7-5a9b-55e6-8d59-5d27f829d4db")
+  @system(kind: .ScriptRuntime)
+  native private void SetSeed(int seed);
+
+  @id("system_a99e8b1e-c2c8-5a49-8497-a4ac9260702c")
+  @system(kind: .ScriptRuntime)
+  native private static void ValidateSeed(int seed);
+
+  @id("system_135e16a9-1996-5e5b-9c2a-730b2896a2cd")
+  @system(kind: .ScriptRuntime)
+  native public float Value();
+
+  @id("system_0438b743-7c3d-5ac0-8d1e-5ce0cd7eb2b3")
+  @system(kind: .ScriptRuntime)
+  private readonly int _constructorSeed = seed;
+
+  init {
+    ValidateSeed(seed);
+  }
+}

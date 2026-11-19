@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 46,
+    "schemaVersion": 47,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -1353,24 +1353,6 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "member-generic-contract-float-binding": {
-      "id": "member-generic-contract-float-binding",
-      "name": "Generic Float Binding",
-      "kind": 4,
-      "projectId": "test-project",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
-    },
-    "member-generic-contract-string-binding": {
-      "id": "member-generic-contract-string-binding",
-      "name": "Generic String Binding",
-      "kind": 3,
-      "projectId": "test-project",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
-    },
     "member-generic-payload-value": {
       "id": "member-generic-payload-value",
       "name": "Value",
@@ -1419,8 +1401,12 @@
       "classId": "class-generic-payload",
       "classArguments": {
         "param-generic-payload-t": {
-          "kind": 0,
-          "genericParamId": "param-generic-contract-t"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "class-generic-contract"
+          },
+          "param": "param-generic-contract-t"
         }
       },
       "modifier": 2
@@ -1489,16 +1475,6 @@
         }
       ],
       "modifier": 2
-    },
-    "member-generic-function-hero-binding": {
-      "id": "member-generic-function-hero-binding",
-      "name": "Generic Function Hero Binding",
-      "kind": 7,
-      "projectId": "test-project",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "classId": "class-hero",
-      "requirement": 1
     },
     "member-generic-function-subject": {
       "id": "member-generic-function-subject",
@@ -2129,7 +2105,12 @@
       "classId": "system_ba921c72-e4b2-47f9-861f-f30ac1156965",
       "classArguments": {
         "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b": {
-          "genericParamId": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a"
+          },
+          "param": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2"
         }
       }
     },
@@ -2205,8 +2186,12 @@
       "classId": "system_e2e88eba-5335-4a16-9dcf-2c0e1951e8bd",
       "classArguments": {
         "system_de23448a-45be-4e3f-8965-072a545e08f0": {
-          "kind": 1,
-          "memberId": "system_cbab87cf-1923-5891-a605-7dd7120e6760"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+          }
         }
       }
     },
@@ -2221,19 +2206,6 @@
       },
       "createdAt": 0,
       "updatedAt": 0
-    },
-    "system_cbab87cf-1923-5891-a605-7dd7120e6760": {
-      "id": "system_cbab87cf-1923-5891-a605-7dd7120e6760",
-      "projectId": "test-project",
-      "name": "__NeoObjectBaseTypeArgument",
-      "kind": 7,
-      "requirement": 1,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "createdAt": 0,
-      "updatedAt": 0,
-      "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
     },
     "system_b71d1f73-da72-49de-ab9a-911cc9bffa43": {
       "id": "system_b71d1f73-da72-49de-ab9a-911cc9bffa43",
@@ -2375,21 +2347,14 @@
       "classId": "system_9c4f3bfb-f0d8-4231-a7e7-9115bab8d5ab",
       "classArguments": {
         "system_887b11d3-e56a-47ff-8d01-e2fcefb846a1": {
-          "genericParamId": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_2866011d-30fe-410a-8a04-d2ff291b77cd"
+          },
+          "param": "system_a35d028e-bd71-49aa-9f9d-944b6e813b80"
         }
       }
-    },
-    "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241": {
-      "id": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241",
-      "projectId": "test-project",
-      "name": "__SpriteInfoTypeArgument",
-      "kind": 11,
-      "requirement": 1,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "createdAt": 0,
-      "updatedAt": 0
     },
     "system_48e66117-43fe-4429-97a8-964165f063ea": {
       "id": "system_48e66117-43fe-4429-97a8-964165f063ea",
@@ -3146,18 +3111,6 @@
         }
       }
     },
-    "system_65388373-2b28-53f4-b821-8c74dada7c8c": {
-      "id": "system_65388373-2b28-53f4-b821-8c74dada7c8c",
-      "projectId": "test-project",
-      "name": "__SpriteInfoTypeArgument",
-      "kind": 11,
-      "requirement": 1,
-      "system": {
-        "kind": "worldAuthoring"
-      },
-      "createdAt": 0,
-      "updatedAt": 0
-    },
     "member-animation-x": {
       "id": "member-animation-x",
       "name": "X",
@@ -3170,17 +3123,6 @@
       "defaultValue": {
         "value": 0
       }
-    },
-    "member-animation-target-binding": {
-      "id": "member-animation-target-binding",
-      "name": "AnimatedSpriteBinding",
-      "kind": 7,
-      "projectId": "test-project",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "classId": "class-animated-sprite",
-      "classArguments": {},
-      "requirement": 1
     },
     "member-animation-idle": {
       "id": "member-animation-idle",
@@ -3416,15 +3358,6 @@
       "updatedAt": 0,
       "genericParamId": "param-generic-bag-e"
     },
-    "member-generic-bag-vector-binding": {
-      "id": "member-generic-bag-vector-binding",
-      "name": "Generic Bag Vector Binding",
-      "kind": 14,
-      "projectId": "test-project",
-      "createdAt": 0,
-      "updatedAt": 0,
-      "requirement": 1
-    },
     "member-root-vector-bag": {
       "id": "member-root-vector-bag",
       "name": "VectorBag",
@@ -3435,8 +3368,11 @@
       "classId": "class-generic-bag",
       "classArguments": {
         "param-generic-bag-e": {
-          "kind": 1,
-          "memberId": "member-generic-bag-vector-binding"
+          "kind": 0,
+          "type": {
+            "type": 14,
+            "required": true
+          }
         }
       },
       "requirement": 1,
@@ -3455,11 +3391,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -3576,11 +3514,13 @@
       "genericParams": [
         {
           "name": "U",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "code": "return animal is U;",
@@ -3970,11 +3910,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -4093,11 +4035,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -4233,11 +4177,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -4373,11 +4319,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          },
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ],
           "defaultType": {
             "type": 7,
             "required": true,
@@ -4501,11 +4449,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -4780,11 +4730,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -5174,11 +5126,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -5330,11 +5284,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -5367,11 +5323,13 @@
       "genericParams": [
         {
           "name": "T",
-          "constraint": {
-            "type": 7,
-            "required": true,
-            "classId": "class-generic-animal"
-          }
+          "constraints": [
+            {
+              "type": 7,
+              "required": true,
+              "classId": "class-generic-animal"
+            }
+          ]
         }
       ],
       "returnTypeInfo": {
@@ -5826,7 +5784,6 @@
         "Missing",
         "MissingLater"
       ],
-      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -5857,7 +5814,6 @@
       "memberKeyOrder": [
         "TransformLater"
       ],
-      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -5895,7 +5851,6 @@
         "Crew",
         "Tags"
       ],
-      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -5910,11 +5865,13 @@
           "genericParams": [
             {
               "name": "T",
-              "constraint": {
-                "type": 7,
-                "required": true,
-                "classId": "class-generic-animal"
-              }
+              "constraints": [
+                {
+                  "type": 7,
+                  "required": true,
+                  "classId": "class-generic-animal"
+                }
+              ]
             }
           ],
           "returnTypeInfo": {
@@ -5934,7 +5891,6 @@
       "memberKeyOrder": [
         "Check"
       ],
-      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     }
@@ -6162,8 +6118,10 @@
         "Run": "member-contract-run"
       },
       "modifier": 1,
-      "implementsInterfaceIds": [
-        "interface-contract"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "interface-contract"
+        }
       ],
       "projectId": "test-project",
       "createdAt": 0,
@@ -6254,8 +6212,11 @@
       "extendsClassId": "class-generic-payload",
       "extendsGenericBindings": {
         "param-generic-payload-t": {
-          "kind": 1,
-          "memberId": "member-generic-contract-float-binding"
+          "kind": 0,
+          "type": {
+            "type": 4,
+            "required": true
+          }
         }
       },
       "projectId": "test-project",
@@ -6269,8 +6230,11 @@
       "extendsClassId": "class-generic-payload",
       "extendsGenericBindings": {
         "param-generic-payload-t": {
-          "kind": 1,
-          "memberId": "member-generic-contract-string-binding"
+          "kind": 0,
+          "type": {
+            "type": 3,
+            "required": true
+          }
         }
       },
       "projectId": "test-project",
@@ -6307,8 +6271,11 @@
       "extendsClassId": "class-generic-contract",
       "extendsGenericBindings": {
         "param-generic-contract-t": {
-          "kind": 1,
-          "memberId": "member-generic-contract-float-binding"
+          "kind": 0,
+          "type": {
+            "type": 4,
+            "required": true
+          }
         }
       },
       "projectId": "test-project",
@@ -6322,8 +6289,11 @@
       "extendsClassId": "class-generic-contract",
       "extendsGenericBindings": {
         "param-generic-contract-t": {
-          "kind": 1,
-          "memberId": "member-generic-contract-string-binding"
+          "kind": 0,
+          "type": {
+            "type": 3,
+            "required": true
+          }
         }
       },
       "projectId": "test-project",
@@ -6369,13 +6339,19 @@
       "name": "GenericFunctionHeroContract",
       "schema": {},
       "extendsClassId": "class-generic-function-contract",
-      "implementsInterfaceIds": [
-        "interface-hero-deferred-transform"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "interface-hero-deferred-transform"
+        }
       ],
       "extendsGenericBindings": {
         "param-generic-function-t": {
-          "kind": 1,
-          "memberId": "member-generic-function-hero-binding"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "class-hero"
+          }
         }
       },
       "projectId": "test-project",
@@ -6546,10 +6522,12 @@
         {
           "id": "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2",
           "name": "TTarget",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ],
       "createdAt": 0,
@@ -6572,10 +6550,12 @@
         {
           "id": "system_d2194ea1-08ec-4a0c-b9a0-97877031d39b",
           "name": "TTarget",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ],
       "extendsClassId": "system_6529416a-f68b-49a3-b3d2-2af8fda60cb4",
@@ -6637,8 +6617,11 @@
       },
       "extendsGenericBindings": {
         "system_a35d028e-bd71-49aa-9f9d-944b6e813b80": {
-          "kind": 1,
-          "memberId": "system_f10bc0fd-9b8e-5901-9f4b-38e7cdc7a241"
+          "kind": 0,
+          "type": {
+            "type": 11,
+            "required": true
+          }
         }
       },
       "extendsClassId": "system_2866011d-30fe-410a-8a04-d2ff291b77cd",
@@ -6662,10 +6645,12 @@
         {
           "id": "system_de23448a-45be-4e3f-8965-072a545e08f0",
           "name": "TEntry",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         }
       ],
       "requiredConstructorId": "system_2fefcc00-08ab-5a16-a76a-758beac24ef1",
@@ -6727,10 +6712,12 @@
         {
           "id": "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655",
           "name": "TChild",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_61b30a92-90dc-4bf8-8503-ee4f6414effc"
+            }
+          ]
         },
         {
           "id": "system_03497842-3381-45a2-b2fa-b2dee36c2759",
@@ -6756,19 +6743,29 @@
         {
           "id": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268",
           "name": "TChild",
-          "constraint": {
-            "kind": 0,
-            "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de"
-          }
+          "constraints": [
+            {
+              "kind": 0,
+              "classId": "system_d48b66ab-4d59-47e7-a25a-591fe97062de"
+            }
+          ]
         }
       ],
       "extendsGenericBindings": {
         "system_d4fe9f71-d9d9-4baf-bc52-8de16933b655": {
-          "genericParamId": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
+          "kind": 1,
+          "owner": {
+            "type": 7,
+            "classId": "system_24b70585-0798-49ad-b650-4c118bac1eb1"
+          },
+          "param": "system_4de90637-6a3b-4bba-95ef-2ff9dfb05268"
         },
         "system_03497842-3381-45a2-b2fa-b2dee36c2759": {
-          "kind": 1,
-          "memberId": "system_65388373-2b28-53f4-b821-8c74dada7c8c"
+          "kind": 0,
+          "type": {
+            "type": 11,
+            "required": true
+          }
         }
       },
       "targetMemberId": "system_e9288ba9-f5a2-4485-8443-6afb155b31e0",
@@ -6784,8 +6781,12 @@
       "extendsClassId": "system_994b3886-7392-4bd2-8f9d-d5f7fd316a5a",
       "extendsGenericBindings": {
         "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
-          "kind": 1,
-          "memberId": "member-animation-target-binding"
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "class-animated-sprite"
+          }
         }
       },
       "projectId": "test-project",
@@ -6830,8 +6831,10 @@
         "Crew": "member-owned-crew",
         "Tags": "member-owned-crew-tags"
       },
-      "implementsInterfaceIds": [
-        "interface-crew"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "interface-crew"
+        }
       ],
       "projectId": "test-project",
       "createdAt": 0,
@@ -6844,8 +6847,10 @@
         "Crew": "member-picked-crew",
         "Tags": "member-picked-crew-tags"
       },
-      "implementsInterfaceIds": [
-        "interface-crew"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "interface-crew"
+        }
       ],
       "projectId": "test-project",
       "createdAt": 0,
@@ -6899,8 +6904,10 @@
       "schema": {
         "Check": "member-generic-checker-check"
       },
-      "implementsInterfaceIds": [
-        "interface-generic-check"
+      "implementsInterfaces": [
+        {
+          "interfaceId": "interface-generic-check"
+        }
       ],
       "projectId": "test-project",
       "createdAt": 0,
@@ -8270,7 +8277,14 @@
       "createdAt": 0,
       "updatedAt": 0,
       "genericBindings": {
-        "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": "member-animation-target-binding"
+        "system_268e9d23-347b-4eb6-8bec-cf0edf326aa2": {
+          "kind": 0,
+          "type": {
+            "type": 7,
+            "required": true,
+            "classId": "class-animated-sprite"
+          }
+        }
       }
     },
     "value-animation-tracks": {

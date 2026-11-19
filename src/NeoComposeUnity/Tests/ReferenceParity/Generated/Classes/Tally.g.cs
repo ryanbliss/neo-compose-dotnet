@@ -29,7 +29,7 @@ namespace NeoCompose.Tests.ReferenceParity
     public partial class Tally : NeoGeneratedClassValue, IReadOnlyTally
     {
         internal Tally(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "ae41bed9-9e63-4783-9cf9-187215ce9019", isReadOnly, inheritedStorageOwnership)
+            : base(client, node, "9e4f44e3-ccba-4ccd-9217-d2a9179112dc", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -48,8 +48,8 @@ namespace NeoCompose.Tests.ReferenceParity
             var client = TestProjectNeo.RequireInstance().Client;
             return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "ae41bed9-9e63-4783-9cf9-187215ce9019",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "1cb47919-2663-4f7e-9668-20a3bb9f9d21", N)
+                "9e4f44e3-ccba-4ccd-9217-d2a9179112dc",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("N", "0ad7bb0f-51ef-418c-ba33-0bcf923b9552", N)
             );
         }
 
@@ -124,7 +124,7 @@ namespace NeoCompose.Tests.ReferenceParity
             get
             {
                 var result = ComputeProperty("NRef");
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                result.ThrowIfFailed();
                 return NeoGeneratedTypesSupport.ReadReference<int>(client, result.value) ?? throw new InvalidOperationException("NeoScript returned no reference.");
             }
         }

@@ -154,11 +154,15 @@ namespace NeoCompose.Tests
             Assert.IsInstanceOf<FileMemberValue>(
                 JsonConvert.DeserializeObject<MemberValue>(
                     "{\"id\":\"v4\",\"value\":{\"fileId\":\"f\"}}"));
-            // An out-of-range component is not a Color shape; the generic
-            // object fallback keeps handling it.
-            Assert.IsInstanceOf<ObjectMemberValue>(
+            // An out-of-range component is not a Color shape. Its number
+            // fields make it a P127 §12.1 payload row, kept as raw JSON.
+            Assert.IsInstanceOf<PayloadMemberValue>(
                 JsonConvert.DeserializeObject<MemberValue>(
                     "{\"id\":\"v5\",\"value\":{\"r\":2,\"g\":1,\"b\":1,\"a\":\"s\"}}"));
+            // A body of strings stays the generic object fallback.
+            Assert.IsInstanceOf<ObjectMemberValue>(
+                JsonConvert.DeserializeObject<MemberValue>(
+                    "{\"id\":\"v6\",\"value\":{\"r\":\"a\",\"g\":\"b\"}}"));
         }
 
         [Test]

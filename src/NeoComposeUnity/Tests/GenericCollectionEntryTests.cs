@@ -37,7 +37,10 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(ownership, id, out ObjectMemberValue? owner));
             Assert.IsTrue(client.TryGetValue(ownership, owner!.value!["Map"], out ObjectMemberValue? map));
             Assert.IsTrue(client.TryGetValue(ownership, map!.value!["a"], out ArrayMemberValue? nested));
-            Assert.That(nested!.genericBindings, Is.Not.Null.And.Not.Empty);
+            // P127 §12.1: only the binding node stamps; the nested entry
+            // reads its type from the owner through its typeSource.
+            Assert.That(nested!.genericBindings, Is.Null);
+            Assert.That(nested.typeSource?.ValueId, Is.EqualTo(id));
         }
 
         public static IEnumerable<string> Cases() => NeoSourceParityFixture.Cases(FixtureFile);

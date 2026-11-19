@@ -55,10 +55,13 @@ namespace NeoCompose.Tests
             Assert.AreEqual(2, InvokeProbe(client, "ReadScalarIds"));
         }
 
-        [TestCase("ListReferences")]
-        [TestCase("DictionaryReferences")]
-        [TestCase("TupleReferences")]
-        public void ConstructorRejectsDifferentReferenceTargets(string probe)
+        // A construction's reference type arguments are bindings (P127
+        // §12.1), so retargeting the export's leftover Lookup members
+        // changes nothing it builds.
+        [TestCase("ListReferences", 7)]
+        [TestCase("DictionaryReferences", 7)]
+        [TestCase("TupleReferences", 8)]
+        public void ConstructionsIgnoreLookupDescriptorMembers(string probe, int expected)
         {
             ProjectData data = Data();
             string differentTarget = data.classes.Values.Single(type => type.name == "Deep").id;
@@ -68,7 +71,7 @@ namespace NeoCompose.Tests
                     target.classId = differentTarget;
             }
             using NeoClient client = NeoTestSaveStack.ClientFromSchema(data, assumeCurrentSchema: false);
-            StringAssert.Contains("no matching type descriptor", Assert.Catch(() => InvokeProbe(client, probe)).ToString());
+            Assert.AreEqual(expected, InvokeProbe(client, probe));
         }
 
         [Test]

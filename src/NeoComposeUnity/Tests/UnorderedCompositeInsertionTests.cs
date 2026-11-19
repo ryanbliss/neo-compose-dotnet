@@ -41,8 +41,13 @@ namespace NeoCompose.Tests
                 string entry = client.GetUnorderedListEntryIds(container).Single();
                 Assert.IsTrue(client.TryGetValue(ownership, entry, out MemberValue? row));
                 Assert.AreEqual(container, row!.containerId);
+                // P127 §12.1: only a binding node stamps; an entry reads its
+                // type from its owner through typeSource.
                 if (name != "Pairs")
-                    Assert.That(row.genericBindings, Is.Not.Null.And.Not.Empty);
+                {
+                    Assert.That(row.genericBindings, Is.Null);
+                    Assert.That(row.typeSource, Is.Not.Null);
+                }
                 released.Add(entry);
                 released.AddRange(row is ArrayMemberValue list ? list.value! : ((ObjectMemberValue)row).value!.Values);
             }

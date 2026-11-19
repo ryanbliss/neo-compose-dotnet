@@ -29,9 +29,10 @@ namespace NeoCompose.Tests.ReferenceParity
             {
                 throw new InvalidOperationException("Only one active TestProjectNeo is allowed while generated static members are enabled. Dispose the existing project client first.");
             }
+            Client.RegisterGeneratedDetachedClassFactories(NeoDetachedValueFactories);
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
-            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds);
+            Client.TypeArguments.Register(NeoTypeArgumentClassIds, NeoTypeArgumentEnumIds, NeoTypeArgumentInterfaceIds);
             Instance = this;
             Assets = new Assets(client, client.assets, true, NeoValueOwnership.Asset);
             Save = new Save(client, client.save, false, client.save.ownership);

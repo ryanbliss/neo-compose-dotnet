@@ -125,41 +125,41 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
-
-            public static readonly NeoField<bool> Enabled = new("Enabled");
-
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
 
-            public static readonly NeoField<Vector2Int> Cell = new("Cell");
+            public static readonly NeoField<bool> Enabled = new("Enabled");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
 
             internal static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
-            public static readonly NeoField<int> Count = new("Count");
+            public static readonly NeoField<Vector2Int> Cell = new("Cell");
 
             public static readonly NeoField<Vector2Int?> GridCell = new("GridCell");
 
-            public static readonly NeoField<NeoList<NeoPlacementTile>> PlacementTiles = new("PlacementTiles");
+            public static readonly NeoField<int> Count = new("Count");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Collider] = () => null,
-                [Fields.Enabled] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.Cell] = () => null,
-                [Fields.Children] = () => null,
-                [Fields.Count] = () => null,
-                [Fields.GridCell] = () => null,
+                [Fields.Enabled] = () => null,
+                [Fields.Collider] = () => null,
                 [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Cell] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Count] = () => null,
             };
         }
 
@@ -177,16 +177,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Collider] = () => Collider,
-                [Fields.Enabled] = () => Enabled,
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.Cell] = () => Cell,
-                [Fields.Children] = () => Children,
-                [Fields.Count] = () => Count,
-                [Fields.GridCell] = () => GridCell,
+                [Fields.Enabled] = () => Enabled,
+                [Fields.Collider] = () => Collider,
                 [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Cell] = () => Cell,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Count] = () => Count,
             };
         }
 

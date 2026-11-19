@@ -17,9 +17,9 @@ sealed class CapitolColdBoot : NeoDialogue {
     group: Visits.Urgent,
     order: 0,
     when: [
-    @id("3dd4f849-e866-597b-87ef-3071ed8674e4")
-    Condition1,
-  ],
+      @id("3dd4f849-e866-597b-87ef-3071ed8674e4")
+      Condition1,
+    ],
     limit: 1,
   ) => Cb1;
 

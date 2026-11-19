@@ -386,6 +386,22 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType action = null!;
         public Pointer[] captures = null!;
         public string? code;
+
+        /// <summary>
+        /// The captures whose declared type can hold a float or a decimal,
+        /// whose closed types a closure keeps to write them (P127 §12.1).
+        /// Computed on first evaluation.
+        /// </summary>
+        [JsonIgnore]
+        internal int[]? storedNumberCaptures;
+
+        /// <summary>
+        /// Those captures' closed types, shared by every closure this pointer
+        /// makes, when none of their declared types names a type parameter.
+        /// Null when one does, so each closure closes its own.
+        /// </summary>
+        [JsonIgnore]
+        internal TypeInfo?[]? closedCaptureTypes;
     }
 
     /// <summary>Mirror of <c>INSPointerToBool</c>.</summary>

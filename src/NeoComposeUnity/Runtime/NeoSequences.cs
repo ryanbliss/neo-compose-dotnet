@@ -26,14 +26,20 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public static TypeInfo ElementType<T>(NeoClient client, bool? required, params TypeInfo[] arguments)
+        /// <summary>
+        /// A sequence's element type: <typeparamref name="T"/> closed in a
+        /// slot declared <c>T?</c> when <paramref name="declaredNullable"/>
+        /// is true, and <c>T</c> otherwise (P127 §4.2, through
+        /// <see cref="NeoGeneratedTypesSupport.ClosedSlotRequired(TypeInfo, bool)"/>).
+        /// </summary>
+        public static TypeInfo ElementType<T>(NeoClient client, bool declaredNullable, params TypeInfo[] arguments)
         {
             TypeInfo type = client.TypeArguments.Of<T>();
-            if (arguments.Length == 0 && (required is null || type.required == required))
+            bool slotRequired = NeoGeneratedTypesSupport.ClosedSlotRequired(type, declaredNullable);
+            if (arguments.Length == 0 && type.required == slotRequired)
                 return type;
             type = type.ShallowClone();
-            if (required is bool present)
-                type.required = present;
+            type.required = slotRequired;
             if (arguments.Length != 0)
             {
                 if (type is InterfaceTypeInfo protocol && protocol.typeArguments is { } bindings)

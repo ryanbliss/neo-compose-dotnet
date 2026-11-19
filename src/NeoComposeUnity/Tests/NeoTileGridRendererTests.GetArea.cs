@@ -223,7 +223,7 @@ namespace NeoCompose.Tests
                     kind = MemberKind.Function,
                     argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                     returnTypeInfo = new ClassTypeInfo { type = MemberKind.Class, classId = GridClassId, required = false },
-                    genericParams = new[] { new FunctionGenericParam { name = "T", constraint = grid, defaultType = grid } },
+                    genericParams = new[] { new FunctionGenericParam { name = "T", constraints = new TypeInfo[] { grid }, defaultType = grid } },
                 };
             }
             data.classes[GardenGridClassId] = new NeoSchemaClass

@@ -1,0 +1,8 @@
+@id("system_0f99c3c5-9fc0-5254-a796-190d20eee2a2")
+@system(kind: .ScriptRuntime)
+class NeoHostError : NeoError {
+  @id("system_0fc09d80-5049-5e79-a41d-e09757f6f89a")
+  public NeoHostError(string message)
+  : base(message: message) {
+  }
+}
