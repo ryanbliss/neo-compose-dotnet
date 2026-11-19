@@ -395,17 +395,22 @@ namespace NeoCompose.Runtime
                         if (InterfaceSlotRefusal((ClassMember)slot, shown, context, out ClosedInterfaceSlot closed) is string refusal)
                             return refusal;
                         NeoRuntimeTypeKeys.TryParse(key, out NeoRuntimeTypeKey parsed, out _);
-                        // The comparer's T, when it mints (the server's `heldComparer`).
-                        NeoRuntimeTypeKey? typeArgument = parsed.Arguments is { Length: > 0 } arguments
-                            && BindingOfKey(arguments[0]) is TypeBinding argumentBinding
-                            && NeoTypeBindingViews.PayloadView(argumentBinding, out _) is not null
-                            ? arguments[0]
-                            : null;
-                        NeoClosedConstruction[]? constructions =
-                            NeoSystemComparerClasses.InterimConstructions(NeoSystemComparerClasses.NameOf(parsed.Id!), typeArgument);
-                        return constructions is null
-                            ? $"holds '{shown}', which implements no system interface, so {WithArticle(closed.Text)} slot can't hold it"
-                            : ConformanceRefusal(constructions, closed, shown, context);
+                        if (context.Client is not NeoClient client || BindingOfKey(parsed) is not { } binding)
+                            return $"holds '{shown}', which doesn't implement {closed.Text}";
+                        var constructions = new List<NeoClosedConstruction>();
+                        foreach (var construction in NeoInterfaceDispatch.Of(client).Closure(binding))
+                        {
+                            string id = construction.Head!.InterfaceId!;
+                            var arguments = new List<NeoRuntimeTypeKey>();
+                            if (client.ProjectDataForRuntime.interfaces[id].genericParams is { } parameters)
+                                foreach (var parameter in parameters)
+                                {
+                                    NeoRuntimeTypeKeys.TryParse(KeyOf(construction.Bindings![parameter.id]), out var argument, out _);
+                                    arguments.Add(argument);
+                                }
+                            constructions.Add(new NeoClosedConstruction(id, arguments.ToArray()));
+                        }
+                        return ConformanceRefusal(constructions, closed, shown, context);
                     }
                 case BoxSlotKind.ClassTyped:
                     return ClassTypedComparerRefusal((ClassMember)slot, key, shown, context);

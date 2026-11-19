@@ -130,7 +130,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void PrimitiveDelegateRequiresItsCanonicalInterfaceSignature()
+        public void PrimitiveDelegateRequiresItsCanonicalSignature()
         {
             var provider = TypeBinding.Closed(new TypeHead(MemberKind.Interface, true, interfaceId: NeoPrimitiveConformance.InterfaceId("IFormatProvider")));
             var target = new NeoDelegateValue
@@ -139,7 +139,9 @@ namespace NeoCompose.Tests
             };
             Assert.That(NSGetterEvaluator.InvokeDelegate(target, new object?[] { "12", null }, context), Is.EqualTo(12));
             target.builtIn = new NeoBuiltInTarget(Binding(MemberKind.Int), null, "Parse", 0, new[] { Binding(MemberKind.String) });
-            Assert.That(Assert.Throws<NeoScriptPreExecutionValidationError>(() => NSGetterEvaluator.InvokeDelegate(target, new object?[] { "12" }, context))!.Message,
+            Assert.That(NSGetterEvaluator.InvokeDelegate(target, new object?[] { "12" }, context), Is.EqualTo(12));
+            target.builtIn = new NeoBuiltInTarget(Binding(MemberKind.Int), null, "Parse", 0, new[] { Binding(MemberKind.Int) });
+            Assert.That(Assert.Throws<NeoScriptPreExecutionValidationError>(() => NSGetterEvaluator.InvokeDelegate(target, new object?[] { 12 }, context))!.Message,
                 Is.EqualTo("Built-in target 'int.Parse' names no built-in method with its signature."));
         }
 
@@ -196,6 +198,19 @@ namespace NeoCompose.Tests
                     interfaceId = id,
                     arguments = new() { [parameter] = NeoTypeBindings.FromTypeInfo(self) }
                 });
+                owner.schema["Equals"] = equalsId;
+                client.ProjectDataForRuntime.members[equalsId] = new FunctionMember
+                {
+                    id = equalsId,
+                    name = "Equals",
+                    kind = MemberKind.Function,
+                    returnTypeInfo = Type(MemberKind.Bool),
+                    argumentTypes = new[] { new FunctionArgumentTypeInfo { name = "other", type = MemberKind.Class, required = true, classId = classId } }
+                };
+                client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    [equalsId] = (_, _, _, _) => { calls++; return true; }
+                });
             }
             else
             {
@@ -231,13 +246,8 @@ namespace NeoCompose.Tests
             Assert.That(TupleOperatorEquals(left, left, type), Is.True);
             Assert.That(calls, Is.Zero, "The == operator must not call Equals.");
             var equals = new PrimitiveMemberPointer { type = PointerKind.PrimitiveMember, primitive = type, member = "Equals", receiver = Value(left), args = new[] { Value(right) } };
-            if (equatable)
-                Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(equals))!.ErrorClass, Is.EqualTo(NeoErrorClass.NeoNotSupportedError));
-            else
-            {
-                Assert.That(Eval(equals), Is.True);
-                Assert.That(calls, Is.EqualTo(1));
-            }
+            Assert.That(Eval(equals), Is.True);
+            Assert.That(calls, Is.EqualTo(1));
         }
 
         [TestCase(NeoErrorContract.NeoTypeInitializationError)]
@@ -566,6 +576,7 @@ namespace NeoCompose.Tests
         [TestCase(2)]
         [TestCase(8)]
         [TestCase(9)]
+        [TestCase(15)]
         public void StructuralTupleMembersInvokeTheAuthoredComparer(int size)
         {
             const string comparerId = "b5-structural-comparer";
@@ -619,28 +630,19 @@ namespace NeoCompose.Tests
                 member = "StructuralEquals",
                 args = new[] { Value(boxTuple), Value(comparerValue) }
             };
-            if (size == 8)
-            {
-                Assert.That(Assert.Throws<NeoRuntimeError>(() => Eval(pointer))!.Message,
-                    Is.EqualTo("A structural comparison of '(int, int, int, int, int, int, int, int)' passes its one-element rest as ValueTuple<T8>, which NeoScript has no value for."));
-                Assert.That(calls.Count, Is.EqualTo(7));
-            }
-            else
-            {
-                Assert.That(Eval(pointer), Is.True);
-                Assert.That(calls.Count, Is.EqualTo(Math.Min(size, 8)));
-                if (size == 9)
-                    Assert.That(calls[7], Is.EqualTo("rest:2"));
-                calls.Clear();
-                pointer.member = "StructuralCompareTo";
-                Assert.That(Eval(pointer), Is.EqualTo(0));
-                Assert.That(calls.Count, Is.EqualTo(Math.Min(size, 8)));
-            }
+            Assert.That(Eval(pointer), Is.True);
+            Assert.That(calls.Count, Is.EqualTo(Math.Min(size, 8)));
+            if (size >= 8)
+                Assert.That(calls[7], Is.EqualTo("rest:" + (size - 7)));
+            calls.Clear();
+            pointer.member = "StructuralCompareTo";
+            Assert.That(Eval(pointer), Is.EqualTo(0));
+            Assert.That(calls.Count, Is.EqualTo(Math.Min(size, 8)));
             calls.Clear();
             pointer.member = "StructuralGetHashCode";
             pointer.args = new[] { Value(comparerValue) };
             Assert.That(Eval(pointer), Is.TypeOf<int>());
-            Assert.That(calls, Is.EqualTo(size == 9 ? new object?[] { 8, 9, 2, 3, 4, 5, 6, 7 }
+            Assert.That(calls, Is.EqualTo(size == 15 ? new object?[] { 15, 8, 9, 10, 11, 12, 13, 14 } : size == 9 ? new object?[] { 8, 9, 2, 3, 4, 5, 6, 7 }
                 : size == 8 ? new object?[] { 8, 1, 2, 3, 4, 5, 6, 7 } : new object?[] { 1, 2 }));
         }
 

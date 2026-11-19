@@ -266,7 +266,7 @@ namespace NeoCompose.Runtime.NeoScript
             // there is nothing to retain and no owned-parent graph to scan.
             if ((_allocatedRootIds is null || _allocatedRootIds.Count == 0) && retainedOwners is null)
                 return;
-            MarkEscaped(value, ctx, new HashSet<object>(), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal),
+            MarkEscaped(value, ctx, new HashSet<object>(NSGetterEvaluator.ReferenceEqualityComparer.Instance), new Dictionary<string, HashSet<string>?>(StringComparer.Ordinal),
                 retainedOwners: retainedOwners);
         }
 
@@ -308,6 +308,17 @@ namespace NeoCompose.Runtime.NeoScript
                 MarkAllocationGroupEscaped(valueId, ctx, ownedChildren, rowOwners);
             }
 
+            // A local collection also owns its comparer. Initializers may
+            // return it before the enclosing constructor attaches its rows.
+            if (value is RuntimeSet set)
+                MarkEscaped(set.Equality?.Comparer, ctx, visited, ownedChildren, retention, retainedOwners);
+            if (value is RuntimeDictionary runtimeDictionary)
+            {
+                MarkEscaped(runtimeDictionary.Equality.Comparer, ctx, visited, ownedChildren, retention, retainedOwners);
+                foreach (var entry in runtimeDictionary)
+                    MarkEscaped(entry.Value, ctx, visited, ownedChildren, retention, retainedOwners);
+                return;
+            }
             if (value is System.Collections.IDictionary dictionary)
             {
                 foreach (System.Collections.DictionaryEntry entry in dictionary)
@@ -1786,6 +1797,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static void SetRowReference(Context ctx, object alias, RowReference row)
         {
+            PreserveIdentityHash(ctx, alias, row.valueId);
             // Reads only need object-to-row lookup. Build the reverse alias lists
             // on the first write that must update existing CLR aliases.
             RowAliasIndex? aliases = ctx.BuiltRowAliases;
@@ -2300,6 +2312,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalSequenceConversion(conversion, scope, ctx);
                 case ListLiteralPointer llp:
                     return EvalListLiteral(llp, scope, ctx);
+                case CollectionComparerPointer comparer:
+                    return EvalCollectionComparer(comparer, scope, ctx);
                 case DictLiteralPointer dlp:
                     return EvalDictLiteral(dlp, scope, ctx);
                 case ForceUnwrapPointer fup:
@@ -2316,7 +2330,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case CallGetterPointer cgp:
                     return EvalCallGetter(cgp, scope, ctx);
                 case MemberTargetPointer target:
-                    return BindMemberTarget(target, scope, ctx);
+                    return CacheMethodGroup(BindMemberTarget(target, scope, ctx), target.cache, ctx);
                 case CoalescePointer cp:
                     {
                         var left = EvalPointer(cp.left, scope, ctx);
@@ -2453,7 +2467,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (vp.value.typeInfo is EnumTypeInfo)
                 {
                     ctx.NoteFreshList(template);
-                    return template;
+                    return MarkEnumValue(template);
                 }
                 object?[] copy = CopyEntries(template);
                 ctx.NoteFreshList(copy);
@@ -2462,7 +2476,11 @@ namespace NeoCompose.Runtime.NeoScript
             switch (vp.valueTemplate)
             {
                 case NeoDelegateValue delegateTemplate:
-                    return BindDelegateLiteral(delegateTemplate.PersistedCopy(), ctx);
+                    var callable = delegateTemplate.PersistedCopy();
+                    if (vp.value.typeInfo.type == MemberKind.NSDelegate)
+                        callable.delegateType ??= RuntimeDelegateType(vp.value.typeInfo, ctx);
+                    callable = BindDelegateLiteral(callable, ctx);
+                    return callable.IsClosure ? CacheLiteralClosure(delegateTemplate, callable, ctx) : CacheMethodGroup(callable, vp.cache, ctx);
                 case NeoActionValue actionTemplate:
                     return actionTemplate.PersistedCopy();
             }
@@ -2527,7 +2545,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (value.IsClosure)
             {
                 ctx.allocationTracker.ReusableContext = false;
-                value.declaringConstruction = ClosureConstruction(value.action!, ctx);
+                value.declaringConstruction = ClosureConstruction(value.action!, ctx, value.site);
                 value.typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray();
                 return value.Capture(ClosureThis(ctx), ctx.rootValue, ctx.functionTypeArguments);
             }
@@ -2697,20 +2715,50 @@ namespace NeoCompose.Runtime.NeoScript
                 arr[i] = CoerceNumericBinding(EvalPointer(llp.entries[i], scope, ctx), llp.typeInfo?.entryTypeInfo, "list entry", ctx);
                 strings |= arr[i] is string;
             }
+            if (llp.typeInfo is { type: MemberKind.Set, entryTypeInfo: { } entryType })
+                return EqualitySetQuery(new FunctionCollectionQueryInfo { op = "ToSet", equality = new EqualitySite { type = entryType } }, arr, scope, ctx);
             return KeepDerived(arr, null, strings);
         }
 
         /// <summary>A dictionary literal's entries.</summary>
         private static object? EvalDictLiteral(DictLiteralPointer dlp, NeoScriptScope scope, Context ctx)
         {
-            var dict = new Dictionary<string, object?>();
-            // A generic entry type binds at runtime, so its strings show only in the entries.
+            object? source = dlp.copyFrom is null ? null : EvalPointer(dlp.copyFrom, scope, ctx);
+            int capacity = dlp.capacity is null ? 0 : NeoCompose.Runtime.NeoScript.Numerics.NeoInt32.Wrap(Number(EvalPointer(dlp.capacity, scope, ctx)!));
+            BoundEquality equality = BindEquality(dlp.equality ?? new EqualitySite
+            {
+                type = new PrimitiveTypeInfo { type = MemberKind.String, required = true },
+            }, scope, ctx);
+            if (capacity < 0)
+                throw NeoCompose.Runtime.NeoScript.Hashing.NeoHashingErrors.CapacityRange();
+            if (dlp.copyFrom is not null && source is null)
+                throw new NSGetterRuntimeError("Value cannot be null. (Parameter 'dictionary')", NeoErrorContract.NeoArgumentNullError);
+            if (source is RuntimeDictionary original
+                && equality.Default.Type.Equals(original.Equality.Default.Type)
+                && SameObject(equality.Comparer ?? DefaultComparer(equality.Default.Type, NeoComparerFamilyKind.Equality, ctx),
+                    original.Equality.Comparer ?? DefaultComparer(original.Equality.Default.Type, NeoComparerFamilyKind.Equality, ctx), ctx))
+                return KeepDerived(new RuntimeDictionary(equality,
+                    NeoCompose.Runtime.NeoScript.Hashing.NeoHashTable<object?, object?>.CopyDictionary(original.Table, equality, equality.KeyText, sameComparer: true), original),
+                    null, HoldsStringValues(dlp.typeInfo?.entryTypeInfo));
+            IDictionary<string, object?> dict = new RuntimeDictionary(equality, capacity);
+            if (source is not null)
+            {
+                var cursor = new CollectionCursor(source, ctx);
+                try
+                {
+                    while (cursor.MoveNextUnresolved())
+                        dict.Add((string)cursor.Key, cursor.ResolveEntry(ctx));
+                }
+                catch (Exception error) when (cursor.CaptureFailure(error)) { throw; }
+                finally { cursor.Dispose(); }
+            }
             bool strings = HoldsStringValues(dlp.typeInfo?.entryTypeInfo);
             foreach (var entry in dlp.entries)
             {
                 var k = EvalPointer(entry.key, scope, ctx);
+                string key = k is object?[] { Length: 1 } options ? (string)options[0]! : k?.ToString() ?? "null";
                 object? value = CoerceNumericBinding(EvalPointer(entry.value, scope, ctx), dlp.typeInfo?.entryTypeInfo, "dictionary entry", ctx);
-                dict[k?.ToString() ?? "null"] = value;
+                dict[key] = value;
                 strings |= value is string;
             }
             return KeepDerived(dict, null, strings);
@@ -2897,6 +2945,8 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? EvalDelegateClosure(DelegateClosurePointer closurePointer, NeoScriptScope scope, Context ctx)
         {
             ctx.allocationTracker.ReusableContext = false;
+            object? identityTarget = closurePointer.placement == "this" ? ClosureThis(ctx)
+                : closurePointer.target is null ? null : EvalPointer(closurePointer.target, scope, ctx);
             Pointer[] capturePointers =
                 closurePointer.captures ?? Array.Empty<Pointer>();
             var captures = new object?[capturePointers.Length];
@@ -2923,20 +2973,26 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx);
                 }
             }
-            return new NeoDelegateValue
+            return CacheClosure(new NeoDelegateValue
             {
                 code = closurePointer.code,
                 action = closurePointer.action,
                 captures = captures,
                 captureTypes = captureTypes,
                 typeArguments = ctx.functionTypeArguments?.Select(RuntimeTypeOf).ToArray(),
-                declaringConstruction = ClosureConstruction(closurePointer.action, ctx),
+                declaringConstruction = ClosureConstruction(closurePointer.action, ctx, closurePointer.site),
                 site = closurePointer.site,
-            }.Capture(ClosureThis(ctx), ctx.rootValue, ctx.functionTypeArguments);
+                placement = closurePointer.placement,
+                identityTarget = identityTarget,
+                identityTargetBound = true,
+                delegateType = closurePointer.typeInfo is null ? null : RuntimeDelegateType(closurePointer.typeInfo, ctx),
+            }.Capture(ClosureThis(ctx), ctx.rootValue, ctx.functionTypeArguments), ctx);
         }
 
-        private static TypeBinding? ClosureConstruction(FunctionWithReturnType action, Context ctx)
+        private static TypeBinding? ClosureConstruction(FunctionWithReturnType action, Context ctx, string? site = null)
         {
+            if (site is not null)
+                return DelegateSiteConstruction(ClosureOwner(site), ctx);
             if ((ctx.staticConstruction ?? ctx.interfaceConstruction) is { } construction)
                 return construction;
             if (ctx.thisValue is not null && action.parameters.FirstOrDefault()?.typeInfo is ClassTypeInfo declaring
@@ -3043,13 +3099,17 @@ namespace NeoCompose.Runtime.NeoScript
         /// <param name="ownsArguments">Whether <paramref name="args"/> is a call site's rented buffer.</param>
         internal static object? InvokeNativeFunction(string memberId, NeoClient.ResolvedNativeFunction? function,
             object? receiver, object?[] args, Context ctx, CallFunctionPointer? site = null, bool ownsArguments = false,
-            string receiverKind = CallReceiverKind.Instance)
+            string receiverKind = CallReceiverKind.Instance, TypeBinding? delegateConstruction = null, TypeInfo[]? delegateTypeArguments = null)
         {
             TypeInfo[]? typeArguments = function?.signature.genericParams is null
                 ? null
-                : NativeTypeArguments(function, site, ctx);
+                : delegateTypeArguments ?? NativeTypeArguments(function, site, ctx);
             if (function is null || function.intrinsic)
             {
+                TypeInfo? writtenConstruction = site?.receiver.staticConstruction ?? site?.staticConstruction;
+                TypeBinding? staticConstruction = writtenConstruction is null ? delegateConstruction ?? ctx.staticConstruction : RuntimeTypeOf(CloseContextType(writtenConstruction, ctx));
+                if (TryComparerCall(memberId, receiver, args, ctx, staticConstruction, out object? comparerResult))
+                    return comparerResult;
                 if (TryInvokeRandom(memberId, site?.receiver.kind ?? receiverKind, receiver, args, ctx, out object? result))
                     return result;
                 if (NeoWorldLayerRuntime.TryInvoke(memberId, receiver, args, typeArguments, ctx, out result))
@@ -3066,7 +3126,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 function = ctx.client.ResolveNativeFunction(memberId);
                 if (function.signature.genericParams is not null)
-                    typeArguments = NativeTypeArguments(function, site, ctx);
+                    typeArguments = delegateTypeArguments ?? NativeTypeArguments(function, site, ctx);
             }
             return ctx.client.InvokeNativeFunction(function, receiver, args, typeArguments, ownsArguments);
         }
@@ -3102,6 +3162,8 @@ namespace NeoCompose.Runtime.NeoScript
                 if (!pointer.receiver.IsStatic)
                     return null;
             }
+            if (TryComparerPointer(pointer, receiver, scope, ctx, out object? comparerResult))
+                return comparerResult;
             if (TrySequenceCall(pointer, receiver, ctx, out object? sequenceResult))
                 return sequenceResult;
             if (TryPrimitiveInterfaceCall(pointer, receiver, scope, ctx, out object? primitiveResult))
@@ -3686,7 +3748,9 @@ namespace NeoCompose.Runtime.NeoScript
                             $"NeoDelegate target Function '{member.name}' is deferred; delegates require an immediate callable target.");
                     }
                     return InvokeNativeFunction(memberId, nativeFunction, receiver, args, ctx,
-                        receiverKind: native.Modifier == NeoMemberModifierKind.Static ? CallReceiverKind.Static : CallReceiverKind.Instance);
+                        receiverKind: native.Modifier == NeoMemberModifierKind.Static ? CallReceiverKind.Static : CallReceiverKind.Instance,
+                        delegateConstruction: target.staticConstruction,
+                        delegateTypeArguments: target.typeArguments?.Select(NeoTypeBindings.ToTypeInfo).ToArray());
                 }
                 if (member is NSFunctionMember)
                 {
@@ -4598,7 +4662,8 @@ namespace NeoCompose.Runtime.NeoScript
             KeyOfPointer pointer,
             object? receiver,
             NeoScriptScope scope,
-            Context ctx)
+            Context ctx,
+            bool missingAsNull = false)
         {
             object? unused = null;
             return EvalKeyOfReceiver(
@@ -4608,7 +4673,7 @@ namespace NeoCompose.Runtime.NeoScript
                 ctx,
                 pointer.optional == true,
                 ref unused,
-                reportReceiver: false);
+                reportReceiver: false, missingAsNull: missingAsNull);
         }
 
         /// <param name="reportedReceiver">
@@ -4626,7 +4691,8 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx,
             bool optional,
             ref object? reportedReceiver,
-            bool reportReceiver)
+            bool reportReceiver,
+            bool missingAsNull = false)
         {
             if (optional && receiver is null)
                 return null;
@@ -4718,6 +4784,10 @@ namespace NeoCompose.Runtime.NeoScript
             // Dict / Class record: receiver is Dictionary<string, ...>.
             if (AsObjectRecord(receiver) is { } record)
             {
+                if (FindRowReference(receiver, ctx) is { } dictionaryReference
+                    && dictionaryReference.CollectionMember(ctx.client) is DictionaryMember
+                    && ctx.client.ReadValue(dictionaryReference.ownership, dictionaryReference.valueId, ref dictionaryReference.node) is ObjectMemberValue { comparer: not null } dictionaryRow)
+                    k = StoredDictionaryKey(dictionaryRow, dictionaryReference.ownership, k, ctx, out _) ?? k;
                 // Schema-dispatch if the receiver is a tracked Class row.
                 object? dispatched = DispatchSchemaMember(
                     receiver,
@@ -4742,6 +4812,8 @@ namespace NeoCompose.Runtime.NeoScript
                         RowOwnership(recordRef, receiver),
                         CollectionEntryMember(recordRef, receiver, ctx));
                 }
+                if (missingAsNull)
+                    return null;
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object", NeoErrorContract.NeoKeyNotFoundError);
             }
 
@@ -5620,7 +5692,7 @@ namespace NeoCompose.Runtime.NeoScript
                 client.ShareConstructedGetterRow(resultRef, result, ctx, capture);
                 memoized = client.MemoizeGetter(memoKey, null, resultRef, capture);
             }
-            else if (result is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+            else if (result is object?[] or IDictionary<string, object?> or RuntimeSet or RuntimeTuple
                 && MemoizableCollection(result, ctx, capture) is { } list)
                 memoized = client.MemoizeGetter(memoKey, null, null, capture, list);
             else
@@ -6142,7 +6214,13 @@ namespace NeoCompose.Runtime.NeoScript
                 && literal.typeInfo is not EnumTypeInfo { enumId: NeoPrimitiveConformance.NumberStylesEnumId })
             {
                 number = 0;
-                return vp.comparand ??= UnwrapJToken(items);
+                if (vp.comparand is null)
+                {
+                    vp.comparand = UnwrapJToken(items);
+                    if (literal.typeInfo is EnumTypeInfo && vp.comparand is object?[] enumValue)
+                        MarkEnumValue(enumValue);
+                }
+                return vp.comparand;
             }
             return EvaluateOperand(pointer, scope, ctx, out number);
         }
@@ -6155,13 +6233,25 @@ namespace NeoCompose.Runtime.NeoScript
             ComparisonOp op = ComparisonOf(condition);
             object? left = EvaluateComparand(condition.operand1, scope, ctx, out double leftNumber);
             object? right = EvaluateComparand(condition.operand2, scope, ctx, out double rightNumber);
+            if (condition.operandType is { } operandType && op is ComparisonOp.EqualTo or ComparisonOp.DoesNotEqual)
+            {
+                bool equal = PredefinedEquality(EqualityOperandBinding(operandType, ctx),
+                    ArithmeticValue.Box(left, leftNumber), ArithmeticValue.Box(right, rightNumber), ctx);
+                return op == ComparisonOp.EqualTo ? equal : !equal;
+            }
+            if (condition.@delegate && op is ComparisonOp.EqualTo or ComparisonOp.DoesNotEqual)
+            {
+                object? first = ArithmeticValue.Box(left, leftNumber);
+                object? second = ArithmeticValue.Box(right, rightNumber);
+                bool equal = first is null || second is null ? first is null && second is null
+                    : DelegateEquals((NeoDelegateValue)first, (NeoDelegateValue)second, ctx);
+                return op == ComparisonOp.EqualTo ? equal : !equal;
+            }
             if (condition.isDecimal != true && ArithmeticValue.IsNumeric(left) && ArithmeticValue.IsNumeric(right))
             {
-                // Keep the existing subtraction-based ordering, including
-                // its NaN/infinity behavior, without boxing either operand.
+                // IEEE comparisons preserve NaN and equal infinities without boxing.
                 leftNumber = ArithmeticValue.NumberOf(left, leftNumber);
                 rightNumber = ArithmeticValue.NumberOf(right, rightNumber);
-                double difference = leftNumber - rightNumber;
                 switch (op)
                 {
                     case ComparisonOp.EqualTo:
@@ -6169,21 +6259,21 @@ namespace NeoCompose.Runtime.NeoScript
                     case ComparisonOp.DoesNotEqual:
                         return leftNumber != rightNumber;
                     case ComparisonOp.GreaterThan:
-                        return difference > 0;
+                        return leftNumber > rightNumber;
                     case ComparisonOp.GreaterThanOrEqualTo:
-                        return difference >= 0;
+                        return leftNumber >= rightNumber;
                     case ComparisonOp.LessThan:
-                        return difference < 0;
+                        return leftNumber < rightNumber;
                     case ComparisonOp.LessThanOrEqualTo:
-                        return difference <= 0;
+                        return leftNumber <= rightNumber;
                 }
             }
             var a = ArithmeticValue.Box(left, leftNumber);
             var b = ArithmeticValue.Box(right, rightNumber);
-            // Decimal-stamped comparisons are exact and scale-blind
-            // ("1.10" == "1.1"). Null operands (optional decimals) keep the
-            // JsEqual null semantics for equality; ordering against null is
-            // a runtime error (TS evaluator parity).
+            // Lifted relational operators return false for either null operand.
+            if ((a is null || b is null) && op is ComparisonOp.GreaterThan or ComparisonOp.GreaterThanOrEqualTo or ComparisonOp.LessThan or ComparisonOp.LessThanOrEqualTo)
+                return false;
+            // Decimal comparisons are exact and scale-blind ("1.10" == "1.1").
             if (condition.isDecimal == true)
             {
                 bool aIsNull = a is null;
@@ -6197,8 +6287,7 @@ namespace NeoCompose.Runtime.NeoScript
                         case ComparisonOp.DoesNotEqual:
                             return !(aIsNull && bIsNull);
                         default:
-                            throw new NSGetterRuntimeError(
-                                "Decimal ordering comparison received a null operand.");
+                            return false;
                     }
                 }
                 int comparison = NeoDecimalMath.Compare(
@@ -6713,7 +6802,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case TupleElementFunction tuple:
                     return EvalTupleElement(tuple.info, scope, ctx);
                 case TupleEqualFunction tuple:
-                    return Box(TupleEqual(EvalPointer(tuple.info.left, scope, ctx), EvalPointer(tuple.info.right, scope, ctx), RuntimeTupleType(tuple.info.typeInfo, ctx), ctx));
+                    return Box(EvalTupleEquality(tuple.info, scope, ctx));
                 case BitwiseOpFunction bitwiseOp:
                     return EvalBitwiseOp(bitwiseOp.info, scope, ctx);
                 case VectorOpFunction vectorOp:
@@ -7198,6 +7287,31 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
+            if (cnf.info.keys == true)
+            {
+                object? dictionary = RuntimeCollection(EvalPointer(cnf.info.collectionPointer, scope, ctx), ctx);
+                object? candidate = EvalPointer(cnf.info.valuePointer, scope, ctx);
+                if (dictionary is null)
+                    throw new NSGetterRuntimeError(NullReferenceMessage, NeoErrorContract.NeoNullReferenceError);
+                string key = candidate is object?[] { Length: 1 } option ? (string)option[0]!
+                    : candidate as string ?? throw new NSGetterRuntimeError("Value cannot be null. (Parameter 'key')", NeoErrorContract.NeoArgumentNullError);
+                if (FindRowReference(dictionary, ctx) is { } reference
+                    && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ObjectMemberValue row)
+                    return Box(StoredDictionaryKey(row, reference.ownership, key, ctx, out _) is not null);
+                return Box(dictionary is IDictionary<string, object?> values && values.ContainsKey(key));
+            }
+            if (cnf.info.equality is { } equalitySite)
+            {
+                object? collection = EvalPointer(cnf.info.collectionPointer, scope, ctx);
+                object? candidate = CollectionSearchTarget(EvalPointer(cnf.info.valuePointer, scope, ctx), cnf.info);
+                var equality = BindEquality(equalitySite, scope, ctx);
+                collection = RuntimeCollection(collection, ctx);
+                if (equalitySite.comparer is null && TryStoredSetContains(collection, candidate, equality, ctx, out bool storedContains))
+                    return Box(storedContains);
+                if (equalitySite.comparer is null && collection is RuntimeSet set)
+                    return Box(set.Contains(RuntimeSetKey(candidate, set, ctx)));
+                return Box(EqualityIndexOf(collection, candidate, equality, false, ctx) >= 0);
+            }
             object? c;
             NeoWriteBatch.PendingCollection? pending = null;
             if (ctx.client.PendingScriptWrites is { HasCollections: true })
@@ -7342,6 +7456,16 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
+            if (FindRowReference(set, ctx) is { } reference
+                && ctx.client.ReadValue(reference.ownership, reference.valueId, ref reference.node) is ArrayMemberValue row
+                && row.comparer is not null)
+            {
+                TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
+                var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
+                    id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
+                return index.Find(value) is not null;
+            }
             if (value is null)
                 return false;
             // An unstored tuple probe resolves its generic slots from the
@@ -7450,9 +7574,16 @@ namespace NeoCompose.Runtime.NeoScript
         {
             JsonMember entryMember = set.EntryMember
                 ?? throw new NSGetterRuntimeError($"Set '{set.Row.id}' has no resolved entry member.");
+            NeoWritePlan plan = ctx.client.PendingScriptWrites!.Plan;
+            if (set.CollectionMember is SetMember)
+            {
+                TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
+                    ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, set.Row), new HashSet<string>()));
+                if (UsesStoredEquality(set.Row, type, ctx))
+                    return set.FindEqualityEntry(value, entryMember, type, plan, ctx) is not null;
+            }
             if (entryMember is ClassMember)
                 return ReferenceKeyOf(value, ctx) is string referenceId && set.Contains(referenceId);
-            NeoWritePlan plan = ctx.client.PendingScriptWrites!.Plan;
             return set.FindSetEntry(StoredSetProbeKey(entryMember, value, ctx, set.Row), entryMember, plan) is not null;
         }
 
@@ -7468,6 +7599,8 @@ namespace NeoCompose.Runtime.NeoScript
                     "IndexOf receiver must be a List value.");
             }
             var target = CollectionSearchTarget(EvalPointer(iof.info.valuePointer, scope, ctx), iof.info);
+            if (iof.info.equality is { } equalitySite)
+                return Box(EqualityIndexOf(c, target, BindEquality(equalitySite, scope, ctx), iof.info.last == true, ctx));
             if (iof.info.reference && target is not null)
                 return Box(ReferenceIndexOf(c, target, ctx));
             string? targetReferenceId = ValueIdOf(target, ctx);
@@ -9597,6 +9730,8 @@ namespace NeoCompose.Runtime.NeoScript
             // P127 §1.2. Boxes and Type values compare by identity, as C#'s object == does.
             if (a is NeoBox or NeoTypeValue || b is NeoBox or NeoTypeValue)
                 return NeoBox.SameIdentity(a, b);
+            if (IsEnumValue(a) || IsEnumValue(b))
+                return EnumValueEquals(a, b);
             // Option ids, the usual operands, are never numbers.
             if (a is RuntimeTuple leftTuple && b is RuntimeTuple rightTuple)
                 return TupleEqual(leftTuple, rightTuple, leftTuple.TypeInfo, ctx);
@@ -9610,12 +9745,8 @@ namespace NeoCompose.Runtime.NeoScript
             // P112 §3.3: references compare by the row they name.
             if (a is NSSlotReference || b is NSSlotReference)
                 return a is NSSlotReference left && b is NSSlotReference right && left.TargetId == right.TargetId;
-            if (a is NeoDelegateValue { IsMemberTarget: true } leftDelegate
-                && b is NeoDelegateValue { IsMemberTarget: true } rightDelegate)
-                return leftDelegate.memberId == rightDelegate.memberId && leftDelegate.valueId == rightDelegate.valueId
-                    && Equals(leftDelegate.staticConstruction, rightDelegate.staticConstruction)
-                    && Equals(leftDelegate.interfaceConstruction, rightDelegate.interfaceConstruction)
-                    && (leftDelegate.typeArguments ?? Array.Empty<TypeBinding>()).SequenceEqual(rightDelegate.typeArguments ?? Array.Empty<TypeBinding>());
+            if (a is NeoDelegateValue leftDelegate && b is NeoDelegateValue rightDelegate)
+                return DelegateEquals(leftDelegate, rightDelegate, ctx);
             if (a is bool ba && b is bool bb)
                 return ba == bb;
             // Vectors and colors compare by value, as TS compares their records.
@@ -9629,57 +9760,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (a is NeoColorValue ca && b is NeoColorValue cb)
                 return ca.r == cb.r && ca.g == cb.g && ca.b == cb.b && ca.a == cb.a;
-            if (a is RuntimeSet || b is RuntimeSet)
-            {
-                if (a is not (RuntimeSet or object?[]) || b is not (RuntimeSet or object?[]))
-                    return false;
-                int leftCount = a is RuntimeSet leftSet ? leftSet.Count : ((object?[])a).Length;
-                int rightCount = b is RuntimeSet rightSet ? rightSet.Count : ((object?[])b).Length;
-                if (leftCount != rightCount)
-                    return false;
-                using var left = ((IEnumerable<object?>)a).GetEnumerator();
-                using var right = ((IEnumerable<object?>)b).GetEnumerator();
-                while (left.MoveNext() && right.MoveNext())
-                {
-                    if (!JsEqual(left.Current, right.Current, ctx))
-                        return false;
-                }
-                return true;
-            }
-            if (a is object?[] aa && b is object?[] ab)
-            {
-                if (aa.Length != ab.Length)
-                    return false;
-                for (int i = 0; i < aa.Length; i++)
-                {
-                    if (!JsEqual(aa[i], ab[i], ctx))
-                        return false;
-                }
-                return true;
-            }
-            if (a is IDictionary<string, object?> ad && b is IDictionary<string, object?> bd)
-            {
-                if (ad.Count != bd.Count)
-                    return false;
-                // Records are Dictionary instances: enumerate them without
-                // boxing an enumerator.
-                if (ad is Dictionary<string, object?> records)
-                {
-                    foreach (var kvp in records)
-                    {
-                        if (!SameEntry(kvp, bd, ctx))
-                            return false;
-                    }
-                    return true;
-                }
-                foreach (var kvp in ad)
-                {
-                    if (!SameEntry(kvp, bd, ctx))
-                        return false;
-                }
-                return true;
-            }
-            return Equals(a, b);
+            return ReferenceEqual(a, b, ctx);
         }
 
         /// <summary>
@@ -9696,6 +9777,10 @@ namespace NeoCompose.Runtime.NeoScript
                 return a is null && b is null;
             if (ReferenceEquals(a, b))
                 return true;
+            if (a is NeoBox aString && aString.ValueType.Head!.Type == MemberKind.String && b is string rawB)
+                return string.Equals((string?)aString.Payload, rawB, StringComparison.Ordinal);
+            if (b is NeoBox bString && bString.ValueType.Head!.Type == MemberKind.String && a is string rawA)
+                return string.Equals(rawA, (string?)bString.Payload, StringComparison.Ordinal);
             object? key = ReferenceKeyOf(a, ctx);
             return key is not null && key.Equals(ReferenceKeyOf(b, ctx));
         }
@@ -10198,13 +10283,15 @@ namespace NeoCompose.Runtime.NeoScript
                     : s.value,
                 ArrayMemberValue a => a.value is null
                     ? null
-                    : member is ListMember list && ctx.client.IsUnorderedList(list)
+                    : member is EnumMember { Selection: NeoMemberSelectionKind.Single }
+                        ? MarkEnumValue(ToObjectArray(a.value))
+                        : member is ListMember list && ctx.client.IsUnorderedList(list)
                         ? ToObjectArray(NeoMemberList.ResolveEntryValueIds(ctx.client, a, true))
                         : ToObjectArray(a.value),
                 ObjectMemberValue o => o.value is null
                     ? null
                     : ToObjectDict(row.id, ownership, o.value),
-                DelegateMemberValue d => d.value,
+                DelegateMemberValue d => ReadDelegate(d, member, ownership, ctx),
                 ActionMemberValue a => a.value,
                 FileMemberValue f => f.value is null
                     ? null
@@ -10280,10 +10367,9 @@ namespace NeoCompose.Runtime.NeoScript
                         return Box(boolean.value);
                     case NullMemberValue:
                         return null;
-                    case StringMemberValue text when member is not StringMember stringMember
-                    || stringMember.Format == NeoStringFormatKind.Plain
-                    || text.neoLocalizationMode == NeoStringLocalizationMode.Literal:
-                        return text.value;
+                    case StringMemberValue text:
+                        // Translations can change while an evaluation context is retained.
+                        return member is StringMember stringMember ? ResolveStringValue(text, stringMember, ctx) : text.value;
                 }
             }
             if (member is TupleMember tuple && row is ArrayMemberValue tupleRow)
@@ -11620,7 +11706,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return !requireIntegers || (IsInteger(v2.x) && IsInteger(v2.y));
             }
-            if (value is IDictionary<string, object?> dict && dict.Count == 2)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 2)
             {
                 return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
                     && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
@@ -11651,7 +11737,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return !requireIntegers ||
                     (IsInteger(v3.x) && IsInteger(v3.y) && IsInteger(v3.z));
             }
-            if (value is IDictionary<string, object?> dict && dict.Count == 3)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 3)
             {
                 return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
                     && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
@@ -11669,7 +11755,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return true;
             if (value is NeoColorValue)
                 return true;
-            if (value is IDictionary<string, object?> dict && dict.Count == 4)
+            if (value is not RuntimeDictionary && value is IDictionary<string, object?> dict && dict.Count == 4)
             {
                 return TryAsDouble(dict.TryGetValue("r", out var r) ? r : null, out double rv)
                     && TryAsDouble(dict.TryGetValue("g", out var g) ? g : null, out double gv)
@@ -12100,14 +12186,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// Dictionary, or a query over one, holds its entries as row ids only
         /// the evaluator resolves, so it becomes a copy of its entry values.
         /// </summary>
-        private static object? ResolveNestedRuntimeSets(object? value, Context ctx)
+        private static object? ResolveNestedRuntimeSets(object? value, Context ctx, bool exportDictionaries)
         {
             if (value is object?[] array)
             {
                 object?[]? copy = null;
                 for (int i = 0; i < array.Length; i++)
                 {
-                    object? entry = ResolveHostCollection(array[i], ctx);
+                    object? entry = ResolveCollectionValues(array[i], ctx, exportDictionaries);
                     if (ReferenceEquals(entry, array[i]))
                         continue;
                     copy ??= (object?[])array.Clone();
@@ -12115,15 +12201,18 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 return copy ?? array;
             }
-            if (value is Dictionary<string, object?> dictionary && value is not NeoObjectRecord)
+            if (value is IDictionary<string, object?> dictionary && value is not (NeoObjectRecord or NeoScriptObject))
             {
-                Dictionary<string, object?>? copy = null;
+                // The generated host readers consume CLR snapshots, not evaluator tables.
+                Dictionary<string, object?>? copy = value is RuntimeDictionary
+                    ? new Dictionary<string, object?>(dictionary.Count, StringComparer.Ordinal) : null;
                 foreach (var pair in dictionary)
                 {
-                    object? entry = ResolveHostCollection(pair.Value, ctx);
-                    if (ReferenceEquals(entry, pair.Value))
+                    object? entry = ResolveCollectionValues(pair.Value, ctx, exportDictionaries);
+                    if (ReferenceEquals(entry, pair.Value) && copy is null)
                         continue;
-                    copy ??= new Dictionary<string, object?>(dictionary, dictionary.Comparer);
+                    copy ??= new Dictionary<string, object?>(dictionary,
+                        dictionary is Dictionary<string, object?> concrete ? concrete.Comparer : StringComparer.Ordinal);
                     copy[pair.Key] = entry;
                 }
                 return copy ?? dictionary;
@@ -12131,13 +12220,23 @@ namespace NeoCompose.Runtime.NeoScript
             return value;
         }
 
-        internal static object? ResolveHostCollection(object? value, Context ctx)
+        internal static object? ResolveHostCollection(object? value, Context ctx) =>
+            ResolveCollectionValues(value, ctx, exportDictionaries: true);
+
+        // Storage must retain the runtime dictionary's comparer and row origin.
+        // Only a C# boundary exports it as a CLR dictionary snapshot.
+        internal static object? ResolveStoredCollection(object? value, Context ctx) =>
+            ResolveCollectionValues(value, ctx, exportDictionaries: false);
+
+        private static object? ResolveCollectionValues(object? value, Context ctx, bool exportDictionaries)
         {
+            if (!exportDictionaries && value is RuntimeDictionary)
+                return value;
             if (value is RuntimeTuple tuple)
             {
                 var elements = new object?[tuple.Count];
                 for (int i = 0; i < elements.Length; i++)
-                    elements[i] = ResolveHostCollection(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx);
+                    elements[i] = ResolveCollectionValues(RuntimeCollection(ReadNestedCollectionAlias(tuple[i], ctx), ctx), ctx, exportDictionaries);
                 return new RuntimeTuple(elements, tuple.TypeInfo);
             }
             if (value is RuntimeSet set)
@@ -12145,10 +12244,10 @@ namespace NeoCompose.Runtime.NeoScript
                 var exported = new object?[set.Count];
                 int index = 0;
                 foreach (object? entry in set)
-                    exported[index++] = ResolveHostCollection(entry, ctx);
+                    exported[index++] = ResolveCollectionValues(entry, ctx, exportDictionaries);
                 return exported;
             }
-            if (value is not (object?[] or Dictionary<string, object?>))
+            if (value is not (object?[] or IDictionary<string, object?>) || value is NeoScriptObject)
                 return value;
             RowReference? rowRef = FindRowReference(value, ctx);
             JsonMember? entryMember;
@@ -12160,7 +12259,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
             // A class record is never a derived collection.
             else if (value is NeoObjectRecord || (entryMember = DerivedEntryMember(value)) is null)
-                return ResolveNestedRuntimeSets(value, ctx);
+                return ResolveNestedRuntimeSets(value, ctx, exportDictionaries);
             bool nested = entryMember is null or ListMember or DictionaryMember or TupleMember;
             bool values = rowRef is null && HoldsValues(value);
             NeoValueOwnership? ownership = rowRef?.ownership;
@@ -12170,17 +12269,20 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < rows.Length; i++)
                 {
                     object? entry = values ? rows[i] : ResolveListEntry(rows, i, rowRef, ownership, ctx, entryMember);
-                    entries[i] = nested ? ResolveHostCollection(entry, ctx) : entry;
+                    entries[i] = nested ? ResolveCollectionValues(entry, ctx, exportDictionaries) : entry;
                 }
                 return entries;
             }
-            var stored = (Dictionary<string, object?>)value;
-            var resolved = new Dictionary<string, object?>(stored.Count, stored.Comparer);
+            var stored = (IDictionary<string, object?>)value;
+            var resolved = new Dictionary<string, object?>(stored.Count,
+                stored is Dictionary<string, object?> concrete ? concrete.Comparer : StringComparer.Ordinal);
             foreach (KeyValuePair<string, object?> pair in stored)
             {
                 object? entry = values ? pair.Value : ResolveValueIfId(pair.Value, ctx, ownership, entryMember);
-                resolved.Add(pair.Key, nested ? ResolveHostCollection(entry, ctx) : entry);
+                resolved.Add(pair.Key, nested ? ResolveCollectionValues(entry, ctx, exportDictionaries) : entry);
             }
+            if (!exportDictionaries && rowRef is not null)
+                NeoGeneratedTypesSupport.RecordConstructorCollectionOrigin(resolved, rowRef);
             return resolved;
         }
 
@@ -12328,6 +12430,8 @@ namespace NeoCompose.Runtime.NeoScript
             internal NeoGeneratedTypesSupport.DetachedArrayOrigin? detached;
             internal RowReference? row;
             internal string[]? keys;
+            internal TypeBinding? dictionaryKeyType;
+            internal object? dictionaryComparer;
             internal RuntimeTuple? tuple;
             internal bool isSet;
             internal bool referenceEntries;
@@ -12354,9 +12458,22 @@ namespace NeoCompose.Runtime.NeoScript
                     ctx.client.ShareConstructedGetterRow(sourceRef!, source, ctx, capture, markEscaped: false);
                     return new MemoizedCollection { row = sourceRef };
                 }
+                // The legacy set recipe cannot preserve a bound comparer or its
+                // cached hashes. Keep typed sets on ordinary getter evaluation.
+                if (source is RuntimeSet { Equality: not null })
+                    return null;
                 var memo = new MemoizedCollection { entryMember = DerivedEntryMember(source) };
+                if (source is RuntimeDictionary typedDictionary)
+                {
+                    // Rebuilding string/enum keys with their default equality is safe;
+                    // an authored comparer must not acquire extra calls on cache hits.
+                    if (!typedDictionary.Equality.UsesDefault)
+                        return null;
+                    memo.dictionaryKeyType = typedDictionary.Equality.Default.Type;
+                    memo.dictionaryComparer = typedDictionary.Equality.Comparer;
+                }
                 object?[] values;
-                if (source is Dictionary<string, object?> dictionary)
+                if (source is IDictionary<string, object?> dictionary)
                 {
                     memo.keys = new string[dictionary.Count];
                     values = new object?[dictionary.Count];
@@ -12400,7 +12517,7 @@ namespace NeoCompose.Runtime.NeoScript
                         ctx.client.ShareConstructedGetterRow(entryRef, entry, ctx, capture, markEscaped: false);
                         recipe[i] = entryRef;
                     }
-                    else if (entry is object?[] or Dictionary<string, object?> or RuntimeSet or RuntimeTuple
+                    else if (entry is object?[] or IDictionary<string, object?> or RuntimeSet or RuntimeTuple
                         && Capture(entry) is { } nestedRecipe)
                         recipe[i] = nestedRecipe;
                     else
@@ -12448,7 +12565,9 @@ namespace NeoCompose.Runtime.NeoScript
             }
             if (memo.keys is { } keys)
             {
-                var result = new Dictionary<string, object?>(keys.Length, StringComparer.Ordinal);
+                IDictionary<string, object?> result = memo.dictionaryKeyType is { } keyType
+                    ? new RuntimeDictionary(new BoundEquality(keyType, memo.dictionaryComparer, ctx), keys.Length)
+                    : new Dictionary<string, object?>(keys.Length, StringComparer.Ordinal);
                 for (int i = 0; i < keys.Length; i++)
                     result.Add(keys[i], entries[i]);
                 return KeepDerived(result, memo.entryMember, HoldsValues(recipe));

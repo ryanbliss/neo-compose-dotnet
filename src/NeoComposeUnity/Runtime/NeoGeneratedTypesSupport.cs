@@ -4211,8 +4211,20 @@ namespace NeoCompose.Runtime
             }
 
             // A box's payload is walked as a field of its held type (P127 §1.3).
-            if (member is ObjectMember && row.valueType is TypeBinding boxed && client.TypeRules.Box(boxed).Member is Member held)
+            if (member is ObjectMember or ClassMember { DeclaredInterfaceId: not null } && row.valueType is TypeBinding boxed && client.TypeRules.Box(boxed).Member is Member held)
                 member = held;
+            if (member is SetMember or DictionaryMember && NeoClient.OwnedComparerValueId(row) is string comparerId)
+            {
+                if (!stagedById.TryGetValue(comparerId, out MemberValue? comparerRow))
+                    client.TryGetValue(comparerId, out comparerRow);
+                if (comparerRow is not ObjectMemberValue { classId: { } comparerClass })
+                    throw new InvalidOperationException($"Constructed field '{path}.Comparer' requires an authored comparer class row.");
+                var comparerMember = UnplacedClassMember(client, comparerClass, null, comparerRow);
+                ValidateConstructedValueLink(client, comparerMember, comparerId,
+                    replacement => row.comparer!.valueId = replacement, row.mapKey, row.classId,
+                    stagedById, reachableStagedIds, ownedByPath, parentByChildId, pending,
+                    row.id, $"{path}.Comparer", traversal, env, referenceOwnershipByPath, trustedMaterialization);
+            }
             switch (member)
             {
                 case ClassMember classMember
@@ -4437,6 +4449,25 @@ namespace NeoCompose.Runtime
             bool requireNonNull,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
+            if (member is ClassMember comparerSlot && row is PayloadMemberValue { value: { } comparerPayload }
+                && row.valueType is { } comparerType && client.TypeRules.Box(comparerType).Kind == NeoBoxFormKind.Comparer)
+            {
+                NeoStorablePayloads.ValidateBuiltInComparer(comparerPayload, path);
+                var expected = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, comparerSlot, env, new HashSet<string>()));
+                if (!ComparerType(client, path, comparerPayload).Equals(comparerType)
+                    || !NeoInterfaceDispatch.Of(client).Converts(comparerType, expected))
+                    throw new InvalidOperationException($"Constructed comparer field '{path}' has an incompatible held type.");
+                return;
+            }
+            if (member is ClassMember { DeclaredInterfaceId: not null } && row.valueType is { } boxedType)
+            {
+                var expected = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, member, env, new HashSet<string>()));
+                var form = client.TypeRules.Box(boxedType);
+                if (form.Member is null || !NeoInterfaceDispatch.Of(client).Converts(boxedType, expected))
+                    throw new InvalidOperationException($"Constructed interface field '{path}' has an incompatible held type.");
+                ValidateConstructedRowShape(client, form.Member, row, path, requireNonNull, env);
+                return;
+            }
             bool shapeMatches = member switch
             {
                 NullMember => row is NullMemberValue,
@@ -5657,7 +5688,7 @@ namespace NeoCompose.Runtime
                     }
                     // Nested stored collection views carry entry ids, not payloads.
                     // Read them through the ordinary recursive reader before recording the argument.
-                    value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                    value = NeoScript.NSGetterEvaluator.ResolveStoredCollection(value, ctx);
                     var rows = new List<MemberValue>();
                     Member member = NeoTypeBindingViews.View(NeoTypeBindings.ArgumentOf(NeoTypeRules.Declared(argumentType)));
                     var scope = new NeoConstructionScope(client, ctx);
@@ -6852,7 +6883,7 @@ namespace NeoCompose.Runtime
                 || member is not (ListMember or DictionaryMember or TupleMember))
                 return value;
             if (value is NeoScript.RuntimeTuple)
-                value = NeoScript.NSGetterEvaluator.ResolveHostCollection(value, ctx);
+                value = NeoScript.NSGetterEvaluator.ResolveStoredCollection(value, ctx);
             insertion ??= new CollectionInsertion(plan, ctx, ownership, trackCollections: false);
             var rows = new List<MemberValue>();
             var env = targetEnv ?? (ctx.thisValue is null
@@ -6942,9 +6973,10 @@ namespace NeoCompose.Runtime
                 value = wrapped.value;
                 classId = wrapped.classId;
             }
-            if (stagedRows.Count == 0 && classId is null)
+            var comparer = (payload as NeoValuePayload)?.comparer;
+            if (stagedRows.Count == 0 && classId is null && comparer is null)
                 return value;
-            return new NeoValuePayload(value, classId, stagedRows);
+            return new NeoValuePayload(value, classId, stagedRows) { comparer = comparer };
         }
 
         /// <summary>
@@ -7046,6 +7078,12 @@ namespace NeoCompose.Runtime
         internal static bool TryGetConstructorCollectionOrigin(object collection, out NeoScript.NSGetterEvaluator.RowReference? origin) =>
             ConstructorCollectionOrigins.TryGetValue(collection, out origin);
 
+        internal static NeoScript.NSGetterEvaluator.RowReference? ConstructorCollectionOrigin(object collection) =>
+            ConstructorCollectionOrigins.TryGetValue(collection, out var origin) ? origin : null;
+
+        internal static void RecordConstructorCollectionOrigin(object collection, NeoScript.NSGetterEvaluator.RowReference origin) =>
+            ConstructorCollectionOrigins.AddOrUpdate(collection, origin);
+
         internal static void PreserveConstructorCollectionOrigin(object source, object destination)
         {
             if (!ReferenceEquals(source, destination)
@@ -7145,6 +7183,8 @@ namespace NeoCompose.Runtime
                                 dictionaryRow.value.Count, StringComparer.Ordinal);
                             foreach (var pair in dictionaryRow.value)
                                 valuesByKey[pair.Key] = Read(pair.Value, entryMember, entryStorage, entryType);
+                            ConstructorCollectionOrigins.Add(valuesByKey, new NeoScript.NSGetterEvaluator.RowReference(
+                                valueId, storage, member: sourceMember));
                             return valuesByKey;
                         default:
                             throw new InvalidOperationException(
@@ -8265,6 +8305,29 @@ namespace NeoCompose.Runtime
                     return MaterializeObjectBox(client, objectSlot, runtimeValue, rows, nowIso, valueReference, path, insertion, destinationId);
                 RequireObjectSlotHolds(client, member, member.name, new ObjectMemberValue { id = member.name, classId = held.classId }, new NeoSlotContext(client));
             }
+            if (member is ClassMember { DeclaredInterfaceId: not null }
+                && runtimeValue is NeoScript.NeoBox or string or NeoScript.NeoTypeValue)
+            {
+                var context = insertion?.context ?? scope?.ExistingEvaluationContext ?? client.CreateGetterContext(NeoValueOwnership.Session);
+                TypeInfo declared = NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, member, genericEnv, new HashSet<string>());
+                NeoScriptExecutor.RequireStoredInterfaceValue(declared, runtimeValue, context, member.name);
+                var slot = new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object };
+                return MaterializeObjectBox(client, slot, runtimeValue, rows, nowIso, valueReference, path, insertion, destinationId);
+            }
+            if (runtimeValue is not null && member is ClassMember comparerSlot
+                && NeoScript.NSGetterEvaluator.UnwrapComparer(runtimeValue) is { } runtimeComparer)
+            {
+                var context = insertion?.context ?? scope?.ExistingEvaluationContext ?? client.CreateGetterContext(NeoValueOwnership.Session);
+                var held = NeoScript.NSGetterEvaluator.ComparerType(runtimeComparer, context);
+                var required = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(client, comparerSlot, genericEnv, new HashSet<string>()));
+                if (!NeoInterfaceDispatch.Of(client).Converts(held, required))
+                    throw new InvalidOperationException($"Comparer cannot be stored in '{member.name}'.");
+                string comparerId = destinationId ?? Guid.NewGuid().ToString();
+                var box = NeoScript.NeoBox.Of(held, runtimeComparer);
+                var comparerPayload = NeoValuePayload.Boxed(runtimeComparer.StoredPayload(), held, null, Array.Empty<MemberValue>(), box);
+                rows.Add(MemberValueFactory.Create(new ObjectMember { id = member.id, name = member.name, kind = MemberKind.Object }, comparerPayload, comparerId, nowIso, nowIso));
+                return comparerId;
+            }
             if (runtimeValue is not null && member is ClassMember or ObjectMember)
             {
                 NeoConstructorValueReference? source = tupleAssignment is { } assignment
@@ -8554,12 +8617,23 @@ namespace NeoCompose.Runtime
                     suppliedValue);
             }
 
+            if (member is SetMember or DictionaryMember && (insertion?.context ?? scope?.ExistingEvaluationContext ?? selections?.Context) is { } comparerContext)
+            {
+                var comparer = NeoScript.NSGetterEvaluator.WriteCollectionComparer(runtimeValue, null, insertion?.ownership ?? comparerContext.valueOwnership,
+                    comparerContext, valueReference, member.name);
+                if (comparer is not null)
+                    payload = new NeoValuePayload(payload) { comparer = comparer };
+            }
+
             if (wrappedPayload is not null)
             {
                 payload = new NeoValuePayload(
                     payload,
                     wrappedPayload.classId,
-                    wrappedPayload.valueRows);
+                    wrappedPayload.valueRows)
+                {
+                    comparer = wrappedPayload.comparer
+                };
             }
 
             if (payload is NeoValuePayload finalWrappedPayload)

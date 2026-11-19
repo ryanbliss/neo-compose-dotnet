@@ -96,7 +96,8 @@ namespace NeoCompose.Runtime.NeoScript
                 detached.hasHostReference = true;
             // A class or a stored collection is one host handle. Its owned
             // children do not become independent host references.
-            if (value is not (RuntimeTuple or object?[] or Dictionary<string, object?>)
+            if (value is NeoObjectRecord or NeoScriptObject
+                || value is not (RuntimeTuple or object?[] or IDictionary<string, object?>)
                 || ctx.rowReverseIndex.TryGetValue(value, out _))
                 return;
             if (value is RuntimeTuple tuple)
@@ -105,7 +106,7 @@ namespace NeoCompose.Runtime.NeoScript
             else if (value is object?[] entries)
                 foreach (object? entry in entries)
                     MarkHostArgumentValues(entry, ctx);
-            else if (value is Dictionary<string, object?> map)
+            else if (value is IDictionary<string, object?> map)
                 foreach (object? entry in map.Values)
                     MarkHostArgumentValues(entry, ctx);
         }

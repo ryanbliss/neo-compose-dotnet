@@ -312,8 +312,8 @@ namespace NeoCompose.Tests
         private const string IComparableOfT = "system_27194c76-8e29-41c7-b75f-fbe298a69173";
         private const string IEqualityComparerOfT = "system_7b45289d-274c-47a7-a924-37560a6b41ef";
         private const string IEnumerableOfT = "system_d1413390-a2a6-4137-a8f8-e931da847345";
-        private const string EqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e01";
-        private const string ReferenceEqualityComparerId = "system_7e0c3a52-1f0d-4c55-9a3e-5f2b8d1c0e03";
+        private const string EqualityComparerId = NeoSystemComparerClasses.EqualityComparerId;
+        private const string ReferenceEqualityComparerId = NeoSystemComparerClasses.ReferenceEqualityComparerId;
         private const string IntComparer = "{'comparer':0,'family':0,'type':'int'}";
         private const string StringEqualityPayload = "{'comparer':0,'family':0,'type':'string'}";
         private const string ReferenceEqualityPayload = "{'comparer':1,'family':0}";
@@ -955,14 +955,27 @@ namespace NeoCompose.Tests
         /// <summary>The comparer classes, registered as an export's load registers them.</summary>
         private static void RegisterComparerClasses(ProjectData data)
         {
-            JObject classes = JObject.Parse($@"{{
-                '{EqualityComparerId}': {{ 'id': '{EqualityComparerId}', 'name': 'EqualityComparer', 'genericParams': [{{ 'id': 'eq-t', 'name': 'T' }}] }},
-                '{ReferenceEqualityComparerId}': {{ 'id': '{ReferenceEqualityComparerId}', 'name': 'ReferenceEqualityComparer' }}
-            }}");
-            NeoSystemComparerClasses.Register(classes);
             data.classes.TryAdd(EqualityComparerId, Class(EqualityComparerId, "EqualityComparer", new Dictionary<string, string>()));
             data.classes[EqualityComparerId].genericParams = new List<GenericParamDeclaration> { new() { id = "eq-t", name = "T" } };
             data.classes.TryAdd(ReferenceEqualityComparerId, Class(ReferenceEqualityComparerId, "ReferenceEqualityComparer", new Dictionary<string, string>()));
+            data.interfaces.TryAdd(IEqualityComparer, new Interface { id = IEqualityComparer, name = "IEqualityComparer", members = new() });
+            data.interfaces.TryAdd(IEqualityComparerOfT, new Interface
+            {
+                id = IEqualityComparerOfT,
+                name = "IEqualityComparer",
+                members = new(),
+                genericParams = new List<GenericParamDeclaration> { new() { id = "slot-t", name = "T" } },
+            });
+            data.classes[EqualityComparerId].implementsInterfaces = new List<InterfaceConstruction>
+            {
+                new() { interfaceId = IEqualityComparerOfT, arguments = new() { ["slot-t"] = TestTypeBindings.Open(EqualityComparerId, "eq-t") } },
+                new() { interfaceId = IEqualityComparer },
+            };
+            data.classes[ReferenceEqualityComparerId].implementsInterfaces = new List<InterfaceConstruction>
+            {
+                new() { interfaceId = IEqualityComparerOfT, arguments = new() { ["slot-t"] = TestTypeBindings.FromKey("object?") } },
+                new() { interfaceId = IEqualityComparer },
+            };
         }
 
         private static NeoClient BuildClient(Action<ProjectData>? configure = null) =>

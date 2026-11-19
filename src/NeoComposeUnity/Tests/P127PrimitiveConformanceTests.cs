@@ -46,29 +46,22 @@ namespace NeoCompose.Tests
             }
         }
 
-        /// <summary>
-        /// The interim comparer constructions match compose's
-        /// <c>interimBuiltInComparerConstructions</c>: the generic interface
-        /// over the comparer's <c>T</c> when it is known, then the
-        /// non-generic one.
-        /// </summary>
         [Test]
-        public void InterimComparerConstructionsMatchCompose()
+        public void MintedComparerConformanceComesFromClassRecords()
         {
-            NeoRuntimeTypeKey text = NeoPrimitiveConformance.Builtin("string");
-
-            Assert.That(Closed("EqualityComparer", text), Is.EqualTo(new[] { "IEqualityComparer`1<string>", "IEqualityComparer" }));
-            Assert.That(Closed("EqualityComparer", null), Is.EqualTo(new[] { "IEqualityComparer" }));
-            Assert.That(Closed("Comparer", text), Is.EqualTo(new[] { "IComparer`1<string>", "IComparer" }));
-            Assert.That(Closed("Comparer", null), Is.EqualTo(new[] { "IComparer" }));
-            Assert.That(Closed("ReferenceEqualityComparer", text), Is.EqualTo(new[] { "IEqualityComparer`1<object>", "IEqualityComparer" }));
-            Assert.That(NeoSystemComparerClasses.InterimConstructions("StringComparer", text), Is.Null);
+            using var client = NeoTestSaveStack.ClientFromSchema(NeoTestExport.Read(File.ReadAllText(PackageRoot + "/p127-equality-parity-export.json")), assumeCurrentSchema: false);
+            foreach (var (id, expected) in new[]
+            {
+                (NeoSystemComparerClasses.EqualityComparerId, "IEqualityComparer`1<string>"),
+                (NeoSystemComparerClasses.ComparerId, "IComparer`1<string>"),
+            })
+            {
+                var binding = TestTypeBindings.FromKey("c:" + id + "<string>", client.ProjectDataForRuntime);
+                var closure = NeoInterfaceDispatch.Of(client).Closure(binding);
+                Assert.That(closure.Select(item => SpellClosed(item.Head!.InterfaceId!, item.Bindings?.Values.Select(client.TypeRules.KeyOf) ?? Array.Empty<string>())), Does.Contain(expected));
+            }
+            Assert.That(NeoSystemComparerClasses.NameOf("system_not-a-comparer"), Is.Null);
         }
-
-        private static string[] Closed(string name, NeoRuntimeTypeKey? typeArgument) =>
-            NeoSystemComparerClasses.InterimConstructions(name, typeArgument)!
-                .Select(construction => SpellClosed(construction.InterfaceId, construction.Arguments.Select(NeoRuntimeTypeKeys.Spell)))
-                .ToArray();
 
         private static string SpellClosed(string interfaceId, System.Collections.Generic.IEnumerable<string> arguments)
         {

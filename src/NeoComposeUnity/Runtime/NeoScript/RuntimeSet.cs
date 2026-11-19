@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using NeoCompose.Runtime.NeoScript.Hashing;
 
 namespace NeoCompose.Runtime.NeoScript
 {
@@ -12,6 +13,8 @@ namespace NeoCompose.Runtime.NeoScript
     {
         private static readonly object NullKey = new();
         private readonly OrderedMap<object, object?> entries;
+        internal readonly NeoHashTable<object?, object?>? Table;
+        internal readonly NSGetterEvaluator.BoundEquality? Equality;
         private readonly Dictionary<object, Action<object?>> validations = new();
         internal readonly bool Reference;
         internal readonly bool EnumEntries;
@@ -27,10 +30,30 @@ namespace NeoCompose.Runtime.NeoScript
             entries = new OrderedMap<object, object?>(comparer);
         }
 
-        internal int Count => entries.Count;
-        internal bool Contains(object? key) => entries.Contains(key ?? NullKey);
+        internal RuntimeSet(NeoHashTable<object?, object?> table, NSGetterEvaluator.BoundEquality equality, IEnumerable<object?>? order = null)
+        {
+            Source = Array.Empty<object?>();
+            Table = table;
+            Equality = equality;
+            // The hash table owns equality; this identity map only remembers
+            // insertion order without making additional authored calls.
+            entries = new OrderedMap<object, object?>(NeoReferenceEqualityComparer.Instance);
+            foreach (object? key in order ?? table.Keys())
+                entries.Add(key ?? NullKey, key);
+        }
+
+        internal int Count => Table?.Count ?? entries.Count;
+        internal bool Contains(object? key) => Table?.Contains(key) ?? entries.Contains(key ?? NullKey);
         internal void Add(object? key, object? value)
         {
+            if (Table is not null)
+            {
+                foreach (var validate in validations.Values)
+                    validate(value);
+                if (Table.Add(key, value, NeoInsertBehavior.None))
+                    entries.Add(key ?? NullKey, key);
+                return;
+            }
             key ??= NullKey;
             if (entries.Contains(key))
                 return;
@@ -45,13 +68,26 @@ namespace NeoCompose.Runtime.NeoScript
             if (entries.TryGetValue(oldKey, out object? entry) && ReferenceEquals(entry, originalEntry))
                 entries.Retarget(oldKey, newKey);
         }
-        internal void Remove(object? key) => entries.Remove(key ?? NullKey);
-        internal void Clear() => entries.Clear();
+        internal void Remove(object? key)
+        {
+            if (Table is not null)
+            {
+                if (Table.Remove(key, out object? stored))
+                    entries.Remove(stored ?? NullKey);
+            }
+            else
+                entries.Remove(key ?? NullKey);
+        }
+        internal void Clear()
+        {
+            Table?.Clear();
+            entries.Clear();
+        }
         internal void Validate(object type, Action<object?> validate)
         {
             if (validations.ContainsKey(type))
                 return;
-            foreach (object? entry in entries.Values)
+            foreach (object? entry in this)
                 validate(entry);
             validations.Add(type, validate);
         }

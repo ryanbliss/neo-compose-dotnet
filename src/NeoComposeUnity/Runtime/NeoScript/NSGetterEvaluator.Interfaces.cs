@@ -32,7 +32,13 @@ namespace NeoCompose.Runtime.NeoScript
             TypeBinding? construction = selected?.StaticConstruction ?? (writtenConstruction is null ? null : RuntimeTypeOf(CloseContextType(writtenConstruction, ctx)));
             return new NeoDelegateValue
             {
-                memberId = selected?.MemberId ?? pointer.memberId,
+                memberId = selected?.MemberId ?? ResolveCallTarget(new CallFunctionPointer
+                {
+                    memberId = pointer.memberId,
+                    receiver = pointer.receiver,
+                    direct = pointer.direct,
+                }, receiver, ctx)?.memberId ?? pointer.memberId,
+                delegateType = pointer.delegateType is null ? null : RuntimeTypeOf(CloseContextType(pointer.delegateType, ctx)),
                 valueId = pointer.receiver.IsStatic ? null : FindRowIdByReference(receiver, ctx)
                     ?? throw new NSGetterRuntimeError("A delegate receiver must have a logical value identity."),
                 staticConstruction = construction,
@@ -116,7 +122,7 @@ namespace NeoCompose.Runtime.NeoScript
                     operation.typeArguments?.Select(type => RuntimeTypeOf(CloseContextType(type, ctx))).ToArray(),
                     operation.delegateType is null ? null : RuntimeTypeOf(CloseContextType(operation.delegateType, ctx)));
                 if (builtIn is not null)
-                    return new NeoDelegateValue { builtIn = builtIn };
+                    return CacheMethodGroup(new NeoDelegateValue { builtIn = builtIn }, operation.cache, ctx);
             }
             if (target.PrimitiveMember is not null)
             {
@@ -125,13 +131,13 @@ namespace NeoCompose.Runtime.NeoScript
                     operation.typeArguments?.Select(type => CloseContextType(type, ctx)).ToArray());
             }
             if (operation.kind == "methodGroup")
-                return new NeoDelegateValue
+                return CacheMethodGroup(new NeoDelegateValue
                 {
                     memberId = target.MemberId,
                     staticConstruction = target.StaticConstruction,
                     typeArguments = operation.typeArguments?.Select(type => RuntimeTypeOf(CloseContextType(type, ctx))).ToArray(),
                     delegateType = operation.delegateType is null ? null : RuntimeTypeOf(CloseContextType(operation.delegateType, ctx)),
-                };
+                }, operation.cache, ctx);
             var call = new CallFunctionPointer
             {
                 memberId = target.MemberId,

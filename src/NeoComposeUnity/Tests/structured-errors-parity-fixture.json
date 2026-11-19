@@ -8175,6 +8175,19 @@
           {
             "type": "variable",
             "variable": {
+              "id": "__env_0__",
+              "typeInfo": {
+                "type": 31,
+                "required": true
+              },
+              "pointer": {
+                "type": "newObject"
+              }
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
               "id": "trace",
               "typeInfo": {
                 "type": 5,
@@ -8447,7 +8460,12 @@
                     "variableId": "trace"
                   }
                 ],
-                "code": "() => { try { throw \"error\"; } finally { trace[\"value\"] += \"F\"; } }"
+                "code": "() => { try { throw \"error\"; } finally { trace[\"value\"] += \"F\"; } }",
+                "placement": "environment",
+                "target": {
+                  "type": "variable",
+                  "variableId": "__env_0__"
+                }
               }
             },
             "source": {
@@ -8715,6 +8733,19 @@
           {
             "type": "variable",
             "variable": {
+              "id": "__env_0__",
+              "typeInfo": {
+                "type": 31,
+                "required": true
+              },
+              "pointer": {
+                "type": "newObject"
+              }
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
               "id": "trace",
               "typeInfo": {
                 "type": 5,
@@ -8975,7 +9006,12 @@
                     "variableId": "trace"
                   }
                 ],
-                "code": "() => { trace[\"value\"] += \"P\"; throw \"filter failed\"; }"
+                "code": "() => { trace[\"value\"] += \"P\"; throw \"filter failed\"; }",
+                "placement": "environment",
+                "target": {
+                  "type": "variable",
+                  "variableId": "__env_0__"
+                }
               }
             },
             "source": {

@@ -1,5 +1,5 @@
 {
-  "$comment": "P127 B5. Operators, system interfaces and primitive conformance (sections 6, 7.1, 7.3-7.5, 8.1-8.4). Each group's Probe class is P<Group>; Probe forwards <Group><Case>. Expected values are .NET 10's (probes b5-op-run, b5-object, b5-surface, b5-newdec, b5-fixture, b5-gap, b5-receiver-kind, b5-tuple-elements), except where noted in projectDiagnostics. Integer division by zero keeps its NeoScript message (section 3.5), so DivideByZero and ArithmeticBase check the caught class only; TypeInit checks the message prefix because .NET names the CLR type (BadInit`1). TupB and TupD refuse with their B6 deferral until B6 implements section 9.2's and 10.2's Default for a class element (.NET returns True and throws ArgumentException 'At least one object must implement IComparable.', probe b5-tuple-elements). IfaceOrder*: R15, .NET 10 GetInterfaces() order filtered to the in-scope set, probe fix1-getinterfaces. Self*: R1, results of T's static members keep T's constraints. OpsAndAlsoDerived/OpsOrElseDerived: R2. TupEq*: R6, tuple == stays per-element ==. Probe fix1-ops.",
+  "$comment": "P127 B5. Operators, system interfaces and primitive conformance (sections 6, 7.1, 7.3-7.5, 8.1-8.4). Each group's Probe class is P<Group>; Probe forwards <Group><Case>. Expected values are .NET 10's (probes b5-op-run, b5-object, b5-surface, b5-newdec, b5-fixture, b5-gap, b5-receiver-kind, b5-tuple-elements), except where noted in projectDiagnostics. Integer division by zero keeps its NeoScript message (section 3.5), so DivideByZero and ArithmeticBase check the caught class only; TypeInit checks the message prefix because .NET names the CLR type (BadInit`1). TupB and TupD run section 9.2's and 10.2's Default for a class element: .NET returns True and throws ArgumentException 'At least one object must implement IComparable.' (probe b5-tuple-elements). IfaceOrder*: R15, .NET 10 GetInterfaces() order filtered to the in-scope set, probe fix1-getinterfaces. Self*: R1, results of T's static members keep T's constraints. OpsAndAlsoDerived/OpsOrElseDerived: R2. TupEq*: R6, tuple == stays per-element ==. Probe fix1-ops.",
   "source": [
     "class Log { public static string Text = \"\"; }",
     "class Cash {",
@@ -1006,6 +1006,7 @@
     "GapTypeInit": "True|The input string 'x' was not in a correct format.",
     "GapTypeInitSame": true,
     "TupA": true,
+    "TupB": true,
     "TupC": -1,
     "IfaceOrderInt": "IComparable IFormattable IComparable<int> IEquatable<int> IBitwiseOperators<int, int, int> INumber<int> IComparisonOperators<int, int, bool> IEqualityOperators<int, int, bool> IModulusOperators<int, int, int> INumberBase<int> IAdditionOperators<int, int, int> IAdditiveIdentity<int, int> IDecrementOperators<int> IDivisionOperators<int, int, int> IIncrementOperators<int> IMultiplicativeIdentity<int, int> IMultiplyOperators<int, int, int> IParsable<int> ISubtractionOperators<int, int, int> IUnaryPlusOperators<int, int> IUnaryNegationOperators<int, int> IShiftOperators<int, int, int> IMinMaxValue<int> ISignedNumber<int>",
     "IfaceOrderFloat": "IComparable IFormattable IComparable<float> IEquatable<float> IBitwiseOperators<float, float, float> INumber<float> IComparisonOperators<float, float, bool> IEqualityOperators<float, float, bool> IModulusOperators<float, float, float> INumberBase<float> IAdditionOperators<float, float, float> IAdditiveIdentity<float, float> IDecrementOperators<float> IDivisionOperators<float, float, float> IIncrementOperators<float> IMultiplicativeIdentity<float, float> IMultiplyOperators<float, float, float> IParsable<float> ISubtractionOperators<float, float, float> IUnaryPlusOperators<float, float> IUnaryNegationOperators<float, float> ISignedNumber<float> IMinMaxValue<float>",
@@ -1052,8 +1053,7 @@
     "FixFixFromFloat": "Specified method is not supported.",
     "FixFixClampBad": "'F5' cannot be greater than F1.",
     "FixIntClampBad": "'5' cannot be greater than 3.",
-    "TupB": "EqualityComparer<TEq>.Default isn't supported yet (P127 B6).",
-    "TupD": "Comparer<TMoney>.Default isn't supported yet (P127 B6)."
+    "TupD": "At least one object must implement IComparable."
   },
   "projectDiagnostics": [
     {

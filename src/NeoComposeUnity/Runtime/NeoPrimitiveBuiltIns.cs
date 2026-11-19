@@ -16,6 +16,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<NeoBuiltInTarget, (TypeBinding Owner, string Member)> byTarget = new();
         private readonly Dictionary<(MemberKind, string), NeoBuiltInTarget> byMember = new();
         private readonly HashSet<MemberKind> indexed = new();
+        private readonly Dictionary<NeoBuiltInTarget, string> memberStatics = new();
+        private readonly Dictionary<(MemberKind, string, int), NeoBuiltInTarget> memberStaticGroups = new();
         private static readonly HashSet<string> NumberPublic = new("Abs Clamp CopySign Max Min Sign CreateChecked CreateSaturating CreateTruncating IsEvenInteger IsNegative IsOddInteger IsPositive MaxMagnitude MinMagnitude Parse TryParse".Split(' '));
         private static readonly HashSet<string> FloatPublic = new("ClampNative MaxNative MaxNumber MinNative MinNumber IsFinite IsInfinity IsInteger IsNaN IsNegativeInfinity IsNormal IsPositiveInfinity IsRealNumber IsSubnormal MaxMagnitudeNumber MinMagnitudeNumber MultiplyAddEstimate".Split(' '));
         internal static NeoPrimitiveBuiltIns Of(NeoClient client) => Tables.GetValue(NeoInterfaceDispatch.Of(client), _ => new NeoPrimitiveBuiltIns());
@@ -25,6 +27,27 @@ namespace NeoCompose.Runtime
             if (!indexed.Add(kind) || kind is not (MemberKind.Int or MemberKind.Float or MemberKind.Decimal or MemberKind.Bool or MemberKind.String))
                 return;
             var self = TypeBinding.Closed(new TypeHead(kind, true));
+            void AddStatic(string name, string operation, params TypeBinding[] parameters)
+            {
+                var target = new NeoBuiltInTarget(self, null, name, 0, parameters);
+                memberStatics[target] = operation;
+                memberStaticGroups[(kind, operation, parameters.Length)] = target;
+            }
+            var text = TypeBinding.Closed(new TypeHead(MemberKind.String, true));
+            if (kind is MemberKind.Int or MemberKind.Float or MemberKind.Decimal or MemberKind.Bool)
+                AddStatic("Parse", "Parse", text);
+            if (kind is MemberKind.Int or MemberKind.Float or MemberKind.Decimal)
+                AddStatic("Parse", "Parse", text, TypeBinding.Closed(new TypeHead(MemberKind.Enum, true, enumId: NeoPrimitiveConformance.NumberStylesEnumId)));
+            if (kind == MemberKind.Decimal)
+            {
+                foreach (string name in new[] { "Add", "Subtract", "Multiply", "Divide", "Remainder", "Compare", "Equals" })
+                    AddStatic(name, name == "Equals" ? "StaticEquals" : name, self, self);
+                foreach (string name in new[] { "Negate", "ToInt32", "ToSingle" })
+                    AddStatic(name, name, self);
+            }
+            if (kind == MemberKind.String)
+                foreach (string name in new[] { "Compare", "CompareOrdinal", "Equals" })
+                    AddStatic(name, name == "Equals" ? "StaticEquals" : name, text, text);
             foreach (var owner in NeoInterfaceDispatch.Of(client).PrimitiveClosure(self))
             {
                 TypeBinding Signature(TypeBinding binding)
@@ -56,6 +79,21 @@ namespace NeoCompose.Runtime
                 }
             }
         }
+        internal NeoBuiltInTarget BindMemberStatic(NeoClient client, TypeBinding self, string member, int parameterCount)
+        {
+            Index(client, self.Head!.Type);
+            if (memberStaticGroups.TryGetValue((self.Head.Type, member, parameterCount), out var target))
+                return target;
+            throw new NeoScriptPreExecutionValidationError($"'{member}' with {parameterCount} parameter(s) is no member static of '{self.Head.Type}'.");
+        }
+
+        internal bool TryMemberStatic(NeoClient client, NeoBuiltInTarget target, out string member)
+        {
+            if (target.DeclaringType?.Head is { } head)
+                Index(client, head.Type);
+            return memberStatics.TryGetValue(Key(target), out member!);
+        }
+
         internal NeoBuiltInTarget? Bind(NeoClient client, TypeBinding self, string memberId, TypeBinding[]? arguments, TypeBinding? delegateType)
         {
             Index(client, self.Head!.Type);
