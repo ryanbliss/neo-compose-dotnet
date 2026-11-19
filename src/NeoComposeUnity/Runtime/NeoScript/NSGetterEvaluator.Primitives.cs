@@ -21,6 +21,14 @@ namespace NeoCompose.Runtime.NeoScript
             result = null;
             if (pointer.interfaceMember is null || receiver is null)
                 return false;
+            if (receiver is ClrFormatProvider provider
+                && pointer.interfaceMember.interfaceId == NeoPrimitiveConformance.InterfaceId("IFormatProvider"))
+            {
+                if (pointer.args.Length != 1)
+                    throw new NeoScriptPreExecutionValidationError("IFormatProvider.GetFormat requires one argument.");
+                result = CallClrFormatProvider(provider, EvalPointer(pointer.args[0], scope, ctx), ctx);
+                return true;
+            }
             TypeBinding type = InterfaceReceiverType(receiver, ctx);
             if (NeoPrimitiveConformance.Kind(type) is null)
                 return false;
@@ -483,6 +491,10 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string PrimitiveText(object receiver, TypeBinding type, object?[] args, Context ctx)
         {
+            if (type.Head!.Type == MemberKind.String)
+                return (string)receiver;
+            if (type.Head.Type == MemberKind.Bool)
+                return NeoStrings.FormatBoolean((bool)receiver);
             string? format = args.Length > 0 ? (string?)args[0] : null;
             object? provider = PrimitiveFormatProvider(args.Length > 1 ? args[1] : null, ctx);
             return type.Head!.Type switch
@@ -490,7 +502,7 @@ namespace NeoCompose.Runtime.NeoScript
                 MemberKind.Int => NeoNumberFormatting.FormatInt32(NeoInt32.Wrap(Number(receiver)), format, provider),
                 MemberKind.Float => NeoNumberFormatting.FormatSingle((float)Number(receiver), format, provider),
                 MemberKind.Decimal => NeoNumberFormatting.FormatDecimal(decimal.Parse((string)receiver, NumberStyles.Float, CultureInfo.InvariantCulture), format, provider),
-                _ => FormattableText(receiver, type, format, ctx) ?? PayloadText(receiver, type, ctx),
+                _ => FormattableText(receiver, type, format, ctx, provider) ?? PayloadText(receiver, type, ctx),
             };
         }
 

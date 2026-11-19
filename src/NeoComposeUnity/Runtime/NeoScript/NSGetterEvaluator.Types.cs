@@ -104,8 +104,11 @@ namespace NeoCompose.Runtime.NeoScript
                         ? opaque.OpaqueName!.Substring(opaque.OpaqueName.LastIndexOf('.') + 1)
                         : TypeName(type, ctx);
                 case TypeMemberKind.FullName:
-                    return TypeName(type, ctx);
+                    return type.Head is { Type: MemberKind.Object, ObjectType: NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo }
+                        ? ClrTypeName(type, ctx) : TypeName(type, ctx);
                 case TypeMemberKind.Namespace:
+                    if (type.Head is { Type: MemberKind.Object, ObjectType: NeoObjectTypeKind.CultureInfo or NeoObjectTypeKind.NumberFormatInfo })
+                        return "System.Globalization";
                     return type.Head is { IsOpaque: true } named
                         ? named.OpaqueName!.Substring(0, named.OpaqueName.LastIndexOf('.'))
                         : null;

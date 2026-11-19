@@ -3419,7 +3419,9 @@ namespace NeoCompose.Runtime
         /// <paramref name="row"/> holds (P127 §12.1). C# changes the CLR
         /// object in place, so a changed one is written the way a vector field
         /// write is: marked dirty, and notified. Returns the published row, or
-        /// null when nothing changed.
+        /// null when nothing changed. Deferred reads/saves keep the stored
+        /// payload if retained NativeDigits has an invalid length. Only an
+        /// explicit store encodes strictly.
         /// </summary>
         internal PayloadMemberValue? PublishHeldPayloadWrite(NeoValueOwnership ownership, PayloadMemberValue row)
         {
@@ -3450,8 +3452,8 @@ namespace NeoCompose.Runtime
         {
             if (row.live is not { } held)
                 return null;
-            JObject current = NeoStorablePayloads.Encode(held);
-            if (JToken.DeepEquals(row.storedValue, current))
+            JObject? current = NeoStorablePayloads.TryEncode(held);
+            if (current is null || JToken.DeepEquals(row.storedValue, current))
                 return null;
             var next = (PayloadMemberValue)CloneValueRow(row);
             next.value = current;

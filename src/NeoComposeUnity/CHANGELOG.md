@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- Resolve declared dictionary entry payloads when checking function arguments, including cultures and number formats added in a previous execution.
+
+- Allow evaluator list-index assignments of declared and boxed object payloads, including stored cultures and number formats. Invalid NativeDigits lengths still refuse at the assignment.
+
+- Publish NeoScript culture and number-format mutations at the end of the outer execution, including every stored alias and collection entry.
+- Refuse explicit stores when a retained NativeDigits list no longer has ten entries. Other property setters remain valid while that list has the wrong length. Deferred saves retain the slot's last valid payload until the list is repaired. Resolve the pattern-16 backing field only when that value is reloaded.
+
+- Evaluate `CultureInfo` and `NumberFormatInfo` constructors, properties, setters, cloning and provider resolution. Setter checks follow .NET 10's order; Unity retains its invariant ISO name, culture hash and `CurrencyNegativePattern = 16` refusal.
+- Report the CLR full names and namespace for culture and number-format types. Decode integer-shaped JSON float literals beyond Int64 without a host conversion error.
+- Read stored cultures and number formats as CLR instances with stable slot identity. Property writes through aliases persist and notify; retained `NativeDigits` list mutations survive storage and reload. Refuse read-only culture payloads containing writable number formats.
+- Preserve C# cultures and number formats across `object` and `IFormatProvider` boundaries, and invoke custom C# format providers. Named C# cultures use CLR equality and throw `NeoNotSupportedError` when stored, identifying the slot and culture.
+- Use the shared invariant Unicode casing table for NeoScript `ToUpper()` and `ToLower()`, including supplementary characters and lone surrogates.
+- Format numeric primitives, vectors and colors with the supplied provider, resolving it independently for each component. `string.ToString(provider)` returns the string without calling the provider.
+- Route legacy numeric `textOp` format, parse and try-parse operations through the globalization formatter and parser, including custom formats, default number styles and their error classes.
+- Accept every shared Unicode decimal-digit run in `NativeDigits` setters, including digits Unity's Unicode version does not recognize. Group-size setters accept evaluator integer lists; grouped formatting avoids per-digit string allocations.
+
 - Bind closure targets when created and cache capture-free lambdas and static method groups by their declaring construction and closed signature. Preserve a delegate’s created type through variance conversions; static initializers keep uncached method-group conversions.
 - Invoke primitive member-static method groups, including parsing overloads, through their canonical signatures.
 - Store primitive boxes in interface slots, keep stored Type values interned, and preserve null-conditional collection comparer access.
