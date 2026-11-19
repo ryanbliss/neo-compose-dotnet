@@ -2,6 +2,7 @@
   "source": [
     "class Custom{public string fileId=\"some-file\";public string Name=\"authored\";}",
     "class Counter{public int Value=0;public string Text=\"abc\";public List<int> Numbers=[1];public Counter Next=>this;public Counter Bumped{get{this.Value+=1;return this;}} public Counter? Maybe{get{this.Value+=1;return null;}} public Counter Advance(){this.Value+=1;return this;} public int Read(int x)=>x;public T Echo<T>(T x)=>x;public int Bump(){this.Value+=1;return this.Value;}}",
+    "class HeldRows{public Dictionary<string,List<int>> Rows={};public List<List<int>> Items=[];public static int Size(Dictionary<string,List<int>> d){return d.Count;}public static int Len(List<List<int>> l){return l.Count;}public static string AddThenKey(HeldRows h){HeldRows.Size(h.Rows);h.Rows[\"a\"].Add(5);return \"a\";}public static string SwapThenKey(HeldRows h){HeldRows.Size(h.Rows);h.Rows.Remove(\"a\");h.Rows[\"a\"]=[7,8,9,10];return \"a\";}public static int SwapThenIndex(HeldRows h){HeldRows.Len(h.Items);h.Items.RemoveAt(0);h.Items.Add([7,8,9,10]);return 0;}}",
     "class Probe{",
     "public static int? OptionalMethod(){Counter? c=null;return c?.Next.Read(1);}",
     "public static int OptionalMethodArg(){Counter? c=null;Counter x=new();var result=c?.Next.Read(x.Bump());return x.Value;}",
@@ -77,6 +78,10 @@
     "public static int InitializerWrite(){int x=1;var c=new Counter{Value=x++};return c.Value*10+x;}",
     "public static int InitializerSwitchWrite(){bool b=true;int x=1;var c=new Counter{Value=b switch{true=>x++,_=>0}};return c.Value*10+x;}",
     "public static int ConditionalWriteControl(){bool b=true;int x=1;return (b?x++:0)+x;}",
+    "public static int HeldEntryKeyCommits(){HeldRows h=new();h.Rows[\"a\"]=[1];h.Rows[\"a\"].Add(2);return h.Rows[HeldRows.AddThenKey(h)].Count;}",
+    "public static int HeldEntryKeyCommitsIndex(){HeldRows h=new();h.Rows[\"a\"]=[1];h.Rows[\"a\"].Add(2);return h.Rows[HeldRows.AddThenKey(h)][2];}",
+    "public static int HeldEntryKeySwaps(){HeldRows h=new();h.Rows[\"a\"]=[1];h.Rows[\"a\"].Add(2);return h.Rows[HeldRows.SwapThenKey(h)].Count;}",
+    "public static int HeldEntryIndexSwapsAdd(){HeldRows h=new();h.Items.Add([1]);h.Items[0].Add(2);h.Items[HeldRows.SwapThenIndex(h)].Add(1);return h.Items[0].Count;}",
     "}"
   ],
   "returns": {
@@ -147,6 +152,10 @@
     "SwitchBindingsStayLocal": 60,
     "InitializerWrite": 12,
     "InitializerSwitchWrite": 12,
-    "ConditionalWriteControl": 3
+    "ConditionalWriteControl": 3,
+    "HeldEntryKeyCommits": 3,
+    "HeldEntryKeyCommitsIndex": 5,
+    "HeldEntryKeySwaps": 4,
+    "HeldEntryIndexSwapsAdd": 5
   }
 }

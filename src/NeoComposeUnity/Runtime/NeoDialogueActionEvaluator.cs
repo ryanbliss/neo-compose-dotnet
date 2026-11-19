@@ -2994,10 +2994,12 @@ namespace NeoCompose.Runtime
                 && instruction.target.typeInfo.type is MemberKind.List or MemberKind.Set or MemberKind.Lookup or MemberKind.Dictionary)
             {
                 object? receiver;
-                if (client.PendingScriptWrites is { HasCollections: true } batch && WritesStorage(instruction.target))
+                if (client.PendingScriptWrites is { HasCollections: true } && WritesStorage(instruction.target))
                 {
+                    // Evaluating the key can commit the held batch, so the pending
+                    // collection belongs to the one held now.
                     if (NSGetterEvaluator.FindPendingTarget(keyOfTarget, scope, ctx, out receiver, out var owner, out object? entry) is { } pending)
-                        return CollectionMutation.Target(PendingTarget(client, batch, pending, instruction.target.typeInfo));
+                        return CollectionMutation.Target(PendingTarget(client, client.PendingScriptWrites!, pending, instruction.target.typeInfo));
                     // An entry of a pending collection: its store is the
                     // collection's, and reading the collection would commit it.
                     if (owner is not null)
@@ -3030,10 +3032,11 @@ namespace NeoCompose.Runtime
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, value, receiver);
             }
             if (instruction.target.pointer is FunctionPointer { function: TupleElementFunction }
-                && client.PendingScriptWrites is { HasCollections: true } tupleBatch)
+                && client.PendingScriptWrites is { HasCollections: true })
             {
+                // Evaluating the tuple can commit the held batch, as a key can.
                 if (NSGetterEvaluator.FindPendingTarget(instruction.target.pointer, scope, ctx, out _, out _, out object? element) is { } pending)
-                    return CollectionMutation.Target(PendingTarget(client, tupleBatch, pending, instruction.target.typeInfo));
+                    return CollectionMutation.Target(PendingTarget(client, client.PendingScriptWrites!, pending, instruction.target.typeInfo));
                 return ResolveCollectionValueMutation(client, instruction, scope, ctx, element);
             }
             if (instruction.target.pointer is FunctionPointer or ForceUnwrapPointer)

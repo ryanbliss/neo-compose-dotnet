@@ -5030,7 +5030,9 @@ namespace NeoCompose.Runtime.NeoScript
                 {
                     owner = outer;
                     string? entryId = PendingEntryId(outer, keyOf.keyOf.key, scope, ctx);
-                    if (entryId is not null && Answers(batch, outer.Ownership, entryId, read) is { } nested)
+                    // Evaluating the key can call a function that commits the held batch.
+                    if (entryId is not null && ctx.client.PendingScriptWrites is { } current
+                        && Answers(current, outer.Ownership, entryId, read) is { } nested)
                     {
                         value = null;
                         return nested;
@@ -5201,11 +5203,31 @@ namespace NeoCompose.Runtime.NeoScript
             NeoScriptScope scope,
             Context ctx)
         {
-            if (pending is NeoWriteBatch.PendingList list)
-                return PendingListEntry(list, keyPointer, scope, ctx);
+            if (pending is NeoWriteBatch.PendingList indexed
+                && keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
+                return indexed[ListPosition(indexed.Count, position)];
+            NeoWriteBatch batch = ctx.client.PendingScriptWrites!;
             var key = EvalPointer(keyPointer, scope, ctx);
+            // Evaluating the key can call a function that commits the held
+            // batch, so the entry is the collection's current one.
+            if (!ReferenceEquals(batch, ctx.client.PendingScriptWrites))
+            {
+                if (ctx.client.PendingScriptWrites?.Collection(pending.Ownership, pending.Row.id) is { } current)
+                    pending = current;
+                else if (!ctx.client.TryGetValue(pending.Ownership, pending.Row.id, out MemberValue? row))
+                    throw new NSGetterRuntimeError($"Collection '{pending.Row.id}' has no row.");
+                else if (row is ArrayMemberValue array)
+                    pending = new NeoWriteBatch.PendingList(array, pending.Ownership, null);
+                else
+                    return ObjectEntryId(row, key);
+            }
+            return pending is NeoWriteBatch.PendingList list ? PendingListEntry(list, key) : ObjectEntryId(pending.Row, key);
+        }
+
+        private static string ObjectEntryId(MemberValue row, object? key)
+        {
             string k = key as string ?? key?.ToString() ?? "null";
-            if (!((ObjectMemberValue)pending.Row).value!.TryGetValue(k, out string? entryId))
+            if (!((ObjectMemberValue)row).value!.TryGetValue(k, out string? entryId))
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object", NeoErrorContract.NeoKeyNotFoundError);
             return entryId;
         }
@@ -5219,22 +5241,15 @@ namespace NeoCompose.Runtime.NeoScript
             return ResolveValueIfId(entryId, ctx, pending.Ownership, pending.EntryMember);
         }
 
-        private static string PendingListEntry(
-            NeoWriteBatch.PendingList list,
-            Pointer keyPointer,
-            NeoScriptScope scope,
-            Context ctx)
+        private static string PendingListEntry(NeoWriteBatch.PendingList list, object? key)
         {
-            if (keyPointer is VariablePointer indexVariable && scope.TryReadNumber(indexVariable, out double position))
-                return list[ListPosition(list.Count, position)];
-            var key = EvalPointer(keyPointer, scope, ctx);
             if (key is string valueId)
             {
                 if (!list.Contains(valueId))
                     throw new NSGetterRuntimeError($"Value id '{valueId}' is not a member of this List");
                 return valueId;
             }
-            if (TryAsDouble(key, out position))
+            if (TryAsDouble(key, out double position))
                 return list[ListPosition(list.Count, position)];
             throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'", NeoErrorContract.NeoIndexOutOfRangeError);
         }
