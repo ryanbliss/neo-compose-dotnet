@@ -390,7 +390,7 @@ namespace NeoCompose.Runtime
             return $"{ClassName(rowClassId)} implements {implemented}, not {wanted}";
         }
 
-        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; one naming the row's params without <paramref name="rowArguments"/>, or naming a param its slot leaves open, is skipped.</summary>
+        /// <summary><paramref name="construction"/>'s positions equal <paramref name="target"/>'s arguments; one naming the row's params without <paramref name="rowArguments"/> is skipped. A param nothing closes is its own argument, equal only to itself.</summary>
         private bool ConstructionMatches(
             IReadOnlyDictionary<string, TypeBinding> construction,
             string rowClassId,
@@ -409,21 +409,10 @@ namespace NeoCompose.Runtime
                         continue;
                     return false;
                 }
-                // A position naming a param the row's slot leaves open is a wildcard.
-                if (NamesRowParam(actual, rowClassId))
-                    continue;
                 if (!NeoReferenceTypes.InvariantlyEqual(actual, argument))
                     return false;
             }
             return true;
-        }
-
-        /// <summary>Whether <paramref name="typeInfo"/> names one of <paramref name="rowClassId"/>'s params; unified with itself, it binds each.</summary>
-        private static bool NamesRowParam(TypeInfo typeInfo, string rowClassId)
-        {
-            var bound = new Dictionary<string, TypeInfo>(StringComparer.Ordinal);
-            NeoTypeRules.BindRowParams(typeInfo, typeInfo, rowClassId, bound);
-            return bound.Count > 0;
         }
 
         private Dictionary<string, TypeInfo> ConstructionTypeArguments(

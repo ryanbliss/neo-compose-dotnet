@@ -930,8 +930,8 @@ namespace NeoCompose.Runtime
         /// fits <c>Box&lt;List&lt;Seed&gt;&gt;</c> but not <c>Box&lt;Seed&gt;</c>,
         /// and <c>Twin&lt;T&gt; : Box2&lt;T, T&gt;</c> fits <c>Box2&lt;Seed, Seed&gt;</c>
         /// but not <c>Box2&lt;Seed, Tool&gt;</c>. <paramref name="known"/> are
-        /// the row's arguments, its own param where its slot leaves one open.
-        /// The server's <c>openRowConvertsToClass</c>.
+        /// the row's arguments, its own param where nothing closes one, which
+        /// then equals only itself. The server's <c>openRowConvertsToClass</c>.
         /// </summary>
         internal bool OpenRowConvertsToClass(
             NeoClient client,
@@ -940,17 +940,32 @@ namespace NeoCompose.Runtime
             Dictionary<string, TypeInfo>? known = null)
         {
             if (target.classId == rowClassId)
-                return known is null || UnifyPassed(known, rowClassId, target.typeArguments) is not null;
+                return known is null || TypeArgumentsEqual(known, target.typeArguments);
             if (OpenRowBaseArguments(client, rowClassId, target.classId) is not { } passed)
                 return false;
-            if (known is not null)
+            if (known is null)
+                return UnifyPassed(passed, rowClassId, target.typeArguments) is not null;
+            var substituted = new Dictionary<string, TypeInfo>(passed.Count, StringComparer.Ordinal);
+            foreach (KeyValuePair<string, TypeInfo> pair in passed)
+                substituted[pair.Key] = SubstituteParams(pair.Value, rowClassId, known);
+            return TypeArgumentsEqual(substituted, target.typeArguments);
+        }
+
+        /// <summary>Whether each of <paramref name="expected"/>'s arguments equals <paramref name="actual"/>'s, unknowns only themselves. The server's <c>typeArgumentsEqual</c>.</summary>
+        private static bool TypeArgumentsEqual(
+            IReadOnlyDictionary<string, TypeInfo> actual,
+            Dictionary<string, TypeInfo>? expected)
+        {
+            if (expected is null)
+                return true;
+            foreach (KeyValuePair<string, TypeInfo> pair in expected)
             {
-                var substituted = new Dictionary<string, TypeInfo>(passed.Count, StringComparer.Ordinal);
-                foreach (KeyValuePair<string, TypeInfo> pair in passed)
-                    substituted[pair.Key] = SubstituteParams(pair.Value, rowClassId, known);
-                passed = substituted;
+                if (!actual.TryGetValue(pair.Key, out TypeInfo? passed))
+                    return false;
+                if (!NeoReferenceTypes.InvariantlyEqual(passed, pair.Value))
+                    return false;
             }
-            return UnifyPassed(passed, rowClassId, target.typeArguments) is not null;
+            return true;
         }
 
         /// <summary>

@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -16,9 +17,9 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// P127 §1.2. A Lookup or class slot with a closed generic class type
-    /// judges a row by its closed type: its class, closed by the slot it's
-    /// placed in, or with its own params as wildcards when that slot leaves
-    /// it open (the server's <c>closedClassTargetViolation</c>). The runtime
+    /// judges a row by its closed type: its class, closed by the arguments
+    /// it was built with, then by the slot it's placed in, each param both
+    /// leave open an unknown that equals only itself (the server's <c>closedClassTargetViolation</c>). The runtime
     /// doesn't judge an object target (the TypeScript runtime's
     /// <c>assertReferenceFits</c>). <c>DerivedBox&lt;T&gt; : Box&lt;T&gt;</c>,
     /// <c>SeedBox : Box&lt;Seed&gt;</c>, <c>DerivedPair&lt;T, U&gt; : Box&lt;T&gt;</c>
@@ -193,6 +194,68 @@ namespace NeoCompose.Tests
 
             var error = Assert.Throws<InvalidOperationException>(() => Lookup(client, lookup).Add(rowId));
             Assert.AreEqual(message, error!.Message);
+        }
+
+        // A row stamps the arguments its slot leaves open, so a reference
+        // reads them as C# does, at any depth. TagPair<T, U> : Box<T>, ITag<U>;
+        // TagL<T, U> : Box<T>, ITag<List<U>>; Mix<T, U> : Box<T>, ITag<(T, U)>;
+        // MixD<T, U> : Box<U>, ITag<Dictionary<string, List<T>>>.
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "ITag<Tool>", true)]
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "ITag<Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", "Box<Seed>", "TagPair<Seed,Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "IHolds<Seed>", true)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "IHolds<Tool>", false)]
+        [TestCase("TagPair<Seed,Tool>", "ITag<Tool>", "TagPair<Tool,Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<List<Tool>>", true)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "ITag<List<Seed>>", false)]
+        [TestCase("TagL<Seed,Tool>", "Box<Seed>", "TagL<Seed,Seed>", false)]
+        [TestCase("TagL<Seed,Tool>", "ITag<List<Tool>>", "IHolds<Tool>", false)]
+        [TestCase("TagL<Seed,Tool>", "ITag<List<Tool>>", "TagL<Tool,Tool>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Seed,Tool)>", true)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Tool,Tool)>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "ITag<(Seed,Seed)>", false)]
+        [TestCase("Mix<Seed,Tool>", "Box<Seed>", "Mix<Seed,Seed>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "ITag<(Tool,Tool)>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "ITag<(Seed,Seed)>", false)]
+        [TestCase("Mix<Seed,Tool>", "IHolds<Seed>", "Mix<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,List<Tool>>>", true)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,List<Seed>>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<Dictionary<string,Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "ITag<List<Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "Box<Seed>", "MixD<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<Dictionary<string,List<Seed>>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<Dictionary<string,Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "ITag<List<Tool>>", false)]
+        [TestCase("MixD<Tool,Seed>", "IHolds<Seed>", "MixD<Seed,Seed>", false)]
+        [TestCase("MixD<Tool,Seed>", "ITag<Dictionary<string,List<Tool>>>", "IHolds<Tool>", false)]
+        public void AReferenceReadsTheArgumentsARowStamps(string row, string slot, string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient(row, slot, target, stamped: true);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
+        }
+
+        // Unstamped, the U a Box<Seed> slot leaves open is unknown: it equals
+        // no type, so only a target that doesn't read it accepts.
+        [TestCase("Box<Seed>", true)]
+        [TestCase("IHolds<Seed>", true)]
+        [TestCase("Box<Tool>", false)]
+        [TestCase("ITag<Tool>", false)]
+        [TestCase("ITag<Seed>", false)]
+        [TestCase("TagPair<Seed,Tool>", false)]
+        [TestCase("TagPair<Seed,Seed>", false)]
+        public void AReferenceRefusesWhatAParamNothingClosesDecides(string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient("TagPair<Seed,Tool>", "Box<Seed>", target, stamped: false);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
         }
 
         // An interface slot holds any class that implements it, as C# does
@@ -770,6 +833,107 @@ namespace NeoCompose.Tests
                 data.values[row.id] = row;
             return Load(data);
         }
+
+        private const string TagId = "iface-tag";
+
+        /// <summary>
+        /// The fixture with a <c>tag-row</c> of <paramref name="row"/> in a
+        /// <paramref name="slot"/> field, stamped with its arguments when
+        /// <paramref name="stamped"/>, and a <c>Tagged</c> lookup declaring
+        /// <paramref name="target"/>. Each type is spelled by class name.
+        /// </summary>
+        private static NeoClient LoadTagClient(string row, string slot, string target, bool stamped)
+        {
+            ProjectData data = BuildProjectData();
+            data.interfaces[TagId] = new Interface
+            {
+                id = TagId,
+                projectId = "project",
+                name = "ITag",
+                members = new Dictionary<string, InterfaceMember>(),
+                genericParams = new List<GenericParamDeclaration> { new() { id = TagId + "-x", name = "X" } },
+            };
+            TypeBinding Param(string classId, string name) => Forward($"{classId}-{name}");
+            foreach ((string id, string name, TypeBinding boxArgument, Func<string, TypeBinding> tagArgument) in new (string, string, TypeBinding, Func<string, TypeBinding>)[]
+            {
+                ("class-tag-pair", "TagPair", Param("class-tag-pair", "t"), id => Param(id, "u")),
+                ("class-tag-l", "TagL", Param("class-tag-l", "t"), id => TestTypeBindings.List(Param(id, "u"))),
+                ("class-mix", "Mix", Param("class-mix", "t"), id => TestTypeBindings.Tuple(Param(id, "t"), Param(id, "u"))),
+                ("class-mix-d", "MixD", Param("class-mix-d", "u"), id => TestTypeBindings.Dictionary(
+                    TestTypeBindings.Of(MemberKind.String),
+                    TestTypeBindings.List(Param(id, "t")))),
+            })
+            {
+                NeoSchemaClass tagged = Extending(Class(id, name, genericParam: ($"{id}-t", "T"), secondParam: ($"{id}-u", "U")), boxArgument);
+                tagged.implementsInterfaces = new List<InterfaceConstruction>
+                {
+                    new()
+                    {
+                        interfaceId = TagId,
+                        arguments = new Dictionary<string, TypeBinding> { [TagId + "-x"] = tagArgument(id) },
+                    },
+                };
+                data.classes[id] = tagged;
+            }
+            TypeBinding slotType = TagKey(slot, data);
+            var slotMember = new ClassMember
+            {
+                id = "member-tag-slot",
+                projectId = "project",
+                name = "TagSlot",
+                kind = MemberKind.Class,
+                Requirement = NeoMemberRequirementKind.Required,
+            };
+            var slotArguments = new Dictionary<string, TypeBinding>(slotType.Bindings!, StringComparer.Ordinal);
+            if (slotType.Head!.Type == MemberKind.Interface)
+            {
+                slotMember.DeclaredInterfaceId = slotType.Head.InterfaceId;
+                slotMember.interfaceArguments = slotArguments;
+            }
+            else
+            {
+                slotMember.DeclaredClassId = slotType.Head.ClassId;
+                slotMember.classArguments = slotArguments;
+            }
+            data.members[slotMember.id] = slotMember;
+            data.members["member-tagged"] = new LookupMember
+            {
+                id = "member-tagged",
+                projectId = "project",
+                name = "Tagged",
+                kind = MemberKind.Lookup,
+                Requirement = NeoMemberRequirementKind.Optional,
+                Selection = NeoMemberSelectionKind.Single,
+                declaredTypeInfo = NeoTypeBindings.ToTypeInfo(TagKey(target, data)),
+            };
+            data.classes["class-holder"].schema["TagSlot"] = slotMember.id;
+            data.classes["class-holder"].schema["Tagged"] = "member-tagged";
+            ((ObjectMemberValue)data.values["root-save-value"]).value!["TagSlot"] = "tag-row";
+            TypeBinding rowType = TagKey(row, data);
+            ObjectMemberValue tagRow = Row("tag-row", rowType.Head!.ClassId!, new Dictionary<string, string> { ["k"] = "tag-k" });
+            data.values["tag-k"] = new NumberMemberValue { id = "tag-k", value = 7d };
+            if (stamped)
+                tagRow.genericBindings = new Dictionary<string, TypeBinding>(rowType.Bindings!, StringComparer.Ordinal);
+            data.values[tagRow.id] = tagRow;
+            return Load(data);
+        }
+
+        /// <summary><paramref name="spelled"/>, a type naming the fixture's classes and interfaces, as a binding.</summary>
+        private static TypeBinding TagKey(string spelled, ProjectData data) =>
+            TestTypeBindings.FromKey(
+                Regex.Replace(spelled, @"\b(Seed|Tool|Box|IHolds|ITag|TagPair|TagL|MixD|Mix)\b", match => match.Value switch
+                {
+                    "Seed" => "c:" + SeedId,
+                    "Tool" => "c:" + ToolId,
+                    "Box" => "c:" + BoxId,
+                    "IHolds" => "i:" + HoldsId,
+                    "ITag" => "i:" + TagId,
+                    "TagPair" => "c:class-tag-pair",
+                    "TagL" => "c:class-tag-l",
+                    "MixD" => "c:class-mix-d",
+                    _ => "c:class-mix",
+                }),
+                data);
 
         private static ProjectData BuildProjectData()
         {
