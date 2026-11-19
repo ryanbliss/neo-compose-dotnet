@@ -770,9 +770,10 @@ namespace NeoCompose.Runtime
                 return true;
             if (parameter?.variance is not { } variance)
                 return false;
-            if (TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(actual).Head!))
+            // An open param has no head: an unknown converts to nothing.
+            if (NeoTypeBindings.ArgumentOf(actual).Head is not { } actualHead || TypeBindings.IsValueType(actualHead))
                 return false;
-            if (TypeBindings.IsValueType(NeoTypeBindings.ArgumentOf(expected).Head!))
+            if (NeoTypeBindings.ArgumentOf(expected).Head is not { } expectedHead || TypeBindings.IsValueType(expectedHead))
                 return false;
             return variance == NeoGenericParamVarianceKind.Out
                 ? Assignable(client, actual, expected) == true

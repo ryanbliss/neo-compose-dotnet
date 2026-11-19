@@ -287,6 +287,21 @@ namespace NeoCompose.Tests
                 Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
         }
 
+        // The same unknown U at a variant position (ITag<out X>) converts to
+        // nothing, so the reference is refused rather than throwing.
+        [TestCase("Box<Seed>", true)]
+        [TestCase("ITag<Tool>", false)]
+        [TestCase("ITag<Seed>", false)]
+        public void AVariantPositionRefusesWhatAParamNothingClosesDecides(string target, bool accepts)
+        {
+            using NeoClient client = LoadTagClient("TagPair<Seed,Tool>", "Box<Seed>", target, stamped: false, tagVariance: NeoGenericParamVarianceKind.Out);
+
+            if (accepts)
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+            else
+                Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
+        }
+
         // An interface slot holds any class that implements it, as C# does
         // (#2556): the server's objectTargetViolation asks only that the row
         // implement IHolds<Seed>. Paired leaves DerivedPair's U open, and
@@ -876,7 +891,7 @@ namespace NeoCompose.Tests
         /// <paramref name="stamped"/>, and a <c>Tagged</c> lookup declaring
         /// <paramref name="target"/>. Each type is spelled by class name.
         /// </summary>
-        private static NeoClient LoadTagClient(string row, string slot, string target, bool stamped)
+        private static NeoClient LoadTagClient(string row, string slot, string target, bool stamped, NeoGenericParamVarianceKind? tagVariance = null)
         {
             ProjectData data = BuildProjectData();
             data.interfaces[TagId] = new Interface
@@ -885,7 +900,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "ITag",
                 members = new Dictionary<string, InterfaceMember>(),
-                genericParams = new List<GenericParamDeclaration> { new() { id = TagId + "-x", name = "X" } },
+                genericParams = new List<GenericParamDeclaration> { new() { id = TagId + "-x", name = "X", variance = tagVariance } },
             };
             TypeBinding Param(string classId, string name) => Forward($"{classId}-{name}");
             foreach ((string id, string name, TypeBinding boxArgument, Func<string, TypeBinding> tagArgument) in new (string, string, TypeBinding, Func<string, TypeBinding>)[]
