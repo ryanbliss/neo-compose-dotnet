@@ -109,7 +109,8 @@ namespace NeoCompose.Tests
             NeoScriptExecutor.Execute(client,
                 Action(AssignInstruction("Cell", "x", NumberLiteral(16777217), IntType())), scope, ctx);
             Assert.AreEqual(16777217d, RequireVector2(client, "value-cell").x);
-            Assert.AreEqual(281475010265105d, NSGetterEvaluator.Evaluate(getter, ctx));
+            // 16777217² + 4² wraps in int32, as Unity's int sqrMagnitude does (P127 §3.1).
+            Assert.AreEqual(33554449d, NSGetterEvaluator.Evaluate(getter, ctx));
         }
 
         [Test]

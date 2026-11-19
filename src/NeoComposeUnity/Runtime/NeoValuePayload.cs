@@ -63,8 +63,8 @@ namespace NeoCompose.Runtime
             private set;
         }
 
-        /// <summary>A <c>Type</c>, <c>CultureInfo</c> or <c>NumberFormatInfo</c> slot's payload, read back as <paramref name="origin"/>.</summary>
-        internal static NeoValuePayload Declared(JObject value, object origin) =>
+        /// <summary>A <c>Type</c>, <c>CultureInfo</c> or <c>NumberFormatInfo</c> slot's payload, read back as <paramref name="origin"/> when there is one.</summary>
+        internal static NeoValuePayload Declared(JObject value, object? origin) =>
             new(value)
             {
                 origin = origin,

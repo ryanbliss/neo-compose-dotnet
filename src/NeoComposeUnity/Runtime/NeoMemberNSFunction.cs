@@ -710,6 +710,14 @@ namespace NeoCompose.Runtime
             // Validation, generic resolution and parameter binding live in
             // their own methods: their locals and exception regions would
             // otherwise widen the frame every call zeroes.
+            // A null instance still evaluates its arguments before invocation fails.
+            // Keep the usual path binding directly into parameter slots below.
+            if (receiver is null && !function.IsStatic && site is not null
+                && NeoExtensionRuntime.Descriptor(function.Member)?.receiverType.required != false)
+            {
+                foreach (Pointer argument in site.args)
+                    NSGetterEvaluator.EvalPointer(argument, siteScope!, ctx);
+            }
             ValidateInvocation(client, function, receiver, site?.args.Length ?? args.Length, ctx);
             FunctionWithReturnType action = function.Action;
             bool isStatic = function.IsStatic;
@@ -837,7 +845,7 @@ namespace NeoCompose.Runtime
             if (receiver is null && !isStatic && NeoExtensionRuntime.Descriptor(function.Member)?.receiverType.required != false)
             {
                 throw new NSGetterRuntimeError(
-                    $"Cannot invoke NSFunction '{function.Member.name}' on a null receiver.");
+                    $"Cannot invoke NSFunction '{function.Member.name}' on a null receiver.", NeoErrorContract.NeoNullReferenceError);
             }
             if (receiver is not null && isStatic)
             {
@@ -964,15 +972,16 @@ namespace NeoCompose.Runtime
                 for (int i = 0; i < table.Length; i++)
                     table[i] = NSGetterEvaluator.CloseContextType(table[i], ctx);
             }
+            TypeInfo[] signatureTable = SignatureTypeArguments(table);
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
-                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
+                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], signatureTable);
             var created = new NeoBoundNSFunctionSignature(
                 function,
                 key,
                 cacheBinding ? chain : null,
                 table,
-                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, table),
+                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, signatureTable),
                 argumentTypes);
             // A class-forwarding call varies with the caller's receiver, not
             // just its function type-argument table.
@@ -984,6 +993,27 @@ namespace NeoCompose.Runtime
                     bindingSite.BoundSignatures = created;
             }
             return created;
+        }
+
+        /// <summary>
+        /// A frame's type arguments as its signature reads them. They are
+        /// runtime identities, where every reference type admits null
+        /// (P127 §2), so a <c>T</c> over one holds <c>default(T)</c>.
+        /// </summary>
+        private static TypeInfo[] SignatureTypeArguments(TypeInfo[] table)
+        {
+            TypeInfo[]? relaxed = null;
+            for (int i = 0; i < table.Length; i++)
+            {
+                TypeInfo argument = table[i];
+                if (!argument.required || NeoTypeRules.IsValueKind(argument.type))
+                    continue;
+                relaxed ??= (TypeInfo[])table.Clone();
+                TypeInfo nullable = argument.ShallowClone();
+                nullable.required = false;
+                relaxed[i] = nullable;
+            }
+            return relaxed ?? table;
         }
 
         private static NeoScriptTerminalNormalizer BoundTerminalNormalizer(
@@ -1034,7 +1064,16 @@ namespace NeoCompose.Runtime
                 try
                 {
                     if (i >= argumentCount)
-                        value = NeoParameterDefaults.DefaultRuntimeValue(argument, function.CallSubject);
+                        value = NSGetterEvaluator.ParameterDefault(client, argument, argumentTypes[i], function.CallSubject);
+                    if (argument.mode == NeoParameterModeKind.Out)
+                    {
+                        if (value is not NeoOutReference)
+                            throw new NSGetterRuntimeError($"Parameter '{argument.name}' requires an out argument.");
+                        scope.SetParameter(i + argumentParameterOffset, value);
+                        continue;
+                    }
+                    if (value is NeoOutReference)
+                        throw new NSGetterRuntimeError($"Parameter '{argument.name}' does not accept an out argument.");
                     object? normalized = NeoScriptValueMarshaller.Normalize(
                         client,
                         ctx.valueOwnership,
@@ -2024,6 +2063,9 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException($"{subject} has a collection element type incompatible with its declared interface.");
                 value = NeoSequences.WriteBoxed(client, value, typeInfo);
             }
+            // P127 §14. A C# value crosses into an object parameter boxed.
+            if (typeInfo.type == MemberKind.Object && value is not (null or NeoBox or NeoTypeValue))
+                value = NeoGeneratedTypesSupport.BoxClrArgument(client, ownership, value, ctx, in subject);
             // Primitives, value references and enum ids match none of the
             // rewrites in NormalizeRewritten, so they skip its chain.
             switch (typeInfo.type)
@@ -2171,11 +2213,7 @@ namespace NeoCompose.Runtime
                         value = NeoGeneratedTypesSupport.SpriteValue(client, sprite);
                     if (value is SpriteValue spriteValue)
                     {
-                        value = new Dictionary<string, object?>
-                        {
-                            ["fileId"] = spriteValue.fileId,
-                            ["sliceIndex"] = spriteValue.sliceIndex,
-                        };
+                        value = spriteValue.RuntimeValue();
                     }
                     break;
                 case MemberKind.Audio:
@@ -2307,7 +2345,8 @@ namespace NeoCompose.Runtime
                     || value is Sprite
                     || value is NeoReadOnlySprite
                     || HasDictionaryString(value, "fileId")
-                        && HasDictionaryNumber(value, "sliceIndex"),
+                        && (value is IDictionary<string, object?> sprite && !sprite.ContainsKey("sliceIndex")
+                            || HasDictionaryNumber(value, "sliceIndex")),
                 MemberKind.Audio => value is FileValue
                     || value is AudioClip
                     || HasDictionaryString(value, "fileId"),

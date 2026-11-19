@@ -67,7 +67,11 @@ namespace NeoCompose.Runtime
         }
 
         private static ConstructorChainArguments PrepareConstructorInitializerArguments(
-            NeoClient client, NeoResolvedConstructorLink link, object?[] values, NeoScript.NSGetterEvaluator.Context ctx)
+            NeoClient client,
+            NeoResolvedConstructorLink link,
+            object?[] values,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> instanceEnv,
+            NeoScript.NSGetterEvaluator.Context ctx)
         {
             if (link.record is null)
                 return default;
@@ -102,7 +106,7 @@ namespace NeoCompose.Runtime
                 }
                 if (readsThis)
                     break;
-                values = EvaluateDeclaredBaseArguments(client, current, values, null, ctx);
+                values = EvaluateDeclaredBaseArguments(client, instanceEnv, current, values, null, ctx);
                 bases[depth] = values;
                 current = current.baseLink!;
             }
@@ -166,7 +170,7 @@ namespace NeoCompose.Runtime
             {
                 string subject = $"Constructor '{constructorId}'";
                 for (int i = 0; i < parameters.Length; i++)
-                    arguments[i] = NeoParameterDefaults.DefaultRuntimeValue(parameters[i], subject);
+                    arguments[i] = NeoScript.NSGetterEvaluator.ParameterDefault(client, parameters[i], parameters[i], subject);
                 return arguments;
             }
             if (ReadsConstructorParameter(client, init.compiled!))

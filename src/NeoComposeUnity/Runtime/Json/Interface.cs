@@ -162,6 +162,9 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string name = null!;
         public Dictionary<string, InterfaceMember> members = null!;
+        /// <summary>Existing export metadata identifying a protected system interface.</summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public JObject? system;
         public List<string>? memberKeyOrder;
         /// <summary>
         /// P127 §4.7. Each extended interface construction, in order. A

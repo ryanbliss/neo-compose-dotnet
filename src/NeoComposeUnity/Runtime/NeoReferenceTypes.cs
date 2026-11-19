@@ -194,6 +194,8 @@ namespace NeoCompose.Runtime
                             entryTypeInfo = Primitive(MemberKind.DialogueLookup, true),
                         };
                     }
+                case ObjectMember objectMember:
+                    return new ObjectTypeInfo { type = MemberKind.Object, required = required, objectType = objectMember.objectType };
                 case TupleMember tuple:
                     {
                         var elements = new TupleElementTypeInfo[tuple.elementMemberIds.Length];
