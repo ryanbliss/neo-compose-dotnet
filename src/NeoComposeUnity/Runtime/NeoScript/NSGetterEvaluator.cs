@@ -7573,6 +7573,15 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>
+        /// Whether a script's Set membership of <paramref name="row"/> asks
+        /// its equality index: a comparer, or an entry type's authored Equals,
+        /// decides. Keys decide the rest, so a stored copy of a list isn't its
+        /// source.
+        /// </summary>
+        internal static bool SetDecidesByEquality(MemberValue row, TypeBinding type, Context ctx) =>
+            row.comparer is not null || ReachesAuthoredEquality(type, ctx);
+
         private static bool SetHoldsKey(object? set, object? value, JsonMember entryMember, Context ctx)
         {
             if (FindRowReference(set, ctx) is { } reference
@@ -7581,10 +7590,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 TypeBinding entryType = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, row), new HashSet<string>()));
-                // A comparer, or an entry type's authored Equals, decides
-                // membership. Keys decide the rest, so a stored copy of a
-                // list isn't its source.
-                if (row.comparer is not null || ReachesAuthoredEquality(entryType, ctx))
+                if (SetDecidesByEquality(row, entryType, ctx))
                 {
                     var index = GetStoredEqualityIndex(row, entryType, reference.ownership, ctx, row.value ?? Array.Empty<string>(),
                         id => ResolveValueIfId(id, ctx, preferredOwnership: reference.ownership, member: entryMember));
@@ -7704,7 +7710,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, entryMember, NeoScriptExecutor.CollectionRowEnv(ctx.client, set.Row), new HashSet<string>()));
-                if (UsesStoredEquality(set.Row, type, ctx))
+                if (SetDecidesByEquality(set.Row, type, ctx))
                     return set.FindEqualityEntry(value, entryMember, type, plan, ctx) is not null;
             }
             if (entryMember is ClassMember)

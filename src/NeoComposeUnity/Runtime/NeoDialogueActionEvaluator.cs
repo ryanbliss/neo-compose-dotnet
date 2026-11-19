@@ -6800,7 +6800,7 @@ namespace NeoCompose.Runtime
                 JsonMember member = entryMember ?? MemberFromTypeInfo(entryTypeInfo);
                 TypeBinding type = NeoTypeBindings.FromTypeInfo(NeoNSFunctionRuntime.TypeInfoFromBindingMember(
                     ctx.client, member, CollectionRowEnv(ctx.client, list.Row), new HashSet<string>()));
-                if (NSGetterEvaluator.UsesStoredEquality(list.Row, type, ctx))
+                if (NSGetterEvaluator.SetDecidesByEquality(list.Row, type, ctx))
                     return list.FindEqualityEntry(value, member, type, batch.Plan, ctx);
                 if (member is not ClassMember)
                     return list.FindSetEntry(NSGetterEvaluator.StoredSetProbeKey(member, value, ctx, list.Row), member, batch.Plan);

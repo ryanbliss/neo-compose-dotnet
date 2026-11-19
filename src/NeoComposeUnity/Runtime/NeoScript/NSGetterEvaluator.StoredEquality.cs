@@ -253,7 +253,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return false;
             if (requested.Comparer is not null)
                 return false;
-            if (!UsesStoredEquality(row, requested.Default.Type, ctx))
+            if (!SetDecidesByEquality(row, requested.Default.Type, ctx))
             {
                 contains = SetHoldsKey(collection, candidate, reference.EntryMember(ctx.client)!, ctx);
                 return true;
