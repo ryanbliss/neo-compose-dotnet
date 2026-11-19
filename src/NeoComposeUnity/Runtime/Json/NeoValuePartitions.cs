@@ -117,7 +117,7 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         internal static IEnumerable<string> ReadIndexFiles(string projectJson)
         {
-            using var reader = new JsonTextReader(new StringReader(projectJson));
+            using var reader = new JsonTextReader(new StringReader(projectJson)) { MaxDepth = NeoInterningJsonReader.ProjectSettings.MaxDepth };
             if (!reader.Read() || reader.TokenType != JsonToken.StartObject)
                 yield break;
             while (reader.Read() && reader.TokenType == JsonToken.PropertyName)

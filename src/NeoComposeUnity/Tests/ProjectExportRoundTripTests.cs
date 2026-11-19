@@ -959,7 +959,7 @@ namespace NeoCompose.Tests
 
         private static void CollectStaleSchema(string label, string json, List<string> swept, List<string> stale)
         {
-            if (JToken.Parse(json) is not JObject root)
+            if (NeoInterningJsonReader.Deserialize<JToken>(json) is not JObject root)
                 return;
             if (root["metadata"]?["schemaVersion"] is not JToken version)
                 return;

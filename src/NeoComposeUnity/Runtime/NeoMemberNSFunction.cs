@@ -930,6 +930,13 @@ namespace NeoCompose.Runtime
                 returnTypeInfo,
                 genericEnv,
                 new HashSet<string>());
+            // Only a bare class T return admits default(T); nested slots stay strict.
+            if (returnTypeInfo.type == MemberKind.Generic && returnType.required
+                && !NeoTypeRules.IsValueKind(returnType.type))
+            {
+                returnType = returnType.ShallowClone();
+                returnType.required = false;
+            }
             var resolved = new TypeInfo[argumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
             {
@@ -991,16 +998,16 @@ namespace NeoCompose.Runtime
                 for (int i = 0; i < table.Length; i++)
                     table[i] = NSGetterEvaluator.CloseContextType(table[i], ctx);
             }
-            TypeInfo[] signatureTable = SignatureTypeArguments(table);
+            TypeInfo[] returnTable = ReturnTypeArguments(table);
             var argumentTypes = new TypeInfo[function.ArgumentTypes.Length];
             for (int i = 0; i < argumentTypes.Length; i++)
-                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], signatureTable);
+                argumentTypes[i] = NeoFunctionTypeArguments.BindArgument(function.ArgumentTypes[i], table);
             var created = new NeoBoundNSFunctionSignature(
                 function,
                 key,
                 cacheBinding ? chain : null,
                 table,
-                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, signatureTable),
+                NeoFunctionTypeArguments.Bind(function.ReturnTypeInfo, returnTable),
                 argumentTypes);
             // A class-forwarding call varies with the caller's receiver, not
             // just its function type-argument table.
@@ -1015,11 +1022,10 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// A frame's type arguments as its signature reads them. They are
-        /// runtime identities, where every reference type admits null
-        /// (P127 §2), so a <c>T</c> over one holds <c>default(T)</c>.
+        /// A bare T return still admits default(T) for a reference type.
+        /// Parameters instead retain the call's type-argument nullability.
         /// </summary>
-        private static TypeInfo[] SignatureTypeArguments(TypeInfo[] table)
+        private static TypeInfo[] ReturnTypeArguments(TypeInfo[] table)
         {
             TypeInfo[]? relaxed = null;
             for (int i = 0; i < table.Length; i++)
@@ -1110,6 +1116,21 @@ namespace NeoCompose.Runtime
                 }
                 catch (Exception exception)
                 {
+                    if (value is null && argument.mode != NeoParameterModeKind.Out
+                        && argumentTypes[i].required && argumentTypes[i].type != MemberKind.Null
+                        && !NeoTypeRules.IsValueKind(argumentTypes[i].type))
+                    {
+                        // Filled defaults bind unchecked. Inspect provenance only
+                        // after the existing normalizer rejects a null reference.
+                        if (i >= argumentCount)
+                        {
+                            scope.SetParameter(i + argumentParameterOffset, null);
+                            continue;
+                        }
+                        throw new NSGetterRuntimeError(
+                            $"Function '{function.Member.name}' was passed null for non-nullable parameter '{argument.name}'.",
+                            NeoErrorContract.NeoNullReferenceError);
+                    }
                     throw new NSGetterRuntimeError(
                         $"NSFunction '{function.Member.name}' ({function.MemberId}) argument {i} " +
                         $"'{argument.name}' is incompatible with declared {argument.type}; " +
