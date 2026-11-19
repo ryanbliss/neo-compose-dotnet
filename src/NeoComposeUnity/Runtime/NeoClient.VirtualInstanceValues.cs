@@ -1467,10 +1467,7 @@ namespace NeoCompose.Runtime
                 ? NeoTypeSources.TypeSourcedClassRowStamp(this, instanceRoot, instanceRoot.classId!)
                 : instanceRoot.genericBindings;
             IReadOnlyDictionary<string, TypeBinding>? replayClassArguments =
-                NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    this,
-                    rootStamp,
-                    SlotClassArguments(placementMember, instanceRoot.classId!));
+                SlotClassArguments(placementMember, instanceRoot.classId!, rootStamp);
             NeoGeneratedTypesSupport.RuntimeConstructedClassValue constructed;
             ConstructionSnapshot? snapshot = null;
             bool wasReplaying = isReplayingVirtualInstance;

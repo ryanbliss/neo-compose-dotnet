@@ -239,6 +239,35 @@ namespace NeoCompose.Tests
                 Assert.Throws<InvalidOperationException>(() => Lookup(client, "Tagged").Add("tag-row"));
         }
 
+        // A variant slot's argument only bounds its row's: the row reads as
+        // the type it was built with, as an object's runtime type does in C#.
+        // VOne<U> : IProd<U>, ISink<U>, with IProd<out X> and ISink<in X>.
+        [TestCase("VOne<Sprout>", "IProd<Seed>", "IProd<Sprout>", "ISink<Seed>", SproutId)]
+        [TestCase("VOne<Seed>", "ISink<Sprout>", "ISink<Seed>", "IProd<Sprout>", SeedId)]
+        public void AVariantSlotKeepsTheArgumentsItsRowWasBuiltWith(
+            string row,
+            string slot,
+            string readAs,
+            string refusedAs,
+            string ownClassId)
+        {
+            using (NeoClient client = LoadTagClient(row, slot, readAs, stamped: true))
+            {
+                var node = client.save.Get<NeoMemberClass>("TagSlot");
+
+                Assert.AreEqual(
+                    TestTypeBindings.Class(ownClassId),
+                    NeoTypeBindingViews.BindingOf(node.GenericEnv[VOneU].memberId!));
+                Assert.AreEqual(7d, node.Get<NeoMemberInt>("k").value!.value);
+                Assert.IsTrue(Lookup(client, "Tagged").Add("tag-row"));
+                LogAssert.NoUnexpectedReceived();
+            }
+            using (NeoClient byClass = LoadTagClient(row, slot, row, stamped: true))
+                Assert.IsTrue(Lookup(byClass, "Tagged").Add("tag-row"));
+            using NeoClient refusing = LoadTagClient(row, slot, refusedAs, stamped: true);
+            Assert.Throws<InvalidOperationException>(() => Lookup(refusing, "Tagged").Add("tag-row"));
+        }
+
         // Unstamped, the U a Box<Seed> slot leaves open is unknown: it equals
         // no type, so only a target that doesn't read it accepts.
         [TestCase("Box<Seed>", true)]
@@ -835,6 +864,11 @@ namespace NeoCompose.Tests
         }
 
         private const string TagId = "iface-tag";
+        private const string ProdId = "iface-prod";
+        private const string SinkId = "iface-sink";
+        private const string SproutId = "class-sprout";
+        private const string VOneId = "class-v-one";
+        private const string VOneU = "class-v-one-u";
 
         /// <summary>
         /// The fixture with a <c>tag-row</c> of <paramref name="row"/> in a
@@ -875,6 +909,31 @@ namespace NeoCompose.Tests
                 };
                 data.classes[id] = tagged;
             }
+            foreach ((string id, string name, NeoGenericParamVarianceKind variance) in new[]
+            {
+                (ProdId, "IProd", NeoGenericParamVarianceKind.Out),
+                (SinkId, "ISink", NeoGenericParamVarianceKind.In),
+            })
+            {
+                data.interfaces[id] = new Interface
+                {
+                    id = id,
+                    projectId = "project",
+                    name = name,
+                    members = new Dictionary<string, InterfaceMember>(),
+                    genericParams = new List<GenericParamDeclaration> { new() { id = id + "-x", name = "X", variance = variance } },
+                };
+            }
+            NeoSchemaClass sprout = Class(SproutId, "Sprout");
+            sprout.extendsClassId = SeedId;
+            data.classes[SproutId] = sprout;
+            NeoSchemaClass vOne = Class(VOneId, "VOne", new Dictionary<string, string> { ["k"] = "member-k" }, (VOneU, "U"));
+            vOne.implementsInterfaces = new List<InterfaceConstruction>
+            {
+                new() { interfaceId = ProdId, arguments = new Dictionary<string, TypeBinding> { [ProdId + "-x"] = Forward(VOneU) } },
+                new() { interfaceId = SinkId, arguments = new Dictionary<string, TypeBinding> { [SinkId + "-x"] = Forward(VOneU) } },
+            };
+            data.classes[VOneId] = vOne;
             TypeBinding slotType = TagKey(slot, data);
             var slotMember = new ClassMember
             {
@@ -921,9 +980,13 @@ namespace NeoCompose.Tests
         /// <summary><paramref name="spelled"/>, a type naming the fixture's classes and interfaces, as a binding.</summary>
         private static TypeBinding TagKey(string spelled, ProjectData data) =>
             TestTypeBindings.FromKey(
-                Regex.Replace(spelled, @"\b(Seed|Tool|Box|IHolds|ITag|TagPair|TagL|MixD|Mix)\b", match => match.Value switch
+                Regex.Replace(spelled, @"\b(Seed|Sprout|Tool|Box|IHolds|ITag|IProd|ISink|VOne|TagPair|TagL|MixD|Mix)\b", match => match.Value switch
                 {
                     "Seed" => "c:" + SeedId,
+                    "Sprout" => "c:" + SproutId,
+                    "IProd" => "i:" + ProdId,
+                    "ISink" => "i:" + SinkId,
+                    "VOne" => "c:" + VOneId,
                     "Tool" => "c:" + ToolId,
                     "Box" => "c:" + BoxId,
                     "IHolds" => "i:" + HoldsId,

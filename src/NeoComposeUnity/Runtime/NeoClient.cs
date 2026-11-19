@@ -2637,15 +2637,21 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// P113 §1. The class arguments a row of <paramref name="rowClassId"/>
-        /// takes from <paramref name="slot"/>.
+        /// takes: its <paramref name="stamp"/> first, as its runtime type,
+        /// then <paramref name="slot"/>'s for each param the stamp leaves out.
+        /// A variant slot's argument only bounds the row's: an
+        /// <c>IProd&lt;out X&gt;</c> slot of <c>IProd&lt;Seed&gt;</c> holds a
+        /// <c>VOne&lt;Sprout&gt;</c>.
         /// </summary>
         internal IReadOnlyDictionary<string, TypeBinding>? SlotClassArguments(
             ClassMember? slot,
-            string rowClassId)
+            string rowClassId,
+            IReadOnlyDictionary<string, TypeBinding>? stamp = null)
         {
-            if (slot?.DeclaredInterfaceId is null)
-                return slot?.classArguments;
-            return InterfaceImplementers.SlotClassArguments(slot, rowClassId);
+            IReadOnlyDictionary<string, TypeBinding>? slotArguments = slot?.DeclaredInterfaceId is null
+                ? slot?.classArguments
+                : InterfaceImplementers.SlotClassArguments(slot, rowClassId);
+            return NeoGenericResolution.CloseClassArgumentsFromStamp(this, stamp, slotArguments);
         }
 
         internal IList<MergedSchemaEntry> ResolveInstanceSurfaceSchema(string classId) =>

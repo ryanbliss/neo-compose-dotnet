@@ -694,10 +694,8 @@ namespace NeoCompose.Runtime
         {
             if (classId is null)
                 return OverlayStamp(client, ownerEnv ?? EmptyEnv, stamp);
-            IReadOnlyDictionary<string, TypeBinding>? arguments = CloseClassArgumentsFromStamp(
-                client,
-                stamp,
-                client.SlotClassArguments(slot as ClassMember, classId));
+            IReadOnlyDictionary<string, TypeBinding>? arguments =
+                client.SlotClassArguments(slot as ClassMember, classId, stamp);
             return ResolveInstanceEnv(chain ?? client.ResolveClassInheritanceChain(classId), arguments, client, ownerEnv);
         }
 
@@ -928,17 +926,33 @@ namespace NeoCompose.Runtime
             {
                 return placementArguments;
             }
+            if (placementArguments is null || placementArguments.Count == 0)
+                return stamp;
+            if (StampAgrees(stamp, placementArguments))
+                return placementArguments;
             var result = new Dictionary<string, TypeBinding>(
                 stamp.Count + (placementArguments?.Count ?? 0),
                 StringComparer.Ordinal);
             foreach (KeyValuePair<string, TypeBinding> binding in stamp)
                 result[binding.Key] = binding.Value;
-            if (placementArguments is not null)
-            {
-                foreach (KeyValuePair<string, TypeBinding> argument in placementArguments)
-                    result.TryAdd(argument.Key, argument.Value);
-            }
+            foreach (KeyValuePair<string, TypeBinding> argument in placementArguments)
+                result.TryAdd(argument.Key, argument.Value);
             return result;
+        }
+
+        /// <summary>Whether <paramref name="placementArguments"/> already binds each of <paramref name="stamp"/>'s params as it does.</summary>
+        private static bool StampAgrees(
+            IReadOnlyDictionary<string, TypeBinding> stamp,
+            IReadOnlyDictionary<string, TypeBinding> placementArguments)
+        {
+            foreach (KeyValuePair<string, TypeBinding> binding in stamp)
+            {
+                if (!placementArguments.TryGetValue(binding.Key, out TypeBinding? argument))
+                    return false;
+                if (!ReferenceEquals(argument, binding.Value) && !argument.Equals(binding.Value))
+                    return false;
+            }
+            return true;
         }
 
         /// <summary>

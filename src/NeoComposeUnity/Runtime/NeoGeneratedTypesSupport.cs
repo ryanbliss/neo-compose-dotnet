@@ -4246,9 +4246,7 @@ namespace NeoCompose.Runtime
                         string actualClassId = classMember.RowClassId(classRow.classId);
                         classRow.classId = actualClassId;
                         IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                            NeoGenericResolution.CloseClassArgumentsFromStamp(
-                                client,
-                                classRow.genericBindings, client.SlotClassArguments(classMember, actualClassId));
+                            client.SlotClassArguments(classMember, actualClassId, classRow.genericBindings);
                         // A slot whose arguments name its owner's params
                         // (Box<List<T>> in a Hold<T>) reads them in the
                         // owner's environment, as the owned-member walk does.
@@ -6504,10 +6502,7 @@ namespace NeoCompose.Runtime
             }
             string classId = placementMember.RowClassId(placementMember.defaultValue.classId);
             IReadOnlyDictionary<string, TypeBinding>? classArguments =
-                NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    client,
-                    storedRoot.genericBindings,
-                    client.SlotClassArguments(placementMember, classId));
+                client.SlotClassArguments(placementMember, classId, storedRoot.genericBindings);
             // The placement reads its arguments in its owner's environment.
             IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = classArguments is null
                 ? ResolveRuntimeInstanceEnv(client, classId, null)
@@ -7849,10 +7844,16 @@ namespace NeoCompose.Runtime
                             return false;
                         int owned = 0;
                         string bodyClassId = classMember.RowClassId(body.classId);
+                        Dictionary<string, TypeBinding>? bodyStamp = body switch
+                        {
+                            ObjectMemberValueBase declared => declared.genericBindings,
+                            MemberValue row => row.genericBindings,
+                            _ => null,
+                        };
                         foreach (MergedSchemaEntry entry in ResolveMergedSchema(
                             client,
                             bodyClassId,
-                            client.SlotClassArguments(classMember, bodyClassId)))
+                            client.SlotClassArguments(classMember, bodyClassId, bodyStamp)))
                         {
                             if (!client.TryGetMember(entry.memberId, out Member? child))
                                 return true;
@@ -9608,11 +9609,8 @@ namespace NeoCompose.Runtime
             // §4.1) — read in the environment of the slot's owner.
             // A class its interface slot leaves open carries a stamp (#2556).
             Dictionary<string, TypeBinding>? stamp = (member.defaultValue as ObjectMemberValueBase)?.genericBindings;
-            IReadOnlyDictionary<string, TypeBinding>? classArguments = stamp is null
-                ? client.SlotClassArguments(member, effectiveClassId)
-                : NeoGenericResolution.CloseClassArgumentsFromStamp(
-                    client,
-                    stamp, client.SlotClassArguments(member, effectiveClassId));
+            IReadOnlyDictionary<string, TypeBinding>? classArguments =
+                client.SlotClassArguments(member, effectiveClassId, stamp);
             RuntimeClassPlan classPlan = classArguments is null
                 ? ResolveRuntimeClassPlan(client, effectiveClassId)
                 : ResolveRuntimeClassPlan(
@@ -10086,9 +10084,7 @@ namespace NeoCompose.Runtime
                                 }
                             }
                         }
-                        var classArguments = NeoGenericResolution.CloseClassArgumentsFromStamp(
-                            client,
-                            sourceValue.genericBindings, client.SlotClassArguments(classMember, classId));
+                        var classArguments = client.SlotClassArguments(classMember, classId, sourceValue.genericBindings);
                         // The clone's environment reads the slot's arguments
                         // in the owner's (env), as the server clone does.
                         RuntimeClassPlan classPlan = classArguments is null
